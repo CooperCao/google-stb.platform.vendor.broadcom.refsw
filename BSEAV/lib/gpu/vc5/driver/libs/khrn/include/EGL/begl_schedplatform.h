@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __BEGL_SCHEDINTERFACE_H__
 #define __BEGL_SCHEDINTERFACE_H__
 
@@ -63,14 +61,19 @@ typedef struct BEGL_SchedInterface
    BEGL_SchedStatus   (*QueueBinRender)(void *context, void *session, const struct bcm_sched_job *bin, const struct bcm_sched_job *render);
    BEGL_SchedStatus   (*PollComplete)(void *context, void *session, struct bcm_sched_complete *complete);
    BEGL_SchedStatus   (*Query)(void *context, void *session, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalized_deps, struct bcm_sched_query_response *response);
-   int                (*MakeFenceForJobs)(void *session, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps, bool force_create);
-   int                (*MakeFenceForAnyNonFinalizedJob)(void *session);
+   int                (*MakeFenceForJobs)(void *context, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps, bool force_create);
    void               (*MakeFence)(void *context, int *fence);
    BEGL_SchedStatus   (*KeepFence)(void *context, int fence);
    void               (*WaitFence)(void *context, int fence);
    BEGL_FenceStatus   (*WaitFenceTimeout)(void *context, int fence, uint32_t timeoutms);
    void               (*SignalFence)(void *context, int fence);
    void               (*CloseFence)(void *context, int fence);
+
+   bool               (*WaitForAnyNonFinalisedJob)(void *context);
+   void               (*WaitJobs)(void *context, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps);
+   BEGL_FenceStatus   (*WaitJobsTimeout)(void *context, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps, uint32_t timeoutms);
+   BEGL_FenceStatus   (*WaitForAnyJobTimeout)(void *context, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps, uint32_t timeoutms);
+
    void               (*GetInfo)(void *context, void *session, struct v3d_idents *info);
 
    void               (*RegisterUpdateOldestNFID)(void *context, void *session, void (*update)(uint64_t));

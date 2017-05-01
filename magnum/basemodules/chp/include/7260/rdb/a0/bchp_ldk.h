@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,22 +70,22 @@
 /***************************************************************************
  *LDK - LED/Keypad
  ***************************************************************************/
-#define BCHP_LDK_KEYROW32                        0x20417000 /* [RO] LED/KEYPAD KEYPAD ROWS 3 AND 2 */
-#define BCHP_LDK_KEYROW10                        0x20417004 /* [RO] LED/KEYPAD KEYPAD ROWS 1 AND 0 */
-#define BCHP_LDK_PRESCHI                         0x20417008 /* [RW] LED/KEYPAD MAIN CLOCK PRESCALE HIGH */
-#define BCHP_LDK_PRESCLO                         0x2041700c /* [RW] LED/KEYPAD MAIN CLOCK PRESCALE LOW */
-#define BCHP_LDK_DUTYOFF                         0x20417010 /* [RW] LED/KEYPAD LED DUTY CYCLE OFF */
-#define BCHP_LDK_DUTYON                          0x20417014 /* [RW] LED/KEYPAD LED DUTY CYCLE ON */
-#define BCHP_LDK_DIGIT2                          0x20417018 /* [RW] LED/KEYPAD LED DIGIT 2 */
-#define BCHP_LDK_DIGIT1                          0x2041701c /* [RW] LED/KEYPAD LED DIGIT 1 */
-#define BCHP_LDK_DIGIT4                          0x20417020 /* [RW] LED/KEYPAD LED DIGIT 4 */
-#define BCHP_LDK_DIGIT3                          0x20417024 /* [RW] LED/KEYPAD LED DIGIT 3 */
-#define BCHP_LDK_DEBOUNCE                        0x20417028 /* [RW] LED/KEYPAD KEYPAD DEBOUNCE */
-#define BCHP_LDK_STATUS                          0x2041702c /* [RW] LED/KEYPAD STATUS LEDS */
-#define BCHP_LDK_KEY_MASK                        0x20417030 /* [RW] LED/KEYPAD KEY MASK */
-#define BCHP_LDK_CONTROL                         0x20417034 /* [RW] LED/KEYPAD CONTROL */
-#define BCHP_LDK_IDLEHI                          0x20417038 /* [RW] LED/KEYPAD LED IDLE HI */
-#define BCHP_LDK_IDLELO                          0x2041703c /* [RW] LED/KEYPAD LED IDLE LO */
+#define BCHP_LDK_KEYROW32                        0x20417000 /* [RO][32] LED/KEYPAD KEYPAD ROWS 3 AND 2 */
+#define BCHP_LDK_KEYROW10                        0x20417004 /* [RO][32] LED/KEYPAD KEYPAD ROWS 1 AND 0 */
+#define BCHP_LDK_PRESCHI                         0x20417008 /* [RW][32] LED/KEYPAD MAIN CLOCK PRESCALE HIGH */
+#define BCHP_LDK_PRESCLO                         0x2041700c /* [RW][32] LED/KEYPAD MAIN CLOCK PRESCALE LOW */
+#define BCHP_LDK_DUTYOFF                         0x20417010 /* [RW][32] LED/KEYPAD LED DUTY CYCLE OFF */
+#define BCHP_LDK_DUTYON                          0x20417014 /* [RW][32] LED/KEYPAD LED DUTY CYCLE ON */
+#define BCHP_LDK_DIGIT2                          0x20417018 /* [RW][32] LED/KEYPAD LED DIGIT 2 */
+#define BCHP_LDK_DIGIT1                          0x2041701c /* [RW][32] LED/KEYPAD LED DIGIT 1 */
+#define BCHP_LDK_DIGIT4                          0x20417020 /* [RW][32] LED/KEYPAD LED DIGIT 4 */
+#define BCHP_LDK_DIGIT3                          0x20417024 /* [RW][32] LED/KEYPAD LED DIGIT 3 */
+#define BCHP_LDK_DEBOUNCE                        0x20417028 /* [RW][32] LED/KEYPAD KEYPAD DEBOUNCE */
+#define BCHP_LDK_STATUS                          0x2041702c /* [RW][32] LED/KEYPAD STATUS LEDS */
+#define BCHP_LDK_KEY_MASK                        0x20417030 /* [RW][32] LED/KEYPAD KEY MASK */
+#define BCHP_LDK_CONTROL                         0x20417034 /* [RW][32] LED/KEYPAD CONTROL */
+#define BCHP_LDK_IDLEHI                          0x20417038 /* [RW][32] LED/KEYPAD LED IDLE HI */
+#define BCHP_LDK_IDLELO                          0x2041703c /* [RW][32] LED/KEYPAD LED IDLE LO */
 
 /***************************************************************************
  *KEYROW32 - LED/KEYPAD KEYPAD ROWS 3 AND 2

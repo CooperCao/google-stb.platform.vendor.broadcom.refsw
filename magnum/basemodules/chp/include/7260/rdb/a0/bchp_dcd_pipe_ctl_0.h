@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:26 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:45 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,30 +70,30 @@
 /***************************************************************************
  *DCD_PIPE_CTL_0
  ***************************************************************************/
-#define BCHP_DCD_PIPE_CTL_0_CORE_CONFIG          0x20026000 /* [RO] Decoder Core configuration information */
-#define BCHP_DCD_PIPE_CTL_0_AVD_CLK_GATE         0x20026004 /* [CFG] pipe clock gating */
-#define BCHP_DCD_PIPE_CTL_0_SW_RESET_REG         0x20026008 /* [RW] Software reset register */
-#define BCHP_DCD_PIPE_CTL_0_OUTPUT_CLIENT_SEL    0x20026010 /* [CFG] Output SCB Client Selection */
-#define BCHP_DCD_PIPE_CTL_0_MULTIPIPE_PFRI_ARB_CTL 0x20026014 /* [CFG] Multipipe PFRI Arbiter Controls */
-#define BCHP_DCD_PIPE_CTL_0_MULTIPIPE_PFRI_ARB_STATUS 0x20026018 /* [RO] Multipipe PFRI Arbiter Status */
-#define BCHP_DCD_PIPE_CTL_0_MULTIPIPE_PFRI_ARB_STATUS_UV 0x2002601c /* [RO] Multipipe PFRI Arbiter Status */
-#define BCHP_DCD_PIPE_CTL_0_RAM_POWER_DOWN       0x2002602c /* [RW] Ram Power Down Control */
-#define BCHP_DCD_PIPE_CTL_0_IPCOMM_L2R_TRANSMIT  0x20026030 /* [CFG] Inter-CPU L2R Transmit Data Register */
-#define BCHP_DCD_PIPE_CTL_0_IPCOMM_L2R_RECEIVE   0x20026034 /* [RO] Inter-CPU L2R Receive Data Register */
-#define BCHP_DCD_PIPE_CTL_0_IPCOMM_L2R_STATUS    0x20026038 /* [RW] Inter-CPU L2R Status Register */
-#define BCHP_DCD_PIPE_CTL_0_IPCOMM_R2L_TRANSMIT  0x2002603c /* [CFG] Inter-CPU R2L Transmit Data Register */
-#define BCHP_DCD_PIPE_CTL_0_IPCOMM_R2L_RECEIVE   0x20026040 /* [RO] Inter-CPU R2L Receive Data Register */
-#define BCHP_DCD_PIPE_CTL_0_IPCOMM_R2L_STATUS    0x20026044 /* [RW] Inter-CPU R2L Status Register */
-#define BCHP_DCD_PIPE_CTL_0_RECON_DEBUG_REG      0x20026080 /* [RW] Reconstructor debug register */
-#define BCHP_DCD_PIPE_CTL_0_IXFORM_DEBUG_REG     0x20026084 /* [RW] Ixform debug register */
-#define BCHP_DCD_PIPE_CTL_0_ILSI_DEBUG_REG       0x20026088 /* [RW] ILSI debug register */
-#define BCHP_DCD_PIPE_CTL_0_SHIM_DEBUG_CTL       0x2002608c /* [RW] SCB Shim debug register */
-#define BCHP_DCD_PIPE_CTL_0_SHIM_DEBUG_READ      0x20026090 /* [RO] SCB Shim debug register */
-#define BCHP_DCD_PIPE_CTL_0_SHIM_ERROR_REG       0x20026094 /* [RO] SCB Shim error register */
-#define BCHP_DCD_PIPE_CTL_0_DBLK_STRIPE_HEIGHT   0x20026100 /* [CFG] Legacy deblock stripe height */
-#define BCHP_DCD_PIPE_CTL_0_DBLK_STRIPE_WIDTH    0x20026180 /* [CFG] Legacy deblock stripe width */
-#define BCHP_DCD_PIPE_CTL_0_DBLK_PICT_BASE_LUMA  0x20026400 /* [WO] Legacy deblock luma picture base */
-#define BCHP_DCD_PIPE_CTL_0_DBLK_PICT_BASE_CHROMA 0x20026404 /* [WO] Legacy deblock chroma picture base */
+#define BCHP_DCD_PIPE_CTL_0_CORE_CONFIG          0x20026000 /* [RO][32] Decoder Core configuration information */
+#define BCHP_DCD_PIPE_CTL_0_AVD_CLK_GATE         0x20026004 /* [CFG][32] pipe clock gating */
+#define BCHP_DCD_PIPE_CTL_0_SW_RESET_REG         0x20026008 /* [RW][32] Software reset register */
+#define BCHP_DCD_PIPE_CTL_0_OUTPUT_CLIENT_SEL    0x20026010 /* [CFG][32] Output SCB Client Selection */
+#define BCHP_DCD_PIPE_CTL_0_MULTIPIPE_PFRI_ARB_CTL 0x20026014 /* [CFG][32] Multipipe PFRI Arbiter Controls */
+#define BCHP_DCD_PIPE_CTL_0_MULTIPIPE_PFRI_ARB_STATUS 0x20026018 /* [RO][32] Multipipe PFRI Arbiter Status */
+#define BCHP_DCD_PIPE_CTL_0_MULTIPIPE_PFRI_ARB_STATUS_UV 0x2002601c /* [RO][32] Multipipe PFRI Arbiter Status */
+#define BCHP_DCD_PIPE_CTL_0_RAM_POWER_DOWN       0x2002602c /* [RW][32] Ram Power Down Control */
+#define BCHP_DCD_PIPE_CTL_0_IPCOMM_L2R_TRANSMIT  0x20026030 /* [CFG][32] Inter-CPU L2R Transmit Data Register */
+#define BCHP_DCD_PIPE_CTL_0_IPCOMM_L2R_RECEIVE   0x20026034 /* [RO][32] Inter-CPU L2R Receive Data Register */
+#define BCHP_DCD_PIPE_CTL_0_IPCOMM_L2R_STATUS    0x20026038 /* [RW][32] Inter-CPU L2R Status Register */
+#define BCHP_DCD_PIPE_CTL_0_IPCOMM_R2L_TRANSMIT  0x2002603c /* [CFG][32] Inter-CPU R2L Transmit Data Register */
+#define BCHP_DCD_PIPE_CTL_0_IPCOMM_R2L_RECEIVE   0x20026040 /* [RO][32] Inter-CPU R2L Receive Data Register */
+#define BCHP_DCD_PIPE_CTL_0_IPCOMM_R2L_STATUS    0x20026044 /* [RW][32] Inter-CPU R2L Status Register */
+#define BCHP_DCD_PIPE_CTL_0_RECON_DEBUG_REG      0x20026080 /* [RW][32] Reconstructor debug register */
+#define BCHP_DCD_PIPE_CTL_0_IXFORM_DEBUG_REG     0x20026084 /* [RW][32] Ixform debug register */
+#define BCHP_DCD_PIPE_CTL_0_ILSI_DEBUG_REG       0x20026088 /* [RW][32] ILSI debug register */
+#define BCHP_DCD_PIPE_CTL_0_SHIM_DEBUG_CTL       0x2002608c /* [RW][32] SCB Shim debug register */
+#define BCHP_DCD_PIPE_CTL_0_SHIM_DEBUG_READ      0x20026090 /* [RO][32] SCB Shim debug register */
+#define BCHP_DCD_PIPE_CTL_0_SHIM_ERROR_REG       0x20026094 /* [RO][32] SCB Shim error register */
+#define BCHP_DCD_PIPE_CTL_0_DBLK_STRIPE_HEIGHT   0x20026100 /* [CFG][32] Legacy deblock stripe height */
+#define BCHP_DCD_PIPE_CTL_0_DBLK_STRIPE_WIDTH    0x20026180 /* [CFG][32] Legacy deblock stripe width */
+#define BCHP_DCD_PIPE_CTL_0_DBLK_PICT_BASE_LUMA  0x20026400 /* [WO][32] Legacy deblock luma picture base */
+#define BCHP_DCD_PIPE_CTL_0_DBLK_PICT_BASE_CHROMA 0x20026404 /* [WO][32] Legacy deblock chroma picture base */
 
 /***************************************************************************
  *CORE_CONFIG - Decoder Core configuration information

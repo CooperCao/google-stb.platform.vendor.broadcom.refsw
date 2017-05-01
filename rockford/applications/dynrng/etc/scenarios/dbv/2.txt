@@ -1,0 +1,3 @@
+stream=volcanos_U30000_mz.ts
+dynrng=dvs
+osd=off

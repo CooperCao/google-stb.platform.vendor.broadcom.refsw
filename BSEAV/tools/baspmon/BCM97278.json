@@ -1,0 +1,257 @@
+{
+ "_comment": " Each entry below represents a voltage rail name associated with a regulator enable and/or a v_sense-fb-i_sense (flying-lead) connector. ",
+ "_comment": " Each entry should have a unique name, usually from the schematic net name (abbreviated if necessary). For any entry that is not applicable enter empty quotes. ",
+ "_comment": " nominalv -> Enter the nominal voltage. Used as base for calculating margined voltage.  Also used to check for out of range voltage connections. ",
+ "_comment": " vscale -> The vsense input max voltage is 5V.  In order to sense voltages greater than 5V use an on-board voltage divider and set this scale accordingly. ",
+ "_comment": " volt_refdes -> Enter the reference designator for the voltage control cable. ",
+ "_comment": " enb_ctrl_# -> Enter the number of the enable pin used on the right-angle connector.  Supports 14 enables numbered 0 thru 13. ",
+ "_comment": " enb_res_refdes -> If the enable pin of a regulator has a resistor jumper select than enter the jumber reference designator. ",
+ "_comment": " shunt_r_mohm -> Enter the current measurement shunt resistor value in milliohms",
+ "_comment": " voltage_sense_enb -> Indicates a voltage rail is tied to the remote sense pin of the flying-lead connector.  1=enable; 0=disable",
+ "_comment": " reg_fb_enb -> Indicates a regulator feedback pin is tied to the feedback pin of the flying-lead connector.  1=enable; 0=disable",
+ "_comment": " current_sense_enb -> Indicates current sense lines are tied to the current sense pins of the flying-lead connector.  1=enable; 0=disable",
+ "config_rails":
+    {
+        "D0.95V_AVS_BCM7278" :
+        {
+            "nominalv": "0.95",
+            "vscale": "1",
+            "volt_refdes": "J5120",
+            "enb_ctrl_#": "00",
+            "enb_res_refdes": "R5157",
+            "shunt_r_mohm": "2",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "D0.95V_CPU_BCM7278" :
+        {
+            "nominalv": "0.95",
+            "vscale": "1",
+            "volt_refdes": "J5301",
+            "enb_ctrl_#": "01",
+            "enb_res_refdes": "R5302",
+            "shunt_r_mohm": "2",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "A1.0V":
+        {
+            "nominalv": "1",
+            "vscale": "1",
+            "volt_refdes": "J5101",
+            "enb_ctrl_#": "03",
+            "enb_res_refdes": "R5168",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+	},
+
+        "D1.0V_DDR":
+        {
+            "nominalv": "1",
+            "vscale": "1",
+            "volt_refdes": "J5102",
+            "enb_ctrl_#": "02",
+            "enb_res_refdes": "R5159",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "1V8_MAIN":
+        {
+            "nominalv": "1.8",
+            "vscale": "1",
+            "volt_refdes": "J5105",
+            "enb_ctrl_#": "05",
+            "enb_res_refdes": "R5170",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "D1.8V":
+        {
+            "nominalv": "1.8",
+            "vscale": "1",
+            "volt_refdes": "J5106",
+            "enb_ctrl_#": "05",
+            "enb_res_refdes": "R5171",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "0",
+            "reg_fb_enb": "0",
+            "current_sense_enb": "1"
+        },
+
+        "A1.8V":
+        {
+            "nominalv": "1.8",
+            "vscale": "1",
+            "volt_refdes": "J5107",
+            "enb_ctrl_#": "05",
+            "enb_res_refdes": "R5172",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "0",
+            "reg_fb_enb": "0",
+            "current_sense_enb": "1"
+        },
+
+        "D2.5V_MULTI":
+        {
+            "nominalv": "2.5",
+            "vscale": "1",
+            "volt_refdes": "J5209",
+            "enb_ctrl_#": "06",
+            "enb_res_refdes": "R5221",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "3V3_MAIN":
+        {
+            "nominalv": "3.3",
+            "vscale": "1",
+            "volt_refdes": "J5210",
+            "enb_ctrl_#": "07",
+            "enb_res_refdes": "R5222",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "D3.3V":
+        {
+            "nominalv": "3.3",
+            "vscale": "1",
+            "volt_refdes": "J5211",
+            "enb_ctrl_#": "07",
+            "enb_res_refdes": "R5223",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "0",
+            "reg_fb_enb": "0",
+            "current_sense_enb": "1"
+        },
+
+        "A3.3V":
+        {
+            "nominalv": "3.3",
+            "vscale": "1",
+            "volt_refdes": "J5212",
+            "enb_ctrl_#": "07",
+            "enb_res_refdes": "R5224",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "0",
+            "reg_fb_enb": "0",
+            "current_sense_enb": "1"
+        },
+
+        "D1.1V_LPDDR4":
+        {
+            "nominalv": "1.1",
+            "vscale": "1",
+            "volt_refdes": "J5306",
+            "enb_ctrl_#": "04",
+            "enb_res_refdes": "R5336",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "D1.8V_LPDDR":
+        {
+            "nominalv": "1.8",
+            "vscale": "1",
+            "volt_refdes": "J5300",
+            "enb_ctrl_#": "04",
+            "enb_res_refdes": "R5314",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "AON_1.0V":
+        {
+            "nominalv": "1",
+            "vscale": "1",
+            "volt_refdes": "J50103",
+            "enb_ctrl_#": "08",
+            "enb_res_refdes": "R50107",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "AON_1.8V":
+        {
+            "nominalv": "1.8",
+            "vscale": "1",
+            "volt_refdes": "J50100",
+            "enb_ctrl_#": "09",
+            "enb_res_refdes": "R50103",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "AON_3.3V":
+        {
+            "nominalv": "3.3",
+            "vscale": "1",
+            "volt_refdes": "J50101",
+            "enb_ctrl_#": "10",
+            "enb_res_refdes": "R50105",
+            "shunt_r_mohm": "10",
+            "voltage_sense_enb": "1",
+            "reg_fb_enb": "1",
+            "current_sense_enb": "1"
+        },
+
+        "12V_SYS":
+        {
+            "nominalv": "12",
+            "vscale": "4",
+            "volt_refdes": "J12",
+            "enb_ctrl_#": "12",
+            "enb_res_refdes": "R12",
+            "shunt_r_mohm": "6",
+            "voltage_sense_enb": "1",
+	            "reg_fb_enb": "0",
+            "current_sense_enb": "1"
+        },
+
+        "AON_RESETb":
+        {
+            "nominalv": "",
+            "vscale": "",
+            "volt_refdes": "",
+            "enb_ctrl_#": "13",
+            "enb_res_refdes": "",
+            "shunt_r_mohm": "",
+            "voltage_sense_enb": "0",
+            "reg_fb_enb": "0",
+            "current_sense_enb": "0"
+        }
+    },
+
+ "_comment": "Addresses below correspond to the RDB address for the SUN_TOP_CTRL_PRODUCT_ID, AVS_TMON_TEMPERATURE_MEASUREMENT_STATUS and AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS registers. ",
+"config_address":
+    {
+        "chip": "0xf0404004",
+        "junc_temp": "0xf04d1500",
+        "vddc": "0xf04d220c"
+    }
+}

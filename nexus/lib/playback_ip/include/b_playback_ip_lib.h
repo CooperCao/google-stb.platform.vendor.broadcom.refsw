@@ -1064,6 +1064,7 @@ typedef struct B_PlaybackIp_TtsThrottle_Params {
     unsigned maxClockMismatch;          /* specify the maximum clock mismatch (in ppm) between server/encoder and STB */
     void (*bufDepthViolationCallback)(void *context, bool isMax); /* function will be called if max/min buffer depth is violated */
     void *bufDepthViolationCbContext;   /* context passed into buf_depth_violation_callback */
+    bool scatterGatherPlaypump;         /* true if playpump used in scatter-gather mode */
 } B_PlaybackIp_TtsThrottle_Params;
 
 typedef struct B_PlaybackIp_TtsParams {

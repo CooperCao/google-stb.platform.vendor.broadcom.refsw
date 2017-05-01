@@ -1,0 +1,6 @@
+stream=Fire_HDR_UHD_HEVC.mp4
+plm.vid=2
+plm.gfx=2
+image=Avatar.bmp
+bg=desktop_background.brcmLTD.png
+pig=off

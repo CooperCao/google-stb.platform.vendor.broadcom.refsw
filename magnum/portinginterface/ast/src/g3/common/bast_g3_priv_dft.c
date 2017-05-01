@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,15 +52,15 @@ BDBG_MODULE(bast_g3_priv_dft);
 
 
 /* local functions */
-BERR_Code BAST_g3_P_DftPeakScanStateMachine_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_DftPeakScanPsd1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_DftPeakScanPsd2_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_DftPeakScanStateMachine_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_DftPeakScanPsd1_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_DftPeakScanPsd2_isr(BAST_ChannelHandle h);
 
 
 /******************************************************************************
- BAST_g3_P_SetDftDdfsFcw()
+ BAST_g3_P_DftSetDdfsFcw_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftSetDdfsFcw_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftSetDdfsFcw_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
@@ -77,7 +77,7 @@ BERR_Code BAST_g3_P_DftSetDdfsFcw_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_DftWaitForDone_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftWaitForDone_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftWaitForDone_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -101,7 +101,7 @@ BERR_Code BAST_g3_P_DftWaitForDone_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_DftStartAndWaitForDone_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftStartAndWaitForDone_isr(BAST_ChannelHandle h, BAST_g3_FUNCT funct)
+static BERR_Code BAST_g3_P_DftStartAndWaitForDone_isr(BAST_ChannelHandle h, BAST_g3_FUNCT funct)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t range_start, range_end, val, P_hi, P_lo, Q_hi, Q_lo, i, n, retry_count = 0;
@@ -161,7 +161,7 @@ BERR_Code BAST_g3_P_DftStartAndWaitForDone_isr(BAST_ChannelHandle h, BAST_g3_FUN
 /******************************************************************************
  BAST_g3_P_DftSearchCarrierStateMachine_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftSearchCarrierStateMachine_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftSearchCarrierStateMachine_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
@@ -379,7 +379,7 @@ BERR_Code BAST_g3_P_DftSearchCarrierStateMachine_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_DftOqpskSearchCarrierStateMachine_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftOqpskSearchCarrierStateMachine_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftOqpskSearchCarrierStateMachine_isr(BAST_ChannelHandle h)
 {
    static const uint32_t script_dft_oqpsk_2[] =
    {
@@ -556,7 +556,7 @@ BERR_Code BAST_g3_P_DftSearchCarrier_isr(BAST_ChannelHandle h, BAST_g3_FUNCT fun
 /******************************************************************************
  BAST_g3_P_DftPeakScanStateMachine_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftPeakScanStateMachine_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftPeakScanStateMachine_isr(BAST_ChannelHandle h)
 {
 #define NEW_PEAK_POWER_RATIO 6
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
@@ -735,7 +735,7 @@ BERR_Code BAST_g3_P_DftPeakScanStateMachine_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_DftPeakScanPsd2_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftPeakScanPsd2_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftPeakScanPsd2_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t peak;
@@ -760,7 +760,7 @@ BERR_Code BAST_g3_P_DftPeakScanPsd2_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_DftPeakScanPsd1_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftPeakScanPsd1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftPeakScanPsd1_isr(BAST_ChannelHandle h)
 {
    uint32_t val;
 
@@ -882,7 +882,7 @@ BERR_Code BAST_g3_P_DftPeakScan_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_DftDumpBins2_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DftDumpBins2_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DftDumpBins2_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;

@@ -39,11 +39,6 @@
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_cit.h"
 #include "bdsp_raaga_img_sizes.h"
-
-#if (BCHP_CHIP ==7278)
-#include "bdsp_raaga_invalid_img_sizes.h"
-#endif
-
 #include "bdsp_raaga_version.h"
 #include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fw_algo.h"
@@ -674,7 +669,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
       BDSP_IMG_AC4_DECODE_INTER_FRAME_SIZE,         /*  ui32InterFrameBuffSize */
       (4096+BDSP_AF_P_EXTRA_SAMPLES)*4*6,               /*  ui32InterStageIoBuffSize */
       20000,                                            /*  ui32InterStageGenericBuffSize */
-      3250000,                                      /*  ui32ScratchBuffSize */
+      8388608,                                      /*  ui32ScratchBuffSize */
       sizeof(BDSP_Raaga_Audio_AC4DecConfigParams),  /*  ui32UserCfgBuffSize */
       (4096+BDSP_AF_P_EXTRA_SAMPLES)*4,             /*  ui32MaxSizePerChan */
       6,                                                /*  ui32MaxNumChansSupported */
@@ -2004,6 +1999,21 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
         BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
         sizeof(BDSP_Raaga_Audio_FadeCtrlPPStatusInfo)   /*  FwStatusBuffSize */
+    },
+	/*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eTsmCorrectionPostProc] =  */
+    {
+        BDSP_IMG_TSMCORRECTION_CODE_SIZE,               /*  ui32CodeSize */
+        BDSP_IMG_TSMCORRECTION_TABLES_SIZE,             /*  ui32RomTableSize */
+        BDSP_IMG_TSMCORRECTION_INTER_FRAME_SIZE,        /*  ui32InterFrameBuffSize */
+        (6144+BDSP_AF_P_EXTRA_SAMPLES)*4*6,             /*  ui32InterStageIoBuffSize */
+        20000,                                          /*  ui32InterStageGenericBuffSize */
+        156000,                                          /*  ui32ScratchBuffSize */
+        sizeof(BDSP_Raaga_Audio_TsmCorrectionConfigParams),     /*  ui32UserCfgBuffSize */
+        (6144+BDSP_AF_P_EXTRA_SAMPLES)*4,               /*  ui32MaxSizePerChan */
+        6,                                              /*  ui32MaxNumChansSupported */
+        BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+        BDSP_AF_P_FwStatus_ePresent,                     /*  eFwStatusBuffType */
+        sizeof(BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo)   /*  FwStatusBuffSize */
     },
     /*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eEndOfPpAlgos] =  */
     { 0,0,0,0,0,0,0,0,0,0,0,0 },
@@ -4505,6 +4515,32 @@ static const BDSP_Raaga_P_AlgorithmSupportInfo BDSP_sAlgorithmSupportInfo[]=
     }
   },
   {
+    BDSP_Algorithm_eTsmCorrection,                  /* Algorithm */
+    BDSP_AlgorithmType_eAudioProcessing,
+    "TSMCORRECTION",
+    false,                                  /* Dolby License Present */
+    BDSP_AudioDolbyCodecVersion_eMax,       /* License Type */
+    {
+      2,  /* Number of nodes in TSMCORRECTION  */
+      {
+        BDSP_AF_P_AlgoId_eInvalid,
+        BDSP_AF_P_AlgoId_eTsmCorrectionPostProc,
+        BDSP_AF_P_AlgoId_eInvalid,
+        BDSP_AF_P_AlgoId_eInvalid,
+        BDSP_AF_P_AlgoId_eInvalid,
+        BDSP_AF_P_AlgoId_eInvalid
+      },
+    },
+    /* Scheduling Groups Info */
+    {
+      1,
+      {
+        true,
+        false
+      },
+    }
+  },
+  {
     BDSP_Algorithm_eVp6Decode,              /* Algorithm */
     BDSP_AlgorithmType_eVideoDecode,
     "VP6 Video Decode",
@@ -6211,7 +6247,7 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
   {
     BDSP_Algorithm_eUdcPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "UDC Passthrough", true,
     &BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-    0, 0xffffffff,
+    sizeof(BDSP_Raaga_Audio_DdpStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DdpStreamInfo, ui32StatusValid),
     &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
     {
       2,
@@ -7060,6 +7096,34 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
         BDSP_AF_P_AlgoId_eInvalid,
 
         BDSP_AF_P_AlgoId_eFadeCtrlPostProc,
+        BDSP_AF_P_AlgoId_eInvalid,
+        BDSP_AF_P_AlgoId_eInvalid,
+        BDSP_AF_P_AlgoId_eInvalid,
+        BDSP_AF_P_AlgoId_eInvalid
+      },
+    },
+    /* Scheduling Groups Info */
+    {
+      1,
+      {
+        true,
+        false
+      },
+    }
+  },
+#endif
+#ifdef BDSP_TSMCORRECTION_SUPPORT
+  {
+    BDSP_Algorithm_eTsmCorrection, BDSP_AlgorithmType_eAudioProcessing, "TSMCORRECTION", true,
+    &BDSP_sDefTsmCorrectionConfigSettings, sizeof(BDSP_Raaga_Audio_TsmCorrectionConfigParams),
+    sizeof(BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo), 0xffffffff,
+    NULL, 0,
+    {
+      2,  /* Number of nodes in TSMCORRECTION  */
+      {
+        BDSP_AF_P_AlgoId_eInvalid,
+
+        BDSP_AF_P_AlgoId_eTsmCorrectionPostProc,
         BDSP_AF_P_AlgoId_eInvalid,
         BDSP_AF_P_AlgoId_eInvalid,
         BDSP_AF_P_AlgoId_eInvalid,

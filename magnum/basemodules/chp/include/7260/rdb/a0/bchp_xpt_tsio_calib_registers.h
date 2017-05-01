@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,50 +70,50 @@
 /***************************************************************************
  *XPT_TSIO_CALIB_REGISTERS
  ***************************************************************************/
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_PAD_CTRL   0x20a0f000 /* [RW] TSIO Pad Control Register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_CTRL 0x20a0f004 /* [RW] TSIO Control Register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DLCM_L_PHASE_SELECT 0x20a0f010 /* [RW] Sampling Clock Phase Select for the 'left' line monitor */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CENTER_TAP_PHASE_SELECT 0x20a0f014 /* [RW] Sampling Clock Phase Select for the 'center' line monitor */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DLCM_R_PHASE_SELECT 0x20a0f018 /* [RW] Sampling Clock Phase Select for the 'right' line monitor */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_TRAINING_CTRL 0x20a0f020 /* [RW] TSIO Training Control Register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_TRAINING_PATTERN 0x20a0f024 /* [RW] TSIO Training Pattern */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_TRAINING_MEMORY_START_ADDR 0x20a0f028 /* [RW] Start Address of the Training Memory */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_TRAINING_MEMORY_ADDR 0x20a0f02c /* [RO] Current Address of the Training Memory */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_NUM_VDL_ITERATIONS 0x20a0f030 /* [RW] Number of VDL Iterations */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_INCREMENT 0x20a0f034 /* [RW] VDL Increment Value */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_A_VALUE 0x20a0f040 /* [RW] Value for XVDL_A */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_B_VALUE 0x20a0f044 /* [RW] Value for XVDL_B */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_C_VALUE 0x20a0f048 /* [RW] Value for XVDL_C */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_TX_CLK 0x20a0f04c /* [RW] Value for XVDL on Tx clk path */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_TX_DATA 0x20a0f050 /* [RW] Value for XVDL on Tx data path */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_CFG   0x20a0f054 /* [RW] Special XVDL config mode for robustness on Rx path */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_STEP_CALIB_CTRL 0x20a0f058 /* [RW] TSIO VDL Auto Step Size Calibration Control Register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_CALIB_STATUS 0x20a0f05c /* [RO] VDL auto-calib status register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_SEGMENT 0x20a0f060 /* [RW] Number of VDL segments in each XVDL */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_XVDL_A_VALUE 0x20a0f064 /* [RO] Current Value for XVDL_A */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_XVDL_B_VALUE 0x20a0f068 /* [RO] Current Value for XVDL_B */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_XVDL_C_VALUE 0x20a0f06c /* [RO] Current Value for XVDL_C */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_SYNC_COUNT 0x20a0f070 /* [RW] TSIO Sync Count register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_SYNC_STATUS 0x20a0f074 /* [RO] TSIO Sync status */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_SYNC_COUNT 0x20a0f078 /* [RO] Received sync count statistics for debug purposes */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_DEBUG_0 0x20a0f07c /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_DEBUG_1 0x20a0f080 /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_DEBUG_2 0x20a0f084 /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_CTRL1 0x20a0f090 /* [RW] DLCM debug control register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_CTRL2 0x20a0f094 /* [RW] DLCM debug control register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_STATUS 0x20a0f098 /* [RO] Status register for DLCM event capture logic */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_GLOBAL_CLK_COUNT 0x20a0f09c /* [RO] Total number of clock cycles elapsed during DLCM observation */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_EVENT_COUNT 0x20a0f0a0 /* [RO] DLCM_L event count register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_MARKER_COUNT1 0x20a0f0a4 /* [RO] DLCM_L event marker#1 register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_MARKER_COUNT2 0x20a0f0a8 /* [RO] DLCM_L event marker#2 register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_MARKER_COUNT3 0x20a0f0ac /* [RO] DLCM_L event marker#3 register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_EVENT_COUNT 0x20a0f0b0 /* [RO] DLCM_R event count register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_MARKER_COUNT1 0x20a0f0b4 /* [RO] DLCM_R event marker#1 register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_MARKER_COUNT2 0x20a0f0b8 /* [RO] DLCM_R event marker#2 register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_MARKER_COUNT3 0x20a0f0bc /* [RO] DLCM_R event marker#3 register */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_SAMPLES 0x20a0f0c0 /* [RO] Bit samples of the DLCM_L bit */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_CENTER_SAMPLES 0x20a0f0c4 /* [RO] Bit samples of the center tap bit */
-#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_SAMPLES 0x20a0f0c8 /* [RO] Bit samples of the DLCM_R bit */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_PAD_CTRL   0x20a0f000 /* [RW][32] TSIO Pad Control Register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_CTRL 0x20a0f004 /* [RW][32] TSIO Control Register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DLCM_L_PHASE_SELECT 0x20a0f010 /* [RW][32] Sampling Clock Phase Select for the 'left' line monitor */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CENTER_TAP_PHASE_SELECT 0x20a0f014 /* [RW][32] Sampling Clock Phase Select for the 'center' line monitor */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DLCM_R_PHASE_SELECT 0x20a0f018 /* [RW][32] Sampling Clock Phase Select for the 'right' line monitor */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_TRAINING_CTRL 0x20a0f020 /* [RW][32] TSIO Training Control Register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_TRAINING_PATTERN 0x20a0f024 /* [RW][32] TSIO Training Pattern */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_TRAINING_MEMORY_START_ADDR 0x20a0f028 /* [RW][32] Start Address of the Training Memory */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_TRAINING_MEMORY_ADDR 0x20a0f02c /* [RO][32] Current Address of the Training Memory */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_NUM_VDL_ITERATIONS 0x20a0f030 /* [RW][32] Number of VDL Iterations */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_INCREMENT 0x20a0f034 /* [RW][32] VDL Increment Value */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_A_VALUE 0x20a0f040 /* [RW][32] Value for XVDL_A */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_B_VALUE 0x20a0f044 /* [RW][32] Value for XVDL_B */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_C_VALUE 0x20a0f048 /* [RW][32] Value for XVDL_C */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_TX_CLK 0x20a0f04c /* [RW][32] Value for XVDL on Tx clk path */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_TX_DATA 0x20a0f050 /* [RW][32] Value for XVDL on Tx data path */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_XVDL_CFG   0x20a0f054 /* [RW][32] Special XVDL config mode for robustness on Rx path */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_STEP_CALIB_CTRL 0x20a0f058 /* [RW][32] TSIO VDL Auto Step Size Calibration Control Register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_CALIB_STATUS 0x20a0f05c /* [RO][32] VDL auto-calib status register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_VDL_SEGMENT 0x20a0f060 /* [RW][32] Number of VDL segments in each XVDL */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_XVDL_A_VALUE 0x20a0f064 /* [RO][32] Current Value for XVDL_A */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_XVDL_B_VALUE 0x20a0f068 /* [RO][32] Current Value for XVDL_B */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CURR_XVDL_C_VALUE 0x20a0f06c /* [RO][32] Current Value for XVDL_C */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_SYNC_COUNT 0x20a0f070 /* [RW][32] TSIO Sync Count register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_SYNC_STATUS 0x20a0f074 /* [RO][32] TSIO Sync status */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_SYNC_COUNT 0x20a0f078 /* [RO][32] Received sync count statistics for debug purposes */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_DEBUG_0 0x20a0f07c /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_DEBUG_1 0x20a0f080 /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_CALIB_DEBUG_2 0x20a0f084 /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_CTRL1 0x20a0f090 /* [RW][32] DLCM debug control register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_CTRL2 0x20a0f094 /* [RW][32] DLCM debug control register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_STATUS 0x20a0f098 /* [RO][32] Status register for DLCM event capture logic */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCM_GLOBAL_CLK_COUNT 0x20a0f09c /* [RO][32] Total number of clock cycles elapsed during DLCM observation */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_EVENT_COUNT 0x20a0f0a0 /* [RO][32] DLCM_L event count register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_MARKER_COUNT1 0x20a0f0a4 /* [RO][32] DLCM_L event marker#1 register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_MARKER_COUNT2 0x20a0f0a8 /* [RO][32] DLCM_L event marker#2 register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_MARKER_COUNT3 0x20a0f0ac /* [RO][32] DLCM_L event marker#3 register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_EVENT_COUNT 0x20a0f0b0 /* [RO][32] DLCM_R event count register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_MARKER_COUNT1 0x20a0f0b4 /* [RO][32] DLCM_R event marker#1 register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_MARKER_COUNT2 0x20a0f0b8 /* [RO][32] DLCM_R event marker#2 register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_MARKER_COUNT3 0x20a0f0bc /* [RO][32] DLCM_R event marker#3 register */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCML_SAMPLES 0x20a0f0c0 /* [RO][32] Bit samples of the DLCM_L bit */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_CENTER_SAMPLES 0x20a0f0c4 /* [RO][32] Bit samples of the center tap bit */
+#define BCHP_XPT_TSIO_CALIB_REGISTERS_DEBUG_DLCMR_SAMPLES 0x20a0f0c8 /* [RO][32] Bit samples of the DLCM_R bit */
 
 /***************************************************************************
  *PAD_CTRL - TSIO Pad Control Register

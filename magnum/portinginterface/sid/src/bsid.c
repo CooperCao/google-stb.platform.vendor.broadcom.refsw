@@ -592,6 +592,17 @@ BERR_Code BSID_Open(
         return BERR_TRACE(retCode);
     }
 
+#ifdef BSID_P_CLOCK_CONTROL
+    retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
+    if (retCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Open failed to acquire clock with error 0x%x", retCode));
+        BSID_Close(hSid);
+        BDBG_LEAVE( BSID_Open );
+        return BERR_TRACE(retCode);
+    }
+#endif
+
     /* create and associate dispatch callback for sid general purpose interrupt */
     retCode = BINT_CreateCallback(
         &hSid->hServiceIsr,
@@ -623,6 +634,17 @@ BERR_Code BSID_Open(
         BDBG_LEAVE(BSID_Open);
         return BERR_TRACE(retCode);
     }
+
+#ifdef BSID_P_CLOCK_CONTROL
+    retCode = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
+    if (retCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Open failed to release clock with error 0x%x", retCode));
+        BSID_Close(hSid);
+        BDBG_LEAVE( BSID_Open );
+        return BERR_TRACE(retCode);
+    }
+#endif
 
     /* create event for maibox handling */
     retCode = BKNI_CreateEvent(&hSid->sMailbox.hMailboxEvent);
@@ -688,6 +710,10 @@ void BSID_Close(
     /* else, core is already suspended, so we do nothing */
     /* ... so now we just take care of host-side resources ... */
 
+#ifdef BSID_P_CLOCK_CONTROL
+    BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
+#endif
+
     /* destroy sid interrupt callback */
     if (NULL != hSid->hServiceIsr)
        BINT_DestroyCallback(hSid->hServiceIsr);
@@ -698,6 +724,10 @@ void BSID_Close(
     /* destroy mailbox event */
     if (NULL != hSid->sMailbox.hMailboxEvent)
        BKNI_DestroyEvent(hSid->sMailbox.hMailboxEvent);
+
+#ifdef BSID_P_CLOCK_CONTROL
+    BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
+#endif
 
     /* free sid memory buffer(s) */
     BSID_P_ResetFwHwDefault(hSid);
@@ -864,10 +894,6 @@ BERR_Code BSID_OpenChannel(
                BDBG_LEAVE( BSID_OpenChannel );
                return BERR_TRACE(BERR_INVALID_PARAMETER);
            }
-           if (ps_OpenChannelSettings->u_ChannelSpecific.motion.hOutputBuffersMemHeap != NULL)
-           {
-               BDBG_WRN(("OpenChannelSettings: hOutputBuffersMemHeap is deprecated (exists for backward compatibility only)"));
-           }
            break;
        default:
            BDBG_ASSERT(0); /* Shouldn't happen if all cases accounted for */
@@ -1029,8 +1055,7 @@ void BSID_CloseChannel(BSID_ChannelHandle hSidChannel)
        basic equivalent of Stop() to cleanup - it is not guaranteed that
        the caller will stop() before closing, especially upon failure,
        or upon watchdog - this is necessary to avoid resource leaks */
-    if ((hSidChannel->e_ChannelState != BSID_ChannelState_eStop)
-         && (hSidChannel->e_ChannelState != BSID_ChannelState_eReady))
+    if (hSidChannel->bStarted)
     {
         BSID_StopDecodeSettings stStopDecodeSettings;
         BDBG_WRN(("Channel Not stopped - Stopping Decode!"));
@@ -1153,7 +1178,6 @@ void BSID_GetDefaultOpenChannelSettings(
             ps_OpenChannelSettings->u_ChannelSpecific.motion.ui32_OutputBuffersNumber    = 3;
             ps_OpenChannelSettings->u_ChannelSpecific.motion.ui32_OutputMaxWidth         = 1920;
             ps_OpenChannelSettings->u_ChannelSpecific.motion.ui32_OutputMaxWidth         = 1080;
-            ps_OpenChannelSettings->u_ChannelSpecific.motion.hOutputBuffersMemHeap       = NULL;
             ps_OpenChannelSettings->u_ChannelSpecific.motion.hOutputBuffersMmaHeap       = NULL;
         }
         break;
@@ -1384,14 +1408,14 @@ BERR_Code BSID_SetDmaChunkInfo(
     if (hSidChannel->e_ChannelState != BSID_ChannelState_eDecode)
     {
         BDBG_WRN(("Attempt to Set DMA Chunk Info when not decoding!"));
-        BDBG_LEAVE( BSID_SetDmaChunkInfo_isr );
+        BDBG_LEAVE(BSID_SetDmaChunkInfo);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if (hSidChannel->hSid->bStandby)
     {
         BDBG_ERR(("SID is Suspended!"));
-        BDBG_LEAVE( BSID_SetDmaChunkInfo_isr );
+        BDBG_LEAVE(BSID_SetDmaChunkInfo);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -1520,7 +1544,8 @@ BERR_Code BSID_FlushChannel(
     BDBG_ASSERT(ps_FlushSettings);
     BDBG_ASSERT(ps_FlushSettings->uiSignature == BSID_P_SIGNATURE_FLUSHSETTINGS);
 
-    if (hSidChannel->e_ChannelState != BSID_ChannelState_eDecode)
+    if ((hSidChannel->e_ChannelState != BSID_ChannelState_eReady)
+       && (hSidChannel->e_ChannelState != BSID_ChannelState_eDecode))
     {
         BDBG_WRN(("Attempt to flush channel when not decoding!"));
         BDBG_LEAVE( BSID_FlushChannel );
@@ -1587,6 +1612,7 @@ BERR_Code BSID_FlushChannel(
           BDBG_LEAVE( BSID_FlushChannel );
           return BERR_TRACE(retCode);
        }
+       BSID_SET_CH_STATE(hSidChannel, Decode);
        /* FIXME: do we need to wait for the flush to complete here? */
        /* Does flush imply that the channel will be deactivated (and hence clocks can be released)?
           Probably not - can flush and then ... what continue?  Start another decode?
@@ -1671,7 +1697,12 @@ BERR_Code BSID_StartDecode(
 
     hSidChannel->eDecodeMode = ps_StartDecodeSettings->eDecodeMode;
     hSidChannel->bAbortInitiated = false;
-
+    /* NOTE: Do this here since some operations such as GetStreamInfo
+       can complete and interrupt with the "Done" Event BEFORE this
+       function has a chance to complete (so we can't set the state at
+       the end since it would override the "ready" state set by the
+       "Done" Event)! */
+    BSID_SET_CH_STATE(hSidChannel, Decode);
     /* Check settings to determine desired operation */
     switch (ps_StartDecodeSettings->eDecodeMode)
     {
@@ -1766,8 +1797,14 @@ BERR_Code BSID_StartDecode(
 
     if (BERR_SUCCESS == retCode)
     {
-       BSID_SET_CH_STATE(hSidChannel, Decode);
+       hSidChannel->bStarted = true;
     }
+    else
+    {
+       /* didn't start decode, so ensure we remain in ready state */
+       BSID_SET_CH_STATE(hSidChannel, Ready);
+    }
+
     BDBG_LEAVE( BSID_StartDecode );
     return BERR_TRACE(retCode);
 }
@@ -1813,6 +1850,7 @@ void BSID_StopDecode(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
+    BSID_ChannelState eChannelState;
 
     BDBG_ENTER(BSID_StopDecode);
     BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
@@ -1828,13 +1866,18 @@ void BSID_StopDecode(
     /* Don't do anything if channel already stopped
        (avoids releasing an unacquired clock, but allows
         this API to be used as a forced "cleanup") */
-    if (hSidChannel->e_ChannelState != BSID_ChannelState_eStop)
+    BKNI_EnterCriticalSection();
+    eChannelState = hSidChannel->e_ChannelState;
+    BKNI_LeaveCriticalSection();
+
+    if ((eChannelState != BSID_ChannelState_eStop)
+         && hSidChannel->bStarted)
     {
         /* FIXME: Move this to the private StopDecode() */
         if (hSidChannel->e_ChannelType == BSID_ChannelType_eStill)
         {
             /* force abort if channel not ready and force abort flag set or if not segment decode and not ready */
-            if ((hSidChannel->e_ChannelState != BSID_ChannelState_eReady) &&
+            if ((eChannelState != BSID_ChannelState_eReady) &&
                 (ps_StopDecodeSettings->bForceStop ||
                 (hSidChannel->eDecodeMode != BSID_DecodeMode_eStillSegment)))
             {
@@ -1883,6 +1926,7 @@ void BSID_StopDecode(
         }
 #endif
     } /* end: if not stopped */
+    hSidChannel->bStarted = false;
 
     BDBG_LEAVE( BSID_StopDecode );
     return;

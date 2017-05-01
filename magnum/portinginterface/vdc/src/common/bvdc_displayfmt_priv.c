@@ -279,24 +279,6 @@ static const uint32_t s_ulSrcControlRGB =
     BVDC_P_SRC_FIELD_ENUM(SRC_CONTROL, CH1_2,    Minus_6dB) |
     BVDC_P_SRC_FIELD_ENUM(SRC_CONTROL, CH0,   Minus_11dB);
 
-#if BVDC_P_SUPPORT_MHL
-static const BVDC_P_PxlFreqMhlFreqPair s_PxlFreqToMhlPxlFreq[] =
-{
-    {BFMT_PXL_25_2MHz,            BFMT_PXL_75_5MHz},
-    {BFMT_PXL_25_2MHz_DIV_1_001,  BFMT_PXL_75_5MHz_DIV_1_001},
-    {BFMT_PXL_27MHz,              BFMT_PXL_81MHz},
-    {BFMT_PXL_27MHz_MUL_1_001,    BFMT_PXL_81MHz_MUL_1_001},
-    {BFMT_PXL_74_25MHz,           BFMT_PXL_222_75MHz},
-    {BFMT_PXL_74_25MHz_DIV_1_001, BFMT_PXL_222_75MHz_DIV_1_001},
-    {BFMT_PXL_148_5MHz,           BFMT_PXL_297MHz},
-    {BFMT_PXL_148_5MHz_DIV_1_001, BFMT_PXL_297MHz_DIV_1_001}
-};
-
-/* Number of entries in the above table! */
-#define BVDC_P_MHL_FREQ_TABLE_ENTRIES \
-    (sizeof(s_PxlFreqToMhlPxlFreq) / sizeof(BVDC_P_PxlFreqMhlFreqPair))
-#endif
-
 /*
  * Definitions needed for HDMI RM table
  */
@@ -2266,25 +2248,6 @@ Err:
     bModified = false;  /* Arbitrary */
     return bModified;
 }
-
-
-#if BVDC_P_SUPPORT_MHL
-uint64_t BVDC_P_PxlFreqToMhlFreq_isr
-    ( uint64_t ulPxlFreq)
-{
-    uint32_t i;
-    uint64_t ulVal = 0;
-
-    for (i=0; i<BVDC_P_MHL_FREQ_TABLE_ENTRIES; i++)
-    {
-        if (s_PxlFreqToMhlPxlFreq[i].ulPixelClkRate == ulPxlFreq)
-        {
-            ulVal = s_PxlFreqToMhlPxlFreq[i].ulMhlClkRate;
-        }
-    }
-    return ulVal;
-}
-#endif
 
 
 /* H, then V */

@@ -53,12 +53,17 @@ typedef struct PlatformDisplay
 {
     PlatformHandle platform;
     NxClient_DisplaySettings nxSettings;
-    NxClient_DisplayStatus nxStatus;
+    struct
+    {
+        NEXUS_HdmiOutputHandle alias;
+        NEXUS_HdmiOutputStatus status;
+        NEXUS_HdmiOutputExtraStatus extraStatus;
+    } hdmi;
     PlatformPictureInfo info;
 } PlatformDisplay;
 
 #define PRINT_PARAM(X) \
-    if ((X) != -1) { n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, "%u", (X)); } \
+    if ((int)(X) != -1) { n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, "%d", (int)(X)); } \
     else { n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, "x");}
 
 void platform_display_p_compute_hdmi_drm_metadata(NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInfoFrame);

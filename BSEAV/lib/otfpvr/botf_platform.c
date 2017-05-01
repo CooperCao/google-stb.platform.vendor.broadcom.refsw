@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,6 +47,7 @@
 /* OTF */
 #include "botf.h"
 #include "botf_priv.h"
+#include "botf_platform.h"
 
 BDBG_MODULE(BOTF_PLATFORM);
 
@@ -167,10 +168,10 @@ void BOTF_P_SetOPITBWrapPtr(BOTF_Handle hOtf)
 }
 
 
-void BOTF_PlatformOpen(BOTF_Handle hOtf)
+BERR_Code BOTF_PlatformOpen(BOTF_Handle hOtf)
 {
     uint32_t baseptr, val;
-    void *addr;
+    BMMA_Block_Handle mma;
     void *cached_addr;
     BERR_Code rc;
 
@@ -194,18 +195,25 @@ void BOTF_PlatformOpen(BOTF_Handle hOtf)
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Valid, val);
 
     /* Allocate and set destn ITB pointers */
-    addr =  BMEM_AllocAligned( hOtf->hBMem, hOtf->OPParserITBSize, hOtf->OPParserITBAlign, 0 ); 
-    rc = BMEM_Heap_ConvertAddressToCached(hOtf->hBMem, addr, &cached_addr);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
+    mma = BMMA_Alloc( hOtf->mma, hOtf->OPParserITBSize, 1<<hOtf->OPParserITBAlign, NULL);
+    if(mma==NULL) {
+        return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+    }
+    cached_addr = BMMA_Lock(mma);
+    if(cached_addr==NULL) {
+        BMMA_Free(mma);
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
     baseptr = botf_mem_paddr(&hOtf->mem, cached_addr);
-    hOtf->itb_buffer = addr;
+    hOtf->itb_buffer = cached_addr;
+    hOtf->itbMem = mma;
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base, baseptr);
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Read, baseptr);
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Valid, baseptr);
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Wrap, baseptr+hOtf->OPParserITBSize - 1);
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base+4,  baseptr+hOtf->OPParserITBSize - 1);
 
-    return;
+    return BERR_SUCCESS;
 }
 
 void BOTF_PlatformFlushOpParser(BOTF_Handle hOtf)
@@ -219,8 +227,10 @@ void BOTF_PlatformFlushOpParser(BOTF_Handle hOtf)
 
 void BOTF_PlatformClose(BOTF_Handle hOtf)
 {       
-    BMEM_Free(hOtf->hBMem, hOtf->itb_buffer);
+    BMMA_Unlock(hOtf->itbMem, hOtf->itb_buffer);
+    BMMA_Free(hOtf->itbMem);
     hOtf->itb_buffer = NULL;
+    hOtf->itbMem = NULL;
     /* Restore the OP parser pointers */
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base, hOtf->OpParserRegSave.CdbStart);
     BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base, hOtf->OpParserRegSave.ItbStart);

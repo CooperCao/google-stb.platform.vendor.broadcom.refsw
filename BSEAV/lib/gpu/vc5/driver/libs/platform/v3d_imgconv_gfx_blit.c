@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image format conversion
-
-FILE DESCRIPTION
-Use the software (slow) path for image conversions
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_imgconv_internal.h"
 
 LOG_DEFAULT_CAT("v3d_imgconv_gfx_blit")
@@ -20,14 +13,12 @@ static void init_xform_seq(GFX_BUFFER_XFORM_SEQ_T *seq,
       const GFX_BUFFER_BLIT_TGT_T *dst_bt,
       const GFX_BUFFER_BLIT_TGT_T *src_bt)
 {
-  gfx_buffer_xform_seq_init(seq, &src_bt->desc);
+   gfx_buffer_xform_seq_init(seq, &src_bt->desc);
 
-   GFX_LFMT_T src_fmt_0 = gfx_lfmt_fmt(src_bt->desc.planes[0].lfmt);
-   if (gfx_lfmt_has_depth(src_fmt_0) && gfx_lfmt_contains_float(src_fmt_0))
+   if (gfx_buffer_any_float_depth(&src_bt->desc))
    {
-      /* Assume it's the depth channel that has float type... */
       assert(src_bt->desc.num_planes == 1);
-      gfx_buffer_xform_seq_add(seq, gfx_buffer_xform_clamp_float_depth, src_fmt_0);
+      gfx_buffer_xform_seq_add(seq, gfx_buffer_xform_clamp_float_depth, gfx_lfmt_fmt(src_bt->desc.planes[0].lfmt));
    }
 
    gfx_buffer_xform_seq_construct_continue_desc(seq, &dst_bt->desc,

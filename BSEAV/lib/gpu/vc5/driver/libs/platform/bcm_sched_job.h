@@ -1,22 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-
-Data types used to represent scheduler jobs. This header forms part of the api
-to the scheduler used from userspace. It is separated from bcm_sched_api.h
-because the same structures may well be used in kernel implementations of the
-scheduler and/or the V3D driver, so they can include this header (or something
-generated from it automatically to conform with whatever requirements may
-exist).
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef BCM_SCHED_JOB_H
 #define BCM_SCHED_JOB_H
 #include "gmem.h"
-#include "v3d_barrier.h"
+#include "libs/core/v3d/v3d_barrier.h"
 
 #define BCM_SCHED_MAX_DEPENDENCIES 8
 #define BCM_SCHED_MAX_COMPLETIONS 8
@@ -46,6 +34,7 @@ struct v3d_bin_job
    uint32_t workaround_gfxh_1181 : 1;   /* GFXH-1181 */
    uint32_t reserved_ : 30;
    uint32_t minInitialBinBlockSize;
+   uint32_t tile_state_size;
    void* gmp_table;
 };
 

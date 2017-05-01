@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,274 +70,274 @@
 /***************************************************************************
  *RAAGA_DSP_FW_CFG - Raaga DSP FW Configuration Registers
  ***************************************************************************/
-#define BCHP_RAAGA_DSP_FW_CFG_HOST2DSPCMD_FIFO0_BASEADDR 0x20c23000 /* [RW] FIFO 0 BASEADDRESS */
-#define BCHP_RAAGA_DSP_FW_CFG_HOST2DSPCMD_FIFO_ID 0x20c23004 /* [RW] FIFO ID Containing HOST2DSP Command */
-#define BCHP_RAAGA_DSP_FW_CFG_SW_UNUSED1         0x20c23008 /* [RW] UNUSED REGISTER SPACE */
-#define BCHP_RAAGA_DSP_FW_CFG_SW_UNUSED2         0x20c2300c /* [RW] UNUSED REGISTER SPACE */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR   0x20c23010 /* [RW] Base Address for FIFO 0 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_END_ADDR    0x20c23014 /* [RW] End Address for FIFO 0 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_WRITE_ADDR  0x20c23018 /* [RW] Write Pointer for FIFO 0 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_READ_ADDR   0x20c2301c /* [RW] Read Pointer for FIFO 0 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR   0x20c23020 /* [RW] Base Address for FIFO 1 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_END_ADDR    0x20c23024 /* [RW] End Address for FIFO 1 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_WRITE_ADDR  0x20c23028 /* [RW] Write Pointer for FIFO 1 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_READ_ADDR   0x20c2302c /* [RW] Read Pointer for FIFO 1 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_BASE_ADDR   0x20c23030 /* [RW] Base Address for FIFO 2 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_END_ADDR    0x20c23034 /* [RW] End Address for FIFO 2 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_WRITE_ADDR  0x20c23038 /* [RW] Write Pointer for FIFO 2 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_READ_ADDR   0x20c2303c /* [RW] Read Pointer for FIFO 2 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_BASE_ADDR   0x20c23040 /* [RW] Base Address for FIFO 3 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_END_ADDR    0x20c23044 /* [RW] End Address for FIFO 3 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_WRITE_ADDR  0x20c23048 /* [RW] Write Pointer for FIFO 3 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_READ_ADDR   0x20c2304c /* [RW] Read Pointer for FIFO 3 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_BASE_ADDR   0x20c23050 /* [RW] Base Address for FIFO 4 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_END_ADDR    0x20c23054 /* [RW] End Address for FIFO 4 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_WRITE_ADDR  0x20c23058 /* [RW] Write Pointer for FIFO 4 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_READ_ADDR   0x20c2305c /* [RW] Read Pointer for FIFO 4 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_BASE_ADDR   0x20c23060 /* [RW] Base Address for FIFO 5 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_END_ADDR    0x20c23064 /* [RW] End Address for FIFO 5 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_WRITE_ADDR  0x20c23068 /* [RW] Write Pointer for FIFO 5 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_READ_ADDR   0x20c2306c /* [RW] Read Pointer for FIFO 5 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_BASE_ADDR   0x20c23070 /* [RW] Base Address for FIFO 6 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_END_ADDR    0x20c23074 /* [RW] End Address for FIFO 6 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_WRITE_ADDR  0x20c23078 /* [RW] Write Pointer for FIFO 6 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_READ_ADDR   0x20c2307c /* [RW] Read Pointer for FIFO 6 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_BASE_ADDR   0x20c23080 /* [RW] Base Address for FIFO 7 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_END_ADDR    0x20c23084 /* [RW] End Address for FIFO 7 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_WRITE_ADDR  0x20c23088 /* [RW] Write Pointer for FIFO 7 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_READ_ADDR   0x20c2308c /* [RW] Read Pointer for FIFO 7 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_BASE_ADDR   0x20c23090 /* [RW] Base Address for FIFO 8 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_END_ADDR    0x20c23094 /* [RW] End Address for FIFO 8 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_WRITE_ADDR  0x20c23098 /* [RW] Write Pointer for FIFO 8 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_READ_ADDR   0x20c2309c /* [RW] Read Pointer for FIFO 8 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_BASE_ADDR   0x20c230a0 /* [RW] Base Address for FIFO 9 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_END_ADDR    0x20c230a4 /* [RW] End Address for FIFO 9 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_WRITE_ADDR  0x20c230a8 /* [RW] Write Pointer for FIFO 9 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_READ_ADDR   0x20c230ac /* [RW] Read Pointer for FIFO 9 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_BASE_ADDR  0x20c230b0 /* [RW] Base Address for FIFO 10 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_END_ADDR   0x20c230b4 /* [RW] End Address for FIFO 10 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_WRITE_ADDR 0x20c230b8 /* [RW] Write Pointer for FIFO 10 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_READ_ADDR  0x20c230bc /* [RW] Read Pointer for FIFO 10 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_BASE_ADDR  0x20c230c0 /* [RW] Base Address for FIFO 11 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_END_ADDR   0x20c230c4 /* [RW] End Address for FIFO 11 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_WRITE_ADDR 0x20c230c8 /* [RW] Write Pointer for FIFO 11 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_READ_ADDR  0x20c230cc /* [RW] Read Pointer for FIFO 11 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_BASE_ADDR  0x20c230d0 /* [RW] Base Address for FIFO 12 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_END_ADDR   0x20c230d4 /* [RW] End Address for FIFO 12 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_WRITE_ADDR 0x20c230d8 /* [RW] Write Pointer for FIFO 12 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_READ_ADDR  0x20c230dc /* [RW] Read Pointer for FIFO 12 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_BASE_ADDR  0x20c230e0 /* [RW] Base Address for FIFO 13 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_END_ADDR   0x20c230e4 /* [RW] End Address for FIFO 13 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_WRITE_ADDR 0x20c230e8 /* [RW] Write Pointer for FIFO 13 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_READ_ADDR  0x20c230ec /* [RW] Read Pointer for FIFO 13 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_BASE_ADDR  0x20c230f0 /* [RW] Base Address for FIFO 14 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_END_ADDR   0x20c230f4 /* [RW] End Address for FIFO 14 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_WRITE_ADDR 0x20c230f8 /* [RW] Write Pointer for FIFO 14 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_READ_ADDR  0x20c230fc /* [RW] Read Pointer for FIFO 14 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_BASE_ADDR  0x20c23100 /* [RW] Base Address for FIFO 15 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_END_ADDR   0x20c23104 /* [RW] End Address for FIFO 15 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_WRITE_ADDR 0x20c23108 /* [RW] Write Pointer for FIFO 15 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_READ_ADDR  0x20c2310c /* [RW] Read Pointer for FIFO 15 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_BASE_ADDR  0x20c23110 /* [RW] Base Address for FIFO 16 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_END_ADDR   0x20c23114 /* [RW] End Address for FIFO 16 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_WRITE_ADDR 0x20c23118 /* [RW] Write Pointer for FIFO 16 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_READ_ADDR  0x20c2311c /* [RW] Read Pointer for FIFO 16 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_BASE_ADDR  0x20c23120 /* [RW] Base Address for FIFO 17 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_END_ADDR   0x20c23124 /* [RW] End Address for FIFO 17 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_WRITE_ADDR 0x20c23128 /* [RW] Write Pointer for FIFO 17 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_READ_ADDR  0x20c2312c /* [RW] Read Pointer for FIFO 17 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_BASE_ADDR  0x20c23130 /* [RW] Base Address for FIFO 18 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_END_ADDR   0x20c23134 /* [RW] End Address for FIFO 18 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_WRITE_ADDR 0x20c23138 /* [RW] Write Pointer for FIFO 18 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_READ_ADDR  0x20c2313c /* [RW] Read Pointer for FIFO 18 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_BASE_ADDR  0x20c23140 /* [RW] Base Address for FIFO 19 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_END_ADDR   0x20c23144 /* [RW] End Address for FIFO 19 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_WRITE_ADDR 0x20c23148 /* [RW] Write Pointer for FIFO 19 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_READ_ADDR  0x20c2314c /* [RW] Read Pointer for FIFO 19 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_BASE_ADDR  0x20c23150 /* [RW] Base Address for FIFO 20 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_END_ADDR   0x20c23154 /* [RW] End Address for FIFO 20 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_WRITE_ADDR 0x20c23158 /* [RW] Write Pointer for FIFO 20 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_READ_ADDR  0x20c2315c /* [RW] Read Pointer for FIFO 20 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_BASE_ADDR  0x20c23160 /* [RW] Base Address for FIFO 21 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_END_ADDR   0x20c23164 /* [RW] End Address for FIFO 21 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_WRITE_ADDR 0x20c23168 /* [RW] Write Pointer for FIFO 21 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_READ_ADDR  0x20c2316c /* [RW] Read Pointer for FIFO 21 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_BASE_ADDR  0x20c23170 /* [RW] Base Address for FIFO 22 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_END_ADDR   0x20c23174 /* [RW] End Address for FIFO 22 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_WRITE_ADDR 0x20c23178 /* [RW] Write Pointer for FIFO 22 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_READ_ADDR  0x20c2317c /* [RW] Read Pointer for FIFO 22 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_BASE_ADDR  0x20c23180 /* [RW] Base Address for FIFO 23 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_END_ADDR   0x20c23184 /* [RW] End Address for FIFO 23 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_WRITE_ADDR 0x20c23188 /* [RW] Write Pointer for FIFO 23 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_READ_ADDR  0x20c2318c /* [RW] Read Pointer for FIFO 23 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_BASE_ADDR  0x20c23190 /* [RW] Base Address for FIFO 24 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_END_ADDR   0x20c23194 /* [RW] End Address for FIFO 24 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_WRITE_ADDR 0x20c23198 /* [RW] Write Pointer for FIFO 24 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_READ_ADDR  0x20c2319c /* [RW] Read Pointer for FIFO 24 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_BASE_ADDR  0x20c231a0 /* [RW] Base Address for FIFO 25 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_END_ADDR   0x20c231a4 /* [RW] End Address for FIFO 25 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_WRITE_ADDR 0x20c231a8 /* [RW] Write Pointer for FIFO 25 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_READ_ADDR  0x20c231ac /* [RW] Read Pointer for FIFO 25 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_BASE_ADDR  0x20c231b0 /* [RW] Base Address for FIFO 26 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_END_ADDR   0x20c231b4 /* [RW] End Address for FIFO 26 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_WRITE_ADDR 0x20c231b8 /* [RW] Write Pointer for FIFO 26 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_READ_ADDR  0x20c231bc /* [RW] Read Pointer for FIFO 26 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_BASE_ADDR  0x20c231c0 /* [RW] Base Address for FIFO 27 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_END_ADDR   0x20c231c4 /* [RW] End Address for FIFO 27 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_WRITE_ADDR 0x20c231c8 /* [RW] Write Pointer for FIFO 27 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_READ_ADDR  0x20c231cc /* [RW] Read Pointer for FIFO 27 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_BASE_ADDR  0x20c231d0 /* [RW] Base Address for FIFO 28 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_END_ADDR   0x20c231d4 /* [RW] End Address for FIFO 28 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_WRITE_ADDR 0x20c231d8 /* [RW] Write Pointer for FIFO 28 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_READ_ADDR  0x20c231dc /* [RW] Read Pointer for FIFO 28 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_BASE_ADDR  0x20c231e0 /* [RW] Base Address for FIFO 29 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_END_ADDR   0x20c231e4 /* [RW] End Address for FIFO 29 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_WRITE_ADDR 0x20c231e8 /* [RW] Write Pointer for FIFO 29 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_READ_ADDR  0x20c231ec /* [RW] Read Pointer for FIFO 29 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_BASE_ADDR  0x20c231f0 /* [RW] Base Address for FIFO 30 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_END_ADDR   0x20c231f4 /* [RW] End Address for FIFO 30 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_WRITE_ADDR 0x20c231f8 /* [RW] Write Pointer for FIFO 30 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_READ_ADDR  0x20c231fc /* [RW] Read Pointer for FIFO 30 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_BASE_ADDR  0x20c23200 /* [RW] Base Address for FIFO 31 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_END_ADDR   0x20c23204 /* [RW] End Address for FIFO 31 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_WRITE_ADDR 0x20c23208 /* [RW] Write Pointer for FIFO 31 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_READ_ADDR  0x20c2320c /* [RW] Read Pointer for FIFO 31 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_BASE_ADDR  0x20c23210 /* [RW] Base Address for FIFO 32 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_END_ADDR   0x20c23214 /* [RW] End Address for FIFO 32 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_WRITE_ADDR 0x20c23218 /* [RW] Write Pointer for FIFO 32 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_READ_ADDR  0x20c2321c /* [RW] Read Pointer for FIFO 32 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_BASE_ADDR  0x20c23220 /* [RW] Base Address for FIFO 33 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_END_ADDR   0x20c23224 /* [RW] End Address for FIFO 33 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_WRITE_ADDR 0x20c23228 /* [RW] Write Pointer for FIFO 33 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_READ_ADDR  0x20c2322c /* [RW] Read Pointer for FIFO 33 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_BASE_ADDR  0x20c23230 /* [RW] Base Address for FIFO 34 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_END_ADDR   0x20c23234 /* [RW] End Address for FIFO 34 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_WRITE_ADDR 0x20c23238 /* [RW] Write Pointer for FIFO 34 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_READ_ADDR  0x20c2323c /* [RW] Read Pointer for FIFO 34 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_BASE_ADDR  0x20c23240 /* [RW] Base Address for FIFO 35 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_END_ADDR   0x20c23244 /* [RW] End Address for FIFO 35 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_WRITE_ADDR 0x20c23248 /* [RW] Write Pointer for FIFO 35 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_READ_ADDR  0x20c2324c /* [RW] Read Pointer for FIFO 35 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_BASE_ADDR  0x20c23250 /* [RW] Base Address for FIFO 36 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_END_ADDR   0x20c23254 /* [RW] End Address for FIFO 36 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_WRITE_ADDR 0x20c23258 /* [RW] Write Pointer for FIFO 36 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_READ_ADDR  0x20c2325c /* [RW] Read Pointer for FIFO 36 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_BASE_ADDR  0x20c23260 /* [RW] Base Address for FIFO 37 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_END_ADDR   0x20c23264 /* [RW] End Address for FIFO 37 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_WRITE_ADDR 0x20c23268 /* [RW] Write Pointer for FIFO 37 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_READ_ADDR  0x20c2326c /* [RW] Read Pointer for FIFO 37 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_BASE_ADDR  0x20c23270 /* [RW] Base Address for FIFO 38 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_END_ADDR   0x20c23274 /* [RW] End Address for FIFO 38 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_WRITE_ADDR 0x20c23278 /* [RW] Write Pointer for FIFO 38 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_READ_ADDR  0x20c2327c /* [RW] Read Pointer for FIFO 38 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_BASE_ADDR  0x20c23280 /* [RW] Base Address for FIFO 39 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_END_ADDR   0x20c23284 /* [RW] End Address for FIFO 39 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_WRITE_ADDR 0x20c23288 /* [RW] Write Pointer for FIFO 39 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_READ_ADDR  0x20c2328c /* [RW] Read Pointer for FIFO 39 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_BASE_ADDR  0x20c23290 /* [RW] Base Address for FIFO 40 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_END_ADDR   0x20c23294 /* [RW] End Address for FIFO 40 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_WRITE_ADDR 0x20c23298 /* [RW] Write Pointer for FIFO 40 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_READ_ADDR  0x20c2329c /* [RW] Read Pointer for FIFO 40 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_BASE_ADDR  0x20c232a0 /* [RW] Base Address for FIFO 41 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_END_ADDR   0x20c232a4 /* [RW] End Address for FIFO 41 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_WRITE_ADDR 0x20c232a8 /* [RW] Write Pointer for FIFO 41 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_READ_ADDR  0x20c232ac /* [RW] Read Pointer for FIFO 41 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_BASE_ADDR  0x20c232b0 /* [RW] Base Address for FIFO 42 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_END_ADDR   0x20c232b4 /* [RW] End Address for FIFO 42 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_WRITE_ADDR 0x20c232b8 /* [RW] Write Pointer for FIFO 42 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_READ_ADDR  0x20c232bc /* [RW] Read Pointer for FIFO 42 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_BASE_ADDR  0x20c232c0 /* [RW] Base Address for FIFO 43 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_END_ADDR   0x20c232c4 /* [RW] End Address for FIFO 43 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_WRITE_ADDR 0x20c232c8 /* [RW] Write Pointer for FIFO 43 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_READ_ADDR  0x20c232cc /* [RW] Read Pointer for FIFO 43 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_BASE_ADDR  0x20c232d0 /* [RW] Base Address for FIFO 44 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_END_ADDR   0x20c232d4 /* [RW] End Address for FIFO 44 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_WRITE_ADDR 0x20c232d8 /* [RW] Write Pointer for FIFO 44 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_READ_ADDR  0x20c232dc /* [RW] Read Pointer for FIFO 44 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_BASE_ADDR  0x20c232e0 /* [RW] Base Address for FIFO 45 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_END_ADDR   0x20c232e4 /* [RW] End Address for FIFO 45 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_WRITE_ADDR 0x20c232e8 /* [RW] Write Pointer for FIFO 45 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_READ_ADDR  0x20c232ec /* [RW] Read Pointer for FIFO 45 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_BASE_ADDR  0x20c232f0 /* [RW] Base Address for FIFO 46 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_END_ADDR   0x20c232f4 /* [RW] End Address for FIFO 46 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_WRITE_ADDR 0x20c232f8 /* [RW] Write Pointer for FIFO 46 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_READ_ADDR  0x20c232fc /* [RW] Read Pointer for FIFO 46 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_BASE_ADDR  0x20c23300 /* [RW] Base Address for FIFO 47 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_END_ADDR   0x20c23304 /* [RW] End Address for FIFO 47 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_WRITE_ADDR 0x20c23308 /* [RW] Write Pointer for FIFO 47 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_READ_ADDR  0x20c2330c /* [RW] Read Pointer for FIFO 47 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_BASE_ADDR  0x20c23310 /* [RW] Base Address for FIFO 48 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_END_ADDR   0x20c23314 /* [RW] End Address for FIFO 48 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_WRITE_ADDR 0x20c23318 /* [RW] Write Pointer for FIFO 48 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_READ_ADDR  0x20c2331c /* [RW] Read Pointer for FIFO 48 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_BASE_ADDR  0x20c23320 /* [RW] Base Address for FIFO 49 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_END_ADDR   0x20c23324 /* [RW] End Address for FIFO 49 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_WRITE_ADDR 0x20c23328 /* [RW] Write Pointer for FIFO 49 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_READ_ADDR  0x20c2332c /* [RW] Read Pointer for FIFO 49 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_BASE_ADDR  0x20c23330 /* [RW] Base Address for FIFO 50 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_END_ADDR   0x20c23334 /* [RW] End Address for FIFO 50 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_WRITE_ADDR 0x20c23338 /* [RW] Write Pointer for FIFO 50 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_READ_ADDR  0x20c2333c /* [RW] Read Pointer for FIFO 50 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_BASE_ADDR  0x20c23340 /* [RW] Base Address for FIFO 51 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_END_ADDR   0x20c23344 /* [RW] End Address for FIFO 51 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_WRITE_ADDR 0x20c23348 /* [RW] Write Pointer for FIFO 51 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_READ_ADDR  0x20c2334c /* [RW] Read Pointer for FIFO 51 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_BASE_ADDR  0x20c23350 /* [RW] Base Address for FIFO 52 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_END_ADDR   0x20c23354 /* [RW] End Address for FIFO 52 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_WRITE_ADDR 0x20c23358 /* [RW] Write Pointer for FIFO 52 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_READ_ADDR  0x20c2335c /* [RW] Read Pointer for FIFO 52 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_BASE_ADDR  0x20c23360 /* [RW] Base Address for FIFO 53 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_END_ADDR   0x20c23364 /* [RW] End Address for FIFO 53 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_WRITE_ADDR 0x20c23368 /* [RW] Write Pointer for FIFO 53 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_READ_ADDR  0x20c2336c /* [RW] Read Pointer for FIFO 53 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_BASE_ADDR  0x20c23370 /* [RW] Base Address for FIFO 54 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_END_ADDR   0x20c23374 /* [RW] End Address for FIFO 54 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_WRITE_ADDR 0x20c23378 /* [RW] Write Pointer for FIFO 54 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_READ_ADDR  0x20c2337c /* [RW] Read Pointer for FIFO 54 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_BASE_ADDR  0x20c23380 /* [RW] Base Address for FIFO 55 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_END_ADDR   0x20c23384 /* [RW] End Address for FIFO 55 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_WRITE_ADDR 0x20c23388 /* [RW] Write Pointer for FIFO 55 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_READ_ADDR  0x20c2338c /* [RW] Read Pointer for FIFO 55 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_BASE_ADDR  0x20c23390 /* [RW] Base Address for FIFO 56 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_END_ADDR   0x20c23394 /* [RW] End Address for FIFO 56 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_WRITE_ADDR 0x20c23398 /* [RW] Write Pointer for FIFO 56 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_READ_ADDR  0x20c2339c /* [RW] Read Pointer for FIFO 56 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_BASE_ADDR  0x20c233a0 /* [RW] Base Address for FIFO 57 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_END_ADDR   0x20c233a4 /* [RW] End Address for FIFO 57 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_WRITE_ADDR 0x20c233a8 /* [RW] Write Pointer for FIFO 57 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_READ_ADDR  0x20c233ac /* [RW] Read Pointer for FIFO 57 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_BASE_ADDR  0x20c233b0 /* [RW] Base Address for FIFO 58 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_END_ADDR   0x20c233b4 /* [RW] End Address for FIFO 58 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_WRITE_ADDR 0x20c233b8 /* [RW] Write Pointer for FIFO 58 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_READ_ADDR  0x20c233bc /* [RW] Read Pointer for FIFO 58 */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_BASE_ADDR 0x20c233c0 /* [RW] Base Address for FIFO DRAMLOGS */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_END_ADDR 0x20c233c4 /* [RW] End Address for FIFO DRAMLOGS */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_WRITE_ADDR 0x20c233c8 /* [RW] Write Pointer for FIFO DRAMLOGS */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_READ_ADDR 0x20c233cc /* [RW] Read Pointer for FIFO DRAMLOGS */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_BASE_ADDR 0x20c233d0 /* [RW] Base Address for FIFO UART */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_END_ADDR 0x20c233d4 /* [RW] End Address for FIFO UART */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_WRITE_ADDR 0x20c233d8 /* [RW] Write Pointer for FIFO UART */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_READ_ADDR 0x20c233dc /* [RW] Read Pointer for FIFO UART */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_BASE_ADDR 0x20c233e0 /* [RW] Base Address for FIFO COREDUMP */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_END_ADDR 0x20c233e4 /* [RW] End Address for FIFO COREDUMP */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_WRITE_ADDR 0x20c233e8 /* [RW] Write Pointer for FIFO COREDUMP */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_READ_ADDR 0x20c233ec /* [RW] Read Pointer for FIFO COREDUMP */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_BASE_ADDR 0x20c233f0 /* [RW] Base Address for FIFO TARGETPRINT */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_END_ADDR 0x20c233f4 /* [RW] End Address for FIFO TARGETPRINT */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_WRITE_ADDR 0x20c233f8 /* [RW] Write Pointer for FIFO TARGETPRINT */
-#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_READ_ADDR 0x20c233fc /* [RW] Read Pointer for FIFO TARGETPRINT */
-#define BCHP_RAAGA_DSP_FW_CFG_BASE_ADDR_FIFO_0_DEBUG 0x20c23400 /* [RW] Base Address for FIFO 0 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_END_ADDR_FIFO_0_DEBUG 0x20c23404 /* [RW] End Address for FIFO 0 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_WRITE_ADDR_FIFO_0_DEBUG 0x20c23408 /* [RW] Write Pointer for FIFO 0 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_READ_ADDR_FIFO_0_DEBUG 0x20c2340c /* [RW] Read Pointer for FIFO 0 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_BASE_ADDR_FIFO_1_DEBUG 0x20c23410 /* [RW] Base Address for FIFO 1 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_END_ADDR_FIFO_1_DEBUG 0x20c23414 /* [RW] End Address for FIFO 1 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_WRITE_ADDR_FIFO_1_DEBUG 0x20c23418 /* [RW] Write Pointer for FIFO 1 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_READ_ADDR_FIFO_1_DEBUG 0x20c2341c /* [RW] Read Pointer for FIFO 1 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_BASE_ADDR_FIFO_2_DEBUG 0x20c23420 /* [RW] Base Address for FIFO 2 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_END_ADDR_FIFO_2_DEBUG 0x20c23424 /* [RW] End Address for FIFO 2 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_WRITE_ADDR_FIFO_2_DEBUG 0x20c23428 /* [RW] Write Pointer for FIFO 2 DEBUG */
-#define BCHP_RAAGA_DSP_FW_CFG_READ_ADDR_FIFO_2_DEBUG 0x20c2342c /* [RW] Read Pointer for FIFO 2 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_HOST2DSPCMD_FIFO0_BASEADDR 0x20c23000 /* [RW][32] FIFO 0 BASEADDRESS */
+#define BCHP_RAAGA_DSP_FW_CFG_HOST2DSPCMD_FIFO_ID 0x20c23004 /* [RW][32] FIFO ID Containing HOST2DSP Command */
+#define BCHP_RAAGA_DSP_FW_CFG_SW_UNUSED1         0x20c23008 /* [RW][32] UNUSED REGISTER SPACE */
+#define BCHP_RAAGA_DSP_FW_CFG_SW_UNUSED2         0x20c2300c /* [RW][32] UNUSED REGISTER SPACE */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR   0x20c23010 /* [RW][32] Base Address for FIFO 0 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_END_ADDR    0x20c23014 /* [RW][32] End Address for FIFO 0 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_WRITE_ADDR  0x20c23018 /* [RW][32] Write Pointer for FIFO 0 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_0_READ_ADDR   0x20c2301c /* [RW][32] Read Pointer for FIFO 0 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR   0x20c23020 /* [RW][32] Base Address for FIFO 1 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_END_ADDR    0x20c23024 /* [RW][32] End Address for FIFO 1 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_WRITE_ADDR  0x20c23028 /* [RW][32] Write Pointer for FIFO 1 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_1_READ_ADDR   0x20c2302c /* [RW][32] Read Pointer for FIFO 1 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_BASE_ADDR   0x20c23030 /* [RW][32] Base Address for FIFO 2 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_END_ADDR    0x20c23034 /* [RW][32] End Address for FIFO 2 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_WRITE_ADDR  0x20c23038 /* [RW][32] Write Pointer for FIFO 2 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_2_READ_ADDR   0x20c2303c /* [RW][32] Read Pointer for FIFO 2 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_BASE_ADDR   0x20c23040 /* [RW][32] Base Address for FIFO 3 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_END_ADDR    0x20c23044 /* [RW][32] End Address for FIFO 3 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_WRITE_ADDR  0x20c23048 /* [RW][32] Write Pointer for FIFO 3 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_3_READ_ADDR   0x20c2304c /* [RW][32] Read Pointer for FIFO 3 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_BASE_ADDR   0x20c23050 /* [RW][32] Base Address for FIFO 4 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_END_ADDR    0x20c23054 /* [RW][32] End Address for FIFO 4 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_WRITE_ADDR  0x20c23058 /* [RW][32] Write Pointer for FIFO 4 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_4_READ_ADDR   0x20c2305c /* [RW][32] Read Pointer for FIFO 4 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_BASE_ADDR   0x20c23060 /* [RW][32] Base Address for FIFO 5 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_END_ADDR    0x20c23064 /* [RW][32] End Address for FIFO 5 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_WRITE_ADDR  0x20c23068 /* [RW][32] Write Pointer for FIFO 5 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_5_READ_ADDR   0x20c2306c /* [RW][32] Read Pointer for FIFO 5 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_BASE_ADDR   0x20c23070 /* [RW][32] Base Address for FIFO 6 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_END_ADDR    0x20c23074 /* [RW][32] End Address for FIFO 6 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_WRITE_ADDR  0x20c23078 /* [RW][32] Write Pointer for FIFO 6 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_6_READ_ADDR   0x20c2307c /* [RW][32] Read Pointer for FIFO 6 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_BASE_ADDR   0x20c23080 /* [RW][32] Base Address for FIFO 7 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_END_ADDR    0x20c23084 /* [RW][32] End Address for FIFO 7 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_WRITE_ADDR  0x20c23088 /* [RW][32] Write Pointer for FIFO 7 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_7_READ_ADDR   0x20c2308c /* [RW][32] Read Pointer for FIFO 7 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_BASE_ADDR   0x20c23090 /* [RW][32] Base Address for FIFO 8 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_END_ADDR    0x20c23094 /* [RW][32] End Address for FIFO 8 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_WRITE_ADDR  0x20c23098 /* [RW][32] Write Pointer for FIFO 8 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_8_READ_ADDR   0x20c2309c /* [RW][32] Read Pointer for FIFO 8 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_BASE_ADDR   0x20c230a0 /* [RW][32] Base Address for FIFO 9 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_END_ADDR    0x20c230a4 /* [RW][32] End Address for FIFO 9 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_WRITE_ADDR  0x20c230a8 /* [RW][32] Write Pointer for FIFO 9 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_9_READ_ADDR   0x20c230ac /* [RW][32] Read Pointer for FIFO 9 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_BASE_ADDR  0x20c230b0 /* [RW][32] Base Address for FIFO 10 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_END_ADDR   0x20c230b4 /* [RW][32] End Address for FIFO 10 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_WRITE_ADDR 0x20c230b8 /* [RW][32] Write Pointer for FIFO 10 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_10_READ_ADDR  0x20c230bc /* [RW][32] Read Pointer for FIFO 10 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_BASE_ADDR  0x20c230c0 /* [RW][32] Base Address for FIFO 11 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_END_ADDR   0x20c230c4 /* [RW][32] End Address for FIFO 11 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_WRITE_ADDR 0x20c230c8 /* [RW][32] Write Pointer for FIFO 11 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_11_READ_ADDR  0x20c230cc /* [RW][32] Read Pointer for FIFO 11 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_BASE_ADDR  0x20c230d0 /* [RW][32] Base Address for FIFO 12 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_END_ADDR   0x20c230d4 /* [RW][32] End Address for FIFO 12 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_WRITE_ADDR 0x20c230d8 /* [RW][32] Write Pointer for FIFO 12 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_12_READ_ADDR  0x20c230dc /* [RW][32] Read Pointer for FIFO 12 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_BASE_ADDR  0x20c230e0 /* [RW][32] Base Address for FIFO 13 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_END_ADDR   0x20c230e4 /* [RW][32] End Address for FIFO 13 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_WRITE_ADDR 0x20c230e8 /* [RW][32] Write Pointer for FIFO 13 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_13_READ_ADDR  0x20c230ec /* [RW][32] Read Pointer for FIFO 13 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_BASE_ADDR  0x20c230f0 /* [RW][32] Base Address for FIFO 14 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_END_ADDR   0x20c230f4 /* [RW][32] End Address for FIFO 14 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_WRITE_ADDR 0x20c230f8 /* [RW][32] Write Pointer for FIFO 14 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_14_READ_ADDR  0x20c230fc /* [RW][32] Read Pointer for FIFO 14 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_BASE_ADDR  0x20c23100 /* [RW][32] Base Address for FIFO 15 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_END_ADDR   0x20c23104 /* [RW][32] End Address for FIFO 15 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_WRITE_ADDR 0x20c23108 /* [RW][32] Write Pointer for FIFO 15 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_15_READ_ADDR  0x20c2310c /* [RW][32] Read Pointer for FIFO 15 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_BASE_ADDR  0x20c23110 /* [RW][32] Base Address for FIFO 16 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_END_ADDR   0x20c23114 /* [RW][32] End Address for FIFO 16 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_WRITE_ADDR 0x20c23118 /* [RW][32] Write Pointer for FIFO 16 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_16_READ_ADDR  0x20c2311c /* [RW][32] Read Pointer for FIFO 16 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_BASE_ADDR  0x20c23120 /* [RW][32] Base Address for FIFO 17 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_END_ADDR   0x20c23124 /* [RW][32] End Address for FIFO 17 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_WRITE_ADDR 0x20c23128 /* [RW][32] Write Pointer for FIFO 17 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_17_READ_ADDR  0x20c2312c /* [RW][32] Read Pointer for FIFO 17 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_BASE_ADDR  0x20c23130 /* [RW][32] Base Address for FIFO 18 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_END_ADDR   0x20c23134 /* [RW][32] End Address for FIFO 18 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_WRITE_ADDR 0x20c23138 /* [RW][32] Write Pointer for FIFO 18 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_18_READ_ADDR  0x20c2313c /* [RW][32] Read Pointer for FIFO 18 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_BASE_ADDR  0x20c23140 /* [RW][32] Base Address for FIFO 19 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_END_ADDR   0x20c23144 /* [RW][32] End Address for FIFO 19 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_WRITE_ADDR 0x20c23148 /* [RW][32] Write Pointer for FIFO 19 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_19_READ_ADDR  0x20c2314c /* [RW][32] Read Pointer for FIFO 19 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_BASE_ADDR  0x20c23150 /* [RW][32] Base Address for FIFO 20 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_END_ADDR   0x20c23154 /* [RW][32] End Address for FIFO 20 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_WRITE_ADDR 0x20c23158 /* [RW][32] Write Pointer for FIFO 20 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_20_READ_ADDR  0x20c2315c /* [RW][32] Read Pointer for FIFO 20 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_BASE_ADDR  0x20c23160 /* [RW][32] Base Address for FIFO 21 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_END_ADDR   0x20c23164 /* [RW][32] End Address for FIFO 21 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_WRITE_ADDR 0x20c23168 /* [RW][32] Write Pointer for FIFO 21 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_21_READ_ADDR  0x20c2316c /* [RW][32] Read Pointer for FIFO 21 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_BASE_ADDR  0x20c23170 /* [RW][32] Base Address for FIFO 22 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_END_ADDR   0x20c23174 /* [RW][32] End Address for FIFO 22 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_WRITE_ADDR 0x20c23178 /* [RW][32] Write Pointer for FIFO 22 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_22_READ_ADDR  0x20c2317c /* [RW][32] Read Pointer for FIFO 22 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_BASE_ADDR  0x20c23180 /* [RW][32] Base Address for FIFO 23 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_END_ADDR   0x20c23184 /* [RW][32] End Address for FIFO 23 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_WRITE_ADDR 0x20c23188 /* [RW][32] Write Pointer for FIFO 23 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_23_READ_ADDR  0x20c2318c /* [RW][32] Read Pointer for FIFO 23 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_BASE_ADDR  0x20c23190 /* [RW][32] Base Address for FIFO 24 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_END_ADDR   0x20c23194 /* [RW][32] End Address for FIFO 24 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_WRITE_ADDR 0x20c23198 /* [RW][32] Write Pointer for FIFO 24 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_24_READ_ADDR  0x20c2319c /* [RW][32] Read Pointer for FIFO 24 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_BASE_ADDR  0x20c231a0 /* [RW][32] Base Address for FIFO 25 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_END_ADDR   0x20c231a4 /* [RW][32] End Address for FIFO 25 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_WRITE_ADDR 0x20c231a8 /* [RW][32] Write Pointer for FIFO 25 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_25_READ_ADDR  0x20c231ac /* [RW][32] Read Pointer for FIFO 25 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_BASE_ADDR  0x20c231b0 /* [RW][32] Base Address for FIFO 26 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_END_ADDR   0x20c231b4 /* [RW][32] End Address for FIFO 26 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_WRITE_ADDR 0x20c231b8 /* [RW][32] Write Pointer for FIFO 26 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_26_READ_ADDR  0x20c231bc /* [RW][32] Read Pointer for FIFO 26 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_BASE_ADDR  0x20c231c0 /* [RW][32] Base Address for FIFO 27 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_END_ADDR   0x20c231c4 /* [RW][32] End Address for FIFO 27 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_WRITE_ADDR 0x20c231c8 /* [RW][32] Write Pointer for FIFO 27 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_27_READ_ADDR  0x20c231cc /* [RW][32] Read Pointer for FIFO 27 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_BASE_ADDR  0x20c231d0 /* [RW][32] Base Address for FIFO 28 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_END_ADDR   0x20c231d4 /* [RW][32] End Address for FIFO 28 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_WRITE_ADDR 0x20c231d8 /* [RW][32] Write Pointer for FIFO 28 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_28_READ_ADDR  0x20c231dc /* [RW][32] Read Pointer for FIFO 28 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_BASE_ADDR  0x20c231e0 /* [RW][32] Base Address for FIFO 29 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_END_ADDR   0x20c231e4 /* [RW][32] End Address for FIFO 29 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_WRITE_ADDR 0x20c231e8 /* [RW][32] Write Pointer for FIFO 29 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_29_READ_ADDR  0x20c231ec /* [RW][32] Read Pointer for FIFO 29 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_BASE_ADDR  0x20c231f0 /* [RW][32] Base Address for FIFO 30 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_END_ADDR   0x20c231f4 /* [RW][32] End Address for FIFO 30 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_WRITE_ADDR 0x20c231f8 /* [RW][32] Write Pointer for FIFO 30 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_30_READ_ADDR  0x20c231fc /* [RW][32] Read Pointer for FIFO 30 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_BASE_ADDR  0x20c23200 /* [RW][32] Base Address for FIFO 31 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_END_ADDR   0x20c23204 /* [RW][32] End Address for FIFO 31 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_WRITE_ADDR 0x20c23208 /* [RW][32] Write Pointer for FIFO 31 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_31_READ_ADDR  0x20c2320c /* [RW][32] Read Pointer for FIFO 31 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_BASE_ADDR  0x20c23210 /* [RW][32] Base Address for FIFO 32 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_END_ADDR   0x20c23214 /* [RW][32] End Address for FIFO 32 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_WRITE_ADDR 0x20c23218 /* [RW][32] Write Pointer for FIFO 32 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_32_READ_ADDR  0x20c2321c /* [RW][32] Read Pointer for FIFO 32 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_BASE_ADDR  0x20c23220 /* [RW][32] Base Address for FIFO 33 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_END_ADDR   0x20c23224 /* [RW][32] End Address for FIFO 33 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_WRITE_ADDR 0x20c23228 /* [RW][32] Write Pointer for FIFO 33 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_33_READ_ADDR  0x20c2322c /* [RW][32] Read Pointer for FIFO 33 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_BASE_ADDR  0x20c23230 /* [RW][32] Base Address for FIFO 34 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_END_ADDR   0x20c23234 /* [RW][32] End Address for FIFO 34 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_WRITE_ADDR 0x20c23238 /* [RW][32] Write Pointer for FIFO 34 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_34_READ_ADDR  0x20c2323c /* [RW][32] Read Pointer for FIFO 34 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_BASE_ADDR  0x20c23240 /* [RW][32] Base Address for FIFO 35 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_END_ADDR   0x20c23244 /* [RW][32] End Address for FIFO 35 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_WRITE_ADDR 0x20c23248 /* [RW][32] Write Pointer for FIFO 35 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_35_READ_ADDR  0x20c2324c /* [RW][32] Read Pointer for FIFO 35 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_BASE_ADDR  0x20c23250 /* [RW][32] Base Address for FIFO 36 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_END_ADDR   0x20c23254 /* [RW][32] End Address for FIFO 36 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_WRITE_ADDR 0x20c23258 /* [RW][32] Write Pointer for FIFO 36 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_36_READ_ADDR  0x20c2325c /* [RW][32] Read Pointer for FIFO 36 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_BASE_ADDR  0x20c23260 /* [RW][32] Base Address for FIFO 37 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_END_ADDR   0x20c23264 /* [RW][32] End Address for FIFO 37 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_WRITE_ADDR 0x20c23268 /* [RW][32] Write Pointer for FIFO 37 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_37_READ_ADDR  0x20c2326c /* [RW][32] Read Pointer for FIFO 37 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_BASE_ADDR  0x20c23270 /* [RW][32] Base Address for FIFO 38 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_END_ADDR   0x20c23274 /* [RW][32] End Address for FIFO 38 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_WRITE_ADDR 0x20c23278 /* [RW][32] Write Pointer for FIFO 38 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_38_READ_ADDR  0x20c2327c /* [RW][32] Read Pointer for FIFO 38 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_BASE_ADDR  0x20c23280 /* [RW][32] Base Address for FIFO 39 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_END_ADDR   0x20c23284 /* [RW][32] End Address for FIFO 39 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_WRITE_ADDR 0x20c23288 /* [RW][32] Write Pointer for FIFO 39 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_39_READ_ADDR  0x20c2328c /* [RW][32] Read Pointer for FIFO 39 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_BASE_ADDR  0x20c23290 /* [RW][32] Base Address for FIFO 40 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_END_ADDR   0x20c23294 /* [RW][32] End Address for FIFO 40 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_WRITE_ADDR 0x20c23298 /* [RW][32] Write Pointer for FIFO 40 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_40_READ_ADDR  0x20c2329c /* [RW][32] Read Pointer for FIFO 40 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_BASE_ADDR  0x20c232a0 /* [RW][32] Base Address for FIFO 41 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_END_ADDR   0x20c232a4 /* [RW][32] End Address for FIFO 41 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_WRITE_ADDR 0x20c232a8 /* [RW][32] Write Pointer for FIFO 41 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_41_READ_ADDR  0x20c232ac /* [RW][32] Read Pointer for FIFO 41 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_BASE_ADDR  0x20c232b0 /* [RW][32] Base Address for FIFO 42 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_END_ADDR   0x20c232b4 /* [RW][32] End Address for FIFO 42 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_WRITE_ADDR 0x20c232b8 /* [RW][32] Write Pointer for FIFO 42 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_42_READ_ADDR  0x20c232bc /* [RW][32] Read Pointer for FIFO 42 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_BASE_ADDR  0x20c232c0 /* [RW][32] Base Address for FIFO 43 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_END_ADDR   0x20c232c4 /* [RW][32] End Address for FIFO 43 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_WRITE_ADDR 0x20c232c8 /* [RW][32] Write Pointer for FIFO 43 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_43_READ_ADDR  0x20c232cc /* [RW][32] Read Pointer for FIFO 43 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_BASE_ADDR  0x20c232d0 /* [RW][32] Base Address for FIFO 44 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_END_ADDR   0x20c232d4 /* [RW][32] End Address for FIFO 44 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_WRITE_ADDR 0x20c232d8 /* [RW][32] Write Pointer for FIFO 44 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_44_READ_ADDR  0x20c232dc /* [RW][32] Read Pointer for FIFO 44 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_BASE_ADDR  0x20c232e0 /* [RW][32] Base Address for FIFO 45 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_END_ADDR   0x20c232e4 /* [RW][32] End Address for FIFO 45 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_WRITE_ADDR 0x20c232e8 /* [RW][32] Write Pointer for FIFO 45 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_45_READ_ADDR  0x20c232ec /* [RW][32] Read Pointer for FIFO 45 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_BASE_ADDR  0x20c232f0 /* [RW][32] Base Address for FIFO 46 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_END_ADDR   0x20c232f4 /* [RW][32] End Address for FIFO 46 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_WRITE_ADDR 0x20c232f8 /* [RW][32] Write Pointer for FIFO 46 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_46_READ_ADDR  0x20c232fc /* [RW][32] Read Pointer for FIFO 46 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_BASE_ADDR  0x20c23300 /* [RW][32] Base Address for FIFO 47 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_END_ADDR   0x20c23304 /* [RW][32] End Address for FIFO 47 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_WRITE_ADDR 0x20c23308 /* [RW][32] Write Pointer for FIFO 47 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_47_READ_ADDR  0x20c2330c /* [RW][32] Read Pointer for FIFO 47 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_BASE_ADDR  0x20c23310 /* [RW][32] Base Address for FIFO 48 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_END_ADDR   0x20c23314 /* [RW][32] End Address for FIFO 48 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_WRITE_ADDR 0x20c23318 /* [RW][32] Write Pointer for FIFO 48 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_48_READ_ADDR  0x20c2331c /* [RW][32] Read Pointer for FIFO 48 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_BASE_ADDR  0x20c23320 /* [RW][32] Base Address for FIFO 49 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_END_ADDR   0x20c23324 /* [RW][32] End Address for FIFO 49 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_WRITE_ADDR 0x20c23328 /* [RW][32] Write Pointer for FIFO 49 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_49_READ_ADDR  0x20c2332c /* [RW][32] Read Pointer for FIFO 49 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_BASE_ADDR  0x20c23330 /* [RW][32] Base Address for FIFO 50 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_END_ADDR   0x20c23334 /* [RW][32] End Address for FIFO 50 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_WRITE_ADDR 0x20c23338 /* [RW][32] Write Pointer for FIFO 50 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_50_READ_ADDR  0x20c2333c /* [RW][32] Read Pointer for FIFO 50 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_BASE_ADDR  0x20c23340 /* [RW][32] Base Address for FIFO 51 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_END_ADDR   0x20c23344 /* [RW][32] End Address for FIFO 51 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_WRITE_ADDR 0x20c23348 /* [RW][32] Write Pointer for FIFO 51 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_51_READ_ADDR  0x20c2334c /* [RW][32] Read Pointer for FIFO 51 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_BASE_ADDR  0x20c23350 /* [RW][32] Base Address for FIFO 52 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_END_ADDR   0x20c23354 /* [RW][32] End Address for FIFO 52 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_WRITE_ADDR 0x20c23358 /* [RW][32] Write Pointer for FIFO 52 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_52_READ_ADDR  0x20c2335c /* [RW][32] Read Pointer for FIFO 52 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_BASE_ADDR  0x20c23360 /* [RW][32] Base Address for FIFO 53 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_END_ADDR   0x20c23364 /* [RW][32] End Address for FIFO 53 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_WRITE_ADDR 0x20c23368 /* [RW][32] Write Pointer for FIFO 53 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_53_READ_ADDR  0x20c2336c /* [RW][32] Read Pointer for FIFO 53 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_BASE_ADDR  0x20c23370 /* [RW][32] Base Address for FIFO 54 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_END_ADDR   0x20c23374 /* [RW][32] End Address for FIFO 54 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_WRITE_ADDR 0x20c23378 /* [RW][32] Write Pointer for FIFO 54 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_54_READ_ADDR  0x20c2337c /* [RW][32] Read Pointer for FIFO 54 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_BASE_ADDR  0x20c23380 /* [RW][32] Base Address for FIFO 55 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_END_ADDR   0x20c23384 /* [RW][32] End Address for FIFO 55 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_WRITE_ADDR 0x20c23388 /* [RW][32] Write Pointer for FIFO 55 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_55_READ_ADDR  0x20c2338c /* [RW][32] Read Pointer for FIFO 55 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_BASE_ADDR  0x20c23390 /* [RW][32] Base Address for FIFO 56 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_END_ADDR   0x20c23394 /* [RW][32] End Address for FIFO 56 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_WRITE_ADDR 0x20c23398 /* [RW][32] Write Pointer for FIFO 56 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_56_READ_ADDR  0x20c2339c /* [RW][32] Read Pointer for FIFO 56 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_BASE_ADDR  0x20c233a0 /* [RW][32] Base Address for FIFO 57 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_END_ADDR   0x20c233a4 /* [RW][32] End Address for FIFO 57 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_WRITE_ADDR 0x20c233a8 /* [RW][32] Write Pointer for FIFO 57 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_57_READ_ADDR  0x20c233ac /* [RW][32] Read Pointer for FIFO 57 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_BASE_ADDR  0x20c233b0 /* [RW][32] Base Address for FIFO 58 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_END_ADDR   0x20c233b4 /* [RW][32] End Address for FIFO 58 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_WRITE_ADDR 0x20c233b8 /* [RW][32] Write Pointer for FIFO 58 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_58_READ_ADDR  0x20c233bc /* [RW][32] Read Pointer for FIFO 58 */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_BASE_ADDR 0x20c233c0 /* [RW][32] Base Address for FIFO DRAMLOGS */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_END_ADDR 0x20c233c4 /* [RW][32] End Address for FIFO DRAMLOGS */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_WRITE_ADDR 0x20c233c8 /* [RW][32] Write Pointer for FIFO DRAMLOGS */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_READ_ADDR 0x20c233cc /* [RW][32] Read Pointer for FIFO DRAMLOGS */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_BASE_ADDR 0x20c233d0 /* [RW][32] Base Address for FIFO UART */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_END_ADDR 0x20c233d4 /* [RW][32] End Address for FIFO UART */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_WRITE_ADDR 0x20c233d8 /* [RW][32] Write Pointer for FIFO UART */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_UART_READ_ADDR 0x20c233dc /* [RW][32] Read Pointer for FIFO UART */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_BASE_ADDR 0x20c233e0 /* [RW][32] Base Address for FIFO COREDUMP */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_END_ADDR 0x20c233e4 /* [RW][32] End Address for FIFO COREDUMP */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_WRITE_ADDR 0x20c233e8 /* [RW][32] Write Pointer for FIFO COREDUMP */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_COREDUMP_READ_ADDR 0x20c233ec /* [RW][32] Read Pointer for FIFO COREDUMP */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_BASE_ADDR 0x20c233f0 /* [RW][32] Base Address for FIFO TARGETPRINT */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_END_ADDR 0x20c233f4 /* [RW][32] End Address for FIFO TARGETPRINT */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_WRITE_ADDR 0x20c233f8 /* [RW][32] Write Pointer for FIFO TARGETPRINT */
+#define BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_READ_ADDR 0x20c233fc /* [RW][32] Read Pointer for FIFO TARGETPRINT */
+#define BCHP_RAAGA_DSP_FW_CFG_BASE_ADDR_FIFO_0_DEBUG 0x20c23400 /* [RW][32] Base Address for FIFO 0 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_END_ADDR_FIFO_0_DEBUG 0x20c23404 /* [RW][32] End Address for FIFO 0 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_WRITE_ADDR_FIFO_0_DEBUG 0x20c23408 /* [RW][32] Write Pointer for FIFO 0 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_READ_ADDR_FIFO_0_DEBUG 0x20c2340c /* [RW][32] Read Pointer for FIFO 0 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_BASE_ADDR_FIFO_1_DEBUG 0x20c23410 /* [RW][32] Base Address for FIFO 1 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_END_ADDR_FIFO_1_DEBUG 0x20c23414 /* [RW][32] End Address for FIFO 1 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_WRITE_ADDR_FIFO_1_DEBUG 0x20c23418 /* [RW][32] Write Pointer for FIFO 1 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_READ_ADDR_FIFO_1_DEBUG 0x20c2341c /* [RW][32] Read Pointer for FIFO 1 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_BASE_ADDR_FIFO_2_DEBUG 0x20c23420 /* [RW][32] Base Address for FIFO 2 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_END_ADDR_FIFO_2_DEBUG 0x20c23424 /* [RW][32] End Address for FIFO 2 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_WRITE_ADDR_FIFO_2_DEBUG 0x20c23428 /* [RW][32] Write Pointer for FIFO 2 DEBUG */
+#define BCHP_RAAGA_DSP_FW_CFG_READ_ADDR_FIFO_2_DEBUG 0x20c2342c /* [RW][32] Read Pointer for FIFO 2 DEBUG */
 
 /***************************************************************************
  *HOST2DSPCMD_FIFO0_BASEADDR - FIFO 0 BASEADDRESS

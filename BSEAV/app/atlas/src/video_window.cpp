@@ -250,11 +250,12 @@ bool CVideoWindow::isVisible()
     return(settings.visible);
 }
 
-eRet CVideoWindow::setGeometry(
+/* percent and border are expressed in terms: 0-1000 = 0-100.0% */
+eRet CVideoWindow::setGeometryPercent(
         MRect    rect,
-        uint8_t  percent,
+        uint16_t percent,
         eWinArea area,
-        uint8_t  border,
+        uint16_t border,
         uint16_t zorder
         )
 {
@@ -262,13 +263,13 @@ eRet CVideoWindow::setGeometry(
     uint16_t borderGap = 0;
     MRect    rectScaled;
 
-    BDBG_ASSERT(100 >= percent);
+    BDBG_ASSERT(1000 >= percent);
     BDBG_ASSERT(eWindowType_Max != getType());
 
-    borderGap = border * rect.height() / 100;
+    borderGap = border * rect.height() / 1000;
 
-    rectScaled.setWidth(rect.width() * percent / 100);
-    rectScaled.setHeight(rect.height() * percent / 100);
+    rectScaled.setWidth(rect.width() * percent / 1000);
+    rectScaled.setHeight(rect.height() * percent / 1000);
 
     switch (area)
     {

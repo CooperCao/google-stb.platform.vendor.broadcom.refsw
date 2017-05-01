@@ -1,14 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2012 Broadcom.
- All rights reserved.
-
- Module   :  gfx_buffer
-
- $Id: $
-
- FILE DESCRIPTION
- Interface for image comparision functions
-==============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/core/lfmt/lfmt.h"

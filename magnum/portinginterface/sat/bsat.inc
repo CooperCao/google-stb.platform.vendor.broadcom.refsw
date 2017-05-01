@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -235,6 +235,7 @@ BSAT_SOURCES += \
 	$(MAGNUM)/portinginterface/sat/src/g1/common/bsat_g1_priv_snr.c \
 	$(MAGNUM)/portinginterface/sat/src/g1/common/bsat_g1_priv_tfec.c \
 	$(MAGNUM)/portinginterface/sat/src/g1/common/bsat_g1_priv_timer.c \
+	$(MAGNUM)/portinginterface/sat/src/g1/common/bsat_g1_priv_sa.c \
 	$(MAGNUM)/portinginterface/sat/src/g1/7364/bsat_7364_priv.c \
 	$(MAGNUM)/portinginterface/sat/src/g1/7364/bsat_7364_priv_aci.c
 

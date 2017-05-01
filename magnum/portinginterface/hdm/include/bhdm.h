@@ -1,23 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 
 /*= Module Overview *********************************************************
@@ -616,6 +634,18 @@ typedef struct
 } BHDM_TmdsPreEmphasisRegisters ;
 
 
+typedef struct BHDM_PACKET_ACR_CONFIG
+ {
+	uint32_t NValue ;
+	uint32_t HW_NValue ;
+	uint32_t CTS_0 ;
+	uint32_t CTS_1 ;
+	uint32_t CTS_0_REPEAT ;
+	uint32_t CTS_1_REPEAT ;
+ } BHDM_PACKET_ACR_CONFIG ;
+/* } BHDM_P_AUDIO_CLK_VALUES ; */
+
+
 /***************************************************************************
 Summary:
 HDMI settings used for BHDM_Open().
@@ -708,12 +738,13 @@ Summary:
 HDMI Status .
 
 See Also
-	o BHDM_GetDefaultSettings
+	o None
 ****************************************************************************/
 typedef struct
 {
 	BHDM_TmdsSettings tmds ;
 	uint32_t pixelClockRate;
+	BHDM_PACKET_ACR_CONFIG stAcrPacketConfig ;
 } BHDM_Status ;
 
 
@@ -1596,6 +1627,27 @@ BERR_Code BHDM_GetReceiverSense(
 
 /******************************************************************************
 Summary:
+Display content of Vendor Specific InfoFrame
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+	pstVendorSpecificInfoFrame - pointer to Vendor Specific InfoFrame
+
+Returns:
+	None
+
+See Also:
+	BHDM_SetVendorSpecificInfoFrame
+	BHDM_GetVendorSpecificInfoFrame
+*******************************************************************************/
+void BHDM_DisplayVendorSpecificInfoFrame(
+	BHDM_Handle hHDMI,          /* [in] HDMI handle */
+	const BAVC_HDMI_VendorSpecificInfoFrame *pstVendorSpecificInfoFrame
+) ;
+
+
+/******************************************************************************
+Summary:
 Set Vendor Specific InfoFrame
 
 Input:
@@ -1610,6 +1662,7 @@ Returns:
 
 See Also:
 	BHDM_GetVendorSpecificInfoFrame
+	BHDM_DisplayVendorSpecificInfoFrame
 *******************************************************************************/
 BERR_Code BHDM_SetVendorSpecificInfoFrame(
 	BHDM_Handle hHDMI,          /* [in] HDMI handle */
@@ -1619,7 +1672,7 @@ BERR_Code BHDM_SetVendorSpecificInfoFrame(
 
 /******************************************************************************
 Summary:
-Set Vendor Specific  InfoFrame
+Get Vendor Specific  InfoFrame
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
@@ -1631,6 +1684,7 @@ Returns:
 
 See Also:
 	BHDM_SetVendorSpecificInfoFramePacket
+	BHDM_DisplayVendorSpecificInfoFrame
 *******************************************************************************/
 void  BHDM_GetVendorSpecificInfoFrame(
 	BHDM_Handle hHDMI,          /* [in] HDMI handle */
@@ -1640,11 +1694,33 @@ void  BHDM_GetVendorSpecificInfoFrame(
 
 /******************************************************************************
 Summary:
+Display AVI InfoFrame
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+	pstAviInfoFrame - pointer to Audio Info Frame structure
+
+
+Returns:
+	None
+
+See Also:
+	BHDM_GetAviInfoFramePacket
+	BHDM_SetAviInfoFramePacket
+*******************************************************************************/
+void BHDM_DisplayAVIInfoFramePacket(
+	BHDM_Handle hHDMI,
+	BAVC_HDMI_AviInfoFrame *pstAviInfoFrame
+) ;
+
+
+/******************************************************************************
+Summary:
 Set AVI InfoFrame
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	AviInfo - values to set info frame to
+	pstAviInfoFrame - values to set info frame to
 
 
 Returns:
@@ -1655,10 +1731,11 @@ Returns:
 
 See Also:
 	BHDM_GetAviInfoFramePacket
+	BHDM_DisplayAviInfoFramePacket
 *******************************************************************************/
 BERR_Code BHDM_SetAVIInfoFramePacket(
 	BHDM_Handle hHDMI,
-	BAVC_HDMI_AviInfoFrame *stAviInfoFrame
+	BAVC_HDMI_AviInfoFrame *pstAviInfoFrame
 ) ;
 
 
@@ -1669,7 +1746,7 @@ Get current AVI InfoFrame Settings
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	AviInfo - structure to copy AVI Info Frame values to
+	pstAviInfoFrame - structure to copy AVI Info Frame values to
 
 
 Returns:
@@ -1679,11 +1756,12 @@ Returns:
 
 
 See Also:
-	BHDM_GetAviInfoFramePacket
+	BHDM_SetAviInfoFramePacket
+	BHDM_DisplayAviInfoFramePacket
 *******************************************************************************/
 BERR_Code BHDM_GetAVIInfoFramePacket(
 	BHDM_Handle hHDMI,
-	BAVC_HDMI_AviInfoFrame *stAviInfoFrame
+	BAVC_HDMI_AviInfoFrame *pstAviInfoFrame
 ) ;
 
 
@@ -1694,7 +1772,29 @@ Set Audio InfoFrame
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	stAudioInfoFrame - values to set info frame to
+	pstAudioInfoFrame - pointer to Audio Info Frame structure
+
+
+Returns:
+	None
+
+See Also:
+	BHDM_GetAudioInfoFramePacket
+	BHDM_SetAudioInfoFramePacket
+*******************************************************************************/
+void BHDM_DisplayAudioInfoFramePacket(
+	BHDM_Handle hHDMI,
+	BAVC_HDMI_AudioInfoFrame *pstAudioInfoFrame
+) ;
+
+
+/******************************************************************************
+Summary:
+Set Audio InfoFrame
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+	pstAudioInfoFrame - pointer to structure to hold the Audio InfoFrame values
 
 
 Returns:
@@ -1705,10 +1805,11 @@ Returns:
 
 See Also:
 	BHDM_GetAudioInfoFramePacket
+	BHDM_DisplayAudioInfoFramePacket
 *******************************************************************************/
 BERR_Code BHDM_SetAudioInfoFramePacket(
 	BHDM_Handle hHDMI,
-	BAVC_HDMI_AudioInfoFrame *stAudioInfoFrame
+	BAVC_HDMI_AudioInfoFrame *pstAudioInfoFrame
 ) ;
 
 
@@ -1719,7 +1820,7 @@ Get current Audio InfoFrame Settings
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	stAudioInfoFrae - structure to copy Audio Info Frame values to
+	pstAudioInfoFrame - pointer to structure to copy Audio Info Frame values to
 
 
 Returns:
@@ -1729,12 +1830,36 @@ Returns:
 
 
 See Also:
-	BHDM_GetAudioInfoFramePacket
+	BHDM_SetAudioInfoFramePacket
+	BHDM_DisplayAudioInfoFramePacket
 *******************************************************************************/
 BERR_Code BHDM_GetAudioInfoFramePacket(
 	BHDM_Handle hHDMI,
-	BAVC_HDMI_AudioInfoFrame *stAudioInfoFrame
+	BAVC_HDMI_AudioInfoFrame *pstAudioInfoFrame
 ) ;
+
+
+/******************************************************************************
+Summary:
+Display DRM InfoFrame
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+	pstDrmInfoFrame - pointer to DRM Info Frame structure
+
+
+Returns:
+	None
+
+See Also:
+	BHDM_GetDrmInfoFramePacket
+	BHDM_SetDrmInfoFramePacket
+*******************************************************************************/
+void BHDM_DisplayDRMInfoFramePacket(
+	BHDM_Handle hHDMI,
+	BAVC_HDMI_DRMInfoFrame *pstDrmInfoFrame
+) ;
+
 
 
 /******************************************************************************
@@ -1743,7 +1868,7 @@ Set DRM InfoFrame
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	stDrmInfoFrame - values to set info frame to
+	pstDrmInfoFrame - values to set info frame to
 
 
 Returns:
@@ -1754,10 +1879,11 @@ Returns:
 
 See Also:
 	BHDM_GetDrmInfoFramePacket
+	BHDM_DisplayDrmInfoFramePacket
 *******************************************************************************/
 BERR_Code BHDM_SetDRMInfoFramePacket(
 	BHDM_Handle hHDMI,
-	BAVC_HDMI_DRMInfoFrame *stDrmInfoFrame
+	BAVC_HDMI_DRMInfoFrame *pstDrmInfoFrame
 ) ;
 
 
@@ -1768,7 +1894,7 @@ Get current DRM InfoFrame Settings
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	DrmInfo - structure to copy DRM Info Frame values to
+	pstDrmInfoFrame - structure to copy DRM Info Frame values to
 
 
 Returns:
@@ -1778,11 +1904,12 @@ Returns:
 
 
 See Also:
-	BHDM_GetDrmInfoFramePacket
+	BHDM_SetDrmInfoFramePacket
+	BHDM_DisplayDrmInfoFramePacket
 *******************************************************************************/
 BERR_Code BHDM_GetDRMInfoFramePacket(
 	BHDM_Handle hHDMI,
-	BAVC_HDMI_DRMInfoFrame *stDrmInfoFrame
+	BAVC_HDMI_DRMInfoFrame *pstDrmInfoFrame
 ) ;
 
 
@@ -1806,6 +1933,26 @@ BERR_Code BHDM_SetPixelRepetition(
 	BHDM_Handle hHDMI,		   /* [in] HDMI handle */
 	BAVC_HDMI_PixelRepetition ePixelRepetition
 ) ;
+
+
+/******************************************************************************
+Summary:
+Display ACR Packet Configuration
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+	pstAcrPacketConfig - pointer to ACR Configuration
+
+
+Returns:
+	None
+
+See Also:
+	None
+*******************************************************************************/
+void BHDM_PACKET_ACR_DisplayConfiguration(
+		const BHDM_Handle hHDMI,			/* [in] HDMI handle */
+		const BHDM_PACKET_ACR_CONFIG *pstAcrPacketConfig) ;
 
 
 /******************************************************************************
@@ -2018,6 +2165,11 @@ void BHDM_TMDS_SetPreEmphasisRegisters(
 	const BHDM_TmdsPreEmphasisRegisters *TmdsPreEmphasisRegisters) ;
 
 
+/******************************************************************************
+Summary:
+	Print a debug report on the parsed information from the EDID
+*******************************************************************************/
+void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI) ;
 
 
 #ifdef __cplusplus

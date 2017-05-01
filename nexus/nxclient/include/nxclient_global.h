@@ -47,7 +47,9 @@
 #include "nexus_hdmi_types.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
+#include "nexus_hdmi_output_extra.h"
 #include "nexus_hdmi_output_hdcp.h"
+#include "nexus_hdmi_output_extra.h"
 #endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_processing_types.h"
@@ -217,13 +219,10 @@ typedef enum NxClient_HdcpLevel
 
 typedef enum NxClient_HdcpVersion
 {
-    NxClient_HdcpVersion_eAuto,    /* Always authenticate using the highest version supported by HDMI receiver */
-    NxClient_HdcpVersion_eFollow,  /* If HDMI receiver is a Repeater, the HDCP_version depends on the Repeater downstream topology */
-                                   /* If Repeater downstream topology contains one or more HDCP 1.x device, then authenticate with Repeater using the HDCP 1.x */
-                                   /* If Repeater downstream topology contains only HDCP 2.2 devices, then authenticate with Repeater using HDCP 2.2 */
-                                   /* If HDMI Receiver is not a Repeater, then default to 'auto' selection */
+    NxClient_HdcpVersion_eAuto,    /* Always authenticate using the highest version supported by HDMI receiver (Content Stream Type 0) */
+    NxClient_HdcpVersion_eFollow = NxClient_HdcpVersion_eAuto, /* deprecated */
     NxClient_HdcpVersion_eHdcp1x,  /* Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities) */
-    NxClient_HdcpVersion_eHdcp22,  /* Always authenticate using HDCP 2.2 mode (regardless of HDMI Receiver capabilities) */
+    NxClient_HdcpVersion_eHdcp22,  /* Always authenticate using HDCP 2.2 mode, Content Stream Type 1 */
     NxClient_HdcpVersion_eMax
 } NxClient_HdcpVersion;
 
@@ -235,6 +234,14 @@ typedef struct NxClient_GraphicsSettings
     unsigned horizontalCoeffIndex;                 /* if horizontalFilter == eSharp, then this index is used for table-driven coefficients for horizontal upscale. */
     unsigned verticalCoeffIndex;                   /* if verticalFilter == eSharp, then this index is used for table-driven coefficients for vertical upscale. */
     uint8_t alpha;                                 /* GFD alpha, from 0 (transparent) to 0xFF (opaque). Applied in addition to per-pixel alpha. */
+    /*
+     * With hdr display, sdr gfx pixel values are always adjusted lower to avoid being too bright / too saturated.
+     * The following settings allow linear adjustment of gfx pixel values to approximate an sdr to hdr conversion.
+     * These settings have no effect on PLM-capable platforms.
+     */
+    struct {
+        int16_t y, cb, cr; /* valid range: 32767 to -32768. default is 0. The smaller this number, the dimmer / less saturated */
+    } sdrToHdr;
 } NxClient_GraphicsSettings;
 
 typedef enum NxClient_SlaveDisplayMode
@@ -289,6 +296,10 @@ typedef struct NxClient_DisplaySettings
         NxClient_HdcpVersion version;
         NEXUS_ColorSpace colorSpace;
         unsigned colorDepth;
+        struct {
+            NEXUS_HdmiOutputDolbyVisionMode outputMode; /* whether to enable Dolby Vision output or not */
+            NEXUS_HdmiOutputDolbyVisionPriorityMode priorityMode;
+        } dolbyVision;
         NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
         NEXUS_MatrixCoefficients matrixCoefficients;
     } hdmiPreferences;

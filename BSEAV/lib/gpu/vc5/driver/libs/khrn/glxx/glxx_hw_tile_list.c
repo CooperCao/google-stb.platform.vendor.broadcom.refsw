@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_hw_tile_list.h"
 #include "glxx_hw.h"
 
@@ -11,10 +9,10 @@ All rights reserved.
 
 static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls,
    GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms,
-   const KHRN_IMAGE_PLANE_T *img_plane, bool img_ms, bool color, bool load, bool store)
+   const khrn_image_plane *img_plane, bool img_ms, bool color, bool load, bool store)
 {
-   const KHRN_IMAGE_T *img = img_plane->image;
-   KHRN_BLOB_T *blob = img->blob;
+   const khrn_image *img = img_plane->image;
+   khrn_blob *blob = img->blob;
 
    assert(tlb_ms || !img_ms);
    assert(load || store);
@@ -25,16 +23,14 @@ static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls,
    uint32_t render_rw_flags =
       (load ? V3D_BARRIER_TLB_IMAGE_READ : 0) |
       (store ? V3D_BARRIER_TLB_IMAGE_WRITE : 0);
-   v3d_addr_t base_addr = khrn_fmem_lock_and_sync(&rs->fmem, blob->res_i->handle,
+   v3d_addr_t base_addr = khrn_fmem_sync_and_get_addr(&rs->fmem, blob->res->handle,
       /*bin_rw_flags=*/0, render_rw_flags);
-   if (base_addr == 0)
-      return false;
 
    v3d_dither_t dither = V3D_DITHER_OFF;
    if (color && rs->dither && !khrn_options.force_dither_off)
    {
       GFX_LFMT_T lfmt = khrn_image_plane_lfmt(img_plane);
-      if (gfx_lfmt_alpha_bits(lfmt) > 1)
+      if (gfx_lfmt_alpha_bits(lfmt) > 2)
          dither = V3D_DITHER_RGBA;
       else
          dither = V3D_DITHER_RGB;
@@ -315,7 +311,7 @@ static bool write_stores_clears_end_and_rcfg(
       (((2 * GLXX_MAX_RENDER_TARGETS) + 2) * V3D_CL_STORE_SIZE) + /* Framebuffer stores */
       V3D_CL_CLEAR_SIZE +
       V3D_CL_END_TILE_SIZE +
-      V3D_CL_RETURN);
+      V3D_CL_RETURN_SIZE);
    if (!instr)
       return false;
 
@@ -346,6 +342,7 @@ static bool write_stores_clears_end_and_rcfg(
          /*height=*/0,
          /*addr=*/0);
 
+#if V3D_HAS_DS_CLEAR_FIXES
    /* We always set the clear flag on the last store of each RT. If an RT is
     * not stored but needs to be cleared we do a full clear of all RTs at the
     * end. */
@@ -358,6 +355,11 @@ static bool write_stores_clears_end_and_rcfg(
 
    if (clear_all_rts_at_end || !rcfg->early_ds_clear)
       v3d_cl_clear(&instr, clear_all_rts_at_end, !rcfg->early_ds_clear);
+#else
+   /* Work around GFXH-1461 & GFXH-1568 */
+   rcfg->early_ds_clear = false;
+   v3d_cl_clear(&instr, true, false);
+#endif
 
    v3d_cl_end_tile(&instr);
 
@@ -424,8 +426,8 @@ static bool write_begin_and_loads(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_
       assert(!ls->flipy);
       assert(ls->decimate == V3D_DECIMATE_ALL_SAMPLES);
       assert(ls->output_format.pixel == v3d_raw_mode_pixel_format(
-         rs->installed_fb.color_internal_type[b],
-         rs->installed_fb.color_internal_bpp[b]));
+         rs->installed_fb.color_rt_format[b].type,
+         rs->installed_fb.color_rt_format[b].bpp));
       v3d_cl_load_general(&instr,
          v3d_ldst_buf_color(b), /*raw_mode=*/true,
          v3d_memory_format_to_ldst(ls->memory_format),
@@ -532,7 +534,7 @@ static void write_store_general(uint8_t **instr,
       assert(buf_class == V3D_LDST_BUF_CLASS_COLOR);
       unsigned b = v3d_ldst_buf_rt(buf);
       assert(ls->output_format.pixel == v3d_raw_mode_pixel_format(
-         hw_fb->color_internal_type[b], hw_fb->color_internal_bpp[b]));
+         hw_fb->color_rt_format[b].type, hw_fb->color_rt_format[b].bpp));
    }
    else
    {
@@ -714,7 +716,7 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
 #endif
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-   if (rs->workaround_gfxh_1313 && !glxx_workaround_gfxh_1313(&instr, &rs->fmem))
+   if (rs->workaround_gfxh_1313 && !glxx_workaround_gfxh_1313(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
       return false;
 #endif
 
@@ -739,19 +741,19 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
    return true;
 }
 
-bool glxx_hw_create_generic_tile_list(v3d_addr_t addrs[2],
+bool glxx_hw_create_generic_tile_list(v3d_addr_range *range,
    struct glxx_hw_tile_list_rcfg *rcfg,
    GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, bool double_buffer,
    const struct glxx_hw_tile_list_fb_ops *fb_ops)
 {
    rs->fmem.br_info.empty_tile_mode = calc_et_mode(rs, fb_ops);
 
-   addrs[0] = khrn_fmem_begin_clist(&rs->fmem);
-   if (!addrs[0] ||
+   range->begin = khrn_fmem_begin_clist(&rs->fmem);
+   if (!range->begin ||
       !write_begin_and_loads(rs, fb_ops) ||
       !write_tile_list_branches(rs) ||
       !write_stores_clears_end_and_rcfg(rcfg, rs, tlb_ms, double_buffer, fb_ops))
       return false;
-   addrs[1] = khrn_fmem_end_clist(&rs->fmem);
+   range->end = khrn_fmem_end_clist(&rs->fmem);
    return true;
 }

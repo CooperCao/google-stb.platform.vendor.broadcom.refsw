@@ -118,15 +118,15 @@ highp int   textureSize(usamplerBuffer sampler) { return $$textureSize(sampler);
 // TODO: Consider integrating them into the texture function script
 // NB: The sample data is fetch from the locations written by the TLB. These are x-flipped
 //     relative to the actual sampling positions. No one knows why.
- vec4 texelFetch ( sampler2DMS sampler, ivec2 P, int s) { return $$texture(2, sampler, 2*P + ivec2(s & 1, s >> 1), 0); }
-ivec4 texelFetch (isampler2DMS sampler, ivec2 P, int s) { return $$texture(2, sampler, 2*P + ivec2(s & 1, s >> 1), 0); }
-uvec4 texelFetch (usampler2DMS sampler, ivec2 P, int s) { return $$texture(2, sampler, 2*P + ivec2(s & 1, s >> 1), 0); }
+ vec4 texelFetch ( sampler2DMS      sampler, ivec2 P, int s) { return $$texture(2, sampler, 2*P + ivec2(s & 1, s >> 1), 0); }
+ivec4 texelFetch (isampler2DMS      sampler, ivec2 P, int s) { return $$texture(2, sampler, 2*P + ivec2(s & 1, s >> 1), 0); }
+uvec4 texelFetch (usampler2DMS      sampler, ivec2 P, int s) { return $$texture(2, sampler, 2*P + ivec2(s & 1, s >> 1), 0); }
  vec4 texelFetch ( sampler2DMSArray sampler, ivec3 P, int s) { return $$texture(2, sampler, ivec3(2*P.xy + ivec2(s & 1, s >> 1), P.z), 0); }
 ivec4 texelFetch (isampler2DMSArray sampler, ivec3 P, int s) { return $$texture(2, sampler, ivec3(2*P.xy + ivec2(s & 1, s >> 1), P.z), 0); }
 uvec4 texelFetch (usampler2DMSArray sampler, ivec3 P, int s) { return $$texture(2, sampler, ivec3(2*P.xy + ivec2(s & 1, s >> 1), P.z), 0); }
- vec4 texelFetch ( samplerBuffer sampler, int P) { return $$texture(2, sampler, P, 0); }
-ivec4 texelFetch (isamplerBuffer sampler, int P) { return $$texture(2, sampler, P, 0); }
-uvec4 texelFetch (usamplerBuffer sampler, int P) { return $$texture(2, sampler, P, 0); }
+ vec4 texelFetch ( samplerBuffer    sampler, int   P)        { return $$texture(2, sampler, P, 0); }
+ivec4 texelFetch (isamplerBuffer    sampler, int   P)        { return $$texture(2, sampler, P, 0); }
+uvec4 texelFetch (usamplerBuffer    sampler, int   P)        { return $$texture(2, sampler, P, 0); }
 
 // Old texture lookup functions
 vec4 texture2D(sampler2D sampler, vec2 coord, float bias) { return $$texture(0, sampler,coord,bias); }

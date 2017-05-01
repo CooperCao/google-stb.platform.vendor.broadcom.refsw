@@ -11,6 +11,11 @@
 #include "list.h"
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /* A surface interface implementation that creates Wayland client surfaces */
 
 typedef struct WaylandClientBuffer
@@ -23,5 +28,9 @@ typedef struct WaylandClientBuffer
 
 bool SurfaceInterface_InitWlClient(SurfaceInterface *si,
       const WaylandClient *client);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __SURFACE_INTERFACE_WL_CLIENT_H__ */

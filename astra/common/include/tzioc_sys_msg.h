@@ -67,6 +67,7 @@ struct sys_msg_vuart_on_cmd
 struct sys_msg_tracelog_on_cmd
 {
     uintptr_t tracelogBase;
+    uintptr_t tracelogSize;
     uintptr_t sentinelBase;
     uintptr_t sentinelSize;
 

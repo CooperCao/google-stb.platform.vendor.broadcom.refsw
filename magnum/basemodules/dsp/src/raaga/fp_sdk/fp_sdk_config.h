@@ -51,48 +51,28 @@
  ************************************************************************/
 
 
-#if defined(__FP4015__) && defined(RAAGA)
-#  include "config/fp4015/raaga/fp_sdk_config.h"
-#endif
-
-#if defined(__FP4014__) && defined(YELLOWSTONE)
-#  include "config/fp4014/yellowstone/fp_sdk_config.h"
+#if defined(__FPM1015__) && defined(GENERIC)
+#  include "config/fpm1015/generic/fp_sdk_config.h"
 #endif
 
 #if defined(__FP2008__) && defined(RAAGA)
 #  include "config/fp2008/raaga/fp_sdk_config.h"
 #endif
 
-#if defined(__FP2006__) && defined(TACANA)
-#  include "config/fp2006/tacana/fp_sdk_config.h"
-#endif
-
 #if defined(__FP2011__) && defined(RAAGA)
 #  include "config/fp2011/raaga/fp_sdk_config.h"
 #endif
 
-#if defined(__FPM1015__) && defined(GENERIC)
-#  include "config/fpm1015/generic/fp_sdk_config.h"
-#endif
-
-#if defined(__FP2012__) && defined(KOS)
-#  include "config/fp2012/kos/fp_sdk_config.h"
+#if defined(__FP4015__) && defined(RAAGA)
+#  include "config/fp4015/raaga/fp_sdk_config.h"
 #endif
 
 #if defined(__FP2012__) && defined(MCPHY)
 #  include "config/fp2012/mcphy/fp_sdk_config.h"
 #endif
 
-#if defined(__FP4014__) && defined(PIKE)
-#  include "config/fp4014/pike/fp_sdk_config.h"
-#endif
-
 #if defined(__FPM1015__) && defined(LEAP_PHY)
 #  include "config/fpm1015/leap_phy/fp_sdk_config.h"
-#endif
-
-#if defined(__FP4015__) && defined(YELLOWSTONE)
-#  include "config/fp4015/yellowstone/fp_sdk_config.h"
 #endif
 
 #if defined(__FPM1015__) && defined(PMC3)
@@ -104,17 +84,12 @@
 #endif
 
 #if !( \
-     (defined(__FP4015__) && defined(RAAGA)) || \
-     (defined(__FP4014__) && defined(YELLOWSTONE)) || \
-     (defined(__FP2008__) && defined(RAAGA)) || \
-     (defined(__FP2006__) && defined(TACANA)) || \
-     (defined(__FP2011__) && defined(RAAGA)) || \
      (defined(__FPM1015__) && defined(GENERIC)) || \
-     (defined(__FP2012__) && defined(KOS)) || \
+     (defined(__FP2008__) && defined(RAAGA)) || \
+     (defined(__FP2011__) && defined(RAAGA)) || \
+     (defined(__FP4015__) && defined(RAAGA)) || \
      (defined(__FP2012__) && defined(MCPHY)) || \
-     (defined(__FP4014__) && defined(PIKE)) || \
      (defined(__FPM1015__) && defined(LEAP_PHY)) || \
-     (defined(__FP4015__) && defined(YELLOWSTONE)) || \
      (defined(__FPM1015__) && defined(PMC3)) || \
      (defined(__FP2012__) && defined(RAAGA)) || \
      0 )

@@ -68,6 +68,7 @@ do {                                        \
 #define CORE_TYPE_GLOBAL            0x0
 #define BADS_SPECA_CORE_TYPE        0xE
 #define BADS_SPECA_CORE_ID          0x0
+#define BHAB_BUFFER_SIZE            1024
 
 
 #if BADS_CHIP==3158
@@ -119,6 +120,7 @@ typedef struct BADS_P_Leap_Handle
     bool isDaisyChain;
     uint32_t chipId;
     unsigned int ifdacChannelNo;
+    uint8_t *habBuffer;
 } BADS_P_Leap_Handle;
 
 typedef struct BADS_P_Leap_ChannelHandle            *BADS_Leap_ChannelHandle;
@@ -138,6 +140,7 @@ typedef struct BADS_P_Leap_ChannelHandle
     BADS_InbandParam previousAcquireParams;
     bool bPowerdown;
     BADS_IfDacSettings  ifDacSettings; /* IF DAC Settings */
+    uint8_t *habBuffer;
 } BADS_P_Leap_ChannelHandle;
 
 
@@ -810,7 +813,7 @@ BERR_Code BADS_Leap_GetScanParam(
     BADS_ChannelHandle hChn,            /* [in] Device channel handle */
     BADS_ChannelScanSettings *pChnScanSettings
     );
-
+#if BADS_CHIP==3158
 /******************************************************************************
 Summary:
    This function sends request for spectrum analyzer data to the LEAP.
@@ -858,7 +861,7 @@ BERR_Code BADS_Leap_GetIfDacStatus(
     BADS_ChannelHandle hChn,        /* [in] Device handle */
     BADS_IfDacStatus *pStatus       /* [out] Returns status */
     );
-
+#endif
 #ifdef __cplusplus
 }
 #endif

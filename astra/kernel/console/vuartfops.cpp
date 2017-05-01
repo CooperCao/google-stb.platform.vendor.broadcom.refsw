@@ -69,7 +69,7 @@ static int ring_force_poke(
         uintptr_t ulSize);
 
 uintptr_t __offset2addr1(uintptr_t ulOffset) {
-    return (ulOffset);
+    return TzIoc::paddr2vaddr(ulOffset);
 }
 
 int VuartFops::init(bool isVuartChosen) {
@@ -99,16 +99,15 @@ int VuartFops::init(bool isVuartChosen) {
     }
 
     /* Configure tzioc ring tx and rx ring buffers*/
-    txBuf->ulBuffOffset = (uintptr_t)txBuf + sizeof(struct tzioc_ring_buf);
+    txBuf->ulBuffOffset = TzIoc::vaddr2paddr((uintptr_t)txBuf) + sizeof(struct tzioc_ring_buf);
     txBuf->ulBuffSize = VIRTUAL_TXMEM_SIZE - sizeof(struct tzioc_ring_buf);
     txBuf->ulWrOffset = txBuf->ulRdOffset = txBuf->ulBuffOffset;
     txBuf->pWrOffset2Addr = __offset2addr1;
 
-    rxBuf->ulBuffOffset = (uintptr_t)rxBuf + sizeof(struct tzioc_ring_buf);
+    rxBuf->ulBuffOffset = TzIoc::vaddr2paddr((uintptr_t)rxBuf) + sizeof(struct tzioc_ring_buf);
     rxBuf->ulBuffSize = VIRTUAL_RXMEM_SIZE - sizeof(struct tzioc_ring_buf);
     rxBuf->ulWrOffset = rxBuf->ulRdOffset = rxBuf->ulBuffOffset;
     rxBuf->pRdOffset2Addr = __offset2addr1;
-
     isVuartEnabled = true;
     return 0;
 ERR:
@@ -192,7 +191,6 @@ size_t VuartFile::write(const void *data, const size_t numBytes, const uint64_t 
     UNUSED(data);
 
     ulWrOffset = txBuf->ulWrOffset;
-
     err = ring_poke(txBuf, ulWrOffset, (uint8_t *)data, numBytes);
 
     if (-ENOSPC == err) {

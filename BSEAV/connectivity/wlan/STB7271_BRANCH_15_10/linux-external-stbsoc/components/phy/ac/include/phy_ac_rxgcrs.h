@@ -249,9 +249,10 @@ extern void wlc_phy_set_crs_min_pwr_acphy(phy_info_t *pi, uint8 ac_th, int8 offs
 void phy_ac_rxgcrs_set_lesiscale(phy_ac_rxgcrs_info_t *rxgcrsi, int8 *lesi_scale);
 extern void wlc_phy_force_gainlevel_acphy(phy_info_t *pi, int16 int_val);
 extern void wlc_phy_set_srom_eu_edthresh_acphy(phy_info_t *pi);
-void phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on);
+void phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on, uint8 delta_halfdB);
 int phy_ac_rxgcrs_iovar_set_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, int32 set_val);
 int phy_ac_rxgcrs_iovar_get_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, int32 *ret_val);
+bool phy_ac_rxgcrs_get_lesi(phy_ac_rxgcrs_info_t *rxgcrsi);
 extern void phy_ac_get_fem_rxgains(phy_info_t *pi, int8 *rx_gains);
 extern void phy_ac_get_rxgains_ctrl(phy_info_t *pi, int8 *rx_gains, int8 *input_param);
 extern void chanspec_setup_rxgcrs(phy_info_t *pi);

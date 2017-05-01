@@ -224,7 +224,8 @@ typedef enum BDSP_Algorithm
     BDSP_Algorithm_eOutputFormatter,    /* OutputFormatter */
     BDSP_Algorithm_eVocalPP,            /* Vocal PP */
     BDSP_Algorithm_eFadeCtrl,           /* Fade-Control */
-    BDSP_Algorithm_eAudioProcessing_EndIdx = BDSP_Algorithm_eFadeCtrl,
+	BDSP_Algorithm_eTsmCorrection,      /* Tsm-Correction */
+    BDSP_Algorithm_eAudioProcessing_EndIdx = BDSP_Algorithm_eTsmCorrection,
 
     /*Echo Canceller Algorithms*/
     BDSP_Algorithm_eSpeexAec,           /* Speex acoustic echo canceller */

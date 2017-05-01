@@ -116,36 +116,17 @@ else
 ATLAS_BIN_ROOT = $(ATLAS_BIN_DIR)
 endif
 
-ifeq ($(NEXUS_MODE),)
-# MODE is deprecated
-NEXUS_MODE = $(MODE)
-endif
-
-
 #########
-#### Figure out ARCH
+#### Include NEXUS .inc
 #########
-ifeq ($(B_REFSW_ARCH),)
-B_REFSW_ARCH=mips-linux
-export B_REFSW_ARCH
-endif
-
-B_REFSW_DEBUG ?= y
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 ifeq ($(B_REFSW_DEBUG),y)
 DEBUG_SUFFIX=debug
 else
 DEBUG_SUFFIX=release
 endif
-
-#########
-#### Include NEXUS .inc
-#########
-include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 B_LIB_TOP := $(NEXUS_TOP)/lib
 include $(B_LIB_TOP)/os/b_os_lib.inc
-
-# Get system-specific CFLAGS and LDFLAGS based on SYSTEM, PLATFORM, DEBUG
-include $(BSEAV)/build/refsw_inc.mak
 
 #########
 #### Include thumbnail .inc
@@ -329,9 +310,9 @@ endif
 LUA_BUILD:=
 LUA_CLEAN:=
 ifneq ($(LUA_SUPPORT),n)
-include $(BSEAV)/lib/lua/b_lua_targets.inc
+include $(BSEAV)/opensource/lua/b_lua_targets.inc
 APP_OBJECTS += atlas_lua.o
-LUA_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/lua/lua-5.2.4/install
+LUA_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV//opensource/lua-5.2.4/install
 CFLAGS += -DLUA_SUPPORT -I$(LUA_DIR)/include
 LIBS += $(LUA_DIR)/lib/liblua.a
 LINENOISE_DIR = $(BSEAV)/app/atlas/src/linenoise/antirez-linenoise-02d7935

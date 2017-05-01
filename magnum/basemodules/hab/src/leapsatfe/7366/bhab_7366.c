@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -96,7 +96,7 @@ static const BHAB_Settings defDevSettings =
         NULL, /* BHAB_GetInternalGain */
         NULL, /* BHAB_GetExternalGain */
         NULL, /* BHAB_SetExternalGain */
-        NULL, /* BHAB_7366_P_GetAvsData */
+        NULL, /* BHAB_GetAvsData */
         NULL, /* BHAB_GetTunerChannels */
         NULL, /* BHAB_GetCapabilities */
         BHAB_7366_P_Reset,

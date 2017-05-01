@@ -173,7 +173,7 @@ BERR_Code BVDC_Source_QueryVfd
     }
 
     *peSourceId = BAVC_SourceId_eVfd0 +
-        (hWindow->pResource->ePlayback - BVDC_P_FeederId_eVfd0);
+        (hWindow->stResourceRequire.ePlayback - BVDC_P_FeederId_eVfd0);
     return BERR_SUCCESS;
 }
 #endif
@@ -2107,6 +2107,8 @@ static void BVDC_P_Source_PrintPicture_isr
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eYCbCrType) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eAspectRatio) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eFrameRateCode) ||
+            BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eBitDepth) ||
+            BVDC_P_FIELD_DIFF(pNewPic, pCurPic, stHdrMetadata.eType) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eMatrixCoefficients) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eChrominanceInterpolationMode);
     }
@@ -2168,6 +2170,11 @@ static void BVDC_P_Source_PrintPicture_isr
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBitDepth                            : %u", pPic->eBitDepth));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eChromaBitDepth                      : %u", pPic->eChromaBitDepth));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBufferFormat                        : %d", pPic->eBufferFormat));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.eType                  : %d", pPic->stHdrMetadata.eType));
+            if(BAVC_HdrMetadataType_eUnknown != pPic->stHdrMetadata.eType) {
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.pData                  : %p", (void *)pPic->stHdrMetadata.pData));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.ulSize                 : %u", pPic->stHdrMetadata.ulSize));
+            }
             if(BAVC_DecodedPictureBuffer_eFieldsPair == pPic->eBufferFormat) {
                 BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->hLuminanceBotFieldBlock              : %p", (void *)pPic->hLuminanceBotFieldBufferBlock));
                 BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulLuminanceBotFieldBlockOffset       : 0x%08x", pPic->ulLuminanceBotFieldBufferBlockOffset));
@@ -2413,6 +2420,51 @@ static void BVDC_P_Source_ValidateMpegData_isr
                 pNewPic->eSourcePolarity = BVDC_P_NEXT_POLARITY(pCurPic->eSourcePolarity);
             }
         }
+    }
+#endif
+
+    /* if 10-bit source is scanned as interlaced, give a warning */
+    if(!pNewPic->bMute &&
+        BAVC_Polarity_eFrame != pNewPic->eSourcePolarity &&
+        BAVC_VideoBitDepth_e8Bit != pNewPic->eBitDepth)
+    {
+        if(!hSource->b10BitInterlacedScan) { /* print once */
+            BDBG_WRN(("MFD%d normally should not scan out interlaced for 10-bit content.", hSource->eId));
+            hSource->b10BitInterlacedScan = true;
+        }
+    } else {
+        hSource->b10BitInterlacedScan = false;
+    }
+
+    /* BP3 Do NOT Modify Start */
+    if(BAVC_HdrMetadataType_eDrpu == pNewPic->stHdrMetadata.eType)
+    {
+        if(BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hSource->hVdc->hChip,
+            BCHP_LicensedFeature_eDolbyVision))
+        {
+            BDBG_MSG(("Invalid license[%d] content.", BCHP_LicensedFeature_eDolbyVision));
+            pNewPic->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
+        }
+    }
+
+    if((BAVC_HdrMetadataType_eTch_Cri == pNewPic->stHdrMetadata.eType)||
+       (BAVC_HdrMetadataType_eTch_Cvri == pNewPic->stHdrMetadata.eType))
+    {
+        if(BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hSource->hVdc->hChip,
+            BCHP_LicensedFeature_eTchPrime))
+        {
+            BDBG_MSG(("Invalid license[%d] content.", BCHP_LicensedFeature_eTchPrime));
+            pNewPic->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
+        }
+    }
+    /* BP3 Do NOT Modify End */
+
+#if BVDC_P_DBV_SUPPORT
+    /* DBV only supports progressive source; TODO: if source is 10-bit, 8-bit
+     * deinterlacer should be disabled; */
+    if(BAVC_HdrMetadataType_eDrpu == pNewPic->stHdrMetadata.eType)
+    {
+       pNewPic->eSourcePolarity = BAVC_Polarity_eFrame;
     }
 #endif
 
@@ -2736,7 +2788,8 @@ void BVDC_Source_MpegDataReady_isr
          * non-active video in the last 8 lines.  We'll drop them.  PR10698.  Or
          * any value that might break the VDC (restricting to HW limit, not
          * necessary rts limit). */
-        if((1088 == pXvdPic->ulSourceVerticalSize)
+        if((!pXvdPic->bCaptureCrc)
+           && ((1088 == pXvdPic->ulSourceVerticalSize)
 #ifdef BCHP_MFD_0_DISP_VSIZE_VALUE_MASK
            || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_DISP_VSIZE, VALUE, pXvdPic->ulSourceVerticalSize))
 #endif
@@ -2746,7 +2799,7 @@ void BVDC_Source_MpegDataReady_isr
 #ifdef BCHP_MFD_0_PICTURE0_DISP_VERT_WINDOW_START_MASK
            || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_PICTURE0_DISP_VERT_WINDOW, START, pXvdPic->ulSourceVerticalSize))
 #endif
-          )
+          ))
         {
             pXvdPic->ulSourceVerticalSize    =
                 BVDC_P_MIN(pXvdPic->ulSourceVerticalSize,    BFMT_1080I_HEIGHT);
@@ -3006,7 +3059,7 @@ void BVDC_Source_MpegDataReady_isr
     /* validate the input data structure; */
     BVDC_P_Source_ValidateMpegData_isr(hSource, pNewPic, pCurPic);
 
-    if(hSource->ulRefreshRateMismatchCntr)
+    if(hSource->ulRefreshRateMismatchCntr && (pNewPic->eSourcePolarity != BAVC_Polarity_eFrame))
     {
         ePrePolarity = pCurPic->eSourcePolarity;
 

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  glsl shader compiler
-Module   :  Header file
-
-FILE DESCRIPTION
-Precision tracking and checking
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_globals.h"
 #include "glsl_primitive_types.auto.h"

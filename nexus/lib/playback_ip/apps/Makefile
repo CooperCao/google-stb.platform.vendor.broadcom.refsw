@@ -68,7 +68,7 @@ endif
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-IP_APPLIB_TEST_ODIR := ${B_REFSW_OBJ_ROOT}/nexus/lib/playback_ip/apps
+IP_APPLIB_TEST_ODIR := ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_REFSW_ARCH)/playback_ip/apps
 BSEAV := $(NEXUS_TOP)/../BSEAV
 BSEAV_BIN_DIR = ${B_REFSW_OBJ_ROOT}/BSEAV/bin
 

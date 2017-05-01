@@ -50,6 +50,32 @@ extern "C" {
 
 /**
 Summary:
+Dolby Vision Output Mode
+**/
+typedef enum NEXUS_HdmiOutputDolbyVisionMode
+{
+    NEXUS_HdmiOutputDolbyVisionMode_eAuto, /* automatically select the best quality output mode.
+        If the TV supports Dolby Vision, and all TV requirements are met, enable Dolby Vision,
+        otherwise disable Dolby Vision */
+    NEXUS_HdmiOutputDolbyVisionMode_eEnabled, /* enable Dolby Vision, even if it means changing formats */
+    NEXUS_HdmiOutputDolbyVisionMode_eDisabled, /* disable Dolby Vision */
+    NEXUS_HdmiOutputDolbyVisionMode_eMax
+} NEXUS_HdmiOutputDolbyVisionMode;
+
+/**
+Summary:
+HDMI output DolbyVision priority modes
+**/
+typedef enum NEXUS_HdmiOutputDolbyVisionPriorityMode
+{
+    NEXUS_HdmiOutputDolbyVisionPriorityMode_eAuto,
+    NEXUS_HdmiOutputDolbyVisionPriorityMode_eVideo,
+    NEXUS_HdmiOutputDolbyVisionPriorityMode_eGraphics,
+    NEXUS_HdmiOutputDolbyVisionPriorityMode_eMax
+} NEXUS_HdmiOutputDolbyVisionPriorityMode;
+
+/**
+Summary:
 Lightly-used settings to configure the HDMI output interface
 **/
 typedef struct NEXUS_HdmiOutputExtraSettings
@@ -58,7 +84,26 @@ typedef struct NEXUS_HdmiOutputExtraSettings
         build the DRM InfoFrame, rather than the default value based on receiver preferences and capabilities, and
         stream information */
     NEXUS_HdmiDynamicRangeMasteringInfoFrame dynamicRangeMasteringInfoFrame;  /* Dynamic Range And Mastering InfoFrame */
+    struct
+    {
+        NEXUS_HdmiOutputDolbyVisionMode outputMode; /* whether to enable Dolby Vision output or not */
+        bool blendInIpt; /* If true, gfx will be blended in IPT color space; Default false; Please set true for conformance test */
+        NEXUS_HdmiOutputDolbyVisionPriorityMode priorityMode;
+    } dolbyVision; /* API is provisional, subject to change */
 } NEXUS_HdmiOutputExtraSettings;
+
+/**
+Summary:
+Lightly-used status for the HDMI output interface
+**/
+typedef struct NEXUS_HdmiOutputExtraStatus
+{
+    struct
+    {
+        bool supported; /* is Dolby Vision output supported by attached receiver */
+        bool enabled; /* is Dolby Vision output enabled */
+    } dolbyVision; /* API is provisional, subject to change */
+} NEXUS_HdmiOutputExtraStatus;
 
 /**
 Summary:
@@ -76,6 +121,15 @@ Apply new lightly-used extra settings
 NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
     NEXUS_HdmiOutputHandle output,
     const NEXUS_HdmiOutputExtraSettings *pSettings
+    );
+
+/**
+Summary:
+Get current lightly-used extra status
+**/
+void NEXUS_HdmiOutput_GetExtraStatus(
+    NEXUS_HdmiOutputHandle output,
+    NEXUS_HdmiOutputExtraStatus *pStatus    /* [out] Status */
     );
 
 /**

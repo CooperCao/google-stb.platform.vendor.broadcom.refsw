@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gfx_buffer_bstc.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
@@ -552,6 +550,7 @@ void gfx_buffer_bstc_compress_block(GFX_LFMT_BLOCK_T *block_out, const GFX_LFMT_
    uint32_t tp_ssq_error = compress_three_plane(&three_plane, pxs, yflip);
 
    V3D_BSTC_BLOCK_T block;
+   memset(&block, 0, sizeof(block)); // Silence bogus "may be used uninitialized" warnings
    block.four_plane = fp_ssq_error <= tp_ssq_error;
    if (block.four_plane)
       block.u.four_plane = four_plane;

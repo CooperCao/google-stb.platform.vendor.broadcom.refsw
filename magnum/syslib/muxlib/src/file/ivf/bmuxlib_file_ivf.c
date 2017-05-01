@@ -138,7 +138,6 @@ BERR_Code BMUXlib_File_IVF_Create(BMUXlib_File_IVF_Handle *phIVFMux, const BMUXl
       BKNI_Memset( hMux, 0, sizeof(struct BMUXlib_File_IVF_P_Context) );
       BDBG_OBJECT_SET(hMux, BMUXlib_File_IVF_P_Context);
 
-      *phIVFMux = hMux;
       rc = BERR_SUCCESS;
    } /* hMux != NULL */
    else
@@ -148,6 +147,22 @@ BERR_Code BMUXlib_File_IVF_Create(BMUXlib_File_IVF_Handle *phIVFMux, const BMUXl
       rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
    }
 
+   if (BERR_SUCCESS == rc)
+   {
+      BMUXlib_Input_CreateSettings stInputSettings;
+
+      /* create the input ... */
+      BMUXlib_Input_GetDefaultCreateSettings(&stInputSettings);
+      rc = BMUXlib_Input_Create(&hMux->hInput, &stInputSettings);
+
+      if (BERR_SUCCESS != rc)
+      {
+         BDBG_ERR(("Unable to Create Video Input"));
+         BMUXlib_File_IVF_Destroy(hMux);
+      }
+   }
+
+   *phIVFMux = hMux;
 
    BDBG_LEAVE(BMUXlib_File_IVF_Create);
    return rc;
@@ -175,6 +190,13 @@ void BMUXlib_File_IVF_Destroy(BMUXlib_File_IVF_Handle hIVFMux)
       b) has already been destroyed
    */
    BDBG_OBJECT_ASSERT(hIVFMux, BMUXlib_File_IVF_P_Context);
+
+   /* destroy input */
+   if ( NULL != hIVFMux->hInput )
+   {
+      BMUXlib_Input_Destroy( hIVFMux->hInput );
+      hIVFMux->hInput = NULL;
+   }
 
    BDBG_OBJECT_DESTROY(hIVFMux, BMUXlib_File_IVF_P_Context);
    /* free the context ... */

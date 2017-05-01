@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 ############################################################
@@ -77,6 +76,10 @@ NEXUS_STATIC_LIB := $(NEXUS_OBJ_DIR)/libnexus${NEXUS_LIB_SUFFIX}.a
 MAGNUM_LIB := $(NEXUS_OBJ_DIR)/libmagnum${NEXUS_LIB_SUFFIX}.a
 # compile code so that unused code can be removed. this also requires LDFLAGS has -Wl,--gc-sections
 NEXUS_CFLAGS += -fdata-sections -ffunction-sections
+endif
+
+ifeq ($(shell $(CC) -x c -E -fstack-protector-strong /dev/null >/dev/null 2>/dev/null && echo y),y)
+NEXUS_CFLAGS += -fstack-protector-strong
 endif
 
 NEXUS_MAGNUM_PRECOMPILED_HEADER_H := ${NEXUS_OBJ_DIR}/MAGNUM/$(notdir ${NEXUS_MAGNUM_PRECOMPILED_HEADER})

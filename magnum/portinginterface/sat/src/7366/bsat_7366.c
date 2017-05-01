@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -119,7 +119,9 @@ static const BSAT_Settings defDevSettings =
       NULL, /* BSAT_GetAcmSettings */
       NULL, /* BSAT_GetStreamList */
       NULL, /* BSAT_GetStreamStatus */
-      NULL  /* BSAT_GetFastChannelStatus */
+      NULL, /* BSAT_GetFastChannelStatus */
+      BSAT_7366_P_ScanSpectrum,
+      BSAT_7366_P_GetSpectrumStatus
    }
 };
 

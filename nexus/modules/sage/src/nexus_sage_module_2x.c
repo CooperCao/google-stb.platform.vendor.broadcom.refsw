@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,8 +48,6 @@
 
 #include "nexus_dma.h"
 #include "nexus_memory.h"
-/* Grant access to BCHP_SAGE_Reset in order to reset SAGE */
-BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
 
 NEXUS_SageModule_P_Handle g_NEXUS_sageModule;
 
@@ -797,7 +795,7 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     NEXUS_Error rc;
     NEXUS_SageMemoryBlock bl = {0, NULL}; /* raw bootloader binary in memory */
     NEXUS_SageImageHolder kernelImg =
-        {"OS/APP image", SAGE_IMAGE_FirmwareID_eOS_App,     NULL};
+        {"OS/APP image", SAGE_IMAGE_FirmwareID_eFramework,     NULL};
     NEXUS_SageImageHolder blImg     =
         {"Bootloader",   SAGE_IMAGE_FirmwareID_eBootLoader, NULL};
     /* Image Interface */
@@ -813,7 +811,7 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     /* If chip type is ZB or customer specific, then the default IDs stand */
     if (g_NEXUS_sageModule.chipInfo.chipType == BSAGElib_ChipType_eZS) {
         blImg.id = SAGE_IMAGE_FirmwareID_eBootLoader_Development;
-        kernelImg.id = SAGE_IMAGE_FirmwareID_eOS_App_Development;
+        kernelImg.id = SAGE_IMAGE_FirmwareID_eFramework_Development;
     }
 
     /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
@@ -1071,7 +1069,7 @@ NEXUS_Sage_P_MonitorBoot(void)
     uint32_t lastStatus=0x42;
     BSAGElib_BootState bootState;
 
-    g_NEXUS_sageModule.booted = 0;
+    g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
     /* This will calculate the time already consumed by the SAGE init process before we reach this point */
     if(BTMR_ReadTimer(g_NEXUS_sageModule.hTimer, &timer) != BERR_SUCCESS) {
@@ -1138,10 +1136,11 @@ NEXUS_Sage_P_MonitorBoot(void)
         }
     }
 
-    g_NEXUS_sageModule.booted = 1;
+    g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eRunning;
 
 err:
-    if (!g_NEXUS_sageModule.booted) {
+    if (g_NEXUS_sageModule.SWState != NEXUS_SageSWState_eRunning) {
+        g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eError;
         BDBG_ERR(("*******  SAGE ERROR  >>>>>"));
         BDBG_ERR(("* The SAGE side software cannot boot."));
         if (lastStatus == BSAGElibBootStatus_eBlStarted) {
@@ -1183,10 +1182,10 @@ err:
 
 int NEXUS_Sage_P_CheckSageBooted(void)
 {
-    if (!g_NEXUS_sageModule.booted) {
+    if (g_NEXUS_sageModule.SWState == NEXUS_SageSWState_eUnknown) {
         NEXUS_Sage_P_MonitorBoot();
     }
-    return g_NEXUS_sageModule.booted;
+    return (g_NEXUS_sageModule.SWState == NEXUS_SageSWState_eRunning);
 }
 
 NEXUS_Error NEXUS_Sage_P_Status(NEXUS_SageStatus *pStatus)

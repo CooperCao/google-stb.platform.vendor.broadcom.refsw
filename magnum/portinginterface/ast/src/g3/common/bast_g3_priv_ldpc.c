@@ -1,5 +1,5 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/***************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,10 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *
+ * [File Description:]
+ *
+ ***************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bast.h"
@@ -51,7 +54,7 @@ BDBG_MODULE(bast_g3_priv_ldpc);
 /******************************************************************************
  BAST_g3_P_IsLdpc8psk_isrsafe()
 ******************************************************************************/
-bool BAST_g3_P_IsLdpc8psk_isrsafe(BAST_ChannelHandle h)
+static bool BAST_g3_P_IsLdpc8psk_isrsafe(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -75,7 +78,7 @@ bool BAST_g3_P_IsLdpc8psk_isrsafe(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcConfigEq_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcConfigEq_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcConfigEq_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, eqcfad, f0b, ffe_main_tap, i;
@@ -155,7 +158,7 @@ val &= ~0x500;  /* unfreeze ffe and ffe main tap */
 /******************************************************************************
  BAST_g3_P_LdpcSetVlctl_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetVlctl_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetVlctl_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -173,7 +176,7 @@ BERR_Code BAST_g3_P_LdpcSetVlctl_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcSetHardDecisionLevels_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetHardDecisionLevels_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetHardDecisionLevels_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -219,7 +222,7 @@ BERR_Code BAST_g3_P_LdpcSetHardDecisionLevels_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcSetScramblingSeq_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetScramblingSeq_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetScramblingSeq_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -244,7 +247,7 @@ BERR_Code BAST_g3_P_LdpcSetScramblingSeq_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcSetPilotctl_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetPilotctl_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetPilotctl_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -265,7 +268,7 @@ BERR_Code BAST_g3_P_LdpcSetPilotctl_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcGetPdTableIdx_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcGetPdTableIdx_isr(uint32_t i, uint32_t j, uint32_t *pIdx)
+static BERR_Code BAST_g3_P_LdpcGetPdTableIdx_isr(uint32_t i, uint32_t j, uint32_t *pIdx)
 {
    uint32_t sval1;
 
@@ -279,7 +282,7 @@ BERR_Code BAST_g3_P_LdpcGetPdTableIdx_isr(uint32_t i, uint32_t j, uint32_t *pIdx
 /******************************************************************************
  BAST_g3_P_LdpcGeneratePdTable_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcGeneratePdTable_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcGeneratePdTable_isr(BAST_ChannelHandle h)
 {
    static const uint8_t pd_data_qpsk[] =
    {
@@ -876,7 +879,7 @@ BERR_Code BAST_g3_P_LdpcGeneratePdTable_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcConfigSnr_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcConfigSnr_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcConfigSnr_isr(BAST_ChannelHandle h)
 {
    static const uint32_t LDPC_SNRHT[] =
    {
@@ -981,7 +984,7 @@ BERR_Code BAST_g3_P_LdpcConfigSnr_isr(BAST_ChannelHandle h)
   ACM_CYCLE_CNT_2 = ((R*S/4) / Fb) - L
   ACM_CYCLE_CNT_3 = ((R*S/5) / Fb) - L
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcConfigCycleCnt_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcConfigCycleCnt_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, P_hi, P_lo, Q_hi, Q_lo;
@@ -1016,7 +1019,7 @@ BERR_Code BAST_g3_P_LdpcConfigCycleCnt_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcSetMpcfg_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetMpcfg_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetMpcfg_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -1043,7 +1046,7 @@ BERR_Code BAST_g3_P_LdpcSetMpcfg_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcSetModcod_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetModcod_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetModcod_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, i;
@@ -1078,7 +1081,7 @@ BERR_Code BAST_g3_P_LdpcSetModcod_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcConfig_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcConfig_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcConfig_isr(BAST_ChannelHandle h)
 {
    static const uint32_t script_ldpc_config_0[] =
    {
@@ -1197,7 +1200,7 @@ BERR_Code BAST_g3_P_LdpcConfig_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcSetPsl_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetPsl_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetPsl_isr(BAST_ChannelHandle h)
 {
    static const uint32_t AFEC_MODCOD_REGISTER[] =
    {
@@ -1340,7 +1343,7 @@ BERR_Code BAST_g3_P_LdpcSetPsl_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcSetOpll_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcSetOpll_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcSetOpll_isr(BAST_ChannelHandle h)
 {
    static const uint16_t LDPC_NUMBER_OF_BITS[] =
    {
@@ -1448,7 +1451,7 @@ BERR_Code BAST_g3_P_LdpcEnableDynamicPowerShutDown_isrsafe(BAST_ChannelHandle h,
 /******************************************************************************
  BAST_g3_P_LdpcOnHpLock_isr() - called when HP locks
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcOnHpLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcOnHpLock_isr(BAST_ChannelHandle h)
 {
    static const uint32_t script_ldpc_5[] =
    {
@@ -1562,7 +1565,7 @@ BERR_Code BAST_g3_P_LdpcOnHpLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcAcquire1_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcAcquire1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcAcquire1_isr(BAST_ChannelHandle h)
 {
    return BAST_g3_P_HpAcquire_isr(h, BAST_g3_P_LdpcOnHpLock_isr);
 }
@@ -1571,7 +1574,7 @@ BERR_Code BAST_g3_P_LdpcAcquire1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcAcquire_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcAcquire_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcAcquire_isr(BAST_ChannelHandle h)
 {
    static const uint32_t script_ldpc_4[] =
    {
@@ -1707,7 +1710,7 @@ BERR_Code BAST_g3_P_LdpcUpdateBlockCounters_isrsafe(BAST_ChannelHandle h)
  BAST_g3_P_LdpcCheckMode_isr() - ISR context; checks if the current LDPC mode is
  one of the modes which we are allowed to lock
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcCheckMode_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcCheckMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
@@ -1816,7 +1819,7 @@ BERR_Code BAST_g3_P_LdpcPowerDown(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcEnableLockInterrupts_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcEnableLockInterrupts_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcEnableLockInterrupts_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -1849,7 +1852,7 @@ BERR_Code BAST_g3_P_LdpcDisableLockInterrupts_isr(BAST_ChannelHandle h)
  BAST_g3_P_LdpcOnLock_isr() - This function is called when lock status transitions
                           from not_locked to locked.
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcOnLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcOnLock_isr(BAST_ChannelHandle h)
 {
    BSTD_UNUSED(h);
 
@@ -1862,7 +1865,7 @@ BERR_Code BAST_g3_P_LdpcOnLock_isr(BAST_ChannelHandle h)
  BAST_g3_P_LdpcOnLostLock_isr() - This function is called when lock status
                               transitions from locked to not_locked.
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcOnLostLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcOnLostLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1884,7 +1887,7 @@ BERR_Code BAST_g3_P_LdpcOnLostLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcIsMpegLocked_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcIsMpegLocked_isr(BAST_ChannelHandle h, bool *bLocked)
+static BERR_Code BAST_g3_P_LdpcIsMpegLocked_isr(BAST_ChannelHandle h, bool *bLocked)
 {
    uint32_t val;
 
@@ -1900,7 +1903,7 @@ BERR_Code BAST_g3_P_LdpcIsMpegLocked_isr(BAST_ChannelHandle h, bool *bLocked)
 /******************************************************************************
  BAST_g3_P_LdpcOnStableLock_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcOnStableLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcOnStableLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
@@ -1970,7 +1973,7 @@ BERR_Code BAST_g3_P_LdpcOnStableLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LdpcMonitorLock_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LdpcMonitorLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LdpcMonitorLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    bool bMpLocked;

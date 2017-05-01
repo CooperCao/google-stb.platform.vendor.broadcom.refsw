@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  SpyHook
-Module   :  Platform layer
-
-FILE DESCRIPTION
-Platform specific abstractions
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "platform.h"
 
 #ifndef WIN32
@@ -38,32 +30,18 @@ void plUnlockMutex(MutexHandle *handle)
 
 unsigned int plGetTimeNowMs()
 {
-   static unsigned int sTimeBase = 0;
-
-   unsigned int nowMs;
-
-   struct timespec now;
-
-   clock_gettime(CLOCK_REALTIME, &now);
-
-   nowMs = now.tv_sec * 1000;
-   nowMs += now.tv_nsec / 1000000;
-
-   if (sTimeBase == 0)
-      sTimeBase = nowMs;
-
-   return nowMs - sTimeBase;
+   return plGetTimeNowUs() / 1000;
 }
 
 uint64_t plGetTimeNowUs()
 {
    static uint64_t sTimeBase = 0;
 
-   unsigned int nowUs;
+   uint64_t nowUs;
 
    struct timespec now;
 
-   clock_gettime(CLOCK_REALTIME, &now);
+   clock_gettime(CLOCK_MONOTONIC, &now);
 
    nowUs = now.tv_sec * 1000000;
    nowUs += now.tv_nsec / 1000;
@@ -72,15 +50,6 @@ uint64_t plGetTimeNowUs()
       sTimeBase = nowUs;
 
    return nowUs - sTimeBase;
-}
-
-void plGetAccurateTime(unsigned int *secs, unsigned int *nanosecs)
-{
-   struct timespec   now;
-   clock_gettime(CLOCK_REALTIME, &now);
-
-   *secs = now.tv_sec;
-   *nanosecs = now.tv_nsec;
 }
 
 void plGetTime(TIMESTAMP *now)
@@ -193,14 +162,6 @@ uint64_t plGetTimeNowUs()
    unsigned int msec = timeGetTime();
 
    return (uint64_t)msec * 1000;
-}
-
-void plGetAccurateTime(unsigned int *secs, unsigned int *nanosecs)
-{
-   unsigned int msec = timeGetTime();
-
-   *secs = msec / 1000;
-   *nanosecs = 1000 * (msec - (*secs * 1000));
 }
 
 void plGetTime(TIMESTAMP *now)

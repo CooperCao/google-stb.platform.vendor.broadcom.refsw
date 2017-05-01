@@ -919,7 +919,7 @@ typedef struct
          } stDimensions;
 
          /* GOP Structure -
-          *    The worst case GOP structure.  Delay increases with number of B frames */
+          *    The worst case GOP structure.  Delay increases with number of P and B frames */
          BVCE_GOPStructure stGOPStructure;
 
          struct

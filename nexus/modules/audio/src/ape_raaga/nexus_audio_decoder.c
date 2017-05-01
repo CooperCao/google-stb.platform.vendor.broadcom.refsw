@@ -247,6 +247,20 @@ NEXUS_Error NEXUS_AudioDecoder_P_ConfigureRave(NEXUS_RaveHandle rave, const NEXU
     return 0;
 }
 
+static void NEXUS_AudioDecoder_P_VerifyTimebase(NEXUS_AudioDecoderHandle handle)
+{
+    int i, j;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioDecoder);
+    BDBG_WRN(("Audio Decoder %u using Timebase %u", handle->index, handle->apeStartSettings.stcIndex));
+    for ( i = 0; i < NEXUS_AudioConnectorType_eMax; i++ ) {
+        for ( j = 0; j < NEXUS_AUDIO_MAX_OUTPUTS; j++ ) {
+            NEXUS_AudioOutputHandle output = handle->outputLists[i].outputs[j];
+            if(output) {
+                NEXUS_AudioOutput_P_VerifyTimebase(output);
+            }
+        }
+    }
+}
 
 /***************************************************************************
 Summary:
@@ -326,7 +340,7 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
         handle->connectors[j].pName = handle->name;
 
         /* Set format per-connector */
-        if ( j == NEXUS_AudioConnectorType_eStereo )
+        if ( j == NEXUS_AudioConnectorType_eStereo || j == NEXUS_AudioConnectorType_eAlternateStereo )
         {
             handle->connectors[j].format = NEXUS_AudioInputFormat_ePcmStereo;
         }
@@ -475,6 +489,8 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     /* Init connectors */
     BAPE_Decoder_GetConnector(handle->channel, BAPE_ConnectorFormat_eStereo, &mixerInput);
     handle->connectors[NEXUS_AudioConnectorType_eStereo].port = (size_t)mixerInput;
+    BAPE_Decoder_GetConnector(handle->channel, BAPE_ConnectorFormat_eAlternateStereo, &mixerInput);
+    handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo].port = (size_t)mixerInput;
     BAPE_Decoder_GetConnector(handle->channel, BAPE_ConnectorFormat_eMultichannel, &mixerInput);
     handle->connectors[NEXUS_AudioConnectorType_eMultichannel].port = (size_t)mixerInput;
     BAPE_Decoder_GetConnector(handle->channel, BAPE_ConnectorFormat_eCompressed, &mixerInput);
@@ -707,6 +723,9 @@ static void NEXUS_AudioDecoder_P_Finalizer(
                 break;
             case NEXUS_AudioConnectorType_eMono:
                 pType = "mono";
+                break;
+            case NEXUS_AudioConnectorType_eAlternateStereo:
+                pType = "alt stereo";
                 break;
             }
             BDBG_MSG(("Decoder Connector %p (type=%s) is still active. Calling NEXUS_AudioInput_Shutdown.", (void *)&handle->connectors[i], pType));
@@ -1108,6 +1127,9 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
         goto err_start;
     }
 
+    if(NEXUS_GetEnv("verify_timebase"))
+        NEXUS_AudioDecoder_P_VerifyTimebase(handle);
+
     handle->started = true;
 
     BDBG_LEAVE(NEXUS_AudioDecoder_Start);
@@ -1504,22 +1526,27 @@ void NEXUS_AudioDecoder_GetCodecSettings(
             break;
         }
         pSettings->codecSettings.ac4.selectionMode = (NEXUS_AudioDecoderAc4PresentationSelectionMode)codecSettings.codecSettings.ac4.selectionMode;
-        BDBG_CASSERT(NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH == BAPE_AC4_PRESENTATION_ID_LENGTH);
-        BKNI_Memcpy(pSettings->codecSettings.ac4.presentationId, codecSettings.codecSettings.ac4.presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
-        pSettings->codecSettings.ac4.presentationIndex = codecSettings.codecSettings.ac4.presentationIndex;
         pSettings->codecSettings.ac4.programSelection = codecSettings.codecSettings.ac4.programSelection;
         pSettings->codecSettings.ac4.programBalance = codecSettings.codecSettings.ac4.programBalance;
         pSettings->codecSettings.ac4.dialogEnhancerAmount = codecSettings.codecSettings.ac4.dialogEnhancerAmount;
         pSettings->codecSettings.ac4.certificationMode = codecSettings.codecSettings.ac4.certificationMode;
-        /* personalization settings */
-        pSettings->codecSettings.ac4.preferLanguageOverAssociateType = codecSettings.codecSettings.ac4.preferLanguageOverAssociateType;
-        pSettings->codecSettings.ac4.preferredAssociateType = (NEXUS_AudioAc4AssociateType)codecSettings.codecSettings.ac4.preferredAssociateType;
         pSettings->codecSettings.ac4.enableAssociateMixing = codecSettings.codecSettings.ac4.enableAssociateMixing;
+        /* personalization settings */
+        BDBG_CASSERT(NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH == BAPE_AC4_PRESENTATION_ID_LENGTH);
+        BKNI_Memcpy(pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationId, codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
+        BKNI_Memcpy(pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationId, codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
+        pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationIndex = codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].presentationIndex;
+        pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationIndex = codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].presentationIndex;
+        pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferLanguageOverAssociateType = codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].preferLanguageOverAssociateType;
+        pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferLanguageOverAssociateType = codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].preferLanguageOverAssociateType;
+        pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferredAssociateType = (NEXUS_AudioAc4AssociateType)codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].preferredAssociateType;
+        pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferredAssociateType = (NEXUS_AudioAc4AssociateType)codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].preferredAssociateType;
         BDBG_CASSERT(NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH == BAPE_AC4_LANGUAGE_NAME_LENGTH);
         BDBG_CASSERT(NEXUS_AUDIO_AC4_NUM_LANGUAGES == BAPE_AC4_NUM_LANGUAGES);
         for ( i = 0; i < NEXUS_AUDIO_AC4_NUM_LANGUAGES; i++ )
         {
-            BKNI_Memcpy(pSettings->codecSettings.ac4.languagePreference[i].selection, codecSettings.codecSettings.ac4.languagePreference[i].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+            BKNI_Memcpy(pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[i].selection, codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].languagePreference[i].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+            BKNI_Memcpy(pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[i].selection, codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].languagePreference[i].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
         }
         break;
     case NEXUS_AudioCodec_eAacAdts:
@@ -1743,19 +1770,24 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
             break;
         }
         codecSettings.codecSettings.ac4.selectionMode = (BAPE_Ac4PresentationSelectionMode)pSettings->codecSettings.ac4.selectionMode;
-        BKNI_Memcpy(codecSettings.codecSettings.ac4.presentationId, pSettings->codecSettings.ac4.presentationId, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
-        codecSettings.codecSettings.ac4.presentationIndex = pSettings->codecSettings.ac4.presentationIndex;
         codecSettings.codecSettings.ac4.programSelection = pSettings->codecSettings.ac4.programSelection;
         codecSettings.codecSettings.ac4.programBalance = pSettings->codecSettings.ac4.programBalance;
         codecSettings.codecSettings.ac4.dialogEnhancerAmount = pSettings->codecSettings.ac4.dialogEnhancerAmount;
         codecSettings.codecSettings.ac4.certificationMode = pSettings->codecSettings.ac4.certificationMode;
-        /* personalization settings */
-        codecSettings.codecSettings.ac4.preferLanguageOverAssociateType = pSettings->codecSettings.ac4.preferLanguageOverAssociateType;
-        codecSettings.codecSettings.ac4.preferredAssociateType = (BAPE_Ac4AssociateType)pSettings->codecSettings.ac4.preferredAssociateType;
         codecSettings.codecSettings.ac4.enableAssociateMixing = pSettings->codecSettings.ac4.enableAssociateMixing;
+        /* personalization settings */
+        BKNI_Memcpy(codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].presentationId, pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationId, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
+        BKNI_Memcpy(codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].presentationId, pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationId, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
+        codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].presentationIndex = pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationIndex;
+        codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].presentationIndex = pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationIndex;
+        codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].preferLanguageOverAssociateType = pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferLanguageOverAssociateType;
+        codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].preferLanguageOverAssociateType = pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferLanguageOverAssociateType;
+        codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].preferredAssociateType = (BAPE_Ac4AssociateType)pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferredAssociateType;
+        codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].preferredAssociateType = (BAPE_Ac4AssociateType)pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferredAssociateType;
         for ( i = 0; i < BAPE_AC4_NUM_LANGUAGES; i++ )
         {
-            BKNI_Memcpy(codecSettings.codecSettings.ac4.languagePreference[i].selection, pSettings->codecSettings.ac4.languagePreference[i].selection, sizeof(char) * BAPE_AC4_LANGUAGE_NAME_LENGTH);
+            BKNI_Memcpy(codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].languagePreference[i].selection, pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[i].selection, sizeof(char) * BAPE_AC4_LANGUAGE_NAME_LENGTH);
+            BKNI_Memcpy(codecSettings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate].languagePreference[i].selection, pSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[i].selection, sizeof(char) * BAPE_AC4_LANGUAGE_NAME_LENGTH);
         }
         break;
     case NEXUS_AudioCodec_eAacAdts:
@@ -1936,7 +1968,8 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
     BDBG_ASSERT(NULL != pStatus);
 
     BKNI_Memset(pStatus, 0, sizeof(NEXUS_AudioDecoderStatus));
-    pStatus->started = handle->started;
+    pStatus->started = handle->started ? NEXUS_AudioRunningState_eStarted :
+        (handle->suspended ? NEXUS_AudioRunningState_eSuspended : NEXUS_AudioRunningState_eStopped);
     pStatus->locked = handle->locked;
     pStatus->codec = handle->programSettings.codec;
     pStatus->ptsType = NEXUS_PtsType_eInterpolatedFromInvalidPTS;
@@ -2523,6 +2556,10 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     {
         NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo], &volume);
     }
+    else if ( handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo].pMixerData )
+    {
+        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo], &volume);
+    }
     else if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].pMixerData )
     {
         NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], &volume);
@@ -2559,6 +2596,14 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     if ( handle->connectors[NEXUS_AudioConnectorType_eStereo].pMixerData )
     {
         errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo], &volume);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+    if ( handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo].pMixerData )
+    {
+        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo], &volume);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -3295,6 +3340,33 @@ err:
     return rc;
 }
 
+static void NEXUS_AudioDecoder_P_ApplyDefaultInputVolume(NEXUS_AudioInputHandle input)
+{
+    BAPE_MixerInputVolume volume;
+    NEXUS_AudioInput_P_GetVolume(input, &volume);
+    NEXUS_AudioInput_P_SetVolume(input, &volume);
+}
+
+static void NEXUS_AudioDecoder_P_SetDefaultVolume(NEXUS_AudioDecoderHandle handle)
+{
+
+    if ( handle->connectors[NEXUS_AudioConnectorType_eStereo].pMixerData )
+    {
+        NEXUS_AudioInput_P_GetDefaultInputVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo]);
+        NEXUS_AudioDecoder_P_ApplyDefaultInputVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo]);
+    }
+    if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].pMixerData )
+    {
+        NEXUS_AudioInput_P_GetDefaultInputVolume(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel]);
+        NEXUS_AudioDecoder_P_ApplyDefaultInputVolume(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel]);
+    }
+    if ( handle->connectors[NEXUS_AudioConnectorType_eMono].pMixerData )
+    {
+        NEXUS_AudioInput_P_GetDefaultInputVolume(&handle->connectors[NEXUS_AudioConnectorType_eMono]);
+        NEXUS_AudioDecoder_P_ApplyDefaultInputVolume(&handle->connectors[NEXUS_AudioConnectorType_eMono]);
+    }
+}
+
 NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
 {
     NEXUS_Error errCode;
@@ -3324,6 +3396,7 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
         a mapping combining type and index */
 
         hasPcmOutputs = (outputLists[NEXUS_AudioConnectorType_eStereo].outputs[0] ||
+                         outputLists[NEXUS_AudioConnectorType_eAlternateStereo].outputs[0] ||
                          outputLists[NEXUS_AudioConnectorType_eMultichannel].outputs[0] ||
                          outputLists[NEXUS_AudioConnectorType_eMono].outputs[0]) ? true : false;
         hasCompressedOutputs = (outputLists[NEXUS_AudioConnectorType_eCompressed].outputs[0] ||
@@ -3400,6 +3473,12 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
             {
                 return BERR_TRACE(errCode);
             }
+        }
+
+        /* Get Volume.  Apply correct volume in apply settings*/
+        if (hasPcmOutputs)
+        {
+            NEXUS_AudioDecoder_P_SetDefaultVolume(handle);
         }
     }
 

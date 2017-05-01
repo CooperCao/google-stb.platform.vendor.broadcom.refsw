@@ -3,6 +3,7 @@
  ******************************************************************************/
 #pragma once
 
+#include <stdarg.h>
 #include <setjmp.h>
 #include "libs/util/common.h"
 
@@ -24,6 +25,9 @@ typedef enum
 
 // Fetches a standard error string based on type and code, but if clarification is supplied, prints that too.
 extern void glsl_compile_error(ErrorType e, int code, int line_num, const char *clarification, ...) ATTRIBUTE_FORMAT(printf, 4, 5);
+extern void glsl_compile_verror(ErrorType e, int code, int line_num, const char *clarification, va_list ap);
+
+extern void glsl_compiler_exit(void);
 
 extern const char *glsl_compile_error_get(void);
 

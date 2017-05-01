@@ -105,9 +105,6 @@ void nexus_driver_disable_clients(bool including_server);
 void nexus_driver_get_client_configuration(const struct b_objdb_client *client_id, NEXUS_ClientConfiguration *pSettings);
 void nexus_driver_server_close_module_headers(void);
 
-NEXUS_Error nexus_driver_module_init_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings);
-void nexus_driver_module_uninit_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings);
-
 int nexus_driver_server_postinit(void);
 void nexus_driver_server_preuninit(void);
 
@@ -115,7 +112,6 @@ void NEXUS_P_Proxy_StopCallbacks( void *interfaceHandle );
 void NEXUS_P_Proxy_StartCallbacks( void *interfaceHandle );
 
 void NEXUS_Platform_P_TerminateProcess(unsigned pid);
+NEXUS_Error nexus_p_set_client_mode(struct nexus_driver_client_state *client, NEXUS_ClientMode mode);
 
 #endif /* NEXUS_GENERIC_DRIVER_IMPL_H__ */
-
-

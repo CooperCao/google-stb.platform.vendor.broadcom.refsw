@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -125,11 +125,7 @@ NEXUS_Playpump_GetDefaultSettings(NEXUS_PlaypumpSettings *pSettings)
 }
 
 #if NEXUS_NUM_PLAYPUMPS
-#if (BXPT_HAS_FIXED_RSBUF_CONFIG || BXPT_HAS_FIXED_XCBUF_CONFIG)
 #define PLAYBACK_HAS_MEMORY(i) (pTransport->settings.clientEnabled.playback[i].rave)
-#else
-#define PLAYBACK_HAS_MEMORY(i) (true)
-#endif
 #endif
 
 NEXUS_PlaypumpHandle
@@ -288,11 +284,7 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
 
     rc = BXPT_Playback_GetChannelDefaultSettings(pTransport->xpt, index, &play_cfg);
     if (rc) {rc=BERR_TRACE(rc);goto error;}
-
-#if NEXUS_HAS_LEGACY_XPT
-    play_cfg.AlwaysResumeFromLastDescriptor = true;
-#endif
-
+    play_cfg.mmaHeap = NEXUS_Heap_GetMmaHandle(g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].nexus);
     rc = BXPT_Playback_OpenChannel(pTransport->xpt, &p->xpt_play, index, &play_cfg);
     if (rc) {
         unsigned i;
@@ -505,13 +497,9 @@ NEXUS_Playpump_P_SetParserBand(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSetti
     if (rc) return BERR_TRACE(rc);
     /* for playback, we should just let all data through. if the stream is good, there's no harm.
     if the stream is bad, the decoders must handle this anyway. */
-#if NEXUS_PARSER_BAND_CC_CHECK
-    parserConfig.ContCountIgnore = !pSettings->continuityCountEnabled;
-#else
     if(pSettings->continuityCountEnabled != p->settings.continuityCountEnabled && BLST_S_FIRST(&p->pid_list)!=NULL) {
         BDBG_WRN(("%#lx:continuityCountEnabled wouldn't get applied to aleady opened pids", (unsigned long)p));
     }
-#endif
     parserConfig.ErrorInputIgnore = (pSettings->teiError.callback == NULL); /* if we want these errors, then transport cannot ignore */
     parserConfig.AcceptAdapt00 = true;
     parserConfig.AllPass = pSettings->allPass;
@@ -551,6 +539,7 @@ NEXUS_Error
 NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings *pSettings)
 {
     NEXUS_Error rc;
+    bool dataNotCpuAccessible;
 
     BDBG_OBJECT_ASSERT(p, NEXUS_Playpump);
     BDBG_ASSERT(pSettings);
@@ -593,7 +582,9 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
         if (rc) return BERR_TRACE(rc);
     }
 
-    if (pSettings->timestamp.timebase != p->settings.timestamp.timebase) {
+    if ( (pSettings->timestamp.timebase != p->settings.timestamp.timebase) ||
+         (pSettings->timestamp.pcrPacingPid != p->settings.timestamp.pcrPacingPid) )
+    {
         BXPT_Playback_ChannelSettings cfg;
 
         rc = BXPT_Playback_GetChannelSettings(p->xpt_play, &cfg);
@@ -612,6 +603,7 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
             }
         }
 
+        cfg.PcrPacingPid = pSettings->timestamp.pcrPacingPid;
         rc = BXPT_Playback_SetChannelSettings(p->xpt_play, &cfg);
         if (rc) return BERR_TRACE(rc);
     }
@@ -648,21 +640,18 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
         }
     }
 #endif
-    {
-        bool dataNotCpuAccessible = pSettings->dataNotCpuAccessible;
-        if(p->openSettings.dataNotCpuAccessible && !dataNotCpuAccessible) {
-            BDBG_WRN(("%p:overwrite application supplied NEXUS_PlaypumpSettings.dataNotCpuAccessible", (void *)p));
-            dataNotCpuAccessible = true;
-        }
-#if B_HAS_MEDIA
-        if(dataNotCpuAccessible && p->use_media) {
-            BDBG_ERR(("SW demux requires CPU accessible memory"));
-            return BERR_TRACE(BERR_NOT_SUPPORTED);
-        }
-#endif
-        p->settings = *pSettings;
-        p->settings.dataNotCpuAccessible = dataNotCpuAccessible;
+
+    dataNotCpuAccessible = pSettings->dataNotCpuAccessible;
+    if(p->openSettings.dataNotCpuAccessible && !dataNotCpuAccessible) {
+        BDBG_WRN(("%p:overwrite application supplied NEXUS_PlaypumpSettings.dataNotCpuAccessible", (void *)p));
+        dataNotCpuAccessible = true;
     }
+#if B_HAS_MEDIA
+    if(dataNotCpuAccessible && p->use_media) {
+        BDBG_ERR(("SW demux requires CPU accessible memory"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+#endif
 
 #if NEXUS_NUM_DMA_CHANNELS
     if (pSettings->securityDma != p->settings.securityDma) {
@@ -674,6 +663,9 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
         }
     }
 #endif
+
+    p->settings = *pSettings;
+    p->settings.dataNotCpuAccessible = dataNotCpuAccessible;
 
     NEXUS_TaskCallback_Set(p->dataCallback, &p->settings.dataCallback);
     NEXUS_TaskCallback_Set(p->errorCallback, &p->settings.errorCallback);
@@ -787,9 +779,6 @@ static NEXUS_Error NEXUS_Playpump_Start_priv(NEXUS_PlaypumpHandle p, bool muxInp
     rc = BXPT_Playback_GetChannelSettings(p->xpt_play, &cfg);
     if (rc) {rc=BERR_TRACE(rc); goto error;}
 
-#if NEXUS_HAS_LEGACY_XPT
-    cfg.AlwaysResumeFromLastDescriptor = true;
-#endif
 #if B_HAS_NATIVE_MPEG1
     /* initialize to the MPEG2 Program Stream Mode */
     cfg.PsMode = BXPT_Playback_PS_Mode_MPEG2;
@@ -1533,13 +1522,14 @@ NEXUS_Playpump_P_OpenPidChannel_MuxImpl(NEXUS_PlaypumpHandle p, unsigned pid, co
     for(play_pid=BLST_S_FIRST(&p->pid_list);play_pid;play_pid=BLST_S_NEXT(play_pid,link)) {
         if(play_pid->pid == pid && (pSettings->pidSettings.pidChannelIndex == (unsigned)-1 || pSettings->pidSettings.pidChannelIndex == play_pid->settings.pidSettings.pidChannelIndex) && (play_pid->packetizer.cfg.preserveCC == (pSettings_priv?pSettings_priv->preserveCC:false))) {
             pidChannel = NEXUS_PidChannel_P_Create(play_pid->pid_channel);
-            return pidChannel;
+            goto done;
         }
     }
 
     play_pid = BKNI_Malloc(sizeof(*play_pid));
     if(!play_pid) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
 
+    BKNI_Memset(play_pid, 0, sizeof(*play_pid));
     play_pid->pid = pid;
     play_pid->settings = *pSettings;
 #if B_HAS_MEDIA
@@ -1569,6 +1559,9 @@ NEXUS_Playpump_P_OpenPidChannel_MuxImpl(NEXUS_PlaypumpHandle p, unsigned pid, co
 	return NULL;
     }
 
+done:
+    pidChannel->enabled = pSettings->pidSettings.enabled;
+    NEXUS_P_HwPidChannel_CalcEnabled(pidChannel->hwPidChannel);
     return pidChannel;
 
 err_duplicate:
@@ -1733,15 +1726,9 @@ static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const 
     if (pSettings->ccError.callback) {
         if (!p->ccErrorInt) {
             BDBG_MSG(("create playpump %d cc callback", p->index));
-#if NEXUS_PARSER_BAND_CC_CHECK
-            rc = BINT_CreateCallback(&p->ccErrorInt, g_pCoreHandles->bint,
-                BXPT_Playback_GetIntId(p->xpt_play, BCHP_XPT_PB0_INTR_PARSER_CONTINUITY_ERROR_SHIFT),
-                NEXUS_Playpump_P_CCError_isr, p, 0);
-#else
             rc = BINT_CreateCallback(&p->ccErrorInt, g_pCoreHandles->bint,
                                      BXPT_INT_ID_PBP_CONTINUITY_ERROR( p->index ),
                                      NEXUS_Playpump_P_CCError_isr, p, 0);
-#endif
             if (rc) return BERR_TRACE(rc);
             rc = BINT_EnableCallback(p->ccErrorInt);
             if (rc) return BERR_TRACE(rc);

@@ -1,17 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gfx_util_file.h"
 #include "libs/util/demand.h"
 #include "libs/util/assert_helpers.h"
 #include "vcos_string.h"
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,26 +62,31 @@ char *gfx_replace_any_extension(const char *filename, const char *replacement)
    return stem_plus_replacement;
 }
 
-void *gfx_load_binary_file(size_t *size, const char *filename)
+void *gfx_load_binary_file_range(size_t *size, const char *filename,
+   uint64_t offset, uint64_t max_size)
 {
-   FILE *f;
-   long tell;
-   void *mem;
-   size_t bytes_read;
-
-   f = fopen(filename, "rb");
+   FILE *f = fopen(filename, "rb");
    demand_msg(f, "Couldn't open '%s' for reading!", filename);
 
    demand(fseek(f, 0, SEEK_END) == 0);
-   tell = ftell(f);
-   demand(tell > 0);
-   *size = tell;
-   demand(fseek(f, 0, SEEK_SET) == 0);
+   long tell = ftell(f); // Note this may return a bogus value on 32-bit systems for >=2GB files...
+   demand(tell >= 0);
+   uint64_t file_size = tell;
 
-   mem = malloc(*size);
+   demand(offset <= file_size);
+   uint64_t size_64 = file_size - offset;
+   if (max_size < size_64)
+      size_64 = max_size;
+   demand(size_64 <= SIZE_MAX);
+   *size = (size_t)size_64;
+
+   void *mem = malloc(*size);
    demand(mem);
 
-   bytes_read = fread(mem, 1, *size, f);
+   demand(offset <= LONG_MAX);
+   demand(fseek(f, (long)offset, SEEK_SET) == 0);
+
+   size_t bytes_read = fread(mem, 1, *size, f);
    demand(bytes_read == *size);
 
    fclose(f);

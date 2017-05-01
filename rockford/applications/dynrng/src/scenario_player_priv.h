@@ -45,7 +45,9 @@
 #include "scenario_player.h"
 #include "file_switcher.h"
 #include <stdbool.h>
+#include <stdio.h>
 
+#define MAX_INPUT_LEN 1024
 typedef struct ScenarioPlayer
 {
     struct
@@ -54,11 +56,13 @@ typedef struct ScenarioPlayer
         void * context;
     } scenarioChanged;
     FileSwitcherHandle switcher;
+    FILE * log;
+    char input[MAX_INPUT_LEN];
 } ScenarioPlayer;
 
 bool scenario_player_p_file_filter(const char * path);
 void scenario_player_p_get_default_scenario(Scenario * pScenario);
-void scenario_player_p_load_scenario(ScenarioPlayerHandle player, Scenario * pScenario, const char * path);
-void scenario_player_p_print_scenario(ScenarioPlayerHandle player, const Scenario * pScenario);
+void scenario_player_p_play_scenario(ScenarioPlayerHandle player, Scenario * pScenario, const char * path);
+void scenario_player_p_print(ScenarioPlayerHandle player, const Scenario * pScenario);
 
 #endif /* SCENARIO_PLAYER_PRIV_H__ */

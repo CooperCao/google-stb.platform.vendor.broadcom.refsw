@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -88,7 +88,7 @@ static BERR_Code BAPE_InputCapture_P_InputFormatChange_isr(
     BAPE_InputPort inputPort
     );
 
-void BAPE_InputCapture_P_FreeBuffer(BAPE_InputCaptureHandle handle, unsigned idx)
+static void BAPE_InputCapture_P_FreeBuffer(BAPE_InputCaptureHandle handle, unsigned idx)
 {
     if ( handle->bufferBlock[idx] )
     {
@@ -392,6 +392,8 @@ BERR_Code BAPE_InputCapture_Start(
     bool captureToMemory = false;
     bool dfifoRequired = false;
     bool sfifoDownstream = false;
+    BAPE_PathNode *pNode;
+    unsigned numFound;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_InputCapture);
     BDBG_ASSERT(NULL != pSettings);
@@ -444,7 +446,7 @@ BERR_Code BAPE_InputCapture_Start(
             errCode = BAPE_InputCapture_P_AllocatePathFromInput(&handle->node, pConnection);
             if ( errCode )
             {
-                goto err_attach;
+                goto err_allocate_path;
             }
         }
     }
@@ -493,6 +495,15 @@ BERR_Code BAPE_InputCapture_Start(
     }
 
     numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&handle->inputPortFormat);
+
+    /* Check for DSP mixer downstream to compare buffer requirements */
+    BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
+
+    if (numFound != 0 && (handle->inputPortFormat.type != BAPE_DataType_ePcmMono && handle->inputPortFormat.type != BAPE_DataType_ePcmStereo) ) {
+        BDBG_WRN(("Unable to start Input Capture due to DSP Mixer attached and input format %s", BAPE_FMT_P_GetTypeName_isrsafe(&handle->inputPortFormat)));
+        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err_format_mismatch;
+    }
 
     /* capture to memory disables capture to FMM outputs */
     if ( captureToMemory )
@@ -597,7 +608,7 @@ BERR_Code BAPE_InputCapture_Start(
         BAPE_Mixer_P_PrintMixers(handle->deviceHandle);
     #endif
 
-    BDBG_MSG(("InputCapture %p (%d) Start Downstream", (void *)handle, handle->index));
+    BDBG_ERR(("InputCapture %p (%d) Start Downstream", (void *)handle, handle->index));
     /* Start */
     errCode = BAPE_PathNode_P_StartPaths(&handle->node);
     if ( errCode )
@@ -634,22 +645,37 @@ BERR_Code BAPE_InputCapture_Start(
     handle->halted = false;
     return BERR_SUCCESS;
 
-err_start_dfifo:
-    BAPE_PathNode_P_StopPaths(&handle->node);
-err_start_paths:
-err_apply_dfifo_settings:
-err_no_master:
-    BAPE_PathNode_P_ReleasePathResources(&handle->node);
-err_configure_resources:
-err_acquire_resources:
-err_format:
-    /* Release resources */
-    BAPE_DfifoGroup_P_Destroy(handle->dfifoGroup);
-    handle->dfifoGroup = NULL;
-err_dfifo_alloc:
-    (void)BAPE_InputPort_P_DetachConsumer(pSettings->input, &handle->node);
-err_attach:
-    return errCode;
+    err_start_dfifo:
+        BAPE_PathNode_P_StopPaths(&handle->node);
+    err_start_paths:
+    err_apply_dfifo_settings:
+    err_no_master:
+        if (handle->dfifoGroup) {
+            /* Release resources */
+            BAPE_DfifoGroup_P_Destroy(handle->dfifoGroup);
+            handle->dfifoGroup = NULL;
+        }
+    err_dfifo_alloc:
+    err_configure_resources:
+    err_format_mismatch:
+        BAPE_PathNode_P_ReleasePathResources(&handle->node);
+    err_acquire_resources:
+    err_format:
+        {
+            BAPE_PathConnection *pConnection;
+            for ( pConnection = BLST_SQ_FIRST(&handle->node.connectors[0].connectionList);
+                  NULL != pConnection;
+                  pConnection = BLST_SQ_NEXT(pConnection, downstreamNode) )
+            {
+                BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
+                BDBG_OBJECT_ASSERT(pConnection->pSink, BAPE_PathNode);
+                BAPE_InputCapture_P_FreePathFromInput(&handle->node, pConnection);
+            }
+        }
+    err_allocate_path:
+        (void)BAPE_InputPort_P_DetachConsumer(pSettings->input, &handle->node);
+    err_attach:
+        return errCode;
 }
 
 /***************************************************************************

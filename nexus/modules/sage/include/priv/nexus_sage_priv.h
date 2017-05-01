@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,6 +44,7 @@
 #include "priv/nexus_core.h"
 #include "bavc_types.h"
 #include "bsagelib_types.h"
+#include "nexus_sage_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,12 +61,17 @@ prior the NEXUS_Sage_*_priv() call and NEXUS_Unlock_Module(sageModuleHandle) aft
 void NEXUS_Sage_GetSageLib_priv(BSAGElib_Handle *pSAGElibHandle);
 NEXUS_Error NEXUS_Sage_WaitSage_priv(void);
 
+/* allocate memory with SAGE constrains */
+void * NEXUS_Sage_Malloc_priv(size_t size);
+void * NEXUS_Sage_MallocRestricted_priv(size_t size);
+
 NEXUS_Error NEXUS_Sage_AddWatchdogEvent_priv(BKNI_EventHandle event);
 void NEXUS_Sage_RemoveWatchdogEvent_priv(BKNI_EventHandle event);
 
 /* Standby/Resume */
 NEXUS_Error NEXUS_SageModule_Standby_priv( bool enabled, const NEXUS_StandbySettings *pSettings);
 
+NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings *pSettings);
 NEXUS_Error NEXUS_Sage_UpdateHeaps(void);
 NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList);
 void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList);
@@ -79,7 +85,7 @@ void NEXUS_Sage_P_SvpUninit(bool reset);
 void NEXUS_Sage_P_SvpUninit(void);
 #endif
 
-NEXUS_Error NEXUS_Sage_P_ARInit(void);
+NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings);
 void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode);
 NEXUS_Error NEXUS_Sage_P_SystemCritRestartCheck(void *pSettings);
 NEXUS_Error NEXUS_SageModule_P_AddRegion(uint32_t id, NEXUS_Addr offset, uint32_t size);

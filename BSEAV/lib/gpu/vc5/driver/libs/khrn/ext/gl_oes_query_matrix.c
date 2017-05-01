@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Server-side implementation of the GL_OES_query_matrix extension for GLES 1.1.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../glxx/gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"

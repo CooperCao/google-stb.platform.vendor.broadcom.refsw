@@ -66,9 +66,9 @@ static NEXUS_Error NEXUS_VideoDecoder_P_SetTsm_Xdm(NEXUS_VideoDecoderHandle vide
     }
 #endif
 
-#if NEXUS_CRC_CAPTURE
-    tsm = false;
-#endif
+    if (videoDecoder->crcMode) {
+        tsm = false;
+    }
 
     videoDecoder->tsm = tsm;
 
@@ -82,14 +82,13 @@ static BERR_Code NEXUS_VideoDecoder_P_Xdm_Picture_isr(void *decoder_, int32_t un
 {
     NEXUS_VideoDecoderHandle decoder = decoder_;
     const BAVC_MFD_Picture *pFieldData = pFieldData_;
-    BAVC_MFD_Picture modifiedFieldData;
 
     BDBG_MSG(("NEXUS_VideoDecoder_P_Xdm_Picture_isr>: %p", (void*)decoder));
     BDBG_OBJECT_ASSERT(decoder, NEXUS_VideoDecoder);
     BDBG_OBJECT_ASSERT(&decoder->xdm, NEXUS_VideoDecoder_P_Xdm);
     BSTD_UNUSED(unused);
 
-    pFieldData = NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(decoder, pFieldData, &modifiedFieldData);
+    pFieldData = NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(decoder, pFieldData);
     NEXUS_VideoDecoder_P_DataReady_Generic_Prologue_isr(decoder, pFieldData);
     NEXUS_VideoDecoder_P_DataReady_Generic_Epilogue_isr(decoder, pFieldData, 0);
 

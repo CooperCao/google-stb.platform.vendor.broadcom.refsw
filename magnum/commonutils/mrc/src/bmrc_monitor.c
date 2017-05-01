@@ -50,6 +50,7 @@
 #include "bmma_pool.h"
 #include "bmma_types.h"
 #include "blst_queue.h"
+#include "bmrc_clienttable_priv.h"
 
 BDBG_MODULE(BMRC_MONITOR);
 BDBG_FILE_MODULE(BMRC_MonitorRegion);
@@ -168,7 +169,8 @@ static const struct BMRC_P_Monitor_ScbCommandInfo {
 static const BMRC_Monitor_Settings s_stDefaultSettings = {
     BMRC_AccessType_eWrite,  /* kernel violation access block */
     BMRC_AccessType_eWrite,  /* regular violation access block */
-    UINT32_C(-1)             /* maximum number of checkers to use. -1 means use all available. */
+    UINT32_C(-1),            /* maximum number of checkers to use. -1 means use all available. */
+    false
 };
 
 static void BMRC_P_Monitor_UpdateFull(BMRC_Monitor_Handle hMonitor);
@@ -247,6 +249,7 @@ typedef struct BMRC_P_MonitorContext {
     BMMA_PoolAllocator_Handle poolAllocator;
     unsigned numberOfUserRanges;
     BLST_Q_HEAD(BMRC_P_MonitorRegions, BMRC_MonitorRegion) userRegions;
+    bool enabled;
 
     unsigned max_ranges; /* maximum number of checkers */
     unsigned num_combined_regions;
@@ -358,6 +361,7 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
     BKNI_Memset(hMonitor, 0, sizeof(*hMonitor));
     BDBG_OBJECT_SET(hMonitor, BMRC_Monitor);
     BMRC_Monitor_P_MapInit(&hMonitor->map);
+    hMonitor->enabled = !pSettings->startDisabled;
 
     BMRC_GetMaxCheckers(hMrc, &max_checkers);
     if (max_checkers > BMRC_P_MONITOR_MAX_RANGES)
@@ -1157,6 +1161,9 @@ BMRC_P_Monitor_UpdateFull(BMRC_Monitor_Handle hMonitor)
     for(i=0;i<max_ranges;i++) {
         BMRC_P_Monitor_Disable(hMonitor, i);
     }
+    if (!hMonitor->enabled) {
+        return;
+    }
 
     if (BLST_AA_TREE_FIRST(BMRC_Monitor_P_AllocatedRegionTree, &hMonitor->custom_regions)) {
         BMRC_Monitor_P_AllocatedRegion *region;
@@ -1369,4 +1376,29 @@ void BMRC_MonitorRegion_Remove(BMRC_Monitor_Handle hMonitor, BMRC_MonitorRegion_
     BKNI_ReleaseMutex(hMonitor->pMutex);
     return;
 }
+
+BMRC_Monitor_HwBlock BMRC_Monitor_GetHwBlock( BMRC_Monitor_Handle hMonitor, BCHP_MemcClient clientId )
+{
+    BMRC_Client client = BMRC_P_GET_CLIENT_ENUM_isrsafe(hMonitor->mrcSettings.usMemcId, clientId);
+    if (client < BMRC_Client_eInvalid) {
+        unsigned i;
+        for(i=0;i<sizeof(hMonitor->map.clientMap)/sizeof(hMonitor->map.clientMap[0]);i++) {
+            if (hMonitor->map.clientMap[i].client == client) {
+                return hMonitor->map.clientMap[i].block;
+            }
+        }
+    }
+    return BMRC_Monitor_HwBlock_eInvalid;
+}
+
+void BMRC_Monitor_SetEnabled( BMRC_Monitor_Handle hMonitor, bool enabled )
+{
+    BDBG_OBJECT_ASSERT(hMonitor, BMRC_Monitor);
+    if (hMonitor->enabled != enabled) {
+        hMonitor->enabled = enabled;
+        BMRC_P_Monitor_UpdateFull(hMonitor);
+    }
+
+}
+
 /* End of file */

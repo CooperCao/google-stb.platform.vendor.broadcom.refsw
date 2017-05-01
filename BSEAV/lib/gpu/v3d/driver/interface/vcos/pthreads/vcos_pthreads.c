@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  vcos
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - pthreads types
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #define VCOS_INLINE_BODIES
 #include "interface/vcos/vcos.h"
 #include <string.h>

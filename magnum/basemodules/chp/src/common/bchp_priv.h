@@ -243,6 +243,11 @@ typedef struct BCHP_PWR_P_MuxMap {
     const BCHP_PWR_P_MuxTable *pMuxTable;
 } BCHP_PWR_P_MuxMap;
 
+extern const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[];
+extern const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[];
+extern const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[];
+extern const BCHP_PWR_P_MuxMap BCHP_PWR_P_MuxMapList[];
+
 BERR_Code BCHP_PWR_Open(
     BCHP_PWR_Handle *pHandle, /* [out] */
     BCHP_Handle chp           /* [in] */

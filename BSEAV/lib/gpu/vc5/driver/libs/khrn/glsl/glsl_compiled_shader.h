@@ -47,8 +47,9 @@ struct CompiledShader_s {
    bool                    early_fragment_tests;
    AdvancedBlendQualifier  abq;
 
-   unsigned         wg_size[3];
-   unsigned         shared_block_size;
+   unsigned         cs_wg_size[3];
+   unsigned         cs_shared_block_size;
+   bool             cs_has_barrier;
 
    ShaderInterface uniform;
    ShaderInterface in;

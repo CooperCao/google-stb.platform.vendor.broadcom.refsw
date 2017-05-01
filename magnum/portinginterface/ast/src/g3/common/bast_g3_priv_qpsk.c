@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"
@@ -34,27 +54,27 @@ BDBG_MODULE(bast_g3_priv_qpsk);
 #define BAST_G3_DTV_SCAN_OFF 0x00
 
 /* local function prototypes */
-BERR_Code BAST_g3_P_QpskInitializeLoopParameters_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSetMode_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskLockViterbi_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSetActualMode_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSetVcos_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSpInvScan_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSpinvScan1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskNarrowBw_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskNarrowBw1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskAcquire1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSetFinalFlBw_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSetFinalBlBw_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSetOqpsk_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_QpskSetOpll_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskInitializeLoopParameters_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSetMode_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskLockViterbi_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSetActualMode_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSetVcos_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSpInvScan_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSpinvScan1_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskNarrowBw_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskNarrowBw1_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskAcquire1_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSetFinalFlBw_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSetFinalBlBw_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSetOqpsk_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_QpskSetOpll_isr(BAST_ChannelHandle h);
 
 
 /* private functions */
 /******************************************************************************
  BAST_g3_P_QpskAcquire_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskAcquire_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskAcquire_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -103,7 +123,7 @@ BERR_Code BAST_g3_P_QpskUpdateErrorCounters_isrsafe(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskCheckMode_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskCheckMode_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskCheckMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BAST_Mode acq_mode = hChn->acqParams.mode;
@@ -143,7 +163,7 @@ BERR_Code BAST_g3_P_QpskCheckMode_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_DisableFreqDetector_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_DisableFreqDetector_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_DisableFreqDetector_isr(BAST_ChannelHandle h)
 {
 #if 0
    uint32_t val;
@@ -165,7 +185,7 @@ BERR_Code BAST_g3_P_DisableFreqDetector_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskGetRTLockStatus_isr
 ******************************************************************************/
-void BAST_g3_P_QpskGetRTLockStatus_isr(BAST_ChannelHandle h, bool *pbLocked)
+static void BAST_g3_P_QpskGetRTLockStatus_isr(BAST_ChannelHandle h, bool *pbLocked)
 {
    uint32_t val;
 
@@ -180,7 +200,7 @@ void BAST_g3_P_QpskGetRTLockStatus_isr(BAST_ChannelHandle h, bool *pbLocked)
 /******************************************************************************
  BAST_g3_P_QpskOnLock_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskOnLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskOnLock_isr(BAST_ChannelHandle h)
 {
 #if (BCHP_CHIP!=4528)
    /* disable freq detector 30 msecs after lock */
@@ -195,7 +215,7 @@ BERR_Code BAST_g3_P_QpskOnLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskOnLostLock_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskOnLostLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskOnLostLock_isr(BAST_ChannelHandle h)
 {
 #if 0
    uint32_t val;
@@ -220,7 +240,7 @@ BERR_Code BAST_g3_P_QpskOnLostLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskOnStableLock_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskOnStableLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskOnStableLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BAST_Mode prev_mode = hChn->actualMode;
@@ -258,7 +278,7 @@ BERR_Code BAST_g3_P_QpskOnStableLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskEnableLockInterrupts_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskEnableLockInterrupts_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskEnableLockInterrupts_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -312,7 +332,7 @@ BERR_Code BAST_g3_P_QpskSetFunctTable_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskInitializeLoopParameters_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskInitializeLoopParameters_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskInitializeLoopParameters_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t carrier_acq1_bw, carrier_acq2_bw, carrier_acq3_bw, carrier_trk_bw, baud_acq_bw, baud_trk_bw;
@@ -413,7 +433,7 @@ BERR_Code BAST_g3_P_QpskInitializeLoopParameters_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSetMode_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSetMode_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSetMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t vtctl, fmod, val;
@@ -564,7 +584,7 @@ BERR_Code BAST_g3_P_QpskSetMode_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskLockViterbi_isr() - this routine is formerly verify_lock
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskLockViterbi_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskLockViterbi_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, bw, irq, raw;
@@ -739,7 +759,7 @@ BERR_Code BAST_g3_P_QpskLockViterbi_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSetActualMode_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSetActualMode_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSetActualMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t i, j, val, vst_save;
@@ -784,7 +804,7 @@ BERR_Code BAST_g3_P_QpskSetActualMode_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSetVcos_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSetVcos_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSetVcos_isr(BAST_ChannelHandle h)
 {
    uint32_t vst, val = 0;
 
@@ -811,7 +831,7 @@ BERR_Code BAST_g3_P_QpskSetVcos_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSpInvScan_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSpInvScan_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSpInvScan_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -830,7 +850,7 @@ BERR_Code BAST_g3_P_QpskSpInvScan_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSpinvScan1_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSpinvScan1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSpinvScan1_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, vtctl, sts;
@@ -898,7 +918,7 @@ BERR_Code BAST_g3_P_QpskSpinvScan1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskNarrowBw_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskNarrowBw_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskNarrowBw_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -915,7 +935,7 @@ BERR_Code BAST_g3_P_QpskNarrowBw_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskNarrowBw1_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskNarrowBw1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskNarrowBw1_isr(BAST_ChannelHandle h)
 {
    BERR_Code retCode;
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
@@ -959,7 +979,7 @@ BERR_Code BAST_g3_P_QpskNarrowBw1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskAcquire1_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskAcquire1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskAcquire1_isr(BAST_ChannelHandle h)
 {
    BERR_Code retCode;
    BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
@@ -1054,7 +1074,7 @@ BERR_Code BAST_g3_P_QpskAcquire1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSetFinalFlBw_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSetFinalFlBw_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSetFinalFlBw_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t vst, fllc, flic;
@@ -1108,7 +1128,7 @@ BERR_Code BAST_g3_P_QpskSetFinalFlBw_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSetFinalBlBw_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSetFinalBlBw_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSetFinalBlBw_isr(BAST_ChannelHandle h)
 {
    /* sets tracking PLC */
    return BAST_g3_P_ConfigPlc_isr(h, false);
@@ -1118,7 +1138,7 @@ BERR_Code BAST_g3_P_QpskSetFinalBlBw_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSetOqpsk_isr() - from qpsk_set_clctl_3() in 4506
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSetOqpsk_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSetOqpsk_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -1138,13 +1158,14 @@ BERR_Code BAST_g3_P_QpskSetOqpsk_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_QpskSetOpll_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_QpskSetOpll_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_QpskSetOpll_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
    uint32_t val, fmod, stuff, rs_mode, vst, data0, data2, data3, data6, data7, data4;
    uint32_t lval1, lval2, gcf, P_hi, P_lo, Q_hi, Q_lo;
    BAST_Mode mode;
+   BERR_Code retCode = BERR_SUCCESS;
 
    static const uint8_t qpsk_opll_data6[16] =
    {
@@ -1197,7 +1218,7 @@ BERR_Code BAST_g3_P_QpskSetOpll_isr(BAST_ChannelHandle h)
       data3 = 188;
 
    /* verify puncture mode */
-   BAST_g3_P_GetActualMode_isr(h, &mode);
+   BAST_CHK_RETCODE(BAST_g3_P_GetActualMode_isr(h, &mode));
    if (mode != hChn->actualMode)
    {
       BDBG_WRN(("code rate changed - reacquiring"));
@@ -1268,5 +1289,8 @@ BERR_Code BAST_g3_P_QpskSetOpll_isr(BAST_ChannelHandle h)
    BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_FEC_FECTL, ~0x00000001);
 
    /* start tracking */
-   return BAST_g3_P_StartTracking_isr(h);
+   retCode = BAST_g3_P_StartTracking_isr(h);
+
+   done:
+   return retCode;
 }

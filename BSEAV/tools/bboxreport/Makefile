@@ -78,7 +78,7 @@ B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/bboxreport
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 APPS = $(THEAPPS)
@@ -101,9 +101,9 @@ EXTRA_SRCS += ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemconfig/${NEXUS_PLATFORM}/boxm
 clean: clean_apps clean_boa
 
 boa:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa
 clean_boa:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa clean
 
 clean_apps:
 	@-$(RM) $(APPS)
@@ -129,6 +129,7 @@ ifeq ($(ANDROID_BUILD),y)
 CFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 endif
 CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
+CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 
 # Always build with debug
 CFLAGS += -g

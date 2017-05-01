@@ -1,15 +1,8 @@
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+
 //#define VG_TESS_IDENTIFY_CENTERS
-
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  VG tessellation
-
-FILE DESCRIPTION
-Fill/stroke tessellation.
-=============================================================================*/
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_math.h"
@@ -1161,8 +1154,6 @@ void vg_tess_finish_llat(VG_TESS_HANDLE_T tess_handle)
 
 void vg_tess_finish(VG_TESS_HANDLE_T tess_handle)
 {
-   TESS_T *tess = tess_from_handle(tess_handle);
-
    free_tess_handle(tess_handle);
 }
 

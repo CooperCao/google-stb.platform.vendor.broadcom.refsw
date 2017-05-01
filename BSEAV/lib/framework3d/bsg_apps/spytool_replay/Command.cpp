@@ -1,48 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
-#ifndef GL_GLEXT_PROTOTYPES
-#define GL_GLEXT_PROTOTYPES   1
-#endif
-
-#ifndef EGL_EGLEXT_PROTOTYPES
-#define EGL_EGLEXT_PROTOTYPES 1
-#endif
+#include <sstream>
 
 #include "Command.h"
-
 #include "spytool_replay.h"
-
-#ifndef EMULATED
-#if V3D_TECH_VERSION >= 3
-#include <GLES3/gl31.h>
-#include <GLES3/gl3ext.h>
-#include <GLES3/gl3ext_brcm.h>
-#else
-#include <GLES2/gl2.h>
-#endif
-#else
-#include "etc.h"
-#endif
-
-#undef GL_TRUE
-#undef GL_FALSE
-
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-
-#ifndef EMULATED
-#include <GLES/gl.h>
-#include <GLES/glext.h>
-#endif
+#include "GLIncludes.h"
+#include "DeviceCaps.h"
 
 #define GetB(type, param)     ((type)m_packet.Item(param + 1).GetBoolean())
 #define GetI8(type, param)    ((type)m_packet.Item(param + 1).GetInt8())
@@ -149,6 +114,11 @@ uint8_t                                   Command::dummyvoid[256];
 void                                      *Command::dummyvoidptr[256];
 EGLConfig                                 Command::dummyEGLConfig[1024];
 EGLSurface                                Command::dummyEGLSurface[256];
+EGLBoolean                                Command::dummyEGLBoolean[256];
+char                                      Command::dummychar[128 * 1024];
+#if EGL_BRCM_performance_counters
+EGLuint64BRCM                             Command::dummyEGLuint64BRCM[256];
+#endif
 #if EGL_VERSION_1_5
 EGLAttrib                                 Command::dummyEGLAttrib[256];
 #endif
@@ -1726,14 +1696,26 @@ SPECIAL(glDrawArraysIndirect)
 {
    if (m_replay->IncrSkipDrawCall())
       return;
-   glDrawArraysIndirect(GetU32(GLenum, 0), GetPtr(const void *, 1));
+
+   if (m_packet.NumItems() > 4)
+      WarnDataNotHandled("glDrawArraysIndirect");
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glDrawArraysIndirect)
+      m_replay->GetDispatch().real_glDrawArraysIndirect(GetU32(GLenum, 0), GetArrayPtr(const void *, 2));
+   else
+      WarnNotAvailable("glDrawArraysIndirect");
 }
 
 SPECIAL(glDrawElementsIndirect)
 {
    if (m_replay->IncrSkipDrawCall())
       return;
-   glDrawElementsIndirect(GetU32(GLenum, 0), GetU32(GLenum, 1), GetPtr(const void *, 2));
+
+   if (m_packet.NumItems() > 5)
+      WarnDataNotHandled("glDrawElementsIndirect");
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glDrawElementsIndirect)
+      m_replay->GetDispatch().real_glDrawElementsIndirect(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const void *, 3));
+   else
+      WarnNotAvailable("glDrawElementsIndirect");
 }
 
 SPECIAL(glCreateShaderProgramv)
@@ -1744,7 +1726,14 @@ SPECIAL(glCreateShaderProgramv)
       void **strArray = new void*[numStrings];
       for (int i = 0; i < numStrings; i++)
          GetArray(i + 3, strArray[i]);
-      glCreateShaderProgramv(GetU32(GLenum, 0), numStrings, (const GLchar *const*)strArray);
+
+      if (m_packet.NumItems() > 5)
+         WarnDataNotHandled("glCreateShaderProgramv");
+      if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glCreateShaderProgramv)
+         m_replay->GetDispatch().real_glCreateShaderProgramv(GetU32(GLenum, 0), numStrings, (const GLchar *const*)strArray);
+      else
+         WarnNotAvailable("glCreateShaderProgramv");
+
       delete[] strArray;
    }
 }
@@ -1757,13 +1746,24 @@ SPECIAL(glDeleteProgramPipelines)
    for (GLsizei si = 0; si < n; si++)
       p[si] = m_replay->MapProgramPipeline(p[si]);
 
-   glDeleteProgramPipelines(n, p);
+   if (m_packet.NumItems() > 4)
+      WarnDataNotHandled("glDeleteProgramPipelines");
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glDeleteProgramPipelines)
+      m_replay->GetDispatch().real_glDeleteProgramPipelines(n, p);
+   else
+      WarnNotAvailable("glDeleteProgramPipelines");
 }
 
 SPECIAL(glGenProgramPipelines)
 {
    GLsizei numPPs = GetI32(GLsizei, 0);
-   glGenProgramPipelines(numPPs, (GLuint*)dummyGLint);
+
+   if (m_packet.NumItems() > 3)
+      WarnDataNotHandled("glGenProgramPipelines");
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glGenProgramPipelines)
+      m_replay->GetDispatch().real_glGenProgramPipelines(numPPs, dummyGLuint);
+   else
+      WarnNotAvailable("glGenProgramPipelines");
 
    for (GLsizei si = 0; si < numPPs; si++)
    {

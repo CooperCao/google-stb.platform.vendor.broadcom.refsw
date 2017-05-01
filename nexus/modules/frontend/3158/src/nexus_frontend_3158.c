@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -359,21 +359,21 @@ static unsigned NEXUS_FrontendDevice_P_3158_GetChipRev(NEXUS_3158Device *pDevice
         subAddr = 0x4;
         BREG_I2C_WriteNoAddr(i2cHandle, pDevice->openSettings.i2cAddress, (uint8_t *)&subAddr, 1);
         BREG_I2C_ReadNoAddr(i2cHandle, pDevice->openSettings.i2cAddress, buf, 1);
-        rc = buf[0];
+        rev = buf[0];
     }
 #if NEXUS_HAS_SPI
 #define NUM_SPI_BYTES 8
 #define NUM_SPI_ADDRESSES 1
     else if (pDevice->openSettings.spiDevice) {
-        uint8_t wData[2], rData[NUM_SPI_BYTES];
+        uint8_t wData[NUM_SPI_BYTES], rData[NUM_SPI_BYTES];
         NEXUS_Error rc;
         uint8_t spiAddr[NUM_SPI_ADDRESSES] = { 0x20 };
         unsigned i = 0;
 
-        while (i < NUM_SPI_ADDRESSES && (rev == 0 || rev == 0xFFFF)) {
+        BKNI_Memset(wData, 0, NUM_SPI_BYTES);
 
+        while (i < NUM_SPI_ADDRESSES) {
             wData[0] = spiAddr[i]<<1;
-            wData[1] = 0x00;
 #if DEBUG_SPI_READS
             {
                 int i;
@@ -1847,6 +1847,34 @@ err:
     return NULL;
 }
 
+void NEXUS_Tuner_GetDefaultOpen3158Settings(NEXUS_TunerOpen3158Settings *pSettings)
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
+NEXUS_TunerHandle NEXUS_Tuner_Open3158(unsigned index, const NEXUS_TunerOpen3158Settings *pSettings)
+{
+    NEXUS_3158Device *pDevice = NULL;
+    BSTD_UNUSED(index);
+
+    BDBG_ASSERT(NULL != pSettings);
+
+    if(pSettings->device == NULL) {
+        BDBG_ERR(("Open the 3158 device handle first by calling NEXUS_FrontendDevice_Open."));
+        return NULL;
+    }
+    else {
+        pDevice = (NEXUS_3158Device *)pSettings->device->pDevice;
+    }
+
+    /* check if tuner handle is already opened*/
+    if (pDevice->ifDacHandle != NULL){
+        return pDevice->ifDacHandle;
+    }
+    return NULL;
+}
+
 NEXUS_Error NEXUS_FrontendDevice_P_3158_PreInitAp(NEXUS_FrontendDeviceHandle pFrontendDevice, bool initHab)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -2026,6 +2054,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_InitAp(NEXUS_FrontendDeviceHandle device
             unsigned code_size = 0;
             unsigned num_chunks, chunk_size = MAX_CTFE_IMG_CHUNK_SIZE;
             unsigned chunk;
+            NEXUS_MemoryAllocationSettings allocSettings;
 
             rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_3158, &pImgContext, &imgInterface);
             if (rc) { BERR_TRACE(rc); goto done; }
@@ -2035,7 +2064,9 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_InitAp(NEXUS_FrontendDeviceHandle device
             if (rc) { BERR_TRACE(rc); goto done; }
             code_size = (pImage[72] << 24) | (pImage[73] << 16) | (pImage[74] << 8) | pImage[75];
             fw_size = code_size + header_size;
-            rc = NEXUS_Memory_Allocate(fw_size, NULL, (void **)&fw);
+            NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+            allocSettings.heap = g_pCoreHandles->heap[0].nexus;
+            rc = NEXUS_Memory_Allocate(fw_size, &allocSettings, (void **)&fw);
             if (rc) { BERR_TRACE(rc); goto done; }
 
             num_chunks = fw_size / chunk_size;
@@ -2297,6 +2328,7 @@ static void NEXUS_Frontend_P_Uninit3158(NEXUS_3158Device *pDevice, bool uninitHa
             NEXUS_IsrCallback_Destroy(pDevice->ifDacAsyncStatusAppCallback);
             pDevice->ifDacAsyncStatusAppCallback = NULL;
         }
+        NEXUS_Tuner_Close(pDevice->ifDacHandle);
     }
     if (pDevice->ads) {
         BADS_Close(pDevice->ads);

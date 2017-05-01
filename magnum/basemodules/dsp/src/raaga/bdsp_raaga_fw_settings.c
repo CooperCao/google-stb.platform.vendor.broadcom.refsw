@@ -771,7 +771,8 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-            }
+	    },
+	      0xFFFFFFFF,{0},{0},0,0,{0},1
         },
         {
             2,                      /*ui32ChannelConfig*/
@@ -791,7 +792,29 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-            }
+	    },
+	      0xFFFFFFFF,{0},{0},0,0,{0},1
+        },
+	{
+            2,                      /*ui32ChannelConfig*/
+            0,                    /*i32MainAssocMixPref*/
+            0,                      /*ui32Phase90Preference*/
+            0,                      /*ui32DialogEnhGainInput*/
+            -31,                    /*i32TargetRefLevel*/
+            0,                      /*ui32DrcEnable*/
+            0,                      /* ui32DrcMode */
+            0,                    /*ui32IeqStrength*/
+            0,                      /*ui32IeqProfile*/
+            { 0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+	    },
+	      0xFFFFFFFF,{0},{0},0,0,{0},1
         }
     },
     3,      /* ui32InputCplxLevel */
@@ -800,18 +823,13 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
     1,      /* ui32SingleInstance */
     0,      /* ui32SamplingRateMode */
     0,      /* ui32DapEnable */
-    0xFFFFFFFF,      /* ui32PresentationNumber */
     1,      /* ui32LimiterEnable */
     1,      /* ui32CertificationMode */
     90000,  /* ui32TimeScale */
-    {0},  /* ui32PreferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] */
-    {0},  /* ui32PreferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] */
-    0,      /* ui32PreferredAssociateType */
-    0,      /* ui32PreferredIdentifierType */
-    {0}, /* i32PreferredProgramID[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH] */
+
     0,      /* ui32AC4DecodeMode */
     1,      /* ui32EnableADMixing */
-    1       /* ui32PreferAssociateTypeOverLanguage */
+	-1      /* i32StreamInfoPresentationNumber */
 };
 
 const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig =
@@ -1946,6 +1964,12 @@ const BDSP_Raaga_Audio_DsolaConfigParams BDSP_sDefDsolaConfigSettings =
 {
     0x266                                       /* ui32InputPcmFrameSize */
 };
+
+const BDSP_Raaga_Audio_TsmCorrectionConfigParams BDSP_sDefTsmCorrectionConfigSettings =
+{
+    0                                       /* ui32TsmCorrectionMode */
+};
+
 
 const BDSP_Raaga_Audio_FadeCtrlConfigParams BDSP_sDefFadeCtrlConfigSettings =
 {

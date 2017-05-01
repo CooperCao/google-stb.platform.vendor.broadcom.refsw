@@ -264,7 +264,6 @@ LOCAL_SRC_FILES := \
 	platform/common/packet_yv12.c \
 	platform/common/autoclif.c
 
-
 GENERATED_SRC_FILES := \
 	driver/middleware/khronos/glsl/lex.yy.c \
 	driver/middleware/khronos/glsl/y.tab.c
@@ -277,7 +276,11 @@ intermediates := $(call local-intermediates-dir)
 LOCAL_SRC_FILES := $(filter-out $(GENERATED_SRC_FILES), $(LOCAL_SRC_FILES))
 GENERATED_SRC_FILES := $(addprefix $(intermediates)/, $(GENERATED_SRC_FILES))
 LOCAL_GENERATED_SOURCES := $(GENERATED_SRC_FILES)
+ifeq (,$(strip $(OUT_DIR_COMMON_BASE)))
 GENERATED_SRC_DIR := $(ANDROID_TOP)/$(intermediates)
+else
+GENERATED_SRC_DIR := $(intermediates)
+endif
 LOCAL_C_INCLUDES += \
 	$(intermediates)/driver/middleware/khronos/glsl \
 	$(intermediates)/driver

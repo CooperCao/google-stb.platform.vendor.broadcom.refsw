@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -69,6 +69,7 @@ static BERR_Code BAPE_Processor_P_ApplyDspSettings(BAPE_ProcessorHandle handle);
 static void BAPE_Processor_P_StopPathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection);
 static void BAPE_Processor_P_RemoveInputCallback(struct BAPE_PathNode *pNode, BAPE_PathConnector *pConnector);
 static void BAPE_Processor_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection, unsigned newSampleRate);
+static BERR_Code BAPE_Processor_P_InputFormatChange(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection, const BAPE_FMT_Descriptor *pNewFormat);
 
 void BAPE_Processor_GetDefaultCreateSettings(
     BAPE_ProcessorCreateSettings *pSettings   /* [out] default settings */
@@ -76,7 +77,7 @@ void BAPE_Processor_GetDefaultCreateSettings(
 {
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    pSettings->type = BAPE_PostProcessorType_eFade;
+    pSettings->type = BAPE_PostProcessorType_eMax;
 }
 
 static void BAPE_Processor_P_GetDefaultSettings(
@@ -106,12 +107,35 @@ static void BAPE_Processor_P_GetDefaultSettings(
             pSettings->settings.fade.duration = 100;
         }
         break;
+    case BAPE_PostProcessorType_eAdvancedTsm:
+        {
+            BDSP_Raaga_Audio_TsmCorrectionConfigParams dspSettings;
+            BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eTsmCorrection, (void *)&dspSettings, sizeof(dspSettings));
+            pSettings->settings.advTsm.mode = (BAPE_AdvancedTsmMode)dspSettings.ui32TsmCorrectionMode;
+        }
+        break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", type));
         BERR_TRACE(BERR_NOT_SUPPORTED);
         return;
         break; /* unreachable */
     }
+}
+
+static bool BAPE_Processor_P_SupportsMultichannelOutput(BAPE_PostProcessorType type)
+{
+    switch ( type )
+    {
+    default:
+    case BAPE_PostProcessorType_eKaraokeVocal:
+    case BAPE_PostProcessorType_eFade:
+        break;
+    case BAPE_PostProcessorType_eAdvancedTsm:
+        return true;
+        break; /* unreachable */
+    }
+
+    return false;
 }
 
 /***************************************************************************
@@ -150,7 +174,7 @@ BERR_Code BAPE_Processor_Create(
     BKNI_Memset(handle, 0, sizeof(BAPE_Processor));
     BDBG_OBJECT_SET(handle, BAPE_Processor);
     handle->type = pSettings->type;
-    BAPE_P_InitPathNode(&handle->node, BAPE_PathNodeType_ePostProcessor, handle->type, 1, deviceHandle, handle);
+    BAPE_P_InitPathNode(&handle->node, BAPE_PathNodeType_ePostProcessor, handle->type, 2, deviceHandle, handle);
     switch ( handle->type )
     {
     case BAPE_PostProcessorType_eKaraokeVocal:
@@ -161,6 +185,10 @@ BERR_Code BAPE_Processor_Create(
         handle->node.pName = "Fade";
         bdspAlgo = BDSP_Algorithm_eFadeCtrl;
         break;
+    case BAPE_PostProcessorType_eAdvancedTsm:
+        handle->node.pName = "AdvancedTsm";
+        bdspAlgo = BDSP_Algorithm_eTsmCorrection;
+        break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", handle->type));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -170,12 +198,24 @@ BERR_Code BAPE_Processor_Create(
 
     BAPE_Processor_P_GetDefaultSettings(handle->type, &handle->settings);
 
-    handle->node.connectors[0].useBufferPool = true;
-    BAPE_Connector_P_GetFormat(&handle->node.connectors[0], &format);
+    handle->node.connectors[BAPE_ConnectorFormat_eStereo].pName = "stereo";
+    handle->node.connectors[BAPE_ConnectorFormat_eStereo].useBufferPool = true;
+    BAPE_FMT_P_InitDescriptor(&format);
     format.source = BAPE_DataSource_eDspBuffer;
     format.type = BAPE_DataType_ePcmStereo;
-    errCode = BAPE_Connector_P_SetFormat(&handle->node.connectors[0], &format);
+    errCode = BAPE_Connector_P_SetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eStereo], &format);
     if ( errCode ) { (void)BERR_TRACE(errCode); goto err_connector_format; }
+
+    if ( BAPE_Processor_P_SupportsMultichannelOutput(handle->type) )
+    {
+        handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].pName = "multichannel";
+        handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].useBufferPool = true;
+        BAPE_FMT_P_InitDescriptor(&format);
+        format.source = BAPE_DataSource_eDspBuffer;
+        format.type = BAPE_DataType_ePcm5_1;
+        errCode = BAPE_Connector_P_SetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel], &format);
+        if ( errCode ) { (void)BERR_TRACE(errCode); goto err_connector_format; }
+    }
 
     /* Processor works with 2.0 or 5.1 source content from the DSP */
     BAPE_PathNode_P_GetInputCapabilities(&handle->node, &caps);
@@ -197,6 +237,8 @@ BERR_Code BAPE_Processor_Create(
     handle->node.stopPathFromInput = BAPE_Processor_P_StopPathFromInput;
     handle->node.removeInput = BAPE_Processor_P_RemoveInputCallback;
     handle->node.inputSampleRateChange_isr = BAPE_Processor_P_InputSampleRateChange_isr;
+    handle->node.inputFormatChange = BAPE_Processor_P_InputFormatChange;
+
 
     BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
     BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
@@ -208,7 +250,8 @@ BERR_Code BAPE_Processor_Create(
         goto err_stage_create;
     }
     handle->bdspAlgo = bdspAlgo;
-    handle->node.connectors[0].hStage = handle->hStage;
+    handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage = handle->hStage;
+    handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].hStage = handle->hStage;
 
     *pHandle = handle;
 
@@ -270,7 +313,7 @@ BERR_Code BAPE_Processor_SetSettings(
     return BERR_SUCCESS;
 }
 
-void BAPE_Processor_P_GetFadeStatus(
+static void BAPE_Processor_P_GetFadeStatus(
     BAPE_ProcessorHandle handle,
     BAPE_ProcessorStatus *pStatus    /* [out] Status */
     )
@@ -298,6 +341,37 @@ void BAPE_Processor_P_GetFadeStatus(
     }
 }
 
+static void BAPE_Processor_P_GetAdvancedTsmStatus(
+    BAPE_ProcessorHandle handle,
+    BAPE_ProcessorStatus *pStatus    /* [out] Status */
+    )
+{
+    BERR_Code errCode;
+    BDSP_Raaga_TsmCorrectionPPStatus status;
+
+    errCode = BDSP_Stage_GetStatus(handle->hStage, &status, sizeof(status));
+    if ( errCode )
+    {
+        BERR_TRACE(errCode);
+        return;
+    }
+
+    if ( status.ui32StatusValid == 1 )
+    {
+        pStatus->valid = true;
+        pStatus->status.advTsm.mode = handle->settings.settings.advTsm.mode;
+        pStatus->status.advTsm.pts = status.ui32PTS;
+        pStatus->status.advTsm.ptsValid = (status.ui32PTSValid==1) ? true : false;
+        pStatus->status.advTsm.ptsType = (BAPE_PtsType)status.ui32PTSType;
+        pStatus->status.advTsm.correction = status.i32TimeInMsecAdjusted;
+        BDBG_MSG(("%s: pts %u, valid %u, type %d, correction %d", __FUNCTION__,
+                  (unsigned)pStatus->status.advTsm.pts,
+                  (unsigned)pStatus->status.advTsm.ptsValid,
+                  (int)pStatus->status.advTsm.ptsType,
+                  pStatus->status.advTsm.correction));
+    }
+}
+
 void BAPE_Processor_GetStatus(
     BAPE_ProcessorHandle handle,
     BAPE_ProcessorStatus *pStatus    /* [out] Status */
@@ -311,6 +385,9 @@ void BAPE_Processor_GetStatus(
     {
     case BAPE_PostProcessorType_eKaraokeVocal:
         break;
+    case BAPE_PostProcessorType_eAdvancedTsm:
+        BAPE_Processor_P_GetAdvancedTsmStatus(handle, pStatus);
+        break;
     case BAPE_PostProcessorType_eFade:
         BAPE_Processor_P_GetFadeStatus(handle, pStatus);
         break;
@@ -323,12 +400,47 @@ void BAPE_Processor_GetStatus(
 
 void BAPE_Processor_GetConnector(
     BAPE_ProcessorHandle handle,
+    BAPE_ConnectorFormat format,
     BAPE_Connector *pConnector
     )
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Processor);
     BDBG_ASSERT(NULL != pConnector);
-    *pConnector = &handle->node.connectors[0];
+
+    *pConnector = NULL;
+    switch ( format )
+    {
+    case BAPE_ConnectorFormat_eStereo:
+        switch ( handle->type )
+        {
+        case BAPE_PostProcessorType_eKaraokeVocal:
+        case BAPE_PostProcessorType_eFade:
+        case BAPE_PostProcessorType_eAdvancedTsm:
+            *pConnector = &handle->node.connectors[BAPE_ConnectorFormat_eStereo];
+            break;
+        default:
+            break;
+        }
+        break;
+    case BAPE_ConnectorFormat_eMultichannel:
+        switch ( handle->type )
+        {
+        case BAPE_PostProcessorType_eAdvancedTsm:
+            *pConnector = &handle->node.connectors[BAPE_ConnectorFormat_eMultichannel];
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }
+
+    if ( pConnector == NULL )
+    {
+        BDBG_ERR(("BAPE_Processor type %d does not support connector format %d", handle->type, format));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
 }
 
 
@@ -390,6 +502,45 @@ BERR_Code BAPE_Processor_RemoveAllInputs(
     return BERR_SUCCESS;
 }
 
+static BDSP_DataType BAPE_Processor_P_DetermineOutputFormat(BAPE_ProcessorHandle handle)
+{
+    BAPE_Connector connector = NULL;
+    switch ( handle->type )
+    {
+    default:
+        break;
+    case BAPE_PostProcessorType_eKaraokeVocal:
+    case BAPE_PostProcessorType_eFade:
+        if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]) > 0 )
+        {
+            connector = &handle->node.connectors[BAPE_ConnectorFormat_eStereo];
+        }
+        break;
+    case BAPE_PostProcessorType_eAdvancedTsm:
+        if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]) > 0 && BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel]) > 0 )
+        {
+            BDBG_ERR(("Advanced Tsm Processor does not support simultaneous stereo and multichannel consumers"));
+            BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        else if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]) > 0 )
+        {
+            connector = &handle->node.connectors[BAPE_ConnectorFormat_eStereo];
+        }
+        else
+        {
+            connector = &handle->node.connectors[BAPE_ConnectorFormat_eMultichannel];
+        }
+        break;
+    }
+
+    if ( connector )
+    {
+        return BAPE_DSP_P_GetDataTypeFromConnector(connector);
+    }
+
+    return BDSP_DataType_eMax;
+}
+
 static BERR_Code BAPE_Processor_P_AllocatePathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
 {
     BERR_Code errCode;
@@ -401,8 +552,16 @@ static BERR_Code BAPE_Processor_P_AllocatePathFromInput(struct BAPE_PathNode *pN
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_Processor);
 
+
+    if ( BAPE_Processor_P_DetermineOutputFormat(handle) == BDSP_DataType_eMax )
+    {
+        BDBG_ERR(("No Valid outputs attached"));
+        return BERR_TRACE(BERR_NOT_INITIALIZED);
+    }
+
+    BDBG_MSG(("Adding output stage with BDSP_DataType of %d", BAPE_FMT_P_GetDspDataType_isrsafe(&pConnection->pSource->format)));
     errCode = BDSP_Stage_AddOutputStage(pConnection->pSource->hStage,
-                                        BAPE_DSP_P_GetDataTypeFromConnector(handle->input),
+                                        BAPE_FMT_P_GetDspDataType_isrsafe(&pConnection->pSource->format),
                                         handle->hStage,
                                         &output, &input);
     if ( errCode )
@@ -494,6 +653,34 @@ static BERR_Code BAPE_Processor_P_ApplyFadeSettings(BAPE_ProcessorHandle handle)
     return BERR_SUCCESS;
 }
 
+static BERR_Code BAPE_Processor_P_ApplyAdvancedTsmSettings(BAPE_ProcessorHandle handle)
+{
+    BERR_Code errCode;
+    BDSP_Raaga_Audio_TsmCorrectionConfigParams userConfig;
+    unsigned currentTsmMode;
+
+    errCode = BDSP_Stage_GetSettings(handle->hStage, &userConfig, sizeof(userConfig));
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    currentTsmMode = userConfig.ui32TsmCorrectionMode;
+
+    BDBG_MSG(("Applying AdvancedTsm settings for Processor module %p.", (void *)handle));
+    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32TsmCorrectionMode, (unsigned)BAPE_DSP_P_VALIDATE_VARIABLE_UPPER((unsigned)handle->settings.settings.advTsm.mode, (unsigned)BAPE_AdvancedTsmMode_ePpm));
+
+    if ( currentTsmMode != userConfig.ui32TsmCorrectionMode )
+    {
+        errCode = BDSP_Stage_SetSettings(handle->hStage, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+
+    return BERR_SUCCESS;
+}
+
 static BERR_Code BAPE_Processor_P_ApplyDspSettings(BAPE_ProcessorHandle handle)
 {
     BERR_Code errCode = BERR_SUCCESS;
@@ -504,6 +691,9 @@ static BERR_Code BAPE_Processor_P_ApplyDspSettings(BAPE_ProcessorHandle handle)
         break;
     case BAPE_PostProcessorType_eFade:
         errCode = BAPE_Processor_P_ApplyFadeSettings(handle);
+        break;
+    case BAPE_PostProcessorType_eAdvancedTsm:
+        errCode = BAPE_Processor_P_ApplyAdvancedTsmSettings(handle);
         break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", handle->type));
@@ -567,6 +757,39 @@ static void BAPE_Processor_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNo
 
     /* error checking?? */
 }
+
+static BERR_Code BAPE_Processor_P_InputFormatChange(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection, const BAPE_FMT_Descriptor *pNewFormat)
+{
+    BAPE_ProcessorHandle handle;
+    BAPE_FMT_Descriptor outputFormat, curOutputFormat;
+    BERR_Code errCode;
+
+    BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
+    BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
+    BDBG_ASSERT(NULL != pNewFormat);
+
+    handle = pNode->pHandle;
+    BDBG_OBJECT_ASSERT(handle, BAPE_Processor);
+
+    BAPE_Connector_P_GetFormat(&pNode->connectors[BAPE_ConnectorFormat_eStereo], &curOutputFormat);
+    outputFormat = *pNewFormat;
+    outputFormat.type = curOutputFormat.type;
+    errCode = BAPE_Connector_P_SetFormat(&pNode->connectors[BAPE_ConnectorFormat_eStereo], &outputFormat);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    BAPE_Connector_P_GetFormat(&pNode->connectors[BAPE_ConnectorFormat_eMultichannel], &curOutputFormat);
+    outputFormat = *pNewFormat;
+    outputFormat.type = curOutputFormat.type;
+    errCode = BAPE_Connector_P_SetFormat(&pNode->connectors[BAPE_ConnectorFormat_eMultichannel], &outputFormat);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    return BERR_SUCCESS;
+}
+
 #else
 typedef struct BAPE_Processor
 {

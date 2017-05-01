@@ -260,6 +260,15 @@ eRet CBoardResourcesNx::add(
         }
         break;
 
+        case eBoardResource_power:
+        {
+            CPowerNx * pPowerNx = NULL;
+            pPowerNx = new CPowerNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
+            BDBG_ASSERT(pPowerNx);
+            _powerList.add(pPowerNx);
+        }
+        break;
+
         case eBoardResource_outputHdmi:
         {
             COutputHdmiNx * pOutputHdmi = NULL;

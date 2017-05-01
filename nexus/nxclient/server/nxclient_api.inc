@@ -341,6 +341,21 @@ NEXUS_Error NxClient_Display_SetCgms( uint32_t cgmsData )
     return rc;
 }
 
+NEXUS_Error NxClient_Display_SetCgmsB( const uint32_t *pCgmsData, unsigned size )
+{
+    NEXUS_Error rc;
+    nxclient_p_set_cgms_b_data data;
+    if (size > sizeof(data.data)/sizeof(data.data[0])) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    BKNI_Memcpy(data.data, pCgmsData, size * sizeof(data.data[0]));
+    data.size = size;
+    LOCK();
+    rc = nxclient_p_display_set_cgms_b(NXCLIENT_STATE_RESTRICTED, &data);
+    UNLOCK();
+    return rc;
+}
+
 void NxClient_GetAudioProcessingSettings( NxClient_AudioProcessingSettings *pSettings )
 {
     LOCK();
@@ -476,6 +491,15 @@ NEXUS_Error NxClient_GetStatus( NxClient_Status *pStatus )
     NEXUS_Error rc;
     LOCK();
     rc = nxclient_p_get_status(NXCLIENT_STATE_RESTRICTED, pStatus);
+    UNLOCK();
+    return rc;
+}
+
+NEXUS_Error NxClient_SetClientMode( const NxClient_ClientModeSettings *pSettings )
+{
+    NEXUS_Error rc;
+    LOCK();
+    rc = nxclient_p_set_client_mode(NXCLIENT_STATE_RESTRICTED, pSettings);
     UNLOCK();
     return rc;
 }

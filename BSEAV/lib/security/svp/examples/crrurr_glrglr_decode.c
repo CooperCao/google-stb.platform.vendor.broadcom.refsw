@@ -285,6 +285,7 @@ int main(int argc, char **argv)
 
     int rc,curarg=1;
     unsigned index;
+    unsigned max_index = 2;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     int audioTime = 5;
 #if USE_SVP
@@ -292,6 +293,8 @@ int main(int argc, char **argv)
     NEXUS_MemoryConfigurationSettings memConfigSettings;
     int i, j;
 #endif
+
+    NEXUS_VideoDecoderCapabilities videoDecoderCap;
 
     while (curarg < argc) {
         if ( !strcmp(argv[curarg], "-no_primer") ) {
@@ -355,6 +358,17 @@ int main(int argc, char **argv)
     NEXUS_Platform_Init(&platformSettings);
 #endif
     NEXUS_Platform_GetConfiguration(&platformConfig);
+
+    /* SWSTB-4506: Check to see if we have required number of Video Decoders before opening display */
+    NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+    if (videoDecoderCap.numVideoDecoders < max_index)
+    {
+        BDBG_ERR(("Available Video Decoders=%d, "
+                  "require at least %u Video Decoders, "
+                  "check your Box Mode!",
+                  videoDecoderCap.numVideoDecoders, max_index));
+        return -1;
+    }
 
     display = NEXUS_Display_Open(0, NULL);
 #if HDSD_SIMUL
@@ -494,7 +508,7 @@ int main(int argc, char **argv)
             NEXUS_Playback_SetPidChannelSettings(context[index].playback, context[index].audioPidChannel, &playbackPidSettings);
         }
 
-        if (++index == 2) index = 0;
+        if (++index == max_index) index = 0;
 
         if ( g_usePrimer == false ) {
             rc = NEXUS_AudioDecoder_Start(audioDecoder, &context[index].audioProgram);

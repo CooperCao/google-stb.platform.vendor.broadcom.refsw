@@ -1350,6 +1350,8 @@ static BERR_Code BDSP_Raaga_P_FillVideoEncodeGblTaskCfg(
     psGlobalEncodeTaskConfig->sEncoderParams.ui32Frames2Accum = psVEncoderCfgIp->sEncoderParams.ui32Frames2Accum;
     psGlobalEncodeTaskConfig->sEncoderParams.IsGoBitInterruptEnabled =
                                                 psVEncoderCfgIp->sEncoderParams.IsGoBitInterruptEnabled;
+    psGlobalEncodeTaskConfig->sEncoderParams.IsNrtModeEnabled =
+                                                psVEncoderCfgIp->sEncoderParams.IsNrtModeEnabled;
     psGlobalEncodeTaskConfig->sEncoderParams.eEncodeFrameRate = psVEncoderCfgIp->sEncoderParams.eEncodeFrameRate;
 
     psGlobalEncodeTaskConfig->sEncoderParams.ui32InterruptBit[0] = psVEncoderCfgIp->sEncoderParams.ui32InterruptBit[0];

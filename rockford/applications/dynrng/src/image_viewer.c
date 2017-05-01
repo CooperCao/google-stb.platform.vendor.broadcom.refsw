@@ -86,9 +86,25 @@ ImageViewerHandle image_viewer_create(const ImageViewerCreateSettings * pSetting
     return viewer;
 }
 
+static void image_viewer_p_unload_image(ImageViewerHandle viewer)
+{
+    if (viewer->pic)
+    {
+        if (viewer->createSettings.pictureChanged.callback)
+        {
+            viewer->createSettings.pictureChanged.callback(viewer->createSettings.pictureChanged.context, NULL);
+        }
+        platform_picture_destroy(viewer->pic);
+        viewer->pic = NULL;
+    }
+    file_switcher_set_position(viewer->switcher, -1);
+}
+
 void image_viewer_destroy(ImageViewerHandle viewer)
 {
     if (!viewer) return;
+
+    image_viewer_p_unload_image(viewer);
 
     if (viewer->switcher)
     {
@@ -97,16 +113,32 @@ void image_viewer_destroy(ImageViewerHandle viewer)
     free(viewer);
 }
 
-void image_viewer_view_image(ImageViewerHandle viewer, unsigned imageIndex)
+void image_viewer_view_image_by_index(ImageViewerHandle viewer, int imageIndex)
 {
     unsigned count;
     assert(viewer);
 
     count = file_switcher_get_count(viewer->switcher);
-    if (imageIndex >= count) { printf("viewer: index %u out of bounds (%u)\n", imageIndex, count); return; }
+    if (imageIndex >= (int)count) { printf("viewer: index %u out of bounds (%u)\n", imageIndex, count); goto unload; }
     if (file_switcher_get_position(viewer->switcher) == imageIndex) return;
     file_switcher_set_position(viewer->switcher, imageIndex);
     image_viewer_p_load_image(viewer);
+    return;
+unload:
+    image_viewer_p_unload_image(viewer);
+}
+
+void image_viewer_view_image_by_path(ImageViewerHandle viewer, const char * imagePath)
+{
+    int imageIndex = -1;
+
+    if (!imagePath) goto unload;
+    imageIndex = file_switcher_find(viewer->switcher, imagePath);
+    if (imageIndex == -1) { printf("viewer: image '%s' not found\n", imagePath); goto unload; }
+    image_viewer_view_image_by_index(viewer, imageIndex);
+    return;
+unload:
+    image_viewer_p_unload_image(viewer);
 }
 
 void image_viewer_first(ImageViewerHandle viewer)
@@ -151,15 +183,7 @@ void image_viewer_p_load_image(ImageViewerHandle viewer)
 
     if (!newPath || (newPath && oldPath && !strcmp(oldPath, newPath))) return;
 
-    if (viewer->pic)
-    {
-        if (viewer->createSettings.pictureChanged.callback)
-        {
-            viewer->createSettings.pictureChanged.callback(viewer->createSettings.pictureChanged.context, NULL);
-        }
-        platform_picture_destroy(viewer->pic);
-        viewer->pic = NULL;
-    }
+    image_viewer_p_unload_image(viewer);
 
     if (newPath)
     {

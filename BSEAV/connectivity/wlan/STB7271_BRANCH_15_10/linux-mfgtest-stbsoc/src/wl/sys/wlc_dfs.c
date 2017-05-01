@@ -95,6 +95,11 @@ static const bcm_iovar_t wlc_dfs_iovars[] = {
 	{"dfs_channel_forced", IOV_DFS_CHANNEL_FORCED, (0), 0, IOVT_UINT32, 0},
 	{"dfs_ap_move", IOV_DFS_AP_MOVE, (0), 0, IOVT_BUFFER, 0},
 	{"dfs_status_all", IOV_DFS_STATUS_ALL, (0), 0, IOVT_BUFFER, 0},
+#ifdef WLTEST
+	{"dfs_max_safe_tx", IOV_DFS_MAX_SAFE_TX, 0, 0, IOVT_BUFFER, 0},
+	{"dfs_txblank_check_mode", IOV_DFS_TXBLANK_CHECK_MODE, 0, 0, IOVT_UINT32, 0},
+	{"dfs_nop", IOV_DFS_NOP, 0, 0, IOVT_UINT32, 0},
+#endif /* WLTEST */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -1013,12 +1018,57 @@ wlc_dfs_doiovar(void *ctx, uint32 actionid,
 
 		break;
 	}
+#ifdef WLTEST
+	case IOV_SVAL(IOV_DFS_MAX_SAFE_TX):
+	{
+		dfs->max_safe_tx_nonadj = int_val;
+		WL_DFS(("max_safe_tx_nonadj set to %u%%\n", dfs->max_safe_tx_nonadj));
+		if (p_len >= (sizeof(uint32) * 2)) {
+			dfs->max_safe_tx_adj = ((uint32 *)params)[1];
+			WL_DFS(("max_safe_tx_adj set to %u%%\n", dfs->max_safe_tx_adj));
+		}
+		if (p_len >= (sizeof(uint32) * 3)) {
+			dfs->max_safe_tx_weather = ((uint32 *)params)[2];
+			WL_DFS(("max_safe_tx_weather set to %u%%\n", dfs->max_safe_tx_weather));
+		}
+		break;
+	}
+	case IOV_GVAL(IOV_DFS_MAX_SAFE_TX):
+	{
+		ret_int_ptr[0] = (int32) dfs->max_safe_tx_nonadj;
+		if (len >= (sizeof(int32) * 2)) {
+			ret_int_ptr[1] = (int32) dfs->max_safe_tx_adj;
+		}
+		if (len >= (sizeof(int32) * 3)) {
+			ret_int_ptr[2] = (int32) dfs->max_safe_tx_weather;
+		}
+		break;
+	}
+	case IOV_SVAL(IOV_DFS_TXBLANK_CHECK_MODE):
+	{
+		dfs->txblank_check_mode = (uint32) int_val;
+		break;
+	}
+	case IOV_GVAL(IOV_DFS_TXBLANK_CHECK_MODE):
+	{
+		*ret_int_ptr = (int32) dfs->txblank_check_mode;
+		break;
+	}
+#endif /* WLTEST */
 #endif /* BGDFS || RSDB_DFS_SCAN */
 
 	case IOV_GVAL(IOV_DFS_STATUS_ALL):
 		err = wlc_dfs_get_dfs_status_all(dfs, (uint8*)arg, len);
 		break;
 
+#ifdef WLTEST
+	case IOV_GVAL(IOV_DFS_NOP):
+		*ret_int_ptr = dfs->dfs_cac.nop_sec;
+		break;
+	case IOV_SVAL(IOV_DFS_NOP):
+		dfs->dfs_cac.nop_sec = int_val;
+		break;
+#endif /* WLTEST */
 
 	default:
 		err = BCME_UNSUPPORTED;

@@ -41,96 +41,22 @@
 .global tz_secure_svc_handler
 
 .section ".text"
-#if 0
+
 tz_secure_svc_handler:
-
-	msr		daifset, #(DAIFBIT_FIQ | DAIFBIT_IRQ)
-	stp		x0, x1, [sp, #-16]!
-	stp		x2, x3, [sp, #-16]!
-	stp		x8, x30, [sp, #-16]!        /* aarch64 EABI syscall number in x8 */
-	mov		x0, #0
-	mrs		x1, SPSR_EL1
-	and     x1, x1, #0x1f
-	bl	 	excYieldCurrentTask
-	/* x0 now points to the array where we should save register context */
-
-
-	/* Pop all registers except x0 */
-	ldp		x8, x30, [sp], #16
-	ldp		x2, x3, [sp], #16
-    ldr     x1, [sp, #8]
-
-	/*
-	 * Save all the core regsiters
-	 */
-	str 	x1, [x0, #8]
-	str 	x2, [x0, #16]
-	str 	x3, [x0, #24]
-	str 	x4, [x0, #32]
-	str 	x5, [x0, #40]
-	str 	x6, [x0, #48]
-	str 	x7, [x0, #56]
-	str 	x8, [x0, #64]
-	str 	x9, [x0, #72]
-	str 	x10, [x0, #80]
-	str 	x11, [x0, #88]
-	str 	x12, [x0, #96]
-
-	mov		x1, sp
-	add 	x1, x1, #8
-	str		x1, [x0, #104]
-	str 	x30, [x0, #112]
-
-    mrs     x1, SPSR_EL1
-	str		x1, [x0, #120]
-    mrs     x1, SP_EL0
-	str		x1, [x0, #128]
-    mov    x1, x14
-	str 	x1, [x0, #136]
-	mov		x1, x0
-    ldr     x0, [sp]
-    add     sp, sp, #16
-	str		x0, [x1]
-	bl		svcService
-
-	b		schedule
-#else
-tz_secure_svc_handler:
-
-	msr		daifset, #(DAIFBIT_FIQ | DAIFBIT_IRQ)
 
 	stp x0, x1, [sp, #-16]!
 	stp x2, x3, [sp, #-16]!
-	stp x4, x5, [sp, #-16]!
-	stp x6, x7, [sp, #-16]!
-	stp x8, x9, [sp, #-16]!
-	stp x10, x11, [sp, #-16]!
-	stp x12, x13, [sp, #-16]!
-	stp x14, x15, [sp, #-16]!
-	stp x16, x17, [sp, #-16]!
-	stp x18, x19, [sp, #-16]!
-	stp x30, xzr, [sp, #-16]!
+	stp x4, x30, [sp, #-16]!
+	bl get_regbase
 
-	mov		x0, #0
-	mrs		x1, SPSR_EL1
-	and     x1, x1, #0x1f
-	bl	 	excYieldCurrentTask
-	/* x0 now points to the array where we should save register context */
+	/* save Neon registers */
+	bl save_neonregs
 
+	mov x0, x2
+	ldp x4, x30, [sp], #16
+	ldp x2, x3,  [sp], #16
 
-/* Pop all registers except x0 */
-	ldp x30, xzr, [sp], #16
-	ldp x18, x19, [sp], #16
-	ldp x16, x17, [sp], #16
-	ldp x14, x15, [sp],#16
-	ldp x12, x13, [sp], #16
-	ldp x10, x11, [sp],#16
-	ldp x8, x9, [sp], #16
-	ldp x6, x7, [sp],#16
-	ldp x4, x5, [sp], #16
-	ldp x2, x3, [sp],#16
-
-	/* save all registers */
+	/* save CPU registers */
 	stp x30, xzr, [x0, #16]
 	stp x28, x29, [x0, #32]
 	mrs x28, elr_el1
@@ -163,7 +89,10 @@ tz_secure_svc_handler:
 	mrs     x0, mpidr_el1
 	and     x0, x0, #0x3
 
+	mov     x0, #01
+	mrs     x1, spsr_el1
+	bl      yieldCurrentTask
+
 	bl		svcService
 
 	b		schedule
-#endif

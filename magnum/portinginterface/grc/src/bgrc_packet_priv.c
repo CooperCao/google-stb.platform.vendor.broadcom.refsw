@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,114 +48,7 @@
 #include "bgrc_private.h"
 
 BDBG_MODULE(BGRC);
-
-#if !B_REFSW_MINIMAL
-/***************************************************************************/
-void BGRC_PACKET_P_PrintRegisters( BGRC_Handle hGrc )
-{
-    BSTD_UNUSED(hGrc);
-    BDBG_ERR(( "LIST_CTRL                       %08x", BGRC_P_ReadReg32( hGrc->hRegister, LIST_CTRL ) ));
-    BDBG_ERR(( "LIST_STATUS                     %08x", BGRC_P_ReadReg32( hGrc->hRegister, LIST_STATUS ) ));
-    BDBG_ERR(( "LIST_FIRST_PKT_ADDR             %08x", BGRC_P_ReadReg32( hGrc->hRegister, LIST_FIRST_PKT_ADDR ) ));
-    BDBG_ERR(( "LIST_CURR_PKT_ADDR              %08x", BGRC_P_ReadReg32( hGrc->hRegister, LIST_CURR_PKT_ADDR ) ));
-    BDBG_ERR(( "BLIT_STATUS                     %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_STATUS ) ));
-    BDBG_ERR(( "BLIT_SRC_ADDRESS                %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_SRC_ADDRESS ) ));
-    BDBG_ERR(( "BLIT_DEST_ADDRESS               %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_DEST_ADDRESS ) ));
-    BDBG_ERR(( "BLIT_OUTPUT_ADDRESS             %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_OUTPUT_ADDRESS ) ));
-    BDBG_ERR(( "BLIT_MEM_HI                     %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_MEM_HI ) ));
-    BDBG_ERR(( "BLIT_MEM_LO                     %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_MEM_LO ) ));
-    BDBG_ERR(( "SRC_FEEDER_ENABLE               %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_FEEDER_ENABLE ) ));
-    BDBG_ERR(( "SRC_SURFACE_ADDR_0              %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_ADDR_0 ) ));
-    BDBG_ERR(( "SRC_SURFACE_STRIDE_0            %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_STRIDE_0 ) ));
-    BDBG_ERR(( "SRC_SURFACE_ADDR_1              %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_ADDR_1 ) ));
-    BDBG_ERR(( "SRC_SURFACE_STRIDE_1            %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_STRIDE_1 ) ));
-    BDBG_ERR(( "SRC_SURFACE_FORMAT_DEF_1        %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_FORMAT_DEF_1 ) ));
-    BDBG_ERR(( "SRC_SURFACE_FORMAT_DEF_2        %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_FORMAT_DEF_2 ) ));
-    BDBG_ERR(( "SRC_SURFACE_FORMAT_DEF_3        %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_FORMAT_DEF_3 ) ));
-    BDBG_ERR(( "SRC_SURFACE_1_FORMAT_DEF_1      %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_1_FORMAT_DEF_1 ) ));
-    BDBG_ERR(( "SRC_SURFACE_1_FORMAT_DEF_2      %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_1_FORMAT_DEF_2 ) ));
-    BDBG_ERR(( "SRC_SURFACE_1_FORMAT_DEF_3      %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_SURFACE_1_FORMAT_DEF_3 ) ));
-    BDBG_ERR(( "SRC_W_ALPHA                     %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_W_ALPHA ) ));
-    BDBG_ERR(( "SRC_CONSTANT_COLOR              %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CONSTANT_COLOR ) ));
-    BDBG_ERR(( "DEST_FEEDER_ENABLE              %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_FEEDER_ENABLE ) ));
-    BDBG_ERR(( "DEST_SURFACE_ADDR_0             %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_SURFACE_ADDR_0 ) ));
-    BDBG_ERR(( "DEST_SURFACE_STRIDE_0           %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_SURFACE_STRIDE_0 ) ));
-    BDBG_ERR(( "DEST_SURFACE_ADDR_1             %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_SURFACE_ADDR_1 ) ));
-    BDBG_ERR(( "DEST_SURFACE_STRIDE_1           %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_SURFACE_STRIDE_1 ) ));
-    BDBG_ERR(( "DEST_SURFACE_FORMAT_DEF_1       %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_SURFACE_FORMAT_DEF_1 ) ));
-    BDBG_ERR(( "DEST_SURFACE_FORMAT_DEF_2       %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_SURFACE_FORMAT_DEF_2 ) ));
-    BDBG_ERR(( "DEST_SURFACE_FORMAT_DEF_3       %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_SURFACE_FORMAT_DEF_3 ) ));
-    BDBG_ERR(( "DEST_W_ALPHA                    %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_W_ALPHA ) ));
-    BDBG_ERR(( "DEST_CONSTANT_COLOR             %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_CONSTANT_COLOR ) ));
-    BDBG_ERR(( "OUTPUT_FEEDER_ENABLE            %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_FEEDER_ENABLE ) ));
-    BDBG_ERR(( "OUTPUT_SURFACE_ADDR_0           %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_SURFACE_ADDR_0 ) ));
-    BDBG_ERR(( "OUTPUT_SURFACE_STRIDE_0         %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_SURFACE_STRIDE_0 ) ));
-    BDBG_ERR(( "OUTPUT_SURFACE_ADDR_1           %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_SURFACE_ADDR_1 ) ));
-    BDBG_ERR(( "OUTPUT_SURFACE_STRIDE_1         %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_SURFACE_STRIDE_1 ) ));
-    BDBG_ERR(( "OUTPUT_SURFACE_FORMAT_DEF_1     %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_SURFACE_FORMAT_DEF_1 ) ));
-    BDBG_ERR(( "OUTPUT_SURFACE_FORMAT_DEF_2     %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_SURFACE_FORMAT_DEF_2 ) ));
-    BDBG_ERR(( "OUTPUT_SURFACE_FORMAT_DEF_3     %08x", BGRC_P_ReadReg32( hGrc->hRegister, OUTPUT_SURFACE_FORMAT_DEF_3 ) ));
-    BDBG_ERR(( "BLIT_HEADER                     %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_HEADER ) ));
-    BDBG_ERR(( "BLIT_SRC_TOP_LEFT               %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_SRC_TOP_LEFT ) ));
-    BDBG_ERR(( "BLIT_SRC_SIZE                   %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_SRC_SIZE ) ));
-    BDBG_ERR(( "BLIT_SRC_TOP_LEFT_1             %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_SRC_TOP_LEFT_1 ) ));
-    BDBG_ERR(( "BLIT_SRC_SIZE_1                 %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_SRC_SIZE_1 ) ));
-    BDBG_ERR(( "BLIT_SRC_STRIPE_HEIGHT_WIDTH_0  %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_SRC_STRIPE_HEIGHT_WIDTH_0 ) ));
-    BDBG_ERR(( "BLIT_SRC_STRIPE_HEIGHT_WIDTH_1  %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_SRC_STRIPE_HEIGHT_WIDTH_1 ) ));
-    BDBG_ERR(( "BLIT_DEST_TOP_LEFT              %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_DEST_TOP_LEFT ) ));
-    BDBG_ERR(( "BLIT_DEST_SIZE                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_DEST_SIZE ) ));
-    BDBG_ERR(( "BLIT_OUTPUT_TOP_LEFT            %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_OUTPUT_TOP_LEFT ) ));
-    BDBG_ERR(( "BLIT_OUTPUT_SIZE                %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_OUTPUT_SIZE ) ));
-    BDBG_ERR(( "BLIT_INPUT_STRIPE_WIDTH         %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_INPUT_STRIPE_WIDTH ) ));
-    BDBG_ERR(( "BLIT_INPUT_STRIPE_WIDTH_1       %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_INPUT_STRIPE_WIDTH_1 ) ));
-    BDBG_ERR(( "BLIT_OUTPUT_STRIPE_WIDTH        %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_OUTPUT_STRIPE_WIDTH ) ));
-    BDBG_ERR(( "BLIT_STRIPE_OVERLAP             %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_STRIPE_OVERLAP ) ));
-    BDBG_ERR(( "BLIT_STRIPE_OVERLAP_1           %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_STRIPE_OVERLAP_1 ) ));
-    BDBG_ERR(( "BLIT_CTRL                       %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLIT_CTRL ) ));
-    BDBG_ERR(( "SCALER_CTRL                     %08x", BGRC_P_ReadReg32( hGrc->hRegister, SCALER_CTRL ) ));
-    BDBG_ERR(( "HORIZ_AVERAGER_COUNT            %08x", BGRC_P_ReadReg32( hGrc->hRegister, HORIZ_AVERAGER_COUNT ) ));
-    BDBG_ERR(( "HORIZ_AVERAGER_COEFF            %08x", BGRC_P_ReadReg32( hGrc->hRegister, HORIZ_AVERAGER_COEFF ) ));
-    BDBG_ERR(( "VERT_AVERAGER_COUNT             %08x", BGRC_P_ReadReg32( hGrc->hRegister, VERT_AVERAGER_COUNT ) ));
-    BDBG_ERR(( "VERT_AVERAGER_COEFF             %08x", BGRC_P_ReadReg32( hGrc->hRegister, VERT_AVERAGER_COEFF ) ));
-    BDBG_ERR(( "HORIZ_SCALER_INITIAL_PHASE      %08x", BGRC_P_ReadReg32( hGrc->hRegister, HORIZ_SCALER_INITIAL_PHASE ) ));
-    BDBG_ERR(( "HORIZ_SCALER_STEP               %08x", BGRC_P_ReadReg32( hGrc->hRegister, HORIZ_SCALER_STEP ) ));
-    BDBG_ERR(( "HORIZ_SCALER_1_INITIAL_PHASE    %08x", BGRC_P_ReadReg32( hGrc->hRegister, HORIZ_SCALER_1_INITIAL_PHASE ) ));
-    BDBG_ERR(( "HORIZ_SCALER_1_STEP             %08x", BGRC_P_ReadReg32( hGrc->hRegister, HORIZ_SCALER_1_STEP ) ));
-    BDBG_ERR(( "VERT_SCALER_INITIAL_PHASE       %08x", BGRC_P_ReadReg32( hGrc->hRegister, VERT_SCALER_INITIAL_PHASE ) ));
-    BDBG_ERR(( "VERT_SCALER_STEP                %08x", BGRC_P_ReadReg32( hGrc->hRegister, VERT_SCALER_STEP ) ));
-    BDBG_ERR(( "VERT_SCALER_1_INITIAL_PHASE     %08x", BGRC_P_ReadReg32( hGrc->hRegister, VERT_SCALER_1_INITIAL_PHASE ) ));
-    BDBG_ERR(( "VERT_SCALER_1_STEP              %08x", BGRC_P_ReadReg32( hGrc->hRegister, VERT_SCALER_1_STEP ) ));
-    BDBG_ERR(( "BLEND_COLOR_OP                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLEND_COLOR_OP ) ));
-    BDBG_ERR(( "BLEND_ALPHA_OP                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLEND_ALPHA_OP ) ));
-    BDBG_ERR(( "BLEND_CONSTANT_COLOR            %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLEND_CONSTANT_COLOR ) ));
-    BDBG_ERR(( "BLEND_COLOR_KEY_ACTION          %08x", BGRC_P_ReadReg32( hGrc->hRegister, BLEND_COLOR_KEY_ACTION ) ));
-    BDBG_ERR(( "ROP_OPERATION                   %08x", BGRC_P_ReadReg32( hGrc->hRegister, ROP_OPERATION ) ));
-    BDBG_ERR(( "ROP_PATTERN_TOP                 %08x", BGRC_P_ReadReg32( hGrc->hRegister, ROP_PATTERN_TOP ) ));
-    BDBG_ERR(( "ROP_PATTERN_BOTTOM              %08x", BGRC_P_ReadReg32( hGrc->hRegister, ROP_PATTERN_BOTTOM ) ));
-    BDBG_ERR(( "ROP_PATTERN_COLOR_0             %08x", BGRC_P_ReadReg32( hGrc->hRegister, ROP_PATTERN_COLOR_0 ) ));
-    BDBG_ERR(( "ROP_PATTERN_COLOR_1             %08x", BGRC_P_ReadReg32( hGrc->hRegister, ROP_PATTERN_COLOR_1 ) ));
-    BDBG_ERR(( "SRC_COLOR_KEY_HIGH              %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_COLOR_KEY_HIGH ) ));
-    BDBG_ERR(( "SRC_COLOR_KEY_LOW               %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_COLOR_KEY_LOW ) ));
-    BDBG_ERR(( "SRC_COLOR_KEY_MASK              %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_COLOR_KEY_MASK ) ));
-    BDBG_ERR(( "SRC_COLOR_KEY_REPLACEMENT       %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_COLOR_KEY_REPLACEMENT ) ));
-    BDBG_ERR(( "SRC_COLOR_KEY_REPLACEMENT_MASK  %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_COLOR_KEY_REPLACEMENT_MASK ) ));
-    BDBG_ERR(( "DEST_COLOR_KEY_HIGH             %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_COLOR_KEY_HIGH ) ));
-    BDBG_ERR(( "DEST_COLOR_KEY_LOW              %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_COLOR_KEY_LOW ) ));
-    BDBG_ERR(( "DEST_COLOR_KEY_MASK             %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_COLOR_KEY_MASK ) ));
-    BDBG_ERR(( "DEST_COLOR_KEY_REPLACEMENT      %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_COLOR_KEY_REPLACEMENT ) ));
-    BDBG_ERR(( "DEST_COLOR_KEY_REPLACEMENT_MASK %08x", BGRC_P_ReadReg32( hGrc->hRegister, DEST_COLOR_KEY_REPLACEMENT_MASK ) ));
-    BDBG_ERR(( "SRC_CM_C00_C01                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C00_C01 ) ));
-    BDBG_ERR(( "SRC_CM_C02_C03                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C02_C03 ) ));
-    BDBG_ERR(( "SRC_CM_C04                      %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C04 ) ));
-    BDBG_ERR(( "SRC_CM_C10_C11                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C10_C11 ) ));
-    BDBG_ERR(( "SRC_CM_C12_C13                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C12_C13 ) ));
-    BDBG_ERR(( "SRC_CM_C14                      %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C14 ) ));
-    BDBG_ERR(( "SRC_CM_C20_C21                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C20_C21 ) ));
-    BDBG_ERR(( "SRC_CM_C22_C23                  %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C22_C23 ) ));
-    BDBG_ERR(( "SRC_CM_C24                      %08x", BGRC_P_ReadReg32( hGrc->hRegister, SRC_CM_C24 ) ));
-    BDBG_ERR(( " " ));
-}
-#endif
+BDBG_FILE_MODULE(BGRC_LISTSTATUS);
 
 /***************************************************************************/
 #define M2MC_FT_Default       (0L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
@@ -3739,6 +3632,11 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
     /* submit this hw pkt series to HW */
     if( hGrc->pHwPktSubmitLinkPtr )
     {
+#if BGRC_PACKET_P_BLIT_WORKAROUND
+        uint32_t ulListStatus;
+        bool     bListFinished;
+#endif
+
         /* append this hw pkt series to the tail of previously submitted */
         BGRC_PACKET_P_DEBUG_PRINT_CTX( "** NEXT               " );
 #if BGRC_P_64BITS_ADDR
@@ -3752,10 +3650,31 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
         /* flush "next offset" from previous blits */
         BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, hGrc->pHwPktSubmitLinkPtr, sizeof (BSTD_DeviceOffset) );
 
+#if BGRC_PACKET_P_BLIT_WORKAROUND
+        ulListStatus = BGRC_P_ReadReg32(hGrc->hRegister, LIST_STATUS);
+        bListFinished = BCHP_GET_FIELD_DATA(ulListStatus, M2MC_LIST_STATUS, FINISHED);
+        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulListStatus %d bListFinished %d", ulListStatus, bListFinished));
+        if(bListFinished)
+        {
+            BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
+            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
+            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
+            /*BKNI_ResetEvent(hGrc->hListDoneEvent);*/
+            hGrc->eListStatus = BGRC_P_List_eSubmitted;
+            BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus: Submitted"));
+        }
+        else
+        {
+            hGrc->eListStatus = BGRC_P_List_eReadytoSubmit;
+            BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus: ReadytoSubmit"));
+        }
+#else
         BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ) );
+#endif
     }
     else
     {

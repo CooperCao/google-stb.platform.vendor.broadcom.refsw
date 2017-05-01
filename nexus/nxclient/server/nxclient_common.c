@@ -105,6 +105,7 @@ void NxClient_GetDefaultConnectSettings( NxClient_ConnectSettings *pSettings )
     for (i=0;i<NXCLIENT_MAX_IDS;i++) {
         pSettings->simpleVideoDecoder[i].windowCapabilities.maxWidth = 1920;
         pSettings->simpleVideoDecoder[i].windowCapabilities.maxHeight = 1080;
+        pSettings->simpleVideoDecoder[i].decoderCapabilities.userDataBufferSize = 16 * 1024;
         /* leave encoderCapabilities max values defaulted to 0, which picks any, so we can adapt to various box modes and configurations */
     }
 }
@@ -184,4 +185,13 @@ void NxClient_StopCallbackThread(void)
         pthread_join(g_callbackThread.thread, NULL);
         g_callbackThread.thread = 0;
     }
+}
+
+void NxClient_GetDefaultClientModeSettings( NxClient_ClientModeSettings *pSettings )
+{
+    NxClient_JoinSettings joinSettings;
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->mode = joinSettings.mode;
+    pSettings->certificate = joinSettings.certificate;
 }

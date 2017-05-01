@@ -75,18 +75,19 @@ static const BBOX_MemConfig stBoxMemConfig_7445D0_box1 =
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 0,       Invalid, Invalid), /* disp 6 */
       }
    },
-   BBOX_INVALID_NUM_MEMC
+   BBOX_INVALID_NUM_MEMC,
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 
 void BBOX_P_GetBox1MemConfig
-	( BBOX_MemConfig                *pBoxMemConfig )
+    ( BBOX_MemConfig                *pBoxMemConfig )
 {
-	*pBoxMemConfig = stBoxMemConfig_7445D0_box1;
-	pBoxMemConfig->ulNumMemc = stBoxRts_7445D0_box1.ulNumMemc;
+    *pBoxMemConfig = stBoxMemConfig_7445D0_box1;
+    pBoxMemConfig->ulNumMemc = stBoxRts_7445D0_box1.ulNumMemc;
 }
 
 void BBOX_P_GetBox1Rts
-	( BBOX_Rts *pBoxRts )
+    ( BBOX_Rts *pBoxRts )
 {
-	*pBoxRts = stBoxRts_7445D0_box1;
+    *pBoxRts = stBoxRts_7445D0_box1;
 }

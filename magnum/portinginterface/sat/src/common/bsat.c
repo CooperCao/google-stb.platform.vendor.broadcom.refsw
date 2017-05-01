@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1211,6 +1211,41 @@ BERR_Code BSAT_GetFastChannelStatus(
    BDBG_ASSERT(h);
    if (h->pDevice->settings.api.GetFastChannelStatus)
       return h->pDevice->settings.api.GetFastChannelStatus(h, pStatusIds, numItems, pStatus);
+   else
+      return BERR_NOT_SUPPORTED;
+}
+
+
+/******************************************************************************
+ BSAT_ScanSpectrum()
+******************************************************************************/
+BERR_Code BSAT_ScanSpectrum(
+   BSAT_ChannelHandle h,                 /* [in] BSAT channel handle */
+   BSAT_ScanSpectrumSettings *pSettings  /* [in] spectrum analyzer settings */
+)
+{
+   BDBG_ASSERT(h);
+   BDBG_ASSERT(pSettings);
+   if (h->pDevice->settings.api.ScanSpectrum)
+      return h->pDevice->settings.api.ScanSpectrum(h, pSettings);
+   else
+      return BERR_NOT_SUPPORTED;
+}
+
+
+/******************************************************************************
+ BSAT_GetScanSpectrumStatus()
+******************************************************************************/
+BERR_Code BSAT_GetSpectrumStatus(
+   BSAT_ChannelHandle h,         /* [in] BSAT channel handle */
+   BSAT_SpectrumStatus *pStatus, /* [out] status of most recent scan spectrum operation */
+   uint8_t *pData               /* [out] spectrum data */
+)
+{
+   BDBG_ASSERT(h);
+   BDBG_ASSERT(pStatus);
+   if (h->pDevice->settings.api.GetSpectrumStatus)
+      return h->pDevice->settings.api.GetSpectrumStatus(h, pStatus, pData);
    else
       return BERR_NOT_SUPPORTED;
 }

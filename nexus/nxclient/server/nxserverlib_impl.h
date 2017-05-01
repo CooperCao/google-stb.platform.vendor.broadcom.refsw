@@ -59,6 +59,10 @@ typedef void *NEXUS_VideoDecoderCapabilities;
 #include "nexus_audio_crc.h"
 #endif
 #include "nexus_core_compat.h"
+#if NEXUS_HAS_HDMI_INPUT
+#include "nexus_hdmi_input_hdcp.h"
+#include "nexus_hdmi_input_hdcp_types.h"
+#endif
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #include "nexus_hdmi_output_extra.h"
@@ -232,6 +236,11 @@ enum b_hdmi_drm_source {
 
 struct b_hdmi_drm_selector
 {
+    struct
+    {
+        enum b_hdmi_drm_source outputMode;
+        enum b_hdmi_drm_source priorityMode;
+    } dolbyVision;
     enum b_hdmi_drm_source eotf;
     struct
     {
@@ -312,6 +321,12 @@ struct b_session {
             struct b_hdmi_drm_selector selector;
             bool inputValid;
             NEXUS_HdmiDynamicRangeMasteringInfoFrame input;
+            struct
+            {
+                bool dbvInput;
+                NEXUS_HdmiOutputDolbyVisionMode outputMode;
+                NEXUS_HdmiOutputDolbyVisionPriorityMode priorityMode;
+            } dolbyVision;
             NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
             NEXUS_VideoEotf lastInputEotf;
         } drm;
@@ -320,14 +335,15 @@ struct b_session {
         } repeater;
     } hdmi;
 #endif
+#if NEXUS_HAS_HDMI_INPUT
+    NEXUS_HdmiInputHandle hdmiInput;
+#endif
     struct {
-        NxClient_HdcpLevel level;
-        NxClient_HdcpVersion prevSelect;
-        NxClient_HdcpVersion currSelect;
+        NxClient_HdcpLevel level; /* currently applied settings */
+        NxClient_HdcpVersion version_select;
         enum nxserver_hdcp_state {
             nxserver_hdcp_not_pending,                   /* no hdcp authentication in progress */
             nxserver_hdcp_begin,                         /* need to start hdcp authentication */
-            nxserver_hdcp_pending_status_start,          /* started with NxClient_HdcpVersion_eFollow, will test for downstream 1.x */
             nxserver_hdcp_pending_start_retry,           /* authenticating w/ restart. lastHdcpError likely set. may mute. */
             nxserver_hdcp_pending_start,                 /* authenticating w/o restart. */
             nxserver_hdcp_success,                       /* hdcp authentication completed */
@@ -464,7 +480,8 @@ struct b_client {
     NxClient_JoinSettings joinSettings;
     BLST_D_HEAD(b_req_list, b_req) requests;
     BLST_D_HEAD(b_connect_list, b_connect) connects;
-    NxClient_HdcpLevel hdcp;
+    NxClient_HdcpLevel hdcp_level; /* client preferences */
+    NxClient_HdcpVersion hdcp_version;
     bool hdmiInputRepeater;
     bool zombie;
     struct {
@@ -571,6 +588,7 @@ void uninit_input_devices(struct b_session *session);
 nxserverlib.c API
 ************/
 bool nxserverlib_p_native_3d_active(struct b_session *session);
+bool nxserverlib_p_dolby_vision_active(struct b_session *session);
 void inc_id(nxserver_t server, enum b_resource r);
 bool is_transcode_connect(const struct b_connect *connect);
 bool is_transcode_audiodec_request(const struct b_connect *connect);

@@ -74,6 +74,7 @@
 #include "panel_power.h"
 #include "panel_network_wifi.h"
 #include "panel_bluetooth.h"
+#include "channel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -127,6 +128,20 @@ public:
     uint32_t _timeout;
 };
 
+class CChannelLabel
+{
+public:
+    CChannelLabel(CChannel * pChannel, CLabelData * pData, CWidgetLabel *pLabel) :
+        _pChannel(pChannel),
+        _labelData(*pData),
+        _pLabel(pLabel) {};
+    ~CChannelLabel() { DEL(_pLabel); }
+public:
+    CChannel *     _pChannel;
+    CLabelData     _labelData;
+    CWidgetLabel * _pLabel;
+};
+
 class CScreenMain : public CScreen
 {
 public:
@@ -148,6 +163,11 @@ public:
     void    setPlaybackStatus(CPlayback * pPlayback);
     void    setChannelNum(const char * str1 = NULL, const char * str2 = NULL);
     void    setChannelNum(CChannel * pChannel);
+    CChannelLabel * findChannelLabel(CChannel * pChannel, CLabelData * pLabelData);
+    void    adjustChannelLabelBorder(MRect * pRect, MRect rectMax, int nBorder);
+    eRet    createChannelLabel(CLabelData * pLabelData, CChannel * pChannel);
+    eRet    updateChannelLabels(CChannel * pChannel);
+    eRet    removeChannelLabels(CChannel * pChannel);
     void    setChannelStatus(eMode mode, const char * str1 = NULL, const char * str2 = NULL, const char * strPlaybackTitle = NULL, CChannel * pChannel = NULL);
     eRet    addRecordEncodeIndicator(CChannel * pChannel);
     void    setChannelIndicator(CChannelMgr * pChannelMgr, CPlaylistDb * pPlaylistDb);
@@ -164,6 +184,10 @@ public:
     eRet    updatePip(void);
     void    showMenu(eMenu menu);
     MString showKeyboardModal(const char * strTitle, const char * strEntryTitle);
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    eRet addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode);
+    void addPlmIndicator(CSimpleVideoDecode * pVideoDecode);
+#endif
 #ifdef CPUTEST_SUPPORT
     void updateCpuTestUtilization(void);
 #endif
@@ -201,6 +225,7 @@ protected:
     CWidgetButton *   _Decode;
     CWidgetButton *   _Playback;
     CWidgetButton *   _Audio;
+    MAutoList<CChannelLabel> _channelLabelList;
 #if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     CWidgetButton * _Network;
 #endif

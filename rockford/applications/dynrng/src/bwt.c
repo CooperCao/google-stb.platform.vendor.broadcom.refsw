@@ -224,14 +224,16 @@ void BWT_Widget_PlaceBase(BWT_WidgetHandle w)
         else
         {
             relTo = parent;
-            /* only apply offsets if child does not fill parent */
-            if (w->dims.width < relTo->dims.width)
-            {
-                xoffset = parent->padding.abs;
-            }
-            if (w->dims.height < relTo->dims.height)
-            {
-                yoffset = parent->padding.abs;
+            /* only apply offsets if child does not fill parent and if widget is not a video window*/
+            if(w->iface.type != BWT_WidgetType_eVideoWindow) {
+                if (w->dims.width < relTo->dims.width)
+                {
+                    xoffset = parent->padding.abs;
+                }
+                if (w->dims.height < relTo->dims.height)
+                {
+                    yoffset = parent->padding.abs;
+                }
             }
             xdims = 0;
             ydims = 0;
@@ -498,7 +500,6 @@ static void BWT_Panel_P_DestroyChildren(void * pContext, BWT_WidgetList * pChild
 
 static void BWT_Panel_P_Destroy(BWT_PanelHandle panel)
 {
-    BWT_WidgetHandle child;
     if (!panel) return;
     BWT_Panel_P_VisitChildGroups(panel, &BWT_Panel_P_DestroyChildren, NULL);
     BWT_Panel_UninitBase(panel);
@@ -534,7 +535,6 @@ void BWT_Panel_InitBase(
     BWT_ToolkitHandle bwt,
     const BWT_PanelInitSettings * pSettings)
 {
-    const char * name;
     assert(panel);
     assert(bwt);
     memset(panel, 0, sizeof(*panel));
@@ -590,7 +590,6 @@ void BWT_Panel_Render(BWT_WidgetHandle w)
 {
     BWT_PanelHandle panel = (BWT_PanelHandle)w;
     PlatformRect r;
-    unsigned fillColor = 0;
 
     assert(panel);
 
@@ -1002,7 +1001,6 @@ void BWT_Table_GetDefaultInitSettings(BWT_TableInitSettings * pSettings)
 
 void BWT_Table_InitBase(BWT_TableHandle table, BWT_ToolkitHandle bwt, const BWT_TableInitSettings * pSettings)
 {
-    const char * name;
     assert(table);
     assert(bwt);
     memset(table, 0, sizeof(*table));
@@ -1080,7 +1078,6 @@ BWT_VideoWindowHandle BWT_VideoWindow_Create(BWT_ToolkitHandle bwt, const BWT_Vi
 {
     BWT_WidgetInitSettings widgetSettings;
     BWT_VideoWindowHandle window;
-    const BWT_Dimensions * dims;
 
     assert(bwt);
     assert(pSettings);
@@ -1090,15 +1087,18 @@ BWT_VideoWindowHandle BWT_VideoWindow_Create(BWT_ToolkitHandle bwt, const BWT_Vi
     BWT_VideoWindow_P_GetDefaultWidgetInitSettings(&widgetSettings);
     if (pSettings->name) widgetSettings.name = pSettings->name;
     widgetSettings.visible = pSettings->visible;
-    dims = BWT_Toolkit_GetFramebufferDimensions(bwt);
-    widgetSettings.dims.width = dims->width * pSettings->scale / 100;
-    widgetSettings.dims.height = dims->height * pSettings->scale / 100;
+    /*dims = BWT_Toolkit_GetFramebufferDimensions(bwt);*/
+    widgetSettings.dims.width = pSettings->dims.width * pSettings->scale / 100;
+    widgetSettings.dims.height = pSettings->dims.height * pSettings->scale / 100;
 
 #if DEBUG
     printf("window");
 #endif
     BWT_Widget_InitBase((BWT_WidgetHandle)window, bwt, &widgetSettings);
     window->scale = pSettings->scale;
+    window->id = pSettings->id;
+    window->width = pSettings->dims.width;
+    window->height = pSettings->dims.height;
 #if DEBUG
     printf(" scale %u%%\n", window->scale);
 #endif
@@ -1125,19 +1125,21 @@ void BWT_VideoWindow_Render(BWT_WidgetHandle w)
 
     if (!BWT_Widget_IsVisible(w)) return;
 
-    r.width = w->dims.width;
-    r.height = w->dims.height;
     r.x = w->pos.x;
     r.y = w->pos.y;
+    r.width = w->dims.width;
+    r.height = w->dims.height;
 #if DEBUG
-    printf("Rendering %ux%u video @ (%u, %u)\n",
-        w->dims.width,
-        w->dims.height,
-        w->pos.x,
-        w->pos.y);
+    printf("Rendering video (%d) %ux%u @ (%u, %u)\n",
+            window->id,
+            r.width,
+            r.height,
+            r.x,
+            r.y);
 #endif
     platform_graphics_render_video(w->bwt->gfx, &r);
 }
+
 
 void BWT_VideoWindow_SetScale(BWT_VideoWindowHandle window, unsigned scale)
 {
@@ -1156,32 +1158,44 @@ void BWT_VideoWindow_SetScale(BWT_VideoWindowHandle window, unsigned scale)
         dims = BWT_Toolkit_GetFramebufferDimensions(w->bwt);
     }
 
-    w->dims.width = dims->width * scale / 100;
-    w->dims.height = dims->height * scale / 100;
+    w->dims.width = window->width * scale / 100;
+    w->dims.height = window->height * scale / 100;
     window->scale = scale;
 
+    r.x = w->pos.x;
+    r.y = w->pos.y;
     r.width = w->dims.width;
     r.height = w->dims.height;
 #if DEBUG
-    printf("Scaling video to %ux%u\n",
-        r.width,
-        r.height);
+    printf("Scaling video (%d) %ux%u @ (%u, %u)\n",
+            window->id,
+            r.width,
+            r.height,
+            r.x,
+            r.y);
 #endif
-    platform_graphics_scale_video(w->bwt->gfx, &r);
+    platform_graphics_scale_video(w->bwt->gfx, &r, window->id);
 }
 
 void BWT_VideoWindow_Place(BWT_WidgetHandle w)
 {
+    BWT_VideoWindowHandle window = (BWT_VideoWindowHandle)w;
     PlatformRect r;
+
     BWT_Widget_PlaceBase(w);
     r.x = w->pos.x;
     r.y = w->pos.y;
+    r.width = w->dims.width;
+    r.height = w->dims.height;
 #if DEBUG
-    printf("Moving video to (%u,%u)\n",
-        r.x,
-        r.y);
+    printf("Moving video (%d) %ux%u @ (%u, %u)\n",
+            window->id,
+            r.width,
+            r.height,
+            r.x,
+            r.y);
 #endif
-    platform_graphics_move_video(w->bwt->gfx, &r);
+    platform_graphics_move_video(w->bwt->gfx, &r, window->id);
 }
 
 void BWT_Toolkit_GetDefaultCreateSettings(BWT_ToolkitCreateSettings * pSettings)

@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -171,14 +171,16 @@ extern "C" {
 #define BSID_P_EnableUart(x)
 #endif
 
-/* ARC status register value that sets the "halt" flag (bit 25) */
+/* ARC status register value that sets the "halt" flag (bit 25)
+  => also sets the PC to 0 */
 #define BSID_FW_ARC_HALT                                      (uint32_t)0x02000000
 #define BSID_FW_ARC_RESET_ADDRESS                             (uint32_t)0
 
 void BSID_P_ArcSoftwareReset(BREG_Handle hReg);
 void BSID_P_HaltArc(BREG_Handle hReg);
-void BSID_P_ReadSIDStatus_isr(BREG_Handle hReg, uint32_t *puiSidStatus, uint32_t *puiArcPC);
+void BSID_P_ReadSIDStatus_isr(BREG_Handle hReg, uint32_t *puiSidStatus, uint32_t *puiArcPC, uint8_t *puiFlags);
 void BSID_P_ChipEnable(BREG_Handle hReg, uint32_t uiBasePhysAddress);
+void BSID_P_DisableWatchdog(BREG_Handle hReg);
 
 #ifdef BSID_P_DEBUG_ENABLE_ARC_UART
 void BSID_P_PlatformEnableUart(BREG_Handle hReg);

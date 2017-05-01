@@ -74,6 +74,8 @@ PlatformHandle platform_open(const char * appName)
     rc = NxClient_StartCallbackThread(&platform->callbackThreadSettings);
     BDBG_ASSERT(!rc);
 
+    NEXUS_GetVideoDecoderCapabilities(&platform->videoCaps);
+
     return platform;
 
 out_join_failure:
@@ -108,7 +110,8 @@ static const char * dynrngStrings[] =
     "SDR",
     "HLG",
     "HDR10",
-    "INVALID",
+    "DOVI",
+    "DISABLED",
     "UNKNOWN",
     "UNSUPPORTED",
     NULL
@@ -130,64 +133,78 @@ PlatformDynamicRange platform_get_dynamic_range_from_path(const char * path)
     {
         return PlatformDynamicRange_eHlg;
     }
+    else if (strstr(path, "dvs") || strstr(path, "DVS") || strstr(path, "Dvs") || strstr(path, "dovi") || strstr(path, "DoVi") || strstr(path, "dbv"))
+    {
+        return PlatformDynamicRange_eDolbyVision;
+    }
     else
     {
         return PlatformDynamicRange_eSdr;
     }
 }
 
-NEXUS_VideoEotf platform_p_dynamic_range_to_nexus(PlatformDynamicRange dynrng)
+void platform_p_dynamic_range_to_nexus(PlatformDynamicRange dynrng, NEXUS_VideoEotf * pEotf, NEXUS_HdmiOutputDolbyVisionMode * pDolbyVision)
 {
-    NEXUS_VideoEotf nxEotf;
+    *pDolbyVision = NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
 
     switch (dynrng)
     {
         case PlatformDynamicRange_eSdr:
-            nxEotf = NEXUS_VideoEotf_eSdr;
+            *pEotf = NEXUS_VideoEotf_eSdr;
             break;
         case PlatformDynamicRange_eHlg:
-            nxEotf = NEXUS_VideoEotf_eHlg;
+            *pEotf = NEXUS_VideoEotf_eHlg;
             break;
         case PlatformDynamicRange_eHdr10:
-            nxEotf = NEXUS_VideoEotf_eHdr10;
+            *pEotf = NEXUS_VideoEotf_eHdr10;
+            break;
+        case PlatformDynamicRange_eDolbyVision:
+            *pEotf = NEXUS_VideoEotf_eInvalid;
+            *pDolbyVision = NEXUS_HdmiOutputDolbyVisionMode_eEnabled;
             break;
         case PlatformDynamicRange_eInvalid:
-            nxEotf = NEXUS_VideoEotf_eInvalid;
+            *pEotf = NEXUS_VideoEotf_eInvalid;
             break;
         case PlatformDynamicRange_eAuto:
         case PlatformDynamicRange_eUnknown:
         default:
-            nxEotf = NEXUS_VideoEotf_eMax;
+            *pEotf = NEXUS_VideoEotf_eMax;
+            *pDolbyVision = NEXUS_HdmiOutputDolbyVisionMode_eAuto;
             break;
     }
-
-    return nxEotf;
 }
 
-PlatformDynamicRange platform_p_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf)
+PlatformDynamicRange platform_p_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf, NEXUS_HdmiOutputDolbyVisionMode dolbyVision)
 {
     PlatformDynamicRange dynrng;
 
-    switch (nxEotf)
+    if (dolbyVision == NEXUS_HdmiOutputDolbyVisionMode_eEnabled)
     {
-        case NEXUS_VideoEotf_eSdr:
-            dynrng = PlatformDynamicRange_eSdr;
-            break;
-        case NEXUS_VideoEotf_eHlg:
-            dynrng = PlatformDynamicRange_eHlg;
-            break;
-        case NEXUS_VideoEotf_eHdr10:
-            dynrng = PlatformDynamicRange_eHdr10;
-            break;
-        case NEXUS_VideoEotf_eInvalid:
-            dynrng = PlatformDynamicRange_eInvalid;
-            break;
-        case NEXUS_VideoEotf_eMax:
-            dynrng = PlatformDynamicRange_eAuto;
-            break;
-        default:
-            dynrng = PlatformDynamicRange_eUnknown;
-            break;
+        dynrng = PlatformDynamicRange_eDolbyVision;
+    }
+    else
+    {
+        switch (nxEotf)
+        {
+            case NEXUS_VideoEotf_eSdr:
+                dynrng = PlatformDynamicRange_eSdr;
+                break;
+            case NEXUS_VideoEotf_eHlg:
+                dynrng = PlatformDynamicRange_eHlg;
+                break;
+            case NEXUS_VideoEotf_eHdr10:
+                dynrng = PlatformDynamicRange_eHdr10;
+                break;
+            case NEXUS_VideoEotf_eInvalid:
+                dynrng = PlatformDynamicRange_eInvalid;
+                break;
+            case NEXUS_VideoEotf_eMax:
+                dynrng = PlatformDynamicRange_eAuto;
+                break;
+            default:
+                dynrng = PlatformDynamicRange_eUnknown;
+                break;
+        }
     }
 
     return dynrng;
@@ -401,13 +418,16 @@ void platform_p_hotplug_handler(void * context, int param)
 
 void platform_get_default_model(PlatformModel * pModel)
 {
+    unsigned i;
     BKNI_Memset(pModel, 0, sizeof(*pModel));
-    platform_get_default_picture_info(&pModel->vid.info);
+    for(i=0; i<MAX_MOSAICS; i++) {
+        platform_get_default_picture_info(&pModel->vid[i].info);
+        pModel->vid[i].plm = PlatformTriState_eMax;
+    }
     platform_get_default_picture_info(&pModel->gfx.info);
     platform_get_default_picture_info(&pModel->out.info);
     pModel->rcv.dynrng = PlatformCapability_eUnknown;
-    pModel->vid.plm = -2;
-    pModel->gfx.plm = -2;
+    pModel->gfx.plm = PlatformTriState_eMax;
 }
 
 void platform_get_default_picture_info(PlatformPictureInfo * pInfo)

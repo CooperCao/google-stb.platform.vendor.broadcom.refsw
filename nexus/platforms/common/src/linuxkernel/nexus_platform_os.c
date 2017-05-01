@@ -304,15 +304,15 @@ void* NEXUS_Platform_P_CmaVmap(NEXUS_Addr phyAddress, unsigned long length, bool
     struct page *page;
     unsigned num_pages = length/NEXUS_PLATFORM_LINUX_PAGE_SIZE;
 
-    BDBG_MSG(("cma:mapping %d bytes @ physical address " BDBG_UINT64_FMT ", cache %d, pages %d",
-              length, BDBG_UINT64_ARG(phyAddress), cache,num_pages ));
+    BDBG_MSG(("cma:mapping %u bytes @ physical address " BDBG_UINT64_FMT ", cache %d, pages %d",
+              (unsigned)length, BDBG_UINT64_ARG(phyAddress), cache,num_pages ));
 
     if(!cache) {
         BERR_TRACE(NEXUS_NOT_SUPPORTED);
         return NULL;
     }
     if(length % NEXUS_PLATFORM_LINUX_PAGE_SIZE){
-        BDBG_ERR(("%d not page aligned", length));
+        BDBG_ERR(("%u not page aligned", (unsigned)length));
         BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
@@ -1251,3 +1251,12 @@ static void NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings(b_shared_gpio_mo
 #define B_OS_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
 #define B_OS_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
 #include "b_os_irq.inc"
+
+bool NEXUS_Platform_P_IsOs64(void)
+{
+#if NEXUS_CPU_ARM64
+    return true;
+#else
+    return false;
+#endif
+}

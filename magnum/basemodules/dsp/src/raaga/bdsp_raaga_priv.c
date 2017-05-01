@@ -6937,7 +6937,7 @@ BERR_Code BDSP_Raaga_P_ResetRaagaCore(
 	BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
 
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
-
+    BDBG_ENTER(BDSP_Raaga_P_ResetRaagaCore);
 	/* Reset DSP processor and its peripherals */
 	regVal = 0;
 	uiOffset = pDevice->dspOffset[uiDspIndex];
@@ -7055,19 +7055,26 @@ BERR_Code BDSP_Raaga_P_ResetRaagaCore(
 #endif
 
 #else /* (BCHP_CHIP == 7278) */
-    if( 0 == uiDspIndex )
-    {
-        BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_0_CORECTRL_CORE_ENABLE, 0x0);
-    }
-    else
-    {
-        BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_1_CORECTRL_CORE_ENABLE, 0x0);
-    }
-    BSTD_UNUSED(regVal);
+    BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_0_CORECTRL_CORE_ENABLE, 0x0);
+    BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_1_CORECTRL_CORE_ENABLE, 0x0);
+    BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_MISC_SOFT_INIT, 0x100);
+
+    /*RDB says no need of Read modify write.*/
+    regVal = 0;
+    regVal = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_SET,    raaga0_sw_init,1));
+    BDSP_Write32(pDevice->regHandle,BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, regVal);
+
+    BKNI_Delay(2);
+
+    /*RDB says no need of Read modify write.*/
+    regVal = 0;
+    regVal = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga0_sw_init,1));
+    BDSP_Write32(pDevice->regHandle,BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, regVal);
     BSTD_UNUSED(uiOffset);
 #endif
 
-BDSP_BDBG_MSG_LVL1(("Ready for code download on DSP %d ", uiDspIndex));
+    BDBG_LEAVE(BDSP_Raaga_P_ResetRaagaCore);
+    BDSP_BDBG_MSG_LVL1(("Ready for code download on DSP %d ", uiDspIndex));
 
 return BERR_SUCCESS;
 }
@@ -7206,33 +7213,21 @@ BERR_Code BDSP_Raaga_P_ResetRaagaCore_isr(
 #endif
 
 #else /* (BCHP_CHIP == 7278) */
-    if( 0 == uiDspIndex )
-    {
-        BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_0_CORECTRL_CORE_ENABLE, 0x0);
-    }
-    else
-    {
-        BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_1_CORECTRL_CORE_ENABLE, 0x0);
-    }
-#if 0
-    if( 0 == uiDspIndex )
-    {
-        /* Resetting Core 0 */
-        regVal = BDSP_Read32(pDevice->regHandle, BCHP_RAAGA_DSP_FP_MISC_0_CORECTRL_CORE_ENABLE);
-        BCHP_SET_FIELD(regVal, BCHP_RAAGA_DSP_FP_MISC_0_CORECTRL_CORE_ENABLE, enable, 0);
-        BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_0_CORECTRL_CORE_ENABLE, regVal);
-    }
-    else
-    {
-        /* Resetting Core 1 */
-        regVal = BDSP_Read32(pDevice->regHandle, BCHP_RAAGA_DSP_FP_MISC_1_CORECTRL_CORE_ENABLE);
-        BCHP_SET_FIELD(regVal, BCHP_RAAGA_DSP_FP_MISC_1_CORECTRL_CORE_ENABLE, enable, 0);
-        BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_1_CORECTRL_CORE_ENABLE, regVal);
-    }
-#else
-    BSTD_UNUSED(regVal);
+    BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_0_CORECTRL_CORE_ENABLE, 0x0);
+    BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_FP_MISC_1_CORECTRL_CORE_ENABLE, 0x0);
+    BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_MISC_SOFT_INIT, 0x100);
+    /*RDB says no need of Read modify write.*/
+    regVal = 0;
+    regVal = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_SET,    raaga0_sw_init,1));
+    BDSP_Write32(pDevice->regHandle,BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, regVal);
+
+    BKNI_Delay(2);
+
+    /*RDB says no need of Read modify write.*/
+    regVal = 0;
+    regVal = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga0_sw_init,1));
+    BDSP_Write32(pDevice->regHandle,BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, regVal);
     BSTD_UNUSED(uiOffset);
-#endif
 #endif
 	BDBG_MSG(("**** Ready for code download on DSP %d ", uiDspIndex));
 

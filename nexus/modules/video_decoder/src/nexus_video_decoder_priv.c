@@ -70,6 +70,8 @@ static const BTRC_Module *video_btrc_modules[] = {
 #define VIDEO_BTRC_N_MODULES ((sizeof(video_btrc_modules)/sizeof(*video_btrc_modules)))
 #endif
 
+static NEXUS_VideoDecoderModuleStatistics g_NEXUS_VideoDecoderModuleStatistics;
+
 void NEXUS_VideoDecoder_P_WatchdogHandler(void *data)
 {
     struct NEXUS_VideoDecoderDevice *vDevice = (struct NEXUS_VideoDecoderDevice *)data;
@@ -167,13 +169,21 @@ static void NEXUS_VideoDecoder_P_DataReady_PrintPicture_isr(NEXUS_VideoDecoderHa
 }
 #endif
 
+static struct {
+    /* prevent ISR stack blowout by moving large ISR stack storage in global data */
+    NEXUS_VideoDecoderStreamInformation streamInfo;
+    BAVC_MFD_Picture modifiedFieldData;
+    BXVD_DecodeSettings decodeSettings;
+    BXVD_ChannelStatus channelStatus;
+} g_NEXUS_videoDecoderIsrStorage;
+
 const BAVC_MFD_Picture *
-NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(NEXUS_VideoDecoderHandle videoDecoder, const BAVC_MFD_Picture *pFieldData, BAVC_MFD_Picture *pModifiedFieldData)
+NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(NEXUS_VideoDecoderHandle videoDecoder, const BAVC_MFD_Picture *pFieldData)
 {
+    BAVC_MFD_Picture *pModifiedFieldData = &g_NEXUS_videoDecoderIsrStorage.modifiedFieldData;
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
 
     /* modify values from XVD if necessary */
-    BDBG_ASSERT(pFieldData != pModifiedFieldData); /* logic below assumes they start different */
     if (pFieldData->eAspectRatio == BFMT_AspectRatio_eUnknown && videoDecoder->startSettings.aspectRatio != NEXUS_AspectRatio_eUnknown) {
         if (pFieldData != pModifiedFieldData) {
             *pModifiedFieldData = *pFieldData;
@@ -280,6 +290,15 @@ NEXUS_VideoDecoder_P_DataReady_Generic_Prologue_isr(NEXUS_VideoDecoderHandle vid
 
         if ( pFieldData->bLast ) {
             videoDecoder->last_field_flag = true;
+        }
+
+        {
+            bool dolbyVision = (pFieldData->stHdrMetadata.eType == BAVC_HdrMetadataType_eDrpu);
+            if (videoDecoder->streamInfo.dolbyVision != dolbyVision) {
+                videoDecoder->streamInfo.dolbyVision = dolbyVision;
+                NEXUS_IsrCallback_Fire_isr(videoDecoder->streamChangedCallback);
+                NEXUS_IsrCallback_Fire_isr(videoDecoder->private.streamChangedCallback);
+            }
         }
     }
 
@@ -402,18 +421,17 @@ NEXUS_VideoDecoder_P_DataReady_isr(void *data, int unused, void *field)
 {
     NEXUS_VideoDecoderHandle videoDecoder = (NEXUS_VideoDecoderHandle)data;
     const BAVC_MFD_Picture *pFieldData = (BAVC_MFD_Picture*)field;
-    BAVC_MFD_Picture modifiedFieldData;
-    BXVD_ChannelStatus xvdChannelStatus;
+    BXVD_ChannelStatus *xvdChannelStatus = &g_NEXUS_videoDecoderIsrStorage.channelStatus;
     const BAVC_MFD_Picture *pNext;
 
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     BSTD_UNUSED(unused);
 
-    BXVD_GetChannelStatus_isr(videoDecoder->dec, &xvdChannelStatus);
+    BXVD_GetChannelStatus_isr(videoDecoder->dec, xvdChannelStatus);
     /* BDBG_ERR(("%u %u %u", pFieldData->eMatrixCoefficients, pFieldData->eColorPrimaries, pFieldData->eTransferCharacteristics)); */
 
     /* this preprocessing of the field data only applies to the parent/decoupled decoder */
-    pFieldData = NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(videoDecoder, pFieldData, &modifiedFieldData);
+    pFieldData = NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(videoDecoder, pFieldData);
 
     /* keep single decode prologue separate from mosaic */
     if (!pFieldData->pNext) {
@@ -433,7 +451,7 @@ NEXUS_VideoDecoder_P_DataReady_isr(void *data, int unused, void *field)
     }
 
     /* there are parts of the following call which are required to happen only for the parent decoder in mosaic mode */
-    NEXUS_VideoDecoder_P_DataReady_Generic_Epilogue_isr(videoDecoder, pFieldData, xvdChannelStatus.ulPictureDeliveryCount);
+    NEXUS_VideoDecoder_P_DataReady_Generic_Epilogue_isr(videoDecoder, pFieldData, xvdChannelStatus->ulPictureDeliveryCount);
     return;
 }
 
@@ -655,30 +673,35 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
 {
     NEXUS_VideoDecoderHandle videoDecoder = (NEXUS_VideoDecoderHandle)data;
     BXVD_PictureParameterInfo *info = (BXVD_PictureParameterInfo *)info_;
-    NEXUS_VideoDecoderStreamInformation streamInfo;
+    NEXUS_VideoDecoderStreamInformation *streamInfo = &g_NEXUS_videoDecoderIsrStorage.streamInfo;
     BXVD_ChannelStatus status;
     BERR_Code rc;
     BAVC_PTSInfo apts;
     BXVD_PTSInfo xpts;
-    BXVD_DecodeSettings DecodeSettings;
 
     BSTD_UNUSED(unused);
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
 
     videoDecoder->pictureParameterInfo.pictureCoding = info->uiPictureCodingType;
 
-    BKNI_Memset(&streamInfo, 0, sizeof(streamInfo));
-    streamInfo.valid = true;
-    streamInfo.sourceHorizontalSize = info->ulSourceHorizontalSize;
-    streamInfo.sourceVerticalSize = info->ulSourceVerticalSize;
-    streamInfo.codedSourceHorizontalSize = info->uiCodedSourceWidth;
-    streamInfo.codedSourceVerticalSize = info->uiCodedSourceHeight;
-    streamInfo.displayHorizontalSize = info->ulDisplayHorizontalSize;
-    streamInfo.displayVerticalSize = info->ulDisplayVerticalSize;
-    streamInfo.aspectRatio = NEXUS_P_AspectRatio_FromMagnum_isrsafe(info->eAspectRatio);
-    streamInfo.sampleAspectRatioX = info->uiSampleAspectRatioX;
-    streamInfo.sampleAspectRatioY = info->uiSampleAspectRatioY;
-    streamInfo.colorDepth = info->eBitDepth;
+    BKNI_Memset(streamInfo, 0, sizeof(*streamInfo));
+    streamInfo->valid = true;
+    streamInfo->sourceHorizontalSize = info->ulSourceHorizontalSize;
+    streamInfo->sourceVerticalSize = info->ulSourceVerticalSize;
+    if (streamInfo->sourceHorizontalSize > g_NEXUS_VideoDecoderModuleStatistics.maxDecodedWidth) {
+        g_NEXUS_VideoDecoderModuleStatistics.maxDecodedWidth = streamInfo->sourceHorizontalSize;
+    }
+    if (streamInfo->sourceVerticalSize > g_NEXUS_VideoDecoderModuleStatistics.maxDecodedHeight) {
+        g_NEXUS_VideoDecoderModuleStatistics.maxDecodedHeight = streamInfo->sourceVerticalSize;
+    }
+    streamInfo->codedSourceHorizontalSize = info->uiCodedSourceWidth;
+    streamInfo->codedSourceVerticalSize = info->uiCodedSourceHeight;
+    streamInfo->displayHorizontalSize = info->ulDisplayHorizontalSize;
+    streamInfo->displayVerticalSize = info->ulDisplayVerticalSize;
+    streamInfo->aspectRatio = NEXUS_P_AspectRatio_FromMagnum_isrsafe(info->eAspectRatio);
+    streamInfo->sampleAspectRatioX = info->uiSampleAspectRatioX;
+    streamInfo->sampleAspectRatioY = info->uiSampleAspectRatioY;
+    streamInfo->colorDepth = info->eBitDepth;
 
     /* pick 4 values to help assure Nexus and Magnum enums stay in sync */
     BDBG_CASSERT(NEXUS_MatrixCoefficients_eSmpte_240M == (NEXUS_MatrixCoefficients)BAVC_MatrixCoefficients_eSmpte_240M);
@@ -687,49 +710,49 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
     BDBG_CASSERT(NEXUS_VideoFrameRate_e60 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e60);
 
     /* These enums are straight mappings from Magnum */
-    streamInfo.frameRate = info->eFrameRateCode;
-    streamInfo.colorPrimaries = NEXUS_P_ColorPrimaries_FromMagnum_isrsafe(info->eColorPrimaries);
-    streamInfo.transferCharacteristics = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(info->eTransferCharacteristics);
-    streamInfo.matrixCoefficients = NEXUS_P_MatrixCoefficients_FromMagnum_isrsafe(info->eMatrixCoefficients);
+    streamInfo->frameRate = info->eFrameRateCode;
+    streamInfo->colorPrimaries = NEXUS_P_ColorPrimaries_FromMagnum_isrsafe(info->eColorPrimaries);
+    streamInfo->transferCharacteristics = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(info->eTransferCharacteristics);
+    streamInfo->matrixCoefficients = NEXUS_P_MatrixCoefficients_FromMagnum_isrsafe(info->eMatrixCoefficients);
 
     /* HDR stuff */
     /* grab preferred xfer chars */
-    streamInfo.preferredTransferCharacteristics = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(info->ePreferredTransferCharacteristics);
+    streamInfo->preferredTransferCharacteristics = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(info->ePreferredTransferCharacteristics);
     /* convert xfer chars + preferred xfer chars to EOTF */
-    streamInfo.eotf = NEXUS_P_TransferCharacteristicsToEotf_isrsafe(streamInfo.transferCharacteristics, streamInfo.preferredTransferCharacteristics);
+    streamInfo->eotf = NEXUS_P_TransferCharacteristicsToEotf_isrsafe(streamInfo->transferCharacteristics, streamInfo->preferredTransferCharacteristics);
     /* convert CLL */
-    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(&streamInfo.contentLightLevel, info->ulMaxContentLight, info->ulAvgContentLight);
+    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(&streamInfo->contentLightLevel, info->ulMaxContentLight, info->ulAvgContentLight);
     /* convert MDCV */
-    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(&streamInfo.masteringDisplayColorVolume,
+    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(&streamInfo->masteringDisplayColorVolume,
         info->stDisplayPrimaries, &info->stWhitePoint, info->ulMaxDispMasteringLuma, info->ulMinDispMasteringLuma);
 
     /* other stuff */
-    streamInfo.streamProgressive = info->bStreamProgressive; /* don't use the bStreamProgressive_7411 flavor. it could lock onto a false value. */
-    streamInfo.frameProgressive = info->bFrameProgressive;
-    streamInfo.horizontalPanScan = info->i32_HorizontalPanScan;
-    streamInfo.verticalPanScan = info->i32_VerticalPanScan;
-    streamInfo.lowDelayFlag = info->uiLowDelayFlag;
-    streamInfo.fixedFrameRateFlag = info->uiFixedFrameRateFlag;
+    streamInfo->streamProgressive = info->bStreamProgressive; /* don't use the bStreamProgressive_7411 flavor. it could lock onto a false value. */
+    streamInfo->frameProgressive = info->bFrameProgressive;
+    streamInfo->horizontalPanScan = info->i32_HorizontalPanScan;
+    streamInfo->verticalPanScan = info->i32_VerticalPanScan;
+    streamInfo->lowDelayFlag = info->uiLowDelayFlag;
+    streamInfo->fixedFrameRateFlag = info->uiFixedFrameRateFlag;
     if (info->bValidAfd && info->uiAfd != videoDecoder->userdata.status.afdValue) {
         videoDecoder->userdata.status.afdValue = info->uiAfd;
         NEXUS_IsrCallback_Fire_isr(videoDecoder->afdChangedCallback);
     }
 
-    if (BKNI_Memcmp(&streamInfo, &videoDecoder->streamInfo, sizeof(streamInfo))) {
-        videoDecoder->streamInfo = streamInfo;
+    if (BKNI_Memcmp(streamInfo, &videoDecoder->streamInfo, sizeof(*streamInfo))) {
+        videoDecoder->streamInfo = *streamInfo;
         NEXUS_IsrCallback_Fire_isr(videoDecoder->streamChangedCallback);
         NEXUS_IsrCallback_Fire_isr(videoDecoder->private.streamChangedCallback);
 
 #if NEXUS_HAS_SYNC_CHANNEL
         /* notify sync., but only if things have changed */
-        if (videoDecoder->sync.status.height != streamInfo.sourceVerticalSize
+        if (videoDecoder->sync.status.height != streamInfo->sourceVerticalSize
             ||
-            videoDecoder->sync.status.interlaced != !streamInfo.streamProgressive
+            videoDecoder->sync.status.interlaced != !streamInfo->streamProgressive
             ||
             videoDecoder->sync.status.frameRate != info->eFrameRateCode)
         {
-            videoDecoder->sync.status.height = streamInfo.sourceVerticalSize;
-            videoDecoder->sync.status.interlaced = !streamInfo.streamProgressive;
+            videoDecoder->sync.status.height = streamInfo->sourceVerticalSize;
+            videoDecoder->sync.status.interlaced = !streamInfo->streamProgressive;
             videoDecoder->sync.status.frameRate = info->eFrameRateCode;
             if (videoDecoder->sync.settings.formatCallback_isr) {
                 (*videoDecoder->sync.settings.formatCallback_isr)(videoDecoder->sync.settings.callbackContext, 0);
@@ -753,8 +776,8 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
 
         apts.ui32CurrentPTS = xpts.ui32RunningPTS;
 
-        BXVD_GetDecodeSettings_isrsafe(videoDecoder->dec,&DecodeSettings);
-        if (videoDecoder->startSettings.stcChannel && !DecodeSettings.bPlayback && videoDecoder->stc.connector) {
+        BXVD_GetDecodeSettings_isrsafe(videoDecoder->dec,&g_NEXUS_videoDecoderIsrStorage.decodeSettings);
+        if (videoDecoder->startSettings.stcChannel && !g_NEXUS_videoDecoderIsrStorage.decodeSettings.bPlayback && videoDecoder->stc.connector) {
             BDBG_WRN(("video:%d Overflow -> Request STC %#x", (unsigned)videoDecoder->mfdIndex, apts.ui32CurrentPTS));
             rc = NEXUS_StcChannel_RequestStc_isr(videoDecoder->stc.connector, &apts);
             if (rc) {rc=BERR_TRACE(rc);} /* keep going */
@@ -1481,9 +1504,9 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetTsm(NEXUS_VideoDecoderHandle videoDecoder)
     }
 #endif
 
-#if NEXUS_CRC_CAPTURE
-    tsm = false;
-#endif
+    if (videoDecoder->crcMode) {
+        tsm = false;
+    }
 
     (void)BXVD_GetClockOverride(videoDecoder->dec, &clockOverride);
     clockOverride.bLoadSwStc = false;
@@ -2053,4 +2076,23 @@ BXDM_PictureProvider_MonitorRefreshRate NEXUS_VideoDecoder_P_GetXdmMonitorRefres
         refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e120Hz; break;
     }
     return refreshRate;
+}
+
+NEXUS_Timebase NEXUS_VideoDecoder_P_GetTimebase_isrsafe(NEXUS_VideoDecoderHandle handle)
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_VideoDecoder);
+    return handle->timebase;
+}
+
+void NEXUS_VideoDecoderModule_GetStatistics( NEXUS_VideoDecoderModuleStatistics *pStats )
+{
+    BKNI_EnterCriticalSection();
+    *pStats = g_NEXUS_VideoDecoderModuleStatistics;
+    BKNI_LeaveCriticalSection();
+}
+
+void NEXUS_VideoDecoder_EnableCrcMode_priv(NEXUS_VideoDecoderHandle handle)
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_VideoDecoder);
+    handle->crcMode = true;
 }

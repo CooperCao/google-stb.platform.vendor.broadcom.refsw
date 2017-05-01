@@ -1,18 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  sfu
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef SFU_H
 #define SFU_H
 
 #include "libs/core/v3d/v3d_common.h"
-#include "vcos_types.h"
+#include "libs/util/common.h"
 #include <stdbool.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern unsigned int sfu_exp (unsigned int b, bool prop_nan);
 extern unsigned int sfu_log (unsigned int b, bool prop_nan);
@@ -23,6 +19,6 @@ extern unsigned int sfu_recipsqrt2 (unsigned int b, bool prop_nan);
 extern unsigned int sfu_recip (unsigned int b, bool prop_nan);
 extern unsigned int sfu_sin (unsigned int b, bool prop_nan);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

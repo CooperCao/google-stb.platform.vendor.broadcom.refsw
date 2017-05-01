@@ -59,7 +59,7 @@ static void print_usage(void)
         "OPTIONS:\n"
         "  --help or -h for help\n"
         "  -o           HDCP authentication is optional (video not muted). Default is mandatory (video will be muted on HDCP failure).\n"
-        "  -version {auto|follow|hdcp1x|hdcp22}\n"
+        "  -version {auto|hdcp1x|hdcp22}\n"
         "               Force new version select policy\n"
         "  -hdcp2x_keys BINFILE \tload Hdcp2.x bin file\n"
         "  -hdcp1x_keys BINFILE \tload Hdcp1.x bin file\n"
@@ -104,7 +104,6 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-version") && argc>curarg+1) {
             curarg++;
             if (!strcmp(argv[curarg], "auto"))   displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eAuto;
-            if (!strcmp(argv[curarg], "follow")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eFollow;
             if (!strcmp(argv[curarg], "hdcp1x")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp1x;
             if (!strcmp(argv[curarg], "hdcp22")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp22;
         }

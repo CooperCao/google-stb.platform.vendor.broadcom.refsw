@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-
-EGLImages from GL Textures
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_IMAGE_TEXTURE_H
 #define EGL_IMAGE_TEXTURE_H
 #include <EGL/egl.h>

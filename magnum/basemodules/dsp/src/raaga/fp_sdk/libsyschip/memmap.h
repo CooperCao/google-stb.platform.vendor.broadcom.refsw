@@ -272,8 +272,8 @@ with the pcache these macros just return the value supplied.
  * only if you're sure the linker script contains the required snippet from
  * memmap-hash.ldp. */
 __absolute __weak extern unsigned long __fp_seg_hash;
-__absolute extern unsigned long __fp_seg_hash_addr;
-__absolute extern unsigned long __fp_seg_hash_load_addr;
+__absolute        extern unsigned long __fp_seg_hash_addr;
+__absolute        extern unsigned long __fp_seg_hash_load_addr;
 __absolute __weak extern unsigned long __fp_seg_hash_size;
 #endif
 

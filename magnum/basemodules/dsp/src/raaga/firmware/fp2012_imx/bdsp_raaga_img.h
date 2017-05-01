@@ -404,6 +404,12 @@ extern const void * BDSP_IMG_fadectrl_tables[];
 extern const void * BDSP_IMG_fadectrl_inter_frame[];
 #endif
 
+#ifdef BDSP_TSMCORRECTION_SUPPORT
+extern const void * BDSP_IMG_tsmcorrection_code[];
+extern const void * BDSP_IMG_tsmcorrection_tables[];
+extern const void * BDSP_IMG_tsmcorrection_inter_frame[];
+#endif
+
 #ifdef BDSP_MP3ENC_SUPPORT
 extern const void * BDSP_IMG_mp3_encode[];
 extern const void * BDSP_IMG_mp3_encode_tables[];

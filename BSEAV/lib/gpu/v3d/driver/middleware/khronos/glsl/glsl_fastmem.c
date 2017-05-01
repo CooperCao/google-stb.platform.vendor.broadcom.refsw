@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
 #include "middleware/khronos/glsl/glsl_fastmem.h"
@@ -42,15 +35,12 @@ void glsl_fastmem_term(void)
 
 Hunk *glsl_fastmem_alloc_hunk(Hunk *next, size_t curBlockSize)
 {
-   MEM_HANDLE_T handle = MEM_INVALID_HANDLE;
-   MEM_HANDLE_T dhandle = MEM_INVALID_HANDLE;
-   Hunk *hunk;
    size_t hunk_size = _max(curBlockSize, HUNK_SIZE);
 
    /*
       check free list for available hunks; allocate one from the global heap if none found
    */
-   hunk = (Hunk*)malloc(sizeof(Hunk));
+   Hunk *hunk = (Hunk*)malloc(sizeof(Hunk));
    khrn_memset(hunk, 0, sizeof(Hunk));
 
    hunk->data = (char*)malloc(hunk_size);

@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :
-Module   :
-
-FILE DESCRIPTION
-Small module for transient allocations used in the BCG gmem module.
-This ulimately saves us the trip through the platform layer and out to NEXUS
-for lock & map.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos_thread.h"
 #include "vcos_event.h"
 #include "gmem_abstract.h"

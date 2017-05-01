@@ -23,6 +23,7 @@
 
    #undef YY_BUF_SIZE
    #define YY_BUF_SIZE 256
+   #define YY_NO_INPUT
    #define YY_INPUT(buf,result,max_size) { result = yyinput(buf,(int)max_size); }
 
    extern void yyerror(char *c);

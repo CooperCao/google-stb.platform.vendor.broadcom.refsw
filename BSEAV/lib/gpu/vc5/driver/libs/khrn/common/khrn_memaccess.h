@@ -1,11 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/core/v3d/v3d_addr.h"
-#include "libs/platform/v3d_barrier.h"
+#include "libs/core/v3d/v3d_barrier.h"
 #include "vcos_types.h"
 #include "gmem.h"
 
@@ -13,7 +12,7 @@ VCOS_EXTERN_C_BEGIN
 
 typedef struct khrn_render_state khrn_render_state;
 typedef struct khrn_memaccess khrn_memaccess;
-typedef struct khrn_res_interlock KHRN_RES_INTERLOCK_T;
+typedef struct khrn_resource khrn_resource;
 
 khrn_memaccess* khrn_memaccess_create(khrn_render_state* rs);
 void khrn_memaccess_destroy(khrn_memaccess* ma);
@@ -22,7 +21,7 @@ void khrn_memaccess_destroy(khrn_memaccess* ma);
 void khrn_memaccess_add_buffer(khrn_memaccess* ma, gmem_handle_t handle, v3d_barrier_flags bin_flags, v3d_barrier_flags rdr_flags);
 
 //! Register a resource so that buffer accesses can be synchronised.
-void khrn_memaccess_register_resource(khrn_memaccess* ma, KHRN_RES_INTERLOCK_T* res);
+void khrn_memaccess_register_resource(khrn_memaccess* ma, khrn_resource* res);
 
 //! This must be called before using khrn_memaccess_read().
 void khrn_memaccess_pre_read(khrn_memaccess* ma);

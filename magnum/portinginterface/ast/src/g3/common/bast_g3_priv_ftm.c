@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,24 +52,24 @@ BDBG_MODULE(BAST_g3_priv_ftm);
 #define BAST_FTM_DEBUG(x) /* x */
 
 /* private functions prototypes used by public ftm functions */
-bool BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe(BAST_Handle);
-BERR_Code BAST_g3_Ftm_P_InitFtm_isr(BAST_Handle);
-BERR_Code BAST_g3_Ftm_P_ConfigureFsk_isrsafe(BAST_Handle);
-BERR_Code BAST_g3_Ftm_P_EnableHwAssist_isrsafe(BAST_Handle, bool);
-BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle(BAST_Handle, BAST_FTM_ISR);
-BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle_isr(BAST_Handle, BAST_FTM_ISR);
-BERR_Code BAST_g3_Ftm_P_EnableFtmInterrupts(BAST_Handle, bool);
-BERR_Code BAST_g3_Ftm_P_InitDevice_isrsafe(BAST_Handle);
-BERR_Code BAST_g3_Ftm_P_InterruptOnPreamble_isr(BAST_Handle);
-BERR_Code BAST_g3_Ftm_P_InterruptOnNetworkActivity_isr(BAST_Handle);
-BERR_Code BAST_g3_Ftm_P_SetExcludeList_isr(BAST_Handle, BAST_Ftm_Exclude, bool);
-BERR_Code BAST_g3_Ftm_P_EnableReceiver_isrsafe(BAST_Handle, bool);
-BERR_Code BAST_g3_Ftm_P_ProcessLocalCommand(BAST_Handle, uint8_t*, uint8_t);
-BERR_Code BAST_g3_Ftm_P_SendLocalMessage_isrsafe(BAST_Handle, uint8_t*, uint8_t);
-BERR_Code BAST_g3_Ftm_P_SendErrorMessage_isrsafe(BAST_Handle, uint8_t);
-BERR_Code BAST_g3_Ftm_P_SendPacket(BAST_Handle, uint8_t*, uint8_t);
+static bool BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe(BAST_Handle);
+static BERR_Code BAST_g3_Ftm_P_InitFtm_isr(BAST_Handle);
+static BERR_Code BAST_g3_Ftm_P_ConfigureFsk_isrsafe(BAST_Handle);
+static BERR_Code BAST_g3_Ftm_P_EnableHwAssist_isrsafe(BAST_Handle, bool);
+static BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle(BAST_Handle, BAST_FTM_ISR);
+static BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle_isr(BAST_Handle, BAST_FTM_ISR);
+static BERR_Code BAST_g3_Ftm_P_InterruptOnPreamble_isr(BAST_Handle);
+static BERR_Code BAST_g3_Ftm_P_InterruptOnNetworkActivity_isr(BAST_Handle);
+static BERR_Code BAST_g3_Ftm_P_SetExcludeList_isr(BAST_Handle, BAST_Ftm_Exclude, bool);
+static BERR_Code BAST_g3_Ftm_P_EnableReceiver_isrsafe(BAST_Handle, bool);
+static BERR_Code BAST_g3_Ftm_P_ProcessLocalCommand(BAST_Handle, uint8_t*, uint8_t);
+static BERR_Code BAST_g3_Ftm_P_SendLocalMessage_isrsafe(BAST_Handle, uint8_t*, uint8_t);
+static BERR_Code BAST_g3_Ftm_P_SendErrorMessage_isrsafe(BAST_Handle, uint8_t);
+static BERR_Code BAST_g3_Ftm_P_SendPacket(BAST_Handle, uint8_t*, uint8_t);
+#if 0
 BERR_Code BAST_g3_Ftm_P_CheckCrc(BAST_Handle, uint8_t*, uint8_t, bool*);
-BERR_Code BAST_g3_Ftm_P_GetRxBitMask_isrsafe(BAST_Handle);
+#endif
+static BERR_Code BAST_g3_Ftm_P_GetRxBitMask_isrsafe(BAST_Handle);
 
 
 static const uint32_t phyCoeff[] =
@@ -87,55 +87,74 @@ static const uint32_t script_ftm_shutdown[] =
    BAST_SCRIPT_EXIT
 };
 
-
-BAST_g3_Ftm_P_InterruptCbTable BAST_Ftm_Interrupts[] =
-{
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_UART, BAST_Ftm_IntID_eUart, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_UART_TX, BAST_Ftm_IntID_eUartTx, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_UART_END, BAST_Ftm_IntID_eUartEnd, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_UART_ERR, BAST_Ftm_IntID_eUartErr, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RSSI_RISE, BAST_Ftm_IntID_eRssiRise, false)
+static const BAST_FtmCbInfo ftmDefCbInfo[BAST_Ftm_MaxIntID] = {
+   /* ftm interrupt callback table */
+   {BCHP_INT_ID_FTM_UART, NULL, false},
+   {BCHP_INT_ID_FTM_UART_TX, NULL, false},
+   {BCHP_INT_ID_FTM_UART_END, NULL, false},
+   {BCHP_INT_ID_FTM_UART_ERR, NULL, false},
+   {BCHP_INT_ID_FTM_RSSI_RISE, NULL, false},
 #if (BAST_FTM_CORE_REV >= BAST_FTM_CORE_REV_1P6)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_ROLL_TIMER, BAST_Ftm_IntID_eRollTimer, false)
+   {BCHP_INT_ID_FTM_ROLL_TIMER, NULL, false},
 #else
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RSSI_FALL, BAST_Ftm_IntID_eRssiFall, false)
+   {BCHP_INT_ID_FTM_RSSI_FALL, NULL, false},
 #endif
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_CORR_STATE, BAST_Ftm_IntID_eCorrState, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_CORR_BYTE, BAST_Ftm_IntID_eCorrByte, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_CORR_TIMEOUT, BAST_Ftm_IntID_eCorrTimeout, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_CORR_AGC, BAST_Ftm_IntID_eCorrAgc, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_CORR_PREAMBLE, BAST_Ftm_IntID_eCorrPreamble, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_TIMER1, BAST_Ftm_IntID_eTimer1, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_TIMER2, BAST_Ftm_IntID_eTimer2, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_TIMER3, BAST_Ftm_IntID_eTimer3, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_ASSIST_IDLE, BAST_Ftm_IntID_eAssistIdle, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RX_PKT_RDY, BAST_Ftm_IntID_eRxPktRdy, true)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_ASSIST_LVL1, BAST_Ftm_IntID_eAssistLvl1, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_ASSIST_LVL2, BAST_Ftm_IntID_eAssistLvl2, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_ASSIST_LVL3, BAST_Ftm_IntID_eAssistLvl3, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_ASSIST_LVL4, BAST_Ftm_IntID_eAssistLvl4, false)
+   {BCHP_INT_ID_FTM_CORR_STATE, NULL, false},
+   {BCHP_INT_ID_FTM_CORR_BYTE, NULL, false},
+   {BCHP_INT_ID_FTM_CORR_TIMEOUT, NULL, false},
+   {BCHP_INT_ID_FTM_CORR_AGC, NULL, false},
+   {BCHP_INT_ID_FTM_CORR_PREAMBLE, NULL, false},
+   {BCHP_INT_ID_FTM_TIMER1, NULL, false},
+   {BCHP_INT_ID_FTM_TIMER2, NULL, false},
+   {BCHP_INT_ID_FTM_TIMER3, NULL, false},
+   {BCHP_INT_ID_FTM_ASSIST_IDLE, NULL, false},
+   {BCHP_INT_ID_FTM_RX_PKT_RDY, NULL, true},
+   {BCHP_INT_ID_FTM_ASSIST_LVL1, NULL, false},
+   {BCHP_INT_ID_FTM_ASSIST_LVL2, NULL, false},
+   {BCHP_INT_ID_FTM_ASSIST_LVL3, NULL, false},
+   {BCHP_INT_ID_FTM_ASSIST_LVL4, NULL, false},
 #if defined(BAST_FTM_ODU_RESET_RCVR) && (BAST_FTM_CORE_REV >= BAST_FTM_CORE_REV_1P6)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_HB_PKT_SENT, BAST_Ftm_IntID_eHbPktSent, true)
+   {BCHP_INT_ID_FTM_HB_PKT_SENT, NULL, true},
 #else
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_HB_PKT_SENT, BAST_Ftm_IntID_eHbPktSent, false)
+   {BCHP_INT_ID_FTM_HB_PKT_SENT, NULL, false},
 #endif
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_SP_PKT_SENT, BAST_Ftm_IntID_eSpPktSent, true)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_ASSIST_ERR, BAST_Ftm_IntID_eAssistErr, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RX_PKT_RDY_CNT, BAST_Ftm_IntID_eRxPktRdyCnt, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_FPKT_CNT, BAST_Ftm_IntID_eFPktCnt, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_FBAD_CRC_CNT, BAST_Ftm_IntID_eFBadCrcCnt, true)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_FRX_MSK_NM_CNT, BAST_Ftm_IntID_eFRxMskNmCnt, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_FXCLUDE_CNT, BAST_Ftm_IntID_eFXcludeCnt, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RX_BIT_MASK_CHG, BAST_Ftm_IntID_eRxBitMaskChg, true)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_SER_NUM_CHG, BAST_Ftm_IntID_eSerNumChg, true)
+   {BCHP_INT_ID_FTM_SP_PKT_SENT, NULL, true},
+   {BCHP_INT_ID_FTM_ASSIST_ERR, NULL, false},
+   {BCHP_INT_ID_FTM_RX_PKT_RDY_CNT, NULL, false},
+   {BCHP_INT_ID_FTM_FPKT_CNT, NULL, false},
+   {BCHP_INT_ID_FTM_FBAD_CRC_CNT, NULL, false},
+   {BCHP_INT_ID_FTM_FRX_MSK_NM_CNT, NULL, false},
+   {BCHP_INT_ID_FTM_FXCLUDE_CNT, NULL, true},
+   {BCHP_INT_ID_FTM_RX_BIT_MASK_CHG, NULL, true},
+   {BCHP_INT_ID_FTM_SER_NUM_CHG, NULL, true},
 #if (BAST_FTM_CORE_REV >= BAST_FTM_CORE_REV_1P6)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RX_TYPE1_OR_TYPE2_CNT, BAST_Ftm_IntID_eRxType1OrType2Cnt, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RX_RESET_PKT, BAST_Ftm_IntID_eRxResetPkt, false)
+   {BCHP_INT_ID_FTM_RX_TYPE1_OR_TYPE2_CNT, NULL, false},
+   {BCHP_INT_ID_FTM_RX_RESET_PKT, NULL, false}
 #else
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RX_TYPE1_CNT, BAST_Ftm_IntID_eRxType1Cnt, false)
-   BAST_INT_CB_DEF(BCHP_INT_ID_FTM_RX_TYPE2_CNT, BAST_Ftm_IntID_eRxType2Cnt, false)
+   {BCHP_INT_ID_FTM_RX_TYPE1_CNT, NULL, false},
+   {BCHP_INT_ID_FTM_RX_TYPE2_CNT, NULL, false}
 #endif
 };
+
+
+/******************************************************************************
+ BAST_g3_P_InitCbInfo()
+******************************************************************************/
+BERR_Code BAST_g3_P_InitCbInfo(BAST_Handle h)
+{
+   BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
+   uint8_t i;
+
+   /* initialize callback info */
+   for (i = 0; i < BAST_Ftm_MaxIntID; i++)
+   {
+      hFtm->cbInfo[i].intID = ftmDefCbInfo[i].intID;
+      hFtm->cbInfo[i].hCb = ftmDefCbInfo[i].hCb;
+      hFtm->cbInfo[i].bEnable = ftmDefCbInfo[i].bEnable;
+   }
+
+   return BERR_SUCCESS;
+}
 
 
 /******************************************************************************
@@ -331,7 +350,7 @@ BERR_Code BAST_g3_P_WriteFtm(
 /******************************************************************************
  BAST_g3_P_PowerDownFtm1_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_PowerDownFtm1_isr(
+static BERR_Code BAST_g3_P_PowerDownFtm1_isr(
    BAST_Handle h  /* [in] BAST handle */
 )
 {
@@ -481,7 +500,7 @@ BERR_Code BAST_g3_P_GetFtmEventHandle(BAST_Handle h, BKNI_EventHandle *hFtmEvent
 /******************************************************************************
  BAST_g3_Ftm_P_InitFtm_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_InitFtm_isr(
+static BERR_Code BAST_g3_Ftm_P_InitFtm_isr(
    BAST_Handle h    /* [in] BAST channel handle */
 )
 {
@@ -610,9 +629,9 @@ BERR_Code BAST_g3_Ftm_P_InitFtm_isr(
 
    /* clear all interrupts */
    BAST_FTM_WRITE(FTM_PHY_FIRQ_STS, 0xFFFFFFFF);
-   for (i = 0; i < 32; i++)
+   for (i = 0; i < BAST_Ftm_MaxIntID; i++)
    {
-      retCode = BINT_ClearCallback_isr(hFtm->hCallback[i]);
+      retCode = BINT_ClearCallback_isr(hFtm->cbInfo[i].hCb);
       BDBG_ASSERT(retCode == BERR_SUCCESS);
    }
 
@@ -666,7 +685,7 @@ BERR_Code BAST_g3_Ftm_P_InitDevice_isrsafe(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ConfigureFsk_isrsafe() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ConfigureFsk_isrsafe(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ConfigureFsk_isrsafe(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    uint32_t mb = 0x2080;   /* power down both fskphy by default: ch1_fskphy_dac_pwrdn = 1, ch0_fskphy_dac_pwrdn = 1 */
@@ -710,36 +729,36 @@ BERR_Code BAST_g3_Ftm_P_EnableFtmInterrupts(BAST_Handle h, bool bEnable)
 
    if (bEnable)
    {
-      for (i = 0; i < 32 ; i++)
+      for (i = 0; i < BAST_Ftm_MaxIntID ; i++)
       {
          /* clear callback */
-         retCode = BINT_ClearCallback(hFtm->hCallback[i]);
+         retCode = BINT_ClearCallback(hFtm->cbInfo[i].hCb);
          BDBG_ASSERT(retCode == BERR_SUCCESS);
 
-         if (BAST_Ftm_Interrupts[i].enable)
+         if (hFtm->cbInfo[i].bEnable)
          {
             /* enable the interrupt */
-            retCode = BINT_EnableCallback(hFtm->hCallback[i]);
+            retCode = BINT_EnableCallback(hFtm->cbInfo[i].hCb);
             BDBG_ASSERT(retCode == BERR_SUCCESS);
          }
          else
          {
             /* disable the interrupt */
-            retCode = BINT_DisableCallback(hFtm->hCallback[i]);
+            retCode = BINT_DisableCallback(hFtm->cbInfo[i].hCb);
             BDBG_ASSERT(retCode == BERR_SUCCESS);
-            retCode = BINT_ClearCallback(hFtm->hCallback[i]);
+            retCode = BINT_ClearCallback(hFtm->cbInfo[i].hCb);
             BDBG_ASSERT(retCode == BERR_SUCCESS);
          }
       }
    }
    else
    {
-      for(i = 0; i < 32 ; i++)
+      for(i = 0; i < BAST_Ftm_MaxIntID ; i++)
       {
          /* disable and clear the interrupt */
-         retCode = BINT_DisableCallback(hFtm->hCallback[i]);
+         retCode = BINT_DisableCallback(hFtm->cbInfo[i].hCb);
          BDBG_ASSERT(retCode == BERR_SUCCESS);
-         retCode = BINT_ClearCallback(hFtm->hCallback[i]);
+         retCode = BINT_ClearCallback(hFtm->cbInfo[i].hCb);
          BDBG_ASSERT(retCode == BERR_SUCCESS);
       }
    }
@@ -751,25 +770,25 @@ BERR_Code BAST_g3_Ftm_P_EnableFtmInterrupts(BAST_Handle h, bool bEnable)
 /******************************************************************************
  BAST_g3_Ftm_P_EnableInterrupt_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_EnableInterrupt_isr(BAST_Handle h, BAST_Ftm_IntID intID, bool bEnable)
+static BERR_Code BAST_g3_Ftm_P_EnableInterrupt_isr(BAST_Handle h, BAST_Ftm_IntID intID, bool bEnable)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
 
    /* clear callback */
-   retCode = BINT_ClearCallback_isr(hFtm->hCallback[intID]);
+   retCode = BINT_ClearCallback_isr(hFtm->cbInfo[intID].hCb);
    BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    if (bEnable)
    {
-      BAST_Ftm_Interrupts[intID].enable = true;
-      retCode = BINT_EnableCallback_isr(hFtm->hCallback[intID]);
+      hFtm->cbInfo[intID].bEnable = true;
+      retCode = BINT_EnableCallback_isr(hFtm->cbInfo[intID].hCb);
       BDBG_ASSERT(retCode == BERR_SUCCESS);
    }
    else
    {
-      BAST_Ftm_Interrupts[intID].enable = false;
-      retCode = BINT_DisableCallback_isr(hFtm->hCallback[intID]);
+      hFtm->cbInfo[intID].bEnable = false;
+      retCode = BINT_DisableCallback_isr(hFtm->cbInfo[intID].hCb);
       BDBG_ASSERT(retCode == BERR_SUCCESS);
    }
 
@@ -780,7 +799,7 @@ BERR_Code BAST_g3_Ftm_P_EnableInterrupt_isr(BAST_Handle h, BAST_Ftm_IntID intID,
 /******************************************************************************
  BAST_g3_Ftm_P_EnableReceiver_isrsafe()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_EnableReceiver_isrsafe(BAST_Handle h, bool bEnable)
+static BERR_Code BAST_g3_Ftm_P_EnableReceiver_isrsafe(BAST_Handle h, bool bEnable)
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t mb, old;
@@ -803,7 +822,7 @@ BERR_Code BAST_g3_Ftm_P_EnableReceiver_isrsafe(BAST_Handle h, bool bEnable)
 /******************************************************************************
  BAST_g3_Ftm_P_EnableHwAssist_isrsafe()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_EnableHwAssist_isrsafe(BAST_Handle h, bool bEnable)
+static BERR_Code BAST_g3_Ftm_P_EnableHwAssist_isrsafe(BAST_Handle h, bool bEnable)
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t mb, old, sts;
@@ -838,7 +857,7 @@ BERR_Code BAST_g3_Ftm_P_EnableHwAssist_isrsafe(BAST_Handle h, bool bEnable)
 /******************************************************************************
  BAST_g3_Ftm_P_DoWhenHwAssistIdle_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle_isr(BAST_Handle h, BAST_FTM_ISR idle_funct_isr)
+static BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle_isr(BAST_Handle h, BAST_FTM_ISR idle_funct_isr)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -878,7 +897,7 @@ BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle_isr(BAST_Handle h, BAST_FTM_ISR idle_
 /******************************************************************************
  BAST_g3_Ftm_P_DoWhenHwAssistIdle() - Non-ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle(BAST_Handle h, BAST_FTM_ISR idle_funct_isr)
+static BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle(BAST_Handle h, BAST_FTM_ISR idle_funct_isr)
 {
    BERR_Code retCode;
 
@@ -893,7 +912,7 @@ BERR_Code BAST_g3_Ftm_P_DoWhenHwAssistIdle(BAST_Handle h, BAST_FTM_ISR idle_func
 /******************************************************************************
 BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe()
 ******************************************************************************/
-bool BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe(BAST_Handle h)
+static bool BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe(BAST_Handle h)
 {
    uint32_t mb;
 
@@ -908,7 +927,7 @@ bool BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe(BAST_Handle h)
 /******************************************************************************
 BAST_g3_Ftm_P_InterruptOnPreamble_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_InterruptOnPreamble_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_InterruptOnPreamble_isr(BAST_Handle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
 
@@ -921,7 +940,7 @@ BERR_Code BAST_g3_Ftm_P_InterruptOnPreamble_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_InterruptOnNetworkActivity_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_InterruptOnNetworkActivity_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_InterruptOnNetworkActivity_isr(BAST_Handle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
 
@@ -934,7 +953,7 @@ BERR_Code BAST_g3_Ftm_P_InterruptOnNetworkActivity_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_SetExcludeList_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_SetExcludeList_isr(BAST_Handle h, BAST_Ftm_Exclude excludePacket, bool bFilterOn)
+static BERR_Code BAST_g3_Ftm_P_SetExcludeList_isr(BAST_Handle h, BAST_Ftm_Exclude excludePacket, bool bFilterOn)
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t mb;
@@ -965,7 +984,7 @@ BERR_Code BAST_g3_Ftm_P_SetExcludeList_isr(BAST_Handle h, BAST_Ftm_Exclude exclu
 /******************************************************************************
  BAST_g3_Ftm_P_StopTimer_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_StopTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t)
+static BERR_Code BAST_g3_Ftm_P_StopTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1000,10 +1019,10 @@ BERR_Code BAST_g3_Ftm_P_StopTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t)
    BAST_FTM_WRITE(FTM_PHY_CTL, mb);
 
    /* clear and disable the interrupt */
-   BAST_Ftm_Interrupts[Timer_IntID].enable = false;
-   retCode = BINT_ClearCallback_isr(hFtm->hCallback[Timer_IntID]);
+   hFtm->cbInfo[Timer_IntID].bEnable = false;
+   retCode = BINT_ClearCallback_isr(hFtm->cbInfo[Timer_IntID].hCb);
    BDBG_ASSERT(retCode == BERR_SUCCESS);
-   BINT_DisableCallback_isr(hFtm->hCallback[Timer_IntID]);
+   BINT_DisableCallback_isr(hFtm->cbInfo[Timer_IntID].hCb);
    BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    return retCode;
@@ -1013,7 +1032,7 @@ BERR_Code BAST_g3_Ftm_P_StopTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t)
 /******************************************************************************
  BAST_g3_Ftm_P_StartTimer_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_StartTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t, uint32_t count)
+static BERR_Code BAST_g3_Ftm_P_StartTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t, uint32_t count)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1049,10 +1068,10 @@ BERR_Code BAST_g3_Ftm_P_StartTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t, ui
    }
 
    /* clear and enable the selected timer interrupt */
-   BAST_Ftm_Interrupts[Timer_IntID].enable = true;
-   retCode = BINT_ClearCallback_isr(hFtm->hCallback[Timer_IntID]);
+   hFtm->cbInfo[Timer_IntID].bEnable = true;
+   retCode = BINT_ClearCallback_isr(hFtm->cbInfo[Timer_IntID].hCb);
    BDBG_ASSERT(retCode == BERR_SUCCESS);
-   retCode = BINT_EnableCallback_isr(hFtm->hCallback[Timer_IntID]);
+   retCode = BINT_EnableCallback_isr(hFtm->cbInfo[Timer_IntID].hCb);
    BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    /* enable selected timer */
@@ -1068,7 +1087,7 @@ BERR_Code BAST_g3_Ftm_P_StartTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t, ui
 /******************************************************************************
  BAST_g3_Ftm_P_StartTimer() - Non-ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_StartTimer(BAST_Handle h, BAST_Ftm_TimerSelect t, uint32_t count)
+static BERR_Code BAST_g3_Ftm_P_StartTimer(BAST_Handle h, BAST_Ftm_TimerSelect t, uint32_t count)
 {
    BERR_Code retCode;
 
@@ -1082,7 +1101,7 @@ BERR_Code BAST_g3_Ftm_P_StartTimer(BAST_Handle h, BAST_Ftm_TimerSelect t, uint32
 /******************************************************************************
  BAST_g3_Ftm_P_HoldErrorMessage_isrsafe() - holds an error message until timeout
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_HoldErrorMessage_isrsafe(BAST_Handle h, uint8_t *pBuf, uint8_t len)
+static BERR_Code BAST_g3_Ftm_P_HoldErrorMessage_isrsafe(BAST_Handle h, uint8_t *pBuf, uint8_t len)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
 
@@ -1097,7 +1116,7 @@ BERR_Code BAST_g3_Ftm_P_HoldErrorMessage_isrsafe(BAST_Handle h, uint8_t *pBuf, u
 /******************************************************************************
  BAST_g3_Ftm_P_SendLocalMessage_isrsafe() - prepares a local message for the application
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_SendLocalMessage_isrsafe(BAST_Handle h, uint8_t *pBuf, uint8_t len)
+static BERR_Code BAST_g3_Ftm_P_SendLocalMessage_isrsafe(BAST_Handle h, uint8_t *pBuf, uint8_t len)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
@@ -1121,7 +1140,7 @@ BERR_Code BAST_g3_Ftm_P_SendLocalMessage_isrsafe(BAST_Handle h, uint8_t *pBuf, u
 /******************************************************************************
  BAST_g3_Ftm_P_SendErrorMessage_isrsafe()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_SendErrorMessage_isrsafe(BAST_Handle h, uint8_t err)
+static BERR_Code BAST_g3_Ftm_P_SendErrorMessage_isrsafe(BAST_Handle h, uint8_t err)
 {
    uint8_t buf[2];
 
@@ -1135,7 +1154,7 @@ BERR_Code BAST_g3_Ftm_P_SendErrorMessage_isrsafe(BAST_Handle h, uint8_t err)
 /******************************************************************************
  BAST_g3_Ftm_P_SendHardReset_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_SendHardReset_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_SendHardReset_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1164,7 +1183,7 @@ BERR_Code BAST_g3_Ftm_P_SendHardReset_isr(BAST_Handle h)
 /******************************************************************************
 BAST_g3_Ftm_P_ResetAutoTxBuffer_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ResetAutoTxBuffer_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ResetAutoTxBuffer_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1231,7 +1250,7 @@ BERR_Code BAST_g3_Ftm_P_CheckCrc(BAST_Handle h, uint8_t *pBuf, uint8_t len, bool
 /******************************************************************************
  BAST_g3_Ftm_P_CheckOutgoingPacket_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_CheckOutgoingPacket_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_CheckOutgoingPacket_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1287,7 +1306,7 @@ BERR_Code BAST_g3_Ftm_P_CheckOutgoingPacket_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_UpdateHeartBeat_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_UpdateHeartBeat_isr(BAST_Handle h, bool bValid)
+static BERR_Code BAST_g3_Ftm_P_UpdateHeartBeat_isr(BAST_Handle h, bool bValid)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1340,7 +1359,7 @@ BERR_Code BAST_g3_Ftm_P_UpdateHeartBeat_isr(BAST_Handle h, bool bValid)
 /******************************************************************************
  BAST_g3_Ftm_P_GetRxBitMask_isrsafe()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_GetRxBitMask_isrsafe(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_GetRxBitMask_isrsafe(BAST_Handle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint8_t buf[4];
@@ -1364,7 +1383,7 @@ BERR_Code BAST_g3_Ftm_P_GetRxBitMask_isrsafe(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_SetRxBitMask_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_SetRxBitMask_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_SetRxBitMask_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1395,7 +1414,7 @@ BERR_Code BAST_g3_Ftm_P_SetRxBitMask_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_SetOptions_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_SetOptions_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_SetOptions_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1496,7 +1515,7 @@ BERR_Code BAST_g3_Ftm_P_SetOptions_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_StartPollMonitor_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_StartPollMonitor_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_StartPollMonitor_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1527,7 +1546,7 @@ BERR_Code BAST_g3_Ftm_P_StartPollMonitor_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_StopPollMonitor_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_StopPollMonitor_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_StopPollMonitor_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1560,7 +1579,7 @@ BERR_Code BAST_g3_Ftm_P_StopPollMonitor_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_PrepareHardReset_isr() - hw assist is assumed to be off
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_PrepareHardReset_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_PrepareHardReset_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    uint32_t i;
@@ -1584,7 +1603,7 @@ BERR_Code BAST_g3_Ftm_P_PrepareHardReset_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ManualTransmit_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ManualTransmit_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ManualTransmit_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1681,7 +1700,7 @@ BERR_Code BAST_g3_Ftm_P_ManualTransmit_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_AutoTransmit_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_AutoTransmit_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_AutoTransmit_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1750,7 +1769,7 @@ BERR_Code BAST_g3_Ftm_P_AutoTransmit_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_RegRequestTransmit_isr() - hw assist assumed to be off
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_RegRequestTransmit_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_RegRequestTransmit_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1772,7 +1791,7 @@ BERR_Code BAST_g3_Ftm_P_RegRequestTransmit_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_SendPacket() - Non-ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_SendPacket(BAST_Handle h, uint8_t *pBuf, uint8_t len)
+static BERR_Code BAST_g3_Ftm_P_SendPacket(BAST_Handle h, uint8_t *pBuf, uint8_t len)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1875,7 +1894,7 @@ BERR_Code BAST_g3_Ftm_P_SendPacket(BAST_Handle h, uint8_t *pBuf, uint8_t len)
 /******************************************************************************
  BAST_g3_Ftm_P_TransmitDone_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_TransmitDone_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_TransmitDone_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1927,7 +1946,7 @@ BERR_Code BAST_g3_Ftm_P_TransmitDone_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_NetworkPreambleDetected_isr() - lvl1 isr - hw assist assumed to be  off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_NetworkPreambleDetected_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_NetworkPreambleDetected_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1961,7 +1980,7 @@ BERR_Code BAST_g3_Ftm_P_NetworkPreambleDetected_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_GetRandomWaitTime_isrsafe()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_GetRandomWaitTime_isrsafe(BAST_Handle h, uint8_t modulus, uint32_t *pTimeout)
+static BERR_Code BAST_g3_Ftm_P_GetRandomWaitTime_isrsafe(BAST_Handle h, uint8_t modulus, uint32_t *pTimeout)
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t mb;
@@ -1977,7 +1996,7 @@ BERR_Code BAST_g3_Ftm_P_GetRandomWaitTime_isrsafe(BAST_Handle h, uint8_t modulus
 /******************************************************************************
  BAST_g3_Ftm_P_TerminateRegistration_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_TerminateRegistration_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_TerminateRegistration_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2001,7 +2020,7 @@ BERR_Code BAST_g3_Ftm_P_TerminateRegistration_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_RegistrationTimeout_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_RegistrationTimeout_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_RegistrationTimeout_isr(BAST_Handle h)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
@@ -2038,7 +2057,7 @@ BERR_Code BAST_g3_Ftm_P_RegistrationTimeout_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_CancelXtuneRetransmit_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_CancelXtuneRetransmit_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_CancelXtuneRetransmit_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2059,7 +2078,7 @@ BERR_Code BAST_g3_Ftm_P_CancelXtuneRetransmit_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessLocalCommand() - Non-ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessLocalCommand(BAST_Handle h, uint8_t *pBuf, uint8_t len)
+static BERR_Code BAST_g3_Ftm_P_ProcessLocalCommand(BAST_Handle h, uint8_t *pBuf, uint8_t len)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
@@ -2184,7 +2203,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessLocalCommand(BAST_Handle h, uint8_t *pBuf, uint8_
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessRegOfferPacket_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessRegOfferPacket_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessRegOfferPacket_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2313,7 +2332,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessRegOfferPacket_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessRegRespPacket_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessRegRespPacket_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessRegRespPacket_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2373,7 +2392,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessRegRespPacket_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessFtmUpPacket_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessFtmUpPacket_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessFtmUpPacket_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2412,7 +2431,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessFtmUpPacket_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessPingPacket_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessPingPacket_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessPingPacket_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2498,7 +2517,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessPingPacket_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessBadCrcNack_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessBadCrcNack_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessBadCrcNack_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2541,7 +2560,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessBadCrcNack_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessHwFailNack_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessHwFailNack_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessHwFailNack_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2560,7 +2579,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessHwFailNack_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessBusyNack_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessBusyNack_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessBusyNack_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2578,7 +2597,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessBusyNack_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessReregisterNack_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessReregisterNack_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessReregisterNack_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2614,7 +2633,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessReregisterNack_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessInvalidTuneParamsNack() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessInvalidTuneParamsNack(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessInvalidTuneParamsNack(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -2633,7 +2652,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessInvalidTuneParamsNack(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_ProcessMyPacket_isr() - hw assist assumed to be off - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_ProcessMyPacket_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_ProcessMyPacket_isr(BAST_Handle h)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
@@ -2857,7 +2876,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessMyPacket_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_BadRxCrc_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_BadRxCrc_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_BadRxCrc_isr(BAST_Handle h)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
@@ -2920,7 +2939,7 @@ BERR_Code BAST_g3_Ftm_P_BadRxCrc_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_TimerRxIrq_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_TimerRxIrq_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_TimerRxIrq_isr(BAST_Handle h)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
@@ -2969,7 +2988,7 @@ BERR_Code BAST_g3_Ftm_P_TimerRxIrq_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_TimerTxIrq_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_TimerTxIrq_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_TimerTxIrq_isr(BAST_Handle h)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
@@ -3041,7 +3060,7 @@ BERR_Code BAST_g3_Ftm_P_TimerTxIrq_isr(BAST_Handle h)
 /******************************************************************************
  BAST_g3_Ftm_P_TimerRegIrq_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_Ftm_P_TimerRegIrq_isr(BAST_Handle h)
+static BERR_Code BAST_g3_Ftm_P_TimerRegIrq_isr(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
@@ -3150,7 +3169,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
 #endif
 
    /* clear the interrupt */
-   retCode = BINT_ClearCallback_isr(hFtm->hCallback[param]);
+   retCode = BINT_ClearCallback_isr(hFtm->cbInfo[param].hCb);
    BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    /* disable hw assist if hw assist interrupt */
@@ -3268,7 +3287,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
       #endif
 
          /* skip packet processing */
-         retCode = BINT_ClearCallback_isr(hFtm->hCallback[BAST_Ftm_IntID_eRxPktRdy]);
+         retCode = BINT_ClearCallback_isr(hFtm->cbInfo[BAST_Ftm_IntID_eRxPktRdy].hCb);
          retCode = BAST_g3_Ftm_P_BadRxCrc_isr(h);
          BAST_FTM_WRITE(FTM_PHY_ASSIST_CNT2, 0x00000001);   /*  reset bad crc down counter = 1 */
          break;
@@ -3284,7 +3303,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
          BAST_FTM_DEBUG(BDBG_MSG(("ftm sernum chg!")));
 
          /* skip packet processing */
-         retCode = BINT_ClearCallback_isr(hFtm->hCallback[BAST_Ftm_IntID_eRxPktRdy]);
+         retCode = BINT_ClearCallback_isr(hFtm->cbInfo[BAST_Ftm_IntID_eRxPktRdy].hCb);
 
          /* reset statuses and rx bit mask */
          hFtm->status = BAST_FTM_STATUS_RESET;
@@ -3314,7 +3333,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
 
       default:
          /* disable this unhandled interrupt */
-         BINT_DisableCallback_isr(hFtm->hCallback[param]);
+         BINT_DisableCallback_isr(hFtm->cbInfo[param].hCb);
          BDBG_ASSERT(retCode == BERR_SUCCESS);
          BAST_FTM_DEBUG(BDBG_MSG(("Unhandled FTM Interrupt ID=0x%x!", param)));
 	}

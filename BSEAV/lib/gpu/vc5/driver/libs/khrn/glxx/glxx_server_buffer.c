@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "glxx_shared.h"
@@ -14,7 +12,7 @@ All rights reserved.
 #include "glxx_texture.h"
 #include "glxx_buffer.h"
 #include "../common/khrn_int_util.h"
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 
 #include "glxx_hw.h"
 #include "glxx_renderbuffer.h"

@@ -42,7 +42,7 @@
 /* Translations for 32bit systems are physical to virtual */
 #define ARCH_DEVICE_BASE  		0x00000000
 #define ARCH_KERNEL_BASE	0xC0000000
-#define ARCH_SHMEM_BASE		0x00000000		/* Overridden in DT */
+#define ARCH_SHMEM_BASE		0xE0000000		/* Overridden in DT */
 #define ARCH_PAGE_SIZE  		4096
 #define ARCH_STACK_ALIGNMENT 	16
 #define KERNEL_HEAP_START   0xC8000000

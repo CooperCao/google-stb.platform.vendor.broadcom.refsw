@@ -280,7 +280,8 @@ CPower::CPower(
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_power, pCfg),
-    _pPmLib(NULL)
+    _pPmLib(NULL),
+    _eMode(ePowerMode_S0)
 {
 #if POWERSTANDBY_SUPPORT
     _pPmLib = brcm_pm_init();
@@ -525,8 +526,8 @@ bool CPower::doDriveMount(
     {
         { false, false, false, false },
         { false, false, false, false },
-        { true,  true,  false, false },
-        { true,  true,  false, false }
+        { false, false, false, false },
+        { true,  false, false, false }
     };
 
     return(transition[modeOld][modeNew]);
@@ -541,8 +542,8 @@ bool CPower::doDriveUnmount(
     /* modeOld x modeNew array */
     bool transition[ePowerMode_Max][ePowerMode_Max] =
     {
-        { false, false, true,  true  },
-        { false, false, true,  true  },
+        { false, false, false, true  },
+        { false, false, false, true  },
         { false, false, false, false },
         { false, false, false, false }
     };
@@ -570,6 +571,8 @@ eRet CPower::setMode(
 
     NEXUS_Platform_GetStandbySettings(&_settings);
     _settings.mode               = (NEXUS_PlatformStandbyMode)mode; /* direct mapping */
+    /* save internally */
+    _eMode                       = mode;
     _settings.openFrontend       = (ePowerMode_S0 == mode) ? true : false;
     _settings.wakeupSettings.ir  = true;
     _settings.wakeupSettings.uhf = true;

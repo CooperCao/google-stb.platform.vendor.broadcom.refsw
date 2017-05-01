@@ -835,7 +835,7 @@ type_specifier_no_prec
             g_TypeBuilder = &primitiveTypes[PRIM_SAMPLEREXTERNAL];
             break;
         case GLSL_DISABLED:
-            glsl_compile_error(_ERROR, 1, g_LineNumber, NULL);
+            glsl_compile_error(ERROR_CUSTOM, 1, g_LineNumber, NULL);
             break;
         }
       }

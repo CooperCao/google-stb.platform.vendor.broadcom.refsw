@@ -8,8 +8,8 @@ PATH=.:${PATH}
 export PATH
 
 if [ $UID -ne "0" ]; then
-	echo "You need to run $@ as root."
-	exit 1
+    echo "You need to run $@ as root."
+    exit 1
 fi
 
 TEST=`lsmod|grep bcmdriver >/dev/null && echo 1`
@@ -29,6 +29,15 @@ if [ ! -z $TEST ]; then
     rmmod brcmv3d || exit;
 fi
 
+# in 32bit kernel mode always rmmod wl
+TEST=`uname -m|grep aarch64 >/dev/null && echo 64`
+if [ "$TEST" != "64" ]; then
+    TEST=`lsmod|grep wl >/dev/null && echo 1`
+    if [ ! -z $TEST ]; then
+        rmmod wl || exit;
+    fi
+fi
+
 # because msg_modules is so common, automatically tunnel it through config
 if [[ -z ${config} && ! -z ${msg_modules} ]]; then config="msg_modules=${msg_modules}"; fi
 
@@ -39,13 +48,22 @@ fi
 
 insmod nexus.ko config=\"${config}\" || exit;
 
+# in 32bit kernel mode insmod of wl.ko must only occur immediately after nexus.ko
+TEST=`uname -m|grep aarch64 >/dev/null && echo 64`
+if [ "$TEST" != "64" ]; then
+    TEST=`lsmod|grep wl >/dev/null && echo 1`
+    if [ "$TEST" != "1" ]; then
+        if [ -e wl.ko ] && [ -e wlinstall ]; then
+            wlinstall wl.ko wlan0
+        fi
+    fi
+fi
 if [ -e wakeup_drv.ko ]; then
 insmod wakeup_drv.ko
 fi
 if [ ! -e /dev/wake0 ]; then
 mknod -m a=rw /dev/wake0 c 34 0
 fi
-
 if [ -e bcm_astra.ko ]; then
 insmod bcm_astra.ko
 fi

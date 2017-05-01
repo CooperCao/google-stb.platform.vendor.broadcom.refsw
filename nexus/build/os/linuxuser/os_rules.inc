@@ -1,5 +1,5 @@
 ##############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,8 +58,8 @@ endif
 
 nexus_all: ${EXTRA_ALL} $(NEXUS_STATIC_LIB) $(NEXUS_SHARED_LIB) $(MAGNUM_LIB)
 
-NEXUS_SYMBOLS_OBJ := $(NEXUS_SYMBOLS_SRC:%.c=$(NEXUS_OBJ_DIR)/MAGNUM/%.${NEXUS_OBJ_SUFFIX})
-NEXUS_SYMBOLS_INC := $(NEXUS_SYMBOLS_SRC:%.c=$(NEXUS_OBJ_DIR)/MAGNUM/%.inc)
+NEXUS_SYMBOLS_OBJ := $(NEXUS_SYMBOLS_SRC:%.c=$(NEXUS_OBJ_DIR)/CORE/%.${NEXUS_OBJ_SUFFIX})
+NEXUS_SYMBOLS_INC := $(NEXUS_SYMBOLS_SRC:%.c=$(NEXUS_OBJ_DIR)/CORE/%.inc)
 
 ${NEXUS_MAGNUM_PRECOMPILED_HEADER_H}.gch: ${NEXUS_MAGNUM_PRECOMPILED_HEADER} ${NEXUS_OBJ_DIR}/MAGNUM/exists
 	@echo "[Compile... $(notdir $<)]"
@@ -98,7 +98,7 @@ else
 NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared  -Wl,-x -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS})) $(MAGNUM_SOFLAGS_BEGIN) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(MAGNUM_SOFLAGS_END)
 endif
 
-${NEXUS_SYMBOLS_OBJ} : ${NEXUS_SYMBOLS_SRC} $(filter-out ${NEXUS_SYMBOLS_OBJ},${MAGNUM_OBJECTS}) ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS}
+${NEXUS_SYMBOLS_OBJ} : ${NEXUS_SYMBOLS_SRC} $(filter-out ${NEXUS_SYMBOLS_OBJ},${NEXUS_OBJECTS}) ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_LINK_OBJ} ${MAGNUM_STATIC_LIBS}
 	@echo "[Symbols... $(notdir $<)]"
 	${Q_}# compile  empty sym-table and link with it
 	${Q_}${RM} ${NEXUS_SYMBOLS_INC}

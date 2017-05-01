@@ -96,7 +96,7 @@ NEXUS_Error NEXUS_ParserBand_StartBondingGroup(NEXUS_ParserBand master, const NE
     return NEXUS_SUCCESS;
 
 error:
-    if (masterPb->gcbSwHandle) {
+    if (masterPb && masterPb->gcbSwHandle) {
         NEXUS_Gcb_P_Close(masterPb->gcbSwHandle);
     }
     return rc;

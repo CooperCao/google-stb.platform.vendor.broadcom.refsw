@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_fence.h"
 #include "khrn_render_state.h"
 #include "libs/platform/v3d_scheduler.h"
@@ -15,11 +9,11 @@ FILE DESCRIPTION
 
 LOG_DEFAULT_CAT("khrn_fence")
 
-KHRN_FENCE_T* khrn_fence_create(void)
+khrn_fence* khrn_fence_create(void)
 {
-   KHRN_FENCE_T *fence = NULL;
+   khrn_fence *fence = NULL;
 
-   fence = calloc(1, sizeof(KHRN_FENCE_T));
+   fence = calloc(1, sizeof(khrn_fence));
    if (fence)
    {
       fence->ref_count = 1;
@@ -30,12 +24,12 @@ KHRN_FENCE_T* khrn_fence_create(void)
    return fence;
 }
 
-void khrn_fence_refinc(KHRN_FENCE_T *fence)
+void khrn_fence_refinc(khrn_fence *fence)
 {
    vcos_atomic_inc(&fence->ref_count);
 }
 
-void khrn_fence_refdec(KHRN_FENCE_T *fence)
+void khrn_fence_refdec(khrn_fence *fence)
 {
    int before_count = 0;
    if (!fence)
@@ -49,21 +43,21 @@ void khrn_fence_refdec(KHRN_FENCE_T *fence)
    }
 }
 
-bool khrn_fence_add_user(KHRN_FENCE_T *fence,
-      const KHRN_RENDER_STATE_T *rs)
+bool khrn_fence_add_user(khrn_fence *fence,
+      const khrn_render_state *rs)
 {
    fence->known_state = KHRN_FENCE_STATE_NONE;
    return khrn_render_state_set_add(&fence->users, rs);
 }
 
-void khrn_fence_remove_user(KHRN_FENCE_T *fence,
-      const KHRN_RENDER_STATE_T *rs)
+void khrn_fence_remove_user(khrn_fence *fence,
+      const khrn_render_state *rs)
 {
    khrn_render_state_set_remove(&fence->users, rs);
 }
 
-bool khrn_fence_has_user(const KHRN_FENCE_T *fence,
-      const KHRN_RENDER_STATE_T *rs)
+bool khrn_fence_has_user(const khrn_fence *fence,
+      const khrn_render_state *rs)
 {
    if (!rs)
       return (fence->users != 0);
@@ -71,9 +65,9 @@ bool khrn_fence_has_user(const KHRN_FENCE_T *fence,
    return khrn_render_state_set_contains(fence->users, rs);
 }
 
-void khrn_fence_flush(KHRN_FENCE_T *fence)
+void khrn_fence_flush(khrn_fence *fence)
 {
-   for (KHRN_RENDER_STATE_T *rs; (rs = khrn_render_state_set_pop(&fence->users)) != NULL; )
+   for (khrn_render_state *rs; (rs = khrn_render_state_set_pop(&fence->users)) != NULL; )
    {
       khrn_render_state_flush(rs);
    }
@@ -100,14 +94,14 @@ static khrn_fence_state deps_state_to_fence_state(v3d_sched_deps_state deps_stat
    return fence_state;
 }
 
-void khrn_fence_set_known_state(KHRN_FENCE_T *fence, v3d_sched_deps_state deps_state)
+void khrn_fence_set_known_state(khrn_fence *fence, v3d_sched_deps_state deps_state)
 {
    khrn_fence_state fence_state = deps_state_to_fence_state(deps_state);
    if (fence_state > fence->known_state)
       fence->known_state = fence_state;
 }
 
-void khrn_fence_wait(KHRN_FENCE_T *fence, v3d_sched_deps_state deps_state)
+void khrn_fence_wait(khrn_fence *fence, v3d_sched_deps_state deps_state)
 {
    khrn_fence_flush(fence);
 
@@ -118,7 +112,7 @@ void khrn_fence_wait(KHRN_FENCE_T *fence, v3d_sched_deps_state deps_state)
    khrn_fence_set_known_state(fence, deps_state);
 }
 
-bool khrn_fence_reached_state(KHRN_FENCE_T *fence, v3d_sched_deps_state deps_state)
+bool khrn_fence_reached_state(khrn_fence *fence, v3d_sched_deps_state deps_state)
 {
    if (khrn_fence_has_user(fence, NULL))
       return false;
@@ -132,35 +126,35 @@ bool khrn_fence_reached_state(KHRN_FENCE_T *fence, v3d_sched_deps_state deps_sta
    return res;
 }
 
-void khrn_fence_job_add(KHRN_FENCE_T *fence, uint64_t job_id)
+void khrn_fence_job_add(khrn_fence *fence, uint64_t job_id)
 {
    fence->known_state = KHRN_FENCE_STATE_NONE;
    v3d_scheduler_add_dep(&fence->deps, job_id);
 }
 
-void khrn_fence_deps_add(KHRN_FENCE_T *fence, v3d_scheduler_deps const* deps)
+void khrn_fence_deps_add(khrn_fence *fence, v3d_scheduler_deps const* deps)
 {
    fence->known_state = KHRN_FENCE_STATE_NONE;
    v3d_scheduler_merge_deps(&fence->deps, deps);
 }
 
-int khrn_fence_get_platform_fence(KHRN_FENCE_T *fence,
+int khrn_fence_get_platform_fence(khrn_fence *fence,
       v3d_sched_deps_state deps_state, bool force_create)
 {
    khrn_fence_flush(fence);
    return v3d_scheduler_create_fence(&fence->deps, deps_state, force_create);
 }
 
-static bool record_fence_to_signal(KHRN_RENDER_STATE_T *rs, void *param)
+static bool record_fence_to_signal(khrn_render_state *rs, void *param)
 {
-   KHRN_FENCE_T *fence = (KHRN_FENCE_T*) param;
+   khrn_fence *fence = (khrn_fence*) param;
    return khrn_render_state_record_fence_to_signal(rs, fence);
 }
 
-KHRN_FENCE_T* khrn_fence_dup(const KHRN_FENCE_T *fence)
+khrn_fence* khrn_fence_dup(const khrn_fence *fence)
 {
    bool res;
-   KHRN_FENCE_T* new_fence = NULL;
+   khrn_fence* new_fence = NULL;
 
    new_fence = khrn_fence_create();
    if (!new_fence)
@@ -185,7 +179,7 @@ end:
    return new_fence;
 }
 
-bool khrn_fence_merge(KHRN_FENCE_T *fence_1, const KHRN_FENCE_T *fence_2)
+bool khrn_fence_merge(khrn_fence *fence_1, const khrn_fence *fence_2)
 {
    bool res = false;
 
@@ -207,11 +201,11 @@ end:
    return res;
 }
 
-void khrn_fence_print(const KHRN_FENCE_T *fence)
+void khrn_fence_print(const khrn_fence *fence)
 {
    unsigned i;
 
-   log_error("%s fence=0x%p users=0x%x deps.n=%d", VCOS_FUNCTION, fence,
+   log_error("%s fence=0x%p users=0x%x deps.n=%d", __FUNCTION__, fence,
          fence->users, fence->deps.n);
    for (i = 0; i < fence->deps.n; i++)
    {

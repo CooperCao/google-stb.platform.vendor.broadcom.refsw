@@ -1841,17 +1841,17 @@ NEXUS_SyncChannelHandle NEXUS_SyncChannel_Create(const NEXUS_SyncChannelSettings
     }
     NEXUS_OBJECT_INIT(NEXUS_SyncChannel, syncChannel);
 
-    /* on by default due to number of customers testing with Sarnoff */
-    syncChannel->sarnoffLipsyncOffsetEnabled = true;
+    /* off by default due to customers no longer testing with Sarnoff */
+    syncChannel->sarnoffLipsyncOffsetEnabled = false;
     /* env var with no API is preferred currently */
-    if (NEXUS_GetEnv("sarnoff_lipsync_offset_disabled"))
+    if (NEXUS_GetEnv("sarnoff_lipsync_offset_enabled"))
     {
-        BDBG_MSG(("[%p] Sarnoff 8 ms lipsync offset disabled", (void *)syncChannel));
-        syncChannel->sarnoffLipsyncOffsetEnabled = false;
+        BDBG_MSG(("[%p] Sarnoff 8 ms lipsync offset enabled", (void *)syncChannel));
+        syncChannel->sarnoffLipsyncOffsetEnabled = true;
     }
     else
     {
-        BDBG_MSG(("[%p] Sarnoff 8 ms lipsync offset enabled", (void *)syncChannel));
+        BDBG_MSG(("[%p] Sarnoff 8 ms lipsync offset disabled", (void *)syncChannel));
     }
 
     BKNI_CreateEvent(&syncChannel->syncLockEvent);

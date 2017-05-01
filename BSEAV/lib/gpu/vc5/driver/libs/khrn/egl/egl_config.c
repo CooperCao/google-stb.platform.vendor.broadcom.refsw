@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
@@ -659,9 +659,7 @@ EGLint egl_config_get_attrib(const EGL_CONFIG_T *config,
       EGLint attrib, bool *valid)
 {
    EGLint ret = 0;
-   bool is_valid;
-
-   ret = egl_platform_config_get_attrib(config, attrib, &is_valid);
+   bool is_valid = egl_platform_config_get_attrib(config, attrib, &ret);
    if (!is_valid)
       is_valid = get_attrib(config, attrib, &ret);
 
@@ -834,8 +832,14 @@ GFX_LFMT_T egl_config_stencil_api_fmt(const EGL_CONFIG_T *config)
 
 bool egl_can_render_format(GFX_LFMT_T lfmt)
 {
+#if V3D_HAS_TLB_SWIZZLE
+   v3d_pixel_format_t px_fmt;
+   bool reverse, rb_swap;
    // This checks if the tile-buffer can support the format
+   return gfx_lfmt_maybe_translate_pixel_format(lfmt, &px_fmt, &reverse, &rb_swap);
+#else
    return gfx_lfmt_maybe_translate_pixel_format(lfmt) != V3D_PIXEL_FORMAT_INVALID;
+#endif
 }
 
 bool egl_can_texture_from_format(GFX_LFMT_T lfmt)
@@ -897,7 +901,6 @@ end:
    egl_thread_set_error(error);
    return error == EGL_SUCCESS;
 }
-
 
 static void update_sort_params(EGLint *cleaned_attrib_list, SORT_PARAMS_T *sort_params)
 {
@@ -1077,9 +1080,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglChooseConfig(EGLDisplay dpy,
 EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigs(EGLDisplay dpy,
       EGLConfig *configs, EGLint config_size, EGLint *num_config)
 {
-   if (!egl_initialized(dpy, true))
-      return EGL_FALSE;
-
    /*
     * Technically I don't think you need to sort them for eglGetConfigs, but
     * since if you don't, the order is unspecified, it doesn't do any harm.

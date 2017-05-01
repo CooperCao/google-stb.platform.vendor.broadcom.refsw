@@ -48,10 +48,6 @@
 #include "bchp_pwr.h"
 #endif
 
-#if BHDM_CONFIG_MHL_SUPPORT
-#include "bchp_clkgen.h"
-#endif
-
 BDBG_MODULE(BHDM_PRIV) ;
 
 /* For boot loader usage */
@@ -172,13 +168,6 @@ static BERR_Code BHDM_P_ConfigurePreemphasis(const BHDM_Handle hHDMI, const BHDM
         BSTD_UNUSED(msgFormat);
     }
 
-
-#if BHDM_CONFIG_MHL_SUPPORT
-    /* This overrides certain settings for HDMI/MHL combo PHY. */
-    rc = BHDM_MHL_P_ConfigPreemphasis(hHDMI, NewHdmiSettings, &stNewPreEmphasisConfig);
-#endif
-
-
     /* Update Preemphasis Configuration if there are updates */
     if (BKNI_Memcmp(&stCurPreEmphasisConfig, &stNewPreEmphasisConfig, sizeof(BHDM_PreEmphasis_Configuration)))
     {
@@ -238,33 +227,14 @@ static BERR_Code BHDM_P_ConfigurePixelEncoding(const BHDM_Handle hHDMI, const BH
     case BAVC_Colorspace_eRGB :
     case BAVC_Colorspace_eYCbCr422 :
     case BAVC_Colorspace_eYCbCr444 :
-#if BHDM_CONFIG_MHL_SUPPORT
-        if (hHDMI->bMhlMode &&
-            (NewHdmiSettings->eInputVideoFmt == BFMT_VideoFmt_e1080p ||
-             NewHdmiSettings->eInputVideoFmt == BFMT_VideoFmt_e1080p_50Hz))
-        {
-            videoOutSel0 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT2_SEL_DEFAULT ;
-            videoOutSel1 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT1_SEL_DEFAULT ;
-            videoOutSel2 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT0_SEL_DEFAULT ;
-            videoOutSel3 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT3_SEL_DEFAULT ;
-            videoOutSel4 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT4_SEL_DEFAULT ;
-            videoOutSel5 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT5_SEL_DEFAULT ;
-            pixelSelect = BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_422_PackedPixel;
-            BDBG_MSG(("Set Phy Configuration for 422 pixel encoding for MHL Packed Pixel; BAVC_Colorspace: %d",
-                NewHdmiSettings->stVideoSettings.eColorSpace)) ;
-        }
-        else
-#endif
-        {
-            videoOutSel0 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT0_SEL_DEFAULT ;
-            videoOutSel1 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT1_SEL_DEFAULT ;
-            videoOutSel2 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT2_SEL_DEFAULT ;
-            videoOutSel3 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT3_SEL_DEFAULT ;
-            videoOutSel4 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT4_SEL_DEFAULT ;
-            videoOutSel5 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT5_SEL_DEFAULT ;
-            BDBG_MSG(("Set Phy Configuration for 444/422 pixel encodings; BAVC_Colorspace: %d",
-                NewHdmiSettings->stVideoSettings.eColorSpace)) ;
-        }
+        videoOutSel0 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT0_SEL_DEFAULT ;
+        videoOutSel1 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT1_SEL_DEFAULT ;
+        videoOutSel2 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT2_SEL_DEFAULT ;
+        videoOutSel3 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT3_SEL_DEFAULT ;
+        videoOutSel4 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT4_SEL_DEFAULT ;
+        videoOutSel5 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT5_SEL_DEFAULT ;
+        BDBG_MSG(("Set Phy Configuration for 444/422 pixel encodings; BAVC_Colorspace: %d",
+            NewHdmiSettings->stVideoSettings.eColorSpace)) ;
         break;
 
     case BAVC_Colorspace_eYCbCr420 :
@@ -419,11 +389,6 @@ void BHDM_P_EnableTmdsData_isr(
 
     if (bEnableTmdsOutput)
     {
-#if BHDM_CONFIG_MHL_SUPPORT
-        /* overrides if needed */
-        BHDM_MHL_P_EnableTmdsData_isr(hHDMI);
-#endif
-
         /* take TMDS lines out of reset */
         Register = BREG_Read32(hRegister, BCHP_HDMI_TX_PHY_RESET_CTL + ulOffset) ;
             Register &=

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  SpyHook
-Module   :  Platform layer
-
-FILE DESCRIPTION
-Platform specific abstractions
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __PLATFORM_H__
 #define __PLATFORM_H__
 
@@ -71,7 +63,6 @@ extern void plUnlockMutex(MutexHandle *handle);
 
 extern unsigned int plGetTimeNowMs();
 extern uint64_t plGetTimeNowUs();
-extern void plGetAccurateTime(unsigned int *secs, unsigned int *nanosecs);
 extern void plGetTime(TIMESTAMP *now);
 extern unsigned int plTimeDiffNano(TIMESTAMP *start, TIMESTAMP *end);
 

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Thread parallel execution framework
-
-FILE DESCRIPTION
-Exceutes jobs in parallel threads
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef V3D_PARALLEL_H
 #define V3D_PARALLEL_H
 

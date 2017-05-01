@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,6 +65,10 @@ typedef unsigned NEXUS_AudioEncoderCodecSettings;
 typedef unsigned NEXUS_AudioMuxOutputFrame;
 typedef unsigned NEXUS_AudioMuxOutputStatus;
 #endif
+#ifdef NEXUS_HAS_STREAM_MUX
+#include "nexus_stream_mux.h"
+#endif
+#include "nexus_core_compat.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -373,6 +377,29 @@ NEXUS_Error NEXUS_SimpleEncoder_GetCrcData(
 
 NEXUS_Error NEXUS_SimpleEncoder_InsertRandomAccessPoint(
     NEXUS_SimpleEncoderHandle handle
+    );
+
+/**
+Insert system data into the stream output, like PSI.
+
+You must turn off internal PSI insertion by setting NEXUS_SimpleEncoderStartSettingsOutput.transport.pmtPid to 0.
+Each insertion is a one-shot.
+Use NEXUS_StreamMux_GetDefaultSystemData to initialize the struct.
+
+The memory pointed to by NEXUS_StreamMuxSystemData.pData is not copied. It must remain valid until consumed.
+You can monitor that consumption using NEXUS_SimpleEncoder_GetCompletedSystemDataBuffers.
+**/
+NEXUS_Error NEXUS_SimpleEncoder_AddSystemDataBuffer(
+    NEXUS_SimpleEncoderHandle handle,
+    const NEXUS_StreamMuxSystemData *pSystemDataBuffer
+    );
+
+/**
+Learn the number of NEXUS_StreamMuxSystemData entries consumed since the last call to NEXUS_SimpleEncoder_GetCompletedSystemDataBuffers.
+**/
+void NEXUS_SimpleEncoder_GetCompletedSystemDataBuffers(
+    NEXUS_SimpleEncoderHandle handle,
+    unsigned *pCompletedCount /* [out] */
     );
 
 #ifdef __cplusplus

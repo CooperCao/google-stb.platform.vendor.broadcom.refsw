@@ -141,12 +141,14 @@ eRet CPlaylistGenerator::open(
 
     bipStatus     = BIP_HttpRequest_GetNextHeader(hHttpRequest, NULL, "User-Agent", &hHeader, &headerValue);
     requestHeader = MString(headerValue);
-
+#if NEXUS_HAS_VIDEO_ENCODER
     /* If the streaming request is coming from any iOS device*/
     if (requestHeader.findRev("Mac OS") != -1)
     {
         iOSRequest = true;
     }
+#endif
+
     urlPath = MString(pTmpUrlPath);
     /* validate request */
     {   /* If it's not requested by another atlas client or if the request is not coming from allowed smart devices, then it's an invalid request*/

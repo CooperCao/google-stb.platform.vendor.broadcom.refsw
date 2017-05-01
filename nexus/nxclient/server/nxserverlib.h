@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -225,6 +225,9 @@ struct nxserver_settings
             char vendorName[NEXUS_HDMI_SPD_VENDOR_NAME_MAX+1];
             char description[NEXUS_HDMI_SPD_DESCRIPTION_MAX+1];
         } spd;
+        struct {
+            bool blendInIpt; /* for dolby vision conformance test */
+        } dolbyVision;
     } hdmi;
 #endif
     unsigned standby_timeout; /* Number of seconds where server waits for clients to acknowledge standby state change */
@@ -262,6 +265,7 @@ struct nxserver_cmdline_settings
     struct {
         unsigned dacBandGapAdjust;
         bool dacDetection;
+        bool allowCgmsB;
     } video;
     struct {
         unsigned userId, groupId; /* drop to this user and group id after connecting to driver */
@@ -352,7 +356,7 @@ NEXUS_Error NxClient_P_SetComposition(nxclient_t client, unsigned surfaceClientI
 NEXUS_Error NxClient_P_WriteTeletext(nxclient_t client, const nxclient_p_teletext_data *data, size_t numLines,  size_t *pNumLinesWritten);
 NEXUS_Error NxClient_P_WriteClosedCaption(nxclient_t client, const nxclient_p_closecaption_data *data, size_t numEntries, size_t *pNumEntriesWritten );
 NEXUS_Error NxClient_P_Display_SetWss(nxclient_t client, uint16_t wssData);
-NEXUS_Error NxClient_P_Display_SetCgms(nxclient_t client, uint32_t cgmsData);
+NEXUS_Error NxClient_P_Display_SetCgmsAorB(nxclient_t client, uint32_t cgmsData, const nxclient_p_set_cgms_b_data *pdata);
 void NxClient_P_GetAudioProcessingSettings(nxclient_t client, NxClient_AudioProcessingSettings *pSettings );
 NEXUS_Error NxClient_P_SetAudioProcessingSettings(nxclient_t client, const NxClient_AudioProcessingSettings *pSettings );
 NEXUS_Error NxClient_P_Reconfig(nxclient_t client, const NxClient_ReconfigSettings *pSettings);
@@ -386,6 +390,7 @@ NEXUS_Error NxClient_P_SetPictureQualitySettings(nxclient_t client, const NxClie
 
 NEXUS_Error NxClient_P_GetCallbackStatus(nxclient_t client, NxClient_CallbackStatus *pStatus );
 NEXUS_Error NxClient_P_GetAudioStatus(nxclient_t client, NxClient_AudioStatus *pStatus );
+NEXUS_Error NxClient_P_SetClientMode(nxclient_t client, const NxClient_ClientModeSettings *pSettings);
 
 void NxClient_P_GetSurfaceClientComposition(nxclient_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *pComposition);
 NEXUS_Error NxClient_P_SetSurfaceClientComposition(nxclient_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *pComposition);
@@ -400,6 +405,9 @@ void nxclient_get_status(nxclient_t client, struct nxclient_status *pstatus);
 NEXUS_Error nxserver_p_focus_input_client(nxclient_t client);
 NEXUS_Error nxserver_p_focus_surface_client(nxclient_t client);
 int nxclient_p_parse_password_file(const char *filename, NEXUS_Certificate *certificate);
+
+/* read password file after nxserver has started */
+int nxserver_parse_password_file(nxserver_t server, const char *filename);
 
 /* nxclient_socket.c, can be overridden */
 int b_nxclient_client_connect(void);

@@ -1,17 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __GLSL_EXCEPTION_H__
 #define __GLSL_EXCEPTION_H__
 
+#include "interface/khronos/common/khrn_int_common.h"
 #include <stdio.h>
 
 typedef enum
@@ -30,7 +23,7 @@ typedef enum
    eExceptionTMUUniformClash
 } Exception;
 
-static void PrintException(Exception e)
+static INLINE void PrintException(Exception e)
 {
    switch (e)
    {

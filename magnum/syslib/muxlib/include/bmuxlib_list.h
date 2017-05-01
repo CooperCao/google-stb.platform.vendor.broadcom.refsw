@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #ifndef BMUXLIB_LIST_H_
@@ -126,6 +146,46 @@ BMUXlib_List_GetEntries(
          const void *astEntries1[], /* Needed to handle FIFO wrap. Can be NULL if uiNumEntries1=0. */
          size_t *puiNumEntries1
          );
+
+/* MUXlib Lightweight List */
+#include "blst_squeue.h"
+#define BMUXLIB_LIST_DEFINE_ENTRY( _type ) \
+   typedef struct _type##Entry \
+   { \
+      BLST_SQ_ENTRY(_type##Entry) link; \
+      _type stData; \
+   } _type##Entry;
+#define BMUXLIB_LIST_DEFINE_HEAD( _type ) BLST_SQ_HEAD(_type##Head, _type##Entry );
+#define BMUXLIB_LIST_DEFINE_LIST( _type ) \
+   typedef struct _type##List \
+   { \
+      struct _type##Head stHead; \
+      size_t uiCount; \
+   } _type##List;
+
+#define BMUXLIB_LIST_DEFINE( _type ) \
+      BMUXLIB_LIST_DEFINE_ENTRY( _type ) \
+      BMUXLIB_LIST_DEFINE_HEAD( _type ) \
+      BMUXLIB_LIST_DEFINE_LIST( _type )
+
+#define BMUXLIB_LIST_TYPE( _type ) _type##List
+#define BMUXLIB_LIST_ENTRY_TYPE( _type ) _type##Entry
+
+#define BMUXLIB_LIST_INIT( _plist ) { BLST_SQ_INIT( &(_plist)->stHead ); (_plist)->uiCount = 0; }
+#define BMUXLIB_LIST_FIRST( _plist, _ppentry ) { *_ppentry = BLST_SQ_FIRST( &(_plist)->stHead ); }
+#define BMUXLIB_LIST_LAST( _plist, _ppentry ) { *_ppentry = BLST_SQ_LAST( &(_plist)->stHead ); }
+#define BMUXLIB_LIST_ADD( _plist, _pentry ) { BLST_SQ_INSERT_TAIL( &(_plist)->stHead, _pentry, link ); (_plist)->uiCount++; }
+#define BMUXLIB_LIST_REMOVE( _plist, _ppentry ) { BMUXLIB_LIST_FIRST( _plist, _ppentry ); BLST_SQ_REMOVE_HEAD( &(_plist)->stHead, link ); (_plist)->uiCount--; }
+#define BMUXLIB_LIST_PUSH( _plist, _pentry ) { BLST_SQ_INSERT_HEAD( &(_plist)->stHead, _pentry, link ); (_plist)->uiCount++; }
+#define BMUXLIB_LIST_POP( _plist, _ppentry ) BMUXLIB_LIST_REMOVE( _plist, _ppentry )
+#define BMUXLIB_LIST_COUNT( _plist ) ( (_plist)->uiCount )
+#define BMUXLIB_LIST_ISEMPTY( _plist )  ( 0 == BMUXLIB_LIST_COUNT( _plist ) )
+#define BMUXLIB_LIST_GETNUMENTRIES( _plist, _pcount ) { *(_pcount) = BMUXLIB_LIST_COUNT(_plist); }
+#define BMUXLIB_LIST_GETUSAGE( _plist, _ppMinUsage, _ppMaxUsage, _ppSize ) { *(_ppMinUsage) = *(_ppMaxUsage) = 1; *(_ppSize) = 1; }
+
+#define BMUXLIB_LIST_ENTRY_NEXT( _pentry ) BLST_SQ_NEXT( _pentry, link )
+#define BMUXLIB_LIST_ENTRY_DATA( _pentry ) (&(_pentry)->stData)
+#define BMUXLIB_LIST_ENTRY_METADATA( _pentry ) (&(_pentry)->stMetaData)
 
 #if BDBG_DEBUG_BUILD
 /* Max usage can be used to find out how much of the list was used for lists that start out EMPTY

@@ -1,18 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-
-This is just to give a rough idea of how to do an Android-specific EGLImage
-source sibling. In VC4 we had various different EGLImage "sources" (target
-param to eglCreateImageKHR) for YUV buffers, video, buffers, etc, although
-possibly more than we needed. We will probably want something similar, so
-probably a few Android-specific EGL_IMAGE_T subclasses.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "../../egl_image.h"
 #include "../../egl_thread.h"
@@ -20,7 +8,7 @@ probably a few Android-specific EGL_IMAGE_T subclasses.
 #include "../../egl_context_gl.h"
 #include <EGL/eglext.h>
 #include "../../../common/khrn_image.h"
-#include "../../../common/khrn_interlock.h"
+#include "../../../common/khrn_resource.h"
 #include "sched_abstract.h"
 
 #include "egl_surface_common_abstract.h"
@@ -31,15 +19,15 @@ typedef struct native_egl_image
    void *buffer;              /* some platforms may require acquire/release */
 } NATIVE_EGL_IMAGE_T;
 
-static KHRN_IMAGE_T *get_native_egl_image(EGL_IMAGE_T *p)
+static khrn_image *get_native_egl_image(EGL_IMAGE_T *p)
 {
    NATIVE_EGL_IMAGE_T *egl_image = (NATIVE_EGL_IMAGE_T *)p;
-   KHRN_IMAGE_T *image = image_from_surface_abstract(egl_image->buffer, false);
+   khrn_image *image = image_from_surface_abstract(egl_image->buffer, false);
    if (!image)
       return NULL;
 
    /* check for resize/format change.  If the base offset has moved, then replace the image and
-      interlocks are invalid */
+      resources are invalid */
    if (khrn_image_get_offset(egl_image->base.image, 0) != khrn_image_get_offset(image, 0))
       KHRN_MEM_ASSIGN(egl_image->base.image, image);
 
@@ -87,7 +75,7 @@ EGL_IMAGE_T *egl_image_native_buffer_abstract_new(EGL_CONTEXT_T *context,
    if (!egl_image)
       goto end;
 
-   KHRN_IMAGE_T *image = image_from_surface_abstract(buffer, false);
+   khrn_image *image = image_from_surface_abstract(buffer, false);
    if (!image)
       goto end;
    egl_image->buffer = buffer;

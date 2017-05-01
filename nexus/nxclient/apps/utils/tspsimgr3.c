@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,6 +71,19 @@ struct tspsimgr
 /* continuous PSI scan requires filtering for the version number so you don't process repeat messages */
 #define CONTINUOUS 0
 
+static NEXUS_PidChannelHandle message_p_openpid(const tspsimgr_scan_settings *psettings, unsigned pid)
+{
+#if NEXUS_HAS_TRANSPORT
+    if (psettings->playpump) {
+        return NEXUS_Playpump_OpenPidChannel(psettings->playpump, pid, NULL);
+    }
+    else
+#endif
+    {
+        return NEXUS_PidChannel_Open(psettings->parserBand, pid, NULL);
+    }
+}
+
 static void message_callback(void *context, int index)
 {
     tspsimgr_t handle = context;
@@ -110,7 +123,7 @@ static void message_callback(void *context, int index)
             
             for (i=0;i<handle->pmt_count;i++) {
                 rc = TS_PAT_getProgram(buffer, size, i,  &program);
-                if (!rc && program.program_number) {
+                if (!rc) {
                     unsigned msgindex;
                     /* launch filter for PMT. find an open slot first. */
                     for (msgindex = 0; msgindex < MAX_MSG; msgindex++) {
@@ -118,6 +131,7 @@ static void message_callback(void *context, int index)
                     }
                     if (msgindex == MAX_MSG) {
                         BDBG_WRN(("too many programs. increase MAX_MSG %d", MAX_MSG));
+                        handle->pmt_count--;
                         continue;
                     }
                     
@@ -129,14 +143,16 @@ static void message_callback(void *context, int index)
                     handle->msg[msgindex] = NEXUS_Message_Open(&openSettings);
                     if (!handle->msg[msgindex]) {
                         BDBG_ERR(("unable to open message"));
+                        handle->pmt_count--;
                         continue;
                     }
                     
-                    handle->pidChannel[msgindex] = NEXUS_PidChannel_Open(handle->settings.parserBand, program.PID, NULL);
+                    handle->pidChannel[msgindex] = message_p_openpid(&handle->settings, program.PID);
                     if (!handle->pidChannel[msgindex]) {
                         BDBG_ERR(("unable to open pid channel %#x", program.PID));
                         NEXUS_Message_Close(handle->msg[msgindex]);
                         handle->msg[msgindex] = NULL;
+                        handle->pmt_count--;
                         continue;
                     }
                     
@@ -156,10 +172,14 @@ static void message_callback(void *context, int index)
                         handle->msg[msgindex] = NULL;
                         NEXUS_PidChannel_Close(handle->pidChannel[msgindex]);
                         handle->pidChannel[msgindex] = NULL;
+                        handle->pmt_count--;
                         continue;
                     }
                     
                     /* we are filtering */
+                }
+                else {
+                    handle->pmt_count--;
                 }
             }
         }
@@ -169,7 +189,7 @@ static void message_callback(void *context, int index)
     }
     else {
         /* PMT */
-        BDBG_MSG(("PMT: %d size:%d (%02x %02x %02x)", index, (unsigned)size,
+        BDBG_MSG(("PMT: %#x size:%d (%02x %02x %02x)", handle->pid[index], (unsigned)size,
             ((unsigned char *)buffer)[0],((unsigned char *)buffer)[1],((unsigned char *)buffer)[2]));
         if (TS_PMT_validate(buffer, size)) {
             tspsimgr_scan_results *p_chanInfo = &handle->results;
@@ -222,6 +242,9 @@ static void message_callback(void *context, int index)
             else {
                 BDBG_WRN(("PMT overflow"));
             }
+        }
+        else {
+            BDBG_ERR(("invalid PMT %#x", handle->pid[index]));
         }
 #if !CONTINUOUS
         NEXUS_Message_Stop(handle->msg[index]);
@@ -559,7 +582,7 @@ int tspsimgr_start_scan( tspsimgr_t handle, const tspsimgr_scan_settings *psetti
     }
 
     /* PAT is on pid channel 0x0 */
-    handle->pidChannel[0] = NEXUS_PidChannel_Open(psettings->parserBand, 0x0, NULL);
+    handle->pidChannel[0] = message_p_openpid(psettings, 0x0);
     if (!handle->pidChannel[0]) {
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         goto error;

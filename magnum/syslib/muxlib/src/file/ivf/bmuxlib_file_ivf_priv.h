@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -214,8 +214,6 @@ BERR_Code BMUXlib_File_IVF_P_ProcessOutputDescriptorsWaiting(BMUXlib_File_IVF_Ha
 bool BMUXlib_File_IVF_P_EOSSeen( BMUXlib_File_IVF_Handle hIVFMux );
 bool BMUXlib_File_IVF_P_IsInputProcessingDone( BMUXlib_File_IVF_Handle hIVFMux );
 bool BMUXlib_File_IVF_P_IsOutputProcessingDone( BMUXlib_File_IVF_Handle hIVFMux );
-
-void      BMUXlib_File_IVF_P_WriteU64LE(uint64_t *puiDest, uint64_t uiData);
 
 #ifdef __cplusplus
 }

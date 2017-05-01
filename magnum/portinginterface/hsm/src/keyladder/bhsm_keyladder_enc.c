@@ -269,6 +269,12 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    /* Supported only with BFW 4.0.0 or later security FWs. */
+    if ( hHsm->firmwareVersion.bseck.major < 4 )
+    {
+        return BERR_TRACE (BERR_NOT_SUPPORTED);
+    }
+
     vklId = BHSM_RemapVklId(pConfig->virtualKeyLadderID);
     if( vklId >= BCMD_VKL_KeyRam_eMax )
     {
@@ -539,7 +545,7 @@ BERR_Code BHSM_GenerateRouteKey(
     #if ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2) )
     if( pGrk->keyTweak == BHSM_KeyTweak_eDupleConnect )
     {
-        BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSourceDuple, pGrk->sourceDupleKeyLadderId );
+        BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSourceDuple, BHSM_RemapVklId( pGrk->sourceDupleKeyLadderId ));
     }
     #endif
 

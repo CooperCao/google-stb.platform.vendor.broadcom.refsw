@@ -246,8 +246,10 @@ Symbol *glsl_commit_block_type(SymbolTable *table, SymbolType *type, Qualifiers 
 
    if(quals->invariant)
       glsl_compile_error(ERROR_SEMANTIC, 9, g_LineNumber, NULL);
-   if(quals->tq != TYPE_QUAL_NONE && (quals->sq != STORAGE_IN && quals->sq != STORAGE_OUT))
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "'%s' invalid on block declaration", glsl_type_qual_string(quals->tq));
+   if(quals->iq != INTERP_SMOOTH && (quals->sq != STORAGE_IN && quals->sq != STORAGE_OUT))
+      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "'%s' invalid on block declaration", glsl_interp_qual_string(quals->iq));
+   if(quals->aq != AUXILIARY_NONE && (quals->sq != STORAGE_IN && quals->sq != STORAGE_OUT))
+      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "'%s' invalid on block declaration", glsl_aux_qual_string(quals->aq));
    if(quals->pq != PREC_NONE)
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "precision qualifier invalid on block declaration");
 
@@ -432,71 +434,27 @@ static SymbolType *copy_type_where_incomplete(SymbolType *type) {
    return ret;
 }
 
-static bool is_array(const SymbolType *ty) { return (ty->flavour == SYMBOL_ARRAY_TYPE); }
-static bool is_struct(const SymbolType *ty) { return (ty->flavour == SYMBOL_STRUCT_TYPE); }
-
-static bool is_integer(const SymbolType *ty)
+/* Check types for input and output types inside the pipeline (ie. not vertex in
+ * or fragment out). The number of array levels allowed, and whether structs or
+ * ints are allowed varies based on context */
+static bool check_in_out_type(const SymbolType *ty, int arrays_ok, bool struct_ok, bool int_ok, bool matrix_ok)
 {
-   return ((ty->flavour == SYMBOL_PRIMITIVE_TYPE ) &&
-           (primitiveTypeFlags[ty->u.primitive_type.index] & (PRIM_INT_TYPE | PRIM_UINT_TYPE)));
-}
-
-static bool is_float(const SymbolType *ty)
-{
-   return ((ty->flavour == SYMBOL_PRIMITIVE_TYPE) &&
-           (primitiveTypeFlags[ty->u.primitive_type.index] & PRIM_FLOAT_TYPE));
-}
-
-static bool is_matrix(const SymbolType *ty)
-{
-   return ((ty->flavour == SYMBOL_PRIMITIVE_TYPE) &&
-           (primitiveTypeFlags[ty->u.primitive_type.index] & PRIM_MATRIX_TYPE));
-}
-
-static void check_vo_fi_type_es2(const SymbolType *ty, const char *name)
-{
-   if (is_array(ty)) ty = ty->u.array_type.member_type;
-
-   if (!is_float(ty))
-      glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
-}
-
-/*
-   Vertex Output and Fragment Input are identical.
-   - floats
-   - int BUT only if declared FLAT
-   - structs of the above
-   - arrays of the above
-*/
-static void check_vo_fi_type(SymbolType *ty, int has_flat, const char *name)
-{
-   if (is_array(ty)) {
-      if (is_array(ty->u.array_type.member_type) || is_struct(ty->u.array_type.member_type))
-         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
-
-      check_vo_fi_type(ty->u.array_type.member_type, has_flat, name);
-   }
-   else if (is_float(ty))
-      /* Ok */;
-   else if (is_integer(ty))
-   {
-      /* Must have FLAT qualifier */
-      if (!has_flat)
-         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\" must be qualified flat", name);
-   }
-   else if (is_struct(ty))
-   {
-      for (unsigned i = 0; i < ty->u.struct_type.member_count; i++ )
-      {
-         SymbolType *sty = ty->u.struct_type.member[i].type;
-         if (is_array(sty) || is_struct(sty))
-            glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
-
-         check_vo_fi_type(sty, has_flat, ty->u.struct_type.member[i].name);
+   if (ty->flavour == SYMBOL_ARRAY_TYPE)
+      return (arrays_ok > 0) && check_in_out_type(ty->u.array_type.member_type, arrays_ok-1, false, int_ok, matrix_ok);
+   else if (ty->flavour == SYMBOL_STRUCT_TYPE) {
+      bool ok = struct_ok;
+      for (unsigned i = 0; i < ty->u.struct_type.member_count; i++ ) {
+         const SymbolType *sty = ty->u.struct_type.member[i].type;
+         ok = ok && check_in_out_type(sty, 0, false, int_ok, matrix_ok);
       }
+      return ok;
+   } else {
+      if (ty->flavour != SYMBOL_PRIMITIVE_TYPE) return false;
+      bool i = primitiveTypeFlags[ty->u.primitive_type.index] & (PRIM_INT_TYPE | PRIM_UINT_TYPE);
+      bool f = primitiveTypeFlags[ty->u.primitive_type.index] & PRIM_FLOAT_TYPE;
+      bool m = primitiveTypeFlags[ty->u.primitive_type.index] & PRIM_MATRIX_TYPE;
+      return (f || i) && (int_ok || !i) && (matrix_ok || !m);
    }
-   else
-      glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
 }
 
 static bool format_valid_for_image_type(FormatQualifier format, SymbolType *type) {
@@ -546,36 +504,31 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
    if (array_size != NULL)
       type = glsl_build_array_type(type, array_size);
 
-   /* Validate global ins and outs based on the type of shader. */
-   if (g_ShaderFlavour == SHADER_VERTEX && q.sq == STORAGE_IN)
-   {
-      bool ints_allowed = (g_ShaderVersion >= GLSL_SHADER_VERSION(3,0,1));
-      /* Supports floats but no arrays. Ints are OK from ES3 */
-      if ( !is_float(type) && !(is_integer(type) && ints_allowed) )
-         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", error_name);
-   }
-   else if (g_ShaderFlavour == SHADER_FRAGMENT && q.sq == STORAGE_OUT)
-   {
-      /* Only possible in ES3. Supports floats, ints, arrays but not matrices */
-      /* Also only supports one level of array */
-      const SymbolType *base_type = type;
-      if (is_array(base_type)) base_type = base_type->u.array_type.member_type;
+   /* Validate ins and outs based on the type of shader. */
+   if (q.sq == STORAGE_OUT || q.sq == STORAGE_IN) {
+      bool vertex_in    = g_ShaderFlavour == SHADER_VERTEX   && q.sq == STORAGE_IN;
+      bool fragment_out = g_ShaderFlavour == SHADER_FRAGMENT && q.sq == STORAGE_OUT;
 
-      if ( !(is_integer(base_type) || is_float(base_type)) || is_matrix(base_type))
-         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", error_name);
-      if (q.tq == TYPE_QUAL_CENTROID)
-         glsl_compile_error(ERROR_SEMANTIC, 10, g_LineNumber, "Use of centroid out in a fragment shader");
-   }
-   else if ((g_ShaderFlavour == SHADER_VERTEX   && q.sq == STORAGE_OUT) ||
-            (g_ShaderFlavour == SHADER_FRAGMENT && q.sq == STORAGE_IN)    )
-   {
-      if (g_ShaderVersion == GLSL_SHADER_VERSION(1,0,1))
-         check_vo_fi_type_es2(type, error_name);
-      else
-         check_vo_fi_type(type, q.tq == TYPE_QUAL_FLAT, error_name);
+      bool arrayed_iface = g_ShaderFlavour == SHADER_TESS_CONTROL || ((g_ShaderFlavour == SHADER_TESS_EVALUATION || g_ShaderFlavour == SHADER_GEOMETRY) && q.sq == STORAGE_IN);
+      bool int_need_flat = (g_ShaderFlavour == SHADER_VERTEX   && q.sq == STORAGE_OUT) ||
+                           (g_ShaderFlavour == SHADER_FRAGMENT && q.sq == STORAGE_IN);
+
+      int arrays_ok = (arrayed_iface && q.aq != AUXILIARY_PATCH) ? 2 : (vertex_in ? 0 : 1);
+      bool struct_ok = !(vertex_in || fragment_out) && g_ShaderVersion != GLSL_SHADER_VERSION(1,0,1);
+      bool matrix_ok = !fragment_out;
+      bool int_ok = (!int_need_flat || q.iq == INTERP_FLAT) &&
+                    (g_ShaderVersion != GLSL_SHADER_VERSION(1,0,1));
+
+      if (!check_in_out_type(type, arrays_ok, struct_ok, int_ok, matrix_ok))
+         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
+
+      if (vertex_in || fragment_out) {
+         if (q.iq != INTERP_SMOOTH || q.aq != AUXILIARY_NONE)
+            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Use of interpolation qualifiers on vertex input / fragment output");
+      }
    }
 
-   if (q.tq == TYPE_QUAL_PATCH) {
+   if (q.aq == AUXILIARY_PATCH) {
       if (!( (q.sq == STORAGE_IN  && g_ShaderFlavour == SHADER_TESS_EVALUATION) ||
              (q.sq == STORAGE_OUT && g_ShaderFlavour == SHADER_TESS_CONTROL)  ) )
       {
@@ -583,7 +536,7 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
       }
    }
 
-   if (q.tq == TYPE_QUAL_SAMPLE) {
+   if (q.aq == AUXILIARY_SAMPLE) {
       if (q.sq == STORAGE_OUT && g_ShaderFlavour == SHADER_FRAGMENT)
          glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Invalid use of sample qualifier");
       if (q.sq == STORAGE_IN  && g_ShaderFlavour == SHADER_VERTEX)
@@ -772,6 +725,8 @@ static void glsl_map_member(Map *struct_map, StorageQualifier valid_sq,
    member->layout = quals->lq;
    member->prec   = quals->pq;
    member->memq   = quals->mq;
+   member->interp = quals->iq;
+   member->auxq   = quals->aq;
 
    check_singleton_is_instantiable(name, type);
    if (glsl_map_get(struct_map, name) != NULL)
@@ -786,7 +741,7 @@ static void glsl_map_and_check_members(Map *struct_map, StorageQualifier valid_s
    assert(statement->flavour==STATEMENT_STRUCT_DECL);
    SymbolType *type = statement->u.struct_decl.type;
    Qualifiers q;
-   qualifiers_from_list(&q, statement->u.struct_decl.quals);
+   qualifiers_from_list_context_sq(&q, statement->u.struct_decl.quals, valid_sq);
 
    if(block_lq) {
       LayoutQualifier *member_lq = q.lq;
@@ -847,6 +802,8 @@ static SymbolType *glsl_build_struct_or_block_type(SymbolTypeFlavour flavour,
       memb[i].layout = (flavour == SYMBOL_STRUCT_TYPE) ? NULL : member->layout;
       memb[i].prec   = member->prec;
       memb[i].memq   = member->memq;
+      memb[i].interp = member->interp;
+      memb[i].auxq   = member->auxq;
 
       resultType->scalar_count += member->type->scalar_count;
 
@@ -901,7 +858,8 @@ void glsl_commit_anonymous_block_members(SymbolTable *table, Symbol *symbol, Mem
       Qualifiers member_quals;
       member_quals.invariant = false;
       member_quals.sq        = symbol->u.interface_block.sq;
-      member_quals.tq        = symbol->u.interface_block.tq;
+      member_quals.iq        = symbol->u.interface_block.iq;
+      member_quals.aq        = symbol->u.interface_block.aq;
       member_quals.mq        = member->memq | mq;
       member_quals.lq        = member->layout;
 

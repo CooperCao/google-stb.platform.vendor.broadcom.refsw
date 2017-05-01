@@ -1,0 +1,48 @@
+diff -ruN install/aarch64-tzos-musleabi/include/c++/5.3.0/aarch64-tzos-musleabi/bits/c++config.h install-aarch64-tzos/aarch64-tzos-musleabi/include/c++/5.3.0/aarch64-tzos-musleabi/bits/c++config.h
+--- install/aarch64-tzos-musleabi/include/c++/5.3.0/aarch64-tzos-musleabi/bits/c++config.h	2016-12-30 16:52:55.535653671 -0500
++++ install-aarch64-tzos/aarch64-tzos-musleabi/include/c++/5.3.0/aarch64-tzos-musleabi/bits/c++config.h	2017-01-13 18:43:06.022515804 -0500
+@@ -129,7 +129,7 @@
+ #endif
+
+ #ifndef _GLIBCXX_THROW_OR_ABORT
+-# if __cpp_exceptions
++# if (defined __cpp_exceptions && __cpp_exceptions)
+ #  define _GLIBCXX_THROW_OR_ABORT(_EXC) (throw (_EXC))
+ # else
+ #  define _GLIBCXX_THROW_OR_ABORT(_EXC) (__builtin_abort())
+diff -ruN install/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h install-aarch64-tzos/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h
+--- install/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h	2016-12-30 16:52:55.695654463 -0500
++++ install-aarch64-tzos/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h	2017-01-13 18:43:06.022515804 -0500
+@@ -30,7 +30,7 @@
+ #ifndef _EXCEPTION_DEFINES_H
+ #define _EXCEPTION_DEFINES_H 1
+
+-#if ! __cpp_exceptions
++#if ! (defined __cpp_exceptions && __cpp_exceptions)
+ // Iff -fno-exceptions, transform error handling code to work without it.
+ # define __try      if (true)
+ # define __catch(X) if (false)
+diff -ruN install/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h install-aarch64-tzos/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h
+--- install/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h	2016-12-30 16:52:55.699654483 -0500
++++ install-aarch64-tzos/aarch64-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h	2017-01-13 18:43:06.022515804 -0500
+@@ -168,7 +168,7 @@
+     exception_ptr 
+     make_exception_ptr(_Ex __ex) _GLIBCXX_USE_NOEXCEPT
+     {
+-#if __cpp_exceptions
++#if (defined __cpp_exceptions && __cpp_exceptions)
+       try
+ 	{
+ 	  throw __ex;
+diff -ruN install/aarch64-tzos-musleabi/include/stddef.h install-aarch64-tzos/aarch64-tzos-musleabi/include/stddef.h
+--- install/aarch64-tzos-musleabi/include/stddef.h	2016-12-30 16:36:12.354679163 -0500
++++ install-aarch64-tzos/aarch64-tzos-musleabi/include/stddef.h	2017-01-13 18:43:06.022515804 -0500
+@@ -10,7 +10,7 @@
+ #define __NEED_ptrdiff_t
+ #define __NEED_size_t
+ #define __NEED_wchar_t
+-#if __STDC_VERSION__ >= 201112L || __cplusplus >= 201103L
++#if (defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L) || (defined __cplusplus && __cplusplus >= 201103L)
+ #define __NEED_max_align_t
+ #endif
+

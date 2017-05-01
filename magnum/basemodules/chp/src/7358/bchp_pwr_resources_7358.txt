@@ -5,7 +5,8 @@
 # AVD
 AVD -> AVD0
 AVD0 -> {AVD0_CLK, AVD0_PWR}
-AVD0_CLK -> HW_AVD0_CLK
+AVD0_CLK -> HW_AVD0_CPU_CLK
+HW_AVD0_CPU_CLK -> {HW_AVD0_CORE_CLK, HW_AVD0_SCB_108_CLK, HW_BVN_108M}
 AVD0_PWR -> HW_AVD0_PWR     # AVD0 SRAM
 
 # Audio
@@ -17,10 +18,11 @@ RAAGA0_DSP  -> HW_RAAGA0_DSP
 RAAGA0_SRAM -> HW_RAAGA0_SRAM
 
 # Display
-VDC -> {BVN, VDC_DAC, VDC_VEC, HW_HDMI_TX_CLK} # entire BVN and VEC blocks
+VDC -> {BVN, VDC_DAC, VDC_VEC}                  # entire BVN and VEC blocks
 BVN -> {HW_BVN, HW_BVN_108M, HW_BVN_SRAM}       # entire BVN block
 VDC_DAC -> HW_VDC_DAC                           # DAC clocks
 VDC_VEC -> {HW_VEC_AIO, HW_VEC_SRAM}            # VEC_AIO 108M, 216M and SCB clocks
+VDC_HDMI_TX_PHY0 -> HW_HDMI_TX_PHY
 
 #
 # Transport
@@ -39,12 +41,11 @@ XPT_SRAM -> HW_XPT_SRAM
 XPT_WAKEUP -> HW_XPT_WAKEUP
 
 # HDMI TX
-HDMI_TX          -> {HDMI_TX_CLK, HDMI_TX_CEC}           # entire HDMI block
-HDMI_TX_CLK      -> {HW_HDMI_TX_CLK, HW_HDMI_TX_SRAM}    # HDMI Clocks
-HW_HDMI_TX_CLK   -> {HW_HDMI_TX_108M, HW_BVN_108M}       # 108M clock for register R/W
+HDMI_TX          -> {HDMI_TX_CLK, HDMI_TX_PHY}           # entire HDMI block
+HDMI_TX_CLK      -> {HW_HDMI_TX_CLK, HW_BVN_108M, HW_HDMI_TX_SRAM}    # HDMI Clocks
+HDMI_TX_PHY      -> HW_HDMI_TX_PHY   			                    # HDMI PHY
+HW_HDMI_TX_PHY   -> {HW_HDMI_TX_CLK, HW_BVN_108M}
 
-#HDMI_TX_TMDS     ->  HW_HDMI_TX_TMDS
-HDMI_TX_CEC      -> {HW_HDMI_TX_CEC}                     # CEC and hotplug interrupts
 
 # Graphics2D
 M2MC -> HW_M2MC
@@ -66,8 +67,9 @@ SOFTMODEM -> HW_MDM                          # disabled for now
 #
 # PLLs and VCXOs
 #
-HW_AVD0_CLK -> {HW_PLL_AVD_CH1, HW_PLL_AVD_CH2}
-HW_RAAGA0_DSP -> HW_PLL_AVD_CH3
+HW_AVD0_CORE_CLK -> HW_PLL_AVD_CH1
+HW_AVD0_CPU_CLK  -> HW_PLL_AVD_CH2
+HW_RAAGA0_DSP    -> HW_PLL_AVD_CH3
 
 AUD_PLL0 -> HW_AUD_PLL0
 AUD_PLL1 -> HW_AUD_PLL1

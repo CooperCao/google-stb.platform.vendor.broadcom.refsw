@@ -38,10 +38,32 @@
    #define countof(x) (sizeof((x)) / sizeof((x)[0]))
 #endif
 
+// alignof
+#ifdef _MSC_VER
+   #define align_of(T) __alignof(T)
+#elif defined(__GNUC__)
+   #define align_of(T) __alignof__(T)
+#else
+   #define align_of(T) (sizeof(struct { T t; char ch; }) - sizeof(T))
+#endif
+
 // inline is a keyword in C99 and C++, although MSVC supports a
 // good portion of C99, somehow the inline keyword missed the list
 #if defined(_MSC_VER) && !defined(inline) && !defined(__cplusplus)
 #define inline __inline
+#endif
+
+// constexpr
+#if defined(__cplusplus) && defined(_MSC_VER) && (_MSC_VER < 1900)
+#define constexpr const
+#define _ALLOW_KEYWORD_MACROS
+#endif
+
+// noexcept
+#if !defined(__cplusplus)
+#define noexcept
+#elif defined(_MSC_VER) && (_MSC_VER < 1900)
+#define noexcept throw()
 #endif
 
 #ifdef NDEBUG

@@ -84,72 +84,6 @@ typedef struct BMUXlib_TS_MCPB_QueueEntry
    unsigned uiSourceDescriptorCount; /* Indicates how many actual source descriptors are represented by this entry */
 } BMUXlib_TS_MCPB_QueueEntry;
 
-int BMUXlib_TS_MCPB_P_CompareDescriptorFifo(
-   const void *pEntryA,
-   const void *pEntryB
-   )
-{
-   int result;
-   const BMUXlib_List_Handle *phDescriptorFifoA = (BMUXlib_List_Handle *) pEntryA;
-   const BMUXlib_List_Handle *phDescriptorFifoB = (BMUXlib_List_Handle *) pEntryB;
-
-   BDBG_ENTER( BMUXlib_TS_MCPB_P_CompareDescriptorFifo );
-
-   BDBG_ASSERT( phDescriptorFifoA );
-   BDBG_ASSERT( phDescriptorFifoB );
-   BDBG_ASSERT( *phDescriptorFifoA );
-   BDBG_ASSERT( *phDescriptorFifoB );
-
-   {
-      BMUXlib_TS_MCPB_QueueEntry *pstEntryA = NULL;
-      BMUXlib_TS_MCPB_QueueEntry *pstEntryB = NULL;
-
-      if ( false == BMUXlib_List_IsEmpty( *phDescriptorFifoA ) )
-      {
-         BMUXlib_List_GetHead( *phDescriptorFifoA, (void**) &pstEntryA );
-      }
-
-      if ( false == BMUXlib_List_IsEmpty( *phDescriptorFifoB ) )
-      {
-         BMUXlib_List_GetHead( *phDescriptorFifoB, (void**) &pstEntryB );
-      }
-
-      if ( ( NULL == pstEntryA ) && ( NULL == pstEntryB ) )
-      {
-         return 0;
-      }
-      else if ( NULL == pstEntryA )
-      {
-         return 1;
-      }
-      else if ( NULL == pstEntryB )
-      {
-         return -1;
-      }
-      else
-      {
-         int32_t iDeltaESCR = pstEntryA->uiCurrentESCR - pstEntryB->uiCurrentESCR;
-
-         if ( iDeltaESCR < 0 )
-         {
-            result = -1;
-         }
-         else if ( iDeltaESCR > 0 )
-         {
-            result = 1;
-         }
-         else
-         {
-            result = 0;
-         }
-      }
-   }
-
-   BDBG_ENTER( BMUXlib_TS_MCPB_P_CompareDescriptorFifo );
-
-   return result;
-}
-
 typedef struct BMUXlib_TS_MCPB_P_PacketFifo
 {
    BMMA_Block_Handle hBlock;
@@ -279,6 +213,45 @@ typedef struct BMUXlib_TS_MCPB_P_Context
    FILE *hOutputDumpFile;
 #endif
 } BMUXlib_TS_MCPB_P_Context;
+
+/***********************************/
+/*     Static Prototypes           */
+/***********************************/
+static int BMUXlib_TS_MCPB_P_CompareDescriptorFifo(const void *pEntryA, const void *pEntryB);
+static void BMUXlib_TS_MCPB_P_ReconcileFifoQueue(BMUXlib_TS_MCPB_Handle hMuxMCPB);
+static void BMUXlib_TS_MCPB_P_ConsumeDescriptor(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_MCPB_QueueEntry *pstEntry);
+static void BMUXlib_TS_MCPB_P_DumpDescriptor(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_MCPB_QueueEntry *pstEntry,
+   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, const BMUXlib_TS_MCPB_P_TransportMetadata *pstMetadata);
+static bool BMUXlib_TS_MCPB_P_InsertBuffer(BMUXlib_TS_MCPB_Handle hMuxMCPB, BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
+   BMUXlib_TS_MCPB_P_TransportMetadata *pstMetadata, BMUXlib_TS_MCPB_QueueEntry *pstEntry);
+static bool BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(BMUXlib_TS_MCPB_Handle hMuxMCPB, BMUXlib_TS_MCPB_QueueEntry *pstEntry);
+static bool BMUXlib_TS_MCPB_P_InsertBuffer_PUSIBtp(BMUXlib_TS_MCPB_Handle hMuxMCPB, BMUXlib_TS_MCPB_QueueEntry *pstEntry);
+static bool BMUXlib_TS_MCPB_P_InsertPayload(BMUXlib_TS_MCPB_Handle hMuxMCPB, BMUXlib_TS_MCPB_QueueEntry *pstEntry,
+   BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
+static bool BMUXlib_TS_MCPB_P_ProcessNextEntry(BMUXlib_TS_MCPB_Handle hMuxMCPB, unsigned uiEndESCR);
+static bool BMUXlib_TS_MCPB_P_IsPESHeader(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
+static bool BMUXlib_TS_MCPB_P_IsBPP(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
+static bool BMUXlib_TS_MCPB_P_IsLastBPP(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
+static bool BMUXlib_TS_MCPB_P_IsNULLPacket(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
+static bool BMUXlib_TS_MCPB_P_IsBTP(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
+static void* BMUXlib_TS_MCPB_P_GetAddress(BMUXlib_TS_MCPB_Handle hMuxMCPB, uint64_t uiBufferOffset);
+static void BMUXlib_TS_MCPB_P_UpdateCurrentESCR(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh, const BMUXlib_TS_MCPB_QueueEntry *pstEntry);
+static void BMUXlib_TS_MCPB_P_ClearTransportDescriptorFlags(BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
+static bool BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
+   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXlib_TS_MCPB_QueueEntry *apstEntry[2]);
+static bool BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsDirect(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
+   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXlib_TS_MCPB_QueueEntry ** pstEntry);
+static void BMUXlib_TS_MCPB_P_ProcessCompletedTransportDescriptors(BMUXlib_TS_MCPB_Handle hMuxMCPB);
+static void BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
+   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXlib_TS_MCPB_QueueEntry *pstEntry);
+static BERR_Code BMUXlib_TS_MCPB_P_ScheduleProcessedEntries(BMUXlib_TS_MCPB_Handle hMuxMCPB);
+
+static unsigned BMUXLIB_TS_P_FIFO_PKTDEPTH(BMUXlib_TS_MCPB_P_PacketFifo *pstFifo);
+static void BMUXLIB_TS_P_FIFO_PKTCONSUME(BMUXlib_TS_MCPB_P_PacketFifo *pstFifo, size_t uiLength);
+static void BMUXLIB_TS_P_FIFO_CONSUME(BMUXlib_TS_MCPB_P_PacketFifo *pstFifo, size_t uiLength);
+static void BMUXLIB_TS_P_FIFO_ADD(BMUXlib_TS_MCPB_P_PacketFifo *pstFifo, const void *pBuffer, size_t uiLength) ;
+static unsigned BMUXLIB_TS_P_FIFO_FREE(BMUXlib_TS_MCPB_P_PacketFifo *pstFifo);
+
 
 /***********************************/
 /* Device Create/Destroy Functions */
@@ -861,7 +834,73 @@ BMUXlib_TS_MCPB_Channel_Close(
 /* Private Functions */
 /*********************/
 
-void* BMUXlib_TS_MCPB_P_GetAddress(
+static int BMUXlib_TS_MCPB_P_CompareDescriptorFifo(
+   const void *pEntryA,
+   const void *pEntryB
+   )
+{
+   int result;
+   const BMUXlib_List_Handle *phDescriptorFifoA = (BMUXlib_List_Handle *) pEntryA;
+   const BMUXlib_List_Handle *phDescriptorFifoB = (BMUXlib_List_Handle *) pEntryB;
+
+   BDBG_ENTER( BMUXlib_TS_MCPB_P_CompareDescriptorFifo );
+
+   BDBG_ASSERT( phDescriptorFifoA );
+   BDBG_ASSERT( phDescriptorFifoB );
+   BDBG_ASSERT( *phDescriptorFifoA );
+   BDBG_ASSERT( *phDescriptorFifoB );
+
+   {
+      BMUXlib_TS_MCPB_QueueEntry *pstEntryA = NULL;
+      BMUXlib_TS_MCPB_QueueEntry *pstEntryB = NULL;
+
+      if ( false == BMUXlib_List_IsEmpty( *phDescriptorFifoA ) )
+      {
+         BMUXlib_List_GetHead( *phDescriptorFifoA, (void**) &pstEntryA );
+      }
+
+      if ( false == BMUXlib_List_IsEmpty( *phDescriptorFifoB ) )
+      {
+         BMUXlib_List_GetHead( *phDescriptorFifoB, (void**) &pstEntryB );
+      }
+
+      if ( ( NULL == pstEntryA ) && ( NULL == pstEntryB ) )
+      {
+         return 0;
+      }
+      else if ( NULL == pstEntryA )
+      {
+         return 1;
+      }
+      else if ( NULL == pstEntryB )
+      {
+         return -1;
+      }
+      else
+      {
+         int32_t iDeltaESCR = pstEntryA->uiCurrentESCR - pstEntryB->uiCurrentESCR;
+
+         if ( iDeltaESCR < 0 )
+         {
+            result = -1;
+         }
+         else if ( iDeltaESCR > 0 )
+         {
+            result = 1;
+         }
+         else
+         {
+            result = 0;
+         }
+      }
+   }
+
+   BDBG_ENTER( BMUXlib_TS_MCPB_P_CompareDescriptorFifo );
+
+   return result;
+}
+
+static void* BMUXlib_TS_MCPB_P_GetAddress(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    uint64_t uiBufferOffset
    )
@@ -874,7 +913,8 @@ void* BMUXlib_TS_MCPB_P_GetAddress(
 
    return NULL;
 }
-bool
+
+static bool
 BMUXlib_TS_MCPB_P_IsPESHeader(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor
@@ -901,7 +941,7 @@ BMUXlib_TS_MCPB_P_IsPESHeader(
    return false;
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_IsBPP(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor
@@ -931,7 +971,7 @@ BMUXlib_TS_MCPB_P_IsBPP(
 }
 
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_IsLastBPP(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor
@@ -964,7 +1004,7 @@ BMUXlib_TS_MCPB_P_IsLastBPP(
    return false;
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_IsNULLPacket(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor
@@ -991,7 +1031,7 @@ BMUXlib_TS_MCPB_P_IsNULLPacket(
    return false;
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_IsBTP(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor
@@ -1024,7 +1064,7 @@ BMUXlib_TS_MCPB_P_IsBTP(
    return false;
 }
 
-bool BMUXlib_TS_MCPB_P_InsertBuffer(
+static bool BMUXlib_TS_MCPB_P_InsertBuffer(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
    BMUXlib_TS_MCPB_P_TransportMetadata *pstMetadata,
@@ -1115,7 +1155,7 @@ bool BMUXlib_TS_MCPB_P_InsertBuffer(
    return true;
 }
 
-void
+static void
 BMUXlib_TS_MCPB_P_DumpDescriptor(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    const BMUXlib_TS_MCPB_QueueEntry *pstEntry,
@@ -1213,7 +1253,7 @@ BMUXlib_TS_MCPB_P_DumpDescriptor(
 #endif
 }
 
-void
+static void
 BMUXlib_TS_MCPB_P_ClearTransportDescriptorFlags (
    BMUXlib_TS_TransportDescriptor *pstTransportDescriptor
    )
@@ -1223,7 +1263,7 @@ BMUXlib_TS_MCPB_P_ClearTransportDescriptorFlags (
    pstTransportDescriptor->stTsMuxDescriptorConfig.bRandomAccessIndication = false;
 }
 
-void
+static void
 BMUXlib_TS_MCPB_P_ConsumeDescriptor(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    const BMUXlib_TS_MCPB_QueueEntry *pstEntry
@@ -1243,7 +1283,7 @@ BMUXlib_TS_MCPB_P_ConsumeDescriptor(
    }
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    BMUXlib_TS_MCPB_QueueEntry *pstEntry
@@ -1326,7 +1366,7 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(
    return bResult;
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_InsertBuffer_PUSIBtp(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    BMUXlib_TS_MCPB_QueueEntry *pstEntry
@@ -1384,7 +1424,7 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PUSIBtp(
    return bResult;
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_InsertPayload(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    BMUXlib_TS_MCPB_QueueEntry *pstEntry,
@@ -1426,7 +1466,7 @@ BMUXlib_TS_MCPB_P_InsertPayload(
    return false;
 }
 
-void
+static void
 BMUXlib_TS_MCPB_P_ReconcileFifoQueue(
    BMUXlib_TS_MCPB_Handle hMuxMCPB
    )
@@ -1465,7 +1505,7 @@ BMUXlib_TS_MCPB_P_ReconcileFifoQueue(
    }
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_ProcessNextEntry(
    BMUXlib_TS_MCPB_Handle hMuxMCPB,
    unsigned uiEndESCR
@@ -1501,13 +1541,13 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
 
                iESCRDelta = uiEndESCR - pstEntry->uiCurrentESCR;
 
-               if ( iESCRDelta <= 0 )
+               if ( ( iESCRDelta < 0 )
+                    || ( ( 0 == iESCRDelta ) && ( 0 != pstEntry->uiBytesLeft ) && ( 0 != pstEntry->uiPacket2PacketDelta ) ) )
                {
                   /* We need to wait before processing this descriptor */
                   bResult = false;
                   break;
                }
-
 
                hMuxMCPB->stProcessEntryInfo.hList = hList;
                hMuxMCPB->stProcessEntryInfo.pstEntry = pstEntry;
@@ -1736,7 +1776,7 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
    return bResult;
 }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_MCPB_P_ScheduleProcessedEntries(
    BMUXlib_TS_MCPB_Handle hMuxMCPB
    )
@@ -1799,7 +1839,7 @@ BMUXlib_TS_MCPB_P_ScheduleProcessedEntries(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-unsigned BMUXLIB_TS_P_FIFO_FREE(
+static unsigned BMUXLIB_TS_P_FIFO_FREE(
    BMUXlib_TS_MCPB_P_PacketFifo *pstFifo
    )
 {
@@ -1815,7 +1855,7 @@ unsigned BMUXLIB_TS_P_FIFO_FREE(
    }
 }
 
-void BMUXLIB_TS_P_FIFO_ADD(
+static void BMUXLIB_TS_P_FIFO_ADD(
    BMUXlib_TS_MCPB_P_PacketFifo *pstFifo,
    const void *pBuffer,
    size_t uiLength
@@ -1859,7 +1899,7 @@ void BMUXLIB_TS_P_FIFO_ADD(
    }
 }
 
-void BMUXLIB_TS_P_FIFO_CONSUME(
+static void BMUXLIB_TS_P_FIFO_CONSUME(
    BMUXlib_TS_MCPB_P_PacketFifo *pstFifo,
    size_t uiLength
    )
@@ -1869,7 +1909,7 @@ void BMUXLIB_TS_P_FIFO_CONSUME(
    pstFifo->uiRead %= pstFifo->uiSize;
 }
 
-void BMUXLIB_TS_P_FIFO_PKTCONSUME(
+static void BMUXLIB_TS_P_FIFO_PKTCONSUME(
    BMUXlib_TS_MCPB_P_PacketFifo *pstFifo,
    size_t uiLength
    )
@@ -1879,7 +1919,7 @@ void BMUXLIB_TS_P_FIFO_PKTCONSUME(
    pstFifo->uiPacketRead %= pstFifo->uiSize;
 }
 
-unsigned BMUXLIB_TS_P_FIFO_PKTDEPTH(
+static unsigned BMUXLIB_TS_P_FIFO_PKTDEPTH(
    BMUXlib_TS_MCPB_P_PacketFifo *pstFifo
    )
 {
@@ -1895,7 +1935,7 @@ unsigned BMUXLIB_TS_P_FIFO_PKTDEPTH(
    }
 }
 
-void
+static void
 BMUXlib_TS_MCPB_P_ProcessCompletedTransportDescriptors(
    BMUXlib_TS_MCPB_Handle hMuxMCPB
    )
@@ -1978,7 +2018,7 @@ BMUXlib_TS_MCPB_P_ProcessCompletedTransportDescriptors(
 /**********************/
 /* Run-time Functions */
 /**********************/
-void
+static void
 BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor(
    BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
@@ -2050,7 +2090,7 @@ BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor(
    }
 }
 
-void BMUXlib_TS_MCPB_P_UpdateCurrentESCR(
+static void BMUXlib_TS_MCPB_P_UpdateCurrentESCR(
    BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
    const BMUXlib_TS_MCPB_QueueEntry *pstEntry
    )
@@ -2065,7 +2105,7 @@ void BMUXlib_TS_MCPB_P_UpdateCurrentESCR(
    hMuxMCPBCh->stState.uiCurrentESCR += ( ( pstEntry->stTransportDescriptor.uiBufferLength % hMuxMCPBCh->stState.uiPacketSize ) * hMuxMCPBCh->stState.uiCurrentPKT2PKTDelta ) / hMuxMCPBCh->stState.uiPacketSize; /* Include fractional Packet */
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsDirect(
    BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
@@ -2093,7 +2133,7 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsDirect(
    return true;
 }
 
-bool
+static bool
 BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
    BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,

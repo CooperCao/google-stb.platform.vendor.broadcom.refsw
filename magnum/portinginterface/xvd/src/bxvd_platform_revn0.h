@@ -241,6 +241,11 @@
 #if  (BCHP_CHIP == 7445)
 #include "bchp_memc_ddr_2.h"
 #define BXVD_P_MEMC_2_PRESENT 1
+
+#if (BCHP_VER >= BCHP_VER_E0)
+#define BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT 1
+#endif
+
 #endif
 
 #if BXVD_P_USE_HVD_INTRS

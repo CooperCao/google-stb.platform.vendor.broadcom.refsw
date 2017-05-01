@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:29 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,102 +70,102 @@
 /***************************************************************************
  *V3D_QPUDBG_0
  ***************************************************************************/
-#define BCHP_V3D_QPUDBG_0_STS1                   0x2130a000 /* [RO] QPU Debug Status and Selection 1 */
-#define BCHP_V3D_QPUDBG_0_STS2                   0x2130a004 /* [RO] QPU Debug Status 2 */
-#define BCHP_V3D_QPUDBG_0_ALLSTS                 0x2130a008 /* [RO] All QPU Debug Status */
-#define BCHP_V3D_QPUDBG_0_VER                    0x2130a00c /* [RO] QPU Debug Version */
-#define BCHP_V3D_QPUDBG_0_CTL1                   0x2130a010 /* [WO] QPU Control 1 */
-#define BCHP_V3D_QPUDBG_0_ALLCTL                 0x2130a018 /* [WO] All QPU Control */
-#define BCHP_V3D_QPUDBG_0_THREAD                 0x2130a020 /* [RW] QPU thread info */
-#define BCHP_V3D_QPUDBG_0_NUM                    0x2130a024 /* [RW] QPU number info (core, slice, qpu number in slice) */
-#define BCHP_V3D_QPUDBG_0_THREAD_STATE0          0x2130a030 /* [RW] Thread state 0 */
-#define BCHP_V3D_QPUDBG_0_THREAD_STATE1          0x2130a034 /* [RW] Thread state 1 */
-#define BCHP_V3D_QPUDBG_0_PC0                    0x2130a050 /* [RW] Thread 0 PC */
-#define BCHP_V3D_QPUDBG_0_PC1                    0x2130a054 /* [RW] Thread 1 PC */
-#define BCHP_V3D_QPUDBG_0_PC2                    0x2130a058 /* [RW] Thread 2 PC */
-#define BCHP_V3D_QPUDBG_0_PC3                    0x2130a05c /* [RW] Thread 3 PC */
-#define BCHP_V3D_QPUDBG_0_LR0                    0x2130a060 /* [RW] Thread 0 LR */
-#define BCHP_V3D_QPUDBG_0_LR1                    0x2130a064 /* [RW] Thread 1 LR */
-#define BCHP_V3D_QPUDBG_0_LR2                    0x2130a068 /* [RW] Thread 2 LR */
-#define BCHP_V3D_QPUDBG_0_LR3                    0x2130a06c /* [RW] Thread 3 LR */
-#define BCHP_V3D_QPUDBG_0_LRU0                   0x2130a070 /* [RW] Thread 0 LRU */
-#define BCHP_V3D_QPUDBG_0_LRU1                   0x2130a074 /* [RW] Thread 1 LRU */
-#define BCHP_V3D_QPUDBG_0_LRU2                   0x2130a078 /* [RW] Thread 2 LRU */
-#define BCHP_V3D_QPUDBG_0_LRU3                   0x2130a07c /* [RW] Thread 3 LRU */
-#define BCHP_V3D_QPUDBG_0_FA0                    0x2130a080 /* [RW] Thread 0 flag_a */
-#define BCHP_V3D_QPUDBG_0_FA1                    0x2130a084 /* [RW] Thread 1 flag_a */
-#define BCHP_V3D_QPUDBG_0_FA2                    0x2130a088 /* [RW] Thread 2 flag_a */
-#define BCHP_V3D_QPUDBG_0_FA3                    0x2130a08c /* [RW] Thread 3 flag_a */
-#define BCHP_V3D_QPUDBG_0_FB0                    0x2130a090 /* [RW] Thread 0 flag_b */
-#define BCHP_V3D_QPUDBG_0_FB1                    0x2130a094 /* [RW] Thread 1 flag_b */
-#define BCHP_V3D_QPUDBG_0_FB2                    0x2130a098 /* [RW] Thread 2 flag_b */
-#define BCHP_V3D_QPUDBG_0_FB3                    0x2130a09c /* [RW] Thread 3 flag_b */
-#define BCHP_V3D_QPUDBG_0_RTOP0                  0x2130a0a0 /* [RW] Thread 0 RTOP */
-#define BCHP_V3D_QPUDBG_0_RTOP1                  0x2130a0a4 /* [RW] Thread 1 RTOP */
-#define BCHP_V3D_QPUDBG_0_RTOP2                  0x2130a0a8 /* [RW] Thread 2 RTOP */
-#define BCHP_V3D_QPUDBG_0_RTOP3                  0x2130a0ac /* [RW] Thread 3 RTOP */
-#define BCHP_V3D_QPUDBG_0_IW0                    0x2130a0b0 /* [RW] Low 32-bits of current instruction word */
-#define BCHP_V3D_QPUDBG_0_IW1                    0x2130a0b4 /* [RW] High 32-bits of current instruction word */
-#define BCHP_V3D_QPUDBG_0_BRA_PC                 0x2130a0c0 /* [RW] Branch control: target PC */
-#define BCHP_V3D_QPUDBG_0_BU_TARGET              0x2130a0c4 /* [RW] Branch UNIFORM target, captured in stage RR */
-#define BCHP_V3D_QPUDBG_0_RS_BU_TARGET           0x2130a0c8 /* [RW] Branch UNIFORM target, after delay slots, aligned to stage RS */
-#define BCHP_V3D_QPUDBG_0_BRA_STATE              0x2130a0cc /* [RW] Branch control: state */
-#define BCHP_V3D_QPUDBG_0_UCB0                   0x2130a0d0 /* [RO] Thread 0 Uniform Cache Base Address */
-#define BCHP_V3D_QPUDBG_0_UCB1                   0x2130a0d4 /* [RO] Thread 1 Uniform Cache Base Address */
-#define BCHP_V3D_QPUDBG_0_UCB2                   0x2130a0d8 /* [RO] Thread 2 Uniform Cache Base Address */
-#define BCHP_V3D_QPUDBG_0_UCB3                   0x2130a0dc /* [RO] Thread 3 Uniform Cache Base Address */
-#define BCHP_V3D_QPUDBG_0_UA0                    0x2130a0e0 /* [RW] Thread 0 Uniform Address (pipeline stage sp) */
-#define BCHP_V3D_QPUDBG_0_UA1                    0x2130a0e4 /* [RW] Thread 1 Uniform Address (pipeline stage sp) */
-#define BCHP_V3D_QPUDBG_0_UA2                    0x2130a0e8 /* [RW] Thread 2 Uniform Address (pipeline stage sp) */
-#define BCHP_V3D_QPUDBG_0_UA3                    0x2130a0ec /* [RW] Thread 3 Uniform Address (pipeline stage sp) */
-#define BCHP_V3D_QPUDBG_0_UA_RA                  0x2130a0f0 /* [RW] Uniform Address (pipeline stage ra) */
-#define BCHP_V3D_QPUDBG_0_UA_RR                  0x2130a0f4 /* [RW] Uniform Address (pipeline stage rr) */
-#define BCHP_V3D_QPUDBG_0_UA_MS                  0x2130a0f8 /* [RW] Uniform Address (pipeline stage ms) */
-#define BCHP_V3D_QPUDBG_0_UD_RA                  0x2130a100 /* [RW] Uniform Data (pipeline stage ra) */
-#define BCHP_V3D_QPUDBG_0_UD_RR                  0x2130a104 /* [RW] Uniform Data (pipeline stage rr) */
-#define BCHP_V3D_QPUDBG_0_UD_MS                  0x2130a108 /* [RW] Uniform Data (pipeline stage ms) */
-#define BCHP_V3D_QPUDBG_0_UD_A0                  0x2130a10c /* [RW] Uniform Data (pipeline stage a0) */
-#define BCHP_V3D_QPUDBG_0_UD_SP                  0x2130a110 /* [RW] Uniform Data (pipeline stage sp) */
-#define BCHP_V3D_QPUDBG_0_FA_STATE0              0x2130a120 /* [RW] FLAG A in delayslot 1 (pipeline stage ms) */
-#define BCHP_V3D_QPUDBG_0_FA_STATE1              0x2130a124 /* [RW] Branch condition in delay slots */
-#define BCHP_V3D_QPUDBG_0_T0MSM0                 0x2130a200 /* [RW] Low 32-bit word of the QRT slot 0 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T0MSM1                 0x2130a204 /* [RW] High 32-bit word of the QRT slot 0 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T1MSM0                 0x2130a208 /* [RW] Low 32-bit word of the QRT slot 1 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T1MSM1                 0x2130a20c /* [RW] High 32-bit word of the QRT slot 1 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T2MSM0                 0x2130a210 /* [RW] Low 32-bit word of the QRT slot 2 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T2MSM1                 0x2130a214 /* [RW] High 32-bit word of the QRT slot 2 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T3MSM0                 0x2130a218 /* [RW] Low 32-bit word of the QRT slot 3 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T3MSM1                 0x2130a21c /* [RW] High 32-bit word of the QRT slot 3 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T4MSM0                 0x2130a220 /* [RW] Low 32-bit word of the QRT slot 4 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_T4MSM1                 0x2130a224 /* [RW] High 32-bit word of the QRT slot 4 mulitisample mask for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QX0                    0x2130a228 /* [RW] QRT slot 0 quad Xs for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QX1                    0x2130a22c /* [RW] QRT slot 1 quad Xs for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QX2                    0x2130a230 /* [RW] QRT slot 2 quad Xs for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QX3                    0x2130a234 /* [RW] QRT slot 3 quad Xs for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QX4                    0x2130a238 /* [RW] QRT slot 4 quad Xs for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QY0                    0x2130a240 /* [RW] QRT slot 0 quad Ys for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QY1                    0x2130a244 /* [RW] QRT slot 1 quad Ys for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QY2                    0x2130a248 /* [RW] QRT slot 2 quad Ys for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QY3                    0x2130a24c /* [RW] QRT slot 3 quad Ys for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QY4                    0x2130a250 /* [RW] QRT slot 4 quad Ys for the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QRT0                   0x2130a258 /* [RW] QRT slot data 0 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QRT1                   0x2130a25c /* [RW] QRT slot data 1 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QRT2                   0x2130a260 /* [RW] QRT slot data 2 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QRT3                   0x2130a264 /* [RW] QRT slot data 3 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QRT4                   0x2130a268 /* [RW] QRT slot data 4 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_QR_WQALIAS             0x2130a270 /* [RW] QRT WQALIAS */
-#define BCHP_V3D_QPUDBG_0_QR_THREAD_CONTROL      0x2130a280 /* [RW] THREAD CONTROL */
-#define BCHP_V3D_QPUDBG_0_IUC_CNT                0x2130a290 /* [RW] IUC CNT */
-#define BCHP_V3D_QPUDBG_0_IC_CNT                 0x2130a294 /* [RW] IC STALL ADDR */
-#define BCHP_V3D_QPUDBG_0_UC_CNT                 0x2130a298 /* [RW] UC STALL ADDR */
-#define BCHP_V3D_QPUDBG_0_CRC0                   0x2130a2a0 /* [RW] CRC for thread 0 */
-#define BCHP_V3D_QPUDBG_0_CRC1                   0x2130a2a4 /* [RW] CRC for thread 1 */
-#define BCHP_V3D_QPUDBG_0_CRC2                   0x2130a2a8 /* [RW] CRC for thread 2 */
-#define BCHP_V3D_QPUDBG_0_CRC3                   0x2130a2ac /* [RW] CRC for thread 3 */
-#define BCHP_V3D_QPUDBG_0_ACC5_0                 0x2130a940 /* [RW] QPU Accumulator 5 element 0 to 3 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_ACC5_4                 0x2130a950 /* [RW] QPU Accumulator 5 element 4 to 7 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_ACC5_8                 0x2130a960 /* [RW] QPU Accumulator 5 element 8 to 11 of the mapped QPU */
-#define BCHP_V3D_QPUDBG_0_ACC5_12                0x2130a970 /* [RW] QPU Accumulator 5 element 12 to 15 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_STS1                   0x2130a000 /* [RO][32] QPU Debug Status and Selection 1 */
+#define BCHP_V3D_QPUDBG_0_STS2                   0x2130a004 /* [RO][32] QPU Debug Status 2 */
+#define BCHP_V3D_QPUDBG_0_ALLSTS                 0x2130a008 /* [RO][32] All QPU Debug Status */
+#define BCHP_V3D_QPUDBG_0_VER                    0x2130a00c /* [RO][32] QPU Debug Version */
+#define BCHP_V3D_QPUDBG_0_CTL1                   0x2130a010 /* [WO][32] QPU Control 1 */
+#define BCHP_V3D_QPUDBG_0_ALLCTL                 0x2130a018 /* [WO][32] All QPU Control */
+#define BCHP_V3D_QPUDBG_0_THREAD                 0x2130a020 /* [RW][32] QPU thread info */
+#define BCHP_V3D_QPUDBG_0_NUM                    0x2130a024 /* [RW][32] QPU number info (core, slice, qpu number in slice) */
+#define BCHP_V3D_QPUDBG_0_THREAD_STATE0          0x2130a030 /* [RW][32] Thread state 0 */
+#define BCHP_V3D_QPUDBG_0_THREAD_STATE1          0x2130a034 /* [RW][32] Thread state 1 */
+#define BCHP_V3D_QPUDBG_0_PC0                    0x2130a050 /* [RW][32] Thread 0 PC */
+#define BCHP_V3D_QPUDBG_0_PC1                    0x2130a054 /* [RW][32] Thread 1 PC */
+#define BCHP_V3D_QPUDBG_0_PC2                    0x2130a058 /* [RW][32] Thread 2 PC */
+#define BCHP_V3D_QPUDBG_0_PC3                    0x2130a05c /* [RW][32] Thread 3 PC */
+#define BCHP_V3D_QPUDBG_0_LR0                    0x2130a060 /* [RW][32] Thread 0 LR */
+#define BCHP_V3D_QPUDBG_0_LR1                    0x2130a064 /* [RW][32] Thread 1 LR */
+#define BCHP_V3D_QPUDBG_0_LR2                    0x2130a068 /* [RW][32] Thread 2 LR */
+#define BCHP_V3D_QPUDBG_0_LR3                    0x2130a06c /* [RW][32] Thread 3 LR */
+#define BCHP_V3D_QPUDBG_0_LRU0                   0x2130a070 /* [RW][32] Thread 0 LRU */
+#define BCHP_V3D_QPUDBG_0_LRU1                   0x2130a074 /* [RW][32] Thread 1 LRU */
+#define BCHP_V3D_QPUDBG_0_LRU2                   0x2130a078 /* [RW][32] Thread 2 LRU */
+#define BCHP_V3D_QPUDBG_0_LRU3                   0x2130a07c /* [RW][32] Thread 3 LRU */
+#define BCHP_V3D_QPUDBG_0_FA0                    0x2130a080 /* [RW][32] Thread 0 flag_a */
+#define BCHP_V3D_QPUDBG_0_FA1                    0x2130a084 /* [RW][32] Thread 1 flag_a */
+#define BCHP_V3D_QPUDBG_0_FA2                    0x2130a088 /* [RW][32] Thread 2 flag_a */
+#define BCHP_V3D_QPUDBG_0_FA3                    0x2130a08c /* [RW][32] Thread 3 flag_a */
+#define BCHP_V3D_QPUDBG_0_FB0                    0x2130a090 /* [RW][32] Thread 0 flag_b */
+#define BCHP_V3D_QPUDBG_0_FB1                    0x2130a094 /* [RW][32] Thread 1 flag_b */
+#define BCHP_V3D_QPUDBG_0_FB2                    0x2130a098 /* [RW][32] Thread 2 flag_b */
+#define BCHP_V3D_QPUDBG_0_FB3                    0x2130a09c /* [RW][32] Thread 3 flag_b */
+#define BCHP_V3D_QPUDBG_0_RTOP0                  0x2130a0a0 /* [RW][32] Thread 0 RTOP */
+#define BCHP_V3D_QPUDBG_0_RTOP1                  0x2130a0a4 /* [RW][32] Thread 1 RTOP */
+#define BCHP_V3D_QPUDBG_0_RTOP2                  0x2130a0a8 /* [RW][32] Thread 2 RTOP */
+#define BCHP_V3D_QPUDBG_0_RTOP3                  0x2130a0ac /* [RW][32] Thread 3 RTOP */
+#define BCHP_V3D_QPUDBG_0_IW0                    0x2130a0b0 /* [RW][32] Low 32-bits of current instruction word */
+#define BCHP_V3D_QPUDBG_0_IW1                    0x2130a0b4 /* [RW][32] High 32-bits of current instruction word */
+#define BCHP_V3D_QPUDBG_0_BRA_PC                 0x2130a0c0 /* [RW][32] Branch control: target PC */
+#define BCHP_V3D_QPUDBG_0_BU_TARGET              0x2130a0c4 /* [RW][32] Branch UNIFORM target, captured in stage RR */
+#define BCHP_V3D_QPUDBG_0_RS_BU_TARGET           0x2130a0c8 /* [RW][32] Branch UNIFORM target, after delay slots, aligned to stage RS */
+#define BCHP_V3D_QPUDBG_0_BRA_STATE              0x2130a0cc /* [RW][32] Branch control: state */
+#define BCHP_V3D_QPUDBG_0_UCB0                   0x2130a0d0 /* [RO][32] Thread 0 Uniform Cache Base Address */
+#define BCHP_V3D_QPUDBG_0_UCB1                   0x2130a0d4 /* [RO][32] Thread 1 Uniform Cache Base Address */
+#define BCHP_V3D_QPUDBG_0_UCB2                   0x2130a0d8 /* [RO][32] Thread 2 Uniform Cache Base Address */
+#define BCHP_V3D_QPUDBG_0_UCB3                   0x2130a0dc /* [RO][32] Thread 3 Uniform Cache Base Address */
+#define BCHP_V3D_QPUDBG_0_UA0                    0x2130a0e0 /* [RW][32] Thread 0 Uniform Address (pipeline stage sp) */
+#define BCHP_V3D_QPUDBG_0_UA1                    0x2130a0e4 /* [RW][32] Thread 1 Uniform Address (pipeline stage sp) */
+#define BCHP_V3D_QPUDBG_0_UA2                    0x2130a0e8 /* [RW][32] Thread 2 Uniform Address (pipeline stage sp) */
+#define BCHP_V3D_QPUDBG_0_UA3                    0x2130a0ec /* [RW][32] Thread 3 Uniform Address (pipeline stage sp) */
+#define BCHP_V3D_QPUDBG_0_UA_RA                  0x2130a0f0 /* [RW][32] Uniform Address (pipeline stage ra) */
+#define BCHP_V3D_QPUDBG_0_UA_RR                  0x2130a0f4 /* [RW][32] Uniform Address (pipeline stage rr) */
+#define BCHP_V3D_QPUDBG_0_UA_MS                  0x2130a0f8 /* [RW][32] Uniform Address (pipeline stage ms) */
+#define BCHP_V3D_QPUDBG_0_UD_RA                  0x2130a100 /* [RW][32] Uniform Data (pipeline stage ra) */
+#define BCHP_V3D_QPUDBG_0_UD_RR                  0x2130a104 /* [RW][32] Uniform Data (pipeline stage rr) */
+#define BCHP_V3D_QPUDBG_0_UD_MS                  0x2130a108 /* [RW][32] Uniform Data (pipeline stage ms) */
+#define BCHP_V3D_QPUDBG_0_UD_A0                  0x2130a10c /* [RW][32] Uniform Data (pipeline stage a0) */
+#define BCHP_V3D_QPUDBG_0_UD_SP                  0x2130a110 /* [RW][32] Uniform Data (pipeline stage sp) */
+#define BCHP_V3D_QPUDBG_0_FA_STATE0              0x2130a120 /* [RW][32] FLAG A in delayslot 1 (pipeline stage ms) */
+#define BCHP_V3D_QPUDBG_0_FA_STATE1              0x2130a124 /* [RW][32] Branch condition in delay slots */
+#define BCHP_V3D_QPUDBG_0_T0MSM0                 0x2130a200 /* [RW][32] Low 32-bit word of the QRT slot 0 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T0MSM1                 0x2130a204 /* [RW][32] High 32-bit word of the QRT slot 0 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T1MSM0                 0x2130a208 /* [RW][32] Low 32-bit word of the QRT slot 1 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T1MSM1                 0x2130a20c /* [RW][32] High 32-bit word of the QRT slot 1 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T2MSM0                 0x2130a210 /* [RW][32] Low 32-bit word of the QRT slot 2 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T2MSM1                 0x2130a214 /* [RW][32] High 32-bit word of the QRT slot 2 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T3MSM0                 0x2130a218 /* [RW][32] Low 32-bit word of the QRT slot 3 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T3MSM1                 0x2130a21c /* [RW][32] High 32-bit word of the QRT slot 3 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T4MSM0                 0x2130a220 /* [RW][32] Low 32-bit word of the QRT slot 4 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_T4MSM1                 0x2130a224 /* [RW][32] High 32-bit word of the QRT slot 4 mulitisample mask for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QX0                    0x2130a228 /* [RW][32] QRT slot 0 quad Xs for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QX1                    0x2130a22c /* [RW][32] QRT slot 1 quad Xs for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QX2                    0x2130a230 /* [RW][32] QRT slot 2 quad Xs for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QX3                    0x2130a234 /* [RW][32] QRT slot 3 quad Xs for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QX4                    0x2130a238 /* [RW][32] QRT slot 4 quad Xs for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QY0                    0x2130a240 /* [RW][32] QRT slot 0 quad Ys for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QY1                    0x2130a244 /* [RW][32] QRT slot 1 quad Ys for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QY2                    0x2130a248 /* [RW][32] QRT slot 2 quad Ys for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QY3                    0x2130a24c /* [RW][32] QRT slot 3 quad Ys for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QY4                    0x2130a250 /* [RW][32] QRT slot 4 quad Ys for the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QRT0                   0x2130a258 /* [RW][32] QRT slot data 0 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QRT1                   0x2130a25c /* [RW][32] QRT slot data 1 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QRT2                   0x2130a260 /* [RW][32] QRT slot data 2 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QRT3                   0x2130a264 /* [RW][32] QRT slot data 3 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QRT4                   0x2130a268 /* [RW][32] QRT slot data 4 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_QR_WQALIAS             0x2130a270 /* [RW][32] QRT WQALIAS */
+#define BCHP_V3D_QPUDBG_0_QR_THREAD_CONTROL      0x2130a280 /* [RW][32] THREAD CONTROL */
+#define BCHP_V3D_QPUDBG_0_IUC_CNT                0x2130a290 /* [RW][32] IUC CNT */
+#define BCHP_V3D_QPUDBG_0_IC_CNT                 0x2130a294 /* [RW][32] IC STALL ADDR */
+#define BCHP_V3D_QPUDBG_0_UC_CNT                 0x2130a298 /* [RW][32] UC STALL ADDR */
+#define BCHP_V3D_QPUDBG_0_CRC0                   0x2130a2a0 /* [RW][32] CRC for thread 0 */
+#define BCHP_V3D_QPUDBG_0_CRC1                   0x2130a2a4 /* [RW][32] CRC for thread 1 */
+#define BCHP_V3D_QPUDBG_0_CRC2                   0x2130a2a8 /* [RW][32] CRC for thread 2 */
+#define BCHP_V3D_QPUDBG_0_CRC3                   0x2130a2ac /* [RW][32] CRC for thread 3 */
+#define BCHP_V3D_QPUDBG_0_ACC5_0                 0x2130a940 /* [RW][32] QPU Accumulator 5 element 0 to 3 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_ACC5_4                 0x2130a950 /* [RW][32] QPU Accumulator 5 element 4 to 7 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_ACC5_8                 0x2130a960 /* [RW][32] QPU Accumulator 5 element 8 to 11 of the mapped QPU */
+#define BCHP_V3D_QPUDBG_0_ACC5_12                0x2130a970 /* [RW][32] QPU Accumulator 5 element 12 to 15 of the mapped QPU */
 
 /***************************************************************************
  *STS1 - QPU Debug Status and Selection 1

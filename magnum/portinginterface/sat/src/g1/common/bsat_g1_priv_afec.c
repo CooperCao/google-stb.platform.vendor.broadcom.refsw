@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,25 +54,24 @@ BDBG_MODULE(bsat_g1_priv_afec);
 
 
 /* local functions */
-bool BSAT_g1_P_AfecIs8psk_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecSetPldctl_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecConfigEq_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecSetVlctl_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecSetHardDecisionLevels_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecSetScramblingSeq_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecSetPilotctl_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecGeneratePdTable_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecConfigSnr_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecSetOpll_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecIsFlushDone_isr(BSAT_ChannelHandle h, bool *pbReady);
-BERR_Code BSAT_g1_P_AfecAcquire0_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_AfecWaitForFlushDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct);
-BERR_Code BSAT_g1_P_AfecWaitForFlushDone1_isr(BSAT_ChannelHandle h);
-bool BSAT_g1_P_AfecIsOtherChannelEnabled_isr(BSAT_ChannelHandle h);
-bool BSAT_g1_P_AfecIsOtherChannelFlushFailed_isr(BSAT_ChannelHandle h);
-void BSAT_g1_P_AfecInitEqTaps_isr(BSAT_ChannelHandle h);
+static bool BSAT_g1_P_AfecIs8psk_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecSetPldctl_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecConfigEq_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecSetVlctl_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecSetHardDecisionLevels_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecSetPilotctl_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecGeneratePdTable_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecConfigSnr_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecSetOpll_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecIsFlushDone_isr(BSAT_ChannelHandle h, bool *pbReady);
+static BERR_Code BSAT_g1_P_AfecAcquire0_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_AfecWaitForFlushDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct);
+static BERR_Code BSAT_g1_P_AfecWaitForFlushDone1_isr(BSAT_ChannelHandle h);
+static bool BSAT_g1_P_AfecIsOtherChannelEnabled_isr(BSAT_ChannelHandle h);
+static bool BSAT_g1_P_AfecIsOtherChannelFlushFailed_isr(BSAT_ChannelHandle h);
+static void BSAT_g1_P_AfecInitEqTaps_isr(BSAT_ChannelHandle h);
 
 
 /******************************************************************************
@@ -178,7 +177,7 @@ BERR_Code BSAT_g1_P_AfecAcquire_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecAcquire0_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecAcquire0_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecAcquire0_isr(BSAT_ChannelHandle h)
 {
    return BSAT_g1_P_HpAcquire_isr(h, BSAT_g1_P_AfecOnHpLock_isr);
 }
@@ -187,7 +186,7 @@ BERR_Code BSAT_g1_P_AfecAcquire0_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecOnHpLock_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -607,7 +606,7 @@ BERR_Code BSAT_g1_P_AfecGetStatus(BSAT_ChannelHandle h, BSAT_Dvbs2Status *pStatu
 /******************************************************************************
  BSAT_g1_P_AfecIs8psk_isr()
 ******************************************************************************/
-bool BSAT_g1_P_AfecIs8psk_isr(BSAT_ChannelHandle h)
+static bool BSAT_g1_P_AfecIs8psk_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -629,7 +628,7 @@ bool BSAT_g1_P_AfecIs8psk_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecSetPldctl_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecSetPldctl_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecSetPldctl_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -661,7 +660,7 @@ BERR_Code BSAT_g1_P_AfecSetPldctl_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecInitEqTaps_isr()
 ******************************************************************************/
-void BSAT_g1_P_AfecInitEqTaps_isr(BSAT_ChannelHandle h)
+static void BSAT_g1_P_AfecInitEqTaps_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, ffe_main_tap, i;
@@ -711,7 +710,7 @@ void BSAT_g1_P_AfecInitEqTaps_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecConfigEq_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecConfigEq_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecConfigEq_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -747,7 +746,7 @@ BERR_Code BSAT_g1_P_AfecConfigEq_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecSetVlctl_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecSetVlctl_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecSetVlctl_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -765,7 +764,7 @@ BERR_Code BSAT_g1_P_AfecSetVlctl_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecSetHardDecisionLevels_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecSetHardDecisionLevels_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecSetHardDecisionLevels_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -821,7 +820,7 @@ BERR_Code BSAT_g1_P_AfecSetScramblingSeq_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecSetPilotctl_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecSetPilotctl_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecSetPilotctl_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -841,7 +840,7 @@ BERR_Code BSAT_g1_P_AfecSetPilotctl_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecGetPdTableIdx_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecGetPdTableIdx_isr(uint32_t i, uint32_t j, uint32_t *pIdx)
+static BERR_Code BSAT_g1_P_AfecGetPdTableIdx_isr(uint32_t i, uint32_t j, uint32_t *pIdx)
 {
    uint32_t sval1;
 
@@ -855,7 +854,7 @@ BERR_Code BSAT_g1_P_AfecGetPdTableIdx_isr(uint32_t i, uint32_t j, uint32_t *pIdx
 /******************************************************************************
  BSAT_g1_P_AfecGeneratePdTable_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecGeneratePdTable_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecGeneratePdTable_isr(BSAT_ChannelHandle h)
 {
 #define BSAT_g1_PD_DATA_QPSK_EXTENSION 16
 
@@ -1444,7 +1443,7 @@ BERR_Code BSAT_g1_P_AfecGeneratePdTable_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecConfigSnr_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecConfigSnr_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecConfigSnr_isr(BSAT_ChannelHandle h)
 {
    static const uint32_t DVBS2_SNRHT[] =
    {
@@ -1555,7 +1554,7 @@ BERR_Code BSAT_g1_P_AfecConfigSnr_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecSetMpcfg_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecSetMpcfg_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecSetMpcfg_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -1581,7 +1580,7 @@ BERR_Code BSAT_g1_P_AfecSetMpcfg_isr(BSAT_ChannelHandle h)
                                    pre-fill level as follows:
     out_pfill = (int)((((bch_k - 80) - 1504) * 3) / 32)
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecComputeOutPfill_isr(BSAT_ChannelHandle h, uint32_t modcod, uint32_t *pOutPfill)
+static BERR_Code BSAT_g1_P_AfecComputeOutPfill_isr(BSAT_ChannelHandle h, uint32_t modcod, uint32_t *pOutPfill)
 {
    static const uint16_t BSAT_bch_k[] =
    {
@@ -1625,7 +1624,7 @@ BERR_Code BSAT_g1_P_AfecComputeOutPfill_isr(BSAT_ChannelHandle h, uint32_t modco
  BSAT_g1_P_AfecGetDecoderParams_isr() -
  compute number of ldpc clock cycles to decode the channel frame.
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecGetDecoderParams_isr(BSAT_ChannelHandle h, uint32_t *pModcod, uint32_t *pDecoderCycleCount, uint32_t *pMaxIter)
+static BERR_Code BSAT_g1_P_AfecGetDecoderParams_isr(BSAT_ChannelHandle h, uint32_t *pModcod, uint32_t *pDecoderCycleCount, uint32_t *pMaxIter)
 {
    #define MARGIN 50 /* cycle count adjustment */
    #define SYMBOLS_BTN_FRAMES 90 /* number of symbols between frames */
@@ -1817,7 +1816,7 @@ BERR_Code BSAT_g1_P_AfecGetDecoderParams_isr(BSAT_ChannelHandle h, uint32_t *pMo
 /******************************************************************************
  BSAT_g1_P_AfecConfig_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
 {
    /* bits 16:0 of AFEC_MODCOD_PARAM_1 */
    static const uint32_t BSAT_sigma_scale[] =
@@ -1967,7 +1966,7 @@ BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecSetOpll_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecSetOpll_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecSetOpll_isr(BSAT_ChannelHandle h)
 {
    static const uint16_t BSAT_NUMBER_OF_BITS[] =
    {
@@ -2108,7 +2107,7 @@ BERR_Code BSAT_g1_P_AfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecIsFlushDone_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecIsFlushDone_isr(BSAT_ChannelHandle h, bool *pbReady)
+static BERR_Code BSAT_g1_P_AfecIsFlushDone_isr(BSAT_ChannelHandle h, bool *pbReady)
 {
    uint32_t val, mask;
 
@@ -2205,7 +2204,7 @@ BSAT_ChannelHandle BSAT_g1_P_AfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandl
 /******************************************************************************
  BSAT_g1_P_AfecIsOtherChannelEnabled_isr()
 ******************************************************************************/
-bool BSAT_g1_P_AfecIsOtherChannelEnabled_isr(BSAT_ChannelHandle h)
+static bool BSAT_g1_P_AfecIsOtherChannelEnabled_isr(BSAT_ChannelHandle h)
 {
    BSAT_ChannelHandle hOtherChan = BSAT_g1_P_AfecGetOtherChannelHandle_isrsafe(h);
    if (hOtherChan == NULL)
@@ -2241,7 +2240,7 @@ bool BSAT_g1_P_AfecIsOtherChannelBusy_isrsafe(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecIsOtherChannelFlushFailed_isr()
 ******************************************************************************/
-bool BSAT_g1_P_AfecIsOtherChannelFlushFailed_isr(BSAT_ChannelHandle h)
+static bool BSAT_g1_P_AfecIsOtherChannelFlushFailed_isr(BSAT_ChannelHandle h)
 {
    BSAT_ChannelHandle hOtherChan = BSAT_g1_P_AfecGetOtherChannelHandle_isrsafe(h);
    BSAT_g1_P_ChannelHandle *hOtherChanImpl;
@@ -2275,7 +2274,7 @@ BERR_Code BSAT_g1_P_AfecResetChannel_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_AfecWaitForFlushDone_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecWaitForFlushDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct)
+static BERR_Code BSAT_g1_P_AfecWaitForFlushDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -2289,7 +2288,7 @@ BERR_Code BSAT_g1_P_AfecWaitForFlushDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT
 /******************************************************************************
  BSAT_g1_P_AfecWaitForFlushDone1_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_AfecWaitForFlushDone1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_AfecWaitForFlushDone1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    bool bReady;

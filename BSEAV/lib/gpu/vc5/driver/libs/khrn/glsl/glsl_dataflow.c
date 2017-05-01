@@ -51,7 +51,7 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_PHI,                 "phi",                  DF_RET_UNDEFINED   },
    { DATAFLOW_EXTERNAL,            "external",             DF_RET_UNDEFINED   },
    { DATAFLOW_LOGICAL_NOT,         "logical_not",          DF_RET_BOOL,       1, { DF_ARG_BOOL } },
-   { DATAFLOW_CONST_SAMPLER,       "const_sampler",        DF_RET_UNDEFINED   },
+   { DATAFLOW_CONST_IMAGE,         "const_image",          DF_RET_UNDEFINED   },
    { DATAFLOW_FTOI_TRUNC,          "ftoi_trunc",           DF_RET_INT,        1, { DF_ARG_FLOAT } },
    { DATAFLOW_FTOI_NEAREST,        "ftoi_nearest",         DF_RET_INT,        1, { DF_ARG_FLOAT } },
    { DATAFLOW_FTOU,                "ftou",                 DF_RET_UINT,       1, { DF_ARG_FLOAT } },
@@ -105,8 +105,8 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_SIN,                 "sin",                  DF_RET_FLOAT,      1, { DF_ARG_FLOAT } },
    { DATAFLOW_COS,                 "cos",                  DF_RET_FLOAT,      1, { DF_ARG_FLOAT } },
    { DATAFLOW_TAN,                 "tan",                  DF_RET_FLOAT,      1, { DF_ARG_FLOAT } },
-   { DATAFLOW_MIN,                 "min",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_ANY, DF_ARG_MATCH_ARG0 } },
-   { DATAFLOW_MAX,                 "max",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_ANY, DF_ARG_MATCH_ARG0 } },
+   { DATAFLOW_MIN,                 "min",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
+   { DATAFLOW_MAX,                 "max",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
    { DATAFLOW_TRUNC,               "trunc",                DF_RET_FLOAT,      1, { DF_ARG_FLOAT } },
    { DATAFLOW_NEAREST,             "nearest",              DF_RET_FLOAT,      1, { DF_ARG_FLOAT } },
    { DATAFLOW_CEIL,                "ceil",                 DF_RET_FLOAT,      1, { DF_ARG_FLOAT } },
@@ -271,13 +271,13 @@ Dataflow *glsl_dataflow_construct_load(DataflowType type) {
    return dataflow;
 }
 
-Dataflow *glsl_dataflow_construct_const_sampler(DataflowType type, const_value location, bool is_32bit) {
-   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_CONST_SAMPLER, type);
+Dataflow *glsl_dataflow_construct_const_image(DataflowType type, const_value location, bool is_32bit) {
+   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_CONST_IMAGE, type);
    assert(type == DF_FSAMPLER || type == DF_ISAMPLER || type == DF_USAMPLER ||
           type == DF_FIMAGE   || type == DF_IIMAGE   || type == DF_UIMAGE);
-   dataflow->u.const_sampler.location = location;
-   dataflow->u.const_sampler.is_32bit = is_32bit;
-   dataflow->u.const_sampler.format_valid = false;
+   dataflow->u.const_image.location = location;
+   dataflow->u.const_image.is_32bit = is_32bit;
+   dataflow->u.const_image.format_valid = false;
    dataflow->dependencies_count = 0;
    return dataflow;
 }
@@ -435,50 +435,29 @@ Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type) {
    if (out_type == input->type)
       return input;
 
+   if (out_type == DF_BOOL)
+      return glsl_dataflow_construct_binary_op(DATAFLOW_NOT_EQUAL, input, glsl_dataflow_construct_const_value(input->type, 0));
+
    switch (input->type)
    {
       case DF_BOOL:
-         switch (out_type)
-         {
-            case DF_INT:
-            case DF_UINT:
-               return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
-                                                         input,
-                                                         glsl_dataflow_construct_const_value(out_type, 1),
-                                                         glsl_dataflow_construct_const_value(out_type, 0));
-            case DF_FLOAT:
-               return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
-                                                         input,
-                                                         glsl_dataflow_construct_const_float(1.0),
-                                                         glsl_dataflow_construct_const_float(0.0));
-            default:
-               unreachable();
-               return NULL;
-         }
+      {
+         uint32_t one = (out_type == DF_FLOAT) ? gfx_float_to_bits(1.0) : 1;
+         return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
+                                                   input,
+                                                   glsl_dataflow_construct_const_value(out_type, one),
+                                                   glsl_dataflow_construct_const_value(out_type, 0));
+      }
 
       case DF_INT:
-         switch (out_type)
-         {
-            case DF_BOOL:
-               return glsl_dataflow_construct_binary_op(DATAFLOW_NOT_EQUAL, input, glsl_dataflow_construct_const_int(0));
-            case DF_UINT:
-               return glsl_dataflow_construct_reinterp(input, out_type);
-            case DF_FLOAT:
-               return glsl_dataflow_construct_unary_op(DATAFLOW_ITOF, input);
-            default:
-               unreachable();
-               return NULL;
-         }
-
       case DF_UINT:
          switch (out_type)
          {
-            case DF_BOOL:
-               return glsl_dataflow_construct_binary_op(DATAFLOW_NOT_EQUAL, input, glsl_dataflow_construct_const_uint(0));
             case DF_INT:
+            case DF_UINT:
                return glsl_dataflow_construct_reinterp(input, out_type);
             case DF_FLOAT:
-               return glsl_dataflow_construct_unary_op(DATAFLOW_UTOF, input);
+               return glsl_dataflow_construct_unary_op(input->type == DF_INT ? DATAFLOW_ITOF : DATAFLOW_UTOF, input);
             default:
                unreachable();
                return NULL;
@@ -487,9 +466,6 @@ Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type) {
       case DF_FLOAT:
          switch (out_type)
          {
-            case DF_BOOL:
-               return glsl_dataflow_construct_binary_op(DATAFLOW_NOT_EQUAL,
-                                                      input, glsl_dataflow_construct_const_float(0.0));
             case DF_INT:
                return glsl_dataflow_construct_unary_op(DATAFLOW_FTOI_TRUNC, input);
             case DF_UINT:
@@ -543,9 +519,9 @@ Dataflow *glsl_dataflow_construct_vec4(Dataflow *r, Dataflow *g, Dataflow *b, Da
    return dataflow;
 }
 
-void glsl_dataflow_construct_texture_gadget(Dataflow **r_out, Dataflow **g_out,
+void glsl_dataflow_construct_texture_lookup(Dataflow **r_out, Dataflow **g_out,
                                             Dataflow **b_out, Dataflow **a_out,
-                                            uint32_t bits, Dataflow *sampler, Dataflow *coords,
+                                            uint32_t bits, Dataflow *image, Dataflow *coords,
                                             Dataflow *d, Dataflow *b, Dataflow *off,
                                             uint32_t required_components, DataflowType component_type_index)
 {
@@ -557,7 +533,7 @@ void glsl_dataflow_construct_texture_gadget(Dataflow **r_out, Dataflow **g_out,
    dataflow->d.texture.d = d;
    dataflow->d.texture.b = b;
    dataflow->d.texture.off = off;
-   dataflow->d.texture.sampler = sampler;
+   dataflow->d.texture.image = image;
 
    dataflow->u.texture.required_components = required_components;
    dataflow->u.texture.bits = bits;
@@ -569,7 +545,7 @@ void glsl_dataflow_construct_texture_gadget(Dataflow **r_out, Dataflow **g_out,
 }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *sampler,
+Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *image,
                                                Dataflow *x, Dataflow *y, Dataflow *z,
                                                Dataflow *i)
 {
@@ -581,16 +557,16 @@ Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *sampler,
    dataflow->d.texture_addr.y = y;
    dataflow->d.texture_addr.z = z;
    dataflow->d.texture_addr.i = i;
-   dataflow->d.texture_addr.sampler = sampler;
+   dataflow->d.texture_addr.image = image;
 
    return dataflow;
 }
 #endif
 
-Dataflow *glsl_dataflow_construct_texture_size(Dataflow *sampler) {
+Dataflow *glsl_dataflow_construct_texture_size(Dataflow *image) {
    Dataflow *ret = dataflow_construct_common(DATAFLOW_TEXTURE_SIZE, DF_VOID);
    ret->dependencies_count = 1;
-   ret->d.texture_size.sampler = sampler;
+   ret->d.texture_size.image = image;
    return ret;
 }
 
@@ -611,10 +587,10 @@ Dataflow *glsl_dataflow_construct_phi(Dataflow *a, int in_a, Dataflow *b, int in
    return d;
 }
 
-Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *sampler, ImageInfoParam param) {
+Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *image, ImageInfoParam param) {
    Dataflow *ret = dataflow_construct_common(DATAFLOW_IMAGE_INFO_PARAM, DF_UINT);
    ret->dependencies_count = 1;
-   ret->d.image_info_param.sampler = sampler;
+   ret->d.image_info_param.image = image;
    ret->u.image_info_param.param = param;
    return ret;
 }
@@ -627,10 +603,10 @@ bool glsl_dataflow_affects_memory(DataflowFlavour f) {
           f == DATAFLOW_ATOMIC_XCHG   || f == DATAFLOW_ATOMIC_CMPXCHG;
 }
 
-Dataflow *glsl_construct_texbuffer_info_param(Dataflow *sampler, TexBufferInfoParam param) {
+Dataflow *glsl_construct_texbuffer_info_param(Dataflow *image, TexBufferInfoParam param) {
    Dataflow *ret = dataflow_construct_common(DATAFLOW_TEXBUFFER_INFO_PARAM, DF_UINT);
    ret->dependencies_count = 1;
-   ret->d.texbuffer_info_param.sampler = sampler;
+   ret->d.texbuffer_info_param.image = image;
    ret->u.texbuffer_info_param.param = param;
    return ret;
 }

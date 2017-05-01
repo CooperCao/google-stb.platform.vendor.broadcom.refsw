@@ -83,9 +83,6 @@
 #include "bkni.h"
 #include "fileio_custom.h"
 
-#ifdef BDSP_FW_RBUF_CAPTURE
-#include "rbuf_capture.h"
-#endif
 BDBG_MODULE(dolby_ms12_dualplayback);
 
 /* Primary, Secondary, Sound Effects, Application Audio */
@@ -99,6 +96,15 @@ BDBG_MODULE(dolby_ms12_dualplayback);
 
 #define INVALID_FADE_LEVEL 0x7FFFFFFF
 static unsigned defaultFadeLevel = 0x7FFFFFFF;
+
+#define NUM_CAPTURES     4
+#define CAPTURE_STEREO   0
+#define CAPTURE_MULTICH  1
+#define CAPTURE_COMP     2
+#define CAPTURE_COMP4X   3
+
+#define CAPTURE_DEINTERLEAVE_MULTICH    1
+#define CAPTURE_LOCALBUFFER_SIZE        (64*1024)
 
 #define AC4_MODE_SS_SD    0 /**< single stream, single decode */
 #define AC4_MODE_SS_DD_SI 1 /**< single stream, dual decode, single instance */
@@ -254,7 +260,7 @@ int presid_convert_to_ascii (char * hex, char * ascii)
     case 2:
     case 1:  process = 0; integer = true; break;
     default:
-        printf("invalid presid length %d\n", strlen(hex));
+        printf("invalid presid length %d\n", (int)strlen(hex));
         return -1;
     }
 
@@ -364,11 +370,18 @@ struct dolby_digital_plus_command_args {
     bool enableSpdif;
     bool enableHdmi;
     bool enableDac;
+    struct {
+        NEXUS_AudioOutputHandle spdif;
+        NEXUS_AudioOutputHandle hdmi;
+        NEXUS_AudioOutputHandle dac;
+        NEXUS_AudioOutputHandle dummy;
+    } connectors;
     bool enablePlayback;
     bool enableCompressed;
     bool enableDecode[NUM_DECODES];
     bool enableAtmos;
     bool dualMain;
+    bool altStereo;
     NEXUS_DolbyDigitalReencodeProfile compression;
     int mixerBalance;
     unsigned cut;
@@ -383,10 +396,16 @@ struct dolby_digital_plus_command_args {
         char filename[MAX_FILENAME_LEN];
     } decodeAttributes[NUM_DECODES];
     unsigned ac4PresIdxMain;
+    unsigned ac4PresIdxAlt;
     unsigned ac4PresIdxAssoc;
     char ac4PresIdMain[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];
+    char ac4PresIdAlt[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];
     char ac4PresIdAssoc[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];
     unsigned ac4DecodeMode;
+    struct {
+        bool enabled;
+        char filename[MAX_FILENAME_LEN];
+    } audioCapture[NUM_CAPTURES];
 };
 
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -612,7 +631,13 @@ static void playback_thread_stop(pcm_playback_t *playback)
 }
 #endif
 
-struct app_resources {
+typedef struct capture_resource_t {
+    NEXUS_AudioCaptureHandle audioCapture;
+    FILE* file[4];
+    NEXUS_AudioCaptureFormat format;
+} capture_resource_t;
+
+typedef struct app_resources {
     NEXUS_PlatformSettings platformSettings;
     NEXUS_StcChannelHandle stcChannel[NUM_DECODES];
     NEXUS_PidChannelHandle audioPidChannel;
@@ -641,7 +666,159 @@ struct app_resources {
     NEXUS_VideoWindowHandle window;
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
-};
+    capture_resource_t audioCapture[NUM_CAPTURES];
+    BKNI_EventHandle captureEvent;
+    pthread_t captureThread;
+    bool captureDone;
+} app_resources_t;
+
+void audio_capture_callback (void *context, int param)
+{
+    BKNI_EventHandle event = (BKNI_EventHandle)context;
+
+    /*printf("Capture callback\n");*/
+    BKNI_SetEvent(event);
+}
+
+static void *capture_thread(void *pParam)
+{
+    app_resources_t* resources = (app_resources_t*)pParam;
+    uint32_t* lbuffer[4] = {NULL,NULL,NULL,NULL};
+
+    while ( !resources->captureDone )
+    {
+        unsigned c;
+
+        BKNI_WaitForEvent(resources->captureEvent, 1000);
+        for ( c = 0; c < NUM_CAPTURES; c++ )
+        {
+            if ( resources->audioCapture[c].audioCapture )
+            {
+                unsigned l;
+                /* read twice to get as much data as possible */
+                for ( l = 0; l < 2; l++)
+                {
+                    NEXUS_AudioCaptureSettings capSettings;
+                    NEXUS_Error rc;
+                    uint8_t * buffer = NULL;
+                    uint32_t * pSrc;
+                    uint32_t * pDst;
+                    unsigned size = 0;
+                    unsigned pairs = 1;
+                    unsigned processed;
+
+                    NEXUS_AudioCapture_GetSettings(resources->audioCapture[c].audioCapture, &capSettings);
+                    rc = NEXUS_AudioCapture_GetBuffer(resources->audioCapture[c].audioCapture, (void**)&buffer, &size);
+                    if ( rc != NEXUS_SUCCESS )
+                    {
+                        printf("NEXUS_AudioCapture_GetBuffer returned %u\n", rc);
+                        continue;
+                    }
+
+                    if ( size > 0 )
+                    {
+                        switch ( capSettings.format )
+                        {
+                        case NEXUS_AudioCaptureFormat_e24Bit7_1:
+                            pairs = 4;
+                            break;
+                        case NEXUS_AudioCaptureFormat_e24Bit5_1:
+                            pairs = 3;
+                            break;
+                        default:
+                            break;
+                        }
+
+                        #if CAPTURE_DEINTERLEAVE_MULTICH
+                        if ( pairs > 1 )
+                        {
+                            unsigned p;
+                            unsigned offset = 0;
+                            processed = 0;
+
+                            /* allocate local buffers if needed */
+                            if ( lbuffer[0] == NULL )
+                            {
+                                for ( p = 0; p < pairs; p++ )
+                                {
+                                    lbuffer[p] = BKNI_Malloc(CAPTURE_LOCALBUFFER_SIZE);
+                                }
+                            }
+
+                            /* limit the data to process to the local buffer size */
+                            if ( size > (CAPTURE_LOCALBUFFER_SIZE*pairs) )
+                            {
+                                size = CAPTURE_LOCALBUFFER_SIZE*pairs;
+                            }
+
+                            while ( (size - processed) >= (pairs*8) )
+                            {
+                                for ( p = 0; p < pairs; p++ )
+                                {
+                                    pSrc = (uint32_t*)(buffer+processed);
+                                    pDst = lbuffer[p]+offset;
+                                    /* write 2 x 32bit samples to file */
+                                    *pDst = *pSrc;
+                                    /*printf("%d %d %08x <- %08x\n", p, offset, *pDst, *pSrc);*/
+                                    *(pDst+1) = *(pSrc+1);
+                                    /*printf("%d %d %08x <- %08x\n", p, offset+1, *(pDst+1), *(pSrc+1));*/
+                                    processed += 8;
+                                }
+                                offset += 2;
+                                /*printf("size %d processed %d\n", size, processed);*/
+                            }
+                            for ( p = 0; p < pairs; p++ )
+                            {
+                                /* write 2 x 32bit samples to file */
+                                fwrite((void*)lbuffer[p], processed/pairs, 1, resources->audioCapture[c].file[p]);
+                            }
+                        }
+                        else
+                        #endif
+                        if ( resources->audioCapture[c].file[0] )
+                        {
+                            fwrite((void*)buffer, size, 1, resources->audioCapture[c].file[0]);
+                            processed = size;
+                        }
+                        else
+                        {
+                            processed = size;
+                        }
+
+                        /*printf("capture %d - wrote %d of %d bytes to file\n", c, processed, size);*/
+                        rc = NEXUS_AudioCapture_ReadComplete(resources->audioCapture[c].audioCapture, processed);
+                        if ( rc != NEXUS_SUCCESS )
+                        {
+                            printf("WARNING: NEXUS_AudioCapture_ReadComplete returned %u\n", rc);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    /* tear down local buffers */
+    {
+        unsigned p;
+        for ( p = 0; p < 4; p++ )
+        {
+            if ( lbuffer[p] != NULL )
+            {
+                BKNI_Free(lbuffer[p]);
+                lbuffer[p] = NULL;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+typedef struct hotplugCallbackParameters
+{
+    NEXUS_HdmiOutputHandle hdmiOutput;
+    NEXUS_DisplayHandle display;
+} hotplugCallbackParameters;
 
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -1094,7 +1271,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
         {
@@ -1131,7 +1308,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
         {
@@ -1168,7 +1345,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
         {
@@ -1183,7 +1360,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
         {
@@ -1193,6 +1370,70 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
         {
             strcpy(dolby->decodeAttributes[APPAUDIO_DECODE].filename, value);
         }
+    }
+    else if ( !strcmp(input, "CAPTURESTEREO") )
+    {
+        dolby->audioCapture[CAPTURE_STEREO].enabled = false;
+        if ( atoi(value) == 1 )
+        {
+            dolby->audioCapture[CAPTURE_STEREO].enabled = true;
+        }
+    }
+    else if ( !strcmp(input, "CAPTUREMULTICH") )
+    {
+        dolby->audioCapture[CAPTURE_MULTICH].enabled = false;
+        if ( atoi(value) == 1 )
+        {
+            dolby->audioCapture[CAPTURE_MULTICH].enabled = true;
+        }
+    }
+    else if ( !strcmp(input, "CAPTURECOMP") )
+    {
+        dolby->audioCapture[CAPTURE_COMP].enabled = false;
+        if ( atoi(value) == 1 )
+        {
+            dolby->audioCapture[CAPTURE_COMP].enabled = true;
+        }
+    }
+    else if ( !strcmp(input, "CAPTURECOMP4X") )
+    {
+        dolby->audioCapture[CAPTURE_COMP4X].enabled = false;
+        if ( atoi(value) == 1 )
+        {
+            dolby->audioCapture[CAPTURE_COMP4X].enabled = true;
+        }
+    }
+    else if ( !strcmp(input, "CAPTURESTEREOFILENAME") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        strcpy(dolby->audioCapture[CAPTURE_STEREO].filename, value);
+    }
+    else if ( !strcmp(input, "CAPTUREMULTICHFILENAME") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        strcpy(dolby->audioCapture[CAPTURE_MULTICH].filename, value);
+    }
+    else if ( !strcmp(input, "CAPTURECOMPFILENAME") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        strcpy(dolby->audioCapture[CAPTURE_COMP].filename, value);
+    }
+    else if ( !strcmp(input, "CAPTURECOMP4XFILENAME") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        strcpy(dolby->audioCapture[CAPTURE_COMP4X].filename, value);
     }
     else if ( dolby->audioCodec == NEXUS_AudioCodec_eAc3 || dolby->audioCodec == NEXUS_AudioCodec_eAc3Plus )
     {
@@ -1360,28 +1601,6 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
                 dolby->ac4CodecSettings.codecSettings.ac4.programBalance = -32;
             }
         }
-        else if ( !strcmp(input, "AC4PRESINDEXMAIN") )
-        {
-            if ( atoi(value) <= 511 && atoi(value) >= 0 )
-            {
-                dolby->ac4PresIdxMain = atoi(value);
-            }
-        }
-        else if ( !strcmp(input, "AC4PRESINDEXASSOC") )
-        {
-            if ( atoi(value) <= 511 && atoi(value) >= 0 )
-            {
-                dolby->ac4PresIdxAssoc = atoi(value);
-            }
-        }
-        else if ( !strcmp(input, "AC4PRESIDMAIN") )
-        {
-            presid_convert_to_ascii(value, dolby->ac4PresIdMain);
-        }
-        else if ( !strcmp(input, "AC4PRESIDASSOC") )
-        {
-            presid_convert_to_ascii(value, dolby->ac4PresIdAssoc);
-        }
         else if ( !strcmp(input, "AC4DEAMOUNT") )
         {
             dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount = atoi(value);
@@ -1402,22 +1621,6 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
                 dolby->ac4CodecSettings.codecSettings.ac4.selectionMode = (NEXUS_AudioDecoderAc4PresentationSelectionMode)atoi(value);
             }
         }
-        else if ( !strcmp(input, "AC4ASSOCTYPE") )
-        {
-            dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType = NEXUS_AudioAc4AssociateType_eNotSpecified;
-            if ( atoi(value) <= 3 && atoi(value) >= 0 )
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType = (NEXUS_AudioAc4AssociateType)atoi(value);
-            }
-        }
-        else if ( !strcmp(input, "AC4PREFERLANG") )
-        {
-            dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType = false;
-            if ( atoi(value) == 1 )
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType = true;
-            }
-        }
         else if ( !strcmp(input, "AC4ASSOCMIXING") )
         {
             dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing = false;
@@ -1426,26 +1629,83 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
                 dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing = true;
             }
         }
+        else if ( !strcmp(input, "AC4PRESINDEXMAIN") )
+        {
+            if ( atoi(value) <= 511 && atoi(value) >= 0 )
+            {
+                dolby->ac4PresIdxMain = atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4PRESINDEXALT") )
+        {
+            if ( atoi(value) <= 511 && atoi(value) >= 0 )
+            {
+                dolby->ac4PresIdxAlt = atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4PRESINDEXASSOC") )
+        {
+            if ( atoi(value) <= 511 && atoi(value) >= 0 )
+            {
+                dolby->ac4PresIdxAssoc = atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4PRESIDMAIN") )
+        {
+            presid_convert_to_ascii(value, dolby->ac4PresIdMain);
+        }
+        else if ( !strcmp(input, "AC4PRESIDALT") )
+        {
+            presid_convert_to_ascii(value, dolby->ac4PresIdAlt);
+        }
+        else if ( !strcmp(input, "AC4PRESIDASSOC") )
+        {
+            presid_convert_to_ascii(value, dolby->ac4PresIdAssoc);
+        }
+        else if ( !strcmp(input, "AC4ASSOCTYPE") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferredAssociateType = NEXUS_AudioAc4AssociateType_eNotSpecified;
+            dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferredAssociateType = NEXUS_AudioAc4AssociateType_eNotSpecified;
+            if ( atoi(value) <= 3 && atoi(value) >= 0 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferredAssociateType = (NEXUS_AudioAc4AssociateType)atoi(value);
+                dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferredAssociateType = (NEXUS_AudioAc4AssociateType)atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4PREFERLANG") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferLanguageOverAssociateType = false;
+            dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferLanguageOverAssociateType = false;
+            if ( atoi(value) == 1 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferLanguageOverAssociateType = true;
+                dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferLanguageOverAssociateType = true;
+            }
+        }
         else if ( !strcmp(input, "AC4LANGPREF") )
         {
             if ( strlen(value) <= 1 && atoi(value) == 0 )
             {
-                memset(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+                memset(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[0].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+                memset(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[0].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
             }
             else
             {
-                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, value);
+                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[0].selection, value);
+                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[0].selection, value);
             }
         }
         else if ( !strcmp(input, "AC4LANGPREF2") )
         {
             if ( strlen(value) <= 1 && atoi(value) == 0 )
             {
-                memset(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+                memset(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[1].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+                memset(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[1].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
             }
             else
             {
-                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, value);
+                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[1].selection, value);
+                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[1].selection, value);
             }
         }
         else if ( !strcmp(input, "MIXERBALANCE") )
@@ -1614,8 +1874,10 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
         printf("\n\tAC4 SETTINGS:\n");
 
         printf("\t PRES INDEX MAIN = %d\n", dolby->ac4PresIdxMain);
+        printf("\t PRES INDEX ALT = %d\n", dolby->ac4PresIdxAlt);
         printf("\t PRES INDEX ASSOC = %d\n", dolby->ac4PresIdxAssoc);
         printf("\t PRES ID MAIN = %s\n", dolby->ac4PresIdMain);
+        printf("\t PRES ID ALT = %s\n", dolby->ac4PresIdAlt);
         printf("\t PRES ID ASSOC = %s\n", dolby->ac4PresIdAssoc);
         printf("\t STEREO MODE = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.stereoMode);
         printf("\t DRC MODE = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.drcMode);
@@ -1630,8 +1892,10 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
         printf("\t DE AMOUNT = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount);
         printf("\t MIXING BALANCE = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.programBalance);
         printf("\t SELECTION MODE = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.selectionMode);
-        printf("\t PREFERRED LANG1 = %s\n",dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection);
-        printf("\t PREFERRED LANG2 = %s\n\n",dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection);
+        printf("\t PREFERRED LANG1 = %s\n",dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[0].selection);
+        printf("\t PREFERRED LANG2 = %s\n\n",dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[1].selection);
+        printf("\t PREFERRED LANG1 ALT = %s\n",dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[0].selection);
+        printf("\t PREFERRED LANG2 ALT = %s\n\n",dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[1].selection);
     }
     printf("\t MIXERBALANCE = %d\n", dolby->mixerBalance);
 
@@ -1762,7 +2026,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         {
             if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
             {
-                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(argv[i+1]));
                 return -1;
             }
             strcpy(dolby->decodeAttributes[PRIMARY_DECODE].filename, argv[i+1]);
@@ -1773,7 +2037,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         {
             if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
             {
-                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(argv[i+1]));
                 return -1;
             }
             strcpy(dolby->decodeAttributes[SECONDARY_DECODE].filename, argv[i+1]);
@@ -1784,7 +2048,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         {
             if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
             {
-                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(argv[i+1]));
                 return -1;
             }
             strcpy(dolby->decodeAttributes[EFFECTS_DECODE].filename, argv[i+1]);
@@ -1795,7 +2059,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         {
             if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
             {
-                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(argv[i+1]));
                 return -1;
             }
             strcpy(dolby->decodeAttributes[APPAUDIO_DECODE].filename, argv[i+1]);
@@ -1846,6 +2110,10 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         else if ( !strcmp(argv[i], "-dual_main_audio") )
         {
             dolby->dualMain = true;
+        }
+        else if ( !strcmp(argv[i], "-alt_stereo") )
+        {
+            dolby->altStereo = true;
         }
         else
         {
@@ -2100,8 +2368,10 @@ static void translate_args_to_codec_settings(unsigned idx, struct dolby_digital_
                     codecSettings->codecSettings.ac4.programSelection = 1;
                 }
             }
-            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxMain;
-            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdMain);
+            dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationIndex = dolby->ac4PresIdxMain;
+            dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationIndex = dolby->ac4PresIdxAlt;
+            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationId, dolby->ac4PresIdMain);
+            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationId, dolby->ac4PresIdAlt);
         }
         else if ( idx == SECONDARY_DECODE )
         {
@@ -2114,19 +2384,25 @@ static void translate_args_to_codec_settings(unsigned idx, struct dolby_digital_
                     codecSettings->codecSettings.ac4.programSelection  = 0;
                 }
             }
-            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxAssoc;
-            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdAssoc);
+            dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationIndex = dolby->ac4PresIdxAssoc;
+            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationId, dolby->ac4PresIdAssoc);
         }
         codecSettings->codecSettings.ac4.programBalance = dolby->ac4CodecSettings.codecSettings.ac4.programBalance;
-        codecSettings->codecSettings.ac4.presentationIndex = dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex;
-        memcpy(codecSettings->codecSettings.ac4.presentationId, dolby->ac4CodecSettings.codecSettings.ac4.presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
         codecSettings->codecSettings.ac4.dialogEnhancerAmount = dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount;
         codecSettings->codecSettings.ac4.selectionMode = dolby->ac4CodecSettings.codecSettings.ac4.selectionMode;
-        codecSettings->codecSettings.ac4.preferLanguageOverAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType;
-        codecSettings->codecSettings.ac4.preferredAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType;
         codecSettings->codecSettings.ac4.enableAssociateMixing = dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing;
-        memcpy(codecSettings->codecSettings.ac4.languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
-        memcpy(codecSettings->codecSettings.ac4.languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationIndex = dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationIndex;
+        memcpy(codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationId, dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
+        codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferLanguageOverAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferLanguageOverAssociateType;
+        codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferredAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].preferredAssociateType;
+        memcpy(codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[0].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        memcpy(codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].languagePreference[1].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationIndex = dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationIndex;
+        memcpy(codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationId, dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
+        codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferLanguageOverAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferLanguageOverAssociateType;
+        codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferredAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].preferredAssociateType;
+        memcpy(codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[0].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        memcpy(codecSettings->codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eAlternate].languagePreference[1].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
     }
     else if ( codecSettings->codec == NEXUS_AudioCodec_eAacAdts || codecSettings->codec == NEXUS_AudioCodec_eAacLoas ||
               codecSettings->codec == NEXUS_AudioCodec_eAacPlusAdts || codecSettings->codec == NEXUS_AudioCodec_eAacPlusLoas )
@@ -2529,19 +2805,26 @@ int decode_path_start( int idx, struct util_opts_t *opts, struct dolby_digital_p
 
         if ( recs->audioDecoders[idx] && !recs->started[idx] )
         {
+            bool connected;
             NEXUS_AudioMixerInputSettings inputSettings;
             decode_path_update_settings(idx, dolby, recs);
 
-            /* Apply Initial Fade Settings */
-            NEXUS_AudioMixer_GetInputSettings(recs->mixer,
-                                              NEXUS_AudioDecoder_GetConnector(recs->audioDecoders[idx], NEXUS_AudioConnectorType_eMultichannel),
-                                              &inputSettings);
-            inputSettings.fade.level = dolby->fadeLevel[idx];
-            inputSettings.fade.type = dolby->fadeType[idx];
-            inputSettings.fade.duration = dolby->fadeDuration[idx];
-            NEXUS_AudioMixer_SetInputSettings(recs->mixer,
-                                              NEXUS_AudioDecoder_GetConnector(recs->audioDecoders[idx], NEXUS_AudioConnectorType_eMultichannel),
-                                              &inputSettings);
+            NEXUS_AudioInput_IsConnectedToInput(NEXUS_AudioDecoder_GetConnector(recs->audioDecoders[idx], NEXUS_AudioConnectorType_eMultichannel),
+                                                NEXUS_AudioMixer_GetConnector(recs->mixer), &connected);
+
+            if ( connected )
+            {
+                /* Apply Initial Fade Settings */
+                NEXUS_AudioMixer_GetInputSettings(recs->mixer,
+                                                  NEXUS_AudioDecoder_GetConnector(recs->audioDecoders[idx], NEXUS_AudioConnectorType_eMultichannel),
+                                                  &inputSettings);
+                inputSettings.fade.level = dolby->fadeLevel[idx];
+                inputSettings.fade.type = dolby->fadeType[idx];
+                inputSettings.fade.duration = dolby->fadeDuration[idx];
+                NEXUS_AudioMixer_SetInputSettings(recs->mixer,
+                                                  NEXUS_AudioDecoder_GetConnector(recs->audioDecoders[idx], NEXUS_AudioConnectorType_eMultichannel),
+                                                  &inputSettings);
+            }
 
             if ( idx == PRIMARY_DECODE || idx == SECONDARY_DECODE )
             {
@@ -2783,10 +3066,15 @@ static const NEXUS_HdmiOutputHdcpKsv RevokedKsvs[NUM_REVOKED_KSVS] =
 static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmi;
+    NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings hdmiSettings;
+    hotplugCallbackParameters *hotPlugCbParams ;
+
+    hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
+    hdmi = hotPlugCbParams->hdmiOutput ;
+    display = hotPlugCbParams->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     /* the app can choose to switch to the preferred format, but it's not required. */
@@ -2950,10 +3238,12 @@ int main(int argc, const char *argv[])
 
     FILE *file_params = NULL;
 
+    NEXUS_AudioOutputEnabledOutputs outputs;
+    NEXUS_AudioOutputClockConfig config;
+    NEXUS_AudioOutputSettings outputSettings;
+    unsigned timingResourceIndex = 1;
+
     bool exit;
-    #ifdef BDSP_FW_RBUF_CAPTURE
-    brbuf_init_ringbuf_capture();
-    #endif
 
     /* clear our structures */
     BKNI_Memset(&dolby_args, 0, sizeof(dolby_args));
@@ -2962,6 +3252,7 @@ int main(int argc, const char *argv[])
 
     NEXUS_Platform_GetDefaultSettings(&resources.platformSettings);
     resources.platformSettings.openFrontend = false;
+    resources.platformSettings.audioModuleSettings.numPcmBuffers = 6;
     rc = NEXUS_Platform_Init(&resources.platformSettings);
     BDBG_ASSERT(!rc);
     NEXUS_Platform_GetConfiguration(&platformConfig);
@@ -2981,6 +3272,10 @@ int main(int argc, const char *argv[])
     dolby_args.enableDac = true;
     dolby_args.enableSpdif = true;
     dolby_args.enableHdmi = true;
+    dolby_args.connectors.spdif = NULL;
+    dolby_args.connectors.hdmi = NULL;
+    dolby_args.connectors.dac = NULL;
+    dolby_args.connectors.dummy = NULL;
     dolby_args.enableDdre = true;
     dolby_args.enableDecode[PRIMARY_DECODE] = true;
     dolby_args.enableDecode[SECONDARY_DECODE] = true;
@@ -2993,8 +3288,10 @@ int main(int argc, const char *argv[])
     /* Dapv2 parameters */
     dolby_args.deqNumBands = 10;
     dolby_args.ac4PresIdxMain = 0xFFFFFFFF;
+    dolby_args.ac4PresIdxAlt = 0xFFFFFFFF;
     dolby_args.ac4PresIdxAssoc = 0xFFFFFFFF;
     dolby_args.ac4PresIdMain[0] = '\0';
+    dolby_args.ac4PresIdAlt[0] = '\0';
     dolby_args.ac4PresIdAssoc[0] = '\0';
     dolby_args.ac4DecodeMode = 0;
 
@@ -3122,6 +3419,24 @@ int main(int argc, const char *argv[])
     }
     #endif
 
+
+    if ( dolby_args.enableSpdif && platformConfig.outputs.spdif[0] )
+    {
+        dolby_args.connectors.spdif = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+    if ( dolby_args.enableHdmi && platformConfig.outputs.hdmi[0] )
+    {
+        dolby_args.connectors.hdmi = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    if ( dolby_args.enableDac && platformConfig.outputs.audioDacs[0] )
+    {
+        dolby_args.connectors.dac = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+    if ( platformConfig.outputs.audioDummy[0] )
+    {
+        dolby_args.connectors.dummy = NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]);
+    }
+
     if ( dolby_args.directMode )
     {
         /* Disable everything except primary and pcm playback in direct mode */
@@ -3130,68 +3445,63 @@ int main(int argc, const char *argv[])
         printf("\n------------------------------------\n");
         printf("DIRECT Decoder->Output Mode connections:\n");
         printf("------------------------------------\n");
-        #if NEXUS_NUM_HDMI_OUTPUTS > 0
-        if ( dolby_args.enableHdmi )
+        if ( dolby_args.connectors.hdmi )
         {
             printf("  HDMI %s PCM\n", (resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
-            rc = NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.hdmi,
                                             NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eMultichannel));
             BDBG_ASSERT(NEXUS_SUCCESS == rc);
         }
-        #endif
         if ( dolby_args.enableCompressed &&
              (resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3) )
         {
-            #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-            if ( dolby_args.enableSpdif )
+            if ( dolby_args.connectors.spdif )
             {
                 printf("  SPDIF AC3 Compressed\n");
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
                                                 NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eCompressed));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
-            #endif
-            #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
-            if ( !dolby_args.enableDac && !dolby_args.enableHdmi )
+            if ( !dolby_args.connectors.dac && !dolby_args.connectors.hdmi && dolby_args.connectors.dummy )
             {
                 printf("  DUMMY PCM Stereo\n");
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
+                rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dummy,
                                                 NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
-            #endif
         }
         else
         {
-            #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-            if ( dolby_args.enableSpdif )
+            if ( dolby_args.connectors.spdif && dolby_args.altStereo )
+            {
+                printf("  SPDIF Ac4 Alt Stereo\n");
+                rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
+                                                NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eAlternateStereo));
+                BDBG_ASSERT(NEXUS_SUCCESS == rc);
+            }
+            else if ( dolby_args.connectors.spdif )
             {
                 printf("  SPDIF PCM Stereo\n");
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
                                                 NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
-            #endif
-            #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
-            if ( !dolby_args.enableSpdif && !dolby_args.enableDac && !dolby_args.enableHdmi )
+            if ( !dolby_args.connectors.spdif && !dolby_args.connectors.dac && !dolby_args.connectors.hdmi && dolby_args.connectors.dummy )
             {
                 printf("  DUMMY PCM Stereo\n");
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
+                rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dummy,
                                                 NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
-            #endif
         }
 
-        #if NEXUS_NUM_AUDIO_DACS > 0
-        if ( dolby_args.enableDac )
+        if ( dolby_args.connectors.dac )
         {
             printf("  DAC PCM Stereo\n");
-            rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dac,
                                             NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
             BDBG_ASSERT(NEXUS_SUCCESS == rc);
         }
-        #endif
     }
     else
     {
@@ -3226,51 +3536,49 @@ int main(int argc, const char *argv[])
         printf("------------------------------------\n");
         if ( dolby_args.enableDdre )
         {
+            bool stereoConsumer = false;
+            unsigned c;
             rc = NEXUS_DolbyDigitalReencode_AddInput(resources.ddre, NEXUS_AudioMixer_GetConnector(resources.mixer));
             BDBG_ASSERT(NEXUS_SUCCESS == rc);
 
-            #if NEXUS_NUM_AUDIO_DACS
-            if ( dolby_args.enableDac )
+            if ( dolby_args.connectors.dac )
             {
                 printf("  DAC Stereo PCM\n");
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+                rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dac,
                                                 NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eStereo));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
+                stereoConsumer = true;
             }
-            #endif
-            if ( dolby_args.enableCompressed == false )
+
+            if ( dolby_args.connectors.spdif )
             {
-                #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-                if ( dolby_args.enableSpdif )
+                if ( dolby_args.altStereo && resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4 )
                 {
-                    printf("  SPDIF Stereo PCM\n");
-                    rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                                    NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eStereo));
+                    printf("  SPDIF Ac4 Alt Stereo\n");
+                    rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
+                                                    NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eAlternateStereo));
                     BDBG_ASSERT(NEXUS_SUCCESS == rc);
                 }
-                #endif
-                #if NEXUS_NUM_HDMI_OUTPUTS > 0
-                if ( dolby_args.enableHdmi )
-                {
-                    printf("  HDMI %s PCM\n", ((resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4) && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
-                    NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                               NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eMultichannel));
-                }
-                #endif
-            }
-            else if ( dolby_args.enableCompressed == true )
-            {
-                #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-                if ( dolby_args.enableSpdif )
+                else if ( dolby_args.enableCompressed )
                 {
                     printf("  SPDIF Ac3 Compressed\n");
-                    rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                    rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
                                                     NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed));
                     BDBG_ASSERT(NEXUS_SUCCESS == rc);
                 }
-                #endif
-                #if NEXUS_NUM_HDMI_OUTPUTS > 0
-                if ( dolby_args.enableHdmi )
+                else
+                {
+                    printf("  SPDIF Stereo PCM\n");
+                    rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
+                                                    NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eStereo));
+                    BDBG_ASSERT(NEXUS_SUCCESS == rc);
+                    stereoConsumer = true;
+                }
+            }
+
+            if ( dolby_args.connectors.hdmi )
+            {
+                if ( dolby_args.enableCompressed )
                 {
                     if ( resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4 ||
                          resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3 ||
@@ -3278,49 +3586,237 @@ int main(int argc, const char *argv[])
                          resources.audioProgram[0].codec == NEXUS_AudioCodec_eAacPlusAdts || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAacPlusLoas )
                     {
                         printf("  HDMI DDP Compressed\n");
-                        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+                        NEXUS_AudioOutput_AddInput(dolby_args.connectors.hdmi,
                                                    NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed4x));
                     }
                     else
                     {
                         printf("  HDMI AC3 Compressed\n");
-                        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+                        NEXUS_AudioOutput_AddInput(dolby_args.connectors.hdmi,
                                                    NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed));
                     }
                     BDBG_ASSERT(NEXUS_SUCCESS == rc);
                 }
-                #endif
+                else
+                {
+                    printf("  HDMI %s PCM\n", ((resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4) && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
+                    NEXUS_AudioOutput_AddInput(dolby_args.connectors.hdmi,
+                                               NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eMultichannel));
+                }
+            }
+
+            if ( !stereoConsumer && dolby_args.connectors.dummy )
+            {
+                printf("  DUMMY PCM Stereo\n");
+                rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dummy,
+                                                NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eStereo));
+                BDBG_ASSERT(NEXUS_SUCCESS == rc);
+            }
+
+            /* Setup output clocks */
+            {
+                NEXUS_AudioOutput_GetDefaultEnabledOutputs(&outputs);
+
+                if ( dolby_args.connectors.spdif )
+                {
+                    outputs.spdif[0] = timingResourceIndex++;
+                }
+                if ( dolby_args.connectors.hdmi )
+                {
+                    outputs.hdmi[0] = timingResourceIndex++;
+                }
+                if ( dolby_args.connectors.dummy )
+                {
+                    outputs.audioDummy[0] = timingResourceIndex++;
+                }
+
+                for ( c = 0; c < NUM_CAPTURES; c++ )
+                {
+                    if ( dolby_args.audioCapture[c].enabled )
+                    {
+                        outputs.audioCapture[c] = timingResourceIndex++;
+                    }
+                }
+                rc = NEXUS_AudioOutput_CreateClockConfig(&outputs, &config);
+                BDBG_ASSERT(NEXUS_SUCCESS == rc);
+
+                if ( dolby_args.connectors.spdif && config.spdif[0].pll != NEXUS_AudioOutputPll_eMax )
+                {
+                    NEXUS_AudioOutput_GetSettings(dolby_args.connectors.spdif, &outputSettings);
+                    outputSettings.pll = config.spdif[0].pll;
+                    /* spdif doesn't have nco */
+                    NEXUS_AudioOutput_SetSettings(dolby_args.connectors.spdif, &outputSettings);
+                }
+                if ( dolby_args.connectors.hdmi &&
+                     ( config.hdmi[0].pll != NEXUS_AudioOutputPll_eMax || config.hdmi[0].nco != NEXUS_AudioOutputNco_eMax ) )
+                {
+                    NEXUS_AudioOutput_GetSettings(dolby_args.connectors.hdmi, &outputSettings);
+                    outputSettings.pll = config.hdmi[0].pll;
+                    outputSettings.nco = config.hdmi[0].nco;
+                    NEXUS_AudioOutput_SetSettings(dolby_args.connectors.hdmi, &outputSettings);
+                }
+                if ( dolby_args.connectors.dummy &&
+                     ( config.audioDummy[0].pll != NEXUS_AudioOutputPll_eMax || config.audioDummy[0].nco != NEXUS_AudioOutputNco_eMax ) ) {
+                    NEXUS_AudioOutput_GetSettings(dolby_args.connectors.dummy, &outputSettings);
+                    outputSettings.pll = config.audioDummy[0].pll;
+                    outputSettings.nco = config.audioDummy[0].nco;
+                    NEXUS_AudioOutput_SetSettings(dolby_args.connectors.dummy, &outputSettings);
+                }
+            }
+
+            /* Create/Attach captures */
+            for ( c = 0; c < NUM_CAPTURES; c++ )
+            {
+                if ( dolby_args.audioCapture[c].enabled )
+                {
+                    unsigned numChPairs = 1;
+                    NEXUS_AudioCaptureOpenSettings captureSettings;
+                    NEXUS_AudioCaptureStartSettings captureStartSettings;
+
+                    if ( !resources.captureEvent )
+                    {
+                        BKNI_CreateEvent(&resources.captureEvent);
+                        BDBG_ASSERT(resources.captureEvent != NULL);
+                    }
+
+                    if ( !resources.captureThread )
+                    {
+                        pthread_create(&resources.captureThread, NULL, capture_thread, &resources);
+                    }
+
+                    printf("\n  %s Capture enabled\n", c==CAPTURE_COMP4X?"Compressed4x":c==CAPTURE_COMP?"Compressed":c==CAPTURE_MULTICH?"Multichannel":"Stereo");
+                    /* open capture */
+                    NEXUS_AudioCapture_GetDefaultOpenSettings(&captureSettings);
+                    switch ( c )
+                    {
+                    default:
+                    case CAPTURE_STEREO:
+                        captureSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_eStereo;
+                        captureSettings.format = NEXUS_AudioCaptureFormat_e24BitStereo;
+                        break;
+                    case CAPTURE_MULTICH:
+                        if ( dolby_args.multiCh71 )
+                        {
+                            printf("    7.1ch\n");
+                            captureSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e7_1;
+                            captureSettings.format = NEXUS_AudioCaptureFormat_e24Bit7_1;
+                            numChPairs = 4;
+                        }
+                        else
+                        {
+                            printf("    5.1ch\n");
+                            captureSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e5_1;
+                            captureSettings.format = NEXUS_AudioCaptureFormat_e24Bit5_1;
+                            numChPairs = 3;
+                        }
+                        captureSettings.fifoSize *= numChPairs;
+                        break;
+                    case CAPTURE_COMP:
+                        captureSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_eStereo;
+                        captureSettings.format = NEXUS_AudioCaptureFormat_eCompressed;
+                        break;
+                    case CAPTURE_COMP4X:
+                        captureSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_eStereo;
+                        captureSettings.format = NEXUS_AudioCaptureFormat_eCompressed;
+                        captureSettings.fifoSize *= 4;
+                        break;
+                    }
+                    resources.audioCapture[c].audioCapture = NEXUS_AudioCapture_Open(c, &captureSettings);
+                    BDBG_ASSERT(resources.audioCapture[c].audioCapture != NULL);
+
+                    /* create file for capture */
+                    if ( strlen(dolby_args.audioCapture[c].filename) > 0 )
+                    {
+                        unsigned p;
+                        char *ext;
+                        char base[MAX_FILENAME_LEN];
+                        char filename[MAX_FILENAME_LEN+1];
+
+                        strcpy(base, dolby_args.audioCapture[c].filename);
+                        ext = strchr(base, '.');
+                        *ext = 0;
+                        ext++;
+
+                        for ( p = 0; p < numChPairs; p++ )
+                        {
+                            sprintf(filename, "%s%d.%s", base, p, ext);
+                            printf("    opening output capture file \"%s\"\n", filename);
+                            resources.audioCapture[c].file[p] = fopen(filename, "wb");
+                            BDBG_ASSERT(resources.audioCapture[c].file[p] != NULL);
+                        }
+                    }
+
+                    /* connect capture */
+                    switch ( c )
+                    {
+                    default:
+                    case CAPTURE_STEREO:
+                        NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(resources.audioCapture[c].audioCapture),
+                                                   NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eStereo));
+                        break;
+                    case CAPTURE_MULTICH:
+                        NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(resources.audioCapture[c].audioCapture),
+                                                   NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eMultichannel));
+                        break;
+                    case CAPTURE_COMP:
+                        NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(resources.audioCapture[c].audioCapture),
+                                                   NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed));
+                        break;
+                    case CAPTURE_COMP4X:
+                        NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(resources.audioCapture[c].audioCapture),
+                                                   NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed4x));
+                        break;
+                    }
+
+                    if (config.audioCapture[c].pll != NEXUS_AudioOutputPll_eMax || config.audioCapture[c].nco != NEXUS_AudioOutputNco_eMax )
+                    {
+                        NEXUS_AudioOutput_GetSettings(NEXUS_AudioCapture_GetConnector(resources.audioCapture[c].audioCapture), &outputSettings);
+                        outputSettings.pll = config.audioCapture[c].pll;
+                        outputSettings.nco = config.audioCapture[c].nco;
+                        NEXUS_AudioOutput_SetSettings(NEXUS_AudioCapture_GetConnector(resources.audioCapture[c].audioCapture), &outputSettings);
+                    }
+
+
+                    /* start capture */
+                    NEXUS_AudioCapture_GetDefaultStartSettings(&captureStartSettings);
+                    captureStartSettings.dataCallback.callback = audio_capture_callback;
+                    captureStartSettings.dataCallback.context = resources.captureEvent;
+                    captureStartSettings.dataCallback.param = (int)c;
+                    rc = NEXUS_AudioCapture_Start(resources.audioCapture[c].audioCapture, &captureStartSettings);
+                    BDBG_ASSERT(NEXUS_SUCCESS == rc);
+                    printf("    capture started.\n");
+                }
             }
         }
         else
         {
-            #if NEXUS_NUM_HDMI_OUTPUTS > 0
-            if ( dolby_args.enableHdmi )
+            if ( dolby_args.connectors.hdmi )
             {
                 printf("  HDMI %s PCM\n", ((resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4) && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
-                NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+                NEXUS_AudioOutput_AddInput(dolby_args.connectors.hdmi,
                                            NEXUS_AudioMixer_GetConnector(resources.mixer));
             }
-            #endif
         }
         printf("------------------------------------\n\n");
     }
 
     /* Nudge HDMI interface with some initial settings and a hotplug */
+    if ( dolby_args.connectors.hdmi )
     {
         NEXUS_HdmiOutputSettings hdmiSettings;
+        hotplugCallbackParameters hotPlugCbParams;
         NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
         hdmiSettings.hotplugCallback.callback = hotplug_callback;
-        /* TBD - make hdmi callback 64bit compatible */
-        hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
-        hdmiSettings.hotplugCallback.param = (int)resources.display;
+        hotPlugCbParams.hdmiOutput = platformConfig.outputs.hdmi[0];
+        hotPlugCbParams.display = resources.display;
+        hdmiSettings.hotplugCallback.context = &hotPlugCbParams;
         NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
         /* initalize HDCP settings, keys, etc. */
         initializeHdmiOutputHdcpSettings();
 
         /* Force a hotplug to switch to preferred format */
-        hotplug_callback(platformConfig.outputs.hdmi[0], (int)resources.display);
+        hotplug_callback(&hotPlugCbParams, 0);
     }
 
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -3332,11 +3828,6 @@ int main(int argc, const char *argv[])
     {
         decode_path_start(i, opts, &dolby_args, &resources);
     }
-
-    #ifdef BDSP_FW_RBUF_CAPTURE
-    start_rbuf_channels_from_env();
-    #endif
-
 
     if ( !dolby_args.directMode )
     {
@@ -3525,7 +4016,8 @@ int main(int argc, const char *argv[])
                 {
                     printf(
                         "Commands:\n"
-                        "  s <index> - Toggle Stop/Start for a decode\n"
+                        "  s <index> - Toggle Suspend/Resume/Start for a decode\n"
+                        "  S <index> - Toggle Stop/Start for a decode\n"
                         "  q - quit\n"
                         "  Parametername=value  - Change the value of any user configurable parameter\n"
                         );
@@ -3569,6 +4061,64 @@ int main(int argc, const char *argv[])
                             (resources.audioProgram[index].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[index].codec == NEXUS_AudioCodec_eAc3) )
                         {
                             if ( resources.suspended[index] )
+                            {
+                                NEXUS_AudioDecoderCodecSettings codecSettings;
+                                NEXUS_AudioDecoder_GetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], resources.audioProgram[PRIMARY_DECODE].codec, &codecSettings);
+                                codecSettings.codecSettings.ac3Plus.enableAtmosProcessing = dolby_args.enableAtmos;
+                                printf("enable ATMOS flag (secondary off):%d\n", codecSettings.codecSettings.ac3Plus.enableAtmosProcessing);
+                                NEXUS_AudioDecoder_SetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], &codecSettings);
+                            }
+                            else
+                            {
+                                NEXUS_AudioDecoderCodecSettings codecSettings;
+                                NEXUS_AudioDecoder_GetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], resources.audioProgram[PRIMARY_DECODE].codec, &codecSettings);
+                                if( !dolby_args.dualMain )
+                                {
+                                    codecSettings.codecSettings.ac3Plus.enableAtmosProcessing = false;
+                                }
+                                printf("disable ATMOS flag (secondary on):%d\n", codecSettings.codecSettings.ac3Plus.enableAtmosProcessing);
+                                NEXUS_AudioDecoder_SetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], &codecSettings);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        printf("Invalid decode %d, or no active decoder %p\n", index, index < NUM_DECODES ? (void *)resources.audioDecoders[index] : NULL);
+                    }
+                }
+                else if ( strstr(buffer, "S ") != NULL )
+                {
+                    unsigned index;
+                    char *value;
+                    value = strchr(buffer, ' ');
+                    *value = 0;
+                    value++;
+
+                    index = atoi(value);
+                    printf("value '%s', %d\n", value, index);
+                    if ((index < NUM_DECODES) && (resources.audioDecoders[index] != NULL))
+                    {
+                        printf("Toggle Start/Stop for Decode[%d] from %s to %s\n", index, resources.started[index] ? "STARTED" : "STOPPED", !resources.started[index] ? "STARTED" : "STOPPED");
+                        if ( resources.started[index] )
+                        {
+                            NEXUS_AudioDecoder_Stop(resources.audioDecoders[index]);
+                            resources.suspended[index] = false;
+                            resources.started[index] = false;
+                        }
+                        else /* !started && !suspended */
+                        {
+                            decode_path_start(index, opts, &dolby_args, &resources);
+                            #if 0 /* TBD do we need to start the playback */
+                            playback_start(index, opts, &resources);
+                            #endif
+                        }
+
+                        /* assertion - we are either started or suspended here */
+                        /* but we could be stopped now */
+                        if ( index == SECONDARY_DECODE && resources.audioDecoders[index] &&
+                            (resources.audioProgram[index].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[index].codec == NEXUS_AudioCodec_eAc3) )
+                        {
+                            if ( resources.suspended[index] ||  !resources.started[index] )
                             {
                                 NEXUS_AudioDecoderCodecSettings codecSettings;
                                 NEXUS_AudioDecoder_GetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], resources.audioProgram[PRIMARY_DECODE].codec, &codecSettings);
@@ -3773,6 +4323,19 @@ int main(int argc, const char *argv[])
     #endif
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
+/*----------------------------------------------------------------Wait for Captures to drain--------------------------------------------------------------------------------------------------------*/
+
+    if ( resources.captureThread )
+    {
+        printf("Sleeping to allow paths to capture to drain\n");
+        BKNI_Sleep(5000);
+        audio_capture_callback(resources.captureEvent, 0);
+        resources.captureDone = true;
+        pthread_join(resources.captureThread, NULL);
+    }
+
+/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
 /*----------------------------------------------------------------Stopping,Closing and Removing the Resources---------------------------------------------------------------------------------------*/
 
     #if NEXUS_NUM_AUDIO_PLAYBACKS
@@ -3788,18 +4351,61 @@ int main(int argc, const char *argv[])
         decode_path_stop( i, &resources );
     }
 
-    #if NEXUS_NUM_HDMI_OUTPUTS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
-    #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    #endif
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
-    #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]));
-    #endif
+/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------Tear Down Capture Resources-------------------------------------------------------------------------------------------------------*/
+
+    {
+        unsigned c,p;
+
+        for ( c = 0; c < NUM_CAPTURES; c++ )
+        {
+            if ( resources.audioCapture[c].audioCapture )
+            {
+                printf("Stop/Close audio capture %d\n", c);
+                NEXUS_AudioCapture_Stop(resources.audioCapture[c].audioCapture);
+                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioCapture_GetConnector(resources.audioCapture[c].audioCapture));
+                NEXUS_AudioCapture_Close(resources.audioCapture[c].audioCapture);
+                resources.audioCapture[c].audioCapture = NULL;
+            }
+
+            for ( p = 0; p < 4; p++ )
+            {
+                if ( resources.audioCapture[c].file[p] )
+                {
+                    printf("Close file %d, audio capture %d\n", p, c);
+                    fclose(resources.audioCapture[c].file[p]);
+                    resources.audioCapture[c].file[p] = NULL;
+                }
+            }
+        }
+
+        if ( resources.captureEvent )
+        {
+            printf("Destroy Capture Event\n");
+            BKNI_DestroyEvent(resources.captureEvent);
+            resources.captureEvent = NULL;
+        }
+    }
+
+/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    if ( dolby_args.connectors.hdmi )
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.hdmi);
+    }
+    if ( dolby_args.connectors.spdif )
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.spdif);
+    }
+    if ( dolby_args.connectors.dac )
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.dac);
+    }
+    if ( dolby_args.connectors.dummy )
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.dummy);
+    }
     NEXUS_DolbyDigitalReencode_Close(resources.ddre);
     resources.ddre = NULL;
 
@@ -3833,9 +4439,6 @@ int main(int argc, const char *argv[])
         NEXUS_AudioDecoder_Close(resources.compressedDecoder);
         resources.compressedDecoder = NULL;
     }
-    #ifdef BDSP_FW_RBUF_CAPTURE
-    sleep(4);
-    #endif
     #if NEXUS_NUM_AUDIO_PLAYBACKS
     NEXUS_AudioPlayback_Close(resources.audioPlayback);
     #endif
@@ -3856,2524 +4459,15 @@ int main(int argc, const char *argv[])
     /* stop/remove HDMI callbacks associated with display,
     so those callbacks do not access display once it is removed */
     #if NEXUS_NUM_HDMI_OUTPUTS > 0
-    NEXUS_StopCallbacks(platformConfig.outputs.hdmi[0]);
+    if ( platformConfig.outputs.hdmi[0] )
+    {
+        NEXUS_StopCallbacks(platformConfig.outputs.hdmi[0]);
+    }
     #endif
     NEXUS_Display_Close(resources.display);
-    #ifdef BDSP_FW_RBUF_CAPTURE
-    brbuf_uninit_ringbuf_capture();
-    #endif
 
     NEXUS_Platform_Uninit();
     #endif
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
     return 0;
 }
-
-/* Ring buffer capture specific functions */
-#ifdef BDSP_FW_RBUF_CAPTURE
-/* ******************************** */
-
-static
-void
-rbuf_capture_assert_fail(char *statement,
-                         char *file,
-                         int line,
-                         ...)
-{
-    printf("\n--RBUF-- ASSERT FAILED! '%s' {%s:%d}\n", statement, file, line);
-    return;
-}
-static
-void
-rbuf_capture_alert_fail(char *statement,
-                        char *file,
-                        int line,
-                        ...)
-{
-    printf("\n--RBUF-- ALERT! '%s' {%s:%d}\n", statement, file, line);
-    return;
-}
-
-static
-/*inline*/
-int32_t
-rbuf_capture_device_open(int8_t *device_name)
-{
-    RBUF_ASSERT(NULL != device_name, "0x%08X", device_name);
-
-    if ( rbuf_capture_app_player )
-    {
-        /* Create / append to file*/
-        return open((char *)device_name,
-                    (O_CREAT | O_WRONLY | O_APPEND),
-                    ((S_IRUSR | S_IWUSR) | (S_IRGRP | S_IWGRP) | (S_IROTH | S_IWOTH)));
-    }
-    else
-    {
-        /* Create / overwrite file*/
-        return open((char *)device_name,
-                    (O_CREAT | O_WRONLY | O_TRUNC | O_DIRECT),
-                    ((S_IRUSR | S_IWUSR) | (S_IRGRP | S_IWGRP) | (S_IROTH | S_IWOTH)));
-    }
-}
-
-static
-/*inline*/
-int32_t
-rbuf_capture_device_write(int32_t device, void *buf, int32_t count)
-{
-    return write(device, buf, count);
-}
-
-static
-/*inline*/
-int32_t
-rbuf_capture_device_close(int32_t device)
-{
-    return close(device);
-}
-
-static
-char*
-rbuf_capture_channel_get_type_string(uint32_t path,
-                                     uint32_t channel,
-                                     uint32_t rbuf_id,
-                                     BDSP_P_RbufType type)
-{
-    static char buf[128];
-    char *str;
-
-    switch ( type )
-    {
-    case BDSP_P_RbufType_eDecode:
-        {
-            static char *dec = "DECODER CHANNEL";
-            str = dec;
-            break;
-        }
-    case BDSP_P_RbufType_ePassthru:
-        {
-            static char *pass = "PASSTHRU CHANNEL";
-            str = pass;
-            break;
-        }
-    case BDSP_P_RbufType_eMixer:
-        {
-            static char *mix = "MIXER CHANNEL";
-            str = mix;
-            break;
-        }
-    case BDSP_P_RbufType_eEncoder:
-        {
-            static char *enc = "ENCODER CHANNEL";
-            str = enc;
-            break;
-        }
-    case BDSP_P_RbufType_eTranscode:
-        {
-            static char *tran = "TRANSCODE CHANNEL";
-            str = tran;
-            break;
-        }
-    case BDSP_P_RbufType_eSM:
-        {
-            static char *spkr = "SPKR MGMT CHANNEL";
-            str = spkr;
-            break;
-        }
-    default:
-        {
-            RBUF_ASSERT(0, "");
-            str = NULL;
-            break;
-        }
-    }
-    if ( rbuf_id != RBUF_ID_INVALID )
-    {
-        sprintf(buf, "PATH[%d]:%s[%d][%d]", path, str, channel, rbuf_id);
-    }
-    else
-    {
-        sprintf(buf, "PATH[%d]:%s[%d]", path, str, channel);
-    }
-    return buf;
-}
-
-static
-char*
-rbuf_capture_channel_get_info_string(uint32_t path,
-                                     uint32_t channel,
-                                     BDSP_P_RbufType type,
-                                     uint32_t rbuf_id)
-{
-    static char buf[128];
-
-    sprintf(buf, "%s",
-            rbuf_capture_channel_get_type_string(path, channel, rbuf_id, type));
-
-    return buf;
-}
-
-static
-void
-rbuf_capture_alert(rbuf_capture_channel_t *cap)
-{
-    RBUF_PRINT(("******************************************************************"));
-    RBUF_PRINT(("*                     !!!! ALERT !!!!"));
-    RBUF_PRINT(("* Error detected for %s",
-                rbuf_capture_channel_get_info_string(cap->path,
-                                                     cap->channel,
-                                                     cap->type,
-                                                     cap->rbuf_id)));
-
-    /* Inactivate this channel*/
-    cap->active = 0;
-
-    RBUF_PRINT(("* Capture HAS NOW BEEN DISABLED for this ring buffer!!"));
-    RBUF_PRINT(("******************************************************************"));
-
-    return;
-}
-
-static
-uint32_t
-rbuf_capture_from_cap_q_to_disk(rbuf_capture_channel_t *cap)
-{
-    uint8_t *cap_q_ptr;
-    uint32_t cap_q_r_idx = 0;
-    uint32_t cap_q_w_idx = 0;
-    uint32_t cap_q_num_entries = 0;
-    uint32_t bytes_captured = 0;
-    uint32_t aligned_entries = 0;
-    RBUF_CAPTURE_CHANNEL_STATE cap_q_to_disk_state;
-
-    cap_q_to_disk_state = cap->cap_q_to_disk_state;
-
-    if ( !cap->active )
-    {
-        /* Channel is not active, nothing to do!*/
-        bytes_captured = 0;
-        return bytes_captured;
-    }
-
-    if ( (RBUF_CAPTURE_CHANNEL_STATE_INACTIVE == cap_q_to_disk_state) ||
-         (RBUF_CAPTURE_CHANNEL_STATE_STOPPED == cap_q_to_disk_state) )
-    {
-        /* Nothing to do*/
-        bytes_captured = 0;
-        return bytes_captured;
-    }
-
-    if ( RBUF_CAPTURE_CHANNEL_STATE_PEND_STOP == cap_q_to_disk_state )
-    {
-        /* Transition to stopped state*/
-        cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_STOPPED;
-        bytes_captured = 0;
-        return bytes_captured;
-    }
-
-    cap_q_ptr = cap->q_ptr;
-    cap_q_r_idx = cap->q_r_idx;
-    cap_q_w_idx = cap->q_w_idx;
-    cap_q_num_entries = cap->q_num_entries;
-
-    if ( RBUF_CAPTURE_CHANNEL_STATE_PEND_OUTPUT_DONE == cap_q_to_disk_state )
-    {
-        /* If both the Capture Q to disk is empty and the RBUF to Captre Q is*/
-        /* stopped, then the output is stopped*/
-        if ( (Q_IS_EMPTY(cap_q_r_idx, cap_q_w_idx)) &&
-             (RBUF_CAPTURE_CHANNEL_STATE_STOPPED == cap->rbuf_to_cap_q_state) )
-        {
-            /* Transition to stopped state*/
-            cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_STOPPED;
-
-            RBUF_DEBUG(("%s - DISK All data consumed",
-                        rbuf_capture_channel_get_info_string(cap->path,
-                                                             cap->channel,
-                                                             cap->type,
-                                                             cap->rbuf_id)));
-
-            bytes_captured = 0;
-            return bytes_captured;
-        }
-    }
-
-    if ( (RBUF_CAPTURE_CHANNEL_STATE_ACTIVE == cap_q_to_disk_state) ||
-         (RBUF_CAPTURE_CHANNEL_STATE_PEND_OUTPUT_DONE == cap_q_to_disk_state) )
-    {
-        if ( cap->q_w_idx > cap->q_r_idx )
-        {
-            if ( (cap->q_w_idx - cap->q_r_idx) >= RBUF_PAGE_SIZE )
-            {
-                aligned_entries = (((cap->q_w_idx - cap->q_r_idx) / RBUF_PAGE_SIZE) * RBUF_PAGE_SIZE);
-                cap->rbuf_flush_onexit = false;
-            }
-            else
-            {
-                cap->rbuf_flush_onexit = true;
-                bytes_captured = 0;
-            }
-        }
-        else
-        {
-            if ( cap->q_w_idx != cap->q_r_idx )
-            {
-                aligned_entries = (RBUF_CAP_MAX_CHAN_ENTRIES - cap->q_r_idx);
-            }
-        }
-        if ( !cap->rbuf_flush_onexit )
-        {
-            bytes_captured = rbuf_capture_device_write(cap->file, &cap_q_ptr[cap_q_r_idx], aligned_entries);
-            cap->q_r_idx += aligned_entries;
-
-            if ( cap->q_r_idx >= RBUF_CAP_MAX_CHAN_ENTRIES )
-            {
-                cap->q_r_idx = 0;
-            }
-        }
-    }
-    return bytes_captured;
-}
-
-static
-void
-rbuf_capture_rbuf_copy(rbuf_capture_channel_t *cap,
-                       uint8_t *rbuf_ptr,
-                       uint32_t *rbuf_w_idx,
-                       uint32_t rbuf_num_entries,
-                       uint32_t rbuf_copy_bytes,
-
-                       uint8_t *cap_q_ptr,
-                       uint32_t *cap_q_w_idx,
-                       uint32_t cap_q_num_entries,
-                       uint32_t *cap_q_avail_to_end_bytes,
-                       uint32_t *cap_q_avail_from_start_bytes)
-{
-    uint32_t copy_bytes;
-    uint32_t _cap_q_w_idx;
-    uint32_t _rbuf_w_idx;
-
-    _cap_q_w_idx = *cap_q_w_idx;
-    _rbuf_w_idx = *rbuf_w_idx;
-
-    /* Does the RBUF number of bytes fit into the capture Q's to end?*/
-    if ( rbuf_copy_bytes <= *cap_q_avail_to_end_bytes )
-    {
-        /* RBUF segment will fit in capture Q to end (without wrap)*/
-        copy_bytes = rbuf_copy_bytes;
-        *cap_q_avail_to_end_bytes -= copy_bytes;
-    }
-    else
-    {
-        /* RBUF to end will NOT fit in capture Q to end (without wrap)*/
-
-        if ( *cap_q_avail_to_end_bytes )
-        {
-            /* Fill to the capture Q wrap point*/
-            copy_bytes = *cap_q_avail_to_end_bytes;
-
-            RBUF_ASSERT((((_cap_q_w_idx + copy_bytes) <= cap_q_num_entries) && ((_rbuf_w_idx + copy_bytes) <= rbuf_num_entries)),
-                        "%s - 0x%08X 0x%08X 0x%08X 0x%08X 0x%08X",
-                        rbuf_capture_channel_get_info_string(cap->path,
-                                                             cap->channel,
-                                                             cap->type,
-                                                             cap->rbuf_id),
-                        _cap_q_w_idx, cap_q_num_entries,
-                        _rbuf_w_idx, rbuf_num_entries, copy_bytes);
-
-            /* Invalidate the cache to cause burst read for memcpy*/
-            /* NOTE:Data will never be written to the ring buffer by the MIPS*/
-            /*      so the flush has no effect other than invalidate*/
-            NEXUS_Memory_FlushCache(&rbuf_ptr[_rbuf_w_idx], copy_bytes);
-
-            BKNI_Memcpy(&cap_q_ptr[_cap_q_w_idx], &rbuf_ptr[_rbuf_w_idx], copy_bytes);
-
-            /* Should wrap to start since all copy to end bytes have been consumed*/
-            RBUF_ASSERT((0 == Q_INC(_cap_q_w_idx, copy_bytes, 0, cap_q_num_entries)), "%s - 0x%08X 0x%08X 0x%08X",
-                        rbuf_capture_channel_get_info_string(cap->path,
-                                                             cap->channel,
-                                                             cap->type,
-                                                             cap->rbuf_id),
-                        _cap_q_w_idx, copy_bytes, cap_q_num_entries);
-
-            _cap_q_w_idx = 0;
-            /* No more end bytes available*/
-            *cap_q_avail_to_end_bytes = 0;
-
-            /* Can just increment, RBUF guaranteed to not wrap*/
-            _rbuf_w_idx += copy_bytes;
-            /* Now setup copy of remaining RBUF end bytes to the beginning*/
-            /* of the capture Q*/
-            copy_bytes = rbuf_copy_bytes - copy_bytes;
-            *cap_q_avail_from_start_bytes -= copy_bytes;
-        }
-        else
-        {
-            /* No space at to the end of the Q, simply copy at the start*/
-
-            copy_bytes = rbuf_copy_bytes;
-            RBUF_ASSERT((*cap_q_avail_from_start_bytes >= copy_bytes), "%s - 0x%08X 0x%08X",
-                        rbuf_capture_channel_get_info_string(cap->path,
-                                                             cap->channel,
-                                                             cap->type,
-                                                             cap->rbuf_id),
-                        *cap_q_avail_from_start_bytes, copy_bytes);
-            *cap_q_avail_from_start_bytes -= copy_bytes;
-        }
-    }
-    RBUF_ASSERT((((_cap_q_w_idx + copy_bytes) <= cap_q_num_entries) && ((_rbuf_w_idx + copy_bytes) <= rbuf_num_entries)),
-                "%s - 0x%08X 0x%08X 0x%08X 0x%08X 0x%08X",
-                rbuf_capture_channel_get_info_string(cap->path,
-                                                     cap->channel,
-                                                     cap->type,
-                                                     cap->rbuf_id),
-                _cap_q_w_idx, cap_q_num_entries,
-                _rbuf_w_idx, rbuf_num_entries, copy_bytes);
-
-    /* Invalidate the cache to cause burst read for memcpy*/
-    /* NOTE:Data will never be written to the ring buffer by the MIPS*/
-    /*      so the flush has no effect other than invalidate*/
-    NEXUS_Memory_FlushCache(&rbuf_ptr[_rbuf_w_idx], copy_bytes);
-
-    BKNI_Memcpy(&cap_q_ptr[_cap_q_w_idx], &rbuf_ptr[_rbuf_w_idx], copy_bytes);
-
-    _cap_q_w_idx = Q_INC(_cap_q_w_idx, copy_bytes, 0, cap_q_num_entries);
-    *cap_q_w_idx = _cap_q_w_idx;
-
-    _rbuf_w_idx = Q_INC(_rbuf_w_idx, copy_bytes, 0, rbuf_num_entries);
-    *rbuf_w_idx = _rbuf_w_idx;
-
-    return;
-}
-
-static
-void
-rbuf_capture_from_rbuf_to_cap_q(rbuf_capture_channel_t *cap)
-{
-    uint8_t *rbuf_base_virt;
-    uint32_t rbuf_base_phys;
-    uint32_t rbuf_r_idx;
-    uint32_t rbuf_w_idx;
-    uint32_t rbuf_num_entries;
-    uint32_t rbuf_copy_bytes;
-
-    uint32_t rbuf_copy_to_end_bytes;
-    uint32_t rbuf_copy_from_start_bytes;
-
-    uint8_t *cap_q_ptr;
-    uint32_t cap_q_r_idx;
-    uint32_t cap_q_w_idx;
-    uint32_t cap_q_num_entries;
-
-    uint32_t cap_q_avail_to_end_bytes;
-    uint32_t cap_q_avail_from_start_bytes;
-    uint32_t cap_q_avail_total_bytes;
-
-    uint32_t rbuf_cur_wraddr;
-    uint32_t wr_cur_addr;
-    uint32_t wr_prev_addr;
-    uint32_t wr_cur_wrap;
-    uint32_t wr_prev_wrap;
-
-    uint32_t rbuf_cur_rdaddr;
-    uint32_t rd_cur_wrap;
-    uint32_t rd_prev_wrap;
-    uint32_t rd_cur_addr;
-    uint32_t rd_prev_addr;
-
-    if ( !cap->active )
-    {
-        /* Channel is not active, nothing to do!*/
-        return;
-    }
-    if ( (RBUF_CAPTURE_CHANNEL_STATE_INACTIVE == cap->rbuf_to_cap_q_state) ||
-         (RBUF_CAPTURE_CHANNEL_STATE_STOPPED == cap->rbuf_to_cap_q_state) )
-    {
-        /* Nothing to do*/
-        return;
-    }
-    if ( RBUF_CAPTURE_CHANNEL_STATE_PEND_STOP == cap->rbuf_to_cap_q_state )
-    {
-        /* Transition to stopped state*/
-        cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_STOPPED;
-        return;
-    }
-
-    /* Check whether to initialize the ring buffer state.  Behavior is*/
-    /* as follows:*/
-    /*   Decoder / Passthru RBUFs:*/
-    /*     1. Ring buffer registers are initialized with default values*/
-    /*     2. Decoder adjusts write / end / start write addrss registers*/
-    /*        NOTE::Start write must be greater than or equal to end address register*/
-    /*     3. Decoder sets start write address register to less than end address*/
-    /*     4. Initial write address shall be the start write address and the */
-    /*        end address will be then be read to deterime size of RBUF.*/
-    /*   Mixer RBUFs:*/
-    /*     1. Ring buffer registers are initialized with default values*/
-    /*     2. Write address WILL BE equal to base address register until*/
-    /*        the final RBUF size is determined (end address register is written)*/
-    /*     3. Once write address register does not equal base address, read*/
-    /*        end address to determine size of RBUF.*/
-    if ( !cap->rbuf_initialized )
-    {
-        uint32_t baseaddr;
-        uint32_t endaddr;
-        uint32_t freefull;
-        uint32_t wrpoint;
-        uint32_t entries;
-        void *virt;
-        int32_t result;
-
-        /* If channel has never been initialized, it is still*/
-        /* necessary to check for request to stop*/
-        if ( RBUF_CAPTURE_CHANNEL_STATE_PEND_OUTPUT_DONE == cap->rbuf_to_cap_q_state )
-        {
-            cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_STOPPED;
-            RBUF_DEBUG(("%s - RBUF stopping before initialized!",
-                        rbuf_capture_channel_get_info_string(cap->path,
-                                                             cap->channel,
-                                                             cap->type,
-                                                             cap->rbuf_id)));
-            return;
-        }
-
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_RDADDR */
-        rbuf_cur_rdaddr = (uint32_t)BREG_Read32(rbuf_reg_handle,
-                                                cap->rbuf_reg_base + 0x00);
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_WRADDR */
-        rbuf_cur_wraddr = (uint32_t)BREG_Read32(rbuf_reg_handle,
-                                                cap->rbuf_reg_base + 0x04);
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_BASEADDR */
-        baseaddr = (uint32_t)BREG_Read32(rbuf_reg_handle,
-                                         cap->rbuf_reg_base + 0x08);
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_ENDADDR */
-        endaddr = (uint32_t)BREG_Read32(rbuf_reg_handle,
-                                        cap->rbuf_reg_base + 0x0C);
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_FREEFULL_MARK*/
-        freefull = (uint32_t)BREG_Read32(rbuf_reg_handle,
-                                         cap->rbuf_reg_base + 0x10);
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_START_WRPOINT*/
-        wrpoint = (uint32_t)BREG_Read32(rbuf_reg_handle,
-                                        cap->rbuf_reg_base + 0x14);
-
-        RBUF_DEBUG(("%s - %08X r=%08X w=%08X b=%08X e=%08X f=%08X w=%08X",
-                    rbuf_capture_channel_get_info_string(cap->path,
-                                                         cap->channel,
-                                                         cap->type,
-                                                         cap->rbuf_id),
-                    cap->rbuf_reg_base,
-                    rbuf_cur_rdaddr,
-                    rbuf_cur_wraddr,
-                    baseaddr,
-                    endaddr,
-                    freefull,
-                    wrpoint));
-
-        /* Registers default to zero when uninitialized*/
-        if ( (0 == rbuf_cur_rdaddr) || (0 == rbuf_cur_wraddr) || (0 == baseaddr) ||
-             /*(0 == endaddr)         || (0 == freefull)        || (0 == wrpoint)) */
-             (0 == endaddr) || (0 == wrpoint) )
-        {
-            return;
-        }
-        if ( (0x80000000 == rbuf_cur_rdaddr) || (0x80000000 == rbuf_cur_wraddr) || (0x80000000 == baseaddr) ||
-             (0x80000000 == endaddr) || (0x80000000 == wrpoint) )
-        {
-            /* Not yet initialized*/
-            return;
-        }
-        /* The initialized default end address will be maintained until write*/
-        /* address starts to change. Until this change, no state can be initialized.*/
-        if ( baseaddr == rbuf_cur_wraddr )
-        {
-            return;
-        }
-
-        /* Write address has changed*/
-        if ( (BDSP_P_RbufType_eDecode == cap->type) || (BDSP_P_RbufType_eEncoder == cap->type) ||
-             (BDSP_P_RbufType_ePassthru == cap->type) || (BDSP_P_RbufType_eTranscode == cap->type) )
-        {
-            /* Decoder / Passthru capture*/
-            if ( wrpoint >= endaddr )
-            {
-                /* Final config is not yet complete*/
-                return;
-            }
-            else
-            {
-                /* The start write address is now less than the end address,*/
-                /* the end address must now be valid, fall through*/
-                /* and compute RBUF parameters*/
-            }
-        }
-        else
-        {
-            /* Mixer capture, write address is no longer equal to the*/
-            /* base address, the end address must now be valid, fall through*/
-            /* and compute RBUF parameters*/
-            RBUF_ASSERT(((BDSP_P_RbufType_eMixer == cap->type) || (BDSP_P_RbufType_eSM == cap->type)), "%s",
-                        rbuf_capture_channel_get_info_string(cap->path,
-                                                             cap->channel,
-                                                             cap->type,
-                                                             cap->rbuf_id));
-        }
-
-        RBUF_ALERT((endaddr > baseaddr), "%s - 0x%08X 0x%08X",
-                   rbuf_capture_channel_get_info_string(cap->path,
-                                                        cap->channel,
-                                                        cap->type,
-                                                        cap->rbuf_id),
-                   baseaddr, endaddr);
-
-        entries = (endaddr - baseaddr) + 1;
-
-        /* Use the physical base address to compute the uncached virtual address*/
-        result = BMEM_ConvertOffsetToAddress(rbuf_heap, baseaddr, &virt);
-        RBUF_ASSERT((BERR_SUCCESS == result), "%s - 0x%08X 0x%08X 0x%08X 0x%08X",
-                    rbuf_capture_channel_get_info_string(cap->path,
-                                                         cap->channel,
-                                                         cap->type,
-                                                         cap->rbuf_id),
-                    result, rbuf_heap, baseaddr, virt);
-        RBUF_DEBUG(("%s INITIALIZED:",
-                    rbuf_capture_channel_get_info_string(cap->path,
-                                                         cap->channel,
-                                                         cap->type,
-                                                         cap->rbuf_id)));
-
-        RBUF_DEBUG(("rdaddr=0x%08X  wraddr=0x%08X  baseaddr=0x%08X (virt=0x%08X)",
-                    rbuf_cur_rdaddr, rbuf_cur_wraddr, baseaddr,(uint32_t)virt));
-        RBUF_DEBUG(("    endaddr=0x%08X (entries=%08X) freefull=0x%08X wrpoint=0x%08X",
-                    endaddr, entries, freefull, wrpoint));
-
-        cap->rbuf_num_entries = entries;
-        cap->rbuf_base_phys = baseaddr;
-
-        if ( (BDSP_P_RbufType_eDecode == cap->type) || (BDSP_P_RbufType_eEncoder == cap->type) ||
-             (BDSP_P_RbufType_ePassthru == cap->type) || (BDSP_P_RbufType_eTranscode == cap->type) )
-        {
-            /* For decoder / passthru capture, use the start write address*/
-            /* to see the capture start point*/
-            cap->rbuf_prev_wraddr = wrpoint;
-            cap->rbuf_prev_rdaddr = rbuf_cur_rdaddr;
-        }
-        else
-        {
-            /* For mixer capture, use the base address*/
-            /* to see the capture start point*/
-            cap->rbuf_prev_wraddr = baseaddr;
-            cap->rbuf_prev_rdaddr = baseaddr;
-        }
-        cap->rbuf_base_virt_uncached = (uint8_t *)virt;
-        cap->rbuf_initialized = 1;
-        cap->rbuf_started = 1;
-    }
-    else
-    {
-        /* Already initialized, read the write / read address registers*/
-        uint32_t baseaddr;
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_WRADDR*/
-        rbuf_cur_wraddr = (uint32_t)BREG_Read32(rbuf_reg_handle, cap->rbuf_reg_base + 0x04);
-        /* AUD_FMM_BF_CTRL_RINGBUF_X_RDADDR*/
-        rbuf_cur_rdaddr = (uint32_t)BREG_Read32(rbuf_reg_handle, cap->rbuf_reg_base + 0x00);
-        if ( (rbuf_cur_wraddr == 0) || (rbuf_cur_wraddr == 0x80000000) || (rbuf_cur_rdaddr == 0) || (rbuf_cur_rdaddr == 0x80000000) ) return;
-        if(rbuf_cur_rdaddr<(cap->rbuf_prev_rdaddr & (~(1 << 31))))
-        {
-        baseaddr = (uint32_t)BREG_Read32(rbuf_reg_handle,
-                                         cap->rbuf_reg_base + 0x08);
-        cap->rbuf_prev_rdaddr = baseaddr;
-        }
-        if(rbuf_cur_rdaddr == rbuf_cur_wraddr)
-        {
-            cap->rbuf_prev_wraddr = rbuf_cur_wraddr;
-        }
-    }
-    /* Extract the wrap bit*/
-    wr_cur_wrap = rbuf_cur_wraddr & (1 << 31);
-    wr_prev_wrap = cap->rbuf_prev_wraddr & (1 << 31);
-
-    /* Mask the wrap bit*/
-    wr_cur_addr = rbuf_cur_wraddr & (~(1 << 31));
-    wr_prev_addr = cap->rbuf_prev_wraddr & (~(1 << 31));
-
-    /* Extract the wrap bit*/
-    rd_cur_wrap = rbuf_cur_rdaddr & (1 << 31);
-    rd_prev_wrap = cap->rbuf_prev_rdaddr & (1 << 31);
-
-    /* Mask the wrap bit*/
-    rd_cur_addr = rbuf_cur_rdaddr & (~(1 << 31));
-    rd_prev_addr = cap->rbuf_prev_rdaddr & (~(1 << 31));
-
-    /* Verify the current WRADDR*/
-    if ( (wr_cur_wrap != 0x00000000) && (wr_cur_wrap != 0x80000000) && (wr_prev_wrap != 0x00000000) && (wr_prev_wrap != 0x80000000) )
-    {
-        if ( wr_cur_wrap != wr_prev_wrap )
-        {
-            /* If wrapped, prev must be greater than cur*/
-            /* else the RBUFs haven't been serviced in time*/
-            if ( wr_cur_addr >= wr_prev_addr )
-            {
-                printf("\n%s - 0x%08X 0x%08X 0x%08X",
-                       rbuf_capture_channel_get_info_string(cap->path,
-                                                            cap->channel,
-                                                            cap->type,
-                                                            cap->rbuf_id));
-                printf("\nwr_cur_wrap=0x%08X, wr_prev_wrap=0x%08X", wr_cur_wrap, wr_prev_wrap);
-                printf("\nwr_cur_addr=0x%08X, wr_prev_addr=0x%08X", wr_cur_addr, wr_prev_addr);
-            }
-            RBUF_ALERT((wr_cur_addr < wr_prev_addr), "%s - 0x%08X 0x%08X 0x%08X",
-                       rbuf_capture_channel_get_info_string(cap->path,
-                                                            cap->channel,
-                                                            cap->type,
-                                                            cap->rbuf_id),
-                       wr_cur_addr, wr_prev_addr, cap->rbuf_count);
-            RBUF_ALERT((1 == cap->rbuf_started), "%s",
-                       rbuf_capture_channel_get_info_string(cap->path,
-                                                            cap->channel,
-                                                            cap->type,
-                                                            cap->rbuf_id));
-        }
-    }
-    else
-    {
-        /* Wrap is unchanged, fall through and process the RBUF*/
-        if ( wr_cur_addr == wr_prev_addr )
-        {
-            /* Nothing to do!*/
-            if ( RBUF_CAPTURE_CHANNEL_STATE_PEND_OUTPUT_DONE == cap->rbuf_to_cap_q_state )
-            {
-                if ( rbuf_cur_rdaddr == cap->rbuf_prev_rdaddr )
-                {
-                    /* RBUF is stopped and no more data has arrived*/
-                    /* Transition to stopped state*/
-                    cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_STOPPED;
-                    RBUF_DEBUG(("%s - RBUF No longer being read",
-                                rbuf_capture_channel_get_info_string(cap->path,
-                                                                     cap->channel,
-                                                                     cap->type,
-                                                                     cap->rbuf_id)));
-                }
-                else
-                {
-                    cap->rbuf_prev_rdaddr = rbuf_cur_rdaddr;
-                }
-            }
-            return;
-        }
-        /* Fall through and process the RBUF*/
-        else
-        {}
-    }
-
-    /* Verify the current RDADDR */
-    if ( rd_cur_wrap != rd_prev_wrap )
-    {
-        /* Wrap changed*/
-        RBUF_ALERT((rd_cur_addr < rd_prev_addr), "%s - 0x%08X 0x%08X",
-                   rbuf_capture_channel_get_info_string(cap->path,
-                                                        cap->channel,
-                                                        cap->type,
-                                                        cap->rbuf_id),
-                   rd_cur_addr, rd_prev_addr);
-    }
-    else
-    {
-        /* Wrap unchanged*/
-        RBUF_ALERT((rd_cur_addr >= rd_prev_addr), "%s - 0x%08X 0x%08X",
-                   rbuf_capture_channel_get_info_string(cap->path,
-                                                        cap->channel,
-                                                        cap->type,
-                                                        cap->rbuf_id),
-                   rd_cur_addr, rd_prev_addr);
-    }
-
-    if ( rd_cur_wrap != wr_cur_wrap )
-    {
-        /* Read / Write wraps mismatch*/
-        /* NOTE:: Can be equal, since wrap removes ambiguity of full/empty*/
-        RBUF_ALERT((rd_cur_addr >= wr_cur_addr), "%s - 0x%08X 0x%08X 0x%08X 0x%08X",
-                   rbuf_capture_channel_get_info_string(cap->path,
-                                                        cap->channel,
-                                                        cap->type,
-                                                        cap->rbuf_id),
-                   rd_cur_addr, wr_cur_addr, rbuf_cur_rdaddr, rbuf_cur_wraddr);
-    }
-    else
-    {
-        /* Read / Write wraps match*/
-        RBUF_ALERT((rd_cur_addr <= wr_cur_addr), "%s - 0x%08X 0x%08X",
-                   rbuf_capture_channel_get_info_string(cap->path,
-                                                        cap->channel,
-                                                        cap->type,
-                                                        cap->rbuf_id),
-                   rd_cur_addr, wr_cur_addr);
-    }
-
-    cap->rbuf_prev_rdaddr = rbuf_cur_rdaddr;
-
-    /* Extract the RBUF information*/
-    rbuf_base_virt = cap->rbuf_base_virt_cached;
-
-    rbuf_base_phys = cap->rbuf_base_phys;
-    rbuf_num_entries = cap->rbuf_num_entries;
-    rbuf_w_idx = wr_cur_addr - rbuf_base_phys;
-    rbuf_r_idx = wr_prev_addr - rbuf_base_phys;
-
-    RBUF_ALERT((((wr_cur_addr >= rbuf_base_phys) && (wr_cur_addr < (rbuf_base_phys + rbuf_num_entries))) &&
-                ((wr_prev_addr >= rbuf_base_phys) && (wr_prev_addr < (rbuf_base_phys + rbuf_num_entries)))),
-               "%s - 0x%08X 0x%08X 0x%08X 0x%08X",
-               rbuf_capture_channel_get_info_string(cap->path,
-                                                    cap->channel,
-                                                    cap->type,
-                                                    cap->rbuf_id),
-               wr_cur_addr, wr_prev_addr, rbuf_base_phys, (rbuf_base_phys + rbuf_num_entries));
-
-    /* It is more efficient to memcpy a block(s) from the RBUF*/
-    /* to the capture Q and then update the associated pointers once.*/
-    /* For this reason, calculate the active RBUF linear sections*/
-    /* and capture Q empty linear sections and then memcpy as required.*/
-
-    /* Get the available bytes from the write pointer to the end*/
-    rbuf_copy_to_end_bytes = Q_ENTRIES_END(rbuf_r_idx, rbuf_w_idx, rbuf_num_entries);
-    /* Get the available bytes from the start to the write pointer*/
-    rbuf_copy_from_start_bytes = Q_ENTRIES_START(rbuf_r_idx, rbuf_w_idx, rbuf_num_entries);
-    rbuf_copy_bytes = rbuf_copy_to_end_bytes + rbuf_copy_from_start_bytes;
-
-    RBUF_ALERT(((rbuf_w_idx < rbuf_num_entries) && (rbuf_r_idx < rbuf_num_entries) &&
-                (rbuf_copy_to_end_bytes <= rbuf_num_entries) && (rbuf_copy_from_start_bytes <= rbuf_num_entries)),
-               "%s - 0x%08X 0x%08X 0x%08X 0x%08X",
-               rbuf_capture_channel_get_info_string(cap->path,
-                                                    cap->channel,
-                                                    cap->type,
-                                                    cap->rbuf_id),
-               rbuf_w_idx, rbuf_r_idx, rbuf_copy_to_end_bytes, rbuf_copy_from_start_bytes);
-
-    /* Extract the capture Q information*/
-    cap_q_ptr = cap->q_ptr;
-    cap_q_r_idx = cap->q_r_idx;
-    cap_q_w_idx = cap->q_w_idx;
-    cap_q_num_entries = cap->q_num_entries;
-
-    /* Get the available bytes from the write pointer to the end*/
-    cap_q_avail_to_end_bytes = Q_AVAIL_END(cap_q_r_idx, cap_q_w_idx, cap_q_num_entries);
-    /* Get the available bytes from the start to the write pointer*/
-    cap_q_avail_from_start_bytes = Q_AVAIL_START(cap_q_r_idx, cap_q_w_idx, cap_q_num_entries);
-    cap_q_avail_total_bytes = cap_q_avail_to_end_bytes + cap_q_avail_from_start_bytes;
-
-    /* There must be space for the entire RBUF active bytes to be copied*/
-    /* or else the file output is NOT keeping up!*/
-    if ( rbuf_copy_bytes > cap_q_avail_total_bytes )
-    {
-        RBUF_PRINT(("%s:", rbuf_capture_channel_get_info_string(cap->path,
-                                                                cap->channel,
-                                                                cap->type,
-                                                                cap->rbuf_id)));
-
-        RBUF_PRINT(("RBUF w=0x%08X r=0x%08X copy=0x%08X start=0x%08X end=0x%08X",
-                    rbuf_w_idx,
-                    rbuf_r_idx,
-                    rbuf_copy_bytes,
-                    rbuf_copy_from_start_bytes,
-                    rbuf_copy_to_end_bytes));
-        RBUF_PRINT(("CAP  w=0x%08X r=0x%08X start=0x%08X end=0x%08X count=0x%08X",
-                    cap_q_w_idx,
-                    cap_q_r_idx,
-                    cap_q_avail_from_start_bytes,
-                    cap_q_avail_to_end_bytes,
-                    cap->q_count));
-
-        return;
-    }
-
-    /* Process active portions of the RBUF*/
-    if ( rbuf_copy_to_end_bytes )
-    {
-        rbuf_capture_rbuf_copy(cap, rbuf_base_virt, &rbuf_r_idx, rbuf_num_entries, rbuf_copy_to_end_bytes,
-                               cap_q_ptr, &cap_q_w_idx, cap_q_num_entries, &cap_q_avail_to_end_bytes, &cap_q_avail_from_start_bytes);
-    }
-
-    if ( rbuf_copy_from_start_bytes )
-    {
-        rbuf_capture_rbuf_copy(cap, rbuf_base_virt, &rbuf_r_idx, rbuf_num_entries, rbuf_copy_from_start_bytes,
-                               cap_q_ptr, &cap_q_w_idx, cap_q_num_entries, &cap_q_avail_to_end_bytes, &cap_q_avail_from_start_bytes);
-    }
-    /* Save the current RBUF WADDR pointer*/
-    cap->rbuf_prev_wraddr = rbuf_cur_wraddr;
-    cap->rbuf_count += rbuf_copy_bytes;
-
-    /* Now update the capture Q write pointer*/
-    cap->q_count += rbuf_copy_bytes;
-
-    /* NOTE:: Since the Capture Q to Disk task uses the write index*/
-    /*        to determine available data, this MUST be the final step*/
-    /*        to guarantee coherency of all other fields.*/
-    cap->q_w_idx = cap_q_w_idx;
-
-    return;
-alert:
-    rbuf_capture_alert(cap);
-    return;
-}
-
-static
-void*
-rbuf_capture_from_rbuf_to_cap_q_task(void *unused)
-{
-    struct timespec sleep_time;
-    uint32_t channel = 0;
-
-    BSTD_UNUSED(unused);
-
-    /* nanosleep setup (at least 1ms)*/
-    sleep_time.tv_sec = 0;
-    sleep_time.tv_nsec = (1 * (1000 * 1000));
-
-    /* Used to coordinate task shutdown*/
-    rbuf_capture_from_rbuf_to_cap_q_active = 1;
-
-    while ( rbuf_capture_from_rbuf_to_cap_q_active )
-    {
-        /* Yield*/
-        nanosleep(&sleep_time, NULL);
-
-        /* Process the RBUF for all active channel*/
-        for ( channel = 0; channel < cap_channel_count; channel++ )
-        {
-            rbuf_capture_from_rbuf_to_cap_q(&rbuf_capture_channels[channel]);
-        }
-    }
-    /* Signal this thread is terminated*/
-    pthread_exit(NULL);
-    return NULL;
-}
-
-static
-void*
-rbuf_capture_from_cap_q_to_disk_task(void *unused)
-{
-    uint32_t cur_bytes = 0, channel = 0;
-    struct timespec sleep_time;
-
-    BSTD_UNUSED(unused);
-
-    /* nanosleep setup -- TWD better way to determine sleep time*/
-    sleep_time.tv_sec = 0;
-    if ( cap_channel_count <= 8 )
-    {
-        sleep_time.tv_nsec = 25 * (1000 * 1000);
-    }
-    else
-    {
-        sleep_time.tv_nsec = 12 * (1000 * 1000);
-    }
-
-    /* Used to coordinate task shutdown*/
-    rbuf_capture_from_cap_q_to_disk_active = 1;
-
-    /* NOTE:: This loop does not do an explicit yield.  This task*/
-    /*        has low priority and will be scheduled based on its*/
-    /*        priority.  This approach is taken since there should*/
-    /*        always be data available for output.*/
-
-    printf("cap_channel_count = %d\n", cap_channel_count);
-    while ( rbuf_capture_from_cap_q_to_disk_active )
-    {
-        /* Process all active channels*/
-        for ( channel = 0; channel < cap_channel_count; channel++ )
-        {
-            cur_bytes += rbuf_capture_from_cap_q_to_disk(&rbuf_capture_channels[channel]);
-            nanosleep(&sleep_time, NULL);
-        }
-    }
-    /* Signal this thread is terminated*/
-    pthread_exit(NULL);
-    return NULL;
-}
-
-static
-void
-rbuf_capture_channel_init(rbuf_capture_channel_t *cap)
-{
-    RBUF_ASSERT((NULL != cap), "0x%08X", cap);
-
-    cap->active = 0;
-    cap->path = RBUF_PATH_INVALID;
-    cap->channel = RBUF_CHANNEL_INVALID;
-    cap->index = RBUF_INDEX_INVALID;
-    cap->rbuf_id = RBUF_ID_INVALID;
-    cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_INACTIVE;
-    cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_INACTIVE;
-
-    cap->rbuf_count = 0;
-    cap->rbuf_base_virt_uncached = NULL;
-    cap->rbuf_base_virt_cached = NULL;
-    cap->rbuf_base_phys = 0;
-    cap->rbuf_prev_wraddr = 0;
-    cap->rbuf_prev_rdaddr = 0;
-    cap->rbuf_prev_endaddr = 0;
-    cap->rbuf_started = 0;
-    cap->rbuf_num_entries = 0;
-    cap->rbuf_reg_base = 0;
-
-    cap->q_count = 0;
-    cap->q_ptr = NULL;
-    cap->q_r_idx = 0;
-    cap->q_w_idx = 0;
-    cap->q_num_entries = 0;
-
-    cap->file_name[0] = 0;
-    cap->file = -1;
-    return;
-}
-
-static
-void
-rbuf_capture_channel_uninit(rbuf_capture_channel_t *cap)
-{
-    int32_t result = 0;
-
-    if ( !cap->active )
-    {
-        /* Channel is not active, nothing to do*/
-        return;
-    }
-    if ( RBUF_CHANNEL_INVALID != cap->channel )
-    {
-        /* Unititialize this capture channel*/
-        RBUF_DEBUG(("%s - Uninit",
-                    rbuf_capture_channel_get_info_string(cap->path,
-                                                         cap->channel,
-                                                         cap->type,
-                                                         cap->rbuf_id)));
-        RBUF_ASSERT((NULL != cap->q_ptr),
-                    "%s - 0x%08X",
-                    rbuf_capture_channel_get_info_string(cap->path,
-                                                         cap->channel,
-                                                         cap->type,
-                                                         cap->rbuf_id),
-                    cap->q_ptr);
-
-        /* BKNI_Free(cap->q_ptr); */
-        free(cap->q_ptr);
-
-        result = rbuf_capture_device_close(cap->file);
-        if ( EBADF == errno )
-        {
-            RBUF_DEBUG(("Capture file not created!"));
-            return;
-        }
-
-        /* If the copy path has been initialized, attempt to copy the capture*/
-        /* file to the supplied output path*/
-        if ( 0 != rbuf_copy_path[0] )
-        {
-            char cmd[2048];
-
-            sprintf(cmd, "/bin/cp -f %s/%s %s/%s.tmp",
-                    (char *)rbuf_capture_path,
-                    (char *)cap->file_name,
-                    (char *)rbuf_copy_path,
-                    (char *)cap->file_name);
-
-            RBUF_DEBUG(("'%s'", cmd));
-            result = system(cmd);
-            if ( result != 0 )
-            {
-                RBUF_PRINT(("Copy captured file failed!"));
-            }
-
-            sprintf(cmd, "/bin/mv -f %s/%s.tmp %s/%s",
-                    (char *)rbuf_copy_path,
-                    (char *)cap->file_name,
-                    (char *)rbuf_copy_path,
-                    (char *)cap->file_name);
-
-            RBUF_DEBUG(("'%s'", cmd));
-            result = system(cmd);
-            if ( result != 0 )
-            {
-                RBUF_PRINT(("Rename captured file at copy path failed!"));
-            }
-
-            RBUF_DEBUG(("COPIED - '%s/%s' to '%s/%s'",
-                        (char *)rbuf_capture_path,
-                        (char *)cap->file_name,
-                        (char *)rbuf_copy_path,
-                        (char *)cap->file_name));
-        }
-    }
-    cap->file_name[0] = 0;
-    cap->path = RBUF_PATH_INVALID;
-    cap->channel = RBUF_CHANNEL_INVALID;
-
-    return;
-}
-
-static
-int32_t
-rbuf_capture_channels_index_get_free(void)
-{
-    int32_t index;
-
-    RBUF_ASSERT((NULL != rbuf_capture_channels), "0x%08X", rbuf_capture_channels);
-
-    for ( index = 0; index < RBUF_CAP_MAX_CHAN; index++ )
-    {
-        if ( !rbuf_capture_channels[index].active )
-        {
-            return index;
-        }
-    }
-    return RBUF_INDEX_INVALID;
-}
-
-static
-int32_t
-rbuf_capture_channels_index_find(uint32_t path,
-                                 uint32_t channel,
-                                 uint32_t rbuf_id,
-                                 BDSP_P_RbufType type)
-{
-    int32_t index;
-
-    RBUF_ASSERT((NULL != rbuf_capture_channels), "0x%08X", rbuf_capture_channels);
-
-    if ( rbuf_capture_app_player == 1 )
-    {
-        for ( index = 0; index < RBUF_CAP_MAX_CHAN; index++ )
-        {
-            if ( rbuf_capture_channels[index].active )
-            {
-                if ( (rbuf_capture_channels[index].path == path) &&
-                     (rbuf_capture_channels[index].channel == channel) &&
-                     (rbuf_capture_channels[index].rbuf_id == rbuf_id) &&
-                     (rbuf_capture_channels[index].type == type) )
-                {
-                    return index;
-                }
-            }
-        }
-    }
-    else
-    {
-        for ( index = 0; index < RBUF_CAP_MAX_CHAN; index++ )
-        {
-            if ( rbuf_capture_channels[index].active )
-            {
-                if ( (rbuf_capture_channels[index].path == path) &&
-                     (rbuf_capture_channels[index].channel == channel) &&
-                     (rbuf_capture_channels[index].type == type) )
-                {
-                    return index;
-                }
-            }
-        }
-    }
-    return RBUF_INDEX_INVALID;
-}
-
-static
-void
-rbuf_capture_channels_init(void)
-{
-    uint32_t channel;
-
-    rbuf_capture_channels = BKNI_Malloc(RBUF_CAP_MAX_CHAN * sizeof(*rbuf_capture_channels));
-    RBUF_ASSERT((NULL != rbuf_capture_channels), "0x%08X", rbuf_capture_channels);
-
-    for ( channel = 0; channel < RBUF_CAP_MAX_CHAN; channel++ )
-    {
-        rbuf_capture_channel_init(&rbuf_capture_channels[channel]);
-    }
-
-    return;
-}
-
-static
-void
-rbuf_capture_channels_uninit(void)
-{
-    uint32_t channel;
-
-    /*uninitalize and free for all capture channels*/
-    for ( channel = 0; channel < RBUF_CAP_MAX_CHAN; channel++ )
-    {
-        rbuf_capture_channel_uninit(&rbuf_capture_channels[channel]);
-    }
-
-    RBUF_ASSERT((NULL != rbuf_capture_channels), "0x%08X", rbuf_capture_channels);
-    BKNI_Free(rbuf_capture_channels);
-    return;
-}
-
-void
-rbuf_capture_startup(void)
-{
-    int32_t result;
-    /*struct sched_param sc_cfg;*/
-    pthread_attr_t rbuf_thread_attr;
-
-    rbuf_capture_channels_init();
-
-    /*Create read & write threads with default priority */
-    result = pthread_attr_init(&rbuf_thread_attr);
-    RBUF_ASSERT((0 == result), "0x%08X", result);
-    result = pthread_create(&rbuf_capture_from_cap_q_to_disk_thread,
-                            &rbuf_thread_attr,
-                            rbuf_capture_from_cap_q_to_disk_task,
-                            NULL);
-    RBUF_ASSERT((0 == result), "0x%08X", result);
-
-    result = pthread_attr_init(&rbuf_thread_attr);
-    RBUF_ASSERT((0 == result), "0x%08X", result);
-    result = pthread_create(&rbuf_capture_from_rbuf_to_cap_q_thread,
-                            &rbuf_thread_attr,
-                            rbuf_capture_from_rbuf_to_cap_q_task,
-                            NULL);
-    RBUF_ASSERT((0 == result), "0x%08X", result);
-
-    printf("RBUF Capture Initialized");
-    rbuf_capture_initialized = 1;
-    return;
-}
-
-static
-void capture_filename(rbuf_capture_channel_t *cap)
-{
-    char *postfix;
-    uint32_t chan, rbuf_id;
-    static char file_name[512];
-
-    switch ( cap->type )
-    {
-    case BDSP_P_RbufType_eDecode:
-        {
-            static char *dec = "decoder";
-            postfix = dec;
-            chan = cap->channel;
-            rbuf_id = cap->rbuf_id;
-            break;
-        }
-    case BDSP_P_RbufType_ePassthru:
-        {
-            static char *pass = "passthru";
-            postfix = pass;
-            chan = cap->channel;
-            rbuf_id = cap->rbuf_id;
-            break;
-        }
-    case BDSP_P_RbufType_eMixer:
-        {
-            static char *mix = "mixer";
-            postfix = mix;
-            chan = cap->channel;
-            rbuf_id = cap->rbuf_id;
-            break;
-        }
-    case BDSP_P_RbufType_eEncoder:
-        {
-            static char *enc = "encoder";
-            postfix = enc;
-            chan = cap->channel;
-            rbuf_id = cap->rbuf_id;
-            break;
-        }
-    case BDSP_P_RbufType_eTranscode:
-        {
-            static char *tran = "transcode";
-            postfix = tran;
-            chan = cap->channel;
-            rbuf_id = cap->rbuf_id;
-            break;
-        }
-    case BDSP_P_RbufType_eSM:
-        {
-            static char *spkr = "spkr_mgmt";
-            postfix = spkr;
-            chan = cap->channel;
-            rbuf_id = cap->rbuf_id;
-            break;
-        }
-    default:
-        {
-            RBUF_ASSERT((0), "");
-            postfix = NULL;
-            chan = RBUF_CHANNEL_INVALID;
-            rbuf_id = RBUF_ID_INVALID;
-            return;
-        }
-    }
-
-    if ( rbuf_capture_multifile )
-    {
-        sprintf((char *)cap->file_name, "%d_%s_path_%d_%s_%d.cap",
-                capture_count,
-                rbuf_capture_filename,
-                cap->path,
-                postfix,
-                chan);
-    }
-    /*If both multifile and app_player is enabled use multifile*/
-    else if ( rbuf_capture_app_player && !rbuf_capture_multifile )
-    {
-        /*Use rbuf_id for capture filename with app_player*/
-        sprintf((char *)cap->file_name, "%s_path_%d_%s_%d_%d.cap",
-                rbuf_capture_filename,
-                cap->path,
-                postfix,
-                chan,
-                rbuf_id);
-    }
-    else
-    {
-        sprintf((char *)cap->file_name, "%s_path_%d_%s_%d.cap",
-                rbuf_capture_filename,
-                cap->path,
-                postfix,
-                chan);
-    }
-    sprintf((char *)file_name, "%s/%s", rbuf_capture_path, (char *)cap->file_name);
-    cap->file = rbuf_capture_device_open((int8_t *)file_name);
-    if ( cap->file < 0 )
-    {
-        RBUF_PRINT(("Unable to open capture file %s",(char *)cap->file_name));
-    }
-    return;
-}
-
-static
-void
-rbuf_capture_ringbuf_start(rbuf_capture_channel_t *cap)
-{
-    uint32_t baseaddr;
-    uint32_t endaddr;
-    uint32_t entries;
-    void *virt_uncached;
-    void *virt_cached;
-    int32_t result;
-
-    RBUF_DEBUG(("%s - Starting Ring Buffer ID %d FMM Base Address 0x%08X",
-                rbuf_capture_channel_get_info_string(cap->path,
-                                                     cap->channel,
-                                                     cap->type,
-                                                     cap->rbuf_id),
-                cap->rbuf_id,
-                cap->rbuf_reg_base));
-
-    /*Set all pointers to ZERO on start*/
-    cap->rbuf_num_entries = 0;
-    cap->rbuf_base_phys = 0;
-    cap->rbuf_prev_rdaddr = 0;
-    cap->rbuf_prev_wraddr = 0;
-    cap->rbuf_prev_endaddr = 0;
-    cap->rbuf_started = 0;
-    cap->rbuf_base_virt_uncached = NULL;
-    cap->rbuf_initialized = 0;
-
-    /* CACHED READS FROM RING BUFFER:*/
-    /**/
-    /*   Problem:*/
-    /*   The MIPS receives access to DRAM essetially based on access count,*/
-    /*   not bandwidth, in conjuntion with priority and round robin.  Therefore,*/
-    /*   reading single 32bit quantities will result in one read per arbitration*/
-    /*   schedule.  In a memory bound system, this will result in starvation*/
-    /*   to the MIPS (it has many small accesses to perform and is high frequency).*/
-    /*   Also, do to the nature of memory accesses, it is more efficient to */
-    /*   burst blocks of contiguous data, rather incurring the setup/termination*/
-    /*   overhead of individual accesses.*/
-    /**/
-    /*   Solution:*/
-    /*   Cached accesses to the ring buffer shall be performed.  Using the*/
-    /*   Linux cacheflush() system call, each ring buffer's address will be*/
-    /*   cache flushed upon initialization.  From that point forward, when new*/
-    /*   data is received at a given ring buffer, the address range corresponding*/
-    /*   to that new data will be flushed.  Since no data will be written by*/
-    /*   the MIPS to the ring buffer address, no data will be written to DRAM.*/
-    /*   However, a side effect of cacheflush() is to also invalidate the*/
-    /*   cached region.  This invalidate will cause a burst read from the memory*/
-    /*   controller when the contents are read from ring buffer.*/
-
-    /* AUD_FMM_BF_CTRL_RINGBUF_X_BASEADDR */
-    baseaddr = (uint32_t)BREG_Read32(rbuf_reg_handle, cap->rbuf_reg_base + 0x08);
-
-    /* AUD_FMM_BF_CTRL_RINGBUF_X_ENDADDR */
-    endaddr = (uint32_t)BREG_Read32(rbuf_reg_handle, cap->rbuf_reg_base + 0x0C);
-
-    if ( endaddr < baseaddr )
-    {
-        /*if endaddr is less than baseaddr, alert and disable capture on that channel */
-        rbuf_capture_alert(cap);
-        return;
-    }
-
-    entries = (endaddr - baseaddr) + 1;
-
-    /* Use the physical base address to compute the uncached virtual address*/
-    result = BMEM_ConvertOffsetToAddress(rbuf_heap, baseaddr, &virt_uncached);
-    RBUF_ASSERT((BERR_SUCCESS == result), "0x%08X", result);
-
-    /* Use the uncached address to compute the cached address*/
-    result = BMEM_ConvertAddressToCached(rbuf_heap, virt_uncached, &virt_cached);
-    RBUF_ASSERT((BERR_SUCCESS == result), "0x%08X", result);
-
-    RBUF_DEBUG(("%s - Phys:0x%08X Uncached:0x%08X Cached:0x%08X Entries:0x%08X",
-                rbuf_capture_channel_get_info_string(cap->path,
-                                                     cap->channel,
-                                                     cap->type,
-                                                     cap->rbuf_id),
-                baseaddr,
-                (int32_t)virt_uncached,
-                (int32_t)virt_cached,
-                entries));
-
-    /* Initial flush of this entire ring buffer.  It will be possible*/
-    /* for the actual used number of bytes to be less than the total*/
-    /* allocated size, but this flush will assume the max size to */
-    /* put the cache into a known state (invalid).*/
-    NEXUS_Memory_FlushCache(virt_cached, entries);
-    cap->rbuf_base_virt_cached = (uint8_t *)virt_cached;
-
-    /* Signal this channel's capture is ready*/
-    cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_ACTIVE;
-    cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_ACTIVE;
-
-    RBUF_PRINT(("%s STARTED!",
-                rbuf_capture_channel_get_info_string(cap->path,
-                                                     cap->channel,
-                                                     cap->type,
-                                                     cap->rbuf_id)));
-
-    capture_filename(cap);
-    return;
-}
-
-static
-void
-rbuf_capture_channel_start_common(uint32_t channel,
-                                  uint32_t path,
-                                  BDSP_P_RbufType type,
-                                  uint32_t rbuf_id)
-{
-    rbuf_capture_channel_t *cap;
-    int32_t index;
-
-    RBUF_PRINT(("%s START", rbuf_capture_channel_get_info_string(path, channel, type, rbuf_id)));
-
-    if ( !rbuf_capture_enabled )
-    {
-        /*Capture not enabled, just return*/
-        return;
-    }
-    else if ( !rbuf_capture_initialized )
-    {
-        RBUF_PRINT(("CAPTURE NOT INITIALIZED, START IGNORED"));
-        return;
-    }
-
-    if ( rbuf_capture_app_player )
-    {
-        index = rbuf_capture_channels_index_find(path, channel, rbuf_id, type);
-    }
-    else
-    {
-        index = rbuf_capture_channels_index_find(path, channel, RBUF_INDEX_INVALID, type);
-    }
-    if ( RBUF_INDEX_INVALID == index )
-    {
-        RBUF_PRINT(("%s CAPTURE NOT CONFIGURED, IGNORING START!", rbuf_capture_channel_get_type_string(path, channel, rbuf_id, type)));
-        return;
-    }
-
-    cap = &rbuf_capture_channels[index];
-
-    /* Compute the ring buffer ID*/
-    RBUF_ASSERT((64 > rbuf_id), "%s", rbuf_capture_channel_get_info_string(path, channel, type, rbuf_id));
-    cap->rbuf_id = rbuf_id;
-
-    /* Compute the base address based on the ID*/
-#ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
-    cap->rbuf_reg_base = (BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR +
-                          (cap->rbuf_id * (BCHP_AUD_FMM_BF_CTRL_RINGBUF_1_RDADDR -
-                                           BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR)));
-#else
-    cap->rbuf_reg_base = (BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR +
-                          (cap->rbuf_id * (BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_RDADDR -
-                                           BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR)));
-#endif
-
-    rbuf_capture_ringbuf_start(cap);
-    return;
-}
-
-uint8_t
-rbuf_capture_channel_start_dummy(uint32_t channel,
-                                 uint32_t path,
-                                 uint32_t rbuf_id,
-                                 BDSP_P_RbufType CP_TYPE)
-{
-    BSTD_UNUSED(channel);
-    BSTD_UNUSED(path);
-    BSTD_UNUSED(rbuf_id);
-    BSTD_UNUSED(CP_TYPE);
-
-    return 0;
-}
-
-uint8_t
-rbuf_capture_stop_channel_dummy(uint32_t channel,
-                                uint32_t path,
-                                uint32_t rbuf_id,
-                                BDSP_P_RbufType CP_TYPE)
-{
-    BSTD_UNUSED(channel);
-    BSTD_UNUSED(path);
-    BSTD_UNUSED(rbuf_id);
-    BSTD_UNUSED(CP_TYPE);
-
-    return 0;
-}
-
-uint8_t
-rbuf_capture_channel_start(uint32_t channel,
-                           uint32_t path,
-                           uint32_t rbuf_id,
-                           BDSP_P_RbufType CP_TYPE)
-{
-    if ( rbuf_capture_enabled )
-    {
-        /*Counter for multifile capture*/
-        if ( cap_count_flag == true )
-        {
-            cap_count_flag = false;
-            if ( capture_count < 65536 )
-            {
-                capture_count += 1;
-            }
-            else
-            {
-                capture_count = 0;
-            }
-        }
-
-        if ( CP_TYPE == BDSP_P_RbufType_eDecode )
-        {
-            rbuf_capture_channel_start_common(channel,
-                                              path,
-                                              BDSP_P_RbufType_eDecode,
-                                              rbuf_id);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_ePassthru )
-        {
-            rbuf_capture_channel_start_common(channel,
-                                              path,
-                                              BDSP_P_RbufType_ePassthru,
-                                              rbuf_id);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eMixer )
-        {
-            rbuf_capture_channel_start_common(channel,
-                                              path,
-                                              BDSP_P_RbufType_eMixer,
-                                              rbuf_id);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eEncoder )
-        {
-            rbuf_capture_channel_start_common(channel,
-                                              path,
-                                              BDSP_P_RbufType_eEncoder,
-                                              rbuf_id);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eTranscode )
-        {
-            rbuf_capture_channel_start_common(channel,
-                                              path,
-                                              BDSP_P_RbufType_eTranscode,
-                                              rbuf_id);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eSM )
-        {
-            rbuf_capture_channel_start_common(channel,
-                                              path,
-                                              BDSP_P_RbufType_eSM,
-                                              rbuf_id);
-            return 0;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static
-void
-rbuf_capture_channel_stop(rbuf_capture_channel_t *cap)
-{
-    /*Flag to enable/disable count for multifile capture*/
-    if ( cap_count_flag == false )
-    {
-        cap_count_flag = true;
-    }
-
-    if ( ((RBUF_CAPTURE_CHANNEL_STATE_INACTIVE == cap->rbuf_to_cap_q_state) &&
-          (RBUF_CAPTURE_CHANNEL_STATE_INACTIVE == cap->cap_q_to_disk_state)) ||
-         (RBUF_ID_INVALID == cap->rbuf_id) )
-    {
-        /* Channel was never started, ignore stop*/
-        RBUF_PRINT(("%s CAPTURE NOT CONFIGURED, IGNORING STOP!",
-                    rbuf_capture_channel_get_type_string(cap->path,
-                                                         cap->channel,
-                                                         cap->rbuf_id,
-                                                         cap->type)));
-        cap->rbuf_started = 0;
-        cap->rbuf_initialized = 0;
-        return;
-    }
-    else
-    {
-        struct timespec sleep_time;
-        sleep_time.tv_sec = 0;
-        sleep_time.tv_nsec = 25 * 1000 * 1000;
-
-        /*  cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_PEND_OUTPUT_DONE;*/
-        /*  cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_PEND_OUTPUT_DONE;*/
-
-        do
-        {
-            /* Yield for read & write threads to complete the task*/
-            nanosleep(&sleep_time, NULL);
-            loop_break++;
-            if ( loop_break > RBUF_CAP_MAX_CHAN )
-            {
-                cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_STOPPED;
-                cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_STOPPED;
-            }
-        } while ( (RBUF_CAPTURE_CHANNEL_STATE_STOPPED != cap->rbuf_to_cap_q_state) ||
-                  (RBUF_CAPTURE_CHANNEL_STATE_STOPPED != cap->cap_q_to_disk_state) );
-
-        if ( cap->rbuf_flush_onexit )
-        {
-            if ( cap->q_w_idx >= cap->q_r_idx )
-            {
-                rbuf_capture_device_write(cap->file, &cap->q_ptr[cap->q_r_idx], (cap->q_w_idx - cap->q_r_idx));
-                cap->q_r_idx = cap->q_w_idx;
-            }
-            else
-            {
-                rbuf_capture_device_write(cap->file, &cap->q_ptr[cap->q_r_idx], (RBUF_CAP_MAX_CHAN_ENTRIES - cap->q_r_idx));
-                rbuf_capture_device_write(cap->file, &cap->q_ptr[cap->q_r_idx], (cap->q_w_idx - 0));
-                cap->q_r_idx = cap->q_w_idx;
-            }
-            cap->rbuf_flush_onexit = false;
-        }
-    }
-    RBUF_PRINT(("STOPPED!"));
-
-    /* RBUF is no longer active*/
-    cap->rbuf_started = 0;
-    cap->rbuf_initialized = 0;
-    return;
-}
-
-static
-void
-rbuf_capture_channel_stop_common(uint32_t channel,
-                                 uint32_t path,
-                                 uint32_t rbuf_id,
-                                 BDSP_P_RbufType type)
-{
-    rbuf_capture_channel_t *cap;
-    int32_t index;
-
-
-
-    RBUF_PRINT(("%s STOP",rbuf_capture_channel_get_type_string(path, channel, rbuf_id, type)));
-
-    if ( !rbuf_capture_enabled )
-    {
-        /*capture not enabled, just return*/
-        return;
-    }
-    else if ( !rbuf_capture_initialized )
-    {
-        /*Capture not initialized on this channel, ignore stop*/
-        RBUF_PRINT(("CAPTURE NOT INITIALIZED, STOP IGNORED"));
-        return;
-    }
-
-    index = rbuf_capture_channels_index_find(path, channel, rbuf_id, type);
-    if ( RBUF_INDEX_INVALID == index )
-    {
-        RBUF_PRINT(("%s CAPTURE NOT CONFIGURED, IGNORING STOP!",rbuf_capture_channel_get_type_string(path, channel, rbuf_id, type)));
-        return;
-    }
-    cap = &rbuf_capture_channels[index];
-
-    rbuf_capture_channel_stop(cap);
-
-    return;
-}
-
-uint8_t
-rbuf_capture_stop_channel(uint32_t channel,
-                          uint32_t path,
-                          uint32_t rbuf_id,
-                          BDSP_P_RbufType CP_TYPE)
-{
-    if ( rbuf_capture_enabled )
-    {
-        if ( CP_TYPE == BDSP_P_RbufType_eDecode )
-        {
-            rbuf_capture_channel_stop_common(channel,
-                                             path,
-                                             rbuf_id,
-                                             BDSP_P_RbufType_eDecode);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_ePassthru )
-        {
-            rbuf_capture_channel_stop_common(channel,
-                                             path,
-                                             rbuf_id,
-                                             BDSP_P_RbufType_ePassthru);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eMixer )
-        {
-            rbuf_capture_channel_stop_common(channel,
-                                             path,
-                                             rbuf_id,
-                                             BDSP_P_RbufType_eMixer);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eEncoder )
-        {
-            rbuf_capture_channel_stop_common(channel,
-                                             path,
-                                             rbuf_id,
-                                             BDSP_P_RbufType_eEncoder);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eTranscode )
-        {
-            rbuf_capture_channel_stop_common(channel,
-                                             path,
-                                             rbuf_id,
-                                             BDSP_P_RbufType_eTranscode);
-            return 0;
-        }
-        else if ( CP_TYPE == BDSP_P_RbufType_eSM )
-        {
-            rbuf_capture_channel_stop_common(channel,
-                                             path,
-                                             rbuf_id,
-                                             BDSP_P_RbufType_eSM);
-            return 0;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static
-void
-rbuf_capture_channel_add_cap(rbuf_capture_channel_t *cap)
-{
-    /* If this channel is being actively captured, must stop it first!*/
-    if ( (RBUF_CAPTURE_CHANNEL_STATE_ACTIVE == cap->rbuf_to_cap_q_state) ||
-         (RBUF_CAPTURE_CHANNEL_STATE_ACTIVE == cap->cap_q_to_disk_state) )
-    {
-        struct timespec sleep_time;
-
-        cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_PEND_STOP;
-        cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_PEND_STOP;
-        /* Wait for capture tasks to indicate this channel is stopped*/
-        do
-        {
-            /* nanosleep setup (sleep the minimal amount of time)*/
-            sleep_time.tv_sec = 0;
-            sleep_time.tv_nsec = 1;
-            /* Yield*/
-            nanosleep(&sleep_time, NULL);
-        } while ( (RBUF_CAPTURE_CHANNEL_STATE_STOPPED != cap->rbuf_to_cap_q_state) ||
-                  (RBUF_CAPTURE_CHANNEL_STATE_STOPPED != cap->cap_q_to_disk_state) );
-    }
-
-    cap->rbuf_to_cap_q_state = RBUF_CAPTURE_CHANNEL_STATE_INACTIVE;
-    cap->cap_q_to_disk_state = RBUF_CAPTURE_CHANNEL_STATE_INACTIVE;
-
-    cap->rbuf_count = 0;
-    cap->rbuf_base_virt_uncached = NULL;
-    cap->rbuf_base_phys = 0;
-    cap->rbuf_num_entries = 0;
-    cap->rbuf_prev_wraddr = 0;
-    cap->rbuf_prev_rdaddr = 0;
-    cap->rbuf_prev_endaddr = 0;
-    cap->rbuf_started = 0;
-
-    if ( NULL == cap->q_ptr )
-    {
-        cap->q_count = 0;
-        cap->q_r_idx = 0;
-        cap->q_w_idx = 0;
-        cap->q_num_entries = RBUF_CAP_MAX_CHAN_ENTRIES;
-
-        /*Create a page aligned buffer for capture*/
-        posix_memalign((void **)&cap->q_ptr, RBUF_PAGE_SIZE, cap->q_num_entries);
-        RBUF_ASSERT((NULL != cap->q_ptr), "0x%08X", (sizeof(*cap->q_ptr) * cap->q_num_entries));
-
-        /*switch (cap->type)
-        {
-            case BDSP_P_RbufType_eDecode: {
-            static char *dec= "decoder";
-            break;
-            }
-            case BDSP_P_RbufType_ePassthru: {
-            static char *pass= "passthru";
-            break;
-            }
-            case BDSP_P_RbufType_eMixer: {
-            static char *mix="mixer";
-            break;
-            }
-            case BDSP_P_RbufType_eEncoder: {
-            static char *enc="encoder";
-            break;
-            }
-            case BDSP_P_RbufType_eTranscode: {
-            static char *tran="transcode";
-            break;
-            }
-            case BDSP_P_RbufType_eSM: {
-            static char *spkr="spkr_mgmt";
-            break;
-            }
-            default: {
-            RBUF_ASSERT((0), "");
-            break;
-            }
-        }*/
-    }
-
-    RBUF_PRINT(("ADDED!"));
-    return;
-}
-
-static
-void
-rbuf_capture_channel_add(uint32_t path,
-                         uint32_t channel,
-                         uint32_t rbuf_id,
-                         BDSP_P_RbufType type,
-                         Rbuf_Callback_Info *cb_info)
-{
-    rbuf_capture_channel_t *cap;
-    int32_t index;
-
-    RBUF_PRINT(("%s ADD", rbuf_capture_channel_get_type_string(path, channel, rbuf_id, type)));
-
-    if ( !rbuf_capture_enabled )
-    {
-        RBUF_PRINT(("CAPTURE DISABLED, ADD IGNORED"));
-        return;
-    }
-    else if ( !rbuf_capture_initialized )
-    {
-        RBUF_PRINT(("CAPTURE NOT INITIALIZED, ADD IGNORED"));
-        return;
-    }
-
-    /* Get a free channel data structure index*/
-    index = rbuf_capture_channels_index_get_free();
-
-    RBUF_ASSERT((RBUF_INDEX_INVALID != index),
-                "%s",
-                rbuf_capture_channel_get_type_string(path, channel, rbuf_id, type));
-
-    cap = &rbuf_capture_channels[index];
-
-    cap->index = index;
-    cap->path = path;
-    cap->channel = channel;
-    cap->rbuf_id = rbuf_id;
-    cap->type = type;
-    cap->active = 1;
-    cap->cb = NULL;
-    cap->cb_context = NULL;
-
-    /*Install the function pointer to send capture data*/
-    if ( cb_info != NULL )
-    {
-        RBUF_PRINT(("Installing callback capture function"));
-        cap->cb = cb_info->cb;
-        cap->cb_context = cb_info->cb_context;
-    }
-    rbuf_capture_channel_add_cap(cap);
-
-    return;
-}
-
-static
-int32_t
-rbuf_capture_command_execute(RBUF_CAPTURE_COMMAND_t *cmd)
-{
-    RBUF_ASSERT((NULL != cmd), "0x%08X", cmd);
-
-    /*If rbuf_id is not required set it to default: RBUF_ID_INVALID*/
-    if ( !rbuf_capture_app_player )
-    {
-        cmd->args[2] = RBUF_ID_INVALID;
-    }
-
-    switch ( cmd->command )
-    {
-    case RBUF_CAPTURE_COMMAND_INIT:
-        {
-            /*Start the read & write threads for capture*/
-            rbuf_capture_startup();
-            break;
-        }
-    case RBUF_CAPTURE_COMMAND_DECODER:
-        {
-            rbuf_capture_channel_add(cmd->args[0], cmd->args[1], cmd->args[2], BDSP_P_RbufType_eDecode, NULL);
-            cap_channel_count += 1;
-            break;
-        }
-    case RBUF_CAPTURE_COMMAND_PASSTHRU:
-        {
-            rbuf_capture_channel_add(cmd->args[0], cmd->args[1], cmd->args[2], BDSP_P_RbufType_ePassthru, NULL);
-            cap_channel_count += 1;
-            break;
-        }
-    case RBUF_CAPTURE_COMMAND_MIXER:
-        {
-            rbuf_capture_channel_add(cmd->args[0], cmd->args[1], cmd->args[2], BDSP_P_RbufType_eMixer, NULL);
-            cap_channel_count += 1;
-            break;
-        }
-    case RBUF_CAPTURE_COMMAND_ENCODER:
-        {
-            rbuf_capture_channel_add(cmd->args[0], cmd->args[1], cmd->args[2], BDSP_P_RbufType_eEncoder, NULL);
-            cap_channel_count += 1;
-            break;
-        }
-    case RBUF_CAPTURE_COMMAND_TRANSCODE:
-        {
-            rbuf_capture_channel_add(cmd->args[0], cmd->args[1], cmd->args[2], BDSP_P_RbufType_eTranscode, NULL);
-            cap_channel_count += 1;
-            break;
-        }
-    case RBUF_CAPTURE_COMMAND_SPKR_MGMT:
-        {
-            rbuf_capture_channel_add(cmd->args[0], cmd->args[1], cmd->args[2], BDSP_P_RbufType_eSM, NULL);
-            cap_channel_count += 1;
-            break;
-        }
-    case RBUF_CAPTURE_COMMAND_ECHO:
-        {
-            RBUF_PRINT(("SOCKET ECHO RECEIVED"));
-            break;
-        }
-    default:
-        {
-            RBUF_ASSERT(0, "0x%08X", 0);
-        }
-    }
-    return 0;
-}
-
-static
-int8_t*
-rbuf_capture_skip_whitespace(int8_t **str)
-{
-    int8_t *p1;
-    int8_t *p2;
-
-    /* Find the first non whitespace character*/
-    p1 = *str;
-    while ( 1 )
-    {
-        if ( 0 == *p1 )
-        {
-            return NULL;
-        }
-        if ( isspace(*p1) )
-        {
-            p1++;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    /* Now find the first trailing whitespace character*/
-    p2 = p1;
-    while ( (0 != *p2) && (!isspace(*p2)) )
-    {
-        p2++;
-    }
-
-    /* Save the first non-whitespace character address*/
-    *str = p1;
-
-    /* Return the first trailing whitespace character address*/
-    return p2;
-}
-
-static
-int32_t
-rbuf_capture_command_parse(int8_t *str,
-                           RBUF_CAPTURE_COMMAND_t *command)
-{
-    int8_t *cmd;
-    int32_t cmd_bytes;
-    int8_t *ptr;
-
-    RBUF_ASSERT((NULL != command), "0x%08X", command);
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_INIT];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_INIT]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_INIT;
-        command->args[0] = 0;
-        return 0;
-    }
-
-    /*Get capture path from command configuration file*/
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_CAPTURE_PATH];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_CAPTURE_PATH]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        int8_t *ptr;
-
-        str += cmd_bytes;
-        ptr = rbuf_capture_skip_whitespace(&str);
-        if ( NULL != ptr )
-        {
-            uint32_t num_bytes;
-
-            RBUF_ASSERT((ptr >= str), "0x%08X 0x%08X", ptr, str);
-            num_bytes = (ptr - str);
-            RBUF_ASSERT((num_bytes < sizeof(rbuf_capture_path)), "0x%08X 0x%08X", num_bytes, sizeof(rbuf_capture_path));
-            strncpy((char *)rbuf_capture_path, (char *)str, num_bytes);
-            rbuf_capture_path[num_bytes] = 0;
-            RBUF_PRINT(("Capture Path '%s'", rbuf_capture_path));
-            return 1;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_CAPTURE_FILENAME];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_CAPTURE_FILENAME]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        int8_t *ptr;
-
-        str += cmd_bytes;
-        ptr = rbuf_capture_skip_whitespace(&str);
-        if ( NULL != ptr )
-        {
-            uint32_t num_bytes;
-
-            RBUF_ASSERT((ptr >= str), "0x%08X 0x%08X", ptr, str);
-            num_bytes = (ptr - str);
-            RBUF_ASSERT((num_bytes < sizeof(rbuf_capture_filename)), "0x%08X 0x%08X", num_bytes, sizeof(rbuf_capture_filename));
-            strncpy((char *)rbuf_capture_filename, (char *)str, num_bytes);
-            rbuf_capture_filename[num_bytes] = 0;
-            RBUF_PRINT(("Capture Filename '%s'", rbuf_capture_filename));
-            return 1;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_COPY_PATH];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_COPY_PATH]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        int8_t *ptr;
-
-        str += cmd_bytes;
-        ptr = rbuf_capture_skip_whitespace(&str);
-        if ( NULL != ptr )
-        {
-            uint32_t num_bytes;
-
-            RBUF_ASSERT((ptr >= str), "0x%08X 0x%08X", ptr, str);
-            num_bytes = (ptr - str);
-            RBUF_ASSERT((num_bytes < sizeof(rbuf_copy_path)), "0x%08X 0x%08X", num_bytes, sizeof(rbuf_copy_path));
-            strncpy((char *)rbuf_copy_path, (char *)str, num_bytes);
-            rbuf_copy_path[num_bytes] = 0;
-            RBUF_PRINT(("Copy Path '%s'", rbuf_copy_path));
-            return 1;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_ECHO];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_ECHO]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_ECHO;
-        return 0;
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_DECODER];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_DECODER]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_DECODER;
-        goto found;
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_PASSTHRU];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_PASSTHRU]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_PASSTHRU;
-        goto found;
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_MIXER];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_MIXER]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_MIXER;
-        goto found;
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_ENCODER];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_ENCODER]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_ENCODER;
-        goto found;
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_TRANSCODE];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_TRANSCODE]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_TRANSCODE;
-        goto found;
-    }
-
-    cmd = RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_SPKR_MGMT];
-    cmd_bytes = strlen((char *)RBUF_CAPTURE_COMMAND_strings[RBUF_CAPTURE_COMMAND_SPKR_MGMT]);
-    if ( 0 == strncmp((char *)cmd, (char *)str, cmd_bytes) )
-    {
-        command->command = RBUF_CAPTURE_COMMAND_SPKR_MGMT;
-        goto found;
-    }
-
-    /*// Unknown Command*/
-    return -1;
-
-found:
-    str += cmd_bytes;
-    ptr = rbuf_capture_skip_whitespace(&str);
-    if ( NULL == ptr )
-    {
-        /* Malformed command*/
-        return -1;
-    }
-    command->args[0] = (uint32_t)strtol((char *)str, NULL, 0);
-    str = ptr;
-    ptr = rbuf_capture_skip_whitespace(&str);
-    if ( NULL == ptr )
-    {
-        /* Malformed command*/
-        return -1;
-    }
-    command->args[1] = (uint32_t)strtol((char *)str, NULL, 0);
-    if ( rbuf_capture_app_player == 1 )
-    {
-        str = ptr;
-        ptr = rbuf_capture_skip_whitespace(&str);
-        if ( NULL == ptr )
-        {
-            /* Malformed command*/
-            return -1;
-        }
-        command->args[2] = (uint32_t)strtol((char *)str, NULL, 0);
-    }
-    else
-    {
-        command->args[2] = RBUF_ID_INVALID;
-    }
-
-    /* Successful command / arguments*/
-    return 0;
-}
-
-static
-int32_t
-rbuf_capture_parse_buffer(RBUF_CAPTURE_COMMAND_t *cmd,
-                          uint32_t num_bytes)
-{
-    int32_t result = 0;
-    uint32_t cur = 0;
-
-    RBUF_ASSERT((NULL != cmd), "0x%08X", cmd);
-
-    /* Parse each byte of the input buffer*/
-    for ( cur = 0; cur < num_bytes; cur++ )
-    {
-        /* Command start delimiter is '#'*/
-        if ( '#' == cmd->buffer[cur] )
-        {
-            /* Clear the arguments*/
-            memset(cmd->args, 0, sizeof(cmd->args));
-            /* Invalidate command type*/
-            cmd->command = RBUF_CAPTURE_COMMAND_NUM_COMMANDS;
-            result = rbuf_capture_command_parse(&cmd->buffer[cur], cmd);
-            if ( result == 0 )
-            {
-                rbuf_capture_command_execute(cmd);
-            }
-            else
-            {
-                if ( -1 == result ) RBUF_PRINT(("Received Unknown Command"));
-            }
-        }
-    }
-    return 0;
-}
-
-/*
-* Supplies a mechanism for the target to load a text file containing
-* capture commands.  This file is specified via the environment variable
-* 'rbuf_capture_socket_target_commands_filename' where its value contains
-* the full target specific path and filename.  The commands file is
-* evaluated once at startup ONLY.
-*/
-int32_t
-rbuf_capture_target_commands_process(void)
-{
-    char *filename;
-    FILE *file;
-    /*int32_t  result;
-    int8_t   buf[512];*/
-    RBUF_CAPTURE_COMMAND_t cap_cmd;
-    uint32_t eof;
-    uint32_t bytes_read;
-    static char *env = "rbuf_capture_socket_target_commands_filename";
-
-    /* Get the environment variable*/
-    filename = getenv(env);
-    if ( NULL == filename )
-    {
-        /* Variable is not defined*/
-        RBUF_PRINT(("*   %s=NULL", env));
-        return 0;
-    }
-
-    RBUF_PRINT(("*   %s='%s'", env, filename));
-
-    /* Open the specified file*/
-    file = fopen(filename, "rt");
-    if ( NULL == file )
-    {
-        /* File could not be opened*/
-        RBUF_PRINT(("* !!!! ERROR: TARGET commands file '%s'"
-                    " could NOT be opened, IGNORED!",
-                    filename));
-        return 0;
-    }
-
-    /* Read the input command file and process it*/
-    eof = 0;
-    while ( !eof )
-    {
-        bytes_read = fread(&cap_cmd.buffer[0], 1, sizeof(cap_cmd.buffer), file);
-        if ( sizeof(cap_cmd.buffer) != bytes_read )
-        {
-            eof = 1;
-        }
-        rbuf_capture_parse_buffer(&cap_cmd, bytes_read);
-    }
-    return 0;
-}
-
-uint8_t
-rbuf_capture_init(void *reg_handle,
-                  void *heap)
-{
-    const char *config_string;
-
-    printf("rbuf_init clled\n");
-    /* Get environment variable settings*/
-    config_string = getenv("rbuf_capture_enabled");
-    rbuf_capture_enabled = (NULL != config_string) ?
-        (uint32_t)strtol(config_string, NULL, 0) : 1;
-
-    if ( !rbuf_capture_enabled )
-    {
-        /* Capture is not enabled, nothing else to do!*/
-        rbuf_capture_debug_enabled = 0;
-        rbuf_capture_app_player = 0;
-        rbuf_capture_multifile = 0;
-        return 0;
-    }
-    else
-    {
-        config_string = getenv("rbuf_capture_debug_enabled");
-        rbuf_capture_debug_enabled = (NULL != config_string) ?
-            (uint32_t)strtol(config_string, NULL, 0) : 0;
-
-        config_string = getenv("rbuf_capture_multifile");
-        rbuf_capture_multifile = (NULL != config_string) ?
-            (uint32_t)strtol(config_string, NULL, 0) : 0;
-
-        config_string = getenv("rbuf_capture_app_player");
-        rbuf_capture_app_player = (NULL != config_string) ?
-            (uint32_t)strtol(config_string, NULL, 0) : 0;
-
-        /* Initialize the default path for captured files*/
-        strcpy((char *)rbuf_capture_path, RBUF_CAPTURE_PATH_DEFAULT);
-        /* Initialize the default filename for captured files*/
-        strcpy((char *)rbuf_capture_filename, RBUF_CAPTURE_FILENAME_DEFAULT);
-        /* Initialze the copy path to undefined (copy won't be done)*/
-        rbuf_copy_path[0] = 0;
-
-        RBUF_PRINT(("******************************************************************"));
-        RBUF_PRINT(("*             *** RING BUFFER CAPTURE: VERSION 5.0 ***"));
-        RBUF_PRINT(("*"));
-        RBUF_DEBUG(("* Environment Variables:"));
-        if ( rbuf_capture_debug_enabled )
-        {
-            RBUF_PRINT(("*   rbuf_capture_debug_enabled:    %d", rbuf_capture_debug_enabled));
-        }
-        if ( rbuf_capture_multifile )
-        {
-            RBUF_PRINT(("*   rbuf_capture_multifile:        %d", rbuf_capture_multifile));
-        }
-        if ( rbuf_capture_app_player )
-        {
-            RBUF_PRINT(("*   rbuf_capture_app_player:       %d", rbuf_capture_app_player));
-        }
-        RBUF_PRINT(("* Default Capture Path:            \"%s\"", rbuf_capture_path));
-        RBUF_PRINT(("* Default Capture Filename:        \"%s\"", rbuf_capture_filename));
-        RBUF_PRINT(("*"));
-        RBUF_PRINT(("******************************************************************\n\n"));
-
-        rbuf_reg_handle = reg_handle;
-        rbuf_heap = heap;
-        rbuf_capture_initialized = 0;
-
-        rbuf_capture_target_commands_process();
-
-        return 0;
-    }
-}
-
-uint8_t
-rbuf_capture_uninit(void)
-{
-    if ( rbuf_capture_enabled )
-    {
-        int32_t result;
-        RBUF_PRINT(("Unintializing"));
-
-        /* Remove the capture tasks*/
-        if ( rbuf_capture_initialized )
-        {
-            /* Stop read from ring buffer to capture buffer thread*/
-            if ( rbuf_capture_from_rbuf_to_cap_q_active )
-            {
-                RBUF_PRINT(("Stopping Read thread..."));
-                rbuf_capture_from_rbuf_to_cap_q_active = 0;
-                result = pthread_join(rbuf_capture_from_rbuf_to_cap_q_thread, NULL);
-                RBUF_ASSERT((0 == result), "0x%08X", result);
-                RBUF_PRINT(("[Stopped]"));
-            }
-
-            /* Stop write from capture buffer to file thread*/
-            if ( rbuf_capture_from_cap_q_to_disk_active )
-            {
-                RBUF_PRINT(("Stopping write thread..."));
-                rbuf_capture_from_cap_q_to_disk_active = 0;
-                result = pthread_join(rbuf_capture_from_cap_q_to_disk_thread, NULL);
-                RBUF_ASSERT((0 == result), "0x%08X", result);
-                RBUF_PRINT(("[Stopped]"));
-            }
-
-            /* Uninitalize capture channels and free memory*/
-            rbuf_capture_channels_uninit();
-        }
-
-        RBUF_PRINT(("******************************************************************"));
-        RBUF_PRINT(("*             *** RING BUFFER CAPTURE DONE ***"));
-        RBUF_PRINT(("******************************************************************\n\n"));
-
-        return 0;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-/* Intialize ring buffer capture interrupts if enabled*/
-void brbuf_init_ringbuf_capture(void)
-{
-    if ( local_ringBufCB.rbuf_init == NULL || local_ringBufCB.rbuf_uninit == NULL )
-    {
-        int i, j;
-        int count = 0;
-        char buf[20];
-        char *str_ptr = NULL;
-
-        for ( i = 0; i < 2; i++ )
-        {
-            for ( j = 0; j < 10; j++ )
-            {
-                sprintf(&buf[0], "DECODER%1d%1d", i, j);
-                str_ptr = getenv(&buf[0]);
-                if ( NULL != str_ptr ) count++;
-            }
-        }
-
-        for ( i = 0; i < 2; i++ )
-        {
-            for ( j = 0; j < 2; j++ )
-            {
-                sprintf(&buf[0], "PASSTHRU%1d%1d", i, j);
-                str_ptr = getenv(&buf[0]);
-                if ( NULL != str_ptr ) count++;
-            }
-        }
-
-        local_ringBufCB.rbuf_init = rbuf_capture_init;
-        local_ringBufCB.rbuf_uninit = rbuf_capture_uninit;
-
-        if ( count == 0 )
-        {
-            local_ringBufCB.rbuf_capture_channel_start = rbuf_capture_channel_start;
-            local_ringBufCB.rbuf_capture_stop_channel = rbuf_capture_stop_channel;
-        }
-        else
-        {
-            local_ringBufCB.rbuf_capture_channel_start = rbuf_capture_channel_start_dummy;
-            local_ringBufCB.rbuf_capture_stop_channel = rbuf_capture_stop_channel_dummy;
-        }
-
-        BDSP_P_RbufSetup(local_ringBufCB);
-        printf("RBUF_Setup Called\n");
-    }
-
-    return;
-}
-
-void start_rbuf_channels_from_env(void)
-{
-    /* Decoder Support only */
-    int i, j, rbuf_id;
-    char buf[20];
-    char *str_ptr = NULL;
-    int count = 0;
-
-    for ( i = 0; i < 2; i++ )
-    {
-        for ( j = 0; j < 10; j++ )
-        {
-            sprintf(&buf[0], "DECODER%1d%1d", i, j);
-            str_ptr = getenv(&buf[0]);
-            if ( NULL != str_ptr )
-            {
-                sscanf(str_ptr, "%d", &rbuf_id);
-                count++;
-                /* Start All channels based on environment variables */
-                /*printf ("Starting RBUF CAPTURE for DECODER [%d][%d] - rbuf id = %d\n\n", i, j, rbuf_id);*/
-                rbuf_capture_channel_start(
-                    i,
-                    j,
-                    rbuf_id,
-                    BDSP_P_RbufType_eDecode);
-            }
-        }
-    }
-
-    for ( i = 0; i < 2; i++ )
-    {
-        for ( j = 0; j < 2; j++ )
-        {
-            sprintf(&buf[0], "PASSTHRU%1d%1d", i, j);
-            str_ptr = getenv(&buf[0]);
-            if ( NULL != str_ptr )
-            {
-                sscanf(str_ptr, "%d", &rbuf_id);
-                count++;
-                /*printf ("Starting RBUF CAPTURE for PASSTHRU [%d][%d] - rbuf id = %d\n\n", i, j, rbuf_id);*/
-                /* Start All channels based on environment variables */
-                rbuf_capture_channel_start(
-                    i,
-                    j,
-                    rbuf_id,
-                    BDSP_P_RbufType_ePassthru);
-            }
-        }
-    }
-
-    return;
-}
-
-/* Unintialize ring buffer capture interrupts if enabled*/
-void brbuf_uninit_ringbuf_capture(void)
-{
-    rbuf_capture_uninit();
-    if ( local_ringBufCB.rbuf_init != NULL || local_ringBufCB.rbuf_uninit != NULL )
-    {
-        local_ringBufCB.rbuf_init = NULL;
-        local_ringBufCB.rbuf_uninit = NULL;
-        local_ringBufCB.rbuf_capture_channel_start = NULL;
-        local_ringBufCB.rbuf_capture_stop_channel = NULL;
-        BDSP_P_RbufSetup(local_ringBufCB);
-    }
-    return;
-}
-
-int register_ringbuf_capture_callback(Rbuf_Channel_Info *ch_info, Rbuf_Callback_Info *cb_info)
-{
-    printf("Registering call back\n");
-    if ( rbuf_capture_initialized == 0 )
-    {
-        rbuf_capture_startup();
-    }
-    rbuf_capture_channel_add(ch_info->path, ch_info->channel, ch_info->rbuf_id, ch_info->rb_type, cb_info);
-    return 0;
-}
-
-#else
-
-void brbuf_init_ringbuf_capture(void)
-{
-    return;
-}
-
-#endif /* BDSP_FW_RBUF_CAPTURE */

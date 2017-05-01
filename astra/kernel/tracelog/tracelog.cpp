@@ -87,6 +87,7 @@
 
 bool TraceLog::enabled = false;
 uintptr_t TraceLog::tracelogBase = 0;
+uintptr_t TraceLog::tracelogSize = 0;
 uintptr_t TraceLog::commandReg = 0;
 uintptr_t TraceLog::sentinelBase = 0;
 uintptr_t TraceLog::sentinelSize = 0;
@@ -109,12 +110,13 @@ void TraceLog::init(void) {
     }
 
     tracelogBase = versionReg;
-    commandReg = STB_REG_ADDR(STB_MEMC_TRACELOG_COMMAND);
+    tracelogSize = STB_REG_GROUP_SIZE(STB_MEMC_TRACELOG_VERSION);
+    commandReg = (STB_MEMC_TRACELOG_COMMAND);
 
     uintptr_t sentinelStart = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START);
     uintptr_t sentinelEnd = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_END);
 
-    sentinelBase = sentinelStart;
+    sentinelBase = STB_MEMC_SENTINEL_RANGE_START;
     sentinelSize = (sentinelEnd - sentinelStart) / 4 + 1;
 
     // Alloc trace buffer
@@ -144,7 +146,7 @@ void TraceLog::init(void) {
 
     // Setup filter 0 for Sentinel address range
     STB_REG_WR(STB_MEMC_TRACELOG_FILTER_ADDR_LOWERi_ARRAY_BASE,
-        sentinelBase);
+        STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START));
 
     STB_REG_WR(STB_MEMC_TRACELOG_FILTER_ADDR_UPPERi_ARRAY_BASE,
         sentinelEnd);
@@ -195,7 +197,8 @@ int TraceLog::peerUp(void) {
     hdr.ulLen = sizeof(cmd);
 
     cmd.tracelogBase = tracelogBase;
-    cmd.sentinelBase = sentinelBase;
+    cmd.tracelogSize = tracelogSize;
+    cmd.sentinelBase = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START);
     cmd.sentinelSize = sentinelSize;
 
     cmd.traceBuffPaddr = (uintptr_t)traceBuffPaddr;
@@ -225,7 +228,7 @@ void TraceLog::inval(void) {
 
     // CTR - Cache Type Register
     register uint32_t ctr;
-    register uint32_t mva;
+    register uintptr_t mva;
     ARCH_SPECIFIC_GET_CTR(ctr);
     size_t lineSize = 4 << ((ctr >> 16) & 0xf);
     for (mva = kvaStart; mva < kvaLast; mva += lineSize) {
@@ -251,7 +254,7 @@ void TraceLog::dump(void) {
         if (!valid) break;
 
         uint32_t event       = (data[0]);
-        uint32_t index       = (data[1] - sentinelBase) / 4;
+        uint32_t index       = (data[1] - STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START)) / 4;
         uint32_t timestampLo = (data[2]);
         uint32_t timestampHi = (data[3] >> 16);
 

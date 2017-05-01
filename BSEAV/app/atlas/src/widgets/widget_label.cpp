@@ -366,6 +366,29 @@ bwin_image_t CWidgetLabel::getImage()
     return(labelSettings.image);
 } /* getImageSize */
 
+MRect CWidgetLabel::getImageGeometry(const char * filename)
+{
+    eRet                ret       = eRet_Ok;
+    bwin_image_settings settings;
+    bwin_image_t        image;
+    MRect               rect;
+
+    BDBG_ASSERT(NULL != filename);
+
+    image = bwin_image_load(getWinEngine(), filename);
+    CHECK_PTR_ERROR_GOTO("unable to load bwin image", image, ret, eRet_ExternalError, error);
+
+    bwin_image_get_settings(image, &settings);
+    rect.setWidth(settings.width);
+    rect.setHeight(settings.height);
+
+    bwin_image_close(image);
+    image = NULL;
+
+error:
+    return(rect);
+} /* getImageSettings */
+
 eRet CWidgetLabel::loadImage(
         const char *           filename,
         bwin_image_render_mode renderMode

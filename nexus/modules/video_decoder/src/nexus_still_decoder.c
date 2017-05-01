@@ -82,6 +82,7 @@ static NEXUS_Error nexus_stilldecoder_p_openchannel(NEXUS_HwStillDecoderHandle s
     BXVD_ChannelSettings xvdChannelSettings;
     BAVC_VideoCompressionStd stVideoCompressionList[BAVC_VideoCompressionStd_eMax];
     unsigned i;
+    NEXUS_VideoFormatInfo info;
 
     index = NEXUS_NUM_VIDEO_DECODERS;
 
@@ -120,6 +121,27 @@ static NEXUS_Error nexus_stilldecoder_p_openchannel(NEXUS_HwStillDecoderHandle s
     if (i == xvdChannelSettings.uiVideoCmprCount && xvdChannelSettings.eDecodeResolution == BXVD_DecodeResolution_e4K) {
         xvdChannelSettings.eDecodeResolution = BXVD_DecodeResolution_eHD;
     }
+    NEXUS_VideoFormat_GetInfo(g_NEXUS_videoDecoderCapabilities.stillMemory[0].maxFormat, &info);
+    switch (xvdChannelSettings.eDecodeResolution) {
+    case BXVD_DecodeResolution_eCIF:
+    case BXVD_DecodeResolution_eQCIF:
+        xvdChannelSettings.eDecodeResolution = BXVD_DecodeResolution_eSD;
+        break;
+    case BXVD_DecodeResolution_eHD:
+        if (info.height < 720) {
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+        break;
+    case BXVD_DecodeResolution_e4K:
+        if (info.height < 2160) {
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+        break;
+    default:
+        break;
+    }
+
+    stillDecoder->eDecodeResolution = xvdChannelSettings.eDecodeResolution;
 
     xvdChannelSettings.eChannelMode = BXVD_ChannelMode_eStill;
     if (g_NEXUS_videoDecoderModuleSettings.heapSize[stillDecoder->index].secondaryPicture &&
@@ -178,7 +200,6 @@ static NEXUS_Error nexus_stilldecoder_p_outputbuffer(NEXUS_HwStillDecoderHandle 
     NEXUS_Error rc;
     bool has_output_buffer = pSettings && (pSettings->output.memory || pSettings->output.buffer);
     unsigned bufferSize = pSettings?pSettings->output.size:0;
-    unsigned maxHeight = pSettings?pSettings->output.maxHeight:0;
 
     if (has_output_buffer && !bufferSize) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -226,7 +247,6 @@ static NEXUS_Error nexus_stilldecoder_p_outputbuffer(NEXUS_HwStillDecoderHandle 
         stillDecoder->buffer.memoryOffset = 0;
     }
     stillDecoder->buffer.size = bufferSize;
-    stillDecoder->buffer.maxHeight = maxHeight;
 
     /* stillDecoder->rave is NULL, we are closing */
     if (stillDecoder->rave) {
@@ -507,10 +527,8 @@ NEXUS_Error NEXUS_StillDecoder_P_Start_Avd( NEXUS_StillDecoderHandle stillDecode
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 
-    supportHd =
-        pSettings->output.maxHeight ? pSettings->output.maxHeight > 480 :
-        (g_NEXUS_videoDecoderCapabilities.stillMemory[0].maxFormat >= NEXUS_VideoFormat_e480p);
-
+    /* combine BXVD_DecodeResolution and NEXUS_VideoCodec into BXVD_DecodeModeStill */
+    supportHd = (stillDecoder->hw->eDecodeResolution == BXVD_DecodeResolution_eHD);
     switch (pSettings->codec) {
     case NEXUS_VideoCodec_eMpeg2:
         stillDecoder->endCode = 0xB7;
@@ -522,7 +540,7 @@ NEXUS_Error NEXUS_StillDecoder_P_Start_Avd( NEXUS_StillDecoderHandle stillDecode
         break;
     case NEXUS_VideoCodec_eH265:
         stillDecoder->endCode = 0x4A; /* Even though HEVC NAL is 16 bit (two bytes), nal_unit_type located in the first byte, see '7.3.1.2 NAL unit header syntax' */
-        if (pSettings->output.maxHeight > 1088) {
+        if (stillDecoder->hw->eDecodeResolution == BXVD_DecodeResolution_e4K) {
             stillDecoder->stillMode = BXVD_DecodeModeStill_eHEVC_4K;
         } else {
             stillDecoder->stillMode = supportHd?BXVD_DecodeModeStill_eHEVC_HD:BXVD_DecodeModeStill_eHEVC_SD;

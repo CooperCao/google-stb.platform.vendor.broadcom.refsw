@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_SYNC_H
 #define EGL_SYNC_H
 #include <EGL/egl.h>
@@ -18,7 +12,7 @@ struct egl_sync
    EGLenum type;
    EGLenum condition; /* signalling condition : e.g prior commands */
    bool signaled;
-   KHRN_FENCE_T *fence;
+   khrn_fence *fence;
    volatile int ref_count;
 };
 
@@ -26,7 +20,7 @@ extern bool egl_syncs_lock_init(void);
 extern void egl_syncs_lock_deinit(void);
 
 extern EGL_SYNC_T* egl_sync_create(EGLenum type, EGLenum condition, const
-      KHRN_FENCE_T *fence);
+      khrn_fence *fence);
 extern EGL_SYNC_T* egl_sync_create_from_fd(EGLenum type, EGLenum condition,
       int fd);
 extern EGL_SYNC_T* egl_sync_create_from_cl_event(EGLenum type, EGLenum condition,

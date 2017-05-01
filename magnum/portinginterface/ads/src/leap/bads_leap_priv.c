@@ -193,7 +193,7 @@ BERR_Code BADS_Leap_Open(
     if( hImplDev == NULL )
     {
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BADS_Open: BKNI_malloc() failed, impl"));
+        BDBG_ERR(("BADS_Open: BKNI_malloc() failed"));
         goto done;
     }
 
@@ -205,6 +205,13 @@ BERR_Code BADS_Leap_Open(
     hImplDev->hHab = (BHAB_Handle) pDefSettings->hGeneric;    /* For this device, we need the HAB handle */
     hImplDev->devId = BHAB_DevId_eADS0; /* Here the device id is always defaulted to channel 0. */
 
+    hImplDev->habBuffer = (uint8_t *)BKNI_Malloc(BHAB_BUFFER_SIZE);
+    if( hImplDev->habBuffer == NULL )
+    {
+        retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BDBG_ERR(("BADS_Open: BKNI_malloc() failed"));
+        goto done;
+    }
     retCode = BHAB_GetApVersion(hImplDev->hHab, &hImplDev->verInfo.familyId, &hImplDev->verInfo.chipId, &chipVer, &hImplDev->verInfo.apVer, &hImplDev->verInfo.minApVer);
     hImplDev->chipId = hImplDev->verInfo.chipId;
     if((hImplDev->verInfo.chipId == 0x00) && (hImplDev->verInfo.familyId != 0))
@@ -261,6 +268,10 @@ done:
         {
             BKNI_Free( hDev );
         }
+        if( hImplDev->habBuffer != NULL )
+        {
+            BKNI_Free( hImplDev->habBuffer );
+        }
         if( hImplDev != NULL )
         {
             BKNI_Free( hImplDev );
@@ -276,14 +287,20 @@ BERR_Code BADS_Leap_Close(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-
+    BADS_Leap_Handle hImplDev;
     BDBG_ENTER(BADS_Leap_Close);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
-    BKNI_Free( (void *) hDev->pImpl );
+    hImplDev = (BADS_Leap_Handle) hDev->pImpl;
+
+    if( (void *)hImplDev->habBuffer )
+        BKNI_Free( (void *)hImplDev->habBuffer );
+    if( hDev->pImpl )
+        BKNI_Free( (void *) hDev->pImpl );
     hDev->magicId = 0x00;       /* clear it to catch improper use */
-    BKNI_Free( (void *) hDev );
+    if( hDev )
+        BKNI_Free( (void *) hDev );
 
     BDBG_LEAVE(BADS_Leap_Close);
     return retCode;
@@ -500,7 +517,7 @@ BERR_Code BADS_Leap_OpenChannel(
             if( hImplChnDev == NULL )
             {
                 retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-                BDBG_ERR(("BADS_OpenChannel: BKNI_malloc() failed, impl"));
+                BDBG_ERR(("BADS_OpenChannel: BKNI_malloc() failed"));
                 goto done;
             }
             BKNI_Memset( hImplChnDev, 0x00, sizeof( BADS_P_Leap_ChannelHandle ) );
@@ -511,6 +528,8 @@ BERR_Code BADS_Leap_OpenChannel(
 
             if (pChnDefSettings) hImplChnDev->settings = *pChnDefSettings;
             hImplChnDev->hHab = hImplDev->hHab;
+            if(hImplDev->habBuffer)
+                hImplChnDev->habBuffer = hImplDev->habBuffer;
             CHK_RETCODE(retCode, BKNI_CreateMutex(&hImplChnDev->mutex));
             hImplDev->hAdsChn[channelNo] = hChnDev;
             hImplChnDev->bPowerdown = true;
@@ -1486,8 +1505,8 @@ BERR_Code BADS_Leap_SetScanParam(
         buf[5] |= (pChnScanSettings->A64 << 5);
         buf[5] |= (pChnScanSettings->A128 << 6);
         buf[5] |= (pChnScanSettings->A256 << 7);
-        buf[10] = (pChnScanSettings->carrierSearch/256 >> 8);
-        buf[11] = pChnScanSettings->carrierSearch/256;
+        buf[10] = (pChnScanSettings->carrierSearch >> 8);
+        buf[11] = pChnScanSettings->carrierSearch;
         buf[12] = (pChnScanSettings->upperBaudSearch >> 24);
         buf[13] = (pChnScanSettings->upperBaudSearch >> 16);
         buf[14] = (pChnScanSettings->upperBaudSearch >> 8);
@@ -1545,7 +1564,7 @@ BERR_Code BADS_Leap_GetScanParam(
         pChnScanSettings->A64 =  (buf[5] & 0x20) >> 5;
         pChnScanSettings->A128 =  (buf[5] & 0x40) >> 6;
         pChnScanSettings->A256  =  (buf[5] & 0x80) >> 7;
-        pChnScanSettings->carrierSearch  =  ((buf[10] << 8) | buf[11])*256;
+        pChnScanSettings->carrierSearch  =  ((buf[10] << 8) | buf[11]);
         pChnScanSettings->upperBaudSearch  =  ((buf[12] << 24) | (buf[13] << 16) | (buf[14] << 8) | buf[15]);
         pChnScanSettings->lowerBaudSearch  =  ((buf[16] << 24) | (buf[17] << 16) | (buf[18] << 8) | buf[19]);
     }
@@ -1553,7 +1572,7 @@ done:
     BDBG_LEAVE(BADS_Leap_GetScanParam);
     return( retCode );
 }
-
+#if BADS_CHIP==3158
 BERR_Code BADS_Leap_RequestSpectrumAnalyzerData(
     BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumSettings *pSettings /* [in] spectrum settings */
@@ -1609,7 +1628,7 @@ BERR_Code BADS_Leap_GetSpectrumAnalyzerData(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
-    uint8_t buf[1024] = HAB_MSG_HDR(BADS_eGetSpectrumAnalyzerData, 0x8, BADS_SPECA_CORE_TYPE);
+    uint8_t buf[13] = HAB_MSG_HDR(BADS_eGetSpectrumAnalyzerData, 0x8, BADS_SPECA_CORE_TYPE);
     uint16_t i;
 
     BDBG_ENTER(BADS_Leap_GetSpectrumAnalyzerData);
@@ -1627,18 +1646,24 @@ BERR_Code BADS_Leap_GetSpectrumAnalyzerData(
     }
     else
     {
-        buf[3] = BADS_SPECA_CORE_ID;
-        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 13, buf, 1024, false, true, 1024));
+        if(hImplChnDev->habBuffer == NULL) {
+            BDBG_ERR(("HAB Buffer is not allocated, make sure hab buffer is allocated first"));
+            retCode = BERR_TRACE(BERR_NOT_INITIALIZED);
+            goto done;
+        }
 
-        pSpectrumData->datalength = ((((buf[1] & 0x3F) << 4) | (buf[2] >> 4) ) - 8)/4;
-        pSpectrumData->moreData = (buf[4] >> 7) & 0x1;
+        buf[3] = BADS_SPECA_CORE_ID;
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 13, hImplChnDev->habBuffer, (uint16_t)BHAB_BUFFER_SIZE, false, true, 0));
+
+        pSpectrumData->datalength = ((((hImplChnDev->habBuffer[1] & 0x3F) << 4) | (hImplChnDev->habBuffer[2] >> 4) ) - 8)/4;
+        pSpectrumData->moreData = (hImplChnDev->habBuffer[4] >> 7) & 0x1;
 
         if(pSpectrumData->data != NULL)
         {
 
             for(i=0; i < pSpectrumData->datalength; i++)
             {
-                *pSpectrumData->data++ = ((buf[12 + i*4] << 24) | (buf[13 + i*4] << 16)| (buf[14 + i*4] << 8)| buf[15 + i*4]);
+                *pSpectrumData->data++ = ((hImplChnDev->habBuffer[12 + i*4] << 24) | (hImplChnDev->habBuffer[13 + i*4] << 16)| (hImplChnDev->habBuffer[14 + i*4] << 8)| hImplChnDev->habBuffer[15 + i*4]);
             }
         }
     }
@@ -1647,7 +1672,6 @@ done:
     return( retCode );
 }
 
-#if BADS_CHIP==3158
 BERR_Code BADS_Leap_TuneIfDac(
     BADS_ChannelHandle hChn,        /* [in] Device handle */
     BADS_IfDacSettings *pSettings   /* [in] IF DAC Settings */

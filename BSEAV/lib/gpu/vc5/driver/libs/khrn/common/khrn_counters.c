@@ -1,30 +1,22 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_counters.h"
 #include "khrn_process.h"
 #include "libs/platform/bcm_perf_structs.h"
 #include "libs/platform/bcm_perf_api.h"
 
 static uint32_t                        s_v3d_driver_perf_counter_group;
-static KHRN_PERF_COUNTER               s_driver_counters[V3D_MAX_COUNTERS_PER_GROUP];
+static khrn_perf_counter               s_driver_counters[V3D_MAX_COUNTERS_PER_GROUP];
 static bool                            s_driver_counter_enabled[V3D_MAX_COUNTERS_PER_GROUP];
-static KHRN_PERF_COUNTER_GROUP_DESC    s_driver_counter_group_desc;
+static khrn_perf_counter_group_desc    s_driver_counter_group_desc;
 static bool                            s_initialise_group_desc = false;
 
 /* ******************************************************************************** */
 /*                      Helper functions                                            */
 
-static void SetCounterNamesEx(KHRN_PERF_COUNTER_GROUP_DESC    *grp,
-                              KHRN_PERF_COUNTER_NAME_T        index,
+static void SetCounterNamesEx(khrn_perf_counter_group_desc    *grp,
+                              khrn_perf_counter_name        index,
                               const char                      *name,
                               const char                      *unit,
                               uint64_t                        minVal,
@@ -46,8 +38,8 @@ static void SetCounterNamesEx(KHRN_PERF_COUNTER_GROUP_DESC    *grp,
    grp->counters[index].denominator = denom;
 }
 
-static void SetCounterNames(KHRN_PERF_COUNTER_GROUP_DESC *grpDesc,
-                           KHRN_PERF_COUNTER_NAME_T      index,
+static void SetCounterNames(khrn_perf_counter_group_desc *grpDesc,
+                           khrn_perf_counter_name      index,
                            const char                    *name,
                            const char                    *unit
                            )
@@ -75,7 +67,7 @@ uint32_t khrn_driver_get_num_counter_groups()
    return V3D_DRIVER_PERF_COUNTER_NUM_GROUPS;
 }
 
-uint32_t khrn_driver_get_counters(KHRN_PERF_COUNTER *counters,
+uint32_t khrn_driver_get_counters(khrn_perf_counter *counters,
                                  uint32_t max_counters,
                                  bool resetCounters
                                  )
@@ -113,7 +105,7 @@ uint32_t khrn_driver_get_counters(KHRN_PERF_COUNTER *counters,
 }
 
 bool khrn_driver_enumerate_group_counters(uint32_t group,
-                                          KHRN_PERF_COUNTER_GROUP_DESC *desc
+                                          khrn_perf_counter_group_desc *desc
                                           )
 {
    bool ret = false;
@@ -133,7 +125,7 @@ bool khrn_driver_enumerate_group_counters(uint32_t group,
    return ret;
 }
 
-bool khrn_driver_select_group_counters(const KHRN_GROUP_PERF_COUNTER_SELECTOR *selector)
+bool khrn_driver_select_group_counters(const khrn_group_perf_counter_selector *selector)
 {
    bool ret = false;
 

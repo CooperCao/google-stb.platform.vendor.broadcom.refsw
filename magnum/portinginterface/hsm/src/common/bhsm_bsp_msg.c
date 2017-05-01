@@ -91,7 +91,9 @@ BDBG_MODULE(BHSMa);
 
 
 static void mailboxInterruptHandler_isr( void* pHsm, int unused );
+#if BDBG_DEBUG_BUILD
 static char* cropStr( char* pStr );
+#endif
 
 BDBG_OBJECT_ID(BHSM_P_BspMsg);
 
@@ -954,8 +956,9 @@ static void mailboxInterruptHandler_isr( void* pHsm, int unused )
     return;
 }
 
+#if BDBG_DEBUG_BUILD
 /* return pointer to last underscore in a string. */
-char* cropStr( char* pStr )
+static char* cropStr( char* pStr )
 {
     char* pUnderScore = pStr;
     unsigned withinBoundry = 120; /*stop run away*/
@@ -975,6 +978,7 @@ char* cropStr( char* pStr )
 
     return pUnderScore;
 }
+#endif
 
 /* dump the send buffer */
 void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg )

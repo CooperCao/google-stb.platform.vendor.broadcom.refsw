@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:26:13 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:43:24 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,21 +70,21 @@
 /***************************************************************************
  *HDMI_RM - HDMI Tx Rate Manager Registers
  ***************************************************************************/
-#define BCHP_HDMI_RM_CONTROL                     0x206f8e80 /* [RW] Rate Manager Controls */
-#define BCHP_HDMI_RM_RATE_RATIO                  0x206f8e84 /* [RW] Rate Manager Output Rate Setting I */
-#define BCHP_HDMI_RM_SAMPLE_INC                  0x206f8e88 /* [RW] Rate Manager Output Rate Setting II */
-#define BCHP_HDMI_RM_PHASE_INC                   0x206f8e8c /* [RW] Rate Manager NCO Phase Increment */
-#define BCHP_HDMI_RM_INTEGRATOR_HI               0x206f8e90 /* [WO] Loop Filter Integrator HI Value */
-#define BCHP_HDMI_RM_INTEGRATOR_LO               0x206f8e94 /* [WO] Loop Filter Integrator LO Value */
-#define BCHP_HDMI_RM_OFFSET                      0x206f8e98 /* [RW] Rate Manager Output Formatting */
-#define BCHP_HDMI_RM_FORMAT                      0x206f8e9c /* [RW] Rate Manager Output Formatting */
-#define BCHP_HDMI_RM_SKIP_REPEAT_CONTROL         0x206f8ea0 /* [RW] Time Base Skip or Repeat Control Register */
-#define BCHP_HDMI_RM_SKIP_REPEAT_GAP             0x206f8ea4 /* [RW] Time Base Skip or Repeat Gap Count Register */
-#define BCHP_HDMI_RM_SKIP_REPEAT_NUMBER          0x206f8ea8 /* [RW] Time Base Skip or Repeat Count Register */
-#define BCHP_HDMI_RM_INTEGRATOR_HI_STATUS        0x206f8eac /* [RO] Loop Filter Integrator HI Status */
-#define BCHP_HDMI_RM_INTEGRATOR_LO_STATUS        0x206f8eb0 /* [RO] Loop Filter Integrator LO Status */
-#define BCHP_HDMI_RM_STATUS                      0x206f8eb4 /* [RO] Rate Manager Status Register */
-#define BCHP_HDMI_RM_STATUS_CLEAR                0x206f8eb8 /* [RW] Rate Manager Status Clear Register */
+#define BCHP_HDMI_RM_CONTROL                     0x206f8e80 /* [RW][32] Rate Manager Controls */
+#define BCHP_HDMI_RM_RATE_RATIO                  0x206f8e84 /* [RW][32] Rate Manager Output Rate Setting I */
+#define BCHP_HDMI_RM_SAMPLE_INC                  0x206f8e88 /* [RW][32] Rate Manager Output Rate Setting II */
+#define BCHP_HDMI_RM_PHASE_INC                   0x206f8e8c /* [RW][32] Rate Manager NCO Phase Increment */
+#define BCHP_HDMI_RM_INTEGRATOR_HI               0x206f8e90 /* [WO][32] Loop Filter Integrator HI Value */
+#define BCHP_HDMI_RM_INTEGRATOR_LO               0x206f8e94 /* [WO][32] Loop Filter Integrator LO Value */
+#define BCHP_HDMI_RM_OFFSET                      0x206f8e98 /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_HDMI_RM_FORMAT                      0x206f8e9c /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_HDMI_RM_SKIP_REPEAT_CONTROL         0x206f8ea0 /* [RW][32] Time Base Skip or Repeat Control Register */
+#define BCHP_HDMI_RM_SKIP_REPEAT_GAP             0x206f8ea4 /* [RW][32] Time Base Skip or Repeat Gap Count Register */
+#define BCHP_HDMI_RM_SKIP_REPEAT_NUMBER          0x206f8ea8 /* [RW][32] Time Base Skip or Repeat Count Register */
+#define BCHP_HDMI_RM_INTEGRATOR_HI_STATUS        0x206f8eac /* [RO][32] Loop Filter Integrator HI Status */
+#define BCHP_HDMI_RM_INTEGRATOR_LO_STATUS        0x206f8eb0 /* [RO][32] Loop Filter Integrator LO Status */
+#define BCHP_HDMI_RM_STATUS                      0x206f8eb4 /* [RO][32] Rate Manager Status Register */
+#define BCHP_HDMI_RM_STATUS_CLEAR                0x206f8eb8 /* [RW][32] Rate Manager Status Clear Register */
 
 /***************************************************************************
  *CONTROL - Rate Manager Controls

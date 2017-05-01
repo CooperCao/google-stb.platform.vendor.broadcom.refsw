@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -355,6 +355,7 @@ typedef enum BAPE_ConnectorFormat
     BAPE_ConnectorFormat_eCompressed16x,    /* Compressed IEC-61937 audio for HDMI HBR packets up to 768kHz.  Typically used for MAT/MLP (Dolby TrueHD) 
                                                and DTS-HD MA audio formats.  Available in HDMI 1.3 and later. */
     BAPE_ConnectorFormat_eMono,             /* Mono PCM, typically only used for voice conferencing applications. */
+    BAPE_ConnectorFormat_eAlternateStereo,  /* Alternate Stereo PCM output. This is intended for decoders that can generate multiple decoded outputs from a single PID (AC4, etc) */
     BAPE_ConnectorFormat_eMax
 } BAPE_ConnectorFormat;
 
@@ -438,7 +439,8 @@ typedef enum BAPE_DolbyMs12Config {
     BAPE_DolbyMs12Config_eNone,
     BAPE_DolbyMs12Config_eA,
     BAPE_DolbyMs12Config_eB,
-    BAPE_DolbyMs12Config_eC
+    BAPE_DolbyMs12Config_eC,
+    BAPE_DolbyMs12Config_eD
 } BAPE_DolbyMs12Config;
 
 /***************************************************************************
@@ -457,6 +459,7 @@ typedef enum BAPE_PostProcessorType
     BAPE_PostProcessorType_eCustom,
     BAPE_PostProcessorType_eFade,
     BAPE_PostProcessorType_eKaraokeVocal,
+    BAPE_PostProcessorType_eAdvancedTsm,
     BAPE_PostProcessorType_eMax
 } BAPE_PostProcessorType;
 

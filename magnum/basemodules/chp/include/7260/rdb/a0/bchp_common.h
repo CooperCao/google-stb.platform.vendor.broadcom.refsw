@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 13:34:39 2016
- *                 Full Compile MD5 Checksum  02a2e6535d9af6e880ca1fca1d68c27e
+ * Date:           Generated on               Tue Apr 18 11:38:25 2017
+ *                 Full Compile MD5 Checksum  c15538464e5ff0aea31086dcd1a5d6b2
  *                     (minus title and desc)
- *                 MD5 Checksum               463ec2fc88e93530417314b96f2b8292
+ *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1395
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -74,6 +71,11 @@
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
 #define BCHP_REGISTER_END                                  0x2130c000 /* V3D_QPUDBG_0 is last */
 #define BCHP_REGISTER_SIZE                                 0x004c3000 /* Number of registers */
+#define BCHP_REGISTER_HAS_READONLY                                  1 /* Has RO register list */
+#define BCHP_REGISTER_HAS_16_BIT                                    0 /* Has 16-bit wide register */
+#define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
+#define BCHP_REGISTER_HAS_64_BIT                                    0 /* Has 64-bit wide register */
+#define BCHP_UINT64_C(hi, lo)             (((uint64_t)hi)<<32 | (lo)) /* C89 64-bit literal */
 
 /****************************************************************************
  * Core instance register start address.
@@ -1414,14 +1416,6 @@
 #define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_REG_END               0x20cb0284
 #define BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START               0x20cb0300
 #define BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_END                 0x20cb03b4
-#define BCHP_HIFIDAC_CTRL_0_REG_START                      0x20cb0800
-#define BCHP_HIFIDAC_CTRL_0_REG_END                        0x20cb09fc
-#define BCHP_HIFIDAC_RM_0_REG_START                        0x20cb0a00
-#define BCHP_HIFIDAC_RM_0_REG_END                          0x20cb0a38
-#define BCHP_HIFIDAC_ESR_0_REG_START                       0x20cb0b00
-#define BCHP_HIFIDAC_ESR_0_REG_END                         0x20cb0b14
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_REG_START          0x20cb0c00
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_REG_END            0x20cb0ca0
 #define BCHP_AUD_FMM_IOP_PLL_0_REG_START                   0x20cb0d00
 #define BCHP_AUD_FMM_IOP_PLL_0_REG_END                     0x20cb0d90
 #define BCHP_AUD_FMM_IOP_PLL_1_REG_START                   0x20cb0e00
@@ -1769,30 +1763,6 @@
 /* GFD_HSCL_ONLY :: DRAM_DATA_STRUCTURE :: DRAM_DATA_STRUCTURE [31:00] */
 #define BCHP_GFD_HSCL_ONLY_DRAM_DATA_STRUCTURE_DRAM_DATA_STRUCTURE_MASK 0xffffffff
 #define BCHP_GFD_HSCL_ONLY_DRAM_DATA_STRUCTURE_DRAM_DATA_STRUCTURE_SHIFT 0
-
-/***************************************************************************
- *HIFIDAC_CTRL
- ***************************************************************************/
-/***************************************************************************
- *ABSTRACT_01_COMING_OUT_OF_RESET - Process to come out of reset
- ***************************************************************************/
-/* HIFIDAC_CTRL :: ABSTRACT_01_COMING_OUT_OF_RESET :: MORE_INFORMATION [31:00] */
-#define BCHP_HIFIDAC_CTRL_ABSTRACT_01_COMING_OUT_OF_RESET_MORE_INFORMATION_MASK 0xffffffff
-#define BCHP_HIFIDAC_CTRL_ABSTRACT_01_COMING_OUT_OF_RESET_MORE_INFORMATION_SHIFT 0
-
-/***************************************************************************
- *ABSTRACT_02_MUTE_USAGE - Mute usage
- ***************************************************************************/
-/* HIFIDAC_CTRL :: ABSTRACT_02_MUTE_USAGE :: MORE_INFORMATION [31:00] */
-#define BCHP_HIFIDAC_CTRL_ABSTRACT_02_MUTE_USAGE_MORE_INFORMATION_MASK 0xffffffff
-#define BCHP_HIFIDAC_CTRL_ABSTRACT_02_MUTE_USAGE_MORE_INFORMATION_SHIFT 0
-
-/***************************************************************************
- *ABSTRACT_03_SAMPLE_RATE_CHANGE - Process to effect a sample rate change
- ***************************************************************************/
-/* HIFIDAC_CTRL :: ABSTRACT_03_SAMPLE_RATE_CHANGE :: MORE_INFORMATION [31:00] */
-#define BCHP_HIFIDAC_CTRL_ABSTRACT_03_SAMPLE_RATE_CHANGE_MORE_INFORMATION_MASK 0xffffffff
-#define BCHP_HIFIDAC_CTRL_ABSTRACT_03_SAMPLE_RATE_CHANGE_MORE_INFORMATION_SHIFT 0
 
 /***************************************************************************
  *M2MC

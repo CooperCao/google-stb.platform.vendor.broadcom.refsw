@@ -131,6 +131,10 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     const NEXUS_CallbackDesc *notifyDisplay
     );
 
+NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
+    NEXUS_HdmiOutputHandle handle
+    );
+
 /* Disconnect video */
 NEXUS_Error NEXUS_HdmiOutput_Disconnect_priv(
     NEXUS_HdmiOutputHandle handle
@@ -204,6 +208,13 @@ BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(
 #endif
 
 void NEXUS_HdmiOutput_GetDefaultOpenSettings_isrsafe( NEXUS_HdmiOutputOpenSettings *pSettings );
+
+void NEXUS_HdmiOutput_PrintRxEdid(void);
+void NEXUS_HdmiOutput_PrintAudioInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintAviInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintVendorSpecificInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintDrmInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintAcrPacket(void) ;
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiOutput);
 

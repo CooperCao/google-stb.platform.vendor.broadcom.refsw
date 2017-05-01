@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-APIs for capturing a buffer to file
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "libs/util/log/log.h"
 #include "libs/tools/txtfmt/txtfmt_gfx_buffer.h"

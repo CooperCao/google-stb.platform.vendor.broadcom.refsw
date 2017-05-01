@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_backend_uniforms.h"
@@ -21,37 +21,6 @@
 #include <assert.h>
 
 static uint32_t dataflow_age = 0; /* Store this as static to avoid having to thread through Backflow constructors */
-
-//
-// Backflow chain functions (TODO: Possibly need a better home)
-//
-void glsl_backflow_chain_init(BackflowChain *chain)
-{
-   glsl_list_BackflowChainNode_init(chain);
-}
-
-void glsl_backflow_chain_append(BackflowChain *chain, Backflow *backflow)
-{
-   assert(backflow);
-   glsl_node_list_Backflow_append(chain, backflow);
-}
-
-bool glsl_backflow_chain_contains(BackflowChain *chain, Backflow *backflow)
-{
-   return glsl_node_list_Backflow_contains(chain, backflow);
-}
-
-void glsl_backflow_chain_remove(BackflowChain *chain, Backflow *backflow)
-{
-   BackflowChainNode *node;
-   LIST_FOR_EACH(node, chain, l) {
-      if (node->ptr == backflow) {
-         glsl_list_BackflowChainNode_remove(chain, node);
-         return;
-      }
-   }
-   unreachable();
-}
 
 /* Priority queue functions. TODO: Possibly need a better home */
 void glsl_backflow_priority_queue_init(BackflowPriorityQueue *queue, int size)
@@ -174,13 +143,23 @@ static void dep(Backflow *consumer, uint32_t i, Backflow *supplier)
       tmu_dep_merge(&consumer->tmu_deps, supplier->tmu_deps);
 }
 
-void glsl_iodep(Backflow *consumer, Backflow *supplier)
+static void glsl_iodep_offset(Backflow *consumer, Backflow *supplier, int io_timestamp_offset)
 {
    if (supplier != NULL) {
       supplier->any_io_dependents = true;
-      glsl_backflow_chain_append(&consumer->io_dependencies, supplier);
+      BackflowIODep dep = {
+         .dep = supplier,
+         .io_timestamp_offset = io_timestamp_offset
+      };
+      glsl_backflow_iodep_chain_push_back(&consumer->io_dependencies, dep);
       tmu_dep_merge(&consumer->tmu_deps, supplier->tmu_deps);
    }
+}
+
+void glsl_iodep(Backflow *consumer, Backflow *supplier)
+{
+   // Default is no adjustment from io_timestamp.
+   glsl_iodep_offset(consumer, supplier, 0);
 }
 
 bool glsl_sched_node_requires_regfile(BackflowFlavour f) {
@@ -242,7 +221,7 @@ static Backflow *create_internal() {
    Backflow *node = malloc_fast(sizeof(Backflow));
    memset(node, 0, sizeof(Backflow));
 
-   glsl_backflow_chain_init(&node->io_dependencies);
+   glsl_backflow_iodep_chain_init(&node->io_dependencies);
 
    node->age = dataflow_age;
    node->unif_type = BACKEND_UNIFORM_UNASSIGNED;
@@ -340,6 +319,7 @@ typedef struct {
    int translations_count;
 
    bool ms;
+   bool disable_ubo_fetch;
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    /* These translations need to be done multiple times during multisampling */
@@ -768,43 +748,48 @@ static void tr_mid_tmu_access_texture(struct tmu_lookup_s *lookup,
    int word_reads, DFTexbits extra, v3d_tmu_op_t op, GLSL_TRANSLATION_T *cond,
    Backflow *s, Backflow *t, Backflow *r, Backflow *idx, Backflow *dref, Backflow *b, Backflow *off)
 {
-   bool fetch = (extra & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH));
+   bool fetch   = (extra & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH));
+   bool cubemap = (extra & DF_TEXBITS_CUBE);
+   bool gather  = (extra & DF_TEXBITS_GATHER);
+   bool bslod   = (extra & DF_TEXBITS_BSLOD) || gather;
+   bool ind_off = (extra & DF_TEXBITS_I_OFF);
+
    bool sampler_fetch = (extra & DF_TEXBITS_SAMPLER_FETCH);
    uint32_t sampler_index = (!fetch || sampler_fetch) ? texture_index : GLSL_SAMPLER_NONE;
 
-   bool is_image = (type == DF_FIMAGE || type == DF_IIMAGE || type == DF_UIMAGE);
-   bool cubemap = (extra & DF_TEXBITS_CUBE);
-
    /* All images must be fetch mode and cubemaps appear as 2D arrays */
+   bool is_image = (type == DF_FIMAGE || type == DF_IIMAGE || type == DF_UIMAGE);
    assert(!is_image || (fetch && !cubemap));
 
-   int n_cfg_words;
-   uint32_t cfg_word[3];
-   cfg_word[0] = (texture_index << 4) | word_reads;
-   cfg_word[1] = (sampler_index << 4) | ((!per_quad) << 2) | (0 << 1) | is_32bit;
-
-   bool gather  = (extra & DF_TEXBITS_GATHER);
-   bool bslod   = (extra & DF_TEXBITS_BSLOD) || gather;
    uint32_t offset = 0;
-   bool ind_off = (extra & DF_TEXBITS_I_OFF);
    if (!ind_off && off && is_const(off)) {
       offset = off->unif & 0xFFF;
       off = NULL;
    }
 
+   int n_cfg_words;
+   uint32_t extra_cfg = 0;
    if (gather || offset || ind_off || (bslod && cubemap) || (op != V3D_TMU_OP_REGULAR)) {
       int gather_comp = (extra & DF_TEXBITS_GATHER_COMP_MASK) >> DF_TEXBITS_GATHER_COMP_SHIFT;
-      cfg_word[2] = (offset << 8) | (gather << 7) | (gather_comp << 5) | (bslod << 1) | (ind_off);
-      cfg_word[2] |= (uint32_t)op << 20;
+      extra_cfg  = (offset << 8) | (gather << 7) | (gather_comp << 5) | (bslod << 1) | (ind_off);
+      extra_cfg |= (uint32_t)op << 20;
       n_cfg_words = 3;
    } else if (!fetch || sampler_fetch || is_32bit || per_quad)
       n_cfg_words = 2;
    else
       n_cfg_words = 1;
 
+   uint32_t cfg_word[3];
+   cfg_word[0] = (texture_index << 4) | word_reads;
+   cfg_word[1] = (sampler_index << 4) | ((!per_quad) << 2) | is_32bit;     /* Unnorm comes from the API */
+   cfg_word[2] = extra_cfg;
+
    Backflow *last_cfg = lookup->first_write;
    for (int i=0; i<n_cfg_words; i++) last_cfg = tr_texture_cfg(i, cfg_word[i], is_image, last_cfg);
-   glsl_iodep(lookup->last_write, last_cfg);
+
+   // Last write can happen in same cycle as WRTMUC.
+   assert(n_cfg_words != 0);
+   glsl_iodep_offset(lookup->last_write, last_cfg, -1);
 
    if (b && is_const_zero(b)) b = NULL;
 
@@ -905,29 +890,29 @@ static void tr_texture_lookup(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
    struct tmu_lookup_s *lookup = new_tmu_lookup(ctx->block);
    int word_reads = get_word_reads(required_components, is_32bit);
 
-   uint32_t cfg0 = infer_ltype(s, t, r, idx, extra);
-   uint32_t cfg1 = word_reads;
+   uint32_t cfg[2] = { infer_ltype(s, t, r, idx, extra), word_reads };
+
    if (extra & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH)) {
-      cfg0 |= GLSL_TEXPARAM0_FETCH;
-      cfg1 |= GLSL_TEXPARAM1_FETCH;
+      cfg[0] |= GLSL_TEXPARAM0_FETCH;
+      cfg[1] |= GLSL_TEXPARAM1_FETCH;
    }
    if (extra & (DF_TEXBITS_GATHER)) {
-      cfg0 |= GLSL_TEXPARAM0_GATHER;
-      cfg1 |= GLSL_TEXPARAM1_GATHER;
-      cfg1 |= ((extra & DF_TEXBITS_GATHER_COMP_MASK) >> DF_TEXBITS_GATHER_COMP_SHIFT) << GLSL_TEXPARAM1_GATHER_COMP_SHIFT;
+      cfg[0] |= GLSL_TEXPARAM0_GATHER;
+      cfg[1] |= GLSL_TEXPARAM1_GATHER;
+      cfg[1] |= ((extra & DF_TEXBITS_GATHER_COMP_MASK) >> DF_TEXBITS_GATHER_COMP_SHIFT) << GLSL_TEXPARAM1_GATHER_COMP_SHIFT;
    }
-   if (extra & (DF_TEXBITS_BSLOD | DF_TEXBITS_GATHER)) cfg0 |= GLSL_TEXPARAM0_BSLOD;
+   if (extra & (DF_TEXBITS_BSLOD | DF_TEXBITS_GATHER)) cfg[0] |= GLSL_TEXPARAM0_BSLOD;
    /* Copy the offsets to the parameter */
    if (off) {
       assert(is_const(off)); /* Non-const only supported with new TMU config */
-      cfg0 |= (off->unif & 0xFFF) << 19;
+      cfg[0] |= (off->unif & 0xFFF) << 19;
    }
 
    if (!per_quad)
-      cfg0 |= GLSL_TEXPARAM0_PIX_MASK;
+      cfg[0] |= GLSL_TEXPARAM0_PIX_MASK;
 
-   if (d != NULL) cfg0 |= GLSL_TEXPARAM0_SHADOW;
-   if (b != NULL && !glsl_dataflow_tex_cfg_implies_bslod(extra)) cfg0 |= GLSL_TEXPARAM0_BIAS;
+   if (d != NULL) cfg[0] |= GLSL_TEXPARAM0_SHADOW;
+   if (b != NULL && !glsl_dataflow_tex_cfg_implies_bslod(extra)) cfg[0] |= GLSL_TEXPARAM0_BIAS;
 
    // GFXH-1363: explicit LoD should be relative to base level but HW does not add base level...
    if (glsl_dataflow_tex_cfg_implies_bslod(extra)) {
@@ -941,54 +926,49 @@ static void tr_texture_lookup(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
    }
 
    assert(s != NULL);
-   if (t == NULL) {
-      if (idx != NULL) { t = idx; idx = NULL; } /* 1D array: Compact array index down */
-      else t = s;                               /* 1D: Write junk. s will do          */
-   }
-
+   assert(r == NULL || t != NULL);       /* Can't have (s, NULL, r) */
    assert(r == NULL || idx == NULL);     /* 3D or cubemap arrays not supported on this version */
-   Backflow *c[3] = { NULL, };
-   int n_extra_coords = 0;
-   if (r   != NULL) c[n_extra_coords++] = r;
-   if (idx != NULL) c[n_extra_coords++] = idx;
-   if (d   != NULL) c[n_extra_coords++] = d;
-   if (b   != NULL) c[n_extra_coords++] = b;
+
+   Backflow *c[5] = { s, NULL, };
+   int n_coords = 1;
+   if (t   != NULL) c[n_coords++] = t;
+   if (r   != NULL) c[n_coords++] = r;
+   if (idx != NULL) c[n_coords++] = idx;
+   if (d   != NULL) c[n_coords++] = d;
+   if (b   != NULL) c[n_coords++] = b;
+
+   if (n_coords == 1) c[n_coords++] = s;     /* For plain 1D textures, write s again */
 
    bool is_image = (type == DF_FIMAGE || type == DF_IIMAGE || type == DF_UIMAGE);
+   assert(!is_image || ((extra & DF_TEXBITS_FETCH) && ((cfg[0] & 7) != GLSL_TEXPARAM0_CUBE)));
 
    /* GFXH-1332: On v3.3 the bug is fixed and for images the LOD is always
     * clamped to the correct value, so 'b' is irrelevant */
    if (V3D_VER_AT_LEAST(3,3,0,0) || is_image || b == NULL) {
-      while (n_extra_coords > 0 && is_const_zero(c[n_extra_coords-1])) {
-         c[n_extra_coords-1] = NULL;
-         n_extra_coords--;
+      while (n_coords > 2 && is_const_zero(c[n_coords-1])) {
+         c[n_coords-1] = NULL;
+         n_coords--;
       }
    }
 
-   if (is_image) {
-      assert(extra & DF_TEXBITS_FETCH);
-      int ltype = (cfg0 & 7);
-      assert(ltype != GLSL_TEXPARAM0_CUBE); /* Cubemap images should appear as 2D arrays here */
+   BackendUniformFlavour uf[2][2] = { { BACKEND_UNIFORM_TEX_PARAM0,   BACKEND_UNIFORM_TEX_PARAM1   },
+                                      { BACKEND_UNIFORM_IMAGE_PARAM0, BACKEND_UNIFORM_IMAGE_PARAM1 } };
+
+   Backflow *node = NULL;
+   for (int i=0; i<n_coords; i++) {
+      node = tr_mov_to_reg_io( (i == n_coords-1) ? REG_MAGIC_TMUL : REG_MAGIC_TMU, c[i], node);
+      if (i == 0 || i == 1) {
+         if (i == 0) lookup->first_write = node;
+
+         node->unif_type = uf[is_image][i];
+         node->unif = BACKEND_UNIFORM_MAKE_PARAM(sampler_index, sampler_index, cfg[i]);
+      }
    }
 
-   Backflow *node = tr_mov_to_reg(REG_MAGIC_TMU, s);
-   node->unif_type = is_image ? BACKEND_UNIFORM_IMAGE_PARAM0 : BACKEND_UNIFORM_TEX_PARAM0;
-   node->unif = BACKEND_UNIFORM_MAKE_PARAM(sampler_index, sampler_index, cfg0);
-   lookup->first_write = node;
-
-   node = tr_mov_to_reg_io( (n_extra_coords == 0) ? REG_MAGIC_TMUL : REG_MAGIC_TMU, t, node);
-   node->unif_type = is_image ? BACKEND_UNIFORM_IMAGE_PARAM1 : BACKEND_UNIFORM_TEX_PARAM1;
-   node->unif = BACKEND_UNIFORM_MAKE_PARAM(sampler_index, sampler_index, cfg1);
-
-   lookup->write_count = 2 + n_extra_coords;
-
-   for (int i=0; i<n_extra_coords; i++) {
-      node = tr_mov_to_reg_io( (i == n_extra_coords-1) ? REG_MAGIC_TMUL : REG_MAGIC_TMU, c[i], node);
-   }
-
-   assert(lookup->write_count <= 5);
+   assert(n_coords <= 5);
    assert(node != NULL);
    lookup->last_write = node;
+   lookup->write_count = n_coords;
 
    Backflow *words[4] = { NULL, };
    tr_end_tmu_access(words, lookup, word_reads, age);
@@ -1181,8 +1161,7 @@ static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
 
 #define TMU_CFG_PIX_MASK (1<<7)
 
-static void tr_indexed_read_vector_gadget(SchedBlock *block,
-                                          GLSL_TRANSLATION_T *result,
+static void tr_indexed_read_vector_gadget(SchedBlock *block, GLSL_TRANSLATION_T *result,
                                           int age, Backflow *addr, uint32_t components, bool per_quad)
 {
    int num_reads = 0;
@@ -1240,18 +1219,19 @@ static Backflow *init_frag_vary( SchedShaderInputs *in,
    }
 
    if (primitive_type == GLSL_PRIM_LINE)
-      dep = in->line = varying_io(VARYING_LINE_COORD, VARYING_ID_HW_0, NULL, dep);
+      dep = in->line = varying_io(VARYING_NOPERSP, VARYING_ID_HW_0, NULL, dep);
    else
       in->line = tr_cfloat(0.0f);
 
    memset(in->inputs, 0, sizeof(Backflow *)*(V3D_MAX_VARYING_COMPONENTS));
    for (int i = 0; i < V3D_MAX_VARYING_COMPONENTS; i++)
    {
-      VaryingType t = (varying[i].flat ? VARYING_FLAT : VARYING_DEFAULT);
+      VaryingType t;
       Backflow *w;
-      if      (varying[i].flat)     w = NULL;
-      else if (varying[i].centroid) w = in->w_c;
-      else                          w = in->w;
+      if      (varying[i].flat)          { w = NULL;    t = VARYING_FLAT;    }
+      else if (varying[i].noperspective) { w = NULL;    t = VARYING_NOPERSP; }
+      else if (varying[i].centroid)      { w = in->w_c; t = VARYING_DEFAULT; }
+      else                               { w = in->w;   t = VARYING_DEFAULT; }
 
       in->inputs[i] = varying_io(t, i, w, dep);
    }
@@ -1535,10 +1515,10 @@ static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
       }
 
       const Dataflow *sampler = relocate_dataflow(ctx, addr->d.reloc_deps[4]);
-      uint32_t sampler_index = ctx->link_map->uniforms[sampler->u.const_sampler.location];
+      uint32_t sampler_index = ctx->link_map->uniforms[sampler->u.const_image.location];
 
       tr_mid_tmu_access_texture(lookup,
-         sampler_index, sampler->type, sampler->u.const_sampler.is_32bit, /*per_quad=*/false,
+         sampler_index, sampler->type, sampler->u.const_image.is_32bit, /*per_quad=*/false,
          word_reads, DF_TEXBITS_FETCH, op, d[2], c[0], c[1], c[2], c[3],
          /*dref=*/NULL, /*b=*/NULL, /*off=*/NULL);
    }
@@ -1551,6 +1531,11 @@ static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
 
    r->type = word_reads ? get_translation_type(dataflow->type) : GLSL_TRANSLATION_VOID;
    tr_end_tmu_access(&r->node[0], lookup, word_reads, dataflow->age);
+}
+
+static inline bool is_ubo_addr(const Backflow *b) {
+   return (b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF &&
+           b->unif_type == BACKEND_UNIFORM_UBO_ADDRESS         );
 }
 
 /* Main translation function */
@@ -1582,8 +1567,8 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
    switch (flavour) {
       case DATAFLOW_TEXTURE:
          {
-            const Dataflow *sampler = relocate_dataflow(ctx, dataflow->d.reloc_deps[4]);
-            uint32_t sampler_index = ctx->link_map->uniforms[sampler->u.const_sampler.location];
+            const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[4]);
+            uint32_t image_index = ctx->link_map->uniforms[image->u.const_image.location];
             uint32_t required_components = dataflow->u.texture.required_components;
 
             assert(d[0]->type == GLSL_TRANSLATION_VEC4);
@@ -1591,13 +1576,13 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             /* d[4] has type void because it contained the sampler */
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-            tr_texture_gadget(ctx, r, sampler_index, sampler->type, sampler->u.const_sampler.is_32bit,
+            tr_texture_gadget(ctx, r, image_index, image->type, image->u.const_image.is_32bit,
                               ctx->per_quad[dataflow->id],
                               dataflow->age, required_components, dataflow->u.texture.bits,
                               d[0]->node[0], d[0]->node[1], d[0]->node[2], d[0]->node[3],
                               d[1] ? d[1]->node[0] : NULL, d[2] ? d[2]->node[0] : NULL, d[3] ? d[3]->node[0] : NULL);
 #else
-            tr_texture_lookup(ctx, r, sampler_index, sampler->type, sampler->u.const_sampler.is_32bit,
+            tr_texture_lookup(ctx, r, image_index, image->type, image->u.const_image.is_32bit,
                               ctx->per_quad[dataflow->id],
                               dataflow->age, required_components, dataflow->u.texture.bits,
                               d[0]->node[0], d[0]->node[1], d[0]->node[2], d[0]->node[3],
@@ -1607,14 +1592,14 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          }
       case DATAFLOW_TEXTURE_SIZE:
          {
-            const Dataflow *sampler = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
-            uint32_t sampler_index = ctx->link_map->uniforms[sampler->u.const_sampler.location];
+            const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
+            uint32_t image_index = ctx->link_map->uniforms[image->u.const_image.location];
             /* Maybe this should change to GLSL_TRANSLATION_VEC. Maybe store size for bounds checking */
             r->type = GLSL_TRANSLATION_VEC4;
-            r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_X, sampler_index);
-            r->node[1] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_Y, sampler_index);
+            r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_X, image_index);
+            r->node[1] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_Y, image_index);
             /* The z-size may not exist. If not then the node won't be referenced, but this isn't pretty */
-            r->node[2] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_Z, sampler_index);
+            r->node[2] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_Z, image_index);
             r->node[3] = NULL;
             break;
          }
@@ -1643,7 +1628,13 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       case DATAFLOW_VECTOR_LOAD:
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
-         tr_indexed_read_vector_gadget(ctx->block, r, dataflow->age, d[0]->node[0], dataflow->u.vector_load.required_components, ctx->per_quad[dataflow->id]);
+         if (!ctx->disable_ubo_fetch && is_ubo_addr(d[0]->node[0])) {
+            r->type = GLSL_TRANSLATION_VEC4;
+            uint32_t index = d[0]->node[0]->unif & 0x1f;
+            uint32_t offset = d[0]->node[0]->unif >> 5;
+            for (int i=0; i<4; i++) r->node[i] = tr_block_address(BACKEND_UNIFORM_UBO_LOAD, index, offset + 4*i);
+         } else
+            tr_indexed_read_vector_gadget(ctx->block, r, dataflow->age, d[0]->node[0], dataflow->u.vector_load.required_components, ctx->per_quad[dataflow->id]);
          break;
       case DATAFLOW_GET_VEC4_COMPONENT:
          assert(d[0]->type == GLSL_TRANSLATION_VEC4);
@@ -1666,19 +1657,11 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       }
 
-      case DATAFLOW_UNIFORM_BUFFER:
-      {
-         r->type = get_translation_type(dataflow->type);
-         int id = dataflow->u.buffer.index;
-         assert(id < ctx->link_map->num_uniforms);
-         r->node[0] = tr_block_address(BACKEND_UNIFORM_UBO_LOAD, ctx->link_map->uniforms[id], dataflow->u.buffer.offset);
-         break;
-      }
-
 #if V3D_VER_AT_LEAST(4,0,2,0)
       case DATAFLOW_TEXTURE_ADDR:
 #endif
-      case DATAFLOW_CONST_SAMPLER:
+      case DATAFLOW_CONST_IMAGE:
+      case DATAFLOW_UNIFORM_BUFFER:
       case DATAFLOW_STORAGE_BUFFER:
       case DATAFLOW_ATOMIC_COUNTER:
          r->type = GLSL_TRANSLATION_VOID;
@@ -1727,6 +1710,8 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       }
       case DATAFLOW_SHARED_PTR:
+         ctx->block->accesses_shared = true;
+         /* Fall through */
       case DATAFLOW_GET_DEPTHRANGE_NEAR:
       case DATAFLOW_GET_DEPTHRANGE_FAR:
       case DATAFLOW_GET_DEPTHRANGE_DIFF:
@@ -1907,40 +1892,40 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       case DATAFLOW_IMAGE_INFO_PARAM:
          {
-            const Dataflow *sampler = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
-            uint32_t sampler_index = ctx->link_map->uniforms[sampler->u.const_sampler.location];
+            const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
+            uint32_t image_index = ctx->link_map->uniforms[image->u.const_image.location];
             r->type = GLSL_TRANSLATION_WORD;
             ImageInfoParam param = dataflow->u.image_info_param.param;
             switch(param)
             {
 #if !V3D_VER_AT_LEAST(4,0,2,0)
             case IMAGE_INFO_ARR_STRIDE:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_ARR_STRIDE, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_ARR_STRIDE, image_index);
                break;
             case IMAGE_INFO_SWIZZLING:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_SWIZZLING, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_SWIZZLING, image_index);
                break;
             case IMAGE_INFO_XOR_ADDR:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_XOR_ADDR, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_XOR_ADDR, image_index);
                break;
             case IMAGE_INFO_LX_ADDR:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_ADDR, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_ADDR, image_index);
                break;
             case IMAGE_INFO_LX_PITCH:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_PITCH, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_PITCH, image_index);
                break;
             case IMAGE_INFO_LX_SLICE_PITCH:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_SLICE_PITCH, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_SLICE_PITCH, image_index);
                break;
 #endif
             case IMAGE_INFO_LX_WIDTH:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_WIDTH, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_WIDTH, image_index);
                break;
             case IMAGE_INFO_LX_HEIGHT:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_HEIGHT, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_HEIGHT, image_index);
                break;
             case IMAGE_INFO_LX_DEPTH:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_DEPTH, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_DEPTH, image_index);
                break;
             default:
                unreachable();
@@ -1950,17 +1935,17 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       case DATAFLOW_TEXBUFFER_INFO_PARAM:
          {
-            const Dataflow *sampler = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
-            uint32_t sampler_index = ctx->link_map->uniforms[sampler->u.const_sampler.location];
+            const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
+            uint32_t image_index = ctx->link_map->uniforms[image->u.const_image.location];
             r->type = GLSL_TRANSLATION_WORD;
             TexBufferInfoParam param = dataflow->u.texbuffer_info_param.param;
             switch (param)
             {
             case TEXBUFFER_INFO_LOG2_ARR_ELEM_W:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEXBUFFER_LOG2_ARR_ELEM_W, sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEXBUFFER_LOG2_ARR_ELEM_W, image_index);
                break;
             case TEXBUFFER_INFO_ARR_ELEM_W_MINUS_1:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEXBUFFER_ARR_ELEM_W_MINUS_1 , sampler_index);
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEXBUFFER_ARR_ELEM_W_MINUS_1 , image_index);
                break;
             default:
                unreachable();
@@ -2058,6 +2043,7 @@ static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
 #endif
 
    ctx->ms = (key->backend & GLSL_SAMPLE_MS);
+   ctx->disable_ubo_fetch = (key->backend & GLSL_DISABLE_UBO_FETCH);
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    /* Stuff used to do framebuffer fetch on multisample targets */
    ctx->sample_num = 0;
@@ -2172,7 +2158,7 @@ SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
    resolve_tlb_loads(ret, ctx.tlb_read);
 
    if (ins != NULL && ins->read_dep != NULL)
-      glsl_backflow_chain_append(&ret->iodeps, ins->read_dep);
+      glsl_backflow_chain_push_back(&ret->iodeps, ins->read_dep);
 
    return ret;
 }
@@ -2186,6 +2172,7 @@ static uint32_t get_reads_total(const ATTRIBS_USED_T *attr) {
    }
    if (attr->vertexid_used) reads_total++;
    if (attr->instanceid_used) reads_total++;
+   if (attr->baseinstance_used) reads_total++;
 
    return reads_total;
 }

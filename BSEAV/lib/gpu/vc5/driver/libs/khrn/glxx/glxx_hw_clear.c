@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_hw.h"
 #include "../common/khrn_counters.h"
 #include "../common/khrn_render_state.h"
@@ -70,69 +68,66 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
       return false;
 
    // Intersect FB rect with scissor rect
-   int x = 0;
-   int y = 0;
-   int xmax = hw_fb.width;
-   int ymax = hw_fb.height;
+   glxx_rect rect = {0, 0, hw_fb.width, hw_fb.height};
    if (state->caps.scissor_test)
    {
-      x = gfx_smax(x, state->scissor.x);
-      y = gfx_smax(y, state->scissor.y);
-      xmax = gfx_smin(xmax, state->scissor.x + state->scissor.width);
-      ymax = gfx_smin(ymax, state->scissor.y + state->scissor.height);
-      if (x >= xmax || y >= ymax)
+      glxx_rect_intersect(&rect, &state->scissor);
+      if (rect.width == 0 || rect.height == 0)
       {
          glxx_destroy_hw_framebuffer(&hw_fb);
          return true;
       }
    }
-   bool full_rect = x == 0 && y == 0 && xmax == hw_fb.width && ymax == hw_fb.height;
 
-   GLXX_HW_RENDER_STATE_T *rs = glxx_install_rs(state, &hw_fb, /*for_tlb_blit=*/false);
+   uint32_t color_full_clear_mask = 0;
+   bool depth_full_clear = false;
+   bool stencil_full_clear = false;
+
+   // For each buffer, figure out if we are fully clearing
+   bool full_rect = rect.x == 0 && rect.y == 0 && rect.width == hw_fb.width && rect.height == hw_fb.height;
+   if (full_rect)
+   {
+      for (uint32_t b = 0, mask = clear->color_buffer_mask; mask; ++b, mask >>= 1)
+      {
+         if ((mask & 1) && (((state->color_write >> (b * 4)) & 0xf) == 0xf))
+            color_full_clear_mask |= 1u << b;
+      }
+      depth_full_clear = clear->depth;
+      stencil_full_clear = clear->stencil && ((state->stencil_mask.front & 0xff) == 0xff);
+   }
+
+   // Discard existing render-state if possible.
+   bool existing;
+   GLXX_HW_RENDER_STATE_T *rs = glxx_install_rs(state, &hw_fb, &existing, /*for_tlb_blit=*/false);
+   if (rs && existing)
+   {
+      if (khrn_fmem_has_queries(&rs->fmem) || rs->tf.used || rs->base.has_buffer_writes)
+         goto no_discard;
+
+      for (unsigned b = 0; b < rs->installed_fb.rt_count; ++b)
+      {
+         if (!(color_full_clear_mask & (1u << b)) &&
+            !glxx_bufstate_can_discard_rs(rs->color_buffer_state[b]))
+         {
+            goto no_discard;
+         }
+      }
+      if (!depth_full_clear && !glxx_bufstate_can_discard_rs(rs->depth_buffer_state))
+         goto no_discard;
+      if (!stencil_full_clear && !glxx_bufstate_can_discard_rs(rs->stencil_buffer_state))
+         goto no_discard;
+
+      glxx_hw_discard_frame(rs);
+      rs = glxx_install_rs(state, &hw_fb, &existing, /*for_tlb_blit=*/false);
+   }
+no_discard:
 
    glxx_destroy_hw_framebuffer(&hw_fb);
 
    if (!rs)
       return false;
 
-   khrn_render_state_disallow_flush((KHRN_RENDER_STATE_T*)rs);
-
-   // For each buffer, figure out if we are fully clearing
-   uint32_t color_full_clear_mask = 0;
-   if (full_rect)
-      for (uint32_t b = 0, mask = clear->color_buffer_mask; mask; ++b, mask >>= 1)
-         if ((mask & 1) && (((state->color_write >> (b * 4)) & 0xf) == 0xf))
-            color_full_clear_mask |= 1u << b;
-   bool depth_full_clear = full_rect && clear->depth;
-   bool stencil_full_clear = full_rect && clear->stencil && ((state->stencil_mask.front & 0xff) == 0xff);
-
-   // Discard CL if possible
-   bool keep_cl = khrn_fmem_has_queries(&rs->fmem) || rs->tf.used || rs->base.has_buffer_writes;
-   if (!keep_cl)
-   {
-      for (unsigned b = 0; b < rs->installed_fb.rt_count; ++b)
-      {
-         if (!(color_full_clear_mask & (1u << b)) &&
-            !glxx_bufstate_can_discard_cl(rs->color_buffer_state[b]))
-         {
-            keep_cl = true;
-            break;
-         }
-      }
-      if (!depth_full_clear && !glxx_bufstate_can_discard_cl(rs->depth_buffer_state))
-         keep_cl = true;
-      if (!stencil_full_clear && !glxx_bufstate_can_discard_cl(rs->stencil_buffer_state))
-         keep_cl = true;
-   }
-   if (!keep_cl)
-   {
-      for (unsigned b = 0; b < rs->installed_fb.rt_count; ++b)
-         glxx_bufstate_discard_cl(&rs->color_buffer_state[b]);
-      glxx_bufstate_discard_cl(&rs->depth_buffer_state);
-      glxx_bufstate_discard_cl(&rs->stencil_buffer_state);
-      if (!glxx_hw_render_state_discard_and_restart(state, rs))
-         goto error; // TODO set out of memory?
-   }
+   khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
    // Try doing HW clears
    bool use_draw_rect = false;
@@ -160,14 +155,6 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
       else
          use_draw_rect = true;
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   /* Fast-clearing depth & loading stencil (or vice-versa) does not work
-    * properly (see GFXH-1461).
-    * Fall back to draw-rect clear if we might hit that case... */
-   if ((clear->stencil && glxx_bufstate_might_need_load(rs->depth_buffer_state)) ||
-         (clear->depth && glxx_bufstate_might_need_load(rs->stencil_buffer_state)))
-      use_draw_rect = true;
-#endif
 
    log_trace("%s color_mask=0x%x%s%s", use_draw_rect ? "draw_rect" : "fast",
       clear->color_buffer_mask, clear->depth ? " depth" : "", clear->stencil ? " stencil" : "");
@@ -184,25 +171,25 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
             if (mask & 1)
             {
                clear->color_buffer_mask = 1u << b;
-               if (!glxx_draw_rect(state, rs, clear, x, y, xmax, ymax))
+               if (!glxx_draw_rect(state, rs, clear, &rect))
                   goto error;
                clear->depth = false;
                clear->stencil = false;
             }
          }
       }
-      else if (!glxx_draw_rect(state, rs, clear, x, y, xmax, ymax))
+      else if (!glxx_draw_rect(state, rs, clear, &rect))
          goto error;
    }
    else
       /* Managed to do all clears with HW clear */
       khrn_driver_incr_counters(KHRN_PERF_HARD_CLEAR);
 
-   khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_allow_flush((khrn_render_state*)rs);
    return true;
 
 error:
-   khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_allow_flush((khrn_render_state*)rs);
    glxx_hw_discard_frame(rs);
    return false;
 }

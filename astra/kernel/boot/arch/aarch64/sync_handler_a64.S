@@ -63,7 +63,6 @@ aarch64_sync_handler:
 	cmp	x30, #ESR_EL1_EC_SYS64		// configurable trap
 	b.eq	el1_undef
 
-
 el1_data_abort:
 	ldp x30, xzr, [sp, #-16]
 	b tz_secure_data_abort_handler

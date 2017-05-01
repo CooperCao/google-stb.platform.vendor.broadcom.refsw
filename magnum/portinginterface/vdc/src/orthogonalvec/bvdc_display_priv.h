@@ -113,20 +113,6 @@ extern "C" {
 #define BVDC_P_VEC_STANDALONE_BUG_FIXED        0
 #endif
 
-#ifdef BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY
-#define BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY0 BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY
-#define BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY1 BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY
-#endif
-
-#ifdef BCHP_PWR_RESOURCE_VDC_STG
-#define BCHP_PWR_RESOURCE_VDC_STG0 BCHP_PWR_RESOURCE_VDC_STG
-#define BCHP_PWR_RESOURCE_VDC_STG1 BCHP_PWR_RESOURCE_VDC_STG
-#define BCHP_PWR_RESOURCE_VDC_STG2 BCHP_PWR_RESOURCE_VDC_STG
-#define BCHP_PWR_RESOURCE_VDC_STG3 BCHP_PWR_RESOURCE_VDC_STG
-#define BCHP_PWR_RESOURCE_VDC_STG4 BCHP_PWR_RESOURCE_VDC_STG
-#define BCHP_PWR_RESOURCE_VDC_STG5 BCHP_PWR_RESOURCE_VDC_STG
-#endif
-
 /****************************************************************
  *  Defines
  ****************************************************************/
@@ -747,14 +733,6 @@ typedef struct BVDC_P_RateInfo
 
 #endif
 
-#if BVDC_P_SUPPORT_MHL
-typedef struct BVDC_P_PxlFreqMhlFreqPair
-{
-    uint64_t ulPixelClkRate;
-    uint64_t ulMhlClkRate;
-} BVDC_P_PxlFreqMhlFreqPair;
-#endif
-
 typedef struct
 {
     bool                        bWidthTrimmed;
@@ -980,7 +958,6 @@ typedef struct
 {
     bool              bEnable;          /* on or off */
     uint32_t          ulDvi;
-    uint32_t          bMhlMode;         /* indicates whether HDMI PHY is in HDMI or MHL mode */
     uint32_t          ulDviRegOffset;      /* DVI instace offset */
     uint32_t          ulDvpRegOffset;      /* DVP instance offset */
 
@@ -1095,6 +1072,9 @@ typedef struct BVDC_P_DisplayContext
     /* CFC LUT heap */
     BMMA_Heap_Handle            hCfcHeap; /* must be cpu accessible for LUT fill */
     BVDC_P_CfcLutLoadListInfo   stCfcLutList; /* for CFC ram table loading */
+#if BVDC_P_DBV_SUPPORT
+    BVDC_P_DBV_HdmiPktzr       * pstDbv;
+#endif /* BVDC_P_DBV_SUPPORT */
 #endif
 
     /* Event to nofify that changes has been applied to hardware. */

@@ -1,10 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/util/assert_helpers.h"
+#include "libs/util/common.h"
+#include <stdint.h>
 #include <stdbool.h>
 
 struct desc_map_entry

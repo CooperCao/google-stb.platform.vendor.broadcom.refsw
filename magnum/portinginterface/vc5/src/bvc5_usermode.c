@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2015 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -48,17 +46,17 @@ void BVC5_P_IssueUsermodeJob(
    BVC5_P_InternalJob  *psJob
 )
 {
-   BDBG_ASSERT(hVC5->sUsermodeState.psPendingJob == NULL);
    BDBG_ASSERT(hClient != NULL);
+   BDBG_ASSERT(hClient->sUsermodeState.psPendingJob == NULL);
 
    /* Tell "Nexus" that a job is ready */
-   hVC5->sUsermodeState.psPendingJob = psJob;
+   hClient->sUsermodeState.psPendingJob = psJob;
    hVC5->sCallbacks.fpUsermodeHandler(hClient->pContext);
 }
 
 bool BVC5_P_UsermodeIsAvailable(
-   BVC5_Handle hVC5
+   BVC5_ClientHandle hClient
 )
 {
-   return hVC5->sUsermodeState.psPendingJob == NULL;
+   return hClient->sUsermodeState.psPendingJob == NULL;
 }

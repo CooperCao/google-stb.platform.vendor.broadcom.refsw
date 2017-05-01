@@ -1,5 +1,5 @@
 ##############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -52,8 +52,6 @@ export NEXUS_FRONTEND_3158  ?= y
 export NEXUS_FRONTEND_3461  ?= y
 export NEXUS_FRONTEND_45216 ?= y
 export NEXUS_FRONTEND_45308 ?= y
-
-B_REFSW_STRICT_PRINTF_FORMAT ?= y
 #
 # by default, we include the following
 #

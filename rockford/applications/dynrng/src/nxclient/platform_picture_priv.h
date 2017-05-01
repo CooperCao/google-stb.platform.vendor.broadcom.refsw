@@ -45,7 +45,9 @@
 #include "platform_types.h"
 #include "nxclient.h"
 #include "nexus_types.h"
+#if NEXUS_HAS_PICTURE_DECODER
 #include "nexus_picture_decoder.h"
+#endif
 
 typedef struct PlatformPicture
 {
@@ -57,6 +59,8 @@ typedef struct PlatformPicture
 
 unsigned platform_picture_p_color_depth_from_pixel_format(NEXUS_PixelFormat format);
 PlatformColorSpace platform_picture_p_color_space_from_pixel_format(NEXUS_PixelFormat format);
+#if NEXUS_HAS_PICTURE_DECODER
 void platform_picture_p_info_from_nexus(PlatformPictureInfo * pInfo, NEXUS_PictureDecoderStatus * pStatus);
+#endif
 
 #endif /* PLATFORM_PICTURE_PRIV_H__ */

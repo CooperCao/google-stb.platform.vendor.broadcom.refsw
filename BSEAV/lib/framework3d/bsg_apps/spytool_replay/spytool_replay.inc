@@ -10,10 +10,12 @@ VPATH = $(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/tools/$(HOOK_NAME)
 
 SOURCES =             \
    spytool_replay.cpp \
-   CapturePost.cpp    \
-   CapturePre.cpp     \
    Command.cpp        \
+   DeviceCaps.cpp     \
+   Dispatch.cpp       \
+   GetProcAddress.cpp \
    Loader.cpp         \
-   packet.cpp
+   packet.cpp         \
+   packetreader.cpp
 
 TARGET := spytool_replay

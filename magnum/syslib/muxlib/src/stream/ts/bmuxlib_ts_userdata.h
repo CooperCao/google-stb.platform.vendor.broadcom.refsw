@@ -296,6 +296,7 @@ typedef struct
       BMUXlib_TS_P_DataType eDataType; /* the type of the data pointed to by pData (may be either userdata, local storage or PTS entry) */
                                        /* Note: Source is always "Userdata" to ensure bytes get freed from userdata input */
       uint64_t uiTimestamp;
+      void *pPTSEntry;
    } aSegments[BMUXLIB_TS_USERDATA_MAX_SEGMENTS];
 } BMUXlib_TS_P_UserdataPending;
 

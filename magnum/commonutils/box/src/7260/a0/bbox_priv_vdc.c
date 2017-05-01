@@ -64,8 +64,6 @@
 #include "bbox_vdc_box2_config.h"
 #include "bbox_vdc_box3_config.h"
 #include "bbox_vdc_box4_config.h"
-#include "bbox_vdc_box1000_config.h"
-#include "bbox_vdc_box1005_config.h"
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
@@ -74,7 +72,7 @@ BERR_Code BBOX_P_ValidateId
     (uint32_t                ulId)
 {
     BERR_Code eStatus = BERR_SUCCESS;
-    if ((ulId != 1000 && ulId != 1005) && (ulId == 0 || ulId > BBOX_MODES_SUPPORTED))
+    if (ulId == 0 || ulId > BBOX_MODES_SUPPORTED)
     {
         BDBG_ERR(("Box Mode ID %d is not supported on this chip.", ulId));
         eStatus = BBOX_ID_NOT_SUPPORTED;
@@ -101,13 +99,6 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 4:
             BBOX_P_Vdc_SetBox4SourceCapabilities(pSourceCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000SourceCapabilities(pSourceCap);
-            break;
-        case 1005:
-            BBOX_P_Vdc_SetBox1000SourceCapabilities(pSourceCap);
-            BBOX_P_Vdc_SetBox1005SourceCapabilities(pSourceCap);
-            break;
     }
 }
 
@@ -130,13 +121,6 @@ void BBOX_P_Vdc_SetDisplayCapabilities
         case 4:
             BBOX_P_Vdc_SetBox4DisplayCapabilities(pDisplayCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000DisplayCapabilities(pDisplayCap);
-            break;
-        case 1005:
-            BBOX_P_Vdc_SetBox1000DisplayCapabilities(pDisplayCap);
-            BBOX_P_Vdc_SetBox1005DisplayCapabilities(pDisplayCap);
-            break;
     }
 }
 
@@ -156,10 +140,6 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 4:
             BBOX_P_Vdc_SetBox4DeinterlacerCapabilities(pDeinterlacerCap);
             break;
-        case 1000:
-        case 1005:
-            BBOX_P_Vdc_SetBox1000DeinterlacerCapabilities(pDeinterlacerCap);
-            break;
     }
 }
 
@@ -178,10 +158,6 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 4:
             BBOX_P_Vdc_SetBox4XcodeCapabilities(pXcodeCap);
-            break;
-        case 1000:
-        case 1005:
-            BBOX_P_Vdc_SetBox1000XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -209,12 +185,6 @@ BERR_Code BBOX_P_GetMemConfig
         case 4:
             BBOX_P_GetBox4MemConfig(pBoxMemConfig);
             break;
-        case 1000:
-            BBOX_P_GetBox1000MemConfig(pBoxMemConfig);
-            break;
-        case 1005:
-            BBOX_P_GetBox1005MemConfig(pBoxMemConfig);
-            break;
     }
     return BERR_SUCCESS;
 }
@@ -236,12 +206,6 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 4:
             BBOX_P_GetBox4Rts(pBoxRts);
-            break;
-        case 1000:
-            BBOX_P_GetBox1000Rts(pBoxRts);
-            break;
-        case 1005:
-            BBOX_P_GetBox1005Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

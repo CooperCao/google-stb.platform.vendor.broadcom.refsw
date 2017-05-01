@@ -1,28 +1,17 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
-#ifndef __COMMAND_H__
-#define __COMMAND_H__
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #define BSG_NO_NAME_MANGLING
 
 #include "packet.h"
+#include "Dispatch.h"
 #if V3D_TECH_VERSION >= 3
 #include "api_command_ids.h"
 #else
 #include "interface/khronos/common/khrn_api_command_ids.h"
 #endif
-
-#include <GLES2/gl2.h>
-#include <EGL/egl.h>
 
 #include <map>
 #include <string>
@@ -137,6 +126,11 @@ protected:
    static void             *dummyvoidptr[256];
    static EGLConfig        dummyEGLConfig[1024];
    static EGLSurface       dummyEGLSurface[256];
+   static EGLBoolean       dummyEGLBoolean[256];
+   static char             dummychar[128 * 1024];
+#if EGL_BRCM_performance_counters
+   static EGLuint64BRCM    dummyEGLuint64BRCM[256];
+#endif
 #if EGL_VERSION_1_5
    static EGLAttrib        dummyEGLAttrib[256];
 #endif
@@ -261,5 +255,3 @@ public:
    DECL_SPECIAL(glGenProgramPipelines)
 #endif // GL_ES_VERSION_3_0
 };
-
-#endif /* __COMMAND_H__ */

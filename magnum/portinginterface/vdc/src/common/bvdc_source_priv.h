@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  ***************************************************************************/
 #ifndef BVDC_SOURCE_PRIV_H__
 #define BVDC_SOURCE_PRIV_H__
@@ -550,6 +547,7 @@ typedef struct BVDC_P_SourceContext
     bool                      bMtgIsPresent; /* this MFD has MTG hw via MFD_0_HW_CONFIGURATION.MFD_TRIGGER */
     bool                      bGfxSrc; /* this MFD src is used to feed gfx surface */
     bool                      bMtgSrc; /* this MFD src uses MTG */
+    bool                      b10BitInterlacedScan; /* this flag is set(give a warning) when 10-bit source is scanned out as interlaced */
 
     /* frameRateCode for MFD */
     uint32_t                  ulDefMfdVertRefRate;

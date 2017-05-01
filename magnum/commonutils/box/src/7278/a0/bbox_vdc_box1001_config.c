@@ -76,14 +76,14 @@ void BBOX_P_Vdc_SetBox1001DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid,    Class4);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0,   Gfx0,   INVALID, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD,    Disregard);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0,   Gfx0,   INVALID, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD,    Disregard);
 
-    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1,           PAL_G,           PAL_G, Invalid, Invalid, Invalid, Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1,   Gfx0,   INVALID, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD,    Disregard);
+    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1,           PAL_G,           PAL_G, Invalid, Invalid, Invalid,    Class0);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1,   Gfx0,   INVALID, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD,    Disregard);
 
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display3, 1080p_30Hz,      1080p_30Hz,      0,       0,       0,       Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
 }
 
 void BBOX_P_Vdc_SetBox1001DeinterlacerCapabilities

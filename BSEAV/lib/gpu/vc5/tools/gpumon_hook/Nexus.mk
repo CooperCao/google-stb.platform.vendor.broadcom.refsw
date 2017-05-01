@@ -1,4 +1,3 @@
-
 $(info *** Making GPU Monitor Hook ***)
 
 NEXUS_TOP ?= $(shell cd ../../../../../../nexus; pwd)
@@ -26,7 +25,23 @@ copy_to_bin : lib/libgpumon_hook.so
 	@cp capture $(NEXUS_BIN_DIR)
 	@chmod 777 $(NEXUS_BIN_DIR)/gpumon
 
-lib/libgpumon_hook.so : obj/gpumon_hook.o obj/api.o obj/remote.o obj/archive.o obj/packet.o obj/platform.o obj/circularbuffer.o
+SOURCES := \
+		gpumon_hook.cpp \
+		api.cpp \
+		remote.cpp \
+		archive.cpp \
+		datasinkasyncbuffer.cpp \
+		datasinkbuffer.cpp \
+		datasourcesinkfile.cpp \
+		ringbuffer.cpp \
+		packet.cpp \
+		packetreader.cpp \
+		platform.cpp \
+		debuglog_linux.cpp
+
+OBJECTS = $(SOURCES:%.cpp=obj/%.o)
+
+lib/libgpumon_hook.so : $(OBJECTS)
 	@mkdir -p lib
 	$(info Linking $@)
 	@$(B_REFSW_CROSS_COMPILE)g++ $(LDFLAGS) -o $@ $^

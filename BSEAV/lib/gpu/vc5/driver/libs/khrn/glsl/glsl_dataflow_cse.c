@@ -85,7 +85,7 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
    // Exclude the following dataflow flavours
    switch (df->flavour) {
       case DATAFLOW_CONST:
-      case DATAFLOW_CONST_SAMPLER:
+      case DATAFLOW_CONST_IMAGE:
       case DATAFLOW_UNIFORM:
       case DATAFLOW_STORAGE_BUFFER:
       case DATAFLOW_BUF_SIZE:

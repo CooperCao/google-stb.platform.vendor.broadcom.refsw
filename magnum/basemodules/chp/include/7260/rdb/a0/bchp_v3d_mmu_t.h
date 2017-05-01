@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:27 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,20 +70,20 @@
 /***************************************************************************
  *V3D_MMU_T - V3D MMU Control Registers (TFU)
  ***************************************************************************/
-#define BCHP_V3D_MMU_T_CTRL                      0x21301100 /* [RW] AXI_MMU Control Register */
-#define BCHP_V3D_MMU_T_PT_PA_BASE                0x21301104 /* [RW] Page Table Physical Address Base */
-#define BCHP_V3D_MMU_T_HITS                      0x21301108 /* [RO] TLB Hits */
-#define BCHP_V3D_MMU_T_MISSES                    0x2130110c /* [RO] TLB Misses */
-#define BCHP_V3D_MMU_T_STALLS                    0x21301110 /* [RO] TLB Misses */
-#define BCHP_V3D_MMU_T_ADDR_CAP                  0x21301114 /* [RW] Caps the Maximum virtual page that the MMU will accept */
-#define BCHP_V3D_MMU_T_SHOOT_DOWN                0x21301118 /* [RW] Shoots down specific pages from the TLB */
-#define BCHP_V3D_MMU_T_BYPASS_START              0x2130111c /* [RW] Sets the Start page of the MMU Bypass */
-#define BCHP_V3D_MMU_T_BYPASS_END                0x21301120 /* [RW] Sets the End page of the MMU Bypass */
-#define BCHP_V3D_MMU_T_DEBUG_MISC                0x21301124 /* [RW] AXI_MMU Debug Misc */
-#define BCHP_V3D_MMU_T_SECURITY                  0x21301128 /* [RW] Set individual MMU registers as secure access only */
-#define BCHP_V3D_MMU_T_VIO_ID                    0x2130112c /* [RW] Record the AXI ID of the access that causes a MMU error */
-#define BCHP_V3D_MMU_T_ILLEGAL_ADR               0x21301130 /* [RW] Substitute illegal PA addresses with an address that points to a dummy slave */
-#define BCHP_V3D_MMU_T_VIO_ADDR                  0x21301134 /* [RW] Record the AXI ADDR of the access that causes a MMU error */
+#define BCHP_V3D_MMU_T_CTRL                      0x21301100 /* [RW][32] AXI_MMU Control Register */
+#define BCHP_V3D_MMU_T_PT_PA_BASE                0x21301104 /* [RW][32] Page Table Physical Address Base */
+#define BCHP_V3D_MMU_T_HITS                      0x21301108 /* [RO][32] TLB Hits */
+#define BCHP_V3D_MMU_T_MISSES                    0x2130110c /* [RO][32] TLB Misses */
+#define BCHP_V3D_MMU_T_STALLS                    0x21301110 /* [RO][32] TLB Misses */
+#define BCHP_V3D_MMU_T_ADDR_CAP                  0x21301114 /* [RW][32] Caps the Maximum virtual page that the MMU will accept */
+#define BCHP_V3D_MMU_T_SHOOT_DOWN                0x21301118 /* [RW][32] Shoots down specific pages from the TLB */
+#define BCHP_V3D_MMU_T_BYPASS_START              0x2130111c /* [RW][32] Sets the Start page of the MMU Bypass */
+#define BCHP_V3D_MMU_T_BYPASS_END                0x21301120 /* [RW][32] Sets the End page of the MMU Bypass */
+#define BCHP_V3D_MMU_T_DEBUG_MISC                0x21301124 /* [RW][32] AXI_MMU Debug Misc */
+#define BCHP_V3D_MMU_T_SECURITY                  0x21301128 /* [RW][32] Set individual MMU registers as secure access only */
+#define BCHP_V3D_MMU_T_VIO_ID                    0x2130112c /* [RW][32] Record the AXI ID of the access that causes a MMU error */
+#define BCHP_V3D_MMU_T_ILLEGAL_ADR               0x21301130 /* [RW][32] Substitute illegal PA addresses with an address that points to a dummy slave */
+#define BCHP_V3D_MMU_T_VIO_ADDR                  0x21301134 /* [RW][32] Record the AXI ADDR of the access that causes a MMU error */
 
 /***************************************************************************
  *CTRL - AXI_MMU Control Register

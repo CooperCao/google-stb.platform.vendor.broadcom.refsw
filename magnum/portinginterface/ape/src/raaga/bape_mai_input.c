@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -639,7 +639,7 @@ static void BAPE_MaiInput_P_SetMclk_isr(BAPE_MaiInputHandle handle, BAPE_MclkSou
 }
 
 #define BAPE_NUM_OUTPUTS    10
-void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
+static void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
 {
     BAPE_PathNode * pConsumer;
     BAPE_Mixer *pMixer = NULL;
@@ -783,7 +783,7 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     }
 }
 #else
-void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
+static void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
 {
     BSTD_UNUSED(handle);
 }

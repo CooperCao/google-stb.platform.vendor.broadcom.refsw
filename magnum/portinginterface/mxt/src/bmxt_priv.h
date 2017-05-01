@@ -84,6 +84,19 @@ void BMXT_P_SetPlatform(BMXT_Handle mxt, BMXT_Chip chip, BMXT_ChipRev rev, unsig
 uint32_t BMXT_RegRead32_common(BMXT_Handle handle, uint32_t addr);
 void BMXT_RegWrite32_common(BMXT_Handle handle, uint32_t addr, uint32_t data);
 
+/* bmxt_fe.c functions used in bmxt_dcbg.c */
+unsigned BMXT_P_GetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, unsigned parserNum);
+void BMXT_P_SetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, unsigned parserNum, unsigned virtualParserNum);
+void BMXT_P_SetParserEnable(BMXT_Handle handle, unsigned parserNum, bool enable);
+void BMXT_P_ParserVersion(BMXT_Handle handle, unsigned parserNum);
+void BMXT_P_SetParserAcceptNull(BMXT_Handle handle, unsigned parserNum, bool enable);
+unsigned BMXT_P_GetParserInputBand(BMXT_Handle handle, unsigned parserNum);
+void BMXT_P_RegDump(BMXT_Handle hMxt);
+void BMXT_P_RegDump_Fe(BMXT_Handle handle);
+void BMXT_P_RegDump_Dcbg(BMXT_Handle handle);
+void BMXT_P_RegDump_L2Intr(BMXT_Handle handle);
+void BMXT_P_RegDump_Quick(BMXT_Handle handle);
+
 #ifdef __cplusplus
 }
 #endif

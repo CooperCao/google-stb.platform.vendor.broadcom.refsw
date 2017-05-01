@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -743,7 +743,12 @@ void BVDC_P_Xsrc_SetInfo_isr
         /* and only need to dither in XSRC for older chips without VFC  */
         if(hXsrc->bDithering)
         {
-            bool bDitherEn = (pPicture->bSrc10Bit) ? true : false;
+            bool bDitherEn =
+#if BVDC_DITHER_OFF
+                false;
+#else
+                (pPicture->bSrc10Bit) ? true : false;
+#endif
 
             BDBG_MODULE_MSG(BVDC_DITHER,("XSRC%d DITHER: %s", hXsrc->eId,
                 (bDitherEn) ? "ENABLE" : "DISABLE"));

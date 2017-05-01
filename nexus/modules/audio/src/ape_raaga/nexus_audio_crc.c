@@ -383,7 +383,7 @@ void NEXUS_AudioCrc_ClearInput(
 }
 
 
-NEXUS_AudioCrcEntry * NEXUS_AudioCrc_P_GetEntryByIndex(
+static NEXUS_AudioCrcEntry * NEXUS_AudioCrc_P_GetEntryByIndex(
     const NEXUS_AudioCrcData * crcData,
     unsigned index
     )

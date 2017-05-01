@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1073,7 +1073,6 @@ BERR_Code BAPE_Connector_P_SetFormat(
     return BERR_SUCCESS;
 }
 
-#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Get number of downstream connections for a connector
@@ -1096,7 +1095,6 @@ unsigned BAPE_Connector_P_GetNumConnections(
 
     return numConnections;
 }
-#endif
 
 /***************************************************************************
 Summary:

@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_SURFACE_BASE_H
 #define EGL_SURFACE_BASE_H
 #include <EGL/egl.h>
@@ -26,7 +20,7 @@ egl_swap_result_t;
 typedef struct
 {
    /* Get the buffer to draw to */
-   KHRN_IMAGE_T      *(*get_back_buffer)(const EGL_SURFACE_T *surface);
+   khrn_image      *(*get_back_buffer)(const EGL_SURFACE_T *surface);
 
    /*
     * See eglSwapbuffers. If preserve, then the new back buffer should be
@@ -71,7 +65,7 @@ EGL_SURFACE_METHODS_T;
 
 typedef struct
 {
-   KHRN_IMAGE_T      *image;
+   khrn_image      *image;
 }
 EGL_AUX_BUF_T;
 
@@ -122,7 +116,7 @@ struct egl_surface_base
    EGL_CONTEXT_T                 *context;
 
    /*
-    * These may have NULL KHRN_IMAGE_T * in them if they aren't allocated
+    * These may have NULL khrn_image * in them if they aren't allocated
     * (they often aren't all needed)
     */
    EGL_AUX_BUF_T                 aux_bufs[AUX_MAX];
@@ -165,12 +159,12 @@ extern bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface);
 
 /*
  * Delete any auxiliary buffers that aren't NULL. Note that the actual pixel
- * storage of the auxiliary buffers is reference counted with
- * resource-interlocks, and so may not be freed until a bit later.
+ * storage of the auxiliary buffers is reference counted with khrn_resource,
+ * and so may not be freed until a bit later.
  */
 extern void egl_surface_base_delete_aux_bufs(EGL_SURFACE_T *surface);
 
-extern KHRN_IMAGE_T *egl_surface_base_get_aux_buffer(
+extern khrn_image *egl_surface_base_get_aux_buffer(
       const EGL_SURFACE_T *surface, egl_aux_buf_t which);
 
 extern GFX_LFMT_T egl_surface_base_colorformat(const EGL_SURFACE_T *surface);

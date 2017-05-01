@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
+ ******************************************************************************/
 #ifndef __BVC5_EVENT_MONITOR_PRIV_H__
 #define __BVC5_EVENT_MONITOR_PRIV_H__
 
@@ -52,15 +50,7 @@
 #define BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK 1
 #define BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK 2
 #define BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK 3
-
-#if INCLUDE_LEGACY_EVENT_TRACKS
-#define BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK     4
-#define BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK  5
-#define BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS    6
-#else
 #define BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS    4
-#endif
-
 #else
 #define BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK     0
 #define BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK  1
@@ -88,10 +78,18 @@
 
 #define BVC5_P_EVENT_BUFFER_BYTES            (1 * 1024 * 1024)
 
+#define BVC5_P_EVENT_TIMESTAMP_BYTES         8
+#define BVC5_P_EVENT_TRACK_BYTES             4
+#define BVC5_P_EVENT_ID_BYTES                4
+#define BVC5_P_EVENT_INDEX_BYTES             4
+#define BVC5_P_EVENT_TYPE_BYTES              4
+#define BVC5_P_EVENT_FIXED_BYTES             (BVC5_P_EVENT_TIMESTAMP_BYTES + BVC5_P_EVENT_TRACK_BYTES + BVC5_P_EVENT_ID_BYTES + BVC5_P_EVENT_INDEX_BYTES + BVC5_P_EVENT_TYPE_BYTES)
+
 typedef struct BVC5_P_EventDesc
 {
    BVC5_EventDesc          sDesc;
    BVC5_EventFieldDesc     sFieldDescs[BVC5_P_EVENT_MONITOR_MAX_FIELDS];
+   uint32_t                uiSize;
 } BVC5_P_EventDesc;
 
 typedef struct BVC5_P_EventBuffer

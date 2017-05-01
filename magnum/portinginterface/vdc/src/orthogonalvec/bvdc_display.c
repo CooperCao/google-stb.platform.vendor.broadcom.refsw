@@ -1175,36 +1175,37 @@ BERR_Code BVDC_Display_GetHdmiXvYcc
  *************************************************************************/
 static BERR_Code BVDC_P_Display_SetHdmiSettings
     ( const BVDC_Display_Handle          hDisplay,
-      const BVDC_P_Display_HdmiSettings *pHdmiSettings )
+      const BVDC_P_Display_HdmiSettings *pNewHdmi )
 {
+    const BVDC_P_Display_HdmiSettings *pCurHdmi;
     BDBG_ENTER(BVDC_P_Display_SetHdmiSettings);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
     /* Current HW only supports up to 36-bit color depth */
-    if(pHdmiSettings->eHdmiColorDepth > BAVC_HDMI_BitsPerPixel_e36bit)
+    if(pNewHdmi->eHdmiColorDepth > BAVC_HDMI_BitsPerPixel_e36bit)
     {
         return BERR_TRACE(BVDC_ERR_INVALID_HDMI_MODE);
     }
 
     /* Current HW only supports none, 1x and 4x pixel repetition */
-    if(pHdmiSettings->eHdmiPixelRepetition != BAVC_HDMI_PixelRepetition_eNone &&
-       pHdmiSettings->eHdmiPixelRepetition != BAVC_HDMI_PixelRepetition_e1x &&
-       pHdmiSettings->eHdmiPixelRepetition != BAVC_HDMI_PixelRepetition_e4x)
+    if(pNewHdmi->eHdmiPixelRepetition != BAVC_HDMI_PixelRepetition_eNone &&
+       pNewHdmi->eHdmiPixelRepetition != BAVC_HDMI_PixelRepetition_e1x &&
+       pNewHdmi->eHdmiPixelRepetition != BAVC_HDMI_PixelRepetition_e4x)
     {
         return BERR_TRACE(BVDC_ERR_INVALID_HDMI_MODE);
     }
 
-    if(pHdmiSettings->stSettings.eColorComponent >= BAVC_Colorspace_eFuture ||
-       pHdmiSettings->stSettings.eColorRange >= BAVC_ColorRange_eMax ||
-       pHdmiSettings->stSettings.eEotf >= BAVC_HDMI_DRM_EOTF_eMax)
+    if(pNewHdmi->stSettings.eColorComponent >= BAVC_Colorspace_eFuture ||
+       pNewHdmi->stSettings.eColorRange >= BAVC_ColorRange_eMax ||
+       pNewHdmi->stSettings.eEotf >= BAVC_HDMI_DRM_EOTF_eMax)
     {
         return BERR_TRACE(BVDC_ERR_INVALID_HDMI_MODE);
     }
 
-    /* TODO: add check to only allow this API to be used for 4kx2k fmts and */
+    /* Check to only allow this API to be used for 4kx2k fmts and */
     /* with chips that have DSCL block */
 #if !BVDC_P_SUPPORT_DSCL
-    if(BFMT_IS_4kx2k(pHdmiSettings->eHDMIFormat))
+    if(BFMT_IS_4kx2k(pNewHdmi->eHDMIFormat))
     {
         BDBG_ERR(("4kx2k output is not supported on this chipset"));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -1213,22 +1214,22 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
 
     /* Currently for chips with DSCL, we only support upscaling from */
     /* 1080p24/25/30 to 4kx2k@24/25/30 */
-    if((!BFMT_IS_4kx2k(pHdmiSettings->eHDMIFormat) && (pHdmiSettings->eHDMIFormat != BFMT_VideoFmt_eMaxCount)) ||
-       (BFMT_IS_4kx2k(pHdmiSettings->eHDMIFormat) &&
-        (pHdmiSettings->eMatchingFormat != BFMT_VideoFmt_e1080p_24Hz &&
-         pHdmiSettings->eMatchingFormat != BFMT_VideoFmt_e1080p_25Hz &&
-         pHdmiSettings->eMatchingFormat != BFMT_VideoFmt_e1080p_30Hz &&
-         pHdmiSettings->eMatchingFormat != BFMT_VideoFmt_e1080p_50Hz &&
-         pHdmiSettings->eMatchingFormat != BFMT_VideoFmt_e1080p))) /* 60hz */
+    if((!BFMT_IS_4kx2k(pNewHdmi->eHDMIFormat) && (pNewHdmi->eHDMIFormat != BFMT_VideoFmt_eMaxCount)) ||
+       (BFMT_IS_4kx2k(pNewHdmi->eHDMIFormat) &&
+        (pNewHdmi->eMatchingFormat != BFMT_VideoFmt_e1080p_24Hz &&
+         pNewHdmi->eMatchingFormat != BFMT_VideoFmt_e1080p_25Hz &&
+         pNewHdmi->eMatchingFormat != BFMT_VideoFmt_e1080p_30Hz &&
+         pNewHdmi->eMatchingFormat != BFMT_VideoFmt_e1080p_50Hz &&
+         pNewHdmi->eMatchingFormat != BFMT_VideoFmt_e1080p))) /* 60hz */
     {
         BDBG_ERR(("Invalid HDMI format or matching format"));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    if(BFMT_IS_4kx2k(pHdmiSettings->eHDMIFormat) && pHdmiSettings->eMatchingFormat != BFMT_VideoFmt_eMaxCount)
+    if(BFMT_IS_4kx2k(pNewHdmi->eHDMIFormat) && pNewHdmi->eMatchingFormat != BFMT_VideoFmt_eMaxCount)
     {
-        const BFMT_VideoInfo *pHdmiFmtInfo = BFMT_GetVideoFormatInfoPtr(pHdmiSettings->eHDMIFormat);
-        const BFMT_VideoInfo *pMatchingFmtInfo = BFMT_GetVideoFormatInfoPtr(pHdmiSettings->eMatchingFormat);
+        const BFMT_VideoInfo *pHdmiFmtInfo = BFMT_GetVideoFormatInfoPtr(pNewHdmi->eHDMIFormat);
+        const BFMT_VideoInfo *pMatchingFmtInfo = BFMT_GetVideoFormatInfoPtr(pNewHdmi->eMatchingFormat);
         if(pHdmiFmtInfo->ulVertFreq != pMatchingFmtInfo->ulVertFreq)
         {
             BDBG_ERR(("Vert Freq does not match"));
@@ -1236,13 +1237,24 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
         }
     }
 
-    hDisplay->stNewInfo.pHdmiFmtInfo =
-        (pHdmiSettings->eHDMIFormat != BFMT_VideoFmt_eMaxCount) ?
-        BFMT_GetVideoFormatInfoPtr(pHdmiSettings->eHDMIFormat) : NULL;
-    hDisplay->stNewInfo.stHdmiSettings = *pHdmiSettings;
+    /* BP3 Do NOT Modify Start */
+    if(pNewHdmi->stSettings.bDolbyVisionEnabled &&
+        (BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hDisplay->hVdc->hChip,
+        BCHP_LicensedFeature_eDolbyVision)))
+    {
+        BDBG_MSG(("Invalid license[%d] output.", BCHP_LicensedFeature_eDolbyVision));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+    /* BP3 Do NOT Modify End */
 
-    if((hDisplay->stCurInfo.stHdmiSettings.eHDMIFormat     != hDisplay->stNewInfo.stHdmiSettings.eHDMIFormat) ||
-       (hDisplay->stCurInfo.stHdmiSettings.eMatchingFormat != hDisplay->stNewInfo.stHdmiSettings.eMatchingFormat) ||
+    hDisplay->stNewInfo.pHdmiFmtInfo =
+        (pNewHdmi->eHDMIFormat != BFMT_VideoFmt_eMaxCount) ?
+        BFMT_GetVideoFormatInfoPtr(pNewHdmi->eHDMIFormat) : NULL;
+    hDisplay->stNewInfo.stHdmiSettings = *pNewHdmi;
+    pCurHdmi = &hDisplay->stCurInfo.stHdmiSettings;
+
+    if((pCurHdmi->eHDMIFormat     != pNewHdmi->eHDMIFormat) ||
+       (pCurHdmi->eMatchingFormat != pNewHdmi->eMatchingFormat) ||
        (hDisplay->stNewInfo.bErrorLastSetting))
     {
         /* set dirty bit to indicate HDMI format change */
@@ -1250,10 +1262,10 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
         hDisplay->stNewInfo.stDirty.stBits.bHdmiRmSettings = BVDC_P_DIRTY;
     }
 
-    if((hDisplay->stCurInfo.stHdmiSettings.eHdmiPixelRepetition != hDisplay->stNewInfo.stHdmiSettings.eHdmiPixelRepetition) ||
-       (hDisplay->stCurInfo.stHdmiSettings.eHdmiColorDepth != hDisplay->stNewInfo.stHdmiSettings.eHdmiColorDepth) ||
-       (hDisplay->stCurInfo.stHdmiSettings.stSettings.eColorComponent != hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorComponent) ||
-       (hDisplay->stCurInfo.stHdmiSettings.stSettings.eColorRange != hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorRange) ||
+    if((pCurHdmi->eHdmiPixelRepetition != pNewHdmi->eHdmiPixelRepetition) ||
+       (pCurHdmi->eHdmiColorDepth != pNewHdmi->eHdmiColorDepth) ||
+       (pCurHdmi->stSettings.eColorComponent != pNewHdmi->stSettings.eColorComponent) ||
+       (pCurHdmi->stSettings.eColorRange != pNewHdmi->stSettings.eColorRange) ||
        (hDisplay->stNewInfo.bErrorLastSetting))
     {
         /* Treat color component change as format change - need whole VEC path reset */
@@ -1264,19 +1276,22 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
         hDisplay->stNewInfo.stDirty.stBits.bHdmiSettings = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bHdmiRmSettings = BVDC_P_DIRTY;
     }
-    if ((hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs != hDisplay->stNewInfo.stHdmiSettings.stSettings.eMatrixCoeffs) ||
-        (hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf != hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf) ||
-        (hDisplay->stCurInfo.stHdmiSettings.stSettings.eColorComponent != hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorComponent) ||
-        (hDisplay->stCurInfo.stHdmiSettings.stSettings.eColorRange != hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorRange))
+    if ((pCurHdmi->stSettings.eMatrixCoeffs != pNewHdmi->stSettings.eMatrixCoeffs) ||
+        (pCurHdmi->stSettings.bDolbyVisionEnabled != pNewHdmi->stSettings.bDolbyVisionEnabled) ||
+        (pCurHdmi->stSettings.bBlendInIpt != pNewHdmi->stSettings.bBlendInIpt) ||
+        (pCurHdmi->stSettings.ePriorityMode != pNewHdmi->stSettings.ePriorityMode) ||
+        (pCurHdmi->stSettings.eEotf != pNewHdmi->stSettings.eEotf) ||
+        (pCurHdmi->stSettings.eColorComponent != pNewHdmi->stSettings.eColorComponent) ||
+        (pCurHdmi->stSettings.eColorRange != pNewHdmi->stSettings.eColorRange))
     {
         hDisplay->stNewInfo.stDirty.stBits.bHdmiSettings = BVDC_P_DIRTY;
     }
 
 #if BVDC_P_CMP_CFC_VER >= 3
     /* VEC_HDMI CFC LUT allocated only when required, but released until VDC close. */
-    if(pHdmiSettings->stSettings.hCfcHeap && !hDisplay->stCfcLutList.hMmaBlock) {
-        hDisplay->hCfcHeap = pHdmiSettings->stSettings.hCfcHeap;
-        hDisplay->stCfcLutList.hMmaBlock = BMMA_Alloc(pHdmiSettings->stSettings.hCfcHeap,
+    if(pNewHdmi->stSettings.hCfcHeap && !hDisplay->stCfcLutList.hMmaBlock) {
+        hDisplay->hCfcHeap = pNewHdmi->stSettings.hCfcHeap;
+        hDisplay->stCfcLutList.hMmaBlock = BMMA_Alloc(pNewHdmi->stSettings.hCfcHeap,
             BVDC_P_HDMI_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
         if( !hDisplay->stCfcLutList.hMmaBlock )
         {

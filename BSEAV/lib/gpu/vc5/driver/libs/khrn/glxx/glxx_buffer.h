@@ -1,21 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 vertex buffer structure declaration.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_BUFFER_H
 #define GLXX_BUFFER_H
 
 #include "gl_public_api.h"
 
 #include "../common/khrn_int_common.h"
-#include "../common/khrn_res_interlock.h"
+#include "../common/khrn_resource.h"
 
 /* Generic buffer bindings stored in the server state. Others are stored
  * within objects and are noted below.
@@ -54,12 +46,7 @@ typedef struct GLXX_BUFFER_ {
    GLbitfield  mapped_access_flags;
    size_t      size;
    char        *debug_label;
-   KHRN_RES_INTERLOCK_T *resource;
-
-   // Record the counter of the last TF-enabled draw call that wrote to this buffer.
-   // If we request reading from this buffer, we put in a TF wait instruction to
-   // wait for up to that many TF draws to finish.
-   unsigned    last_tf_write_count;
+   khrn_resource *resource;
 
    bool enabled; // true if the name associated with this object has been bound
 } GLXX_BUFFER_T;
@@ -101,30 +88,14 @@ extern bool glxx_buffer_data(GLXX_BUFFER_T *buffer, size_t size,
 extern bool glxx_buffer_subdata(GLXX_BUFFER_T *buffer, size_t offset,
       size_t size, const void *data);
 
-/* you need to call khrn_res_interlock_aquire on this returned interlock if you
- * want to keep it for longer periods */
-static inline KHRN_RES_INTERLOCK_T* glxx_buffer_get_res_interlock(const GLXX_BUFFER_T *buffer)
-{
-   return buffer->resource;
-}
-
 static inline size_t glxx_buffer_get_size(const GLXX_BUFFER_T *buffer)
 {
    return buffer->size;
 }
 
-/*
- * The TF-aware version should be used when reading from a buffer that may have been
- * written to by TF in the current render state. It will check what the last rs wait counter
- * to write to this buffer was, and insert TF wait instructions if the current wait counter
- * is behind the wait counter of the last TF write.
- */
-KHRN_RES_INTERLOCK_T * glxx_buffer_get_tf_aware_res_interlock(GLXX_HW_RENDER_STATE_T *rs,
-                                                              GLXX_BUFFER_T *buffer);
-
 static inline bool glxx_buffer_write_now_would_flush(const GLXX_BUFFER_T *buffer)
 {
-   return buffer->resource && khrn_interlock_has_reader_or_writer(&buffer->resource->interlock);
+   return buffer->resource && khrn_resource_has_reader_or_writer(buffer->resource);
 }
 
 extern bool glxx_buffer_copy_subdata(GLXX_BUFFER_T *src, GLXX_BUFFER_T *dst,

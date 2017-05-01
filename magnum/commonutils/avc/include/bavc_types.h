@@ -1039,6 +1039,8 @@ typedef enum BAVC_HdrMetadataType
 {
     BAVC_HdrMetadataType_eUnknown=0,
     BAVC_HdrMetadataType_eDrpu,
+    BAVC_HdrMetadataType_eTch_Cvri,
+    BAVC_HdrMetadataType_eTch_Cri,
     BAVC_HdrMetadataType_eMax
 
 } BAVC_HdrMetadataType;
@@ -1053,6 +1055,8 @@ Description:
 See Also:
     BAVC_MFD_Picture
 ****************************************************************************/
+#define BAVC_HDR_METADATA_SIZE_MAX           2048
+
 typedef struct BAVC_HdrMetadata
 {
     BAVC_HdrMetadataType    eType;
@@ -1226,6 +1230,30 @@ typedef struct BAVC_Point
     uint32_t ulX;
     uint32_t ulY;
 } BAVC_Point;
+
+typedef struct BAVC_Dimensions
+{
+    unsigned ulWidth;
+    unsigned ulHeight;
+} BAVC_Dimensions;
+
+typedef struct BAVC_Bounds
+{
+    unsigned uiMin;
+    unsigned uiMax;
+} BAVC_Bounds;
+
+typedef struct BAVC_Color_Volume
+{
+    /* units: 0 to 50000 represents 0.0 to 1.0 */
+    struct
+    {
+        BAVC_Point stRed;
+        BAVC_Point stGreen;
+        BAVC_Point stBlue;
+    } stPrimaries;
+    BAVC_Point stWhitePoint;
+} BAVC_Color_Volume;
 
 /* SVP Core ID */
 #define BAVC_CoreId_eNOT_MAP BAVC_CoreId_eInvalid

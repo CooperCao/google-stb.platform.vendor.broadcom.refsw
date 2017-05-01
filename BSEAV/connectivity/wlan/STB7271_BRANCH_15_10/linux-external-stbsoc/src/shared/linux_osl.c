@@ -115,6 +115,10 @@ struct pcmcia_dev {
 };
 #endif 
 
+#if defined(STBLINUX) && defined(WLC_DUMP_MAC_EXT)
+uint32 g_assert_delay = 3600*24; /* 24h interval to capture the d11 reg list */
+uint32 g_assert_type  = 1;	 /* eventually do kernel panic */
+#else
 #if defined(STB_SOC_WIFI) && !defined(BCMDBG)
 uint32 g_assert_type = 1; /* For STB_SOC_WIFI without BCMDBG bypass Kernel Panic */
 uint32 g_assert_delay = 300; /* For STB_SOC_WIFI without BCMDBG 5 min */
@@ -122,6 +126,7 @@ uint32 g_assert_delay = 300; /* For STB_SOC_WIFI without BCMDBG 5 min */
 uint32 g_assert_type  = 0; /* By Default Kernel Panic */
 uint32 g_assert_delay = 3; /* Kernel Panic Delay */
 #endif /* defined(STB_SOC_WIFI) && !defined(BCMDBG) */
+#endif /* defined(WLC_DUMP_MAC_EXT) */
 
 module_param(g_assert_type, int, 0);
 module_param(g_assert_delay, int, 0);
@@ -1218,6 +1223,7 @@ osl_assert(const char *exp, const char *file, int line)
 #ifdef BCMDBG_ASSERT
 	snprintf(tempbuf, 256, "assertion \"%s\" failed: file \"%s\", line %d\n",
 		exp, basename, line);
+	dump_stack();
 
 	/* Print assert message and give it time to be written to /var/log/messages */
 	if (!in_interrupt() && g_assert_type != 1 && g_assert_type != 3) {

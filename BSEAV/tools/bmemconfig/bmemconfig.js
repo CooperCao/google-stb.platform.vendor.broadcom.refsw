@@ -523,6 +523,9 @@ var response = request.responseText.split("|");
                     if (debugobj) {debugobj.innerHTML += entry + eol; }
                     alert("ERROR ... " + oResponses[i+1]);
                     i++;
+                } else if (entry == "DEBUG") {
+                    if (debugobj) {debugobj.innerHTML += entry + ":" + oResponses[i+1] + eol; }
+                    i++;
                 } else {
                     if (debugobj && entry.length >0 && entry.length < 200) {
                         debugobj.innerHTML += entry + eol;

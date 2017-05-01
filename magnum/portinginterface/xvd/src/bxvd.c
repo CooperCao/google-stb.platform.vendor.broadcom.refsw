@@ -3266,8 +3266,10 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
        * differentiate one channel from another.  Currently it is printed
        * as a 8 bit value.  Set the upper nibble to distinguish between
        * multiple decoders.
-       */
-      uint32_t uiInstanceId = pXvdCh->sDecodeSettings.uiVDCRectangleNum;
+       * SWSTB-4655: base the instance ID on pXvdCh->ulChannelNum instead
+       * of pXvdCh->sDecodeSettings.uiVDCRectangleNum */
+
+      uint32_t uiInstanceId = pXvdCh->ulChannelNum;
 
       uiInstanceId |= ( pXvd->uDecoderInstance & 0xF ) << 4 ;
 

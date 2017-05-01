@@ -143,6 +143,8 @@ typedef enum eNotification
     eNotify_ChannelListVersion,   /* status   - channel list is incompatible version */
     eNotify_CurrentChannel,       /* status   - current channel has changed */
     eNotify_CurrentChannelNull,   /* status   - current channel has been untuned */
+    eNotify_ChannelStart,         /* status   - channel has started decoding */
+    eNotify_ChannelFinish,        /* status   - channel has untuned */
     eNotify_ChannelStateChanged,  /* status   - channel state has changed */
     eNotify_DeferredChannel,      /* status   - deferred channel has changed */
     eNotify_ScanStarted,          /* status   - scan has started */
@@ -161,6 +163,8 @@ typedef enum eNotification
     eNotify_EncodeStarted,               /* status   - encode has started */
     eNotify_EncodeStopped,               /* status   - encode has stopped */
     eNotify_VideoSourceChanged,          /* status   - video source has changed */
+    eNotify_VideoStreamChanged,          /* status   - video stream has changed */
+    eNotify_VideoPlmChanged,             /* status   - video programmable luma mapping (PLM) changed */
     eNotify_VideoDecodeStarted,          /* status   - video decode started */
     eNotify_VideoDecodeStopped,          /* status   - video decode stopped */
     eNotify_AudioSourceChanged,          /* status   - audio source has changed */

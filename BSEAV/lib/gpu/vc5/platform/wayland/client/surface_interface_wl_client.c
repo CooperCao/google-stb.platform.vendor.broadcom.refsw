@@ -63,6 +63,21 @@ static void buffer_created(void *data, struct wl_nexus *wl_nexus,
    cb->info.byteSize = pitch * cb->info.height;
 }
 
+static void buffer_out_of_memory(void *data, struct wl_nexus *wl_nexus,
+      struct wl_buffer *buffer)
+{
+   WaylandClientSurfaceInterface *wcsi = (WaylandClientSurfaceInterface *)data;
+
+   /* find a WaylandClientBuffer structure that matches this wl_buffer */
+   WaylandClientBuffer *cb = FindClientBuffer(wcsi, buffer);
+   assert(cb);
+
+   cb->info.pitchBytes = 0;
+   cb->info.physicalOffset = 0;
+   cb->info.cachedAddr = NULL;
+   cb->info.byteSize = 0;
+}
+
 static bool create_surface(void *context, void *surface, uint32_t width,
       uint32_t height, BEGL_BufferFormat format, bool secure)
 {
@@ -113,7 +128,8 @@ end:
 static void destroy(void *context)
 {
    WaylandClientSurfaceInterface *wcsi = (WaylandClientSurfaceInterface *)context;
-   assert(list_empty(&wcsi->buffers));
+   if (wcsi)
+      assert(list_empty(&wcsi->buffers));
    free(wcsi);
 }
 
@@ -136,6 +152,7 @@ bool SurfaceInterface_InitWlClient(SurfaceInterface *si,
    static const struct wl_nexus_listener nexusListener =
    {
          .buffer_created = buffer_created,
+         .buffer_out_of_memory = buffer_out_of_memory,
    };
    wl_nexus_add_listener(client->nexus, &nexusListener, wcsi);
    return true;

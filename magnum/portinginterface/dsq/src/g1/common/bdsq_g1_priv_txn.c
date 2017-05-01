@@ -48,9 +48,9 @@ BDBG_MODULE(bdsq_g1_priv_txn);
 
 #ifndef BDSQ_INCLUDE_VSENSE_ONLY
 /******************************************************************************
- BDSQ_g1_Txn_P_GetOddParity()
+ BDSQ_g1_Txn_P_GetOddParity_isrsafe()
 ******************************************************************************/
-bool BDSQ_g1_Txn_P_GetOddParity(uint8_t data)
+bool BDSQ_g1_Txn_P_GetOddParity_isrsafe(uint8_t data)
 {
    uint8_t count = 0;
    while (data > 0)
@@ -337,7 +337,7 @@ void BDSQ_g1_Txn_P_RxAlmostFull_isr(void *p, int param)
       hChn->rxBuf[0] |= 0xC0;
 
       /* compare calculated parity of corrected first byte against original parity*/
-      if (BDSQ_g1_Txn_P_GetOddParity(hChn->rxBuf[0]) ^ (val & 1))
+      if (BDSQ_g1_Txn_P_GetOddParity_isrsafe(hChn->rxBuf[0]) ^ (val & 1))
       {
          /* parity mismatch */
          hChn->dsecStatus.status = BDSQ_SendStatus_eRxParityError;
@@ -458,7 +458,7 @@ void BDSQ_g1_Txn_P_DiseqcDone_isr(void *p, int param)
          }
 
          /* compare calculated parity of corrected first byte against original parity*/
-         if (BDSQ_g1_Txn_P_GetOddParity(hChn->rxBuf[0]) ^ (val & 1))
+         if (BDSQ_g1_Txn_P_GetOddParity_isrsafe(hChn->rxBuf[0]) ^ (val & 1))
          {
             /* parity mismatch */
             hChn->dsecStatus.status = BDSQ_SendStatus_eRxParityError;

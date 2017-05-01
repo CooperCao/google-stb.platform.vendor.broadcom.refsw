@@ -56,6 +56,10 @@
 #include "nexus_platform_boardcfg.h"
 #endif
 #include "nexus_core_utils.h"
+#include "nexus_dma.h"
+#ifdef SAGE_SUPPORT
+#include "sage_srai.h"
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -63,6 +67,10 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "bmp4_util.h"
+
+#ifdef USE_TEST_CA_TA
+#include "test_ca_ids.h"
+#endif
 
 BDBG_MODULE(encode_piff_example);
 
@@ -78,7 +86,10 @@ static char DS_ID[] = "AH+03juKbUGbHl1V/QIwRA==";
 
 PIFF_encoder_handle g_piff_handle;
 
-static bool secure_video = false;
+static const uint8_t bmp4_nal[] = {0x00, 0x00, 0x00, 0x01};
+
+static NEXUS_DmaHandle g_dmaHandle = NULL;
+static NEXUS_DmaJobHandle g_dmaJob = NULL;
 
 const char usage_str[] =
 "\n"
@@ -91,25 +102,46 @@ const char usage_str[] =
 
 #define DUMP_DATA_HEX(string,data,size) { \
    char tmp[512]= "\0"; \
+   uint8_t* ptr = (uint8_t*)data; \
    uint32_t i=0, l=strlen(string); \
    sprintf(tmp,"%s",string); \
    while (i<size && l < 512) { \
-    sprintf(tmp+l," %02x", data[i]); ++i; l+=3;} \
-   printf(tmp); printf("\n"); \
-   BDBG_MSG((tmp)); \
+    sprintf(tmp+l," %02x", ptr[i]); ++i; l+=3;} \
+   BDBG_LOG((tmp)); \
 }
 
-#define UPDATE_FRAGMENT_DURATION(app,fragment_duration) { \
-    uint32_t i=0; \
-    for (; i<app.run_header.sample_count; ++i) { \
-        fragment_duration += app.samples[i].duration; \
-    } \
-}
-
-#define BOX_HEADER_SIZE (8)
-#define MAX_SAMPLES (1024)
-#define MAX_PPS_SPS 256
 #define BUF_SIZE (1024 * 1024 * 2) /* 2MB */
+
+#define REPACK_VIDEO_PES_ID 0xE0
+#define REPACK_AUDIO_PES_ID 0xC0
+
+/* Convert 90kHz-base duration to 45kHz-base PTS */
+#define CONVERT_TO_PTS(duration) ((uint64_t)(duration) * 45000LL / BMP4_ISO_TIMESCALE_90KHZ)
+
+#ifdef USE_TEST_CA_TA
+/* Values for spiderman_aes.ts */
+#define VIDEO_CODEC_TS NEXUS_VideoCodec_eMpeg2
+#define VIDEO_PID_TS 0x11
+#define AUDIO_CODEC_TS NEXUS_AudioCodec_eAc3
+#define AUDIO_PID_TS 0x14
+
+int prepare_keyslots(
+    int playback,
+    NEXUS_KeySlotHandle *pM2mKeySlotHandle,
+    NEXUS_KeySlotHandle *pCaKeySlotHandle,
+    uint32_t exportTAid,
+    bool bIsPacketMode,
+    BSAGElib_SharedBlock *block);
+void clean_keyslots(
+    NEXUS_KeySlotHandle m2mKeySlotHandle,
+    NEXUS_KeySlotHandle CaKeySlotHandle);
+#else
+/* Values avatar_AVC_15M.ts */
+#define VIDEO_CODEC_TS NEXUS_VideoCodec_eH264
+#define VIDEO_PID_TS 0x101
+#define AUDIO_CODEC_TS NEXUS_AudioCodec_eAc3
+#define AUDIO_PID_TS 0x104
+#endif
 
 typedef enum bdrm_encr_state {
     bdrm_encr_none = (0), /* no encryption */
@@ -201,7 +233,11 @@ typedef struct app_ctx {
 
     batom_factory_t factory;
 
+    int video_decode_hdr;
+    uint8_t *pAvccHdr;
     uint8_t *pPayload;
+    uint8_t *pAudioHeaderBuf;
+    uint8_t *pVideoHeaderBuf;
 
     struct decoder_configuration avc_config;
     struct decoder_configuration aac_config;
@@ -213,15 +249,15 @@ typedef struct app_ctx {
     bmp4_track_fragment_header fragment_header;
     bmp4_track_fragment_run_header run_header;
     /* bmp4_trackextendsbox track_extends; */
-    bmp4_track_fragment_run_sample samples[MAX_SAMPLES];
+    bmp4_track_fragment_run_sample samples[PIFF_MAX_SAMPLES];
 
     /* samples encryption box */
     bdrm_mp4_se samples_enc;
 
     uint8_t contentKey[16];
 
-    uint64_t last_video_fragment_duration;
-    uint64_t last_audio_fragment_duration;
+    uint64_t last_video_fragment_time;
+    uint64_t last_audio_fragment_time;
 
     DRM_Prdy_DecryptContext_t pDecryptor;
 } app_ctx;
@@ -257,10 +293,125 @@ static void mem_file_seek(mem_file *file, size_t offset)
     return;
 }
 
+static int parse_esds_config(uint8_t* pBuf, bmedia_info_aac *info_aac, size_t payload_size)
+{
+    bmedia_adts_header adts_header;
+
+    bmedia_adts_header_init_aac(&adts_header, info_aac);
+    adts_header.adts[2] = 0x50;
+    bmedia_adts_header_fill(pBuf, &adts_header, payload_size);
+    return 0;
+}
+
+static int parse_avcc_config(uint8_t *avcc_hdr, size_t *hdr_len, size_t *nalu_len,
+        uint8_t *cfg_data, size_t cfg_data_size)
+{
+    bmedia_h264_meta meta;
+    unsigned int i, sps_len, pps_len;
+    uint8_t *data;
+    uint8_t *dst;
+
+    bmedia_read_h264_meta(&meta, cfg_data, cfg_data_size);
+
+    *nalu_len = meta.nalu_len;
+
+    data = (uint8_t *)meta.sps.data;
+    dst = avcc_hdr;
+    *hdr_len = 0;
+
+    for(i = 0; i < meta.sps.no; i++)
+    {
+        sps_len = (((uint16_t)data[0]) <<8) | data[1];
+        data += 2;
+        /* Add NAL */
+        BKNI_Memcpy(dst, bmp4_nal, sizeof(bmp4_nal)); dst += sizeof(bmp4_nal);
+        /* Add SPS */
+        BKNI_Memcpy(dst, data, sps_len);
+        dst += sps_len;
+        data += sps_len;
+        *hdr_len += (sizeof(bmp4_nal) + sps_len);
+    }
+
+    data = (uint8_t *)meta.pps.data;
+    for (i = 0; i < meta.pps.no; i++)
+    {
+        pps_len = (((uint16_t)data[0]) <<8) | data[1];
+        data += 2;
+        /* Add NAL */
+        BKNI_Memcpy(dst, bmp4_nal, sizeof(bmp4_nal));
+        dst += sizeof(bmp4_nal);
+        /* Add PPS */
+        BKNI_Memcpy(dst, data, pps_len);
+        dst += pps_len;
+        data += pps_len;
+        *hdr_len += (sizeof(bmp4_nal) + pps_len);
+    }
+    return 0;
+}
+
+static void _P_DmaXfer(void *pDest, const void *pSrc, size_t nSize)
+{
+    NEXUS_Error rc;
+
+    BDBG_MSG(("%s: dest:%p, src:%p, size:%d", __FUNCTION__, pDest, pSrc, nSize));
+
+    if (g_dmaJob == NULL) {
+        BDBG_MSG(("%s: setting up DmaJob", __FUNCTION__));
+        g_dmaHandle = NEXUS_Dma_Open(NEXUS_ANY_ID, NULL);
+        if (g_dmaHandle == NULL) {
+            BDBG_ERR(("%s: Failed to NEXUS_Dma_Open !!!", __FUNCTION__));
+            return;
+        }
+
+        NEXUS_DmaJobSettings dmaJobSettings;
+        NEXUS_DmaJob_GetDefaultSettings(&dmaJobSettings);
+        dmaJobSettings.completionCallback.callback = NULL;
+        dmaJobSettings.bypassKeySlot = NEXUS_BypassKeySlot_eG2GR;
+        g_dmaJob = NEXUS_DmaJob_Create(g_dmaHandle, &dmaJobSettings);
+
+        if (g_dmaJob == NULL) {
+            BDBG_ERR(("%s: Failed to NEXUS_DmaJob_Create !!!", __FUNCTION__));
+            return;
+        }
+    }
+
+    NEXUS_DmaJobBlockSettings blockSettings;
+    NEXUS_DmaJob_GetDefaultBlockSettings(&blockSettings);
+    blockSettings.pSrcAddr = pSrc;
+    blockSettings.pDestAddr = pDest;
+    blockSettings.blockSize = nSize;
+    blockSettings.cached = false;
+
+    NEXUS_FlushCache(blockSettings.pSrcAddr, blockSettings.blockSize);
+
+    rc = NEXUS_DmaJob_ProcessBlocks(g_dmaJob, &blockSettings, 1);
+    if (rc == NEXUS_DMA_QUEUED) {
+        for (;;) {
+            NEXUS_DmaJobStatus status;
+            rc = NEXUS_DmaJob_GetStatus(g_dmaJob, &status);
+            if (rc != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s: DmaJob_GetStatus err=%d", __FUNCTION__, rc));
+                return;
+            }
+            if (status.currentState == NEXUS_DmaJobState_eComplete ) {
+                break;
+            }
+            BKNI_Delay(1);
+        }
+    }
+    else {
+        BDBG_ERR(("%s: error in dma transfer, err:%d", __FUNCTION__, rc));
+        return;
+    }
+
+    NEXUS_FlushCache(blockSettings.pSrcAddr, blockSettings.blockSize);
+
+    return;
+}
 
 int decrypt_sample(app_ctx_t app,
     uint32_t sampleSize,
-    batom_cursor * cursor,
+    uint8_t *pBuffer,
     bdrm_mp4_box_se_sample *pSample,
     uint32_t *bytes_processed)
 {
@@ -272,6 +423,7 @@ int decrypt_sample(app_ctx_t app,
 
     *bytes_processed = 0;
 
+    BKNI_Memset(&aesCtrInfo.qwInitializationVector, 0, 16);
     BKNI_Memcpy(&aesCtrInfo.qwInitializationVector, &pSample->iv[8], 8);
     aesCtrInfo.qwBlockOffset = 0;
     aesCtrInfo.bByteOffset = 0;
@@ -283,14 +435,13 @@ int decrypt_sample(app_ctx_t app,
             if (DRM_Prdy_Reader_Decrypt(
                 &app->pDecryptor,
                 &aesCtrInfo,
-                (uint8_t *)cursor->cursor,
-                /*(uint8_t *)cursor->cursor,*/
+                pBuffer,
                 sampleSize) != DRM_Prdy_ok)
             {
-                printf("Reader_Decrypt failed\n");
+                BDBG_ERR(("Reader_Decrypt failed"));
                 rc = -1;
             }
-            cursor->cursor += sampleSize;
+            pBuffer += sampleSize;
             *bytes_processed = sampleSize;
             break;
         }
@@ -301,8 +452,8 @@ int decrypt_sample(app_ctx_t app,
             for (ii = 0; ii < pSample->nbOfEntries; ii++) {
                 uint32_t num_clear = pSample->entries[ii].bytesOfClearData;
                 uint32_t num_enc = pSample->entries[ii].bytesOfEncData;
-                *bytes_processed  += num_clear + num_enc;
-                batom_cursor_skip((batom_cursor *)cursor, num_clear);
+                *bytes_processed += num_clear + num_enc;
+                pBuffer += num_clear;
  
                 aesCtrInfo.qwBlockOffset = qwOffset / 16;
                 aesCtrInfo.bByteOffset = qwOffset % 16;
@@ -310,21 +461,20 @@ int decrypt_sample(app_ctx_t app,
                 if (DRM_Prdy_Reader_Decrypt(
                     &app->pDecryptor,
                     &aesCtrInfo,
-                    (uint8_t *)cursor->cursor,
-                    /*(uint8_t *)cursor->cursor,*/
+                    pBuffer,
                     num_enc) != DRM_Prdy_ok)
                 {
-                    printf("Reader_Decrypt failed\n");
+                    BDBG_ERR(("Reader_Decrypt failed"));
                     rc = -1;
                     goto ErrorExit;
                 } 
 
-                batom_cursor_skip((batom_cursor *)cursor, num_enc);
+                pBuffer += num_enc;
                 qwOffset = num_enc;
 
                 if (*bytes_processed > sampleSize)
                 {
-                    printf("Wrong buffer size is detected while decrypting the ciphertext, bytes processed %d, sample size to decrypt %d\n", *bytes_processed, sampleSize);
+                    BDBG_ERR(("Wrong buffer size is detected while decrypting the ciphertext, bytes processed %d, sample size to decrypt %d\n", *bytes_processed, sampleSize));
                     rc = -1;
                     goto ErrorExit;
                 }
@@ -334,7 +484,7 @@ int decrypt_sample(app_ctx_t app,
         default:
         {
             rc = -1;
-            fprintf(stderr, "Detected unknown type %d of fragment, can't continues\n", app->track_type[app->fragment_header.track_ID]);
+            BDBG_ERR(("Detected unknown type %d of fragment, can't continues\n", app->track_type[app->fragment_header.track_ID]));
             goto ErrorExit;
         }
     } /* switch */
@@ -344,96 +494,158 @@ ErrorExit:
     return rc;
 }
 
-int decrypt_fragment(app_ctx_t app, batom_cursor *cursor, uint32_t payload_size, bdrm_mp4_se *pSamples_enc)
+int process_fragment(
+    app_ctx_t app,
+    batom_cursor *cursor,
+    NEXUS_PlaypumpHandle videoPlaypump,
+    NEXUS_PlaypumpHandle audioPlaypump,
+    BKNI_EventHandle event)
 {
     int rc = 0;
-    uint32_t ii, bytes_processed;
+    uint32_t ii, bytes_processed, actual_payload;
     bdrm_mp4_box_se_sample *pSample;
+    bdrm_mp4_se *pSamples_enc = &app->samples_enc;
+    size_t pes_header_len;
+    bmedia_pes_info pes_info;
+    uint64_t frag_duration;
+    uint8_t *pSrc;
+    NEXUS_PlaypumpHandle playpump;
+    NEXUS_PlaypumpStatus playpumpStatus;
+    uint8_t *playpumpBuffer;
+    size_t bufferSize;
 
-    bytes_processed = 0;
+    actual_payload = 0;
+
+    if (app->track_type[app->fragment_header.track_ID] == eVIDEO)
+    {
+        playpump = videoPlaypump;
+    }
+    else if (app->track_type[app->fragment_header.track_ID] == eAUDIO)
+    {
+        playpump = audioPlaypump;
+    }
+
     if (pSamples_enc->sample_count != 0){
         for (ii = 0; ii < pSamples_enc->sample_count; ii++){
             uint32_t numOfByteDecrypted = 0;
             uint32_t sampleSize = 0;
             pSample = &pSamples_enc->samples[ii];
             sampleSize = app->samples[ii].size;
+            bytes_processed = 0;
+            pSrc = (uint8_t*)cursor->cursor;
 
-            if (decrypt_sample(app, sampleSize, cursor, pSample, &numOfByteDecrypted) != 0) {
-                printf("Failed to decrypt sample, can't continue...\n");
-                return -1;
-                break;
-            } 
+            /* get playpump buffer first */
+            NEXUS_Playpump_GetStatus(playpump, &playpumpStatus);
+            for (;;) {
+                NEXUS_Playpump_GetBuffer(playpump, (void**)&playpumpBuffer, &bufferSize);
+                if (bufferSize >= sampleSize) {
+                    break;
+                }
+                if (bufferSize == 0) {
+                    BKNI_WaitForEvent(event, 100);
+                    continue;
+                }
+                if ((uint8_t *)playpumpBuffer >= (uint8_t *)playpumpStatus.bufferBase + (playpumpStatus.fifoSize - sampleSize)) {
+                    NEXUS_Playpump_WriteComplete(playpump, bufferSize, 0); /* skip buffer what wouldn't be big enough */
+                }
+            }
+
+            if (app->track_type[app->fragment_header.track_ID] == eVIDEO) {
+                /* H.264 Decoder configuration parsing */
+                size_t avcc_hdr_size;
+                size_t nalu_len = 0;
+                parse_avcc_config(app->pAvccHdr, &avcc_hdr_size, &nalu_len,
+                    (uint8_t*)app->avc_config.data, app->avc_config.size);
+
+                bmedia_pes_info_init(&pes_info, REPACK_VIDEO_PES_ID);
+                frag_duration = app->last_video_fragment_time +
+                    (int32_t)app->samples[ii].composition_time_offset;
+                app->last_video_fragment_time += app->samples[ii].duration;
+
+                pes_info.pts_valid = true;
+                pes_info.pts = (uint32_t)CONVERT_TO_PTS(frag_duration);
+
+                if (app->video_decode_hdr == 0) {
+                    pes_header_len = bmedia_pes_header_init(app->pVideoHeaderBuf,
+                    (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
+                } else {
+                    pes_header_len = bmedia_pes_header_init(app->pVideoHeaderBuf,
+                    sampleSize - nalu_len + sizeof(bmp4_nal), &pes_info);
+                }
+
+                if (pes_header_len > 0) {
+                    _P_DmaXfer(playpumpBuffer, app->pVideoHeaderBuf, pes_header_len);
+                    bytes_processed += pes_header_len;
+                    playpumpBuffer += pes_header_len;
+                }
+
+                if (app->video_decode_hdr == 0) {
+                    _P_DmaXfer(playpumpBuffer, app->pAvccHdr, avcc_hdr_size);
+                    bytes_processed += avcc_hdr_size;
+                    playpumpBuffer += avcc_hdr_size;
+                    app->video_decode_hdr = 1;
+                }
+
+                /* insert NAL headers per entry */
+                uint32_t dst_offset = 0;
+                do {
+                    uint32_t entryDataSize;
+                    entryDataSize = batom_cursor_uint32_be(cursor);
+                    BKNI_Memcpy(pSrc + dst_offset, (uint8_t*)bmp4_nal, sizeof(bmp4_nal));
+                    dst_offset += sizeof(entryDataSize);
+                    dst_offset += entryDataSize;
+                    batom_cursor_skip(cursor, entryDataSize);
+                } while (dst_offset < sampleSize);
+
+                /* transfer all payload to playpumpBuffer */
+                _P_DmaXfer(playpumpBuffer, pSrc, sampleSize);
+
+                /* then decrypt in place */
+                if (decrypt_sample(app, sampleSize, playpumpBuffer, pSample, &numOfByteDecrypted) != 0) {
+                    BDBG_ERR(("Failed to decrypt sample, can't continue...\n"));
+                    return -1;
+                    break;
+                }
+            } else if (app->track_type[app->fragment_header.track_ID] == eAUDIO) {
+                bmedia_pes_info_init(&pes_info, REPACK_AUDIO_PES_ID);
+                frag_duration = app->last_audio_fragment_time +
+                    (int32_t)app->samples[ii].composition_time_offset;
+                app->last_audio_fragment_time += app->samples[ii].duration;
+
+                pes_info.pts_valid = true;
+                pes_info.pts = (uint32_t)CONVERT_TO_PTS(frag_duration);
+
+                pes_header_len = bmedia_pes_header_init(app->pAudioHeaderBuf,
+                    (sampleSize + BMEDIA_ADTS_HEADER_SIZE), &pes_info);
+
+                /* AAC information parsing */
+                bmedia_info_aac *info_aac = (bmedia_info_aac *)&app->aac_config.data;
+                parse_esds_config(app->pAudioHeaderBuf + pes_header_len, info_aac, sampleSize);
+
+                _P_DmaXfer(playpumpBuffer, app->pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+                bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
+                playpumpBuffer += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
+                batom_cursor_skip(cursor, sampleSize);
+
+                /* transfer all payload to playpumpBuffer */
+                _P_DmaXfer(playpumpBuffer, pSrc, sampleSize);
+
+                /* then decrypt in place */
+                if (decrypt_sample(app, sampleSize, playpumpBuffer, pSample, &numOfByteDecrypted) != 0) {
+                    BDBG_ERR(("Failed to decrypt sample, can't continue...\n"));
+                    return -1;
+                    break;
+                }
+            }
+
             bytes_processed += numOfByteDecrypted;
-        }
-    }
+            actual_payload += numOfByteDecrypted;
 
-    if (bytes_processed != payload_size) {
-        printf("the number of bytes %d decrypted doesn't match the actual size %d of the payload, return failure...\n", bytes_processed, payload_size);
-        rc = -1;
+            NEXUS_Playpump_WriteComplete(playpump, 0, bytes_processed); /* skip buffer what wouldn't be big enough */
+        }
     }
 
     return rc;
-}
-
-#undef BMP4_FRAGMENT_PRIMITIVES_ONLY
-#define BMP4_FRAGMENT_MAKE_EMBEDDED 1
-#define FILE mem_file
-#define fwrite(p,s,n,f) mem_file_write(f,p,(s*n))
-#define fseek(f, o, w) mem_file_seek(f, o)
-#define ftell(f) mem_file_tell(f)
-#include "bmp4_fragment_make_segment.c"
-#undef FILE
-#undef fwrite
-#undef fseek
-#undef ftell
-
-static int send_fragment_data(
-    uint8_t *pData,
-    uint32_t dataSize,
-    uint8_t trackId,
-    uint64_t start_time,
-    NEXUS_PlaypumpHandle playpump,
-    BKNI_EventHandle event,
-    const struct decoder_configuration *avc_config,
-    const char *fourcc)
-{
-    NEXUS_PlaypumpStatus playpumpStatus;
-    size_t offset;
-    uint64_t timescale = 90000;
-    mem_file fout;
-    size_t fragment_size = dataSize;
-    void *playpumpBuffer;
-    size_t bufferSize;
-
-    NEXUS_Playpump_GetStatus(playpump, &playpumpStatus);
-    fragment_size += 512;
-    BDBG_ASSERT(fragment_size <= playpumpStatus.fifoSize);
-    for (;;) {
-        NEXUS_Playpump_GetBuffer(playpump, &playpumpBuffer, &bufferSize);
-        if (bufferSize >= fragment_size) {
-            break;
-        }
-        if (bufferSize == 0) {
-            BKNI_WaitForEvent(event, 100);
-            continue;
-        }
-        if ((uint8_t *)playpumpBuffer >= (uint8_t *)playpumpStatus.bufferBase + (playpumpStatus.fifoSize - fragment_size)) {
-            NEXUS_Playpump_WriteComplete(playpump, bufferSize, 0); /* skip buffer what wouldn't be big enough */
-        }
-    }
-    fout.buf = playpumpBuffer;
-    fout.buf_len = bufferSize;
-    mem_file_seek(&fout, 0);
-    fout.length = 0;
-
-    offset = start_mp4_box(&fout, "bmp4");
-    write_bhed_box(&fout, timescale, start_time, fourcc);
-    write_bdat_box(&fout, avc_config->data, avc_config->size);
-    write_trex_box(&fout, trackId, 0, 0, 0, 0);
-    write_data(&fout, pData, dataSize);
-    finish_mp4_box(&fout, offset);
-    NEXUS_Playpump_WriteComplete(playpump, 0, fout.length); /* skip buffer what wouldn't be big enough */
-    return 0;
 }
 
 static void play_callback(void *context, int param)
@@ -524,6 +736,8 @@ static int complete_play_fragments(
     }
     NEXUS_Playpump_Close(videoPlaypump);
     NEXUS_Playpump_Close(audioPlaypump);
+    NEXUS_VideoDecoder_Close(videoDecoder);
+    NEXUS_AudioDecoder_Close(audioDecoder);
     BKNI_DestroyEvent(event);
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);
@@ -551,7 +765,7 @@ bool find_box_in_file(batom_factory_t factory,
         size_to_read = BOX_HEADER_SIZE; /* Read box header */
         size = fread(pBuf, 1, size_to_read, fp);
         if (size != size_to_read) {
-            fprintf(stderr,"fread failed\n");
+            BDBG_ERR(("%s(%d): fread failed", __FUNCTION__, __LINE__));
             break;
         }
 
@@ -576,7 +790,7 @@ bool find_box_in_file(batom_factory_t factory,
             size = fread(pBuf + BOX_HEADER_SIZE, 1, size_to_read, fp);
             /* printf("Read the rest of the box ==> need to read %d, buffer size %d, size read %d\n",size_to_read,BUF_SIZE,size); */
             if (size != size_to_read) {
-                fprintf(stderr,"fread failed\n");
+                BDBG_ERR(("%s(%d): fread failed", __FUNCTION__, __LINE__));
                 break;
             }
 
@@ -609,9 +823,9 @@ bool find_box_cursor(app_ctx_t ctx, uint32_t box_type, batom_cursor *cursor)
         batom_cursor_save(cursor, &checkpoint);
 
         curr_box_size= batom_cursor_uint32_be(cursor);
-        printf("t %x\n", curr_box_size);
+        BDBG_MSG(("\t %x", curr_box_size));
         curr_box_type = batom_cursor_uint32_be(cursor);
-        printf("curr_box_type" B_MP4_TYPE_FORMAT"\n", B_MP4_TYPE_ARG(curr_box_type));
+        BDBG_MSG(("curr_box_type" B_MP4_TYPE_FORMAT, B_MP4_TYPE_ARG(curr_box_type)));
         if (curr_box_type != box_type){
             /* Go to next box */
             batom_cursor_skip(cursor, curr_box_size - BOX_HEADER_SIZE);
@@ -647,7 +861,7 @@ bool get_box_for_type(batom_cursor *cursor, bmp4_box parent_box, uint32_t target
         printf(" type " B_MP4_TYPE_FORMAT"\n",B_MP4_TYPE_ARG(target_box.type));
         */
         if (box_hdr_size == 0) {
-            printf("%s empty box - %d\n", __FUNCTION__, __LINE__);
+            BDBG_LOG(("%s empty box - %d", __FUNCTION__, __LINE__));
             break;
         }
         if (target_box.type == target_box_type) {
@@ -680,7 +894,7 @@ bool app_parse_sample_enc(app_ctx_t app, batom_cursor *cursor, bmp4_box senc_box
         app->samples_enc.sample_count = batom_cursor_uint32_be(cursor);
         if (app->samples_enc.sample_count != 0){
             if (app->samples_enc.sample_count > SAMPLES_POOL_SIZE){
-                printf("Sample pools too small, increase SAMPLES_POOL_SIZE, number of samples: %d\n", app->samples_enc.sample_count);
+                BDBG_ERR(("Sample pools too small, increase SAMPLES_POOL_SIZE, number of samples: %d", app->samples_enc.sample_count));
                 return false;
             }
             pSample = app->samples_enc.samples;
@@ -745,7 +959,7 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
         {    
             box_hdr_size = bmp4_parse_box(cursor, &box);
             if (box_hdr_size==0) {
-                printf("%s - %d\n", __FUNCTION__, __LINE__);
+                BDBG_ERR(("%s - %d: box_hdr_size=0\n", __FUNCTION__, __LINE__));
                 break;
             }
 
@@ -757,7 +971,7 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
                     bmp4_parse_track_fragment_header(cursor, &app->fragment_header);
                     trackId = (uint8_t)app->fragment_header.track_ID;
                     if (app->track_type[trackId] != eAUDIO && app->track_type[trackId] != eVIDEO) {
-                        printf("Detected an unknown type of fragment, skip this fragment...\n");
+                        BDBG_WRN(("Detected an unknown type of fragment, skip this fragment..."));
                         skipThisFrg = true;
                     }
                     break;
@@ -767,8 +981,8 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
                     bmp4_parse_track_fragment_run_header(cursor, &app->run_header);
 
                     /* printf("app->run_header.sample_count %d\n", app->run_header.sample_count); */
-                    if (app->run_header.sample_count > MAX_SAMPLES){
-                        printf("we don't have enough samples desc in the pool to store all the samples in the fragment\n");
+                    if (app->run_header.sample_count > PIFF_MAX_SAMPLES){
+                        BDBG_ERR(("we don't have enough samples desc in the pool to store all the samples in the fragment"));
                         goto ErrorExit;
                     }
 
@@ -783,7 +997,7 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
                     break;
                 case BMP4_CENC_SAMPLEENCRYPTION:
                     if (!app_parse_sample_enc(app, cursor, box)) {
-                        printf("Failed to parse sample enc box, can't continue...\n");
+                        BDBG_ERR(("Failed to parse sample enc box, can't continue..."));
                         rc = false;
                         goto ErrorExit;
                     }
@@ -796,7 +1010,7 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
             }
 
             if (skipThisFrg) {
-               printf("not a video track, skip over to next moof box...\n");
+               BDBG_WRN(("not a video track, skip over to next moof box..."));
                rc = false;
                break; 
             }
@@ -804,7 +1018,7 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
 
         if (rc && !senc_parsed)
         {
-            printf("no sample enc box is found, the media may be unprotected...\n");
+            BDBG_WRN(("no sample enc box is found, the media may be unprotected..."));
         } 
     }
     else {
@@ -861,17 +1075,17 @@ bool app_parse_trak(app_ctx_t app, batom_cursor *cursor, bmp4_box trak_box)
                batom_cursor_skip(cursor, 4);/* skip 4 bytes */
                /* get the track type */
                trackType = batom_cursor_uint32_be(cursor);
-               printf("track type : " B_MP4_TYPE_FORMAT"\n", B_MP4_TYPE_ARG(trackType));
+               BDBG_LOG(("track type : " B_MP4_TYPE_FORMAT, B_MP4_TYPE_ARG(trackType)));
                if (trackType == BMP4_TYPE('s','o','u','n')) {
-                   printf("Found track %d : audio\n", trackId);
+                   BDBG_LOG(("Found track %d : audio", trackId));
                    app->track_type[trackId] = eAUDIO;
                }
                else if (trackType == BMP4_TYPE('v','i','d','e')) {
-                   printf("Found track %d : video\n", trackId);
+                   BDBG_LOG(("Found track %d : video", trackId));
                    app->track_type[trackId] = eVIDEO;
                }
                else {
-                   printf("Detected an unknown track type, skip this track...\n"); 
+                   BDBG_WRN(("Detected an unknown track type, skip this track..."));
                }
                batom_cursor_rollback(cursor, &mdia_start);
            }
@@ -934,7 +1148,7 @@ bool app_parse_trak(app_ctx_t app, batom_cursor *cursor, bmp4_box trak_box)
                                                    batom_cursor_skip(cursor, 4); /* skips 4 bytes to get the key id */
                                                    batom_cursor_copy(cursor, kid, 16);
                                                    bbase64_encode(kid, 16, kidBase64,24);
-                                                   printf("Key ID = %s\n ",kidBase64);
+                                                   BDBG_LOG(("Key ID = %s",kidBase64));
                                                    /*
                                                    DUMP_DATA_HEX("Key ID = ", kid,16);
                                                    if (gen_key_from_seed(kid,app->contentKey) != 0) {
@@ -1015,7 +1229,7 @@ bool app_parse_moov(app_ctx_t app, batom_t atom)
                     /* printf("Found the Trak box "B_MP4_TYPE_FORMAT"\n",B_MP4_TYPE_ARG(box.type)); */
                     rc = app_parse_trak(app, &cursor, box);
                     if (!rc) {
-                        fprintf(stderr, "Failed to parse track box, exiting...\n");
+                        BDBG_ERR(("Failed to parse track box, exiting..."));
                         break;
                     }
                 }
@@ -1115,7 +1329,7 @@ bool app_parse_moof(app_ctx_t app, batom_t atom)
 void policy_callback(void *context, int param)
 {
     BSTD_UNUSED(param);
-    printf("policy_callback - event %p\n", context);
+    BDBG_LOG(("policy_callback - event %p", context));
 }
 
 static int usage(void)
@@ -1124,26 +1338,36 @@ static int usage(void)
     return 0;
 }
 
-void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
-    NEXUS_AudioDecoderHandle audioDecoder,
+void playback_piff(
     PIFF_encoder_handle piff_handle,
     DRM_Prdy_Handle_t drm_context,
-    char *piff_file,
-    NEXUS_StcChannelHandle stcChannel)
+    char *piff_file)
 {
+    NEXUS_VideoDecoderHandle videoDecoderPlayback;
+    NEXUS_AudioDecoderHandle audioDecoderPlayback;
+    NEXUS_VideoDecoderOpenSettings videoDecoderopenSettings;
+    NEXUS_AudioDecoderOpenSettings audioDecoderopenSettings;
+#ifdef SAGE_SUPPORT
+    uint8_t *pSecureVideoHeapBuffer = NULL;
+    uint8_t *pSecureAudioHeapBuffer = NULL;
+#endif
+
     NEXUS_PlatformConfiguration platformConfig;
+    NEXUS_MemoryAllocationSettings memSettings;
     NEXUS_VideoWindowHandle window;
     NEXUS_DisplayHandle display;
-    NEXUS_PidChannelHandle videoPidChannel;
     BKNI_EventHandle event;
+    NEXUS_PidChannelHandle videoPidChannel;
+    NEXUS_PidChannelHandle audioPidChannel;
     NEXUS_PlaypumpHandle videoPlaypump;
     NEXUS_PlaypumpHandle audioPlaypump;
 
-    NEXUS_PidChannelHandle audioPidChannel;
-
 #if NEXUS_HAS_PLAYBACK
+    NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PlaypumpSettings playpumpSettings;
+    NEXUS_PlaypumpOpenSettings videoPlaypumpOpenSettings;
+    NEXUS_PlaypumpOpenSettings audioPlaypumpOpenSettings;
     NEXUS_Error rc;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
@@ -1156,22 +1380,18 @@ void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
     uint16_t kidBase64W[25] = {0};
     uint32_t kidSize=0;
 
-    BSTD_UNUSED(hex2bin);
-
     if (piff_file == NULL){
         goto clean_exit;
     }
 
-    printf("PIFF file: %s\n", piff_file);
+    BDBG_LOG(("PIFF file: %s", piff_file));
     fflush(stdout);
 
     BKNI_Memset(&app, 0, sizeof(app_ctx));
-    app.last_video_fragment_duration = 2000000;
-    app.last_audio_fragment_duration = 2000000;
 
     app.fp_piff = fopen(piff_file, "rb");
     if (app.fp_piff == NULL){
-        fprintf(stderr,"failed to open %s\n", piff_file);
+        BDBG_ERR(("failed to open %s", piff_file));
         goto clean_exit;
     }
 
@@ -1181,47 +1401,100 @@ void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
 
     if (drm_context == NULL)
     {
-       printf("drm_context is NULL, quitting....");
+       BDBG_ERR(("drm_context is NULL, quitting...."));
        goto clean_exit;
     }
 
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
-    if (NEXUS_Memory_Allocate(BUF_SIZE, NULL, (void *)&app.pPayload) != NEXUS_SUCCESS) {
-        fprintf(stderr,"NEXUS_Memory_Allocate failed");
+    NEXUS_Memory_GetDefaultAllocationSettings(&memSettings);
+    memSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
+
+    if (NEXUS_Memory_Allocate(MAX_PPS_SPS, &memSettings, (void **)&app.pAvccHdr) !=  NEXUS_SUCCESS) {
+        BDBG_ERR(("NEXUS_Memory_Allocate failed"));
+        goto clean_up;
+    }
+
+    if (NEXUS_Memory_Allocate(BUF_SIZE, &memSettings, (void *)&app.pPayload) != NEXUS_SUCCESS) {
+        BDBG_ERR(("NEXUS_Memory_Allocate failed"));
+        goto clean_up;
+    }
+
+    if (NEXUS_Memory_Allocate(BMEDIA_PES_HEADER_MAX_SIZE + MAX_PPS_SPS, &memSettings, (void *)&app.pAudioHeaderBuf) != NEXUS_SUCCESS) {
+        BDBG_ERR(("NEXUS_Memory_Allocate failed"));
+        goto clean_up;
+    }
+
+    if (NEXUS_Memory_Allocate(BMEDIA_PES_HEADER_MAX_SIZE + MAX_PPS_SPS, &memSettings, (void *)&app.pVideoHeaderBuf) != NEXUS_SUCCESS) {
+        BDBG_ERR(("NEXUS_Memory_Allocate failed"));
         goto clean_up;
     }
 
     app.factory = batom_factory_create(bkni_alloc, 256);
 
     if (!find_box_in_file(app.factory, app.fp_piff, app.pPayload, BMP4_MOVIE, &piff_container, &app.piff_filesize,&box_size)) {
-        printf("could not find moov\n");
+        BDBG_ERR(("could not find moov"));
     }
     else {
         moovBoxParsed = app_parse_moov(&app, piff_container);
     }
 
     if (!moovBoxParsed) {
-        printf("Failed to parse moov box, can't continue...\n");
+        BDBG_ERR(("Failed to parse moov box, can't continue..."));
         goto clean_up;
     }
 
-    printf("Successfully parsed the moov box, continue...\n\n");
+    BDBG_LOG(("Successfully parsed the moov box, continue...\n"));
+
+    NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
+    stcSettings.timebase = NEXUS_Timebase_e0;
+    stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+    stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
     /* EXTRACT AND PLAYBACK THE MDAT */
+    NEXUS_Playpump_GetDefaultOpenSettings(&videoPlaypumpOpenSettings);
+    videoPlaypumpOpenSettings.fifoSize *= 7;
+    videoPlaypumpOpenSettings.numDescriptors *= 7;
+#ifdef SAGE_SUPPORT
+    videoPlaypumpOpenSettings.dataNotCpuAccessible = true;
+    pSecureVideoHeapBuffer = SRAI_Memory_Allocate(videoPlaypumpOpenSettings.fifoSize,
+            SRAI_MemoryType_SagePrivate);
+    if ( pSecureVideoHeapBuffer == NULL ) {
+        BDBG_ERR((" Failed to allocate from Secure Video heap"));
+        BDBG_ASSERT( false );
+    }
+    videoPlaypumpOpenSettings.memory = NEXUS_MemoryBlock_FromAddress(pSecureVideoHeapBuffer);
+#else
+    videoPlaypumpOpenSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
+    videoPlaypumpOpenSettings.boundsHeap = NEXUS_MEMC0_MAIN_HEAP;
+#endif
+    videoPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &videoPlaypumpOpenSettings);
 
-    videoPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
-    audioPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
+    NEXUS_Playpump_GetDefaultOpenSettings(&audioPlaypumpOpenSettings);
+#ifdef SAGE_SUPPORT
+    audioPlaypumpOpenSettings.dataNotCpuAccessible = true;
+    pSecureAudioHeapBuffer = SRAI_Memory_Allocate(audioPlaypumpOpenSettings.fifoSize,
+            SRAI_MemoryType_SagePrivate);
+    if ( pSecureAudioHeapBuffer == NULL ) {
+        BDBG_ERR((" Failed to allocate Secure Audio heap"));
+        BDBG_ASSERT( false );
+    }
+    audioPlaypumpOpenSettings.memory = NEXUS_MemoryBlock_FromAddress(pSecureAudioHeapBuffer);
+#else
+    audioPlaypumpOpenSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
+    audioPlaypumpOpenSettings.boundsHeap = NEXUS_MEMC0_MAIN_HEAP;
+#endif
+    audioPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &audioPlaypumpOpenSettings);
+
     assert(videoPlaypump);
     assert(audioPlaypump);
-
-    /* bring up decoder and connect to local display */
 
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     BKNI_CreateEvent(&event);
 
-    display = NEXUS_Display_Open(0, NULL);
+    /* bring up decoder and connect to secure display */
+    display = NEXUS_Display_Open(1, NULL);
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
 #endif
@@ -1248,47 +1521,81 @@ void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
     NEXUS_Playpump_GetSettings(videoPlaypump, &playpumpSettings);
     playpumpSettings.dataCallback.callback = play_callback;
     playpumpSettings.dataCallback.context = event;
-    playpumpSettings.transportType = NEXUS_TransportType_eMp4Fragment;
+/*    playpumpSettings.transportType = NEXUS_TransportType_eMp4Fragment;*/
+    playpumpSettings.transportType = NEXUS_TransportType_eMpeg2Pes;
     NEXUS_Playpump_SetSettings(videoPlaypump, &playpumpSettings);
 
     NEXUS_Playpump_GetSettings(audioPlaypump, &playpumpSettings);
     playpumpSettings.dataCallback.callback = play_callback;
     playpumpSettings.dataCallback.context = event;
-    playpumpSettings.transportType = NEXUS_TransportType_eMp4Fragment;
+/*    playpumpSettings.transportType = NEXUS_TransportType_eMp4Fragment;*/
+    playpumpSettings.transportType = NEXUS_TransportType_eMpeg2Pes;
     NEXUS_Playpump_SetSettings(audioPlaypump, &playpumpSettings);
 
-    if (videoDecoder) {
+    NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderopenSettings);
+#ifdef SAGE_SUPPORT
+    videoDecoderopenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+    videoDecoderopenSettings.secureVideo = true;
+#endif
+    /* videoDecoder0 - secure */
+    videoDecoderPlayback = NEXUS_VideoDecoder_Open(0, &videoDecoderopenSettings);
+
+    NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderopenSettings);
+#ifdef SAGE_SUPPORT
+    audioDecoderopenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+#endif
+    audioDecoderPlayback = NEXUS_AudioDecoder_Open(0, &audioDecoderopenSettings);
+
+    if (videoDecoderPlayback) {
         NEXUS_PlaypumpOpenPidChannelSettings videoPidSettings;
         NEXUS_VideoDecoderStartSettings videoProgram;
-        NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+        NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoderPlayback));
         NEXUS_Playpump_GetDefaultOpenPidChannelSettings(&videoPidSettings);
         videoPidSettings.pidType = NEXUS_PidType_eVideo;
-        videoPidChannel = NEXUS_Playpump_OpenPidChannel(videoPlaypump, 2, &videoPidSettings);
+        videoPidChannel = NEXUS_Playpump_OpenPidChannel(videoPlaypump, REPACK_VIDEO_PES_ID, &videoPidSettings);
+#ifdef SAGE_SUPPORT
+        NEXUS_SetPidChannelBypassKeyslot(videoPidChannel, NEXUS_BypassKeySlot_eGR2R);
+#endif
         NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
         videoProgram.codec = NEXUS_VideoCodec_eH264;
         videoProgram.pidChannel = videoPidChannel;
         videoProgram.stcChannel = stcChannel;
-        videoProgram.progressiveOverrideMode = NEXUS_VideoDecoderProgressiveOverrideMode_eDisable;
-        videoProgram.timestampMode = NEXUS_VideoDecoderTimestampMode_eDisplay;
-        NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+/*        videoProgram.progressiveOverrideMode = NEXUS_VideoDecoderProgressiveOverrideMode_eDisable;
+        videoProgram.timestampMode = NEXUS_VideoDecoderTimestampMode_eDisplay;*/
+        NEXUS_VideoDecoder_Start(videoDecoderPlayback, &videoProgram);
     }
 
-    if (audioDecoder) {
+    if (audioDecoderPlayback) {
         NEXUS_AudioDecoderStartSettings audioProgram;
         NEXUS_PlaypumpOpenPidChannelSettings audioPidSettings;
+#if NEXUS_NUM_AUDIO_DACS
         NEXUS_AudioOutput_AddInput(
-                NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoderPlayback, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+#if NEXUS_NUM_SPDIF_OUTPUTS
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoderPlayback, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+#if NEXUS_NUM_HDMI_OUTPUTS
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoderPlayback, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+
         NEXUS_Playpump_GetDefaultOpenPidChannelSettings(&audioPidSettings);
         audioPidSettings.pidType = NEXUS_PidType_eAudio;
-        audioPidChannel = NEXUS_Playpump_OpenPidChannel(audioPlaypump, 1, &audioPidSettings);
-
+        audioPidChannel = NEXUS_Playpump_OpenPidChannel(audioPlaypump, REPACK_AUDIO_PES_ID, &audioPidSettings);
+#ifdef SAGE_SUPPORT
+        NEXUS_SetPidChannelBypassKeyslot(audioPidChannel, NEXUS_BypassKeySlot_eGR2R);
+#endif
         NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
         audioProgram.codec = NEXUS_AudioCodec_eAacPlusAdts; /* NEXUS_AudioCodec_eAacAdts; */
         audioProgram.pidChannel = audioPidChannel;
         audioProgram.stcChannel = stcChannel;
 
-        NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
+        NEXUS_AudioDecoder_Start(audioDecoderPlayback, &audioProgram);
     }
 
     NEXUS_Playpump_Start(videoPlaypump);
@@ -1310,7 +1617,7 @@ void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
         kidBase64W,
         &kidSize) != PIFF_ENCODE_SUCCESS)
     {
-        printf("Failed to get the key id, exiting...\n");
+        BDBG_ERR(("Failed to get the key id, exiting..."));
         goto clean_exit;
     }
 
@@ -1322,7 +1629,7 @@ void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
         (uint8_t *) kidBase64W,
         kidSize*sizeof(uint16_t)) != DRM_Prdy_ok)
     {
-        printf("Failed to SetProperty for the KID, exiting...\n");
+        BDBG_ERR(("Failed to SetProperty for the KID, exiting..."));
         goto clean_exit;
     }
 
@@ -1330,13 +1637,13 @@ void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
     if (DRM_Prdy_Reader_Bind(drm_context,
         &app.pDecryptor)!= DRM_Prdy_ok)
     {
-        printf("Failed to Bind the license, the license may not exist. Exiting...\n");
+        BDBG_ERR(("Failed to Bind the license, the license may not exist. Exiting..."));
         goto clean_exit;
     }
 
     if (DRM_Prdy_Reader_Commit(drm_context) != DRM_Prdy_ok)
     {
-        printf("Failed to Commit the license after Reader_Bind, exiting...\n");
+        BDBG_ERR(("Failed to Commit the license after Reader_Bind, exiting..."));
         goto clean_exit;
     }
 
@@ -1368,70 +1675,56 @@ void playback_piff(NEXUS_VideoDecoderHandle videoDecoder,
                     &app.piff_filesize,
                     &mdat_size))
                 {
-                    uint64_t start_time;
                     batom_cursor cursor;
                     bmp4_box mdat;
                     batom_cursor_from_atom(&cursor, piff_container);
                     bmp4_parse_box(&cursor, &mdat);
                     if (mdat.type == BMP4_MOVIE_DATA)
                     {
-                        if (decrypt_fragment(&app, &cursor, mdat.size - 8, &app.samples_enc) == 0)
-                        {
-                            if (app.track_type[app.fragment_header.track_ID] == eVIDEO)
-                            {
-                                start_time = app.last_video_fragment_duration;
-                                UPDATE_FRAGMENT_DURATION(app, app.last_video_fragment_duration);
-                                send_fragment_data(app.pPayload,
-                                    mdat_size + moof_size,
-                                    app.fragment_header.track_ID,
-                                    start_time,
-                                    videoPlaypump,
-                                    event,
-                                    &app.avc_config,
-                                    "avc1");
-                            }
-                            else if (app.track_type[app.fragment_header.track_ID] == eAUDIO)
-                            {
-                                start_time = app.last_audio_fragment_duration;
-                                UPDATE_FRAGMENT_DURATION(app, app.last_audio_fragment_duration);
-                                send_fragment_data(app.pPayload,
-                                    mdat_size + moof_size,
-                                    app.fragment_header.track_ID,
-                                    start_time,
-                                    audioPlaypump,
-                                    event,
-                                    &app.aac_config,
-                                    "mp4a");
-                            }
-                        }
-                        else
-                        {
-                            printf("decrypt_fragment returned failure.\n");
-                        }
+                        process_fragment(&app, &cursor,
+                            videoPlaypump,
+                            audioPlaypump,
+                            event);
                     }
                 }
                 else
                 {
-                    printf("could not find mdat in reference file\n");
+                    BDBG_ERR(("could not find mdat in reference file"));
                     break;
                 }
             }
             else
             {
-                printf("Not the fragment we're looking for, check the next one... \n");
+                BDBG_ERR(("Not the fragment we're looking for, check the next one..."));
             }
         }
     } /* while */
 
-    complete_play_fragments(audioDecoder, videoDecoder, videoPlaypump, audioPlaypump,
+    complete_play_fragments(audioDecoderPlayback, videoDecoderPlayback, videoPlaypump, audioPlaypump,
         display, audioPidChannel, videoPidChannel, window, event);
 
 clean_up:
+    NEXUS_StcChannel_Close(stcChannel);
     if (app.pDecryptor.pDecrypt != NULL) DRM_Prdy_Reader_Close(&app.pDecryptor);
+    if (app.pAvccHdr) NEXUS_Memory_Free(app.pAvccHdr);
     if (app.pPayload) NEXUS_Memory_Free(app.pPayload);
+    if (app.pAudioHeaderBuf) NEXUS_Memory_Free(app.pAudioHeaderBuf);
+    if (app.pVideoHeaderBuf) NEXUS_Memory_Free(app.pVideoHeaderBuf);
     batom_factory_destroy(app.factory);
 
     if (app.fp_piff) fclose(app.fp_piff);
+#ifdef SAGE_SUPPORT
+    if (pSecureVideoHeapBuffer) SRAI_Memory_Free(pSecureVideoHeapBuffer);
+    if (pSecureAudioHeapBuffer) SRAI_Memory_Free(pSecureAudioHeapBuffer);
+#endif
+    if (g_dmaHandle != NULL) {
+        if (g_dmaJob) {
+            NEXUS_DmaJob_Destroy(g_dmaJob);
+            g_dmaJob = NULL;
+        }
+        NEXUS_Dma_Close(g_dmaHandle);
+        g_dmaHandle = NULL;
+    }
 
 clean_exit:
     return;
@@ -1444,7 +1737,7 @@ static void *getchar_thread(void *c)
     *key_pressed = true;
     if (g_piff_handle != NULL)
     {
-        printf("Key pressed, stopping the piff encoding here\n");
+        BDBG_LOG(("Key pressed, stopping the piff encoding here"));
         piff_encode_stop(g_piff_handle);
         g_piff_handle = NULL;
     }
@@ -1456,10 +1749,10 @@ static void play_endOfStreamCallback(void *context, int param)
     BSTD_UNUSED(context);
     BSTD_UNUSED(param);
 
-    printf("End of stream detected\n");
+    BDBG_LOG(("End of stream detected"));
     if (g_piff_handle != NULL)
     {
-        printf("Stop piff encoding.\n");
+        BDBG_LOG(("Stop piff encoding"));
         piff_encode_stop(g_piff_handle);
         g_piff_handle = NULL;
     }
@@ -1468,7 +1761,7 @@ static void play_endOfStreamCallback(void *context, int param)
 
 static void piffEncodeComplete(void * context)
 {
-    printf("%s\n", __FUNCTION__);
+    BDBG_LOG(("%s", __FUNCTION__));
     BKNI_SetEvent((BKNI_EventHandle)context);
 }
 
@@ -1509,7 +1802,17 @@ int main(int argc, char* argv[])
     bool key_pressed = false;
     pthread_t getchar_thread_id;
     NEXUS_DisplaySettings displaySettings;
+#ifdef USE_TEST_CA_TA
+    int err;
+    uint32_t exportTaId = BSAGE_PLATFORM_ID_PLAYREADY_25;
+    BSAGElib_SharedBlock block;
+    NEXUS_KeySlotHandle caKeyHandle = NULL;
+    NEXUS_PidChannelStatus pidStatus;
+
+    char fname[] = "videos/spiderman_aes.ts";
+#else
     char fname[] = "videos/avatar_AVC_15M.ts";
+#endif
     char fout[] = "piff.mp4";
 
     /* DRM_Prdy specific */
@@ -1549,30 +1852,32 @@ int main(int argc, char* argv[])
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
 
-    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
-    if (secure_video)
-    {
-        int i, j;
+#ifdef NEXUS_EXPORT_HEAP
+    /* Configure export heap since it's not allocated by nexus by default */
+    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024*1024;
+#endif
 
-        /* Request secure picture buffers, i.e. URR
-        * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
-        /* For now default to SVP2.0 type configuration (i.e. ALL buffers are
-        * secure ONLY */
-        for (i = 0; i < NEXUS_NUM_VIDEO_DECODERS; i++)
-        {
-            memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eSecure;
-        }
-        for (i = 0; i < NEXUS_NUM_DISPLAYS; i++)
-        {
-            for (j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++)
-            {
-                memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
-            }
-        }
+    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+#ifdef SAGE_SUPPORT
+    if (NEXUS_NUM_VIDEO_DECODERS < 2) {
+        BDBG_ERR(("This app needs 2 or more video decoders"));
+        goto clean_exit;
     }
+    if (NEXUS_NUM_DISPLAYS < 2) {
+        BDBG_ERR(("This app needs 2 or more displays"));
+        goto clean_exit;
+    }
+    /* Set videoDecoder0 to secure */
+    memConfigSettings.videoDecoder[0].secure = NEXUS_SecureVideo_eSecure;
+    /* Set display1 to secure */
+    int j;
+    for (j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++) {
+        memConfigSettings.display[1].window[j].secure = NEXUS_SecureVideo_eSecure;
+    }
+#endif
 
     if (NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings)) {
-        fprintf(stderr, "NEXUS_Platform_Init failed\n");
+        BDBG_ERR(("NEXUS_Platform_Init failed"));
         goto clean_exit;
     }
 
@@ -1580,9 +1885,20 @@ int main(int argc, char* argv[])
 
     BKNI_CreateEvent(&event);
 
-    printf("Creating the Event...\n");
+    BDBG_LOG(("Creating the Event..."));
 
-    printf("Finish waiting...\n");
+#ifdef USE_TEST_CA_TA
+    /* allocate shared mem to get isolation context */
+    block.len = ISOLATION_CONTEXT_SIZE;
+    block.data.ptr = SRAI_Memory_Allocate(
+        ISOLATION_CONTEXT_SIZE, SRAI_MemoryType_Shared);
+    BDBG_ASSERT(block.data.ptr != NULL);
+
+    BDBG_LOG(("Preparing key slots..."));
+    err = prepare_keyslots(0, NULL, &caKeyHandle, exportTaId, true, &block);
+    BDBG_ASSERT(err == 0);
+#endif
+
     playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
     assert(playpump);
     playback = NEXUS_Playback_Create();
@@ -1590,7 +1906,7 @@ int main(int argc, char* argv[])
 
     file = NEXUS_FilePlay_OpenPosix(fname, NULL);
     if (!file) {
-        fprintf(stderr, "can't open file:%s\n", fname);
+        BDBG_ERR(("can't open file: %s", fname));
         goto clean_exit;
     }
 
@@ -1612,42 +1928,17 @@ int main(int argc, char* argv[])
     /* i.e NEXUS_TransportType_eMp4, NEXUS_TransportType_eAvi ...                      */
     playbackSettings.playpumpSettings.transportType = NEXUS_TransportType_eTs;
     playbackSettings.stcChannel = stcChannel;
-
+    playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
     playbackSettings.endOfStreamCallback.callback = play_endOfStreamCallback;
     playbackSettings.endOfStreamCallback.context = NULL;
 
     NEXUS_Playback_SetSettings(playback, &playbackSettings);
 
-    printf("Create a DRM_Prdy_context");
-    DRM_Prdy_GetDefaultParamSettings(&prdyParamSettings);
-    drm_context = DRM_Prdy_Initialize(&prdyParamSettings);
-    if (drm_context == NULL)
-    {
-       printf("Failed to create drm_context, quitting....");
-       goto clean_exit;
-    }
-
-    printf("Create a piff handle\n");
-    piff_GetDefaultSettings(&piffSettings);
-    piffSettings.destPiffFileName = fout;
-    piffSettings.completionCallBack.callback = piffEncodeComplete;
-    piffSettings.completionCallBack.context = event;
-    /*
-    piffSettings.licAcqDSId = DS_ID;
-    piffSettings.licAcqDSIdLen = strlen(DS_ID);
-    */
-    piff_handle = piff_create_encoder_handle(&piffSettings, drm_context);
-    if (piff_handle == NULL) {
-        printf("FAILED to create piff handle, I'm quitting...\n");
-        return 0;
-    }
-    printf("created a piff handle\n");
-    g_piff_handle = piff_handle;
-
     /* bring up decoder and connect to local display */
-    videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
+    /* videoDecoder1 - unsecure */
+    videoDecoder = NEXUS_VideoDecoder_Open(1, NULL);
 
-    audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
+    audioDecoder = NEXUS_AudioDecoder_Open(1, NULL);
 
     /* NOTE: must open video encoder before display; otherwise open will init ViCE2 core
      * which might cause encoder display GISB error since encoder display would
@@ -1699,18 +1990,24 @@ int main(int argc, char* argv[])
     /* Open the video pid channel */
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-    playbackPidSettings.pidTypeSettings.video.codec = NEXUS_VideoCodec_eH264; /* must be told codec for correct handling */
+    playbackPidSettings.pidTypeSettings.video.codec = VIDEO_CODEC_TS; /* must be told codec for correct handling */
     playbackPidSettings.pidTypeSettings.video.index = true;
     playbackPidSettings.pidTypeSettings.video.decoder = videoDecoder;
-    videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, 0x101, &playbackPidSettings);
+    videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, VIDEO_PID_TS, &playbackPidSettings);
+
+#ifdef USE_TEST_CA_TA
+    /* In case it is a CA-encrypted stream, attach Video PIDs to CA keyslots */
+    NEXUS_PidChannel_GetStatus(videoPidChannel, &pidStatus);
+    NEXUS_Security_AddPidChannelToKeySlot(caKeyHandle, pidStatus.pidChannelIndex);
+#endif
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up
     the audio outputs. */
     NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
-    videoProgram.codec = NEXUS_VideoCodec_eH264;
+    videoProgram.codec = VIDEO_CODEC_TS;
     videoProgram.pidChannel = videoPidChannel;
     videoProgram.stcChannel = stcChannel;
- 
+
     NEXUS_VideoEncoder_GetSettings(videoEncoder, &videoEncoderConfig);
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
     videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e29_97;
@@ -1728,12 +2025,11 @@ int main(int argc, char* argv[])
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
     playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder; /* must be told codec for correct handling */
-    audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, 0x104, &playbackPidSettings);
+    audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO_PID_TS, &playbackPidSettings);
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
-
-    audioProgram.codec = NEXUS_AudioCodec_eAc3;
+    audioProgram.codec = AUDIO_CODEC_TS;
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
 
@@ -1752,6 +2048,12 @@ int main(int argc, char* argv[])
     NEXUS_AudioOutput_AddInput(
         NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+
+#ifdef USE_TEST_CA_TA
+    /* In case it is a CA-encrypted stream, attach Audio PIDs to CA keyslots */
+    NEXUS_PidChannel_GetStatus(audioPidChannel, &pidStatus);
+    NEXUS_Security_AddPidChannelToKeySlot(caKeyHandle, pidStatus.pidChannelIndex);
 #endif
 
     {
@@ -1777,7 +2079,6 @@ int main(int argc, char* argv[])
         NEXUS_AudioMuxOutput_Start(audioMuxOutput, &audioMuxStartSettings);
         NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
     }
-
 
     /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
@@ -1828,7 +2129,7 @@ int main(int argc, char* argv[])
     BDBG_WRN(("\n\tVideo encoder end-to-end delay = [%u ~ %u] ms", videoDelay.min/27000, videoDelay.max/27000));
     videoEncoderConfig.encoderDelay = videoDelay.min;
 
-    printf("PIFF encoding starts. Press Enter to stop or wait for the encoding to finish.\n");
+    BDBG_LOG(("PIFF encoding starts. Press Enter to stop or wait for the encoding to finish"));
     fflush(stdout);
 
     /* note the Dee is set by SetSettings */
@@ -1836,16 +2137,42 @@ int main(int argc, char* argv[])
     NEXUS_VideoEncoder_Start(videoEncoder, &videoEncoderStartConfig);
     NEXUS_VideoEncoder_GetStatus(videoEncoder, &videoEncoderStatus);
 
-    printf("Create thread for the key pressed.\n");
+    BDBG_LOG(("Create thread for the key pressed"));
     pthread_create(&getchar_thread_id, NULL, getchar_thread, &key_pressed);
 
-    printf("Start piff encoding.\n");
+    BDBG_LOG(("Create a DRM_Prdy_context"));
+    DRM_Prdy_GetDefaultParamSettings(&prdyParamSettings);
+    drm_context = DRM_Prdy_Initialize(&prdyParamSettings);
+    if (drm_context == NULL)
+    {
+       BDBG_ERR(("Failed to create drm_context, quitting...."));
+       goto clean_exit;
+    }
+
+    BDBG_LOG(("Create a piff handle"));
+    piff_GetDefaultSettings(&piffSettings);
+    piffSettings.destPiffFileName = fout;
+    piffSettings.completionCallBack.callback = piffEncodeComplete;
+    piffSettings.completionCallBack.context = event;
+    /*
+    piffSettings.licAcqDSId = DS_ID;
+    piffSettings.licAcqDSIdLen = strlen(DS_ID);
+    */
+    piff_handle = piff_create_encoder_handle(&piffSettings, drm_context);
+    if (piff_handle == NULL) {
+        BDBG_ERR(("FAILED to create piff handle, I'm quitting..."));
+        return 0;
+    }
+    BDBG_LOG(("Piff handle created successfully"));
+    g_piff_handle = piff_handle;
+
+    BDBG_LOG(("Start piff encoding"));
     piff_encode_start(audioMuxOutput, videoEncoder, piff_handle);
-    printf("piff encoding started...\n");
+    BDBG_LOG(("piff encoding started..."));
 
     BKNI_WaitForEvent(event, BKNI_INFINITE);
 
-    printf("PIFF Encoding completed.\n");
+    BDBG_LOG(("PIFF Encoding completed"));
 
     NEXUS_VideoEncoder_Stop(videoEncoder, NULL);
 
@@ -1862,15 +2189,7 @@ int main(int argc, char* argv[])
     NEXUS_FilePlay_Close(file);
     NEXUS_Playback_Destroy(playback);
     NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(videoDecoder));
-    NEXUS_VideoWindow_Close(windowTranscode);
-    NEXUS_Display_Close(displayTranscode);
-
     NEXUS_Playpump_Close(playpump);
-
-    printf("Starting playback stcChannel=%p\n", (void*)stcChannel);
-
-    playback_piff(videoDecoder, audioDecoder, piff_handle, drm_context,
-        "piff.mp4", stcChannel);
 
     NEXUS_VideoDecoder_Close(videoDecoder);
     NEXUS_StcChannel_Close(stcChannel);
@@ -1880,11 +2199,21 @@ int main(int argc, char* argv[])
     NEXUS_VideoEncoder_Close(videoEncoder);
     NEXUS_StcChannel_Close(stcChannelEncoder);
 
+    NEXUS_VideoWindow_Close(windowTranscode);
+    NEXUS_Display_Close(displayTranscode);
+
+#ifdef USE_TEST_CA_TA
+    clean_keyslots(NULL, caKeyHandle);
+#endif
+
+    BKNI_DestroyEvent(event);
+
+    BDBG_LOG(("Starting playback"));
+    playback_piff(piff_handle, drm_context, "piff.mp4");
+
     piff_destroy_encoder_handle(piff_handle);
 
     DRM_Prdy_Uninitialize(drm_context);
-
-    BKNI_DestroyEvent(event);
 
     NEXUS_Platform_Uninit();
 

@@ -110,19 +110,21 @@ static int server(void)
     parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
 
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#elif NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#else
-#error test not supported
-#endif
 
     NEXUS_GetAudioCapabilities(&cap);
+
+    if (cap.numOutputs.dac > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
+    if (cap.numOutputs.hdmi > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
     while (loops--) {
         NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
         audioProgram.codec = audioCodec;

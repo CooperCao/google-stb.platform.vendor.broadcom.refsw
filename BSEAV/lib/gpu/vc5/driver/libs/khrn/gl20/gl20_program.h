@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 2.0 program structure declaration.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GL20_PROGRAM_H
 #define GL20_PROGRAM_H
 
@@ -98,7 +90,7 @@ typedef struct GL20_PROGRAM_T_ {
    GL20_SHADER_T      *geometry;
 #endif
    GL20_SHADER_T      *compute;
-   KHRN_MEM_HANDLE_T   mh_info;
+   khrn_mem_handle_t   mh_info;
    char               *debug_label;
 
    GLSL_BINDING_T     *bindings;
@@ -133,8 +125,8 @@ extern bool gl20_detach_shader(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_T *progr
 // Exposed for glxx_server_transform_feedback.c
 extern GL20_PROGRAM_T *gl20_get_program(GLXX_SERVER_STATE_T *state, GLuint p);
 
-extern GLSL_BLOCK_T *gl20_get_ubo_from_index (GLSL_PROGRAM_T *p, unsigned int index);
-extern GLSL_BLOCK_T *gl20_get_ssbo_from_index(GLSL_PROGRAM_T *p, unsigned int index);
+extern const GLSL_BLOCK_T *gl20_get_ubo_from_index (const GLSL_PROGRAM_T *p, unsigned int index);
+extern const GLSL_BLOCK_T *gl20_get_ssbo_from_index(const GLSL_PROGRAM_T *p, unsigned int index);
 
 // Returns common components of used program, or bound pipeline object program
 extern GL20_PROGRAM_COMMON_T *gl20_program_common_get(const GLXX_SERVER_STATE_T *state);            // Never returns NULL

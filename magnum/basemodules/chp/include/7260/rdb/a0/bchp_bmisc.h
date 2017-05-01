@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,11 +70,11 @@
 /***************************************************************************
  *BMISC - BVN Back Control Registers
  ***************************************************************************/
-#define BCHP_BMISC_SW_INIT                       0x2064b800 /* [RW] BVN Back Soft Init */
-#define BCHP_BMISC_BVNB_PDA_OUT_STATUS           0x2064b810 /* [RO] BVN Back PDA Out Status */
-#define BCHP_BMISC_BVNB_PDA_PWR_UP_STATUS        0x2064b814 /* [RO] BVN Back PDA Power Up Status */
-#define BCHP_BMISC_BVNB_CLOCK_CTRL               0x2064b818 /* [RW] BVN Back clock control register */
-#define BCHP_BMISC_SCRATCH_0                     0x2064b81c /* [RW] Scratch Register */
+#define BCHP_BMISC_SW_INIT                       0x2064b800 /* [RW][32] BVN Back Soft Init */
+#define BCHP_BMISC_BVNB_PDA_OUT_STATUS           0x2064b810 /* [RO][32] BVN Back PDA Out Status */
+#define BCHP_BMISC_BVNB_PDA_PWR_UP_STATUS        0x2064b814 /* [RO][32] BVN Back PDA Power Up Status */
+#define BCHP_BMISC_BVNB_CLOCK_CTRL               0x2064b818 /* [RW][32] BVN Back clock control register */
+#define BCHP_BMISC_SCRATCH_0                     0x2064b81c /* [RW][32] Scratch Register */
 
 /***************************************************************************
  *SW_INIT - BVN Back Soft Init

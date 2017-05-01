@@ -326,24 +326,14 @@ Example: 0x72310000 becomes "77231A0" */
     /* All done. now return the new fresh context to user. */
     *phChip = (BCHP_Handle)pChip;
 
-    /* Now, if we have power management, do a second reset of the Magnum cores. This second reset is
-     * necessary to reset the cores that might have been powered down during the first reset above.
-     * Make sure the Magnum hardware is powered up before the reset, then power it down afterwards.
-     */
-    #ifdef BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-        BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
-    #endif
-
-    #if BCHP_PWR_SUPPORT
-        BCHP_P_ResetMagnumCores( pChip );
-    #endif
-
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD0);
+#endif
     /* Clear AVD/SVD shutdown enable bit */
     BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
-
-    #ifdef BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-        BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
-    #endif
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD0);
+#endif
 
     BDBG_LEAVE(BCHP_Open7231);
     return BERR_SUCCESS;
@@ -634,6 +624,9 @@ static void BCHP_P_ResetGfxCore
     ( const BCHP_Handle                hChip,
       const BREG_Handle                hReg )
 {
+    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_AVD, true);
+    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_AVD_CH4, true);
+    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_M2MC, true);
     BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_GFX_108M, true);
 
     BREG_Write32(hReg, BCHP_SID_GR_SW_INIT_0, BCHP_FIELD_DATA(SID_GR_SW_INIT_0, SID_CLK_108_SW_INIT, 1));
@@ -642,6 +635,8 @@ static void BCHP_P_ResetGfxCore
 
 static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg )
 {
+    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_AVD, true);
+    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_AVD_CH3, true);
     BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D, true);
     BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_GFX_108M, true);
 
@@ -650,9 +645,6 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
 
     BREG_Write32(hReg, BCHP_V3D_CTL_INTCTL, ~0);
     BREG_Write32(hReg, BCHP_V3D_DBG_DBQITC, ~0);
-
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D, false);
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_GFX_108M, false);
 }
 
 /* This gets called regularly to handle the AVS processing */

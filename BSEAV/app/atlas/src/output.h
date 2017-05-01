@@ -273,6 +273,8 @@ public:
     virtual NEXUS_ColorSpace  getPreferredColorSpace(NEXUS_VideoFormat format);
     virtual void              setWidgetEngine(CWidgetEngine * pWidgetEngine);
 
+    eDynamicRange          getDynamicRange(void);
+    eRet                   setDynamicRange(eDynamicRange dynamicRange);
     CWidgetEngine *        getWidgetEngine(void) { return(_pWidgetEngine); }
     NEXUS_HdmiOutputHandle getOutput(void)       { return(_outputHdmi); }
     eRet                   connect(NEXUS_AudioInput input);

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,33 +70,33 @@
 /***************************************************************************
  *XPT_DPCR1 - XPT DPCR1 Control Registers
  ***************************************************************************/
-#define BCHP_XPT_DPCR1_PID_CH                    0x20a02080 /* [RW] Data Transport PCR PID Channel Register */
-#define BCHP_XPT_DPCR1_CTRL                      0x20a02084 /* [RW] Data Transport PCR Control Register */
-#define BCHP_XPT_DPCR1_INTR_STATUS_REG           0x20a02088 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_DPCR1_INTR_STATUS_REG_EN        0x20a0208c /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_DPCR1_STC_EXT_CTRL              0x20a02090 /* [RW] Data Transport PCR STC Extension Control Register */
-#define BCHP_XPT_DPCR1_MAX_PCR_ERROR             0x20a020a0 /* [RW] Data Transport PCR Max PCR Error Register */
-#define BCHP_XPT_DPCR1_SEND_BASE                 0x20a020a4 /* [RW] Data Transport PCR Send Base Register */
-#define BCHP_XPT_DPCR1_SEND_EXT                  0x20a020a8 /* [RW] Data Transport PCR Send Extension Register */
-#define BCHP_XPT_DPCR1_STC_EXT_CTRL27            0x20a020ac /* [RO] Data Transport PCR STC Extension Control Register (Test Only) */
-#define BCHP_XPT_DPCR1_STC_HI                    0x20a020b0 /* [RO] Data Transport PCR STC MSBs Register */
-#define BCHP_XPT_DPCR1_STC_LO                    0x20a020b4 /* [RO] Data Transport PCR STC LSBs Register */
-#define BCHP_XPT_DPCR1_PWM_CTRLVALUE             0x20a020b8 /* [RO] Data Transport PCR PWM Control Value Register */
-#define BCHP_XPT_DPCR1_LAST_PCR_HI               0x20a020bc /* [RO] Data Transport PCR Last PCR MSBs Register */
-#define BCHP_XPT_DPCR1_LAST_PCR_LO               0x20a020c0 /* [RO] Data Transport PCR Last PCR LSBs Register */
-#define BCHP_XPT_DPCR1_STC_BASE_LSBS             0x20a020c8 /* [RO] Data Transport PCR STC Base LSBs Register */
-#define BCHP_XPT_DPCR1_PHASE_ERROR               0x20a020cc /* [RO] Timebase Last Phase Error */
-#define BCHP_XPT_DPCR1_LOOP_CTRL                 0x20a020d0 /* [RW] Timebase Control */
-#define BCHP_XPT_DPCR1_REF_PCR_PRESCALE          0x20a020d4 /* [RW] Timebase Frequency Reference Prescale Control */
-#define BCHP_XPT_DPCR1_REF_PCR_INC               0x20a020d8 /* [RW] Timebase Frequency Reference Increment Control */
-#define BCHP_XPT_DPCR1_CENTER                    0x20a020dc /* [RW] Timebase Center Frequency */
-#define BCHP_XPT_DPCR1_ACCUM_VALUE               0x20a020e0 /* [RW] Timebase Loop Filter Integrator */
-#define BCHP_XPT_DPCR1_PCR_COUNT                 0x20a020e4 /* [RO] Data Transport PCR Phase Error Register */
-#define BCHP_XPT_DPCR1_SOFT_PCR_CTRL             0x20a020e8 /* [RW] Data Transport Soft PCR Control Register */
-#define BCHP_XPT_DPCR1_SOFT_PCR_BASE             0x20a020ec /* [RW] Data Transport Soft PCR BASE Register */
-#define BCHP_XPT_DPCR1_SOFT_PCR_EXT              0x20a020f0 /* [RW] Data Transport Soft PCR Extension Register */
-#define BCHP_XPT_DPCR1_PHASE_ERROR_CLAMP         0x20a020f4 /* [RW] Timebase Phase Error Control */
-#define BCHP_XPT_DPCR1_TIMEBASE_INPUT_SEL        0x20a020f8 /* [RW] Timebase Input Select for Timebase Loop */
+#define BCHP_XPT_DPCR1_PID_CH                    0x20a02080 /* [RW][32] Data Transport PCR PID Channel Register */
+#define BCHP_XPT_DPCR1_CTRL                      0x20a02084 /* [RW][32] Data Transport PCR Control Register */
+#define BCHP_XPT_DPCR1_INTR_STATUS_REG           0x20a02088 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_DPCR1_INTR_STATUS_REG_EN        0x20a0208c /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_DPCR1_STC_EXT_CTRL              0x20a02090 /* [RW][32] Data Transport PCR STC Extension Control Register */
+#define BCHP_XPT_DPCR1_MAX_PCR_ERROR             0x20a020a0 /* [RW][32] Data Transport PCR Max PCR Error Register */
+#define BCHP_XPT_DPCR1_SEND_BASE                 0x20a020a4 /* [RW][32] Data Transport PCR Send Base Register */
+#define BCHP_XPT_DPCR1_SEND_EXT                  0x20a020a8 /* [RW][32] Data Transport PCR Send Extension Register */
+#define BCHP_XPT_DPCR1_STC_EXT_CTRL27            0x20a020ac /* [RO][32] Data Transport PCR STC Extension Control Register (Test Only) */
+#define BCHP_XPT_DPCR1_STC_HI                    0x20a020b0 /* [RO][32] Data Transport PCR STC MSBs Register */
+#define BCHP_XPT_DPCR1_STC_LO                    0x20a020b4 /* [RO][32] Data Transport PCR STC LSBs Register */
+#define BCHP_XPT_DPCR1_PWM_CTRLVALUE             0x20a020b8 /* [RO][32] Data Transport PCR PWM Control Value Register */
+#define BCHP_XPT_DPCR1_LAST_PCR_HI               0x20a020bc /* [RO][32] Data Transport PCR Last PCR MSBs Register */
+#define BCHP_XPT_DPCR1_LAST_PCR_LO               0x20a020c0 /* [RO][32] Data Transport PCR Last PCR LSBs Register */
+#define BCHP_XPT_DPCR1_STC_BASE_LSBS             0x20a020c8 /* [RO][32] Data Transport PCR STC Base LSBs Register */
+#define BCHP_XPT_DPCR1_PHASE_ERROR               0x20a020cc /* [RO][32] Timebase Last Phase Error */
+#define BCHP_XPT_DPCR1_LOOP_CTRL                 0x20a020d0 /* [RW][32] Timebase Control */
+#define BCHP_XPT_DPCR1_REF_PCR_PRESCALE          0x20a020d4 /* [RW][32] Timebase Frequency Reference Prescale Control */
+#define BCHP_XPT_DPCR1_REF_PCR_INC               0x20a020d8 /* [RW][32] Timebase Frequency Reference Increment Control */
+#define BCHP_XPT_DPCR1_CENTER                    0x20a020dc /* [RW][32] Timebase Center Frequency */
+#define BCHP_XPT_DPCR1_ACCUM_VALUE               0x20a020e0 /* [RW][32] Timebase Loop Filter Integrator */
+#define BCHP_XPT_DPCR1_PCR_COUNT                 0x20a020e4 /* [RO][32] Data Transport PCR Phase Error Register */
+#define BCHP_XPT_DPCR1_SOFT_PCR_CTRL             0x20a020e8 /* [RW][32] Data Transport Soft PCR Control Register */
+#define BCHP_XPT_DPCR1_SOFT_PCR_BASE             0x20a020ec /* [RW][32] Data Transport Soft PCR BASE Register */
+#define BCHP_XPT_DPCR1_SOFT_PCR_EXT              0x20a020f0 /* [RW][32] Data Transport Soft PCR Extension Register */
+#define BCHP_XPT_DPCR1_PHASE_ERROR_CLAMP         0x20a020f4 /* [RW][32] Timebase Phase Error Control */
+#define BCHP_XPT_DPCR1_TIMEBASE_INPUT_SEL        0x20a020f8 /* [RW][32] Timebase Input Select for Timebase Loop */
 
 #endif /* #ifndef BCHP_XPT_DPCR1_H__ */
 

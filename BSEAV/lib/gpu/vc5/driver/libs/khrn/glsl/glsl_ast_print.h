@@ -8,7 +8,8 @@
 #include "glsl_common.h"
 
 const char *glsl_storage_qual_string(StorageQualifier sq);
-const char *glsl_type_qual_string(TypeQualifier tq);
+const char *glsl_interp_qual_string(InterpolationQualifier iq);
+const char *glsl_aux_qual_string(AuxiliaryQualifier aq);
 const char *glsl_param_qual_string(ParamQualifier pq);
 
 /* The following functions are only defined if NDEBUG is not defined */

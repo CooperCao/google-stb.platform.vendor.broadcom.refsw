@@ -260,6 +260,7 @@ static void NEXUS_VideoDecoderModule_P_Print_Avd(void)
                 unsigned refreshRate;
                 #if !BDBG_NO_LOG
                 static const char *g_decodeModeStr[NEXUS_VideoDecoderDecodeMode_eMax] = {"All", "IP", "I"};
+                static const char *g_eotfStr[NEXUS_VideoEotf_eMax] = {"Sdr", "Hlg", "Hdr10", "Invalid"};
                 #endif
 
                 rc = NEXUS_VideoDecoder_GetStatus(videoDecoder, &status);
@@ -320,6 +321,19 @@ static void NEXUS_VideoDecoderModule_P_Print_Avd(void)
                         BDBG_LOG(("  Coded: %ux%u", status.coded.width, status.coded.height));
                     }
                 }
+
+                BDBG_LOG(("  Xfer Chars: %d, Preferred Xfer Chars: %d, Eotf: %s, Cll(Max): %d, Cll(Average): %d",
+                           videoDecoder->streamInfo.transferCharacteristics,
+                           videoDecoder->streamInfo.preferredTransferCharacteristics,
+                           ((videoDecoder->streamInfo.eotf < NEXUS_VideoEotf_eMax) ? g_eotfStr[videoDecoder->streamInfo.eotf] : "unknown"),
+                           videoDecoder->streamInfo.contentLightLevel.max,
+                           videoDecoder->streamInfo.contentLightLevel.maxFrameAverage));
+                BDBG_LOG(("  Mdvc: Red=%d,%d, Green=%d,%d, Blue=%d,%d, White=%d,%d, Luminance(max)=%d, Luminance(min)=%d",
+                        videoDecoder->streamInfo.masteringDisplayColorVolume.redPrimary.x, videoDecoder->streamInfo.masteringDisplayColorVolume.redPrimary.y,
+                        videoDecoder->streamInfo.masteringDisplayColorVolume.greenPrimary.x, videoDecoder->streamInfo.masteringDisplayColorVolume.greenPrimary.y,
+                        videoDecoder->streamInfo.masteringDisplayColorVolume.bluePrimary.x, videoDecoder->streamInfo.masteringDisplayColorVolume.bluePrimary.y,
+                        videoDecoder->streamInfo.masteringDisplayColorVolume.whitePoint.x, videoDecoder->streamInfo.masteringDisplayColorVolume.whitePoint.y,
+                        videoDecoder->streamInfo.masteringDisplayColorVolume.luminance.max, videoDecoder->streamInfo.masteringDisplayColorVolume.luminance.min));
             }
         }
     }
@@ -566,6 +580,73 @@ void NEXUS_VideoDecoder_P_GetRaveSettings(unsigned avdIndex, NEXUS_RaveOpenSetti
     pRaveSettings->heap = pOpenSettings->openSettings.cdbHeap;
 }
 
+/* set supportedCodecs[] based on module supportedCodecs[] and XVD's report of HW capabilities */
+static void NEXUS_VideoDecoder_P_GetDefaultSupportedCodecs_isrsafe(bool *supportedCodecs, unsigned index)
+{
+    NEXUS_VideoCodec i;
+    for (i=0;i<NEXUS_VideoCodec_eMax;i++) {
+        if (i == NEXUS_VideoCodec_eH264_Mvc || i == NEXUS_VideoCodec_eH264_Svc) {
+            /* don't propagate MVC/SVC from init-time to run-time settings. require app to set. */
+            supportedCodecs[i] = false;
+        }
+        else {
+            supportedCodecs[i] = g_NEXUS_videoDecoderCapabilities.memory[index].supportedCodecs[i];
+        }
+    }
+}
+
+void NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(NEXUS_VideoDecoderSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->dropFieldMode = false;
+    NEXUS_CallbackDesc_Init(&pSettings->appUserDataReady);
+    NEXUS_CallbackDesc_Init(&pSettings->sourceChanged);
+    NEXUS_CallbackDesc_Init(&pSettings->streamChanged);
+    NEXUS_CallbackDesc_Init(&pSettings->ptsError);
+    NEXUS_CallbackDesc_Init(&pSettings->firstPts);
+    NEXUS_CallbackDesc_Init(&pSettings->firstPtsPassed);
+    NEXUS_CallbackDesc_Init(&pSettings->fifoEmpty);
+    NEXUS_CallbackDesc_Init(&pSettings->afdChanged);
+    NEXUS_CallbackDesc_Init(&pSettings->decodeError);
+    NEXUS_CallbackDesc_Init(&pSettings->fnrtSettings.chunkDone);
+    NEXUS_CallbackDesc_Init(&pSettings->stateChanged.callback);
+    pSettings->maxWidth = 1920;
+    pSettings->maxHeight = 1080;
+    pSettings->maxFrameRate = NEXUS_VideoFrameRate_e60;
+    pSettings->colorDepth = 8; /* require app to select 10 bit */
+    pSettings->userDataFilterThreshold = 60; /* 2 seconds */
+    NEXUS_VideoDecoder_P_GetDefaultSupportedCodecs_isrsafe(pSettings->supportedCodecs, 0);
+}
+
+void NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(NEXUS_VideoDecoderPlaybackSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->firstPts);
+    NEXUS_CallbackDesc_Init(&pSettings->firstPtsPassed);
+}
+
+void NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(NEXUS_VideoDecoderExtendedSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->lowLatencySettings.controlPeriod = 3000;
+    pSettings->lowLatencySettings.latency = 100;
+    pSettings->lowLatencySettings.minLatency = 0;
+    pSettings->lowLatencySettings.maxLatency = 200;
+    NEXUS_CallbackDesc_Init(&pSettings->dataReadyCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->s3DTVStatusChanged);
+    pSettings->masteringDisplayColorVolume.redPrimary.x = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.redPrimary.y = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.greenPrimary.x = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.greenPrimary.y = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.bluePrimary.x = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.bluePrimary.y = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.whitePoint.x = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.whitePoint.y = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.luminance.max = 0xFFFFFFFF;
+    pSettings->masteringDisplayColorVolume.luminance.min = 0xFFFFFFFF;
+    pSettings->eotf = NEXUS_VideoEotf_eInvalid;
+}
+
 NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_RaveOpenSettings *raveSettings, const NEXUS_VideoDecoderOpenMosaicSettings *pOpenSettings)
 {
     NEXUS_Error rc;
@@ -682,46 +763,11 @@ NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDeco
     UNLOCK_TRANSPORT();
     if (openEnhancementRave && !videoDecoder->enhancementRave) {rc=BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto error;}
 
-    /* set default settings */
-    BKNI_Memset(&videoDecoder->settings, 0, sizeof(videoDecoder->settings));
-    videoDecoder->settings.dropFieldMode = false;
+    NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(&videoDecoder->settings);
+    NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(&videoDecoder->extendedSettings);
+    NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(&videoDecoder->playback.videoDecoderPlaybackSettings);
     BKNI_Memcpy(videoDecoder->settings.supportedCodecs, raveSettings->supportedCodecs, sizeof(videoDecoder->settings.supportedCodecs));
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.appUserDataReady);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.sourceChanged);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.streamChanged);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.ptsError);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.firstPts);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.firstPtsPassed);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.fifoEmpty);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.afdChanged);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.decodeError);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.fnrtSettings.chunkDone);
-    NEXUS_CallbackDesc_Init(&videoDecoder->settings.stateChanged.callback);
-    NEXUS_CallbackDesc_Init(&videoDecoder->playback.videoDecoderPlaybackSettings.firstPts);
-    NEXUS_CallbackDesc_Init(&videoDecoder->playback.videoDecoderPlaybackSettings.firstPtsPassed);
     NEXUS_CallbackDesc_Init(&videoDecoder->private.settings.streamChanged);
-
-    BKNI_Memset(&videoDecoder->extendedSettings.lowLatencySettings, 0, sizeof(NEXUS_VideoDecoderLowLatencySettings));
-    videoDecoder->extendedSettings.lowLatencySettings.controlPeriod = 3000;
-    videoDecoder->extendedSettings.lowLatencySettings.latency = 100;
-    videoDecoder->extendedSettings.lowLatencySettings.minLatency = 0;
-    videoDecoder->extendedSettings.lowLatencySettings.maxLatency = 200;
-    NEXUS_CallbackDesc_Init(&videoDecoder->extendedSettings.dataReadyCallback);
-    NEXUS_CallbackDesc_Init(&videoDecoder->extendedSettings.s3DTVStatusChanged);
-
-    BKNI_Memset(&videoDecoder->extendedSettings.contentLightLevel, 0, sizeof(NEXUS_ContentLightLevel));
-    BKNI_Memset(&videoDecoder->extendedSettings.masteringDisplayColorVolume, 0, sizeof(NEXUS_MasteringDisplayColorVolume));
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.redPrimary.x = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.redPrimary.y = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.greenPrimary.x = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.greenPrimary.y = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.bluePrimary.x = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.bluePrimary.y = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.whitePoint.x = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.whitePoint.y = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.luminance.max = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.masteringDisplayColorVolume.luminance.min = 0xFFFFFFFF;
-    videoDecoder->extendedSettings.eotf = NEXUS_VideoEotf_eInvalid;
 
     if (videoDecoder->memconfig.maxWidth > 1920) {
         /* don't propagate 4K2K from init-time to run-time settings. require app to set. */
@@ -732,9 +778,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDeco
         videoDecoder->settings.maxWidth = videoFormatInfo.width;
         videoDecoder->settings.maxHeight = videoFormatInfo.height;
     }
-    videoDecoder->settings.maxFrameRate = NEXUS_VideoFrameRate_e60;
-    videoDecoder->settings.colorDepth = 8; /* require app to select 10 bit */
-    videoDecoder->settings.userDataFilterThreshold = 60; /* 2 seconds */
 
     return NEXUS_SUCCESS;
 
@@ -854,6 +897,7 @@ static NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_Open(int parentIndex, unsig
     videoDecoder->parentIndex = (parentIndex != -1)?(unsigned)parentIndex:index;
     videoDecoder->mosaicMode = (parentIndex != -1);
     videoDecoder->mfdIndex = mfdIndex;
+    videoDecoder->timebase = NEXUS_Timebase_eInvalid;
 
     /* Note, the global flag should be set after all previous error checking passed to avoid side effect. */
     /* avoid re-open an opened decoder */
@@ -868,19 +912,7 @@ static NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_Open(int parentIndex, unsig
     NEXUS_VideoDecoder_P_GetRaveSettings(pDevice->index, &raveSettings, pOpenSettings);
     videoDecoder->intf = &NEXUS_VideoDecoder_P_Interface_Avd;
 
-    /* set supportedCodecs[] based on module supportedCodecs[] and XVD's report of HW capabilities */
-    {
-        NEXUS_VideoCodec i;
-        for (i=0;i<NEXUS_VideoCodec_eMax;i++) {
-            if (i == NEXUS_VideoCodec_eH264_Mvc || i == NEXUS_VideoCodec_eH264_Svc) {
-                /* don't propagate MVC/SVC from init-time to run-time settings. require app to set. */
-                raveSettings.supportedCodecs[i] = false;
-            }
-            else {
-                raveSettings.supportedCodecs[i] = g_NEXUS_videoDecoderCapabilities.memory[videoDecoder->parentIndex].supportedCodecs[i];
-            }
-        }
-    }
+    NEXUS_VideoDecoder_P_GetDefaultSupportedCodecs_isrsafe(raveSettings.supportedCodecs, videoDecoder->parentIndex);
 
     rc = NEXUS_VideoDecoder_P_Init_Generic(videoDecoder, &raveSettings, pOpenSettings);
     if(rc!=NEXUS_SUCCESS) { rc=BERR_TRACE(rc);goto error; }
@@ -2036,6 +2068,7 @@ void NEXUS_VideoDecoder_P_CloseChannel(NEXUS_VideoDecoderHandle videoDecoder)
         BMMA_Free(videoDecoder->decoder.xvd.cabacMemory);
         videoDecoder->decoder.xvd.cabacMemory=NULL;
     }
+    videoDecoder->crcMode = false;
 }
 
 void NEXUS_VideoDecoder_GetDefaultOpenSettings(NEXUS_VideoDecoderOpenSettings *pOpenSettings)
@@ -2594,7 +2627,7 @@ static void NEXUS_VideoDecoder_P_CheckStatus(void *context)
     /* detect 1080p60 content on a 1080p30 channel */
     if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].maxFormat == NEXUS_VideoFormat_e1080p30hz) {
         /* for interlaced, use same info as NEXUS_VideoDecoderStatus.interlaced */
-        if (videoDecoder->last_field.ulSourceHorizontalSize >= 1080 && videoDecoder->last_field.bStreamProgressive) {
+        if (videoDecoder->last_field.ulSourceVerticalSize >= 1080 && videoDecoder->last_field.bStreamProgressive) {
             unsigned refreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(videoDecoder->last_field.eFrameRateCode);
             if (refreshRate >= 59940) {
                 BDBG_WRN(("decoder %u has 1080p60 source which exceeds its 1080p30 capability", videoDecoder->index));
@@ -2907,6 +2940,8 @@ static void NEXUS_VideoDecoder_P_StopStcChannel(NEXUS_VideoDecoderHandle videoDe
     }
 
     UNLOCK_TRANSPORT();
+
+    videoDecoder->timebase = NEXUS_Timebase_eInvalid;
 }
 
 static NEXUS_Error NEXUS_VideoDecoder_P_StartStcChannel(
@@ -2941,6 +2976,7 @@ static NEXUS_Error NEXUS_VideoDecoder_P_StartStcChannel(
     NEXUS_StcChannel_GetSettings(pStartSettings->stcChannel, &stcChannelSettings);
     /* tell the decoder what type of TSM to do based on NEXUS_StcChannelMode, not transport source */
     *pPlayback = (stcChannelSettings.mode != NEXUS_StcChannelMode_ePcr);
+    videoDecoder->timebase = stcChannelSettings.timebase;
 
     if (NEXUS_StcChannel_VerifyPidChannel(pStartSettings->stcChannel, pStartSettings->pidChannel)) {
         BDBG_WRN(("StcChannel and PidChannel transportType are not compatible"));
@@ -3277,9 +3313,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
         cfg.uiPreRollRate = pStartSettings->prerollRate;
     }
     cfg.pContextMap = &raveStatus.xptContextMap;
-#if NEXUS_CRC_CAPTURE
-    cfg.bCrcMode = true;
-#endif
+    cfg.bCrcMode = videoDecoder->crcMode;
     cfg.bIgnoreDPBOutputDelaySyntax = videoDecoder->extendedSettings.ignoreDpbOutputDelaySyntax;
     cfg.bZeroDelayOutputMode = videoDecoder->extendedSettings.zeroDelayOutputMode;
     cfg.bEarlyPictureDeliveryMode = videoDecoder->extendedSettings.earlyPictureDeliveryMode;

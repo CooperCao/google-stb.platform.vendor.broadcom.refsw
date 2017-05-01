@@ -1,50 +1,41 @@
-/*********************************************************************************
-*     Copyright (c) 2013, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*   This program is the proprietary software of Broadcom Corporation and/or its licensors, 
-*   and may only be used, duplicated, modified or distributed pursuant to the terms and 
-*   conditions of a separate, written license agreement executed between you and Broadcom 
-*   (an "Authorized License").  Except as set forth in an Authorized License, 
-*   Broadcom grants no license (express or implied), right to use, or waiver of any kind 
-*   with respect to the Software, and Broadcom expressly reserves all rights in and to the 
-*   Software and all intellectual property rights therein.  
-* 
-*   IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, 
-*   AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-* 
-*   Except as expressly set forth in the Authorized License,
-*   1.     This program, including its structure, sequence and organization, constitutes the 
-*       valuable trade secrets of Broadcom, and you shall use all reasonable efforts to protect 
-*       the confidentiality thereof, and to use this information only in connection with your use 
-*       of Broadcom integrated circuit products.
-*   2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" AND WITH ALL 
-*       FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR WARRANTIES, EITHER EXPRESS, IMPLIED, 
-*       STATUTORY, OR OTHERWISE, WITH RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND 
-*       ALL IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*       LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO 
-*       DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*   3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS LICENSORS BE LIABLE 
-*       FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT 
-*       OF OR IN ANY WAY RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN 
-*       ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT ACTUALLY PAID 
-*       FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING 
-*       ANY FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* PIFF Encoder Types 
-* 
-* Revision History:
-*
-* $brcm_Log: $
-* 
-*********************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #ifndef BPIFF_ENCODER_TYPES_H
 #define BPIFF_ENCODER_TYPES_H
 
@@ -55,11 +46,29 @@ extern "C" {
 #endif
 
 /****************************************************************
- * CENC types
+ * MP4 box types
  *****************************************************************/    
+#define BMP4_ISO_FTYP               BMP4_TYPE('f','t','y','p')
+#define BMP4_ISO_BRAND_MP42         BMP4_TYPE('m','p','4','2')
+#define BMP4_ISO_BRAND_MP41         BMP4_TYPE('m','p','4','1')
+#define BMP4_ISO_CENC               BMP4_TYPE('c','e','n','c')
+#define BMP4_PIFF_SCHEMETYPE        BMP4_TYPE('p','i','f','f')
+#define BMP4_AVC1_BRAND             BMP4_TYPE('a','v','c','1')
+#define BMP4_MP4A_BRAND             BMP4_TYPE('m','p','4','a')
+#define BMP4_SAMPLE_MP4V            BMP4_TYPE('m','p','4','v')
 #define BMP4_CENC_SAMPLEENCRYPTION  BMP4_TYPE('s','e','n','c')
 #define BMP4_CENC_AVCC              BMP4_TYPE('a','v','c','C')
 #define BMP4_CENC_ESDS              BMP4_TYPE('e','s','d','s')
+
+/****************************************************************
+ * Common parameters
+ *****************************************************************/
+#define BMP4_ISO_TIMESCALE_90KHZ     90000
+#define BOX_HEADER_SIZE              8
+#define MAX_PPS_SPS                  256
+
+#define PIFF_MAX_SAMPLES             1024
+#define PIFF_MAX_ENTRIES_PER_SAMPLE  10   /*Max number of entries per sample */
 
 /****************************************************************
  * BPIFF_Error is the common return type for PIFF Encoder APIs .

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,6 +71,27 @@ typedef struct BAPE_KaraokeVocalSettings
 
 /***************************************************************************
 Summary:
+Advanced Tsm processing mode
+***************************************************************************/
+typedef enum BAPE_AdvancedTsmMode
+{
+    BAPE_AdvancedTsmMode_eOff,
+    BAPE_AdvancedTsmMode_eDsola,
+    BAPE_AdvancedTsmMode_ePpm,
+    BAPE_AdvancedTsmMode_eMax
+} BAPE_AdvancedTsmMode;
+
+/***************************************************************************
+Summary:
+Advanced Tsm Settings
+***************************************************************************/
+typedef struct BAPE_AdvancedTsmSettings
+{
+    BAPE_AdvancedTsmMode mode;
+} BAPE_AdvancedTsmSettings;
+
+/***************************************************************************
+Summary:
 Processor Settings
 ***************************************************************************/
 typedef struct BAPE_ProcessorSettings
@@ -79,8 +100,33 @@ typedef struct BAPE_ProcessorSettings
     {
         BAPE_FadeSettings fade;
         BAPE_KaraokeVocalSettings karaokeVocal;
+        BAPE_AdvancedTsmSettings advTsm;
     } settings;
 } BAPE_ProcessorSettings;
+
+/***************************************************************************
+Summary:
+Audio PTS Type
+***************************************************************************/
+typedef enum BAPE_PtsType {
+    BAPE_PtsType_eOriginal,
+    BAPE_PtsType_eInterpolated,
+    BAPE_PtsType_eInterpolatedFromInvalid,
+    BAPE_PtsType_eMax
+} BAPE_PtsType;
+
+/***************************************************************************
+Summary:
+Advanced TSM Status
+***************************************************************************/
+typedef struct BAPE_AdvancedTsmStatus
+{
+    BAPE_AdvancedTsmMode mode;
+    bool ptsValid;
+    uint32_t pts;
+    BAPE_PtsType ptsType;
+    int correction; /* in milliseconds */
+} BAPE_AdvancedTsmStatus;
 
 /***************************************************************************
 Summary:
@@ -92,6 +138,7 @@ typedef struct BAPE_ProcessorStatus
     union
     {
         BAPE_FadeStatus fade;
+        BAPE_AdvancedTsmStatus advTsm;
     } status;
 } BAPE_ProcessorStatus;
 
@@ -166,6 +213,7 @@ Summary:
 ***************************************************************************/
 void BAPE_Processor_GetConnector(
     BAPE_ProcessorHandle handle,
+    BAPE_ConnectorFormat format,
     BAPE_Connector *pConnector       /* [out] */
     );
 

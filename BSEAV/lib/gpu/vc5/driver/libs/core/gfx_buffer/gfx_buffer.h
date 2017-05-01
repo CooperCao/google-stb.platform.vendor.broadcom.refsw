@@ -1,18 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2014 Broadcom.
- All rights reserved.
-
- FILE DESCRIPTION
-
- Image Format Library - Public APIs
-
- A GFX_BUFFER_DESC_T is a description of a buffer (often an image), including
- pitches (aka "stride" but see precise definition below) and offsets relative
- to an out-of-band pointer/memory-handle/etc to the buffer data.
-
- These functions operate on GFX_BUFFER_DESC_Ts, but not on the buffer data
- itself. See gfx_buffer_slow_conv.h for functions that operate on buffer data.
-==============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/core/lfmt/lfmt.h"
@@ -293,5 +281,13 @@ typedef enum
 } gfx_buffer_align_t;
 
 extern size_t gfx_buffer_get_align(GFX_LFMT_T lfmt, gfx_buffer_align_t a);
+
+static inline bool gfx_buffer_any_float_depth(const GFX_BUFFER_DESC_T *desc)
+{
+   for (unsigned i = 0; i != desc->num_planes; ++i)
+      if (gfx_lfmt_depth_type(desc->planes[i].lfmt) == GFX_LFMT_TYPE_FLOAT)
+         return true;
+   return false;
+}
 
 VCOS_EXTERN_C_END

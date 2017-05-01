@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __CONTROL_H__
 #define __CONTROL_H__
 
@@ -43,7 +41,7 @@ public:
 
    enum eBottleneckMode  // DO NOT CHANGE THESE ENUM VALUES, ADD MORE IF REQUIRED
    {
-      eUnset             = 0xFFFFFFFF,
+      eUnset             = -1,
       eNone              = 0,
       eTinyTextures      = 1,
       eTinyViewport      = 2,

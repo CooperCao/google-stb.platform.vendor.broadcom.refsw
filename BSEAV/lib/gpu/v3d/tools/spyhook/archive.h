@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __ARCHIVE_H__
 #define __ARCHIVE_H__
 
@@ -10,6 +8,12 @@ All rights reserved.
 #include "platform.h"
 
 #include <stdio.h>
+
+#if (defined(__GNUC__) || defined(__clang__))
+#define UNUSED __attribute__((unused))
+#else
+#define UNUSED
+#endif
 
 #ifndef WIN32
 #include <pthread.h>

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  vcos
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - initialisation + termination (generic).
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 
 static int init_refcount;

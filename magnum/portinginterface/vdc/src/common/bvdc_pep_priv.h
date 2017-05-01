@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,7 +54,7 @@
 #define BVDC_P_SUPPORT_PEP_VER_4                             (4)
 #define BVDC_P_SUPPORT_PEP_VER_5                             (5) /*7366Bx, 7364Ax, 7445D0 10 bit introduction*/
 
-#if (BVDC_P_SUPPORT_PEP)
+#if (BVDC_P_SUPPORT_PEP) || (BVDC_P_SUPPORT_HIST)
 #include "bchp_pep_cmp_0_v0.h"
 #endif
 

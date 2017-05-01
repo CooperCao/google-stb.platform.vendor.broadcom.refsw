@@ -1133,260 +1133,15 @@ bool BXVD_P_IsDisplayInfoEqual_HIM_API_isr(BXVD_P_DisplayInfo stDisplayInfo,
 
 #ifdef BXVD_P_USE_DETERMINE_STRIPE_INFO_REVN0
 
-void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
-                                           uint32_t uiMemPartSize,
-                                           uint32_t uiMemBusWidth,
-                                           uint32_t *puiStripeWidth,
-                                           uint32_t *puiBankHeight);
-
-void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
-                                        uint32_t uiMemPartSize,
-                                        uint32_t uiMemBusWidth,
-                                        uint32_t uiMemDeviceWidth,
-                                        bool     bDDRGroupageEnabled,
-                                        uint32_t *puiStripeWidth,
-                                        uint32_t *puiBankHeight);
-
-
-void BXVD_P_DetermineStripeInfo_RevN0( BCHP_DramType ddrType,
-                                       uint32_t uiMemPartSize,
-                                       uint32_t uiMemBusWidth,
-                                       uint32_t uiMemDeviceWidth,
-                                       bool     bDDRGroupageEnabled,
-                                       uint32_t *puiStripeWidth,
-                                       uint32_t *puiBankHeight)
-{
-
-   BSTD_UNUSED(uiMemDeviceWidth);
 #if  BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT
-   BXVD_P_DetermineGroupingStripeInfo(ddrType, uiMemPartSize, uiMemBusWidth, uiMemDeviceWidth,
-                                      bDDRGroupageEnabled, puiStripeWidth, puiBankHeight);
-#else
-   BSTD_UNUSED(uiMemDeviceWidth);
-   BSTD_UNUSED(bDDRGroupageEnabled);
 
-   BXVD_P_DetermineNonGroupingStripeInfo(ddrType, uiMemPartSize, uiMemBusWidth,
-                                            puiStripeWidth, puiBankHeight);
-#endif
-
-}
-#endif /* BXVD_P_USE_DETERMINE_STRIPE_INFO_REVN0 */
-
-#ifdef BXVD_P_USE_INIT_REG_PTRS_REVN0
-
-void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
-                                           uint32_t uiMemPartSize,
-                                           uint32_t uiMemBusWidth,
-                                           uint32_t *puiStripeWidth,
-                                           uint32_t *puiBankHeight)
-{
-   /* stripeWidth reg values: 0 - 64, 1 - 128, 2 - 256 bytes */
-   switch(ddrType)
-   {
-      case BCHP_DramType_eDDR3:
-
-         /* Set stripe width and bank height base on bus width and memory part size */
-         switch(uiMemBusWidth)
-         {
-            /* Dram bus width 16 */
-            case 16:
-
-               *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
-
-#if BXVD_P_MIPS_CORE
-               BDBG_MSG(("StripeWidth: 64 bytes"));
-               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e64Bytes;
-#else
-               BDBG_MSG(("StripeWidth: 128 bytes"));
-               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
-#endif
-               break;
-
-            /* Dram bus width 32 */
-            case 32:
-
-               switch(uiMemPartSize)
-               {
-                  case 512:  /* 512 Mbits Device Tech*/
-                  case 1024: /* 1024 Mbits Device Tech*/
-                     *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
-                     BDBG_MSG(("buswidth 32 BankHeight:: 8n3"));
-                     break;
-
-                  case 2048: /* 2048 Mbits Device Tech*/
-                  case 4096: /* 4096 Mbits Device Tech*/
-                  case 8192: /* 8192 Mbits Device Tech*/
-                     *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_16n6;
-                     BDBG_MSG(("buswidth 32 BankHeight:: 16n6"));
-                     break;
-
-                  default:
-                     *puiBankHeight  = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
-                     BDBG_ERR(("Unknown memory part size: %d", uiMemPartSize));
-                     break;
-               }
-
-               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
-               BDBG_MSG(("StripeWidth: 128 bytes"));
-
-               break;
-
-            default:
-
-#if BXVD_P_MIPS_CORE
-               BDBG_MSG(("StripeWidth: 64 bytes"));
-               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e64Bytes;
-#else
-               BDBG_MSG(("StripeWidth: 128 bytes"));
-               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
-#endif
-               *puiBankHeight  = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
-               BDBG_ERR(("Unknown memory bus width: %d", uiMemBusWidth));
-
-               break;
-         }
-
-         break;
-
-      case BCHP_DramType_eDDR4:
-
-         *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_16n6;
-
-         if (uiMemBusWidth == 16)
-         {
-            *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
-         }
-         else
-         {
-            *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e256Bytes;
-         }
-
-         break;
-
-      case BCHP_DramType_eGDDR5:
-      default:
-
-         BDBG_ERR(("Unsupported DDR type, DDR4 or DDR5"));
-         break;
-   }
-}
-
-
-void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
-                                               BCHP_DramType ddrType,
-                                               uint32_t uiMemPartSize,
-                                               uint32_t uiMemBusWidth)
-{
-   uint32_t uiDataWidth;
-
-   uint32_t stripeWidth=0;
-   uint32_t bankHeight=0;
-   uint32_t uiXGran=0;
-   uint32_t uiYGran=0;
-
-   uint32_t uiReg;
-   uint32_t uiPCacheVal;
-
-   switch(ddrType)
-   {
-      case BCHP_DramType_eDDR3:
-
-         /* Set stripe width and bank height base on bus width and memory part size */
-         switch(uiMemBusWidth)
-         {
-            /* Dram bus width 16 */
-            case 16:
-
-#if BXVD_P_PRE_REVQ2_CORE
-               uiYGran = BXVD_P_PCache_YGran_e1Line;
-#else
-               uiYGran = BXVD_P_PCache_YGran_e2Lines;
-#endif
-               break;
-
-            /* Dram bus width 32 */
-            case 32:
-               uiYGran = BXVD_P_PCache_YGran_e2Lines;
-               BDBG_MSG(("buswidth 32 yGran:e2Liines:"));
-
-               break;
-         }
-
-         break;
-
-      case BCHP_DramType_eDDR4:
-
-         if (uiMemBusWidth == 16)
-         {
-            uiYGran = BXVD_P_PCache_YGran_e1Line;
-         }
-         else
-         {
-            uiYGran = BXVD_P_PCache_YGran_e2Lines;
-         }
-
-         break;
-
-      default:
-
-         BDBG_ERR(("Unsupported DDR type, DDR2 or DDR5"));
-         break;
-   }
-
-   uiXGran = BXVD_P_PCache_XGran_e16Bytes;
-
-   BXVD_P_DetermineNonGroupingStripeInfo(ddrType, uiMemPartSize, uiMemBusWidth,
-                                         &stripeWidth, &bankHeight);
-
-   hXvd->uiDecode_StripeWidth = stripeWidth;
-   hXvd->uiDecode_StripeMultiple = bankHeight;
-
-   uiReg = (stripeWidth << hXvd->stPlatformInfo.stReg.uiDecode_StripeWidthShift);
-
-   hXvd->uiDecode_SDStripeWidthRegVal = uiReg;
-
-   BDBG_MSG(("StipeWidthRegVal:0x%0x", uiReg));
-
-   /* Only 16 or 32 Bit bus is supported */
-   if (uiMemBusWidth == 16)
-   {
-      uiDataWidth = BXVD_P_PFRI_Data_Width_e16Bit;
-   }
-   else if (uiMemBusWidth == 32)
-   {
-      /* 32 bit bus */
-      uiDataWidth = BXVD_P_PFRI_Data_Width_e32Bit;
-   }
-   else
-   {
-      /* 64 bit bus */
-      uiDataWidth = BXVD_P_PFRI_Data_Width_e64Bit;
-   }
-
-   uiReg = uiDataWidth << hXvd->stPlatformInfo.stReg.uiPFRIInfo_DataBusWidthShift;
-   uiReg |= (bankHeight << hXvd->stPlatformInfo.stReg.uiPFRIInfo_BankHeightShift);
-
-   BDBG_MSG(("PFRIDataRegVal:0x%0x", uiReg));
-   hXvd->uiDecode_PFRIDataRegVal = uiReg;
-
-   uiPCacheVal = ( hXvd->uiAVD_PCacheRegVal &
-                   (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeYGranMask))&
-                   (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranMask)));
-
-   hXvd->uiAVD_PCacheRegVal = uiPCacheVal | ((uiYGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeYGranShift) |
-                                             (uiXGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranShift));
-
-   BDBG_MSG(("PCacheRegVal: 0x%0x", hXvd->uiAVD_PCacheRegVal));
-}
-
-#ifdef BCHP_HEVD_PCACHE_0_PFRI_DEBUG_pfri_grouping_present_MASK
 void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
-                                        uint32_t uiMemPartSize,
-                                        uint32_t uiMemBusWidth,
-                                        uint32_t uiMemDeviceWidth,
-                                        bool     bDDRGroupageEnabled,
-                                        uint32_t *puiStripeWidth,
-                                        uint32_t *puiBankHeight)
+                                               uint32_t uiMemPartSize,
+                                               uint32_t uiMemBusWidth,
+                                               uint32_t uiMemDeviceWidth,
+                                               bool     bDDRGroupageEnabled,
+                                               uint32_t *puiStripeWidth,
+                                               uint32_t *puiBankHeight)
 {
    switch(ddrType)
    {
@@ -1546,6 +1301,135 @@ void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
    }
 }
 
+#else /* !BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT */
+
+void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
+                                                  uint32_t uiMemPartSize,
+                                                  uint32_t uiMemBusWidth,
+                                                  uint32_t *puiStripeWidth,
+                                                  uint32_t *puiBankHeight)
+{
+   /* stripeWidth reg values: 0 - 64, 1 - 128, 2 - 256 bytes */
+   switch(ddrType)
+   {
+      case BCHP_DramType_eDDR3:
+
+         /* Set stripe width and bank height base on bus width and memory part size */
+         switch(uiMemBusWidth)
+         {
+            /* Dram bus width 16 */
+            case 16:
+
+               *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
+
+#if BXVD_P_MIPS_CORE
+               BDBG_MSG(("StripeWidth: 64 bytes"));
+               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e64Bytes;
+#else
+               BDBG_MSG(("StripeWidth: 128 bytes"));
+               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
+#endif
+               break;
+
+            /* Dram bus width 32 */
+            case 32:
+
+               switch(uiMemPartSize)
+               {
+                  case 512:  /* 512 Mbits Device Tech*/
+                  case 1024: /* 1024 Mbits Device Tech*/
+                     *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
+                     BDBG_MSG(("buswidth 32 BankHeight:: 8n3"));
+                     break;
+
+                  case 2048: /* 2048 Mbits Device Tech*/
+                  case 4096: /* 4096 Mbits Device Tech*/
+                  case 8192: /* 8192 Mbits Device Tech*/
+                     *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_16n6;
+                     BDBG_MSG(("buswidth 32 BankHeight:: 16n6"));
+                     break;
+
+                  default:
+                     *puiBankHeight  = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
+                     BDBG_ERR(("Unknown memory part size: %d", uiMemPartSize));
+                     break;
+               }
+
+               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
+               BDBG_MSG(("StripeWidth: 128 bytes"));
+
+               break;
+
+            default:
+
+#if BXVD_P_MIPS_CORE
+               BDBG_MSG(("StripeWidth: 64 bytes"));
+               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e64Bytes;
+#else
+               BDBG_MSG(("StripeWidth: 128 bytes"));
+               *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
+#endif
+               *puiBankHeight  = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
+               BDBG_ERR(("Unknown memory bus width: %d", uiMemBusWidth));
+
+               break;
+         }
+
+         break;
+
+      case BCHP_DramType_eDDR4:
+
+         *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_16n6;
+
+         if (uiMemBusWidth == 16)
+         {
+            *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e128Bytes;
+         }
+         else
+         {
+            *puiStripeWidth = BXVD_P_PFRI_Stripe_Width_e256Bytes;
+         }
+
+         break;
+
+      case BCHP_DramType_eGDDR5:
+      default:
+
+         BDBG_ERR(("Unsupported DDR type, DDR4 or DDR5"));
+         break;
+   }
+}
+#endif
+
+
+void BXVD_P_DetermineStripeInfo_RevN0( BCHP_DramType ddrType,
+                                       uint32_t uiMemPartSize,
+                                       uint32_t uiMemBusWidth,
+                                       uint32_t uiMemDeviceWidth,
+                                       bool     bDDRGroupageEnabled,
+                                       uint32_t *puiStripeWidth,
+                                       uint32_t *puiBankHeight)
+{
+
+   BSTD_UNUSED(uiMemDeviceWidth);
+#if  BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT
+   BXVD_P_DetermineGroupingStripeInfo(ddrType, uiMemPartSize, uiMemBusWidth, uiMemDeviceWidth,
+                                      bDDRGroupageEnabled, puiStripeWidth, puiBankHeight);
+#else
+   BSTD_UNUSED(uiMemDeviceWidth);
+   BSTD_UNUSED(bDDRGroupageEnabled);
+
+   BXVD_P_DetermineNonGroupingStripeInfo(ddrType, uiMemPartSize, uiMemBusWidth,
+                                            puiStripeWidth, puiBankHeight);
+#endif
+
+}
+#endif /* BXVD_P_USE_DETERMINE_STRIPE_INFO_REVN0 */
+
+#ifdef BXVD_P_USE_INIT_REG_PTRS_REVN0
+
+#ifdef BCHP_HEVD_PCACHE_0_PFRI_DEBUG_pfri_grouping_present_MASK
+
 void  BXVD_P_DetermineGroupagePCacheSettings(BXVD_Handle hXvd,
                                              BCHP_DramType ddrType,
                                              uint32_t uiMemPartSize,
@@ -1684,6 +1568,115 @@ void  BXVD_P_DetermineGroupagePCacheSettings(BXVD_Handle hXvd,
 
    hXvd->uiAVD_PCacheRegVal = uiPCacheVal | ((uiYGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeYGranShift) |
                                              (uiXGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranShift));
+}
+
+#else /* BCHP_HEVD_PCACHE_0_PFRI_DEBUG_pfri_grouping_present_MASK */
+
+void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
+                                               BCHP_DramType ddrType,
+                                               uint32_t uiMemPartSize,
+                                               uint32_t uiMemBusWidth)
+{
+   uint32_t uiDataWidth;
+
+   uint32_t stripeWidth=0;
+   uint32_t bankHeight=0;
+   uint32_t uiXGran=0;
+   uint32_t uiYGran=0;
+
+   uint32_t uiReg;
+   uint32_t uiPCacheVal;
+
+   switch(ddrType)
+   {
+      case BCHP_DramType_eDDR3:
+
+         /* Set stripe width and bank height base on bus width and memory part size */
+         switch(uiMemBusWidth)
+         {
+            /* Dram bus width 16 */
+            case 16:
+
+#if BXVD_P_PRE_REVQ2_CORE
+               uiYGran = BXVD_P_PCache_YGran_e1Line;
+#else
+               uiYGran = BXVD_P_PCache_YGran_e2Lines;
+#endif
+               break;
+
+            /* Dram bus width 32 */
+            case 32:
+               uiYGran = BXVD_P_PCache_YGran_e2Lines;
+               BDBG_MSG(("buswidth 32 yGran:e2Liines:"));
+
+               break;
+         }
+
+         break;
+
+      case BCHP_DramType_eDDR4:
+
+         if (uiMemBusWidth == 16)
+         {
+            uiYGran = BXVD_P_PCache_YGran_e1Line;
+         }
+         else
+         {
+            uiYGran = BXVD_P_PCache_YGran_e2Lines;
+         }
+
+         break;
+
+      default:
+
+         BDBG_ERR(("Unsupported DDR type, DDR2 or DDR5"));
+         break;
+   }
+
+   uiXGran = BXVD_P_PCache_XGran_e16Bytes;
+
+   BXVD_P_DetermineNonGroupingStripeInfo(ddrType, uiMemPartSize, uiMemBusWidth,
+                                         &stripeWidth, &bankHeight);
+
+   hXvd->uiDecode_StripeWidth = stripeWidth;
+   hXvd->uiDecode_StripeMultiple = bankHeight;
+
+   uiReg = (stripeWidth << hXvd->stPlatformInfo.stReg.uiDecode_StripeWidthShift);
+
+   hXvd->uiDecode_SDStripeWidthRegVal = uiReg;
+
+   BDBG_MSG(("StipeWidthRegVal:0x%0x", uiReg));
+
+   /* Only 16 or 32 Bit bus is supported */
+   if (uiMemBusWidth == 16)
+   {
+      uiDataWidth = BXVD_P_PFRI_Data_Width_e16Bit;
+   }
+   else if (uiMemBusWidth == 32)
+   {
+      /* 32 bit bus */
+      uiDataWidth = BXVD_P_PFRI_Data_Width_e32Bit;
+   }
+   else
+   {
+      /* 64 bit bus */
+      uiDataWidth = BXVD_P_PFRI_Data_Width_e64Bit;
+   }
+
+   uiReg = uiDataWidth << hXvd->stPlatformInfo.stReg.uiPFRIInfo_DataBusWidthShift;
+   uiReg |= (bankHeight << hXvd->stPlatformInfo.stReg.uiPFRIInfo_BankHeightShift);
+
+   BDBG_MSG(("PFRIDataRegVal:0x%0x", uiReg));
+   hXvd->uiDecode_PFRIDataRegVal = uiReg;
+
+   uiPCacheVal = ( hXvd->uiAVD_PCacheRegVal &
+                   (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeYGranMask))&
+                   (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranMask)));
+
+   hXvd->uiAVD_PCacheRegVal = uiPCacheVal | ((uiYGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeYGranShift) |
+                                             (uiXGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranShift));
+
+   BDBG_MSG(("PCacheRegVal: 0x%0x", hXvd->uiAVD_PCacheRegVal));
 }
 #endif
 

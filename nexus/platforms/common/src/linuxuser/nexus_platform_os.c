@@ -397,25 +397,65 @@ void NEXUS_Platform_P_MonitorOS(void)
 }
 
 #if !B_REFSW_SYSTEM_MODE_SERVER
-static void NEXUS_Platform_P_DebugCallback(void *context, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings)
+struct proc {
+    BLST_S_ENTRY(proc) link;
+    const char *filename;
+    NEXUS_ModuleHandle module;
+    const char *module_name;
+    void (*dbgPrint)(void);
+};
+static BLST_S_HEAD(proclist, proc) g_NEXUS_procNodes;
+
+NEXUS_Error nexus_platform_p_add_proc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void))
 {
-    if ( !strcmp( (const char *)context , "ls") && settings->dbgPrint ) {
-        /* Print out nexus modules that have a "Print" module defined */
-        BDBG_LOG(("%s", name ));
+    struct proc *proc = BKNI_Malloc(sizeof(*proc));
+    if (!proc) return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    proc->filename = filename;
+    proc->module = module;
+    proc->module_name = module_name;
+    proc->dbgPrint = dbgPrint;
+    BLST_S_INSERT_HEAD(&g_NEXUS_procNodes, proc, link);
+    return NEXUS_SUCCESS;
+}
+
+static struct proc *nexus_p_find_proc(const char *filename)
+{
+    struct proc *proc;
+    for (proc=BLST_S_FIRST(&g_NEXUS_procNodes);proc;proc=BLST_S_NEXT(proc,link)) {
+        if (!strcmp(filename,proc->filename)) return proc;
     }
-    else if (!strcmp((const char *)context , "mma") && !strcmp(name,"core")) {
+    return NULL;
+}
+
+void nexus_platform_p_remove_proc(NEXUS_ModuleHandle module, const char *filename)
+{
+    struct proc *proc = nexus_p_find_proc(filename);
+    if (proc && proc->module == module) {
+        BLST_S_REMOVE(&g_NEXUS_procNodes, proc, proc, link);
+        BKNI_Free(proc);
+    }
+}
+
+static void nexus_p_call_proc(const char *filename)
+{
+    if (!strcmp(filename , "ls")) {
+        struct proc *proc;
+        for (proc=BLST_S_FIRST(&g_NEXUS_procNodes);proc;proc=BLST_S_NEXT(proc,link)) {
+            BDBG_LOG(("%s", proc->filename));
+        }
+    }
+    else if (!strcmp(filename, "mma")) {
         NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
         NEXUS_Core_DumpHeaps_priv(NULL);
         NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
     }
     else {
-        if (settings->dbgModules && settings->dbgPrint){
-            if (!strcmp(context, settings->dbgModules) || !strcmp(context, name) || !strcmp("all", context)) {
-                /* We cannot lock platform, because this callback is from timer context with platform module already locked */
-                if (handle != NEXUS_MODULE_SELF) NEXUS_Module_Lock(handle);
-                settings->dbgPrint();
-                if (handle != NEXUS_MODULE_SELF) NEXUS_Module_Unlock(handle);
-            }
+        struct proc *proc = nexus_p_find_proc(filename);
+        if (proc) {
+            /* We cannot lock platform, because this callback is from timer context with platform module already locked */
+            if (proc->module != NEXUS_MODULE_SELF) NEXUS_Module_Lock(proc->module);
+            proc->dbgPrint();
+            if (proc->module != NEXUS_MODULE_SELF) NEXUS_Module_Unlock(proc->module);
         }
     }
 }
@@ -473,7 +513,7 @@ static void NEXUS_Platform_P_DebugTimer(void *context)
 
             if (!end) {
                 if(*debug_list) {
-                    NEXUS_Module_EnumerateAll(NEXUS_Platform_P_DebugCallback, (char *)debug_list);
+                    nexus_p_call_proc((char *)debug_list);
                 }
                 break;
             }
@@ -481,7 +521,7 @@ static void NEXUS_Platform_P_DebugTimer(void *context)
             if(name_len>0 && name_len<sizeof(buf)) {
                 strncpy(buf, debug_list, name_len);
                 buf[name_len] = '\0';
-                NEXUS_Module_EnumerateAll(NEXUS_Platform_P_DebugCallback, buf);
+                nexus_p_call_proc(buf);
             }
             debug_list = end+1;
         }
@@ -537,7 +577,7 @@ NEXUS_Error NEXUS_Platform_P_InitOSMem(void)
     }
     rc = fcntl(state->memFdCached, F_SETFD, FD_CLOEXEC);
     if (rc) BERR_TRACE(rc); /* keep going */
-#if B_REFSW_SYSTEM_MODE_SERVER
+#if !B_REFSW_SYSTEM_MODE_CLIENT
     g_NEXUS_driverFd = state->memFdCached;
 #endif
 
@@ -1300,3 +1340,17 @@ bool NEXUS_Platform_P_IsGisbTimeoutAvailable(void)
 #if NEXUS_HAS_GPIO
 #include "nexus_platform_shared_gpio.inc"
 #endif
+
+bool NEXUS_Platform_P_IsOs64(void)
+{
+    static bool set = false;
+    static bool result;
+    if (!set) {
+        bcmdriver_os_config os_cfg;
+        int rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_OS_CONFIG, &os_cfg);
+        if (rc) BERR_TRACE(rc);
+        result = (rc==0 && os_cfg.os_64bit);
+        set = true;
+    }
+    return result;
+}

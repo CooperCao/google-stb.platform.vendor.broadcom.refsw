@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:28 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,68 +70,68 @@
 /***************************************************************************
  *V3D_CLE_0 - V3D Control List Executor Registers
  ***************************************************************************/
-#define BCHP_V3D_CLE_0_CT0CS                     0x21308100 /* [RW] Control List Executor Thread 0 Control and Status. */
-#define BCHP_V3D_CLE_0_CT1CS                     0x21308104 /* [RW] Control List Executor Thread 1 Control and Status. */
-#define BCHP_V3D_CLE_0_CT0EA                     0x21308108 /* [RW] Control List Executor Thread 0 End Address. */
-#define BCHP_V3D_CLE_0_CT1EA                     0x2130810c /* [RW] Control List Executor Thread 1 End Address. */
-#define BCHP_V3D_CLE_0_CT0CA                     0x21308110 /* [RW] Control List Executor Thread 0 Current Address. */
-#define BCHP_V3D_CLE_0_CT1CA                     0x21308114 /* [RW] Control List Executor Thread 1 Current Address. */
-#define BCHP_V3D_CLE_0_CT0RA0                    0x21308118 /* [RO] Control List Executor Thread 0 Return Address 0. */
-#define BCHP_V3D_CLE_0_CT1RA0                    0x2130811c /* [RO] Control List Executor Thread 1 Return Address 0. */
-#define BCHP_V3D_CLE_0_CT0LC                     0x21308120 /* [RW] Control List Executor Thread 0 List Counter */
-#define BCHP_V3D_CLE_0_CT1LC                     0x21308124 /* [RW] Control List Executor Thread 1 List Counter */
-#define BCHP_V3D_CLE_0_CT0PC                     0x21308128 /* [RO] Control List Executor Thread 0 Primitive List Counter */
-#define BCHP_V3D_CLE_0_CT1PC                     0x2130812c /* [RO] Control List Executor Thread 1 Primitive List Counter */
-#define BCHP_V3D_CLE_0_PCS                       0x21308130 /* [RO] V3D Pipeline Control and Status */
-#define BCHP_V3D_CLE_0_BFC                       0x21308134 /* [RW] Binning Mode Flush Count */
-#define BCHP_V3D_CLE_0_RFC                       0x21308138 /* [RW] Rendering Mode Frame Count */
-#define BCHP_V3D_CLE_0_TFBC                      0x2130813c /* [RW] Transform Feedback Block Count */
-#define BCHP_V3D_CLE_0_TFIT                      0x21308140 /* [RW] Transform Feedback Interrupt Threshold */
-#define BCHP_V3D_CLE_0_CT1CFG                    0x21308144 /* [RW] Control List Executor Thread 1 Configuration */
-#define BCHP_V3D_CLE_0_CT1TILECT                 0x21308148 /* [RO] Control List Executor Thread 1 Tile Count */
-#define BCHP_V3D_CLE_0_CT1TSKIP                  0x2130814c /* [RW] Control List Executor Thread 1 Tile Skip Count */
-#define BCHP_V3D_CLE_0_CT1PTCT                   0x21308150 /* [RO] Control List Executor Thread 1 Previous Tile Count */
-#define BCHP_V3D_CLE_0_CT0SYNC                   0x21308154 /* [RO] Control List Executor Thread 0 Synchronisation Status */
-#define BCHP_V3D_CLE_0_CT1SYNC                   0x21308158 /* [RO] Control List Executor Thread 1 Synchronisation Status */
-#define BCHP_V3D_CLE_0_CT0QBA                    0x21308160 /* [RW] Control List Executor Thread 0 Queued Begin Address */
-#define BCHP_V3D_CLE_0_CT1QBA                    0x21308164 /* [RW] Control List Executor Thread 1 Queued Begin Address */
-#define BCHP_V3D_CLE_0_CT0QEA                    0x21308168 /* [RW] Control List Executor Thread 0 Queued End Address */
-#define BCHP_V3D_CLE_0_CT1QEA                    0x2130816c /* [RW] Control List Executor Thread 1 Queued End Address */
-#define BCHP_V3D_CLE_0_CT0QMA                    0x21308170 /* [RW] Control List Executor Thread 0 Queued Tile Allocation Memory Address */
-#define BCHP_V3D_CLE_0_CT0QMS                    0x21308174 /* [RW] Control List Executor Thread 0 Queued Tile Allocation Memory Size */
-#define BCHP_V3D_CLE_0_CT1QCFG                   0x21308178 /* [RW] Control List Executor Thread 1 Queued Configuration */
-#define BCHP_V3D_CLE_0_CT1QTSKIP                 0x2130817c /* [RW] Control List Executor Thread 1 Queued Tile Skip Count */
-#define BCHP_V3D_CLE_0_CT1QBASE0                 0x21308180 /* [RW] Control List Executor Thread 1 Queued Tile List Set 0 Base Address */
-#define BCHP_V3D_CLE_0_CT1QBASE1                 0x21308184 /* [RW] Control List Executor Thread 1 Queued Tile List Set 1 Base Address */
-#define BCHP_V3D_CLE_0_CT1QBASE2                 0x21308188 /* [RW] Control List Executor Thread 1 Queued Tile List Set 2 Base Address */
-#define BCHP_V3D_CLE_0_CT1QBASE3                 0x2130818c /* [RW] Control List Executor Thread 1 Queued Tile List Set 3 Base Address */
-#define BCHP_V3D_CLE_0_CT1QBASE4                 0x21308190 /* [RW] Control List Executor Thread 1 Queued Tile List Set 4 Base Address */
-#define BCHP_V3D_CLE_0_CT1QBASE5                 0x21308194 /* [RW] Control List Executor Thread 1 Queued Tile List Set 5 Base Address */
-#define BCHP_V3D_CLE_0_CT1QBASE6                 0x21308198 /* [RW] Control List Executor Thread 1 Queued Tile List Set 6 Base Address */
-#define BCHP_V3D_CLE_0_CT1QBASE7                 0x2130819c /* [RW] Control List Executor Thread 1 Queued Tile List Set 7 Base Address */
-#define BCHP_V3D_CLE_0_CT0QSYNC                  0x213081a0 /* [RW] Control List Executor Thread 0 Queued Synchronisation Configuration */
-#define BCHP_V3D_CLE_0_CT1QSYNC                  0x213081a4 /* [RW] Control List Executor Thread 1 Queued Synchronisation Configuration */
-#define BCHP_V3D_CLE_0_CT0CAD                    0x213081a8 /* [RO] Control List Executor Thread 0 Current Address. */
-#define BCHP_V3D_CLE_0_CT1CAD                    0x213081ac /* [RO] Control List Executor Thread 1 Current Address. */
-#define BCHP_V3D_CLE_0_CCNTCS                    0x213081b0 /* [RW] Cycle Count Control and Status */
-#define BCHP_V3D_CLE_0_CCNTLO                    0x213081b4 /* [RW] Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CCNTHI                    0x213081b8 /* [RW] Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CCBSLO                    0x213081c0 /* [RO] Captured CLE Bin Start Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CCBSHI                    0x213081c4 /* [RO] Captured CLE Bin Start Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CCBELO                    0x213081c8 /* [RO] Captured CLE Bin End Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CCBEHI                    0x213081cc /* [RO] Captured CLE Bin End Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CPBSLO                    0x213081d0 /* [RO] Captured PTB Bin Start Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CPBSHI                    0x213081d4 /* [RO] Captured PTB Bin Start Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CPBELO                    0x213081d8 /* [RO] Captured PTB Bin End Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CPBEHI                    0x213081dc /* [RO] Captured PTB Bin End Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CCRSLO                    0x213081e0 /* [RO] Captured CLE Render Start Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CCRSHI                    0x213081e4 /* [RO] Captured CLE Render Start Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CCRELO                    0x213081e8 /* [RO] Captured CLE Render End Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CCREHI                    0x213081ec /* [RO] Captured CLE Render End Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CTRSLO                    0x213081f0 /* [RO] Captured TLB Render Start Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CTRSHI                    0x213081f4 /* [RO] Captured TLB Render Start Cycle Count High Value */
-#define BCHP_V3D_CLE_0_CTRELO                    0x213081f8 /* [RO] Captured TLB Render End Cycle Count Low Value */
-#define BCHP_V3D_CLE_0_CTREHI                    0x213081fc /* [RO] Captured TLB Render End Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CT0CS                     0x21308100 /* [RW][32] Control List Executor Thread 0 Control and Status. */
+#define BCHP_V3D_CLE_0_CT1CS                     0x21308104 /* [RW][32] Control List Executor Thread 1 Control and Status. */
+#define BCHP_V3D_CLE_0_CT0EA                     0x21308108 /* [RW][32] Control List Executor Thread 0 End Address. */
+#define BCHP_V3D_CLE_0_CT1EA                     0x2130810c /* [RW][32] Control List Executor Thread 1 End Address. */
+#define BCHP_V3D_CLE_0_CT0CA                     0x21308110 /* [RW][32] Control List Executor Thread 0 Current Address. */
+#define BCHP_V3D_CLE_0_CT1CA                     0x21308114 /* [RW][32] Control List Executor Thread 1 Current Address. */
+#define BCHP_V3D_CLE_0_CT0RA0                    0x21308118 /* [RO][32] Control List Executor Thread 0 Return Address 0. */
+#define BCHP_V3D_CLE_0_CT1RA0                    0x2130811c /* [RO][32] Control List Executor Thread 1 Return Address 0. */
+#define BCHP_V3D_CLE_0_CT0LC                     0x21308120 /* [RW][32] Control List Executor Thread 0 List Counter */
+#define BCHP_V3D_CLE_0_CT1LC                     0x21308124 /* [RW][32] Control List Executor Thread 1 List Counter */
+#define BCHP_V3D_CLE_0_CT0PC                     0x21308128 /* [RO][32] Control List Executor Thread 0 Primitive List Counter */
+#define BCHP_V3D_CLE_0_CT1PC                     0x2130812c /* [RO][32] Control List Executor Thread 1 Primitive List Counter */
+#define BCHP_V3D_CLE_0_PCS                       0x21308130 /* [RO][32] V3D Pipeline Control and Status */
+#define BCHP_V3D_CLE_0_BFC                       0x21308134 /* [RW][32] Binning Mode Flush Count */
+#define BCHP_V3D_CLE_0_RFC                       0x21308138 /* [RW][32] Rendering Mode Frame Count */
+#define BCHP_V3D_CLE_0_TFBC                      0x2130813c /* [RW][32] Transform Feedback Block Count */
+#define BCHP_V3D_CLE_0_TFIT                      0x21308140 /* [RW][32] Transform Feedback Interrupt Threshold */
+#define BCHP_V3D_CLE_0_CT1CFG                    0x21308144 /* [RW][32] Control List Executor Thread 1 Configuration */
+#define BCHP_V3D_CLE_0_CT1TILECT                 0x21308148 /* [RO][32] Control List Executor Thread 1 Tile Count */
+#define BCHP_V3D_CLE_0_CT1TSKIP                  0x2130814c /* [RW][32] Control List Executor Thread 1 Tile Skip Count */
+#define BCHP_V3D_CLE_0_CT1PTCT                   0x21308150 /* [RO][32] Control List Executor Thread 1 Previous Tile Count */
+#define BCHP_V3D_CLE_0_CT0SYNC                   0x21308154 /* [RO][32] Control List Executor Thread 0 Synchronisation Status */
+#define BCHP_V3D_CLE_0_CT1SYNC                   0x21308158 /* [RO][32] Control List Executor Thread 1 Synchronisation Status */
+#define BCHP_V3D_CLE_0_CT0QBA                    0x21308160 /* [RW][32] Control List Executor Thread 0 Queued Begin Address */
+#define BCHP_V3D_CLE_0_CT1QBA                    0x21308164 /* [RW][32] Control List Executor Thread 1 Queued Begin Address */
+#define BCHP_V3D_CLE_0_CT0QEA                    0x21308168 /* [RW][32] Control List Executor Thread 0 Queued End Address */
+#define BCHP_V3D_CLE_0_CT1QEA                    0x2130816c /* [RW][32] Control List Executor Thread 1 Queued End Address */
+#define BCHP_V3D_CLE_0_CT0QMA                    0x21308170 /* [RW][32] Control List Executor Thread 0 Queued Tile Allocation Memory Address */
+#define BCHP_V3D_CLE_0_CT0QMS                    0x21308174 /* [RW][32] Control List Executor Thread 0 Queued Tile Allocation Memory Size */
+#define BCHP_V3D_CLE_0_CT1QCFG                   0x21308178 /* [RW][32] Control List Executor Thread 1 Queued Configuration */
+#define BCHP_V3D_CLE_0_CT1QTSKIP                 0x2130817c /* [RW][32] Control List Executor Thread 1 Queued Tile Skip Count */
+#define BCHP_V3D_CLE_0_CT1QBASE0                 0x21308180 /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 0 Base Address */
+#define BCHP_V3D_CLE_0_CT1QBASE1                 0x21308184 /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 1 Base Address */
+#define BCHP_V3D_CLE_0_CT1QBASE2                 0x21308188 /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 2 Base Address */
+#define BCHP_V3D_CLE_0_CT1QBASE3                 0x2130818c /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 3 Base Address */
+#define BCHP_V3D_CLE_0_CT1QBASE4                 0x21308190 /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 4 Base Address */
+#define BCHP_V3D_CLE_0_CT1QBASE5                 0x21308194 /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 5 Base Address */
+#define BCHP_V3D_CLE_0_CT1QBASE6                 0x21308198 /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 6 Base Address */
+#define BCHP_V3D_CLE_0_CT1QBASE7                 0x2130819c /* [RW][32] Control List Executor Thread 1 Queued Tile List Set 7 Base Address */
+#define BCHP_V3D_CLE_0_CT0QSYNC                  0x213081a0 /* [RW][32] Control List Executor Thread 0 Queued Synchronisation Configuration */
+#define BCHP_V3D_CLE_0_CT1QSYNC                  0x213081a4 /* [RW][32] Control List Executor Thread 1 Queued Synchronisation Configuration */
+#define BCHP_V3D_CLE_0_CT0CAD                    0x213081a8 /* [RO][32] Control List Executor Thread 0 Current Address. */
+#define BCHP_V3D_CLE_0_CT1CAD                    0x213081ac /* [RO][32] Control List Executor Thread 1 Current Address. */
+#define BCHP_V3D_CLE_0_CCNTCS                    0x213081b0 /* [RW][32] Cycle Count Control and Status */
+#define BCHP_V3D_CLE_0_CCNTLO                    0x213081b4 /* [RW][32] Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CCNTHI                    0x213081b8 /* [RW][32] Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CCBSLO                    0x213081c0 /* [RO][32] Captured CLE Bin Start Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CCBSHI                    0x213081c4 /* [RO][32] Captured CLE Bin Start Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CCBELO                    0x213081c8 /* [RO][32] Captured CLE Bin End Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CCBEHI                    0x213081cc /* [RO][32] Captured CLE Bin End Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CPBSLO                    0x213081d0 /* [RO][32] Captured PTB Bin Start Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CPBSHI                    0x213081d4 /* [RO][32] Captured PTB Bin Start Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CPBELO                    0x213081d8 /* [RO][32] Captured PTB Bin End Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CPBEHI                    0x213081dc /* [RO][32] Captured PTB Bin End Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CCRSLO                    0x213081e0 /* [RO][32] Captured CLE Render Start Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CCRSHI                    0x213081e4 /* [RO][32] Captured CLE Render Start Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CCRELO                    0x213081e8 /* [RO][32] Captured CLE Render End Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CCREHI                    0x213081ec /* [RO][32] Captured CLE Render End Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CTRSLO                    0x213081f0 /* [RO][32] Captured TLB Render Start Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CTRSHI                    0x213081f4 /* [RO][32] Captured TLB Render Start Cycle Count High Value */
+#define BCHP_V3D_CLE_0_CTRELO                    0x213081f8 /* [RO][32] Captured TLB Render End Cycle Count Low Value */
+#define BCHP_V3D_CLE_0_CTREHI                    0x213081fc /* [RO][32] Captured TLB Render End Cycle Count High Value */
 
 /***************************************************************************
  *CT0CS - Control List Executor Thread 0 Control and Status.

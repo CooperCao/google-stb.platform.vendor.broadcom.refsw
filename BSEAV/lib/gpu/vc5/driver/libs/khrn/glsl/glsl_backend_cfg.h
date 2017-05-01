@@ -9,7 +9,7 @@
 /*
 33222222222211111111110000000000
 10987654321098765432109876543210
---------aaaadzwffwffwffwffpp-ccc   backend
+------aaaauxdzwffwffwffwffpp-ccc   backend
 
 a = advanced blend type
 p = prim point
@@ -17,13 +17,20 @@ f = framebuffer type
 w = fb alpha workaround
 z = z only write
 d = fez safe with discard
+x = compute padding
+u = disable UBO fetch optimization
 */
 
 /* backend */
 #define GLSL_SAMPLE_MS       (1<<0)
 #define GLSL_SAMPLE_ALPHA    (1<<1)
-#define GLSL_SAMPLE_MASK     (1<<2)
-#define GLSL_SAMPLE_OPS_M    (0x7<<0)
+#if !V3D_HAS_FEP_SAMPLE_MASK
+# define GLSL_SAMPLE_MASK     (1<<2)
+# define GLSL_SAMPLE_OPS_M    (0x7<<0)
+#else
+# define GLSL_SAMPLE_OPS_M    (0x3<<0)
+#endif
+
 #define GLSL_PRIM_NOT_POINT_OR_LINE (0<<4)
 #define GLSL_PRIM_POINT             (1<<4)
 #define GLSL_PRIM_LINE              (2<<4)
@@ -40,11 +47,13 @@ d = fez safe with discard
 
 /* Leave space for 4 fb gadgets. 6, 9, 12, 15 */
 
-#define GLSL_Z_ONLY_WRITE          (1<<18)
-#define GLSL_FEZ_SAFE_WITH_DISCARD (1<<19)
+#define GLSL_Z_ONLY_WRITE              (1<<18)
+#define GLSL_FEZ_SAFE_WITH_DISCARD     (1<<19)
+#define GLSL_COMPUTE_PADDING           (1<<20)
+#define GLSL_DISABLE_UBO_FETCH         (1<<21)
 
 /* Advanced blend */
-#define GLSL_ADV_BLEND_S              20
+#define GLSL_ADV_BLEND_S              22
 #define GLSL_ADV_BLEND_M              (0xf << GLSL_ADV_BLEND_S)
 #define GLSL_ADV_BLEND_MULTIPLY       1
 #define GLSL_ADV_BLEND_SCREEN         2

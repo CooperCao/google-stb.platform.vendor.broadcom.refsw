@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,9 +40,6 @@
 #include "b_objdb.h"
 #include "nexus_power_management.h"
 
-#ifdef NEXUS_FPGA_SUPPORT
-#include "nexus_platform_fpga.h"
-#endif
 #if NEXUS_HAS_I2C
 #include "nexus_i2c_init.h"
 #include "priv/nexus_i2c_standby_priv.h"
@@ -373,7 +370,7 @@ static NEXUS_Error NEXUS_Platform_P_InitDvbci(void)
          return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    NEXUS_P_AddMap(NEXUS_DVB_CI_MEMORY_BASE, NULL, g_pMemoryEbi, NEXUS_DVB_CI_MEMORY_LENGTH);
+    NEXUS_P_AddMap(NEXUS_DVB_CI_MEMORY_BASE, NULL, NEXUS_AddrType_eUncached, g_pMemoryEbi, NEXUS_AddrType_eUncached, NEXUS_DVB_CI_MEMORY_LENGTH);
 
     return NEXUS_SUCCESS;
 }
@@ -390,7 +387,9 @@ static void NEXUS_Platform_P_UninitDvbci(void)
 static void NEXUS_Platform_P_Print(void)
 {
 #if BCHP_PWR_SUPPORT
-    BCHP_PWR_DebugPrint(g_NEXUS_pCoreHandles->chp);
+    if (g_NEXUS_pCoreHandles) {
+        BCHP_PWR_DebugPrint(g_NEXUS_pCoreHandles->chp);
+    }
 #endif
     BDBG_LOG(("Nexus Release %d.%d",NEXUS_P_GET_VERSION(NEXUS_PLATFORM) / NEXUS_PLATFORM_VERSION_UNITS,
         NEXUS_P_GET_VERSION(NEXUS_PLATFORM) % NEXUS_PLATFORM_VERSION_UNITS));
@@ -628,11 +627,8 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
     BDBG_MSG((">BASE"));
     NEXUS_Base_GetDefaultSettings(&state->baseSettings);
-#if NEXUS_BASE_OS_linuxkernel
-    /* callback per module create to generic driver for /proc registration */
-    state->baseSettings.driverModuleInit = nexus_driver_module_init_enum_cb;
-    state->baseSettings.driverModuleUninit = nexus_driver_module_uninit_enum_cb;
-#endif
+    state->baseSettings.procInit = nexus_platform_p_add_proc;
+    state->baseSettings.procUninit = nexus_platform_p_remove_proc;
     errCode = NEXUS_Base_Init(&state->baseSettings);
     if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err_base; }
 
@@ -696,14 +692,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     errCode = NEXUS_Platform_P_InitPinmux();
     if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err_postboard; }
 
-    /* We acquire the BINT resource here , becuse there may be pending L1, which may fire before the modules
-       are initialized. ALso, in case of weak mask interurpts, we need to clear the L2. So acquire BINT and
-       release after all modules have been initialized */
-
-#ifdef BCHP_PWR_RESOURCE_BINT_OPEN
-    BCHP_PWR_AcquireResource(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_BINT_OPEN);
-#endif
-
     /* Start Interrupts */
     BDBG_MSG((">InitInterrupts"));
     errCode = NEXUS_Platform_P_InitInterrupts();
@@ -741,11 +729,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
                    NEXUS_DmaModule_Uninit, NEXUS_DmaModule_Standby_priv);
 #endif
 
-/* some chips init transport fully before starting security (Only 7408, removed.)*/
-#if (0)
-#define NEXUS_TRANSPORT_BEFORE_SECURITY 1
-#endif
-
 #if NEXUS_HAS_TRANSPORT
     BDBG_MSG((">TRANSPORT"));
     NEXUS_TransportModule_GetDefaultInternalSettings(&state->transportSettings);
@@ -754,7 +737,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     state->transportSettings.secureHeap = g_pCoreHandles->heap[NEXUS_VIDEO_SECURE_HEAP].nexus;
     g_NEXUS_platformSettings.transportModuleSettings.common.enabledDuringActiveStandby = true;
     state->transportSettings.mainHeapIndex = g_pCoreHandles->defaultHeapIndex;
-#if !NEXUS_TRANSPORT_BEFORE_SECURITY && NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY
     state->transportSettings.postInitCalledBySecurity = true;
 #endif
     g_NEXUS_platformHandles.transport = NEXUS_TransportModule_PreInit(&state->transportSettings, &g_NEXUS_platformSettings.transportModuleSettings);
@@ -772,8 +755,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
     NEXUS_SecurityModule_GetDefaultInternalSettings(&state->securitySettings);
     state->securitySettings.transport = g_NEXUS_platformHandles.transport;
-    state->securitySettings.callTransportPostInit = state->transportSettings.postInitCalledBySecurity;
-
+    state->securitySettings.callTransportPostInit = true;
     g_NEXUS_platformHandles.security = NEXUS_SecurityModule_Init(&state->securitySettings, &g_NEXUS_platformSettings.securitySettings);
     if (!g_NEXUS_platformHandles.security) {
         BDBG_ERR(("Unable to init security"));
@@ -781,31 +763,10 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         goto err;
     }
     NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
-    NEXUS_Security_PrintArchViolation_priv(); /* print (and clear) any outstanding ARCH violations on boot */
+    NEXUS_Security_PrintArchViolation_priv(BMRC_Monitor_HwBlock_eInvalid); /* print (and clear) any outstanding ARCH violations on boot */
     NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
     NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.security, g_NEXUS_platformSettings.securitySettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
                    NEXUS_SecurityModule_Uninit, NEXUS_SecurityModule_Standby_priv);
-#endif
-
-#if NEXUS_HAS_TRANSPORT
-    BDBG_MSG((">VCXO"));
-    errCode = NEXUS_Platform_P_InitVcxo();
-    if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err; }
-#endif
-
-#if NEXUS_HAS_NSK2HDI
-    BDBG_MSG((">NSK2HDI"));
-    NEXUS_Nsk2hdiModule_GetDefaultSettings(&state->nsk2hdiSettings);
-    state->nsk2hdiSettings.securityModule = g_NEXUS_platformHandles.security;
-    state->nsk2hdiSettings.transportModule = g_NEXUS_platformHandles.transport;
-    handle = NEXUS_Nsk2hdiModule_Init(&state->nsk2hdiSettings);
-    if ( !handle )
-    {
-        BDBG_ERR(("Unable to init nsk2hdi"));
-        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-        goto err;
-    }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_ePassiveOnly, NEXUS_Nsk2hdiModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_SAGE
@@ -827,6 +788,36 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #else
     NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.sage, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_SageModule_Uninit, NULL);
 #endif
+#endif
+
+    /* init power state, which blanks display. then bring up transport via security. */
+    NEXUS_CoreModule_PostInit();
+#if NEXUS_HAS_SECURITY
+    NEXUS_Module_Lock( g_NEXUS_platformHandles.security );
+    errCode = NEXUS_SecurityModule_InitTransport_priv();
+    NEXUS_Module_Unlock( g_NEXUS_platformHandles.security );
+    if (errCode) { errCode = BERR_TRACE(errCode); goto err; }
+#endif
+
+#if NEXUS_HAS_TRANSPORT
+    BDBG_MSG((">VCXO"));
+    errCode = NEXUS_Platform_P_InitVcxo();
+    if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err; }
+#endif
+
+#if NEXUS_HAS_NSK2HDI
+    BDBG_MSG((">NSK2HDI"));
+    NEXUS_Nsk2hdiModule_GetDefaultSettings(&state->nsk2hdiSettings);
+    state->nsk2hdiSettings.securityModule = g_NEXUS_platformHandles.security;
+    state->nsk2hdiSettings.transportModule = g_NEXUS_platformHandles.transport;
+    handle = NEXUS_Nsk2hdiModule_Init(&state->nsk2hdiSettings);
+    if ( !handle )
+    {
+        BDBG_ERR(("Unable to init nsk2hdi"));
+        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err;
+    }
+    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_ePassiveOnly, NEXUS_Nsk2hdiModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_SCM
@@ -1467,10 +1458,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     }
 #endif
 
-#ifdef BCHP_PWR_RESOURCE_BINT_OPEN
-    BCHP_PWR_ReleaseResource(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_BINT_OPEN);
-#endif
-
 #if NEXUS_POWER_MANAGEMENT
     /* We could be initializing after S3 cold boot, in which case we want to reset the wake up status.*/
     NEXUS_Platform_P_SetStandbySettings(&g_NEXUS_platformSettings.standbySettings, false);
@@ -1685,11 +1672,6 @@ NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
     }
 
     return 0;
-}
-
-void NEXUS_Platform_UninitInterrupts(void)
-{
-    NEXUS_Platform_P_UninitInterrupts();
 }
 
 #include "b_objdb.h"

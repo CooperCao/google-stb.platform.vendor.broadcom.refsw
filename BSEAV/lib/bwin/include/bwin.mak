@@ -61,28 +61,27 @@ BWIN_LDFLAGS = -L$(BWIN_LIBDIR) -lbwin
 # By default, use freetype offline and use
 # prerendered fonts in the application.
 FREETYPE_SUPPORT ?= n
-FREETYPE_DIR = $(BSEAV)/opensource/freetype
-FREETYPE_NAME = freetype-2.1.5
-FREETYPE_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/$(FREETYPE_NAME)
 
 PNG_SUPPORT ?= y
 JPEG_SUPPORT = y
 
 LIB_DIR = $(BSEAV)/lib
 
-LIBPNG_DIR = $(BSEAV)/opensource/libpng
-LIBPNG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/libpng-1.2.8
 ZLIB_DIR = $(BSEAV)/opensource/zlib
 ZLIB_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/zlib-1.1.3
 LIBJPEG_DIR = $(BSEAV)/opensource/jpeg
 LIBJPEG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/jpeg-6b
 
 ifeq ($(FREETYPE_SUPPORT),y)
-BWIN_LDFLAGS += -L$(FREETYPE_ODIR) -lfreetype -L$(FREETYPE_ODIR)
+FREETYPE_DIR = $(BSEAV)/opensource/freetype
+include $(FREETYPE_DIR)/freetype.inc
+BWIN_LDFLAGS += -L$(FREETYPE_LIB_FOLDER) -lfreetype
 endif
 
 ifeq ($(PNG_SUPPORT),y)
-BWIN_LDFLAGS += -L$(LIBPNG_ODIR) -lpng -L$(ZLIB_ODIR) -lz
+LIBPNG_DIR = $(BSEAV)/opensource/libpng
+include $(LIBPNG_DIR)/libpng.inc
+BWIN_LDFLAGS += -L$(LIBPNG_LIB_FOLDER) -lpng -L$(ZLIB_ODIR) -lz
 endif
 
 ifeq ($(JPEG_SUPPORT),y)

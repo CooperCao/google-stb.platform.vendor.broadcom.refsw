@@ -230,10 +230,10 @@ static void platform_init_uart(void *devTree)
     // Map serial registers if necessary
     uint8_t *uartStart = (uint8_t *)PAGE_START_4K(serialAddr);
     uint8_t *uartEnd = uartStart + PAGE_SIZE_4K_BYTES - 1;
+    // Add kernel page map offset
+    serialAddr += ARCH_DEVICE_BASE;
 
     uint8_t *serialStart = (uint8_t *)PAGE_START_4K(serialAddr);
-    // Add kernel page map offset
-    serialStart += ARCH_DEVICE_BASE;
     uint8_t *serialEnd = serialStart + PAGE_SIZE_4K_BYTES - 1;
 
     PageTable *kernelPageTable = PageTable::kernelPageTable();
@@ -246,7 +246,7 @@ static void platform_init_uart(void *devTree)
     }
 
     // Hold off uart switching till entire system init done
-    sys_uart = serialAddr;
+    sys_uart = (uintptr_t)serialAddr;
 }
 
 static void platform_init_regs(void *devTree)
@@ -440,4 +440,14 @@ uintptr_t stb_reg_addr(uintptr_t reg) {
         return (-regEntry.offset < regGroupEntry.size) ?
             regGroupEntry.addr + regGroupEntry.size + regEntry.offset : 0;
     }
+}
+
+uintptr_t stb_reg_group_size(uintptr_t reg) {
+    if (reg >= STB_REG_LAST)
+        return 0;
+
+    struct RegEntry &regEntry = regMap[reg];
+    struct RegGroupEntry &regGroupEntry = regGroupMap[regEntry.group];
+
+    return regGroupEntry.size;
 }

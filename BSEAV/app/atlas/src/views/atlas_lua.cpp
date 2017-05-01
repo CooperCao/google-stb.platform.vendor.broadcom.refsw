@@ -3739,6 +3739,7 @@ static int atlasLua_SetPowerMode(lua_State * pLua)
 {
     CLua *       pThis       = getCLua(pLua);
     eRet         err         = eRet_Ok;
+#if POWERSTANDBY_SUPPORT
     uint8_t      argNum      = 1;
     uint8_t      numArgTotal = lua_gettop(pLua) - 1;
     ePowerMode * pPowerMode  = NULL;
@@ -3776,6 +3777,10 @@ error:
     DEL(pAction);
     err = eRet_InvalidParameter;
 done:
+#else
+    BDBG_ASSERT(pThis);
+    BDBG_WRN((" Power Management is turned off. Please enable NEXUS_POWER_MANAGEMENT=y "));
+#endif
     LUA_RETURN(err);
 } /* atlasLua_SetPowerMode  */
 

@@ -330,6 +330,11 @@ int TzIoc::TzIocMem::mapPaddrs(
         uint32_t ulSize  = pRegions[idx].ulSize;
         uint32_t ulFlags = pRegions[idx].ulFlags;
 
+        if (ulPaddr == 0 || ulSize == 0) {
+            err = -EINVAL;
+            goto ERR_EXIT;
+        }
+
         int startOffset = ulPaddr & ~PAGE_MASK;
         int endOffset   = startOffset + ulSize - 1;
         int numPages    = endOffset / PAGE_SIZE_4K_BYTES + 1;

@@ -198,6 +198,18 @@ const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
          BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( 0, 0x0, 0 ),
       },
    },
+   /* Box Mode: 29 (720p60x1) */
+   { 29,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_720p60( 0, 0x1, 0 ),
+      },
+   },
+   /* Box Mode: 30 (No Transcode) */
+   { 30,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( 0, 0x0, 0 ),
+      },
+   },
 };
 
 const size_t BBOX_P_Vce_CapabilitiesLUT_size = sizeof( BBOX_P_Vce_CapabilitiesLUT );

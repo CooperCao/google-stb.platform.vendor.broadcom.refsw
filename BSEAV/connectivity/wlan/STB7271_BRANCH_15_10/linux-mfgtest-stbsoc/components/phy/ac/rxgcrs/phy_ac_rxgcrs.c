@@ -186,6 +186,7 @@ struct phy_ac_rxgcrs_info {
 	bool	mdgain_trtx_allowed;
 	/* lesi */
 	int8 lesi;
+	bool lesi_mode;
 	bool tia_idx_max_eq_init;
 	/* Flag for enabling auto lesiscale cal */
 	bool lesiscalecal_enable;
@@ -284,6 +285,7 @@ static int
 phy_ac_rxgcrs_dump_phycal_rx_min(phy_type_rxgcrs_ctx_t *ctx, struct bcmstrbuf *b);
 #endif /* DBG_BCN_LOSS */
 
+extern char *nvram_get(const char *name);
 
 /* register phy type specific implementation */
 phy_ac_rxgcrs_info_t *
@@ -817,6 +819,7 @@ BCMATTACHFN(phy_ac_populate_rxg_params)(phy_ac_rxgcrs_info_t *rxgcrs_info)
 
 	}
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 	if (ACMAJORREV_36(pi->pubpi->phy_rev)) {
 		/* LNA2 Gm table */
 		memcpy(rxg_params->lna2_gm_ind_2g_tbl,
@@ -899,7 +902,9 @@ BCMATTACHFN(phy_ac_populate_rxg_params)(phy_ac_rxgcrs_info_t *rxgcrs_info)
 		rxg_params->max_analog_gain_lonf = MAX_ANALOG_RX_GAIN_28NM_ULP_LONF;
 		rxg_params->high_sen_adjust_lonf_2g = 14;
 		rxg_params->high_sen_adjust_lonf_5g = 14;
-	} else if (IS_28NM_RADIO(pi)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+	if (IS_28NM_RADIO(pi)) {
 		/*
 		if (CHSPEC_IS2G(pi->radio_chanspec) ? BF_ELNA_2G(pi->u.pi_acphy)
 				: BF_ELNA_5G(pi->u.pi_acphy))
@@ -948,6 +953,8 @@ BCMATTACHFN(phy_ac_rxgcrs_std_params_attach)(phy_ac_rxgcrs_info_t *ri)
 	uint8 gain_len[] = {2, 6, 7, 10, 8, 8, 11}; /* elna, lna1, lna2, mix, bq0, bq1, dvga */
 	uint8 i, core_num;
 	phy_info_t *pi = ri->pi;
+	char *val = NULL;
+	uint lesidisab = 0;
 
 	if (TINY_RADIO(pi)) {
 		gain_len[3] = 12; /* tia */
@@ -1025,6 +1032,13 @@ BCMATTACHFN(phy_ac_rxgcrs_std_params_attach)(phy_ac_rxgcrs_info_t *ri)
 				ri->lesi = 1;
 		}
 	}
+	if ((val = nvram_get("lesidisab")) != NULL)
+		lesidisab = bcm_atoi(val);
+	if (lesidisab) {
+		ri->lesi = 0;
+		ri->lesi_mode = 1;
+	}
+
 }
 
 static void *
@@ -3717,6 +3731,8 @@ wlc_phy_desense_apply_acphy(phy_info_t *pi, bool apply_desense)
 	uint8 max_bphy_shiftbits = sizeof(bphy_minshiftbits) / sizeof(uint8);
 
 	uint8 max_initgain_desense = 12, max_anlg_desense = 9 ;   /* only desnese bq0 */
+	bool  ofdm_desense_extra_halfdB = 0;
+
 	uint8 core, bphy_idx = 0;
 	bool call_gainctrl = FALSE;
 	uint8 init_gain;
@@ -3754,7 +3770,7 @@ wlc_phy_desense_apply_acphy(phy_info_t *pi, bool apply_desense)
 		wlc_phy_desense_print_phyregs_acphy(pi, "restore");
 		/* turn on LESI */
 		if (pi_ac->rxgcrsi->lesi == 1) {
-			phy_ac_rxgcrs_lesi(pi_ac->rxgcrsi, TRUE);
+			phy_ac_rxgcrs_lesi(pi_ac->rxgcrsi, TRUE, 0);
 		}
 		/* channal update reset for default */
 		if (ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev)) {
@@ -3766,13 +3782,8 @@ wlc_phy_desense_apply_acphy(phy_info_t *pi, bool apply_desense)
 
 		bphy_desense = MIN(ACPHY_ACI_MAX_DESENSE_BPHY_DB, desense->bphy_desense);
 		ofdm_desense = MIN(ACPHY_ACI_MAX_DESENSE_OFDM_DB, desense->ofdm_desense);
-		if (pi_ac->rxgcrsi->lesi == 1) {
-			if (ofdm_desense > 0 || bphy_desense > 12) {
-				phy_ac_rxgcrs_lesi(pi_ac->rxgcrsi, FALSE);
-			} else {
-				phy_ac_rxgcrs_lesi(pi_ac->rxgcrsi, TRUE);
-			}
-		}
+
+		ofdm_desense_extra_halfdB = desense->ofdm_desense_extra_halfdB;
 
 		/* channal update set to interference mode */
 		if (ofdm_desense > 0) {
@@ -3800,13 +3811,31 @@ wlc_phy_desense_apply_acphy(phy_info_t *pi, bool apply_desense)
 		/* Update current desense */
 		curr_desense->ofdm_desense = ofdm_desense;
 		curr_desense->bphy_desense = bphy_desense;
+		curr_desense->ofdm_desense_extra_halfdB = ofdm_desense_extra_halfdB;
 
 		/* if any ofdm desense is needed, first start using higher
 		   mf thresholds (1dB sens loss)
 		*/
 		wlc_phy_desense_mf_high_thresh_acphy(pi, (ofdm_desense > 0));
-		if (ofdm_desense > 0)
-			ofdm_desense -= 1;
+
+		if (pi_ac->rxgcrsi->lesi) {
+			/*
+				First ACPHY_ACI_MAX_LESI_DESENSE_DB-1 of desense is done using lesi_crs
+				ACPHY_ACI_MAX_LESI_DESENSE_DB+ dB is done by turning off lesi
+				remainder is done using initgain/crsmin (with lesi off)
+			*/
+			if(ofdm_desense < ACPHY_ACI_MAX_LESI_DESENSE_DB) {
+				phy_ac_rxgcrs_lesi(pi_ac->rxgcrsi, TRUE, (2*ofdm_desense) + ofdm_desense_extra_halfdB);
+				ofdm_desense = 0; ofdm_desense_extra_halfdB = 0;
+			} else {
+				phy_ac_rxgcrs_lesi(pi_ac->rxgcrsi, FALSE, 0);
+				ofdm_desense -= ACPHY_ACI_MAX_LESI_DESENSE_DB;
+			}
+		} else {
+			/* 1st dB is for mf_high thresh */
+			if (ofdm_desense > 0)
+				ofdm_desense --;
+		}
 
 		/* Distribute desense between INITgain & crsmin(ofdm) & digigain(bphy) */
 		if (CHSPEC_IS2G(pi->radio_chanspec)) {
@@ -3937,7 +3966,8 @@ wlc_phy_desense_apply_acphy(phy_info_t *pi, bool apply_desense)
 		}
 
 		/* adjust crsmin threshold, 8 ticks increase gives 3dB rejection */
-		crsmin_thresh = ACPHY_CRSMIN_DEFAULT + ((88 * crsmin_init) >> 5);  /* init gain */
+		crsmin_thresh = ACPHY_CRSMIN_DEFAULT +
+						((44 * (2*crsmin_init + ofdm_desense_extra_halfdB)) >> 5);
 #ifdef BCMLTECOEX
 		if (phy_ac_btcx_get_data(pi_ac->btcxi)->ltecx_mode == 1)
 			wlc_phy_set_crs_min_pwr_acphy(pi,
@@ -3948,7 +3978,7 @@ wlc_phy_desense_apply_acphy(phy_info_t *pi, bool apply_desense)
 		if ((ACMAJORREV_37(pi->pubpi->phy_rev) || ACMAJORREV_40(pi->pubpi->phy_rev)) &&
 			(wlapi_bmac_btc_mode_get(pi->sh->physhim) == 7)) {
 			crsmin_thresh = MAX(0, pi->u.pi_acphy->rxgcrsi->phy_crs_th_from_crs_cal +
-				((88 * crsmin_init) >> 5));  /* init gain */
+				((44 * (2*crsmin_init + ofdm_desense_extra_halfdB)) >> 5));  /* init gain */
 			wlc_phy_set_crs_min_pwr_acphy(pi, crsmin_thresh,
 				0, 0, 0, 0);
 		} else {
@@ -4027,7 +4057,8 @@ wlc_phy_desense_calc_total_acphy(phy_ac_rxgcrs_info_t *rxgcrsi)
 		bt  = rxgcrsi->bt_desense;
 		lte = rxgcrsi->lte_desense;
 		total->ofdm_desense = MAX(MAX(aci->ofdm_desense, bt->ofdm_desense),
-			lte->ofdm_desense);
+				lte->ofdm_desense);
+		total->ofdm_desense_extra_halfdB = aci->ofdm_desense_extra_halfdB;
 		total->bphy_desense = MAX(MAX(aci->bphy_desense, bt->bphy_desense),
 			lte->bphy_desense);
 		total->lna1_tbl_desense = MAX(MAX(aci->lna1_tbl_desense, bt->lna1_tbl_desense),
@@ -4063,6 +4094,8 @@ wlc_phy_desense_calc_total_acphy(phy_ac_rxgcrs_info_t *rxgcrsi)
 		/* Merge BT & ACI desense, take max */
 		bt  = rxgcrsi->bt_desense;
 		total->ofdm_desense = MAX(aci->ofdm_desense, bt->ofdm_desense);
+		total->ofdm_desense_extra_halfdB = aci->ofdm_desense_extra_halfdB;
+
 		total->bphy_desense = MAX(aci->bphy_desense, bt->bphy_desense);
 		total->analog_gain_desense_ofdm = MAX(aci->analog_gain_desense_ofdm,
 			bt->analog_gain_desense_ofdm);
@@ -7938,6 +7971,8 @@ chanspec_setup_rxgcrs(phy_info_t *pi)
 	aci_tbl_list_entry *tbl_list_ptr;
 	uint8 p_phytbl7_8_buf[119];
 	uint32 p_phytbl24_28_buf[22];
+	const uint8 lna1_rout_map_2g_maj37_min12[N_LNA12_GAINS] = {  9,  9,  9,  9,  9,  9};
+	const uint8 lna1_gain_map_2g_maj37_min12[N_LNA12_GAINS] = {  0,  1,  2,  3,  4,  5};
 	const uint8 lna1_rout_map_5g_maj37_min12[N_LNA12_GAINS] = { 11, 11, 11, 11, 11, 11};
 	const uint8 lna1_gain_map_5g_maj37_min12[N_LNA12_GAINS] = {  2,  3,  4,  5,  6,  7};
 #endif
@@ -8100,19 +8135,32 @@ chanspec_setup_rxgcrs(phy_info_t *pi)
 					}
 				}
 				if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
-					uint8 i;
+					uint8 i, core, offset;
 
-				       // Overwrite LNARout table to one with 12 dB desense
-				       for (i = 0; i < N_LNA12_GAINS; i++) {
-					       p_phytbl7_8_buf[i] =
-						       (lna1_rout_map_5g_maj37_min12[i] << 3) |
-						        lna1_gain_map_5g_maj37_min12[i];
-				       }
-
-				       /* 5G index is 8->13 */
-				       wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_LNAROUTLUTACI,
-						       N_LNA12_GAINS, 8, 8, p_phytbl7_8_buf);
-
+					// Overwrite LNARoutAci table to one with 12 dB desense
+					// following the previous change for 5g, and applying to 2g
+					FOREACH_CORE(pi, core) {
+					    // 2G
+					    for (i = 0; i < N_LNA12_GAINS; i++) {
+					        p_phytbl7_8_buf[i] = (lna1_rout_map_2g_maj37_min12[i] << 3) |
+					                lna1_gain_map_2g_maj37_min12[i];
+					    }
+					    /* 2G index is 0->5 for core0 */
+					    offset = 0 + ACPHY_LNAROUT_CORE_WRT_OFST(pi, core);
+					    wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_LNAROUTLUTACI,
+					            N_LNA12_GAINS, offset, 8, p_phytbl7_8_buf);
+					}
+					FOREACH_CORE(pi, core) {
+					    // 5G
+					    for (i = 0; i < N_LNA12_GAINS; i++) {
+					        p_phytbl7_8_buf[i] = (lna1_rout_map_5g_maj37_min12[i] << 3) |
+					                lna1_gain_map_5g_maj37_min12[i];
+					    }
+					    /* 5G index is 8->13 for core0 */
+					    offset = 8 + ACPHY_LNAROUT_CORE_WRT_OFST(pi, core);
+					    wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_LNAROUTLUTACI,
+					            N_LNA12_GAINS, offset, 8, p_phytbl7_8_buf);
+					}
 				}
 				ACPHY_ENABLE_STALL(pi, stall_val);
 				wlapi_enable_mac(pi->sh->physhim);
@@ -9012,9 +9060,12 @@ phy_ac_rxgcrs_set_rxdesens(phy_type_rxgcrs_ctx_t *ctx, int32 int_val)
 #endif /* defined(RXDESENS_EN) */
 
 void
-phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on)
+phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on, uint8 delta_halfdB)
 {
 	phy_info_t *pi = rxgcrsi->pi;
+	uint8 lsb, msb, delta = (delta_halfdB << 3);   // 16 ticks = 1dB
+	uint16 val = 0;
+
 	if (rxgcrsi->lesi > 0) {
 		if (on) {
 			MOD_PHYREG(pi, lesi_control, lesiFstrEn, 1);
@@ -9031,30 +9082,31 @@ phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on)
 				MOD_PHYREG(pi, lesiCrsMinRxPowerPerCore, PowerLevelPerCore,
 				       CHSPEC_IS20(pi->radio_chanspec) ?
 				       0x5 : CHSPEC_IS40(pi->radio_chanspec) ? 0x18 : 0x4);
-				MOD_PHYREG(pi, lesiCrs1stDetThreshold_1, crsDetTh1_1Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x41 : CHSPEC_IS40(pi->radio_chanspec) ? 0x2d : 0x23);
-				MOD_PHYREG(pi, lesiCrs1stDetThreshold_1, crsDetTh1_2Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x30 : CHSPEC_IS40(pi->radio_chanspec) ? 0x20 : 0x1b);
-				MOD_PHYREG(pi, lesiCrs1stDetThreshold_2, crsDetTh1_3Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x28 : CHSPEC_IS40(pi->radio_chanspec) ? 0x1b : 0x17);
-				MOD_PHYREG(pi, lesiCrs1stDetThreshold_2, crsDetTh1_4Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x23 : CHSPEC_IS40(pi->radio_chanspec) ? 0x18 : 0x14);
-				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_1, crsDetTh1_1Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x41 : CHSPEC_IS40(pi->radio_chanspec) ? 0x2d : 0x23);
-				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_1, crsDetTh1_2Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x30 : CHSPEC_IS40(pi->radio_chanspec) ? 0x20 : 0x1b);
-				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_2, crsDetTh1_3Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x28 : CHSPEC_IS40(pi->radio_chanspec) ? 0x1b : 0x17);
-				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_2, crsDetTh1_4Core,
-				       CHSPEC_IS20(pi->radio_chanspec) ?
-				       0x23 : CHSPEC_IS40(pi->radio_chanspec) ? 0x18 : 0x14);
+				MOD_PHYREG(pi, lesiCrs1stDetThreshold_1, crsDetTh1_1Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x41 : CHSPEC_IS40(pi->radio_chanspec) ? 0x2d : 0x23));
+				MOD_PHYREG(pi, lesiCrs1stDetThreshold_1, crsDetTh1_2Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x30 : CHSPEC_IS40(pi->radio_chanspec) ? 0x20 : 0x1b));
+				MOD_PHYREG(pi, lesiCrs1stDetThreshold_2, crsDetTh1_3Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x28 : CHSPEC_IS40(pi->radio_chanspec) ? 0x1b : 0x17));
+				MOD_PHYREG(pi, lesiCrs1stDetThreshold_2, crsDetTh1_4Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x23 : CHSPEC_IS40(pi->radio_chanspec) ? 0x18 : 0x14));
+				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_1, crsDetTh1_1Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x41 : CHSPEC_IS40(pi->radio_chanspec) ? 0x2d : 0x23));
+				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_1, crsDetTh1_2Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x30 : CHSPEC_IS40(pi->radio_chanspec) ? 0x20 : 0x1b));
+				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_2, crsDetTh1_3Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x28 : CHSPEC_IS40(pi->radio_chanspec) ? 0x1b : 0x17));
+				MOD_PHYREG(pi, lesiCrs2ndDetThreshold_2, crsDetTh1_4Core, delta +
+						(CHSPEC_IS20(pi->radio_chanspec) ?
+						0x23 : CHSPEC_IS40(pi->radio_chanspec) ? 0x18 : 0x14));
+
 				MOD_PHYREG(pi, lesiFstrControl3, cCrsFftInpAdj,
 				       CHSPEC_IS20(pi->radio_chanspec) ?
 				       0x0 : CHSPEC_IS40(pi->radio_chanspec) ? 0x1 : 0x3);
@@ -9066,10 +9118,15 @@ phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on)
 				/* Increase the 20 primary crs detection thresold
 				* which cause the PER floor
 				*/
-				WRITE_PHYREG(pi, lesiCrs20P1stDetThreshold_1, 0x3344);
-				WRITE_PHYREG(pi, lesiCrs20P1stDetThreshold_2, 0x262a);
-				WRITE_PHYREG(pi, lesiCrs20P2ndDetThreshold_1, 0x3344);
-				WRITE_PHYREG(pi, lesiCrs20P2ndDetThreshold_2, 0x262a);
+				msb = 0x33 + delta; lsb = 0x44 + delta;		   /* 0x3344 + delta */
+				val = (msb << 8) | lsb;
+				WRITE_PHYREG(pi, lesiCrs20P1stDetThreshold_1, val);
+				WRITE_PHYREG(pi, lesiCrs20P2ndDetThreshold_1, val);
+
+				msb = 0x26 + delta; lsb = 0x2a + delta;		  /* 0x262a + delta */
+				val = (msb << 8) | lsb;
+				WRITE_PHYREG(pi, lesiCrs20P1stDetThreshold_2, val);
+				WRITE_PHYREG(pi, lesiCrs20P2ndDetThreshold_2, val);
 				/* PER hump at low power regime siwthcing point at 2G band,
 				* the WAR is to set fstrSwitchEn
 				*/
@@ -9117,10 +9174,10 @@ phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on)
 				/* Increase the LESI Crs1st/Crs2nd Detection Thres to help
 				* reduce the PER floor while not degrading the sensitivity
 				 */
-				WRITE_PHYREG(pi, lesiCrs1stDetThreshold_1,
+				WRITE_PHYREG(pi, lesiCrs1stDetThreshold_1, delta +
 					CHSPEC_IS20(pi->radio_chanspec) ?
 					0x3344 : CHSPEC_IS40(pi->radio_chanspec) ? 0x2633 : 0x1e26);
-				WRITE_PHYREG(pi, lesiCrs2ndDetThreshold_1,
+				WRITE_PHYREG(pi, lesiCrs2ndDetThreshold_1, delta +
 					CHSPEC_IS20(pi->radio_chanspec) ?
 					0x3344 : CHSPEC_IS40(pi->radio_chanspec) ? 0x2633 : 0x1e26);
 
@@ -9165,6 +9222,10 @@ phy_ac_rxgcrs_iovar_set_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, int32 set_val)
 {
 	phy_info_t *pi = rxgcrsi->pi;
 
+	if (rxgcrsi->lesi_mode) {
+		return BCME_UNSUPPORTED;
+	}
+
 	MOD_PHYREG(pi, lesi_control, lesiFstrEn, (uint16) set_val);
 	MOD_PHYREG(pi, lesi_control, lesiCrsEn, (uint16) set_val);
 
@@ -9174,9 +9235,9 @@ phy_ac_rxgcrs_iovar_set_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, int32 set_val)
 	}
 
 	if (set_val > 0) {
-		phy_ac_rxgcrs_lesi(rxgcrsi, TRUE);
+		phy_ac_rxgcrs_lesi(rxgcrsi, TRUE, 0);
 	} else {
-		phy_ac_rxgcrs_lesi(rxgcrsi, FALSE);
+		phy_ac_rxgcrs_lesi(rxgcrsi, FALSE, 0);
 	}
 	return BCME_OK;
 }
@@ -9207,6 +9268,21 @@ void phy_ac_rxgcrs_clean_noise_array(phy_ac_rxgcrs_info_t *rxgcrsi)
 		}
 	}
 	rxgcrsi->phy_noise_counter = 0;
+}
+
+bool phy_ac_rxgcrs_get_lesi(phy_ac_rxgcrs_info_t *rxgcrsi)
+{
+	char *val = NULL;
+	uint lesidisab = 0;
+
+	if (rxgcrsi == NULL) {
+		if ((val = nvram_get("lesidisab")) != NULL) {
+			lesidisab = bcm_atoi(val);
+		}
+		return (lesidisab == FALSE);
+	}
+	else
+		return rxgcrsi->lesi;
 }
 
 static uint16

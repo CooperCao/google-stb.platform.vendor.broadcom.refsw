@@ -113,13 +113,15 @@ typedef enum
 #define BBOX_FTR_HD_MR4   (BBOX_Vdc_Resource_eHd | BBOX_Vdc_Resource_eMadr4)
 #define BBOX_FTR_HD_MR5   (BBOX_Vdc_Resource_eHd | BBOX_Vdc_Resource_eMadr5)
 
-
 #define BBOX_FTR_INVALID  (BBOX_Vdc_Resource_eInvalid)
 #define BBOX_FTR_DISREGARD BBOX_VDC_DISREGARD
 #define BBOX_INVALID_NUM_MEMC 0xFFFFFFFF
 
 /* Macro for RDC memc index table entry */
 #define BBOX_MK_RDC_MEMC_IDX(MemcIdxRdc)   (BBOX_MemcIndex_##MemcIdxRdc)
+
+/* Macro for DRAM refresh rate entry */
+#define BBOX_MK_DRAM_REFRESH_RATE(rate)   (BBOX_DramRefreshRate_e##rate)
 
 /* Macro for video window capture memc index table entry */
 #define BBOX_MK_VID_WIN_CAP_MEMC_IDX(MemcIdxW0, MemcIdxW1)   \
@@ -176,6 +178,55 @@ typedef enum
     BBOX_MK_CMP_CFC_MEMC_IDX(CfcCmp),                       \
     BBOX_MK_GFD_CFC_MEMC_IDX(CfcG0)                         \
 }
+
+typedef enum
+{
+    BBOX_Vdc_Resource_Feeder_eMfd0 = 0,
+    BBOX_Vdc_Resource_Feeder_eMfd1,
+    BBOX_Vdc_Resource_Feeder_eMfd2,
+    BBOX_Vdc_Resource_Feeder_eMfd3,
+    BBOX_Vdc_Resource_Feeder_eMfd4,
+    BBOX_Vdc_Resource_Feeder_eMfd5,
+    BBOX_Vdc_Resource_Feeder_eVfd0,
+    BBOX_Vdc_Resource_Feeder_eVfd1,
+    BBOX_Vdc_Resource_Feeder_eVfd2,
+    BBOX_Vdc_Resource_Feeder_eVfd3,
+    BBOX_Vdc_Resource_Feeder_eVfd4,
+    BBOX_Vdc_Resource_Feeder_eVfd5,
+    BBOX_Vdc_Resource_Feeder_eVfd6,
+    BBOX_Vdc_Resource_Feeder_eVfd7,
+    BBOX_Vdc_Resource_Feeder_eDisregard = BBOX_VDC_DISREGARD,
+    BBOX_Vdc_Resource_Feeder_eUnknown = BBOX_Vdc_Resource_eInvalid
+} BBOX_Vdc_Resource_Feeder;
+
+typedef enum
+{
+    BBOX_Vdc_Resource_Capture_eCap0 = 0,
+    BBOX_Vdc_Resource_Capture_eCap1,
+    BBOX_Vdc_Resource_Capture_eCap2,
+    BBOX_Vdc_Resource_Capture_eCap3,
+    BBOX_Vdc_Resource_Capture_eCap4,
+    BBOX_Vdc_Resource_Capture_eCap5,
+    BBOX_Vdc_Resource_Capture_eCap6,
+    BBOX_Vdc_Resource_Capture_eCap7,
+    BBOX_Vdc_Resource_Capture_eDisregard = BBOX_VDC_DISREGARD,
+    BBOX_Vdc_Resource_Capture_eUnknown = BBOX_Vdc_Resource_eInvalid
+} BBOX_Vdc_Resource_Capture;
+
+typedef enum
+{
+    BBOX_Vdc_Resource_Scaler_eScl0 = 0,
+    BBOX_Vdc_Resource_Scaler_eScl1,
+    BBOX_Vdc_Resource_Scaler_eScl2,
+    BBOX_Vdc_Resource_Scaler_eScl3,
+    BBOX_Vdc_Resource_Scaler_eScl4,
+    BBOX_Vdc_Resource_Scaler_eScl5,
+    BBOX_Vdc_Resource_Scaler_eScl6,
+    BBOX_Vdc_Resource_Scaler_eScl7,
+    BBOX_Vdc_Resource_Scaler_eDisregard = BBOX_VDC_DISREGARD,
+    BBOX_Vdc_Resource_Scaler_eUnknown = BBOX_Vdc_Resource_eInvalid
+} BBOX_Vdc_Resource_Scaler;
+
 
 typedef enum
 {
@@ -290,6 +341,9 @@ typedef enum
 typedef struct
 {
     uint32_t  ulMad;
+    BBOX_Vdc_Resource_Capture eCap;
+    BBOX_Vdc_Resource_Feeder  eVfd;
+    BBOX_Vdc_Resource_Scaler  eScl;
 } BBOX_Vdc_ResourceFeature;
 
 typedef struct

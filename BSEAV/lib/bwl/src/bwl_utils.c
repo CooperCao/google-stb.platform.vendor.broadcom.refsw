@@ -110,6 +110,9 @@ bool bwl_g_swap = FALSE;
 #define SSID_FMT_BUF_LEN ((32 * 4) + 1)
 #define USAGE_ERROR  -1     /* Error code for Usage */
 
+static unsigned char buf[1024];
+int wl_pattern_atoh(char *src, char *dst);
+
 /* 802.11i/WPA RSN IE parsing utilities */
 typedef struct {
     uint16 version;
@@ -1076,4 +1079,187 @@ bwl_chspec32_from_driver(uint32 chanspec32)
     }
 
     return chanspec;
+}
+
+/* Convert user's input in hex pattern to byte-size mask ... copied from wluc_wowl.c 2017-04-19 */
+int
+wl_pattern_atoh(char *src, char *dst)
+{
+	int i;
+	if (strncmp(src, "0x", 2) != 0 &&
+	    strncmp(src, "0X", 2) != 0) {
+		printf("Data invalid format. Needs to start with 0x\n");
+		return -1;
+	}
+	src = src + 2; /* Skip past 0x */
+	if (strlen(src) % 2 != 0) {
+		printf("Data invalid format. Needs to be of even length\n");
+		return -1;
+	}
+	for (i = 0; *src != '\0'; i++) {
+		char num[3];
+		strncpy(num, src, 2);
+		num[2] = '\0';
+		dst[i] = (uint8)strtoul(num, NULL, 16);
+		src += 2;
+	}
+	return i;
+}
+
+/* Send a wakeup frame to sta in WAKE mode ... copied from wluc_wowl.c 2017-04-19 */
+int
+wl_wowl_pkt(void *wl, void *cmd, char **argv)
+{
+	char *arg = (char*) buf;
+	const char *str;
+	char *dst;
+	uint tot = 0;
+	uint16 type, pkt_len;
+	int dst_ea = 0; /* 0 == manual, 1 == bcast, 2 == ucast */
+	char *ea[ETHER_ADDR_LEN];
+	if (!*++argv)
+		return BCME_USAGE_ERROR;
+
+	UNUSED_PARAMETER(cmd);
+
+    memset( buf, 0, sizeof(buf) );
+
+	str = "wowl_pkt";
+	strncpy(arg, str, strlen(str));
+    /*printf("%s:%u arg 1 (%s) ... offset 0x%x\n", __FUNCTION__, __LINE__, arg, (int)((char*)arg-(char*)buf) );*/
+	arg[strlen(str)] = '\0';
+	dst = arg + strlen(str) + 1;
+	tot += strlen(str) + 1;
+
+	pkt_len = (uint16)htod32(strtoul(*argv, NULL, 0));
+
+	*((uint16*)dst) = pkt_len;
+    /*printf("%s:%u arg 2 (%s) ... offset 0x%x\n", __FUNCTION__, __LINE__, arg, (int)((char*)dst-(char*)buf) );*/
+
+	dst += sizeof(pkt_len);
+	tot += sizeof(pkt_len);
+
+	if (!*++argv) {
+		printf("Dest of the packet needs to be provided\n");
+		return BCME_USAGE_ERROR;
+	}
+
+	/* Dest of the frame */
+	if (!strcmp(*argv, "bcast")) {
+		dst_ea = 1;
+		if (!wl_ether_atoe("ff:ff:ff:ff:ff:ff", (struct ether_addr *)dst))
+			return BCME_USAGE_ERROR;
+	} else if (!strcmp(*argv, "ucast")) {
+		dst_ea = 2;
+		if (!*++argv) {
+			printf("EA of ucast dest of the packet needs to be provided\n");
+			return BCME_USAGE_ERROR;
+		}
+		if (!wl_ether_atoe(*argv, (struct ether_addr *)dst))
+			return BCME_USAGE_ERROR;
+		/* Store it */
+		memcpy(ea, dst, ETHER_ADDR_LEN);
+	} else if (!wl_ether_atoe(*argv, (struct ether_addr *)dst))
+		return BCME_USAGE_ERROR;
+
+	dst += ETHER_ADDR_LEN;
+	tot += ETHER_ADDR_LEN;
+
+	if (!*++argv) {
+		printf("type - magic/net needs to be provided\n");
+		return BCME_USAGE_ERROR;
+	}
+
+	if (strncmp(*argv, "magic", strlen("magic")) == 0)
+		type = WL_WOWL_MAGIC;
+	else if (strncmp(*argv, "net", strlen("net")) == 0)
+		type = WL_WOWL_NET;
+	else if (strncmp(*argv, "eapid", strlen("eapid")) == 0)
+		type = WL_WOWL_EAPID;
+	else
+		return BCME_USAGE_ERROR;
+
+	*((uint16*)dst) = type;
+	dst += sizeof(type);
+	tot += sizeof(type);
+
+	if (type == WL_WOWL_MAGIC) {
+		if (pkt_len < MAGIC_PKT_MINLEN)
+			return BCME_BADARG;
+
+		if (dst_ea == 2)
+			memcpy(dst, ea, ETHER_ADDR_LEN);
+		else {
+			if (!*++argv)
+				return BCME_USAGE_ERROR;
+
+			if (!wl_ether_atoe(*argv, (struct ether_addr *)dst))
+				return BCME_USAGE_ERROR;
+		}
+		tot += ETHER_ADDR_LEN;
+	} else if (type == WL_WOWL_NET) {
+		wl_wowl_pattern_t *wl_pattern;
+		wl_pattern = (wl_wowl_pattern_t *)dst;
+
+		if (!*++argv) {
+			printf("Starting offset not provided\n");
+			return BCME_USAGE_ERROR;
+		}
+
+		wl_pattern->offset = (uint)htod32(strtoul(*argv, NULL, 0));
+
+		wl_pattern->masksize = 0;
+
+		wl_pattern->patternoffset = (uint)htod32(sizeof(wl_wowl_pattern_t));
+
+		dst += sizeof(wl_wowl_pattern_t);
+
+		if (!*++argv) {
+			printf("pattern not provided\n");
+			return BCME_USAGE_ERROR;
+		}
+
+		wl_pattern->patternsize =
+		        (uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
+		dst += wl_pattern->patternsize;
+		tot += sizeof(wl_wowl_pattern_t) + wl_pattern->patternsize;
+
+		wl_pattern->reasonsize = 0;
+		if (*++argv) {
+			wl_pattern->reasonsize =
+				(uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
+			tot += wl_pattern->reasonsize;
+		}
+	} else {	/* eapid */
+		if (!*++argv) {
+			printf("EAPOL identity string not provided\n");
+			return BCME_USAGE_ERROR;
+		}
+
+		*dst++ = strlen(*argv);
+		strncpy(dst, *argv, strlen(*argv));
+		tot += 1 + strlen(*argv);
+	}
+    /*printf( "%s: arg (%s) ... tot (%u)\n", __FUNCTION__, arg, tot );*/
+	return (wlu_set(wl, WLC_SET_VAR, arg, tot));
+}
+
+/* Create list of attached MAC addresses ... copied wl_maclist() from wlu.c 2017-05-26 */
+int
+wl_maclist_2(void *wl, BWL_MAC_ADDRESS *outputList, int outputListLen )
+{
+    int ret = 0;
+    struct maclist *maclist = (struct maclist *) buf;
+    struct ether_addr *ea = NULL;
+    uint i=0, max = (WLC_IOCTL_MEDLEN - sizeof(int)) / ETHER_ADDR_LEN;
+
+    maclist->count = htod32(max); /* this is the maximum number of addresses that we have space for */
+    if ((ret = wlu_get(wl, WLC_GET_ASSOCLIST, maclist, WLC_IOCTL_MEDLEN)) < 0)
+        return ret;
+    maclist->count = dtoh32(maclist->count); /* this is the number of MAC addresses that were found */
+    for (i = 0, ea = maclist->ea; (i < maclist->count) && (i < max) && (i < outputListLen); i++, ea++)
+    {
+        strncpy( (char*) &(outputList[i]), wl_ether_etoa(ea), sizeof( BWL_MAC_ADDRESS ) - 1 );
+    }
+    return ( i );
 }

@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifdef KHRN_GEOMD
 
 #include "khrn_fmem.h"
@@ -67,7 +65,7 @@ void fmem_debug_info_deinit(struct fmem_debug_info_vector *info)
    assert(s_num_debug_infos < MAX_DEBUG_INFO_VECTORS);
 }
 
-void fmem_debug_info_insert(KHRN_FMEM_T *fmem, v3d_addr_t addr,
+void fmem_debug_info_insert(khrn_fmem *fmem, v3d_addr_t addr,
                             unsigned draw_id, unsigned renderstate_id)
 {
    if (!khrn_options.geomd)

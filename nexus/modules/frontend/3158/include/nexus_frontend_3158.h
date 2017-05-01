@@ -46,6 +46,32 @@ extern "C" {
 
 /* 3158 uses the generic NEXUS_FrontendDevice_Open and NEXUS_Frontend_Open API. */
 
+/***************************************************************************
+Summary:
+    Settings for a BCM3158 tuner
+ ***************************************************************************/
+typedef struct NEXUS_TunerOpen3158Settings
+{
+    NEXUS_FrontendDeviceHandle device;
+} NEXUS_TunerOpen3158Settings;
+
+/***************************************************************************
+Summary:
+    Get the default settings for a BCM3158 tuner
+ ***************************************************************************/
+void NEXUS_Tuner_GetDefaultOpen3158Settings(
+    NEXUS_TunerOpen3158Settings *pSettings   /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+    Open a handle to a BCM3158 tuner.
+ ***************************************************************************/
+NEXUS_TunerHandle NEXUS_Tuner_Open3158(  /* attr{destructor=NEXUS_Tuner_Close} */
+    unsigned index,
+    const NEXUS_TunerOpen3158Settings *pSettings
+    );
+
 #ifdef __cplusplus
 }
 #endif

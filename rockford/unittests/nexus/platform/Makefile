@@ -34,14 +34,8 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
-# Module Description:
-#
 ############################################################
 
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
 NEXUS_TOP ?= $(shell cd ../../../../nexus; pwd)
 
 B_THIS_DIR := ${NEXUS_TOP}/../rockford/unittests/nexus/platform

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,8 +71,8 @@ static const BVDC_P_DcrCfgEntry s_aDcrCfgTbl[] =
     BVDC_P_MAKE_DCR(0x3, 0x2, 0x1, 0x1, 0x6,     0x2,  0x1,  0x1,  0x0,  0x7,     0x1,     0x0 ),
     BVDC_P_MAKE_DCR(0x4, 0x3, 0x2, 0x2, 0x8,     0x3,  0x2,  0x2,  0x1,  0xF,     0x2,     0x1 ),
     BVDC_P_MAKE_DCR(0x6, 0x5, 0x4, 0x4, 0xA,     0x4,  0x3,  0x3,  0x2,  0xF,     0x3,     0x1 ),
-    BVDC_P_MAKE_DCR(0x9, 0x8, 0x7, 0x7, 0xC,     0x5,  0x4,  0x4,  0x3,  0xF,     0x4,     0x1 ),
-    BVDC_P_MAKE_DCR(0xF, 0xE, 0xD, 0xD, 0x10,    0x6,  0x5,  0x5,  0x4,  0x1F,    0x6,     0x2 ),
+    BVDC_P_MAKE_DCR(0x8, 0x7, 0x6, 0x5, 0xC,     0x5,  0x4,  0x4,  0x3,  0xF,     0x4,     0x1 ),
+    BVDC_P_MAKE_DCR(0xA, 0x9, 0x8, 0x7, 0xE,     0x6,  0x5,  0x5,  0x4,  0x1F,    0x6,     0x2 ),
 };
 
 #if 0
@@ -116,7 +116,7 @@ static const BVDC_P_BnrCfgEntry s_aBnrCfgTbl[] =
  * decide the Dcr values.
  */
 const BVDC_P_DcrCfgEntry* BVDC_P_Dnr_GetDcrCfg_isr
-    ( uint32_t                       ulDcrQp,
+    ( int32_t                        iDcrLevel,
       const BFMT_VideoInfo          *pFmtInfo,
       void                          *pvUserInfo )
 {
@@ -124,14 +124,12 @@ const BVDC_P_DcrCfgEntry* BVDC_P_Dnr_GetDcrCfg_isr
     const BVDC_P_DcrCfgEntry *pDcrCfg;
 
     /* Mapping from ulDcrQp into index to s_aDcrCfgTbl[] */
-    index = ulDcrQp / (BVDC_P_DNR_MAX_HW_QP_STEPS / BVDC_P_DCR_COUNT);
+    index = (iDcrLevel <= -60) ? 0 :
+            (iDcrLevel <= 20)  ? 1 :
+            (iDcrLevel <= 100) ? 2 :
+            (iDcrLevel <= 180) ? 3 : 4;
 
-    if(index >= BVDC_P_DCR_COUNT)
-    {
-        index = BVDC_P_DCR_COUNT - 1;
-    }
-
-    BDBG_MSG(("DcrQp = %d, Dcr table index %d", ulDcrQp, index));
+    BDBG_MSG(("iDcrLevel = %d, Dcr table index %d", iDcrLevel, index));
     pDcrCfg = &s_aDcrCfgTbl[index];
 
     BSTD_UNUSED(pFmtInfo);
@@ -220,11 +218,11 @@ const BVDC_P_MnrCfgEntry* BVDC_P_Dnr_GetMnrCfg_isr
 
 #else
 const BVDC_P_DcrCfgEntry* BVDC_P_Dnr_GetDcrCfg_isr
-    ( uint32_t                       ulDcrQp,
+    ( int32_t                        iDcrLevel,
       const BFMT_VideoInfo          *pFmtInfo,
       void                          *pvUserInfo )
 {
-    BSTD_UNUSED(ulDcrQp);
+    BSTD_UNUSED(iDcrLevel);
     BSTD_UNUSED(pFmtInfo);
     BSTD_UNUSED(pvUserInfo);
     return NULL;

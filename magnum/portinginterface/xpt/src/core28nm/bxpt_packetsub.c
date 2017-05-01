@@ -78,7 +78,7 @@ static uint32_t BXPT_PacketSub_P_ReadReg_isrsafe(
     uint32_t Reg0Addr
     );
 
-void BXPT_PacketSub_P_WriteAddr(
+static void BXPT_PacketSub_P_WriteAddr(
     BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
     uint32_t Reg0Addr,
     BMMA_DeviceOffset RegVal
@@ -94,7 +94,7 @@ void BXPT_PacketSub_P_WriteAddr(
     BREG_Write32( hPSub->hRegister, RegAddr, RegVal );
 }
 
-BMMA_DeviceOffset BXPT_PacketSub_P_ReadAddr_isrsafe(
+static BMMA_DeviceOffset BXPT_PacketSub_P_ReadAddr_isrsafe(
     BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
     uint32_t Reg0Addr
     )

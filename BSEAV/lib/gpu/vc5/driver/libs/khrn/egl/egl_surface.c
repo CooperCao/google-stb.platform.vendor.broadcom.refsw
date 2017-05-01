@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "egl_thread.h"
 #include "egl_context_gl.h"
@@ -23,9 +17,9 @@ const v3d_scheduler_deps *egl_surface_flush_back_buffer_writer(EGL_SURFACE_T *su
 
    if (egl_context_gl_lock())
    {
-      KHRN_INTERLOCK_T *interlock = khrn_image_get_interlock(egl_surface_get_back_buffer(surface));
-      khrn_interlock_flush_writer(interlock);
-      deps = &interlock->pre_read;
+      khrn_resource *resource = khrn_image_get_resource(egl_surface_get_back_buffer(surface));
+      khrn_resource_flush_writer(resource);
+      deps = &resource->pre_read;
       egl_context_gl_unlock();
    }
 
@@ -154,12 +148,12 @@ EGL_THREAD_T *egl_surface_get_thread(const EGL_SURFACE_T *surface)
    return surface->context->bound_thread;
 }
 
-KHRN_IMAGE_T *egl_surface_get_back_buffer(const EGL_SURFACE_T *surface)
+khrn_image *egl_surface_get_back_buffer(const EGL_SURFACE_T *surface)
 {
    return surface->fns->get_back_buffer(surface);
 }
 
-KHRN_IMAGE_T *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
+khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
       egl_aux_buf_t which)
 {
    return egl_surface_base_get_aux_buffer(surface, which);
@@ -173,7 +167,7 @@ KHRN_IMAGE_T *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
 static bool get_new_dimensions(EGL_SURFACE_T *surface,
       unsigned *width, unsigned *height)
 {
-   KHRN_IMAGE_T *back_buffer = egl_surface_get_back_buffer(surface);
+   khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
 
    if (back_buffer)
       khrn_image_get_dimensions(back_buffer, width, height, NULL, NULL);

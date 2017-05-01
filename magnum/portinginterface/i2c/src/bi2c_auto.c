@@ -168,7 +168,7 @@ BERR_Code BI2C_Auto_P_Read
     return BERR_INVALID_PARAMETER;
 }
 
-BERR_Code BAUTO_I2C_P_WaitForCompletion
+static BERR_Code BAUTO_I2C_P_WaitForCompletion
 (
     BI2C_ChannelHandle  hChn,                           /* Device channel handle */
     uint32_t            numBytes                        /* number of bytes to transfer */
@@ -181,14 +181,14 @@ BERR_Code BAUTO_I2C_P_WaitForCompletion
     BSTD_UNUSED(numBytes);
 
     hDev = hChn->hI2c;
-    BDBG_MSG(("hChn->intMode = %d", hChn->chnSettings.intMode));
 
     if (hChn->chnSettings.intMode)
     {
         /* Wait for event, set by ISR */
-        if ( (retCode = BERR_TRACE(BKNI_WaitForEvent(hChn->hChnEvent, hChn->timeoutMs)) != BERR_SUCCESS) )
+        retCode = BKNI_WaitForEvent(hChn->hChnEvent, hChn->timeoutMs);
+        if ( retCode != BERR_SUCCESS)
         {
-            BDBG_ERR(("retCode = %d", retCode));
+            (void)BERR_TRACE(retCode);
             BKNI_ResetEvent(hChn->hChnEvent);
             goto done;
         }
@@ -221,7 +221,7 @@ void BAUTO_I2C_P_GetDefaultTriggerConfig(
     return;
 }
 
-void BAUTO_I2C_P_GetDefaultRegXSettings(
+static void BAUTO_I2C_P_GetDefaultRegXSettings(
      BAUTO_I2C_P_ChxRegXSettings *pRegXSettings           /* [output] Returns default setting */
     )
 {
@@ -306,7 +306,7 @@ done:
     return retCode;
 }
 
-BERR_Code  BAUTO_I2C_P_SetTriggerConfiguration(
+static BERR_Code  BAUTO_I2C_P_SetTriggerConfiguration(
     BI2C_ChannelHandle  hChn,
     const BAUTO_I2C_P_TriggerConfiguration *triggerConfig
 )
@@ -326,7 +326,7 @@ BERR_Code  BAUTO_I2C_P_SetTriggerConfiguration(
     return retCode;
 }
 
-BERR_Code  BAUTO_I2C_P_SetTerminateChannel(
+static BERR_Code  BAUTO_I2C_P_SetTerminateChannel(
     BI2C_ChannelHandle  hChn,
     BAUTO_I2C_P_CHX_REG_OFFSET  eRegXOffset
 )
@@ -340,7 +340,7 @@ BERR_Code  BAUTO_I2C_P_SetTerminateChannel(
     return BAUTO_I2C_P_WriteChxRegX(hChn, eRegXOffset, &regXSettings);
 }
 
-BERR_Code  BAUTO_I2C_P_SetCTLHIChannel(
+static BERR_Code  BAUTO_I2C_P_SetCTLHIChannel(
     BI2C_ChannelHandle  hChn,
     BAUTO_I2C_P_CHX_REG_OFFSET  eRegXOffset,
     const BAUTO_I2C_P_CtlhiSettings *ctlhiSettings
@@ -357,7 +357,7 @@ BERR_Code  BAUTO_I2C_P_SetCTLHIChannel(
     return BAUTO_I2C_P_WriteChxRegX(hChn, eRegXOffset, &regXSettings);
 }
 
-BERR_Code BAUTO_I2C_P_SetCTLChannel(
+static BERR_Code BAUTO_I2C_P_SetCTLChannel(
     BI2C_ChannelHandle  hChn,
     BAUTO_I2C_P_CHX_REG_OFFSET  eRegXOffset,
     const BAUTO_I2C_P_CtlSettings  *ctlSettings
@@ -403,7 +403,7 @@ BERR_Code BAUTO_I2C_P_SetCTLChannel(
     return BAUTO_I2C_P_WriteChxRegX(hChn, eRegXOffset, &regXSettings);
 }
 
-BERR_Code BAUTO_I2C_P_SetIICEnableChannel(
+static BERR_Code BAUTO_I2C_P_SetIICEnableChannel(
     BI2C_ChannelHandle  hChn,
     BAUTO_I2C_P_CHX_REG_OFFSET  eRegXOffset,
     const BAUTO_I2C_P_IICEnableSettings *iicSettings
@@ -421,7 +421,7 @@ BERR_Code BAUTO_I2C_P_SetIICEnableChannel(
     return BAUTO_I2C_P_WriteChxRegX(hChn, eRegXOffset, &regXSettings);
 }
 
-void BAUTO_I2C_P_EnableChannelWrite(
+static void BAUTO_I2C_P_EnableChannelWrite(
     BI2C_ChannelHandle      hChn          /* I2C channel handle. */
 )
 {
@@ -434,7 +434,7 @@ void BAUTO_I2C_P_EnableChannelWrite(
 
 }
 
-void BAUTO_I2C_P_ClearChannelDoneStatus(
+static void BAUTO_I2C_P_ClearChannelDoneStatus(
     BI2C_ChannelHandle      hChn          /* I2C channel handle. */
 )
 {
@@ -445,7 +445,7 @@ void BAUTO_I2C_P_ClearChannelDoneStatus(
     BREG_Write32(hDev->hRegister, (hChn->coreOffset + BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT_CLEAR), val) ;
 }
 
-BERR_Code BAUTO_I2C_P_DisableChannel(
+static BERR_Code BAUTO_I2C_P_DisableChannel(
     BI2C_ChannelHandle      hChn          /* I2C channel handle. */
 )
 {
@@ -647,8 +647,7 @@ BERR_Code BI2C_AUTO_P_WriteBy4BytesCmd
     while (cnt);
 
 error:
-    retCode = BAUTO_I2C_P_DisableChannel(hChn);
-    if(retCode){ (void)BERR_TRACE(retCode);goto error;}
+    BAUTO_I2C_P_DisableChannel(hChn);
 
     if (mutex)
         BI2C_P_RELEASE_MUTEX( hChn );
@@ -872,8 +871,7 @@ BERR_Code BI2C_AUTO_P_ReadBy4BytesCmd
     }
 
 error:
-    retCode = BAUTO_I2C_P_DisableChannel(hChn);
-    if(retCode) (void)BERR_TRACE(retCode);
+    BAUTO_I2C_P_DisableChannel(hChn);
 
     if (mutex)
         BI2C_P_RELEASE_MUTEX( hChn );
@@ -969,8 +967,7 @@ BERR_Code BI2C_Auto_P_ReadEDDC(
     if(retCode) (void)BERR_TRACE(retCode);
 
 error:
-    retCode = BAUTO_I2C_P_DisableChannel(hChn);
-    if(retCode) (void)BERR_TRACE(retCode);
+    BAUTO_I2C_P_DisableChannel(hChn);
 
     BI2C_P_RELEASE_MUTEX( hChn );
     return( retCode );

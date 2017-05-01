@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -293,6 +293,8 @@ typedef struct BXPT_Rave_RecordSettings
     */
     uint16_t CdbUpperThreshold, CdbLowerThreshold;
     uint16_t ItbUpperThreshold, ItbLowerThreshold;
+    uint32_t CdbMinDepthThreshold; /* unused if BXPT_HAS_RAVE_MIN_DEPTH_INTR not defined */
+    uint32_t ItbMinDepthThreshold; /* unused if BXPT_HAS_RAVE_MIN_DEPTH_INTR not defined */
 
     /*
     ** Use the CDB bufffer smaller then actually allocated by  BXPT_Rave_AllocContext,
@@ -328,6 +330,9 @@ typedef struct BXPT_Rave_RecordSettings
     /* Set bipIndexing to true and specify bipPidChannel when using RAVE context for generic channel bonding index generation */
     bool bipIndexing;
     unsigned bipPidChannel; /* PID channel that will carry the BIP packets. */
+
+    bool removeEmulationPrevention;    /* Remove startcode emulation prevention bits/bytes from the ES during ES record */
+    bool useAvConfig;                  /* Configure context as a decode context. */
 }
 BXPT_Rave_RecordSettings;
 
@@ -862,40 +867,6 @@ BERR_Code BXPT_Rave_AllocContext(
 
 /***************************************************************************
 Summary:
-Allocate a RAVE context, using the given heap for CDB and ITB memory.
-
-Description:
-The RAVE AV and record contexts are allocated from logical pools. All contexts
-within a pool are identical. This call allocates a context of ContextType.
-
-For AV contexts, BufferCfg should have the buffer size needed by the decoder.
-Aligment will be forced to 256 bytes CDB and 128 bytes for ITB. This is a
-requirement from the decoders.
-
-For record contexts, the buffer size should be large enough to accomodate
-the host CPU's latency in servicing the context interrupts. The alignment
-should be a multiple of 32-bit words.
-
-The API allows the caller to specify a different BMEM heap from which the
-CDB and ITB are allocated. For contexts of type BXPT_RaveCx_eAvR or
-BXPT_RaveCx_eRecordR, the allocations will still use the RHeap defined
-when BXPT_Open() is called.
-
-Returns:
-    BERR_SUCCESS                    - Context allocated successfully.
-    BERR_INVALID_PARAMETER          - Bad ContextType parameter
-    BXPT_ERR_NO_AVAILABLE_RESOURCES - The requested context is already in use.
-****************************************************************************/
-BERR_Code BXPT_Rave_AllocContextFromHeap(
-    BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
-    BXPT_RaveCx RequestedType,      /* [in] The type of context to allcoate */
-    const BAVC_CdbItbConfig *BufferCfg,   /* [in] Size and alignment for ITB and CDB */
-    BMEM_Handle ContextHeap,         /* [in] This context's memory heap handle */
-    BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
-    );
-
-/***************************************************************************
-Summary:
 Enable or disable a RAVE context.
 
 Description:
@@ -1282,7 +1253,7 @@ Returns:
 See Also:
 BXPT_Rave_AddPidChannel
 ****************************************************************************/
-BERR_Code BXPT_Rave_RemoveAllPidChannel(
+BERR_Code BXPT_Rave_RemoveAllPidChannels(
     BXPT_RaveCx_Handle Context         /* [in] The context  */
     );
 
@@ -1746,29 +1717,6 @@ BERR_Code BXPT_Rave_AllocSoftContext(
     BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
     );
 
-/***************************************************************************
-Summary:
-Allocate a soft RAVE context, using the specified heap for the ITB.
-
-Description:
-Allocate a software-RAVE AV context, using the CDB from the SrcContext. A context
-handle suitable for use is returned in DestContext. Note that startcode
-RAVE API calls will not work on the DestContext.
-
-This call replaces bsettop_p_setup_sw_rave().
-
-Returns:
-    BERR_SUCCESS                    - Soft RAVE context allocated.
-    BXPT_ERR_NO_AVAILABLE_RESOURCES - Not enough RAVE contexts remaining to allocate.
-    BERR_OUT_OF_SYSTEM_MEMORY       - Not enough DRAM for the DestContext ITB.
-****************************************************************************/
-BERR_Code BXPT_Rave_AllocSoftContextFromHeap(
-    BXPT_RaveCx_Handle SrcContext,      /* [in] The source context */
-    BXPT_RaveSoftMode DestContextMode,  /* [in] The type of data that the destination should generate. */
-    BMEM_Handle ContextHeap,            /* [in] The soft-context's memory heap handle, or NULL */
-    BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
-    );
-
 /******************************************************************************
 Summary;
 Settings passed to BXPT_Rave_AllocCx.
@@ -2019,6 +1967,10 @@ void BXPT_RAVE_P_SetPesRemapping(
 
 void BXPT_Rave_P_EnableInterrupts(
     BXPT_Handle hXpt                                /* [in] Handle for this transport instance */
+    );
+
+void BXPT_Rave_ClearOverflow(
+    BXPT_RaveCx_Handle hCtx
     );
 
 #ifdef __cplusplus

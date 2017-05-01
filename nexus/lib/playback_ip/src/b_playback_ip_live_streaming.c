@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,7 +81,7 @@ BDBG_FILE_MODULE(b_playback_ip_live_streaming_summary);
 
 static bool enableRecording = false; /* gets set via env variable if we need to record a live channel for testing purpose */
 #define LIVE_STREAMING_DATA_READY_TIMEOUT_INTERVAL 50
-#define LIVE_STREAMING_DATA_READY_MAX_TIMEOUT 5000
+#define LIVE_STREAMING_DATA_READY_MAX_TIMEOUT 50000
 #define HLS_RESUME_STREAMING_TIMEOUT 3000
 #define BRCM_TPIT_ENTRY_SIZE 24 /* Each TPIT entry is 6 dwords: 24 bytes */
 #define GOPS_IN_A_SEGMENT 1 /* pass it from app: TODO: RT mode may have mute frames in start, so keep GOP count higher */

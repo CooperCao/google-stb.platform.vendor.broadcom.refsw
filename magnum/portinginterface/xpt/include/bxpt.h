@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,6 @@ Overview
 
 #include "breg_mem.h"
 #include "bint.h"
-#include "bmem.h"
 #include "bavc.h"
 #include "bchp.h"
 #include "berr_ids.h"
@@ -305,13 +304,6 @@ typedef struct BXPT_DefaultSettings
 
     BMMA_Heap_Handle mmaRHeap; /* optional secure heap */
 
-    /* 40nm and 65nm platforms require both BMMA_Heap_Handle
-       (passed in as argument to BXPT_Open) and its BMEM_Heap_Handle counterpart.
-
-       if using mmaRHeap, then 40nm and 65nm platforms require the
-       memRHeap counterpart as well */
-    BMEM_Heap_Handle memHeap, memRHeap;
-
     /*
     ** When true, data sent to the mesg filters will go via the R-pipe. When
     ** false, data is sent on the G-pipe. Default is the G-pipe.
@@ -407,13 +399,6 @@ typedef struct BXPT_DefaultSettings
 #endif
 
     BMMA_Heap_Handle mmaRHeap; /* optional secure heap */
-
-    /* 40nm and 65nm platforms require both BMMA_Heap_Handle
-       (passed in as argument to BXPT_Open) and its BMEM_Heap_Handle counterpart.
-
-       if using mmaRHeap, then 40nm and 65nm platforms require the
-       memRHeap counterpart as well */
-    BMEM_Heap_Handle memHeap, memRHeap;
 
     /*
     ** When true, data sent to the mesg filters will go via the R-pipe. When
@@ -1049,8 +1034,7 @@ BufferSize and a NULL CpuAddr.
 Also, if the caller allocates memory, the size of the area must match one of
 the sizes defined by the BXPT_MessageBufferSize enumeration. These are the
 only buffer sizes supported by the underlying hardware. User allocated memory
-must be obtained through the BMEM memory manager, preferably by using
-BMEM_AllocAligned().
+must be obtained through the memory manager.
 
 Returns:
     BERR_SUCCESS                - Message buffer configured.
@@ -2358,8 +2342,7 @@ BufferSize and a NULL CpuAddr.
 Also, if the caller allocates memory, the size of the area must match one of
 the sizes defined by the BXPT_MessageBufferSize enumeration. These are the
 only buffer sizes supported by the underlying hardware. User allocated memory
-must be obtained through the BMEM memory manager, preferably by using
-BMEM_AllocAligned().
+must be obtained through the memory manager.
 
 Returns:
     BERR_SUCCESS                - Message buffer configured.

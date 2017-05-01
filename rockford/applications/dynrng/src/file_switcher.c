@@ -290,7 +290,7 @@ void file_switcher_set_position(FileSwitcherHandle switcher, int position)
 {
     assert(switcher);
     if (position < 0) { file_switcher_reset(switcher); return; }
-    if (position >= switcher->fileCount)  { printf("%s: set_position: position %u out of bounds (%u)\n", switcher->name, position, switcher->fileCount); return; }
+    if (position >= (int)switcher->fileCount)  { printf("%s: set_position: position %u out of bounds (%u)\n", switcher->name, position, switcher->fileCount); return; }
     if (switcher->position < position)
     {
         while (switcher->position < position)
@@ -308,4 +308,29 @@ void file_switcher_set_position(FileSwitcherHandle switcher, int position)
         }
     }
     printf("%s: set to position %u (%u)\n", switcher->name, position, switcher->fileCount);
+}
+
+int file_switcher_find(FileSwitcherHandle switcher, const char * path)
+{
+    int index = -1;
+    unsigned i;
+    FileSwitcherFile * f;
+    char fullpath[1024];
+
+    strcpy(fullpath, switcher->root.path);
+    strcat(fullpath, "/");
+    strcat(fullpath, path);
+
+    i = 0;
+    for (f = BLST_Q_FIRST(&switcher->files); f; f = BLST_Q_NEXT(f, link))
+    {
+        if (!strcmp(f->path, fullpath))
+        {
+            index = i;
+            break;
+        }
+        i++;
+    }
+
+    return index;
 }

@@ -58,10 +58,27 @@
 #include "nexus_composite_output.h"
 #include "nexus_component_output.h"
 #include "nexus_record.h"
+#include "nexus_memory.h"
+#if NEXUS_HAS_XPT_DMA
+    #include "nexus_dma.h"
+#endif
 
 /* Nexus security include */
 #include "nexus_security.h"
 #include "nexus_keyladder.h"
+
+#    define DEBUG_PRINT_ARRAY(description_txt,in_size,in_ptr) { int x_offset;       \
+            printf("[%s][%d]", description_txt, in_size );                      \
+            for( x_offset = 0; x_offset < (int)(in_size); x_offset++ )          \
+            {                                                                   \
+                if( x_offset%16 == 0 ) printf("\n");                            \
+                                                                                \
+                printf("%02X ", in_ptr[x_offset] );                             \
+            }                                                                   \
+            printf("\n");                                                       \
+}
+
+#define ALGORITHM_BLOCK_SIZE (16)
 
 /* Test stream information */
 #define TRANSPORT_TYPE                  NEXUS_TransportType_eTs
@@ -126,6 +143,40 @@ typedef struct NEXUS_ExampleSecuritySettings
     const char     *recfname;
 
 } NEXUS_ExampleSecuritySettings;
+
+#if NEXUS_HAS_XPT_DMA
+
+typedef struct sampleDmaTransferManagerInstance *sampleDmaTransferManagerHandle;
+
+typedef struct {
+    NEXUS_KeySlotHandle keySlotHandle;
+} sampleDmaTransferManagerAllocSettings;
+
+typedef struct {
+    NEXUS_KeySlotHandle keySlotHandle;
+
+    NEXUS_DmaHandle dmaHandle;
+    BKNI_EventHandle dmaEvent;
+    NEXUS_DmaJobHandle dmaJobHandle;
+    NEXUS_DmaJobBlockSettings blockSettings[ALGORITHM_BLOCK_SIZE];  /* cached data. */
+    unsigned      numBlocks;                               /* number of configure blocks. */
+    unsigned      numCachedBytes;                          /* number of bytes currently cached. */
+    char         *pTransferCache;                          /* cache for data remnant that is not a multiple of ALGORITHM_BLOCK_SIZE.
+                                                            * - Max size will be alogorithm block size.
+                                                            * - needs to be nexus device memory. */
+    bool          resetCrypto;
+} sampleDmaTransferManagerInstance;
+
+
+sampleDmaTransferManagerHandle sampleDmaTransferManager_Create( sampleDmaTransferManagerAllocSettings * pSettings );
+void sampleDmaTransferManager_Destroy( sampleDmaTransferManagerHandle handle );
+unsigned sampleDmaTransferManager_Transfer(
+    sampleDmaTransferManagerHandle handle,
+    char *pSource,
+    char *pDestination,
+    unsigned size );
+unsigned sampleDmaTransferManager_Flush( sampleDmaTransferManagerHandle handle );
+#endif /* #if NEXUS_HAS_XPT_DMA */
 
 NEXUS_Error     SecurityExampleInitPlatform ( NEXUS_ExampleSecuritySettings * videoSecSettings );
 NEXUS_Error     SecurityExampleShutdown ( NEXUS_ExampleSecuritySettings * videoSecSettings );

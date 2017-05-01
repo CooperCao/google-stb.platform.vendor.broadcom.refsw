@@ -135,8 +135,8 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
                 BDBG_LOG(("  tunneled"));
                 break;
             default:
-                break;    
-            }    
+                break;
+            }
         }
     }
 #endif
@@ -369,7 +369,7 @@ static void NEXUS_SurfaceCompositor_P_Finalizer( NEXUS_SurfaceCompositorHandle s
     NEXUS_P_SurfaceCompositorRenderElements_Shutdown(&server->renderState.elements);
 
     NEXUS_OBJECT_DESTROY(NEXUS_SurfaceCompositor, server);
-#if NEXUS_SURFACE_COMPOSITOR_P_CHECK_IMMUTABLE 
+#if NEXUS_SURFACE_COMPOSITOR_P_CHECK_IMMUTABLE
     NEXUS_BTRC_REPORT(surface_compositor_crc);
 #endif
     NEXUS_BTRC_REPORT(surface_compositor_composite);
@@ -580,6 +580,9 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
         COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, horizontalCoeffIndex);
         COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, verticalCoeffIndex);
         COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, alpha);
+        COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, y);
+        COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, cb);
+        COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, cr);
         if (change) {
             rc = NEXUS_Display_SetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
             if (rc) return BERR_TRACE(rc);
@@ -1132,7 +1135,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetClientSettings( NEXUS_SurfaceCompositorHa
         resize = true;
         move = true;
     }
-    
+
     /* change of video window */
     flags |= BKNI_Memcmp(&pSettings->display, &client->serverSettings.display, sizeof(pSettings->display)) ? NEXUS_P_SURFACECLIENT_UPDATE_CLIENT : 0;
 
@@ -1451,7 +1454,7 @@ static void nexus_surface_compositor_p_compose_framebuffer(NEXUS_SurfaceComposit
             }
             continue;
         } else if(client->state.update_flags) { /* there were some changes, update current surface and sourceRect */
-            NEXUS_Surface_P_ClientSurface surface; 
+            NEXUS_Surface_P_ClientSurface surface;
             NEXUS_Rect sourceRect;
             unsigned right_x_offset = 0;
             unsigned right_y_offset = 0;
@@ -1848,7 +1851,7 @@ static void nexus_surface_compositor_p_copy_palette(NEXUS_SurfaceHandle dst, NEX
         void *temp;
         int rc;
         NEXUS_SurfaceStatus dstStatus;
-        
+
         NEXUS_Surface_GetStatus( dst, &dstStatus );
         if (status.numPaletteEntries != dstStatus.numPaletteEntries) {
             BERR_TRACE(NEXUS_UNKNOWN);
@@ -1885,7 +1888,7 @@ static void nexus_surface_compositor_p_update_dirty_client(NEXUS_SurfaceClientHa
     BDBG_ASSERT(client->set.surface.surface);
     BDBG_ASSERT(client->set.serverSurface);
     BDBG_ASSERT(!client->set.updating); /* can't have another transaction in flight */
-    
+
     nexus_surface_compositor_p_copy_palette(client->set.serverSurface, client->set.surface.surface);
 
     NEXUS_Graphics2D_GetDefaultBlitSettings(pBlitSettings);
@@ -2023,7 +2026,7 @@ static void nexus_p_surface_compositor_update_single_client(NEXUS_SurfaceClientH
         }
     }
     switch(client->state.client_type) {
-    case client_type_push: 
+    case client_type_push:
             BDBG_ASSERT(BLST_SQ_FIRST(&client->queue.push));
             break;
     case client_type_tunnel_emulated:

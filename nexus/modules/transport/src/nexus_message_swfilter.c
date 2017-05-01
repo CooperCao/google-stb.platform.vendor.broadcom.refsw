@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -94,6 +94,7 @@ struct NEXUS_Message {
     struct NEXUS_SwFilterPid *pid;
     struct NEXUS_SwFilter_FilterState *filter;
     unsigned tempBufSize; /* size of tempBuffer */
+    bool isDss;           /* true if Dss message filter */
 };
 
 #define SM_POLL_INTERVAL 50
@@ -124,6 +125,7 @@ struct NEXUS_SwFilterCapture {
     NEXUS_CallbackHandler dataReadyCallbackHandler;
 #endif
     NEXUS_MessageHandle msg; /* set for eTs where recpump cannot be shared */
+    bool isDss;  /* true if Dss msg filtering */
 };
 
 /* static global variable */
@@ -145,7 +147,7 @@ void NEXUS_Message_GetDefaultSettings(NEXUS_MessageSettings *pSettings)
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->bufferSize = 4 * 1024;
     pSettings->maxContiguousMessageSize = 0;
-    pSettings->recpumpIndex = BXPT_NUM_RAVE_CONTEXTS - 1;
+    pSettings->recpumpIndex = NEXUS_ANY_ID;
     NEXUS_CallbackDesc_Init(&pSettings->dataReady);
     NEXUS_CallbackDesc_Init(&pSettings->overflow);
     NEXUS_CallbackDesc_Init(&pSettings->psiLengthError);
@@ -223,6 +225,7 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
     msg->pesStartCodeError = NEXUS_IsrCallback_Create(msg, NULL);
     if(!msg->pesStartCodeError) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
 
+    msg->isDss = false;
     /* set the interrupts */
     (void)NEXUS_Message_SetSettings(msg, pSettings);
 
@@ -329,6 +332,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
     unsigned short pid;
     NEXUS_Error rc;
     NEXUS_P_HwPidChannel *hwPidChannel;
+    bool isDss=false;
 
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
 
@@ -380,9 +384,31 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         msg->bufferSize = msg->settings.bufferSize;
     }
     hwPidChannel = pStartSettings->pidChannel->hwPidChannel;
-
+    if (NEXUS_IS_DSS_MODE(hwPidChannel->status.transportType)) {
+        msg->isDss = true;
+    }
     pid = hwPidChannel->status.pid;
 
+    if ( msg->settings.recpumpIndex == NEXUS_ANY_ID ) { /* only do search if ANY_ID */
+          unsigned findParser = hwPidChannel->parserBand->enumBand;
+          unsigned i,listParser;
+          NEXUS_MessageHandle listMsg;
+          for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
+              if (pTransport->message.handle[i] ) {
+                  listMsg = pTransport->message.handle[i];
+                  if ( listMsg->startSettings.pidChannel == NULL ) {
+                      continue;
+                  }
+                  listParser = listMsg->startSettings.pidChannel->hwPidChannel->parserBand->enumBand;
+                  if( listParser == findParser && listMsg->settings.recpumpIndex != NEXUS_ANY_ID ) {
+                        msg->settings.recpumpIndex = listMsg->settings.recpumpIndex;
+                        BDBG_MSG(("Re Use parser with recpumpIdx=%d" , msg->settings.recpumpIndex  ));
+                        break;
+                    }
+
+              }
+          }
+      }
     /* don't enforce HW restrictions in SW filtering. there may be a use-case for more flexibility. */
 
     msg->stream = NEXUS_SwFilter_P_Open(msg);
@@ -440,8 +466,15 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         m_params.callback = NEXUS_SwFilter_P_FilterCallback;
         m_params.context = msg;
         if (msg->stream->format == NEXUS_MessageFormat_ePsi) {
-            msg->filter = NEXUS_SwFilter_Msg_P_SetFilter(&m_params);
-            if (!msg->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
+            if ( msg->isDss ) {
+                msg->filter = NEXUS_SwFilter_Msg_P_SetDssFilter(&m_params,msg->startSettings.dssMessageType, msg->startSettings.dssMessageMptFlags);
+                if (!msg->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
+            }
+            else
+            {
+                msg->filter = NEXUS_SwFilter_Msg_P_SetFilter(&m_params);
+                if (!msg->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
+            }
         }
         else {
             msg->filter = NEXUS_SwFilter_Msg_P_SetPesFilter(&m_params);
@@ -472,15 +505,31 @@ err_open:
 
 void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
 {
+    NEXUS_P_HwPidChannel *hwPidChannel;
+
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
     if (!msg->started) {
         return;
     }
     BDBG_MSG(("Stop %p", (void *)msg));
+
+#if 0 /* B_REFSW_DSS_SUPPORT */
+    hwPidChannel = msg->startSettings.pidChannel->hwPidChannel;
+    if (NEXUS_IS_DSS_MODE(hwPidChannel->status.transportType)) {
+        isDss = true;
+    }
+#endif
+
     NEXUS_OBJECT_RELEASE(msg, NEXUS_PidChannel, msg->startSettings.pidChannel);
     if (msg->filter){
         if (msg->startSettings.format == NEXUS_MessageFormat_ePsi) {
-            NEXUS_SwFilter_Msg_P_RemoveFilter(msg->filter);
+            if ( msg->isDss ) {
+                NEXUS_SwFilter_Msg_P_RemoveDssFilter(msg->filter);
+            }
+            else
+            {
+                NEXUS_SwFilter_Msg_P_RemoveFilter(msg->filter);
+            }
         }
         else {
             NEXUS_SwFilter_Msg_P_RemovePesFilter(msg->filter);
@@ -615,6 +664,7 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
     if (!BLST_S_FIRST(&g_swfilter_state_list)) {
         NEXUS_SwFilter_Msg_P_Init();
         NEXUS_SwFilter_Msg_P_InitPes();
+        NEXUS_SwFilter_Msg_P_InitDss();
     }
 
     for (st = BLST_S_FIRST(&g_swfilter_state_list); st; st = BLST_S_NEXT(st, link)) {
@@ -668,6 +718,7 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
         settings.data.dataReadyThreshold = 2048;
         st->msg = msg;
     }
+    st->isDss = msg->isDss;
 
     st->recpumpIndex = msg->settings.recpumpIndex;
     st->recpump = NEXUS_Recpump_Open(st->recpumpIndex, &settings);
@@ -676,6 +727,13 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         goto err_recpump_open;
     }
+    if ( msg->settings.recpumpIndex == NEXUS_ANY_ID ) {
+          NEXUS_RecpumpStatus recStatus;
+          rc = NEXUS_Recpump_GetStatus( st->recpump, &recStatus);
+          st->recpumpIndex = recStatus.rave.index;
+          msg->settings.recpumpIndex = st->recpumpIndex;
+      }
+
 
 #if B_CALLBACK_HANDLER_SUPPORT
     NEXUS_CallbackHandler_Init(st->dataReadyCallbackHandler, NEXUS_SwFilter_P_DataReady, st);
@@ -831,7 +889,7 @@ static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
     BDBG_ASSERT(msg->started);
 
-    BDBG_MSG_TRACE(("FilterCallback(%p,%#x) size=%d", msg, msg->startSettings.pidChannel->status.pid, msg_size));
+    BDBG_MSG_TRACE(("FilterCallback(%p,%#x) size=%d", (void *)msg, msg->startSettings.pidChannel->hwPidChannel->status.pid, msg_size));
 
     /* For PSI/PES data, is size isn't a multiple of 4, pad it */
     /* first copy the %4 data. then copy the last 4 padded bytes */
@@ -881,6 +939,7 @@ static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
     return msg->tempBuffer; /* reuse buffer */
 
 overflow:
+/*    BDBG_MSG(("msg overflow" )); */
     NEXUS_TaskCallback_Fire(msg->overflow);
     return msg->tempBuffer; /* reuse buffer */
 }
@@ -912,7 +971,13 @@ static void NEXUS_SwFilter_P_DataReady(void *context)
         if (!rc && size) {
             size_t consumed;
             if (st->format == NEXUS_MessageFormat_ePsi) {
-                consumed = NEXUS_SwFilter_Msg_P_Feed(buffer, size);
+                if ( st->isDss ) {
+                    consumed = NEXUS_SwFilter_Msg_P_FeedDss(buffer, size);
+                }
+                else
+                {
+                    consumed = NEXUS_SwFilter_Msg_P_Feed(buffer, size);
+                }
             }
             else {
                 consumed = NEXUS_SwFilter_Msg_P_FeedPes(buffer, size);

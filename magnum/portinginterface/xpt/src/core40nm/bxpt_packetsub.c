@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -78,6 +78,38 @@ static uint32_t BXPT_PacketSub_P_ReadReg_isrsafe(
     uint32_t Reg0Addr
     );
 
+static void BXPT_PacketSub_P_WriteAddr(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr,
+    BMMA_DeviceOffset RegVal
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
+
+    BREG_Write32( hPSub->hRegister, RegAddr, RegVal );
+}
+
+static BMMA_DeviceOffset BXPT_PacketSub_P_ReadAddr_isrsafe(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
+
+    return BREG_ReadAddr( hPSub->hRegister, RegAddr );
+}
+
+#define BXPT_PacketSub_P_ReadAddr BXPT_PacketSub_P_ReadAddr_isrsafe
 #define BXPT_PacketSub_P_ReadReg BXPT_PacketSub_P_ReadReg_isrsafe
 
 BERR_Code BXPT_PacketSub_GetTotalChannels(
@@ -160,7 +192,6 @@ BERR_Code BXPT_PacketSub_OpenChannel(
         hLocal = &hXpt->PacketSubHandles[ ChannelNo ];
         hLocal->hChip = hXpt->hChip;
         hLocal->hRegister = hXpt->hRegister;
-        hLocal->hMemory = hXpt->hMemory;
         hLocal->BaseAddr = BaseAddr;
         hLocal->ChannelNo = ChannelNo;
         hLocal->LastDescriptor_Cached = NULL;
@@ -191,6 +222,10 @@ BERR_Code BXPT_PacketSub_OpenChannel(
             BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN, ChannelSettings->ForcedInsertionEn == true ? 1 : 0 )
             );
         BXPT_PacketSub_P_WriteReg( hLocal, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+
+        hLocal->mma.block = ChannelSettings->descBlock;
+        hLocal->mma.ptr = (uint8_t*)BMMA_Lock(ChannelSettings->descBlock) + ChannelSettings->descOffset;
+        hLocal->mma.offset = BMMA_LockOffset(ChannelSettings->descBlock) + ChannelSettings->descOffset;
         hLocal->Opened = true;
     }
 
@@ -458,52 +493,46 @@ BERR_Code BXPT_PacketSub_CreateDesc(
     BXPT_PacketSub_Descriptor * const NextDesc  /* [in] Next descriptor, or NULL */
     )
 {
-    uint32_t BufferPhysicalAddr;
-    uint32_t ThisDescPhysicalAddr;
+    BMMA_DeviceOffset ThisDescPhysicalAddr;
     BXPT_PacketSub_Descriptor *CachedDescPtr;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT(hPSub);
-    BDBG_ASSERT(Desc);
+    BDBG_ASSERT( Desc );
     BDBG_ASSERT(BufferOffset);
 
     /* Get the physical address for this buffer. Verify its on a 4-byte boundary*/
-    BufferPhysicalAddr = BufferOffset;
-    if( BufferPhysicalAddr % 4 )
+    if (BufferOffset % 4)
     {
         BDBG_ERR(( "Buffer is not 32-bit aligned!" ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-
-        /* Force the alignment. */
-        BufferPhysicalAddr += ( BufferPhysicalAddr % 4 );
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     /* Verify that the buffer length is multiple of 4 bytes (i.e. a word). */
     if( BufferLength % 4 )
     {
         BDBG_ERR(( "BufferLength is not 32-bit aligned!" ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-
-        /* Force the alignment. */
-        BufferLength += ( BufferLength % 4 );
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     /* Verify that the descriptor we're creating sits on a 16-byte boundary. */
-    BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) Desc, &ThisDescPhysicalAddr );
-
+    ThisDescPhysicalAddr = hPSub->mma.offset + (unsigned)((uint8_t*)Desc - (uint8_t*)hPSub->mma.ptr); /* convert Desc -> offset */
+    BDBG_MSG(( "%s: Desc 0x%08lX -> Offset 0x%08lX", __FUNCTION__, (unsigned long) Desc, (unsigned long) ThisDescPhysicalAddr ));
     if( ThisDescPhysicalAddr % 16 )
     {
         BDBG_ERR(( "Desc is not 32-bit aligned!" ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     CachedDescPtr = Desc;
-    BMEM_FlushCache(hPSub->hMemory, CachedDescPtr, sizeof (*CachedDescPtr) );
 
     /* Load the descriptor's buffer address, length, and flags. */
-    CachedDescPtr->BufferStartAddr = BufferPhysicalAddr;
+    CachedDescPtr->BufferStartAddr = BufferOffset & 0xFFFFFFFF;
     CachedDescPtr->BufferLength = BufferLength;
+#ifdef BXPT_PSUB_40BIT_SUPPORT
+    CachedDescPtr->BufferStartAddrHi = BufferOffset >> 32;
+#endif
 
     /* Clear everything, then set the ones we want below. */
     CachedDescPtr->Flags = 0;
@@ -515,10 +544,9 @@ BERR_Code BXPT_PacketSub_CreateDesc(
     if( NextDesc != 0 )
     {
         /* There is a another descriptor in the chain after this one. */
-        uint32_t NextDescPhysAddr;
+        BMMA_DeviceOffset NextDescPhysAddr;
 
-        BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) NextDesc, &NextDescPhysAddr );
-
+        NextDescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)NextDesc - (uint8_t*)hPSub->mma.ptr); /* NextDesc -> offset */
         if( NextDescPhysAddr % 16 )
         {
             BDBG_ERR(( "NextDescDesc is not 32-bit aligned!" ));
@@ -527,7 +555,10 @@ BERR_Code BXPT_PacketSub_CreateDesc(
 
         /* Next descriptor address must be 16-byte aligned. */
         NextDescPhysAddr &= ~( 0xF );
-        CachedDescPtr->NextDescAddr = NextDescPhysAddr;
+        CachedDescPtr->NextDescAddr = NextDescPhysAddr & 0xFFFFFFFF;
+#ifdef BXPT_PSUB_40BIT_SUPPORT
+        CachedDescPtr->NextDescAddrHi = NextDescPhysAddr >> 32;
+#endif
     }
     else
     {
@@ -535,7 +566,7 @@ BERR_Code BXPT_PacketSub_CreateDesc(
         CachedDescPtr->NextDescAddr = TRANS_DESC_LAST_DESCR_IND;
     }
 
-    BMEM_FlushCache(hPSub->hMemory, CachedDescPtr, sizeof (*CachedDescPtr) );
+    BMMA_FlushCache(hPSub->mma.block, CachedDescPtr, sizeof(BXPT_PacketSub_Descriptor));
     return( ExitCode );
 }
 
@@ -578,7 +609,7 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
     /* Do we already have a list going? */
     if( hPSub->LastDescriptor_Cached )
     {
-        uint32_t DescPhysAddr;
+       BMMA_DeviceOffset DescPhysAddr;
 
         /*
         ** Yes, there is list already. Append this descriptor to the last descriptor,
@@ -590,10 +621,13 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
         RunBit = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, RUN );
 
         /* Set the last descriptor in the chain to point to the descriptor we're adding. */
-        BMEM_FlushCache(hPSub->hMemory, LastDescriptor_Cached, sizeof (BXPT_PacketSub_Descriptor) );
-        BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) FirstDesc, &DescPhysAddr );
-        LastDescriptor_Cached->NextDescAddr = ( uint32_t ) DescPhysAddr;
-        BMEM_FlushCache(hPSub->hMemory, LastDescriptor_Cached, sizeof (BXPT_PacketSub_Descriptor) );
+        DescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPSub->mma.ptr); /* convert FirstDesc -> offset */
+        LastDescriptor_Cached->NextDescAddr = DescPhysAddr & 0xFFFFFFFF;
+#ifdef BXPT_PSUB_40BIT_SUPPORT
+        LastDescriptor_Cached->NextDescAddrHi = DescPhysAddr >> 32;
+#endif
+        BMMA_FlushCache(hPSub->mma.block, LastDescriptor_Cached, sizeof(BXPT_PacketSub_Descriptor));
+        BDBG_MSG(( "%s (LastDescriptor_Cached): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
         /* If the channel is running, we need to set the wake bit to let the hardware know we added a new buffer */
         if( RunBit )
@@ -612,26 +646,30 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
         ** If this is the first descriptor (the channel has not been started)
         ** then load the address into the first descriptor register
         */
-        uint32_t DescPhysAddr;
+       BMMA_DeviceOffset DescPhysAddr, Addr;
 
-        /* This is our first descriptor, so we must load the first descriptor register */
-        BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) FirstDesc, &DescPhysAddr );
+       /*
+       ** If this is the first descriptor (the channel has not been started)
+       ** then load the address into the first descriptor register
+       */
 
-        Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
+       /* This is our first descriptor, so we must load the first descriptor register */
+       DescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPSub->mma.ptr); /* convert FirstDesc -> offset */
+       BDBG_MSG(( "%s (New chain): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
-        Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
-
-        /*
-        ** The descriptor address field in the hardware register is wants the address
-        ** in 16-byte blocks. See the RDB HTML for details. So, we must shift the
-        ** address 4 bits to the right before writing it to the hardware. Note that
-        ** the RDB macros will shift the value 4 bits to the left, since the address
-        ** bitfield starts at bit 4. Confusing, but thats what the hardware and the
-        ** RDB macros require to make this work.
-        */
-        DescPhysAddr >>= 4;
-        Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR, DescPhysAddr );
-        BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Reg );
+       /*
+       ** The descriptor address field in the hardware register is wants the address
+       ** in 16-byte blocks. See the RDB HTML for details. So, we must shift the
+       ** address 4 bits to the right before writing it to the hardware. Note that
+       ** the RDB macros will shift the value 4 bits to the left, since the address
+       ** bitfield starts at bit 4. Confusing, but thats what the hardware and the
+       ** RDB macros require to make this work.
+       */
+       Addr = BXPT_PacketSub_P_ReadAddr( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
+       Addr &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
+       DescPhysAddr >>= 4;
+       Addr |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR, DescPhysAddr );
+       BXPT_PacketSub_P_WriteAddr( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Addr );
 
         /*
         ** If this channel has been started, we need to kick off the hardware
@@ -674,21 +712,20 @@ BERR_Code BXPT_PacketSub_GetCurrentDescriptorAddress_isrsafe(
     BXPT_PacketSub_Descriptor **LastDesc        /* [in] Address of the current descriptor. */
     )
 {
-    uint32_t Reg, CurrentDescAddr;
-    void *UserDescAddr;
+   BMMA_DeviceOffset Reg, CurrentDescAddr;
+   void *UserDescAddr;
 
-    BERR_Code ExitCode = BERR_SUCCESS;
+   BERR_Code ExitCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hPSub );
+   BDBG_ASSERT( hPSub );
 
-    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
-    CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT1, CURR_DESC_ADDR );
-    CurrentDescAddr <<= 4;  /* Convert to byte-address. */
-    BERR_TRACE( BMEM_ConvertOffsetToAddress( hPSub->hMemory, CurrentDescAddr, ( void ** ) &UserDescAddr ) );
-    BMEM_ConvertAddressToCached(hPSub->hMemory, UserDescAddr, &UserDescAddr);
-    *LastDesc = ( BXPT_PacketSub_Descriptor * ) UserDescAddr;
+   Reg = BXPT_PacketSub_P_ReadAddr( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
+   CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT1, CURR_DESC_ADDR );
+   CurrentDescAddr <<= 4;  /* Convert to byte-address. */
+   UserDescAddr = (uint8_t*)hPSub->mma.ptr + (CurrentDescAddr - hPSub->mma.offset); /* convert CurrentDescAddr -> cached ptr */
+   *LastDesc = ( BXPT_PacketSub_Descriptor * ) UserDescAddr;
 
-    return( ExitCode );
+   return( ExitCode );
 }
 
 BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
@@ -698,7 +735,8 @@ BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
     uint32_t *BufferSize                /* [out] Size of the buffer (in bytes). */
     )
 {
-    uint32_t Reg, ChanBusy, CurrentDescAddr, CandidateDescPhysAddr;
+    BMMA_DeviceOffset Reg, CurrentDescAddr, CandidateDescPhysAddr;
+    uint32_t ChanBusy;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -717,7 +755,7 @@ BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
     Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
     ChanBusy = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, BUSY );
 
-    BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) Desc, &CandidateDescPhysAddr );
+    CandidateDescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)Desc - (uint8_t*)hPSub->mma.ptr); /* convert Desc -> offset */
 
     if( CurrentDescAddr == CandidateDescPhysAddr )
     {
@@ -744,9 +782,8 @@ BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
     {
         if( ChanBusy )
         {
-            BXPT_PacketSub_Descriptor *CachedDescPtr;
-            CachedDescPtr = Desc;
-            *BufferSize = CachedDescPtr->BufferLength;
+           BXPT_PacketSub_Descriptor *CachedDescPtr = Desc;
+           *BufferSize = CachedDescPtr->BufferLength;
         }
         else
         {

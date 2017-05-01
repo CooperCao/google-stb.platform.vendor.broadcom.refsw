@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __GLSL_QPU_ENUM_H__
 #define __GLSL_QPU_ENUM_H__
 
@@ -45,7 +39,7 @@ typedef enum
    AOP_V8SUBS  = 31
 } AOP_Enum;
 
-static bool AOP_HasFloatInput(AOP_Enum e)
+static INLINE bool AOP_HasFloatInput(AOP_Enum e)
 {
    switch (e)
    {
@@ -122,7 +116,7 @@ typedef enum
    VirtualUnpack_8R
 } VirtualUnpack_Enum;
 
-static Unpack_Enum VirtualUnpack_RealUnpackCode(VirtualUnpack_Enum e)
+static INLINE Unpack_Enum VirtualUnpack_RealUnpackCode(VirtualUnpack_Enum e)
 {
    switch (e)
    {
@@ -144,7 +138,7 @@ static Unpack_Enum VirtualUnpack_RealUnpackCode(VirtualUnpack_Enum e)
    }
 }
 
-static bool VirtualUnpack_IsFloat(VirtualUnpack_Enum e)
+static INLINE bool VirtualUnpack_IsFloat(VirtualUnpack_Enum e)
 {
    switch (e)
    {
@@ -161,7 +155,7 @@ static bool VirtualUnpack_IsFloat(VirtualUnpack_Enum e)
    }
 }
 
-static bool VirtualUnpack_IsR4Compatible(VirtualUnpack_Enum e)
+static INLINE bool VirtualUnpack_IsR4Compatible(VirtualUnpack_Enum e)
 {
    switch (e)
    {
@@ -331,17 +325,17 @@ typedef enum
    Register_NUM_REGISTERS
 } Register_Enum;
 
-static bool Register_IsNormalReg(Register_Enum r)
+static INLINE bool Register_IsNormalReg(Register_Enum r)
 {
    return r <= Register_RB31;
 }
 
-static bool Register_IsNormalRegOrAcc(Register_Enum r)
+static INLINE bool Register_IsNormalRegOrAcc(Register_Enum r)
 {
    return r <= Register_ACC5;
 }
 
-static bool Register_IsReadOnly(Register_Enum r)
+static INLINE bool Register_IsReadOnly(Register_Enum r)
 {
    switch (r)
    {
@@ -368,12 +362,12 @@ static bool Register_IsReadOnly(Register_Enum r)
    return false;
 }
 
-static bool Register_IsAccumulator(Register_Enum r)
+static INLINE bool Register_IsAccumulator(Register_Enum r)
 {
    return r >= Register_ACC0 && r <= Register_ACC5;
 }
 
-static uint8_t Register_GetCode(Register_Enum r)
+static INLINE uint8_t Register_GetCode(Register_Enum r)
 {
    if (r <= Register_RA31)
       return r;
@@ -500,7 +494,7 @@ static uint8_t Register_GetCode(Register_Enum r)
    return 0;
 }
 
-static Register_File Register_GetFile(Register_Enum r)
+static INLINE Register_File Register_GetFile(Register_Enum r)
 {
    if (r <= Register_RA31)
       return Register_FILE_A;
@@ -571,7 +565,7 @@ static Register_File Register_GetFile(Register_Enum r)
    }
 }
 
-static bool Register_IsRefCounted(Register_Enum r)
+static INLINE bool Register_IsRefCounted(Register_Enum r)
 {
    if (r <= Register_ACC5)
       return true;
@@ -631,7 +625,7 @@ static bool Register_IsRefCounted(Register_Enum r)
    }
 }
 
-static int32_t Register_ReadLatency(Register_Enum r)
+static INLINE int32_t Register_ReadLatency(Register_Enum r)
 {
    if (r <= Register_RA31)
       return 2;
@@ -645,7 +639,7 @@ static int32_t Register_ReadLatency(Register_Enum r)
    return 1;
 }
 
-static bool Register_IsMutuallyExclusiveOnWrite(Register_Enum r)
+static INLINE bool Register_IsMutuallyExclusiveOnWrite(Register_Enum r)
 {
    switch (r)
    {
@@ -677,7 +671,7 @@ static bool Register_IsMutuallyExclusiveOnWrite(Register_Enum r)
    }
 }
 
-static bool Register_IsSelfExclusiveRead(Register_Enum r)
+static INLINE bool Register_IsSelfExclusiveRead(Register_Enum r)
 {
    switch (r)
    {
@@ -692,7 +686,7 @@ static bool Register_IsSelfExclusiveRead(Register_Enum r)
    }
 }
 
-static Register_Mode Register_GetMode(Register_Enum r)
+static INLINE Register_Mode Register_GetMode(Register_Enum r)
 {
    if (r <= Register_RB31)
       return Register_READ_WRITE;
@@ -756,7 +750,7 @@ static Register_Mode Register_GetMode(Register_Enum r)
    }
 }
 
-static InputMux_Enum Register_GetInputMux(Register_Enum r)
+static INLINE InputMux_Enum Register_GetInputMux(Register_Enum r)
 {
    if (r >= Register_RA0 && r <= Register_RA31)
       return InputMux_REGA;
@@ -778,7 +772,7 @@ static InputMux_Enum Register_GetInputMux(Register_Enum r)
    }
 }
 
-static bool Register_IsTMUSetupWrite(Register_Enum r)
+static INLINE bool Register_IsTMUSetupWrite(Register_Enum r)
 {
    switch (r)
    {
@@ -814,7 +808,7 @@ typedef enum
    Sig_LDALPHA  = 12
  } Sig_Enum;
 
-static bool Sig_ClashesWith(Sig_Enum sig, Register_Enum r)
+static INLINE bool Sig_ClashesWith(Sig_Enum sig, Register_Enum r)
 {
    if (r == Register_VPM_WRITE) // Exclude this from the IsMutuallyExclusiveOnWrite test
       return false;

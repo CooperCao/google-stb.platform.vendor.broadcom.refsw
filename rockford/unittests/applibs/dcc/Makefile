@@ -108,15 +108,11 @@ endif
 
 ifeq ($(FREETYPE_SUPPORT),y)
 FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-FREETYPE_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/freetype-2.1.5
-CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_ODIR)/include
-LDFLAGS += -L$(FREETYPE_ODIR) -lfreetype
-freetype:
-	$(MAKE) -C $(FREETYPE_DIR)
-clean_freetype:
-	$(MAKE) -C $(FREETYPE_DIR) clean
+include $(FREETYPE_DIR)/b_freetype_targets.inc
+CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_SOURCE_PATH)/include
+LDFLAGS += -L$(FREETYPE_LIB_FOLDER) -lfreetype
+freetype: b_freetype_target_build
+clean_freetype: b_freetype_target_clean_all
 endif
 
 # This builds nexus and needed applibs

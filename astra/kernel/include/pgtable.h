@@ -65,7 +65,7 @@ public:
 
     static PageTable *kernelPageTable();
 
-    PageTable() { topLevelDir = nullptr; asid = KERNEL_ASID; spinLockInit(&lock);}
+    PageTable(uint8_t aid = KERNEL_ASID) { topLevelDir = nullptr; asid = aid; spinLockInit(&lock);}
     ~PageTable();
 
     PageTable(const PageTable& rhs, uint8_t asid, bool fork = false);

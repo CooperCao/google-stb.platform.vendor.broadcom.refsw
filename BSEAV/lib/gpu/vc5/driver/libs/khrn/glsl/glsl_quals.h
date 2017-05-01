@@ -20,5 +20,6 @@ Qualifier *new_qual_invariant(void);
 Qualifier *new_qual_precise(void);
 
 void qualifiers_from_list(Qualifiers *q, QualList *l);
+void qualifiers_from_list_context_sq(Qualifiers *q, QualList *l, StorageQualifier sq);
 void param_quals_from_list(Qualifiers *q, ParamQualifier *param_qual, QualList *l);
 void qualifiers_process_default(QualList *q_in, SymbolTable *s, DeclDefaultState *dflt);

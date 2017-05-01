@@ -104,7 +104,6 @@ int main(void) {
 #include "tshdrbuilder.h"
 #include "b_os_lib.h"
 #include "b_psip_lib.h"
-#include "tspsimgr.h"
 
 BDBG_MODULE(encode);
 
@@ -564,6 +563,29 @@ static void convertStreamToPsi( TS_PMT_stream *stream, struct opts_t *psi)
             BDBG_WRN(("###### TODO: Unknown stream type: %x #####", stream->stream_type));
     }
 }
+
+typedef struct
+{
+    uint16_t    pid;
+    uint8_t     streamType;
+    uint16_t    ca_pid;
+} EPID;
+
+#define MAX_PROGRAM_MAP_PIDS    12
+typedef struct
+{
+    uint16_t    program_number;
+    uint16_t    map_pid;
+    uint8_t     version;
+    uint16_t    pcr_pid;
+    uint16_t    ca_pid;
+    uint8_t     num_video_pids;
+    EPID        video_pids[MAX_PROGRAM_MAP_PIDS];
+    uint8_t     num_audio_pids;
+    EPID        audio_pids[MAX_PROGRAM_MAP_PIDS];
+    uint8_t     num_other_pids;
+    EPID        other_pids[MAX_PROGRAM_MAP_PIDS];
+} PROGRAM_INFO_T;
 
 static void
 tsPsi_procProgDescriptors( const uint8_t *p_bfr, unsigned bfrSize, PROGRAM_INFO_T *progInfo )

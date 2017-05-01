@@ -519,11 +519,6 @@ bool BVDC_P_HdmiRmTable_isr
     const BVDC_P_RateInfo**   ppRateInfo
 );
 
-#if BVDC_P_SUPPORT_MHL
-uint64_t BVDC_P_PxlFreqToMhlFreq_isr
-    ( uint64_t ulPxlFreq);
-#endif
-
 const BVDC_P_FormatInfo* BVDC_P_GetFormatInfo_isrsafe
 (
     BFMT_VideoFmt                      eVideoFmt

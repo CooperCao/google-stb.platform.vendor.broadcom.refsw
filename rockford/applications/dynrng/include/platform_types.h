@@ -44,6 +44,8 @@
 
 #include <stdbool.h>
 
+#define MAX_MOSAICS 4
+
 typedef struct Platform * PlatformHandle;
 typedef struct PlatformPicture * PlatformPictureHandle;
 typedef struct PlatformGraphics * PlatformGraphicsHandle;
@@ -68,6 +70,7 @@ typedef enum PlatformDynamicRange
     PlatformDynamicRange_eSdr,
     PlatformDynamicRange_eHlg,
     PlatformDynamicRange_eHdr10,
+    PlatformDynamicRange_eDolbyVision,
     PlatformDynamicRange_eInvalid,
     PlatformDynamicRange_eUnknown,
     PlatformDynamicRange_eMax
@@ -110,8 +113,9 @@ typedef enum PlatformInputEvent
     PlatformInputEvent_eQuit,
     PlatformInputEvent_eToggleOsd,
     PlatformInputEvent_eToggleGuide,
+    PlatformInputEvent_eToggleOutputDynamicRangeLock,
     PlatformInputEvent_eCycleColorimetry,
-    PlatformInputEvent_eCycleOutputEotf,
+    PlatformInputEvent_eCycleOutputDynamicRange,
     PlatformInputEvent_eNextThumbnail,
     PlatformInputEvent_ePrevThumbnail,
     PlatformInputEvent_eCycleBackground,
@@ -123,19 +127,20 @@ typedef enum PlatformInputEvent
     PlatformInputEvent_ePrevStream,
     PlatformInputEvent_eTogglePause,
     PlatformInputEvent_eTogglePig,
+    PlatformInputEvent_eToggleMosaicLayout,
     PlatformInputEvent_eToggleDetails,
-    PlatformInputEvent_eScenario1,
-    PlatformInputEvent_eScenario2,
-    PlatformInputEvent_eScenario3,
-    PlatformInputEvent_eScenario4,
-    PlatformInputEvent_eScenario5,
-    PlatformInputEvent_eScenario6,
-    PlatformInputEvent_eScenario7,
-    PlatformInputEvent_eScenario8,
-    PlatformInputEvent_eScenario9,
-    PlatformInputEvent_eScenario0,
+    PlatformInputEvent_eScenario,
+    PlatformInputEvent_eStartCommandShell,
     PlatformInputEvent_eMax
 } PlatformInputEvent;
+
+typedef enum PlatformTriState
+{
+    PlatformTriState_eOff,
+    PlatformTriState_eOn,
+    PlatformTriState_eInactive,
+    PlatformTriState_eMax
+} PlatformTriState;
 
 typedef enum PlatformHorizontalAlignment
 {
@@ -191,7 +196,7 @@ typedef struct PlatformPictureInfo
 typedef struct PlatformPictureModel
 {
     PlatformPictureInfo info;
-    int plm;
+    PlatformTriState plm;
 } PlatformPictureModel;
 
 typedef struct PlatformSelectorModel
@@ -214,7 +219,7 @@ typedef struct PlatformReceiverModel
 
 typedef struct PlatformModel
 {
-    PlatformPictureModel vid;
+    PlatformPictureModel vid[MAX_MOSAICS];
     PlatformPictureModel gfx;
     PlatformPictureModel out;
     PlatformSelectorModel sel;

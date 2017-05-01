@@ -1,31 +1,29 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_map.h"
 #include "khrn_int_util.h"
 
 #include <stdlib.h>
 
-static inline bool is_inited(const KHRN_MAP_T *map)
+static inline bool is_inited(const khrn_map *map)
 {
    return !!map->storage;
 }
 
-static inline bool alloc_storage(KHRN_MAP_T *map, uint32_t capacity)
+static inline bool alloc_storage(khrn_map *map, uint32_t capacity)
 {
    map->storage = malloc(capacity * sizeof(struct khrn_map_entry));
    return is_inited(map);
 }
 
-static inline void free_storage(KHRN_MAP_T *map)
+static inline void free_storage(khrn_map *map)
 {
    free(map->storage);
    map->storage = NULL;
 }
 
-static inline bool is_deleted(KHRN_MEM_HANDLE_T value)
+static inline bool is_deleted(khrn_mem_handle_t value)
 {
    return value == KHRN_MEM_HANDLE_UNUSED_VALUE;
 }
@@ -35,7 +33,7 @@ static inline uint32_t hash(uint32_t key, uint32_t capacity)
    return key & (capacity - 1);
 }
 
-static struct khrn_map_entry *get_entry(const KHRN_MAP_T *map, uint32_t key)
+static struct khrn_map_entry *get_entry(const khrn_map *map, uint32_t key)
 {
    uint32_t h = hash(key, map->capacity);
    while (map->storage[h].value)
@@ -48,7 +46,7 @@ static struct khrn_map_entry *get_entry(const KHRN_MAP_T *map, uint32_t key)
    return NULL;
 }
 
-static struct khrn_map_entry *get_free_entry(const KHRN_MAP_T *map, uint32_t key)
+static struct khrn_map_entry *get_free_entry(const khrn_map *map, uint32_t key)
 {
    uint32_t h = hash(key, map->capacity);
    while (map->storage[h].value && !is_deleted(map->storage[h].value))
@@ -57,7 +55,7 @@ static struct khrn_map_entry *get_free_entry(const KHRN_MAP_T *map, uint32_t key
    return map->storage + h;
 }
 
-static void raw_insert(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T value)
+static void raw_insert(khrn_map *map, uint32_t key, khrn_mem_handle_t value)
 {
    struct khrn_map_entry *entry = get_free_entry(map, key);
    if (is_deleted(entry->value))
@@ -70,9 +68,9 @@ static void raw_insert(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T value)
    ++map->entries;
 }
 
-static bool realloc_storage(KHRN_MAP_T *map, uint32_t new_capacity)
+static bool realloc_storage(khrn_map *map, uint32_t new_capacity)
 {
-   KHRN_MAP_T new_map;
+   khrn_map new_map;
    if (!khrn_map_init(&new_map, new_capacity))
       return false;
 
@@ -86,7 +84,7 @@ static bool realloc_storage(KHRN_MAP_T *map, uint32_t new_capacity)
    return true;
 }
 
-static bool insert_not_present(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T value)
+static bool insert_not_present(khrn_map *map, uint32_t key, khrn_mem_handle_t value)
 {
    assert(value);
    assert(!is_deleted(value));
@@ -110,7 +108,7 @@ static bool insert_not_present(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T 
 
 /** Interface */
 
-bool khrn_map_init(KHRN_MAP_T *map, uint32_t capacity)
+bool khrn_map_init(khrn_map *map, uint32_t capacity)
 {
    /* To ensure we always have at least 1 unused slot, we need:
     * (capacity - 1) > (capacity / 2) and (capacity - 1) > ((3 * capacity) / 4)
@@ -134,7 +132,7 @@ bool khrn_map_init(KHRN_MAP_T *map, uint32_t capacity)
    return true;
 }
 
-void khrn_map_term(KHRN_MAP_T *map)
+void khrn_map_term(khrn_map *map)
 {
    if (is_inited(map))
    {
@@ -145,7 +143,7 @@ void khrn_map_term(KHRN_MAP_T *map)
    }
 }
 
-bool khrn_map_insert(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T value)
+bool khrn_map_insert(khrn_map *map, uint32_t key, khrn_mem_handle_t value)
 {
    assert(value);
    assert(!is_deleted(value));
@@ -166,7 +164,7 @@ bool khrn_map_insert(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T value)
    return true;
 }
 
-bool khrn_map_delete(KHRN_MAP_T *map, uint32_t key)
+bool khrn_map_delete(khrn_map *map, uint32_t key)
 {
    if (!is_inited(map))
       return false;
@@ -183,13 +181,13 @@ bool khrn_map_delete(KHRN_MAP_T *map, uint32_t key)
    return !!entry;
 }
 
-KHRN_MEM_HANDLE_T khrn_map_lookup(const KHRN_MAP_T *map, uint32_t key)
+khrn_mem_handle_t khrn_map_lookup(const khrn_map *map, uint32_t key)
 {
    struct khrn_map_entry *entry = get_entry(map, key);
    return entry ? entry->value : NULL;
 }
 
-void khrn_map_iterate(KHRN_MAP_T *map, KHRN_MAP_CALLBACK_T func, void *data)
+void khrn_map_iterate(khrn_map *map, khrn_map_callback_t func, void *data)
 {
    for (uint32_t i = 0; i != map->capacity; ++i)
       if (map->storage[i].value && !is_deleted(map->storage[i].value))

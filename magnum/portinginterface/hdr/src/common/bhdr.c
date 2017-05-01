@@ -224,6 +224,10 @@ static BERR_Code BHDR_P_DestroyTimer(
 
 static void BHDR_P_TimerExpiration_isr (BHDR_Handle hHDR, int parm2) ;
 
+static BERR_Code BHDR_P_ReadRxI2cRegisterSpace_isr(BHDR_Handle hHDR,
+	uint8_t offset, uint8_t *pData, uint8_t Length) ;
+
+static void BHDR_P_ClearCoreAuthentication_isr(BHDR_Handle hHDR) ;
 
 /******************************************************************************
 Summary:
@@ -1006,7 +1010,7 @@ done:
 Summary:
 	Read Data from Rx I2c Space
 ***************************************************************************/
-BERR_Code BHDR_P_ReadRxI2cRegisterSpace_isr(BHDR_Handle hHDR,
+static BERR_Code BHDR_P_ReadRxI2cRegisterSpace_isr(BHDR_Handle hHDR,
 	uint8_t offset, uint8_t *pData, uint8_t Length)
 {
 
@@ -1102,7 +1106,7 @@ BERR_Code BHDR_ReadRxI2cRegisterSpace(BHDR_Handle hHDR,
 }
 
 
-void BHDR_P_ClearCoreAuthentication_isr(BHDR_Handle hHDR)
+static void BHDR_P_ClearCoreAuthentication_isr(BHDR_Handle hHDR)
 {
 	BREG_Handle hRegister ;
 	uint32_t Register ;
@@ -2297,63 +2301,6 @@ BERR_Code BHDR_UnInstallAvMuteNotifyCallback(
 }
 
 
-/******************************************************************************
-Summary: Install Callback used to Notify for Packet Errors
-*******************************************************************************/
-BERR_Code BHDR_InstallPacketErrorChangeCallback(
-	BHDR_Handle hHDR,			/* [in] HDMI Rx Handle */
-	const BHDR_CallbackFunc pfCallback_isr, /* [in] cb for packet error changes */
-	void *pvParm1, /* [in] the first argument (void *) passed to the callback function */
-	int iParm2)    /* [in] the second argument(int) passed to the callback function */
-{
-	BERR_Code			rc = BERR_SUCCESS;
-
-	BDBG_ENTER(BHDR_InstallPacketErrorChangeCallback) ;
-
-	/* Check if this is a valid function */
-	if( pfCallback_isr == NULL )
-	{
-		rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-		return rc;
-	}
-
-	BKNI_EnterCriticalSection() ;
-		hHDR->pfPacketErrorCallback = pfCallback_isr;
-		hHDR->pvPacketErrorParm1 = pvParm1 ;
-		hHDR->iPacketErrorParm2 = iParm2 ;
-	BKNI_LeaveCriticalSection() ;
-
-	BDBG_LEAVE(BHDR_InstallPacketErrorChangeCallback);
-
-	return rc ;
-}
-
-
-/******************************************************************************
-Summary: Uninstall Callback used to Notify for Packet Errors
-*******************************************************************************/
-BERR_Code BHDR_UnInstallPacketErrorChangeCallback(
-	BHDR_Handle hHDR,                       /* [in] HDMI Rx Handle */
-	const BHDR_CallbackFunc pfCallback_isr) /* [in] cb for Packet Error change Notification */
-{
-	BERR_Code rc = BERR_SUCCESS ;
-	BSTD_UNUSED(pfCallback_isr) ;
-
-	BDBG_ENTER(BHDR_UnInstallPacketErrorChangeCallback);
-	BKNI_EnterCriticalSection() ;
-
-		hHDR->pfPacketErrorCallback = (BHDR_CallbackFunc) NULL ;
-		hHDR->pvPacketErrorParm1 = NULL  ;
-		hHDR->iPacketErrorParm2 = 0 ;
-
-	BKNI_LeaveCriticalSection() ;
-
-	BDBG_LEAVE(BHDR_UnInstallPacketErrorChangeCallback);
-
-	return rc;
-}
-
-
 static BERR_Code BHDR_P_GetChannelStatusBits_isr(
 	BHDR_Handle hHDR, BACM_SPDIF_ChannelStatus *stChannelStatus)
 {
@@ -2538,24 +2485,6 @@ BERR_Code BHDR_GetHdmiRxStatus(
 BHDR_GetHdmiRxStatus_Done:
 	BDBG_LEAVE(BHDR_GetHdmiRxStatus) ;
 	return BERR_SUCCESS  ;
-}
-
-
-/******************************************************************************
-Summary: Get the status of the HDMI Error Packet Status
-return : 1 Error exist on input; 0 No error on input
-*******************************************************************************/
-void BHDR_GetErrorPacketStatus(BHDR_Handle hHDR, bool *isError)
-{
-	BDBG_ENTER(BHDR_GetErrorPacketStatus) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
-
-	*isError = false;
-	if( hHDR->ErrorFreePacketFrames != 0)
-	{
-		*isError = true;
-	}
-	BDBG_LEAVE(BHDR_GetErrorPacketStatus) ;
 }
 
 

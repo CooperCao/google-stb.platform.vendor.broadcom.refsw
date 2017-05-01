@@ -175,6 +175,7 @@ typedef struct BVDC_P_VfcContext
 
     /* CFC */
     BVDC_P_CfcContext              stCfc;
+    bool                           bCfcDirty; /* cleared only after Cfc_UpdateCfg_isr is called */
 
     uint32_t                       ulPrevWidth;
     uint32_t                       ulPrevHeight;
@@ -199,9 +200,6 @@ BERR_Code BVDC_P_Vfc_Create
       BREG_Handle                   hReg );
 
 void BVDC_P_Vfc_Destroy
-    ( BVDC_P_Vfc_Handle             hVfc );
-
-void BVDC_P_Vfc_Init_isrsafe
     ( BVDC_P_Vfc_Handle             hVfc );
 
 void BVDC_P_Vfc_InitCfc_isrsafe

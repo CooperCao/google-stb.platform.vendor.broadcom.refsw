@@ -305,6 +305,10 @@ extern void wlc_bmac_txfifo(wlc_hw_info_t *wlc_hw, uint fifo, void *p, bool comm
 	uint8 txpktpend);
 extern int wlc_bmac_xmtfifo_sz_get(wlc_hw_info_t *wlc_hw, uint fifo, uint *blocks);
 
+#ifdef BCMINTDBG
+extern int wlc_bmac_bmc_get(wlc_hw_info_t *wlc_hw);
+extern int wlc_bmac_bmc_set(wlc_hw_info_t *wlc_hw, uint16 nbufs);
+#endif
 
 #ifdef PHYCAL_CACHING
 extern void wlc_bmac_set_phycal_cache_flag(wlc_hw_info_t *wlc_hw, bool state);
@@ -503,6 +507,10 @@ extern void wlc_bmac_assert_type_set(wlc_hw_info_t *wlc_hw, uint32 type);
 extern void wlc_bmac_set_txpwr_percent(wlc_hw_info_t *wlc_hw, uint8 val);
 extern void wlc_bmac_ifsctl_edcrs_set(wlc_hw_info_t *wlc_hw, bool isht);
 
+#ifdef BCMINTDBG
+extern void wlc_bmac_ucode_dbgsel_set(wlc_hw_info_t *wlc_hw, uint16 dbgsel);
+extern uint16 wlc_bmac_ucode_dbgsel_get(wlc_hw_info_t *wlc_hw);
+#endif
 
 struct cca_ucode_counts {
 	uint32 txdur;	/**< num usecs tx'ing */
@@ -727,4 +735,6 @@ extern int wlc_bmac_sr_verify(wlc_hw_info_t *wlc_hw, struct bcmstrbuf *b);
 extern int wlc_bmac_sr_testmode(wlc_hw_info_t *wlc_hw, int mode);
 #endif
 
+extern bool wlc_bmac_pay_decode_war_get(wlc_hw_info_t *wlc_hw);
+extern void wlc_bmac_pay_decode_war_set(wlc_hw_info_t *wlc_hw, bool val);
 #endif /* _WLC_BMAC_H_ */

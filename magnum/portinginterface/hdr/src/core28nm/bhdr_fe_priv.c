@@ -1000,6 +1000,7 @@ void BHDR_FE_P_SetHotPlug(BHDR_FE_ChannelHandle hFeChannel, BHDR_HotPlugSignal e
 }
 
 
+#if BCHP_PWR_SUPPORT
 /******************************************************************************
 Summary:
 *******************************************************************************/
@@ -1080,3 +1081,4 @@ void BHDR_FE_P_PowerResourceRelease_HDMI_RX_FE(BHDR_FE_ChannelHandle hFeChannel)
 
 	BDBG_LEAVE(BHDR_FE_P_PowerResourceAcquire_HDMI_RX_FE) ;
 }
+#endif

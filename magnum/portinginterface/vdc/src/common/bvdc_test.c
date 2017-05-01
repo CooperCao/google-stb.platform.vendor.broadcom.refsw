@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *  Header file for Test functions.
- *
  ***************************************************************************/
 #include "bvdc_test.h"
 #include "bvdc_display_priv.h"
@@ -153,11 +149,11 @@ static BERR_Code BVDC_Test_P_Window_CapturePicture_isr
 
         pHeapNode = pCapturedPic->pPicture->pHeapNode;
 
-        while (pHeapNode->ulParentNodeBufIndex != 0xffffffff)
+        while (pHeapNode->uiParentNodeBufIndex != BVDC_P_HEAP_INVAID_BUF_INDEX)
         {
             ulBlockOffset += pHeapNode->ulBlockOffset;
             pHeapInfo = pHeapNode->pHeapInfo->pParentHeapInfo;
-            pHeapNode = &pHeapInfo->pBufList[pHeapNode->ulParentNodeBufIndex];
+            pHeapNode = &pHeapInfo->pBufList[pHeapNode->uiParentNodeBufIndex];
         }
 
         /* Give the MMA block handle to convert a picture to a surface. */
@@ -168,11 +164,11 @@ static BERR_Code BVDC_Test_P_Window_CapturePicture_isr
         {
             pHeapNode_R = pCapturedPic->pPicture->pHeapNode_R;
 
-            while (pHeapNode_R->ulParentNodeBufIndex != 0xffffffff)
+            while (pHeapNode_R->uiParentNodeBufIndex != BVDC_P_HEAP_INVAID_BUF_INDEX)
             {
                 ulBlockOffset_R += pHeapNode_R->ulBlockOffset;
                 pHeapInfo_R = pHeapNode_R->pHeapInfo->pParentHeapInfo;
-                pHeapNode_R = &pHeapInfo_R->pBufList[pHeapNode_R->ulParentNodeBufIndex];
+                pHeapNode_R = &pHeapInfo_R->pBufList[pHeapNode_R->uiParentNodeBufIndex];
             }
 
             /* Give the MMA block handle to convert a picture to a surface. */
@@ -269,11 +265,11 @@ static BERR_Code BVDC_Test_P_Window_ReleasePicture_isr
         if (pHeapNode)
         {
             ulBlockOffset = 0;
-            while (pHeapNode->ulParentNodeBufIndex != 0xffffffff)
+            while (pHeapNode->uiParentNodeBufIndex != BVDC_P_HEAP_INVAID_BUF_INDEX)
             {
                 ulBlockOffset += pHeapNode->ulBlockOffset;
                 pHeapInfo = pHeapNode->pHeapInfo->pParentHeapInfo;
-                pHeapNode = &pHeapInfo->pBufList[pHeapNode->ulParentNodeBufIndex];
+                pHeapNode = &pHeapInfo->pBufList[pHeapNode->uiParentNodeBufIndex];
             }
             cnt++;
         }

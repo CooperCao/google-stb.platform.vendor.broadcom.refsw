@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,15 +70,15 @@
 /***************************************************************************
  *ANCI656_ANCIL_0 - ANCI656_ANCIL_0 registers
  ***************************************************************************/
-#define BCHP_ANCI656_ANCIL_0_ANCI656_REV_ID      0x206e8f00 /* [RO] Revision ID Register */
-#define BCHP_ANCI656_ANCIL_0_TYPE_A_VBI_HEADER   0x206e8f08 /* [RW] ANCI656 Encoder Header Register For Type A VBI */
-#define BCHP_ANCI656_ANCIL_0_TYPE_B_VBI_HEADER   0x206e8f0c /* [RW] ANCI656 Encoder Header Register For Type B VBI */
-#define BCHP_ANCI656_ANCIL_0_TYPE_C_VBI_HEADER   0x206e8f10 /* [RW] ANCI656 Encoder Header Register For Type C VBI */
-#define BCHP_ANCI656_ANCIL_0_TYPE_D_VBI_HEADER   0x206e8f14 /* [RW] ANCI656 Encoder Header Register For Type D VBI */
-#define BCHP_ANCI656_ANCIL_0_TYPE_E_VBI_HEADER   0x206e8f18 /* [RW] ANCI656 Encoder Header Register For Type E VBI */
-#define BCHP_ANCI656_ANCIL_0_ANCI656_CNTRL       0x206e8f1c /* [RW] ANCI656 Encoder Control Register */
-#define BCHP_ANCI656_ANCIL_0_ANCI656_V_BIT       0x206e8f20 /* [RW] ANCI656 Encoder V Bit Register */
-#define BCHP_ANCI656_ANCIL_0_ANCI656_F_BIT       0x206e8f24 /* [RW] ANCI656 Encoder F Bit Register */
+#define BCHP_ANCI656_ANCIL_0_ANCI656_REV_ID      0x206e8f00 /* [RO][32] Revision ID Register */
+#define BCHP_ANCI656_ANCIL_0_TYPE_A_VBI_HEADER   0x206e8f08 /* [RW][32] ANCI656 Encoder Header Register For Type A VBI */
+#define BCHP_ANCI656_ANCIL_0_TYPE_B_VBI_HEADER   0x206e8f0c /* [RW][32] ANCI656 Encoder Header Register For Type B VBI */
+#define BCHP_ANCI656_ANCIL_0_TYPE_C_VBI_HEADER   0x206e8f10 /* [RW][32] ANCI656 Encoder Header Register For Type C VBI */
+#define BCHP_ANCI656_ANCIL_0_TYPE_D_VBI_HEADER   0x206e8f14 /* [RW][32] ANCI656 Encoder Header Register For Type D VBI */
+#define BCHP_ANCI656_ANCIL_0_TYPE_E_VBI_HEADER   0x206e8f18 /* [RW][32] ANCI656 Encoder Header Register For Type E VBI */
+#define BCHP_ANCI656_ANCIL_0_ANCI656_CNTRL       0x206e8f1c /* [RW][32] ANCI656 Encoder Control Register */
+#define BCHP_ANCI656_ANCIL_0_ANCI656_V_BIT       0x206e8f20 /* [RW][32] ANCI656 Encoder V Bit Register */
+#define BCHP_ANCI656_ANCIL_0_ANCI656_F_BIT       0x206e8f24 /* [RW][32] ANCI656 Encoder F Bit Register */
 
 /***************************************************************************
  *ANCI656_REV_ID - Revision ID Register

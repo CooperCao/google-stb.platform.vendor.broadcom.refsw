@@ -237,8 +237,8 @@ static void dpostv_find_active_ids(Dataflow *dataflow, void *data) {
       case DATAFLOW_STORAGE_BUFFER:
          active->buffer[dataflow->u.linkable_value.row] = true;
          break;
-      case DATAFLOW_CONST_SAMPLER:
-         active->uniform[dataflow->u.const_sampler.location] = true;
+      case DATAFLOW_CONST_IMAGE:
+         active->uniform[dataflow->u.const_image.location] = true;
          break;
       case DATAFLOW_ATOMIC_COUNTER:
          active->atomic[dataflow->u.buffer.index] |= (1 << (dataflow->u.buffer.offset / 4));
@@ -567,8 +567,11 @@ static void replace_externals(Dataflow *d, void *data) {
    d->age += info->id * 1000;
 
    if (glsl_dataflow_affects_memory(d->flavour)) {
-      if (d->d.addr_store.cond == NULL) d->d.addr_store.cond = info->guards_mem[info->id];
-      else d->d.addr_store.cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, d->d.addr_store.cond, info->guards_mem[info->id]);
+      Dataflow *g = info->guards_mem[info->id];
+      if (g->flavour != DATAFLOW_CONST || !g->u.constant.value) {
+         if (d->d.addr_store.cond == NULL) d->d.addr_store.cond = g;
+         else d->d.addr_store.cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, d->d.addr_store.cond, g);
+      }
    }
 
    if (d->flavour != DATAFLOW_EXTERNAL) return;
@@ -1058,10 +1061,10 @@ static void initialise_interface_symbols(BasicBlock *entry_block, Map *initial_v
 
 static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size[3], Symbol *shared_block, bool multicore)
 {
-   Symbol *s_l_idx = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UINT__GL_LOCALINVOCATIONINDEX);
-   Symbol *s_l_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_LOCALINVOCATIONID);
-   Symbol *s_wg_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_WORKGROUPID);
-   Symbol *s_g_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_GLOBALINVOCATIONID);
+   const Symbol *s_l_idx = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UINT__GL_LOCALINVOCATIONINDEX);
+   const Symbol *s_l_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_LOCALINVOCATIONID);
+   const Symbol *s_wg_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_WORKGROUPID);
+   const Symbol *s_g_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_GLOBALINVOCATIONID);
 
    // Fetch local_index, global_id[3] from TLB.
    Dataflow *tlb[4];
@@ -1073,7 +1076,7 @@ static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size
 
    Dataflow *wg_num_items_p2_df = glsl_dataflow_construct_const_uint(wg_num_items_p2);
    Dataflow *l_idx = glsl_dataflow_construct_binary_op(DATAFLOW_REM, tlb[0], wg_num_items_p2_df);
-   Dataflow *sg_idx = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, tlb[0], wg_num_items_p2_df); // group index along row
+   Dataflow *g_idx = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, tlb[0], wg_num_items_p2_df); // local group index
    glsl_basic_block_set_scalar_values(entry_block, s_l_idx, &l_idx);
 
    Dataflow *g_id[3];
@@ -1106,12 +1109,8 @@ static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size
       uint32_t max_groups_per_row = (V3D_MAX_TLB_WIDTH_PX * 2u) / wg_num_items_p2;
       max_groups_per_row = gfx_umin(max_groups_per_row, max_concurrent_groups / 2u);
 
-      // shared_block_start = (ycd/2 * max_groups_per_row + sg_idx) * shared_block_size
-      Dataflow *ycd = glsl_dataflow_construct_nullary_op(DATAFLOW_FRAG_GET_Y_UINT);
-      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, ycd, glsl_dataflow_construct_const_uint(2u));
-      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, shared_block_start, glsl_dataflow_construct_const_uint(max_groups_per_row));
-      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, sg_idx);
-      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, shared_block_start, glsl_dataflow_construct_const_uint(shared_block_size));
+      // shared_block_start = g_idx * shared_block_size
+      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, g_idx, glsl_dataflow_construct_const_uint(shared_block_size));
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, glsl_dataflow_construct_nullary_op(DATAFLOW_SHARED_PTR));
 
       if (multicore) {
@@ -1164,7 +1163,8 @@ static Symbol *construct_shared_block(SymbolList *members)
    Qualifiers q = { .invariant = false,
                     .lq = NULL,
                     .sq = STORAGE_SHARED,
-                    .tq = TYPE_QUAL_NONE,
+                    .iq = INTERP_SMOOTH,
+                    .aq = AUXILIARY_NONE,
                     .pq = PREC_HIGHP,
                     .mq = MEMORY_NONE };
 
@@ -1351,8 +1351,12 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
          }
       }
    }
-   if (flavour == SHADER_TESS_CONTROL && !tess_vertices_declared)
-      glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation control shader requires output patch size declaration");
+   if (flavour == SHADER_TESS_CONTROL) {
+      if (!tess_vertices_declared)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation control shader requires output patch size declaration");
+      if (data->tess_control.vertices <= 0 || data->tess_control.vertices > V3D_MAX_PATCH_VERTICES)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "'vertices' declaration must be in the range [1, %d]", V3D_MAX_PATCH_VERTICES);
+   }
    if (flavour == SHADER_GEOMETRY) {
       if (!gs_in_type_declared)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires input type declaration");
@@ -1464,7 +1468,8 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       Qualifiers quals = { .invariant = false,
                            .lq = NULL,
                            .sq = STORAGE_IN,
-                           .tq = TYPE_QUAL_NONE,
+                           .iq = INTERP_SMOOTH,
+                           .aq = AUXILIARY_NONE,
                            .pq = PREC_MEDIUMP,
                            .mq = MEMORY_NONE };
       Symbol *compute_vary = malloc_fast(sizeof(Symbol));
@@ -1502,8 +1507,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(shader_start_block);
 
    if (flavour == SHADER_COMPUTE) {
-      unsigned wg_n_items = iface_data.compute.wg_size[0] * iface_data.compute.wg_size[1] * iface_data.compute.wg_size[2];
-      if (wg_n_items <= 16 && (wg_n_items & (wg_n_items - 1)) == 0) {
+      if (!glsl_wg_size_requires_barriers(iface_data.compute.wg_size)) {
          for (BasicBlockList *n = l; n != NULL; n=n->next)
             n->v->barrier = false;
       }
@@ -1623,8 +1627,17 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    }
 
    if (flavour == SHADER_COMPUTE) {
-      for (int i=0; i<3; i++) ret->wg_size[i] = iface_data.compute.wg_size[i];
-      ret->shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
+      for (int i=0; i<3; i++) ret->cs_wg_size[i] = iface_data.compute.wg_size[i];
+      ret->cs_shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
+
+      bool barriers = ret->cs_shared_block_size > 0;
+      for (unsigned i = 0; i != ir_sh.n_blocks; ++i) {
+         if (ir_sh.blocks[i].barrier) {
+            barriers = true;
+            break;
+         }
+      }
+      ret->cs_has_barrier = barriers && glsl_wg_size_requires_barriers(ret->cs_wg_size);
    }
 
    glsl_ssa_shader_term(&ir_sh);

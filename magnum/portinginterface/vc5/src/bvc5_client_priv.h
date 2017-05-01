@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef BVC5_CLIENT_H__
 #define BVC5_CLIENT_H__
 
@@ -43,6 +42,7 @@
 #include "blst_slist.h"
 #include "bvc5_jobq_priv.h"
 #include "bvc5_activeq_priv.h"
+#include "bvc5_usermode_priv.h"
 
 /* BVC5_P_Client
 
@@ -96,6 +96,8 @@ typedef struct BVC5_P_Client
    BVC5_JobQHandle      hFinalizingQ;           /* Finalizers are running              */
 
    BVC5_P_InternalJob  *psOldestNotFinalized;   /* NULL if all jobs finalised          */
+
+   BVC5_P_UsermodeState sUsermodeState;         /* Running usermode job state */
 
    uint64_t             uiMaxJobId;             /* max job ID submitted                */
 
@@ -337,6 +339,14 @@ BERR_Code BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(
    BVC5_Handle       hVC5,
    BVC5_ClientHandle hClient,
    int              *piFence
+);
+
+BERR_Code BVC5_P_ClientMakeFenceForAnyJob(
+   BVC5_Handle                   hVC5,
+   BVC5_ClientHandle             hClient,
+   const BVC5_SchedDependencies  *pCompletedDeps,
+   const BVC5_SchedDependencies  *pFinalizedDeps,
+   int                           *piFence
 );
 
 /***************************************************************************/

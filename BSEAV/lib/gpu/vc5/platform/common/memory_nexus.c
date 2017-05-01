@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "assert.h"
 
 #include "nexus_memory.h"
@@ -403,9 +401,19 @@ BEGL_MemoryInterface *CreateMemoryInterface(void)
             else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
                ctx->heapMap.heap = clientConfig.heap[0];
             else
+#ifdef NXCLIENT_SUPPORT
                ctx->heapMap.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+#else
+               /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
+               ctx->heapMap.heap = NULL;
+#endif
 
+#ifdef NXCLIENT_SUPPORT
             ctx->heapMapSecure.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
+#else
+            /* not available in NEXUS_CLIENT_SUPPORT=y mode */
+            ctx->heapMapSecure.heap = NULL;
+#endif
          }
 #else
          /* If you change this, then the heap must also change in nexus_platform.c

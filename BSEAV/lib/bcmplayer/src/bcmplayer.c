@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -224,7 +224,7 @@ struct BNAV_Player_HandleImpl
 
     struct BNAV_Player_P_PtsCache ptscache;
 
-    /* used for eBpPlayDecoderGOPTrick, GOPIPTrick, MDqtTrick, MDqtIPTrick */
+    /* used for eBpPlayDecoderGOPTrick, GOPIPTrick, MDqtTrick */
     struct {
         int currentStart, currentEnd;
         int pictureTag;
@@ -654,7 +654,6 @@ static bool is_dqt(eBpPlayModeParam playMode)
     case eBpPlayDecoderGOPTrick:
     case eBpPlayDecoderGOPIPTrick:
     case eBpPlayDecoderMDqtTrick:
-    case eBpPlayDecoderMDqtIPTrick:
         return true;
     default:
         return false;
@@ -725,11 +724,13 @@ int BNAV_Player_GetNextPlayEntry(BNAV_Player_Handle handle, BNAV_Player_PlayEntr
                     return BNAV_ADVANCE_IDX_FAIL;
             }
 
-            if (handle->gopTrick.intraGopPictureIndex == -1 && handle->gopTrick.currentStart != -1 && handle->currentIndex == handle->gopTrick.currentEnd) {
-                /* short-circuit for MDqt and MDqtIP */
-                memset(navEntry, 0, sizeof(*navEntry));
-                navEntry->waitingForIntraGopPictureIndex = true;
-                return 0;
+            if (handle->playMode == eBpPlayDecoderMDqtTrick) {
+                if (handle->gopTrick.intraGopPictureIndex == -1 && handle->gopTrick.currentStart != -1 && handle->currentIndex == handle->gopTrick.currentEnd) {
+                    /* short-circuit for MDqtTrick */
+                    memset(navEntry, 0, sizeof(*navEntry));
+                    navEntry->waitingForIntraGopPictureIndex = true;
+                    return 0;
+                }
             }
 
             /* now add it to the fifo */
@@ -742,6 +743,9 @@ int BNAV_Player_GetNextPlayEntry(BNAV_Player_Handle handle, BNAV_Player_PlayEntr
                 /* I, IP, SkipB, SkipP - just add the current frame to the fifo */
                 if (BNAV_Player_AddFrame(handle, startIndex))
                     return BNAV_GENERIC_IDX_FAIL;
+            }
+            if (handle->playMode == eBpPlayDecoderMDqtTrick) {
+                handle->currentIndex = handle->gopTrick.currentEnd;
             }
         }
     }
@@ -1145,35 +1149,10 @@ int BNAV_Player_AdvanceIndex(BNAV_Player_Handle handle)
         }
         break;
     case eBpPlayDecoderMDqtTrick:
-    case eBpPlayDecoderMDqtIPTrick:
-        /* now advance if we're in the middle of a GOP */
-        if (handle->gopTrick.currentStart != -1 &&
-            startIndex != handle->gopTrick.currentEnd)
-        {
-            while (1) {
-                startIndex++;
-                /* always send currentEnd picture to keep logic consistent */
-                if (startIndex == handle->gopTrick.currentEnd) break;
-
-                pStartEntry = BNAV_Player_ReadEntry(handle, startIndex);
-                if (!pStartEntry || BNAV_get_frameType(pStartEntry) != eSCTypeBFrame) {
-                    break;
-                }
-
-                if (handle->playMode == eBpPlayDecoderMDqtTrick && (handle->navVersion == BNAV_Version_AVC || handle->navVersion == BNAV_Version_HEVC || handle->gopTrick.count)) {
-                    /* in eBpPlayDecoderGOPTrick, we send B unless it's an MPEG open gop */
-                    break;
-                }
-
-                /* continue, which will skip the B */
-            };
-            handle->gopTrick.count++;
-        }
-        else
         {
             BNAV_PktFifoEntry  *curFifoEntry;
 
-            if (startIndex == handle->gopTrick.currentEnd) {
+            if (handle->gopTrick.currentStart != -1) {
                 if (handle->gopTrick.dqt_state == dqt_state_started) {
                     BDBG_MSG(("end GOP tag=%d", handle->gopTrick.pictureTag));
                     handle->gopTrick.pictureTag++;
@@ -1227,12 +1206,10 @@ int BNAV_Player_AdvanceIndex(BNAV_Player_Handle handle)
                 curFifoEntry->pktdata[0] = TT_MODE_OUTPUT_N;
                 curFifoEntry->pktdata[9] = handle->gopTrick.intraGopPictureIndex + handle->gopTrick.openGopPictures;
             }
-            handle->gopTrick.count = 0;
             handle->gopTrick.intraGopPictureIndex = -1; /* consumed */
             handle->lastSeqHdrOffset64 = 0;
 
             startIndex = handle->gopTrick.currentStart;
-
         }
         break;
     case eBpPlayBrcm:
@@ -1490,6 +1467,7 @@ int BNAV_Player_AdvanceIndex(BNAV_Player_Handle handle)
 
 /**
 Feed a frame for non-brcm (host only) based trick mode.
+Or feed a GOP for MDQT.
 **/
 static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
 {
@@ -1497,8 +1475,14 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
     BNAV_Entry *pStartEntry;
     uint64_t seqHdrOffset64;
     int result = 0;
+    bool feedgop = (handle->playMode == eBpPlayDecoderMDqtTrick);
 
-    BDBG_MSG(("AddFrame index=%d", (int)entry));
+    if (feedgop) {
+        BDBG_MSG(("AddFrame GOP %d..%d", (int)entry, (int)handle->gopTrick.currentEnd));
+    }
+    else {
+        BDBG_MSG(("AddFrame index=%d", (int)entry));
+    }
 
     CHECKREAD(pStartEntry = BNAV_Player_ReadEntry(handle, entry));
 
@@ -1522,7 +1506,7 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
         handle->lastSeqHdrOffset64 = 0;
     }
 
-    if (handle->settings.useBtpsForHostTrickModes) {
+    if (handle->settings.useBtpsForHostTrickModes && !feedgop) {
         if (handle->navVersion != BNAV_Version_VC1_PES) {
             /* send sequence header if different. for AVC this means just checking the PPS, which is sufficient. */
             seqHdrOffset64 = BNAV_get_frameOffset(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
@@ -1583,16 +1567,25 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
         curFifoEntry->zeroByteCountBegin = (unsigned long)(curFifoEntry->startByte % handle->packetSize);
     }
 
-    /* set the end feed byte based on actual picture end */
-    curFifoEntry->endByte = BNAV_get_frameOffset(pStartEntry) +
-        BNAV_get_frameSize(pStartEntry);
+    if (feedgop) {
+        /* set the end feed byte based on the gop */
+        CHECKREAD(pStartEntry = BNAV_Player_ReadEntry(handle, handle->gopTrick.currentEnd - 1));
+        curFifoEntry->endByte = BNAV_get_frameOffset(pStartEntry);
+        if (handle->packetSize) {
+            curFifoEntry->endByte -= curFifoEntry->endByte % handle->packetSize;
+        }
+    }
+    else {
+        /* set the end feed byte based on actual picture end */
+        curFifoEntry->endByte = BNAV_get_frameOffset(pStartEntry) + BNAV_get_frameSize(pStartEntry);
 
-    if (handle->packetSize) {
-        /* Round end up to nearest transport packet, but tell caller to zero out any bytes after end of picture */
-        curFifoEntry->zeroByteCountEnd = handle->packetSize - (unsigned long)(curFifoEntry->endByte % handle->packetSize);
-        if (curFifoEntry->zeroByteCountEnd == handle->packetSize)
-            curFifoEntry->zeroByteCountEnd = 0;
-        curFifoEntry->endByte += curFifoEntry->zeroByteCountEnd;
+        if (handle->packetSize) {
+            /* Round end up to nearest transport packet, but tell caller to zero out any bytes after end of picture */
+            curFifoEntry->zeroByteCountEnd = handle->packetSize - (unsigned long)(curFifoEntry->endByte % handle->packetSize);
+            if (curFifoEntry->zeroByteCountEnd == handle->packetSize)
+                curFifoEntry->zeroByteCountEnd = 0;
+            curFifoEntry->endByte += curFifoEntry->zeroByteCountEnd;
+        }
     }
     curFifoEntry->endByte -= 1; /* sub one since endByte is an offset to the last good byte */
 
@@ -3040,7 +3033,6 @@ int BNAV_Player_SetPlayMode(BNAV_Player_Handle handle, const BNAV_Player_PlayMod
         }
         switch (mode->playMode) {
         case eBpPlayDecoderMDqtTrick:
-        case eBpPlayDecoderMDqtIPTrick:
             handle->gopTrick.gopSkip = 0;
             playModeModifier = -1;
             break;

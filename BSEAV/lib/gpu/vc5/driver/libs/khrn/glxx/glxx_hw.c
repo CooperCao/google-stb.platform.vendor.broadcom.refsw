@@ -41,22 +41,19 @@ LOG_DEFAULT_CAT("glxx_hw")
  *************************************************************/
 
 static bool write_gl_shader_record(
-   GLXX_HW_RENDER_STATE_T              *rs,
-   GLXX_LINK_RESULT_DATA_T             *link_data,
-   const GLXX_SERVER_STATE_T           *state,
-   const GLXX_ATTRIB_CONFIG_T          *attr_cfgs,
-   const GLXX_VERTEX_BUFFER_CONFIG_T   *vb_cfgs,
-   const GLXX_VERTEX_POINTERS_T        *vb_pointers);
+   GLXX_HW_RENDER_STATE_T *rs,
+   const GLXX_SERVER_STATE_T *state,
+   GLXX_LINK_RESULT_DATA_T *link_data, const glxx_hw_image_like_uniforms *image_like_uniforms,
+   const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs);
 
 static v3d_prim_mode_t convert_primitive_type(GLXX_SERVER_STATE_T const* state, GLenum mode);
 static v3d_index_type_t convert_index_type(GLenum type);
 
-static bool insert_flat_shading_flags(GLXX_HW_RENDER_STATE_T *rs,
-   GLXX_SERVER_STATE_T *state,
-   const GLXX_LINK_RESULT_DATA_T *link_data);
-static bool insert_centroid_flags(GLXX_HW_RENDER_STATE_T *rs,
-   GLXX_SERVER_STATE_T *state,
-   const GLXX_LINK_RESULT_DATA_T *link_data);
+static bool insert_flat_shading_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data);
+static bool insert_centroid_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data);
+#if V3D_HAS_VARY_NO_PERSP
+static bool insert_noperspective_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data);
+#endif
 
 static bool glxx_hw_update_z_prepass_state(
    GLXX_SERVER_STATE_T *state,
@@ -65,18 +62,15 @@ static bool glxx_hw_update_z_prepass_state(
    );
 
 static bool post_draw_journal(
-   GLXX_HW_RENDER_STATE_T        *rs,
-   const GLXX_ATTRIB_CONFIG_T    *attrib,
-   const GLXX_VERTEX_BUFFER_CONFIG_T *vb_config,
-   const GLXX_VERTEX_POINTERS_T  *vertex_pointers,
+   GLXX_HW_RENDER_STATE_T *rs,
+   const glxx_hw_draw *draw,
    const GLXX_LINK_RESULT_DATA_T *link_data,
-   const GLXX_DRAW_T             *draw
-);
+   const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs);
 
 static GLXX_HW_RENDER_STATE_T* get_existing_rs(const GLXX_SERVER_STATE_T *state,
       const GLXX_HW_FRAMEBUFFER_T *fb);
 static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_unif,
-      bool for_image_unit, KHRN_FMEM_T *fmem, bool used_in_binning, bool is_32bit
+      bool for_image_unit, khrn_fmem *fmem, bool used_in_binning, bool is_32bit
 #if !V3D_VER_AT_LEAST(3,3,0,0)
       , glsl_gadgettype_t *gadgettype
 #endif
@@ -168,7 +162,7 @@ void glxx_assign_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *a, const GLXX_HW_FRAMEBUF
 /* Updates max common size in hw_fb based on attached image plane (possibly NULL) */
 static void update_hw_fb_with_image(
    GLXX_HW_FRAMEBUFFER_T *hw_fb,
-   KHRN_IMAGE_PLANE_T *image_plane,
+   khrn_image_plane *image_plane,
    bool multisample)
 {
    // Not all framebuffers have color / multisample / depth / stencil
@@ -219,29 +213,27 @@ bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
    {
       if (hw_fb->color[b].image)
       {
-         v3d_pixel_format_internal_type_and_bpp(
-            &hw_fb->color_internal_type[b], &hw_fb->color_internal_bpp[b],
-            gfx_lfmt_translate_pixel_format(khrn_image_plane_lfmt(&hw_fb->color[b])));
+         gfx_lfmt_translate_rt_format(&hw_fb->color_rt_format[b], khrn_image_plane_lfmt(&hw_fb->color[b]));
 #ifndef NDEBUG
          if (hw_fb->color_ms[b].image)
          {
-            v3d_rt_type_t type;
-            v3d_rt_bpp_t bpp;
-            v3d_pixel_format_internal_type_and_bpp(&type, &bpp,
-               gfx_lfmt_translate_pixel_format(khrn_image_plane_lfmt(&hw_fb->color_ms[b])));
-            assert(hw_fb->color_internal_type[b] == type);
-            assert(hw_fb->color_internal_bpp[b] == bpp);
+            V3D_RT_FORMAT_T rt_format;
+            gfx_lfmt_translate_rt_format(&rt_format, khrn_image_plane_lfmt(&hw_fb->color_ms[b]));
+            assert(v3d_rt_formats_equal(&hw_fb->color_rt_format[b], &rt_format));
          }
 #endif
       }
       else if (hw_fb->color_ms[b].image)
-         v3d_pixel_format_internal_type_and_bpp(
-            &hw_fb->color_internal_type[b], &hw_fb->color_internal_bpp[b],
-            gfx_lfmt_translate_pixel_format(khrn_image_plane_lfmt(&hw_fb->color_ms[b])));
+      {
+         gfx_lfmt_translate_rt_format(&hw_fb->color_rt_format[b], khrn_image_plane_lfmt(&hw_fb->color_ms[b]));
+      }
       else
       {
-         hw_fb->color_internal_bpp[b] = V3D_RT_BPP_32;
-         hw_fb->color_internal_type[b] = V3D_RT_TYPE_8;
+         hw_fb->color_rt_format[b].bpp = V3D_RT_BPP_32;
+         hw_fb->color_rt_format[b].type = V3D_RT_TYPE_8;
+#if V3D_HAS_RT_CLAMP
+         hw_fb->color_rt_format[b].clamp = V3D_RT_CLAMP_NONE;
+#endif
       }
    }
 
@@ -313,8 +305,7 @@ static bool compare_hw_fb(const GLXX_HW_FRAMEBUFFER_T *a,
 
       /* These are derived from color[i]/color_ms[i], so if those match, then
        * these should match... */
-      assert(a->color_internal_bpp[i] == b->color_internal_bpp[i]);
-      assert(a->color_internal_type[i] == b->color_internal_type[i]);
+      assert(v3d_rt_formats_equal(&a->color_rt_format[i], &b->color_rt_format[i]));
    }
 
    if (!khrn_image_plane_equal(&a->depth, &b->depth))
@@ -387,7 +378,7 @@ static GLXX_HW_RENDER_STATE_T* get_existing_rs(const GLXX_SERVER_STATE_T *state,
 }
 
 GLXX_HW_RENDER_STATE_T* glxx_install_rs(GLXX_SERVER_STATE_T *state,
-   const GLXX_HW_FRAMEBUFFER_T *fb, bool for_tlb_blit)
+   const GLXX_HW_FRAMEBUFFER_T *fb, bool* ret_existing, bool for_tlb_blit)
 {
    /* we might have users on fence_to_depend_on, flush them now */
    khrn_fence_flush(state->fences.fence_to_depend_on);
@@ -413,6 +404,7 @@ GLXX_HW_RENDER_STATE_T* glxx_install_rs(GLXX_SERVER_STATE_T *state,
    }
 
    // create a new render state if required
+   *ret_existing = rs != NULL;
    if (rs == NULL)
    {
       rs = create_and_start_render_state(fb, state);
@@ -516,20 +508,25 @@ uint32_t glxx_get_attribs_live(const GLXX_SERVER_STATE_T *state)
    }
 }
 
-static bool compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render_state *rs)
+static bool compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render_state *rs,
+   GLXX_TEXTURE_UNIF_T unifs[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS]
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   , glsl_gadgettype_t gadgettype[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS]
+#endif
+   )
 {
    glxx_texture_iterator_t iterate = glxx_server_texture_iterator(state);
    struct glxx_texture_info info;
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    for (unsigned i = 0; i < GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS; i++)
-      state->shaderkey_common.gadgettype[i] = 0;
+      gadgettype[i] = 0;
 #endif
 
    for (unsigned i = 0; iterate(&info, state, &i); )
    {
       unsigned index = info.index;
-      GLXX_TEXTURE_UNIF_T *texture_unif = &state->texture_unif[index];
+      GLXX_TEXTURE_UNIF_T *texture_unif = &unifs[index];
 
       const GLXX_TEXTURE_SAMPLER_STATE_T *sampler = info.sampler;
       if (!sampler || glxx_tex_target_is_multisample(info.texture->target)
@@ -540,7 +537,7 @@ static bool compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render_sta
             info.texture, NULL, sampler,
             info.used_in_binning, info.is_32bit, rs, texture_unif,
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-            &state->shaderkey_common.gadgettype[index],
+            &gadgettype[index],
 #endif
             &state->fences);
 
@@ -553,7 +550,6 @@ static bool compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render_sta
       case COMPLETE:
          continue;
       case OUT_OF_MEMORY:
-         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
          return false;
       default:
          unreachable();
@@ -563,7 +559,7 @@ static bool compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render_sta
       if (!setup_dummy_texture_for_texture_unif(texture_unif, false, &rs->fmem,
                info.used_in_binning, info.is_32bit
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-               , &state->shaderkey_common.gadgettype[index]
+               , &gadgettype[index]
 #endif
                , info.texture->target))
          return false;
@@ -603,19 +599,18 @@ static bool glxx_server_iterate_glslimages(
 }
 
 static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_unif,
-      bool for_image_unit, KHRN_FMEM_T *fmem, bool used_in_binning, bool is_32bit
+      bool for_image_unit, khrn_fmem *fmem, bool used_in_binning, bool is_32bit
 #if !V3D_VER_AT_LEAST(3,3,0,0)
       , glsl_gadgettype_t *gadgettype
 #endif
       , enum glxx_tex_target tex_target)
 {
    gmem_handle_t dummy_texture_handle = get_dummy_texture();
-   v3d_addr_t addr_base = khrn_fmem_lock_and_sync(fmem,
+   v3d_addr_t addr_base = khrn_fmem_sync_and_get_addr(fmem,
          dummy_texture_handle,
          used_in_binning ?
          V3D_BARRIER_TMU_DATA_READ : 0,
          V3D_BARRIER_TMU_DATA_READ);
-
    assert(v3d_addr_aligned(addr_base, V3D_TMU_ML_ALIGN));
 
    bool is_1d = tex_target == GL_TEXTURE_BUFFER || glxx_tex_target_is_1d(tex_target);
@@ -673,7 +668,13 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    {
       V3D_TMU_SAMPLER_T sampler;
       memset(&sampler, 0, sizeof(sampler));
-      sampler.filter = V3D_TMU_FILTER_MIN_NEAR_MAG_NEAR;
+#if V3D_HAS_SEP_ANISO_CFG
+      sampler.magfilt = V3D_TMU_FILTER_NEAREST;
+      sampler.minfilt = V3D_TMU_FILTER_NEAREST;
+      sampler.mipfilt = V3D_TMU_MIPFILT_NEAREST;
+#else
+      sampler.filters = V3D_TMU_FILTERS_MIN_NEAR_MAG_NEAR;
+#endif
       uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE];
       v3d_pack_tmu_sampler(hw_sampler, &sampler);
       texture_unif->hw_param[1] = khrn_fmem_add_tmu_sampler(fmem, hw_sampler, /*extended=*/false);
@@ -689,7 +690,7 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
 
    // setup indirect record
    V3D_TMU_INDIRECT_T tmu_indirect = { 0, };
-   tmu_indirect.filter = V3D_TMU_FILTER_MIN_NEAR_MAG_NEAR;
+   tmu_indirect.filters = V3D_TMU_FILTERS_MIN_NEAR_MAG_NEAR;
    tmu_indirect.arr_str = 4*4*4;// For 3D textures this is used to init the slice_pitch
    tmu_indirect.base = addr_base;
    tmu_indirect.width = width;
@@ -713,7 +714,7 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    if (!texture_unif->hw_param[1])
       return false;
 
-   tmu_indirect.filter = V3D_TMU_FILTER_MIN_LIN_MAG_LIN;
+   tmu_indirect.filters = V3D_TMU_FILTERS_MIN_LIN_MAG_LIN;
    v3d_pack_tmu_indirect_not_child_image(hw_indirect, &tmu_indirect);
    v3d_addr_t gather012_indirect_addr = khrn_fmem_add_tmu_indirect(fmem, hw_indirect);
    if (!gather012_indirect_addr)
@@ -736,8 +737,12 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    return true;
 }
 
-static bool compute_image_uniforms(GLXX_SERVER_STATE_T *state,
-                                   glxx_render_state *rs)
+static bool compute_image_uniforms(GLXX_SERVER_STATE_T *state, glxx_render_state *rs,
+   GLXX_TEXTURE_UNIF_T unifs[GLXX_CONFIG_MAX_IMAGE_UNITS]
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   , glsl_gadgettype_t gadgettype[GLXX_CONFIG_MAX_IMAGE_UNITS]
+#endif
+   )
 {
    const glxx_image_unit *image_unit = NULL;
    const GLSL_IMAGE_T *info = NULL;
@@ -745,7 +750,7 @@ static bool compute_image_uniforms(GLXX_SERVER_STATE_T *state,
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    for (unsigned i = 0; i < GLXX_CONFIG_MAX_IMAGE_UNITS; i++)
-      state->shaderkey_common.img_gadgettype[i] = 0;
+      gadgettype[i] = 0;
 #endif
 
    if (IS_GL_11(state))
@@ -753,7 +758,7 @@ static bool compute_image_uniforms(GLXX_SERVER_STATE_T *state,
 
    for (unsigned i = 0; glxx_server_iterate_glslimages(&image_unit, &info, &index, state, &i); )
    {
-      GLXX_TEXTURE_UNIF_T *texture_unif = &state->image_unif[index];
+      GLXX_TEXTURE_UNIF_T *texture_unif = &unifs[index];
 
       glxx_calc_image_unit calc_image_unit;
       if (glxx_get_calc_image_unit(image_unit, info, &calc_image_unit) == GLXX_ACC_OK)
@@ -763,7 +768,7 @@ static bool compute_image_uniforms(GLXX_SERVER_STATE_T *state,
                khrn_get_image_unit_default_sampler(), info->in_binning, info->is_32bit,
                rs, texture_unif,
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-               &state->shaderkey_common.img_gadgettype[index],
+               &gadgettype[index],
 #endif
                &state->fences);
 
@@ -772,7 +777,6 @@ static bool compute_image_uniforms(GLXX_SERVER_STATE_T *state,
          case COMPLETE:
             continue;
          case OUT_OF_MEMORY:
-            glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
             return false;
          default:
             unreachable();
@@ -783,7 +787,7 @@ static bool compute_image_uniforms(GLXX_SERVER_STATE_T *state,
       if (!setup_dummy_texture_for_texture_unif(texture_unif, true, &rs->fmem,
                info->in_binning, info->is_32bit
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-               , &state->shaderkey_common.img_gadgettype[index]
+               , &gadgettype[index]
 #endif
                , image_unit->texture->target))
          return false;
@@ -817,7 +821,7 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
    if (!IS_GL_11(state))
    {
       const GLSL_PROGRAM_T *p = gl20_program_common_get(state)->linked_glsl_program;
-      draw_mode = glxx_get_used_draw_mode(p, draw_mode);
+      draw_mode = glxx_get_rast_draw_mode(p, draw_mode);
    }
 
    /* Set the primitive type */
@@ -856,17 +860,19 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
    if (!activeOcclusion && no_depth_updates(state, rs) && no_stencil_updates(state, rs))
       backend |= GLSL_FEZ_SAFE_WITH_DISCARD;
 
+#if !V3D_HAS_FEP_SAMPLE_MASK
    if (state->sample_mask.enable && fb->ms) backend |= GLSL_SAMPLE_MASK;
+#endif
 
    for (int i = 0; i < GLXX_MAX_RENDER_TARGETS; i++)
    {
       int fb_gadget;
       if (glxx_fb_is_valid_draw_buf(state->bound_draw_framebuffer, GLXX_COLOR0_ATT + i))
       {
-         v3d_rt_type_t type = fb->color_internal_type[i];
+         v3d_rt_type_t type = fb->color_rt_format[i].type;
          fb_gadget = get_tlb_write_type_from_rt_type(type);
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-         v3d_rt_bpp_t bpp = fb->color_internal_bpp[i];
+         v3d_rt_bpp_t bpp = fb->color_rt_format[i].bpp;
          if (fmt_requires_alpha16(type, bpp))
             fb_gadget |= GLSL_FB_ALPHA_16_WORKAROUND;
 #endif
@@ -886,22 +892,19 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
    return backend;
 }
 
-bool glxx_compute_image_like_uniforms(GLXX_SERVER_STATE_T *state,
-                                      glxx_render_state *rs)
+bool glxx_compute_image_like_uniforms(
+   GLXX_SERVER_STATE_T *state, glxx_render_state *rs,
+   glxx_hw_image_like_uniforms *image_like_uniforms, GLSL_BACKEND_CFG_T *key)
 {
-   bool res = compute_texture_uniforms(state, rs);
-   if (res)
-      res = compute_image_uniforms(state, rs);
-   return res;
-}
-
-bool glxx_calculate_and_hide(GLXX_SERVER_STATE_T *state,
-      GLXX_HW_RENDER_STATE_T *rs,
-      GLXX_PRIMITIVE_T draw_mode)
-{
-   state->shaderkey_common.backend = compute_backend_shader_key(state, rs, draw_mode);
-
-   return glxx_compute_image_like_uniforms(state, &rs->base);
+   return compute_texture_uniforms(state, rs, image_like_uniforms->tex
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+      , key->gadgettype
+#endif
+      ) && compute_image_uniforms(state, rs, image_like_uniforms->img
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+      , key->img_gadgettype
+#endif
+      );
 }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -945,8 +948,6 @@ static void write_blend_cfg_instr(uint8_t **instr, const glxx_blend_cfg *cfg
 static void write_blend_cfg(uint8_t **instr,
    const GLXX_HW_RENDER_STATE_T *rs, const GLXX_SERVER_STATE_T *state)
 {
-   static glxx_blend_cfg   dummy = { 0, };
-
 #if V3D_VER_AT_LEAST(4,0,2,0)
    uint32_t done_mask = 0;
    for (unsigned i = 0; i != rs->installed_fb.rt_count; ++i)
@@ -963,17 +964,13 @@ static void write_blend_cfg(uint8_t **instr,
              * reduce the number of binned instructions */
             rt_mask |= gfx_mask(V3D_MAX_RENDER_TARGETS - rs->installed_fb.rt_count) << rs->installed_fb.rt_count;
 
-         bool not_advanced = state->blend.rt_cfgs[i].color_eqn < GLXX_ADV_BLEND_EQN_BIT;
-
-         write_blend_cfg_instr(instr,  not_advanced ? &state->blend.rt_cfgs[i] : &dummy, rt_mask);
+         write_blend_cfg_instr(instr, &state->blend.rt_cfgs[i], rt_mask);
          done_mask |= rt_mask;
       }
    }
    assert(done_mask == gfx_mask(V3D_MAX_RENDER_TARGETS));
 #else
-   bool not_advanced = state->blend.cfg.color_eqn < GLXX_ADV_BLEND_EQN_BIT;
-
-   write_blend_cfg_instr(instr, not_advanced ? &state->blend.cfg : &dummy);
+   write_blend_cfg_instr(instr, &state->blend.cfg);
 #endif
 }
 
@@ -1020,31 +1017,20 @@ static bool do_changed_cfg(
    GLXX_SERVER_STATE_T *state,
    bool *nothing_to_draw)
 {
-   KHRN_FMEM_T *fmem = &rs->fmem;
+   khrn_fmem *fmem = &rs->fmem;
    const GLXX_HW_FRAMEBUFFER_T *hw_fb = &rs->installed_fb;
-   bool depth_test;
-   v3d_compare_func_t depth_func;
-   bool depth_update;
-   bool stencil_test;
    bool line_smooth = false;
-   bool rasterizer_discard = false;
-   int scx, scy, scw, sch;
-   int vpx, vpy, vpw, vph;
-   unsigned viewport_offset_scale;
-   float clipper_xy_scale;
+   bool rasterizer_discard = state->caps.rasterizer_discard;
 
-   depth_test = state->caps.depth_test && (hw_fb->depth.image != NULL);
-   depth_func = depth_test
+   bool depth_test = state->caps.depth_test && (hw_fb->depth.image != NULL);
+   v3d_compare_func_t depth_func = depth_test
       ? glxx_hw_convert_test_function(state->depth_func)
       : V3D_COMPARE_FUNC_ALWAYS;
-   depth_update = depth_test && state->depth_mask;
-   stencil_test = state->caps.stencil_test && (hw_fb->stencil.image != NULL);
-
-   viewport_offset_scale = 128;
-   clipper_xy_scale = 128.0f;
+   bool depth_update = depth_test && state->depth_mask;
+   bool stencil_test = state->caps.stencil_test && (hw_fb->stencil.image != NULL);
 
    unsigned max_size = GLXX_CL_STATE_SIZE[GLXX_CL_STATE_VIEWPORT]
-                     + GLXX_CL_STATE_SIZE[GLXX_CL_STATE_SAMPLE_COVERAGE]
+                     + GLXX_CL_STATE_SIZE[GLXX_CL_STATE_SAMPLE_STATE]
 #if V3D_VER_AT_LEAST(4,0,2,0)
                      + GLXX_CL_STATE_SIZE[GLXX_CL_STATE_BLEND_ENABLES]
 #endif
@@ -1064,15 +1050,6 @@ static bool do_changed_cfg(
    // grab current CL record
    GLXX_CL_RECORD_T* cl_record = glxx_hw_render_state_current_cl_record(rs);
 
-   scx = state->scissor.x;
-   scy = state->scissor.y;
-   scw = state->scissor.width;
-   sch = state->scissor.height;
-   vpx = state->viewport.x;
-   vpy = state->viewport.y;
-   vpw = state->viewport.width;
-   vph = state->viewport.height;
-
    *nothing_to_draw = false;
 
    if (IS_GL_11(state))
@@ -1080,20 +1057,20 @@ static bool do_changed_cfg(
 
    if (khrn_render_state_set_contains(state->dirty.viewport, rs))
    {
-      int x = gfx_smax(0, vpx);
-      int y = gfx_smax(0, vpy);
-      int xmax = gfx_smin(hw_fb->width, vpx + vpw);
-      int ymax = gfx_smin(hw_fb->height, vpy + vph);
+      khrn_render_state_set_remove(&state->dirty.viewport, rs);
 
+#if V3D_HAS_UNCONSTR_VP_CLIP
+      glxx_rect clip = {0, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE};
+#else
+      glxx_rect clip = {0, 0, hw_fb->width, hw_fb->height};
+#endif
+      glxx_rect_intersect(&clip, &state->viewport);
       if (state->caps.scissor_test)
-      {
-         x = gfx_smax(x, scx);
-         y = gfx_smax(y, scy);
-         xmax = gfx_smin(xmax, scx + scw);
-         ymax = gfx_smin(ymax, scy + sch);
-      }
+         glxx_rect_intersect(&clip, &state->scissor);
 
-      if (x >= xmax || y >= ymax)
+      bool empty_clip = clip.width == 0 || clip.height == 0;
+#if !V3D_HAS_UNCONSTR_VP_CLIP
+      if (empty_clip)
       {
          if (!state->transform_feedback.in_use)
          {
@@ -1107,42 +1084,46 @@ static bool do_changed_cfg(
              * both front and back face culling.
             */
             rasterizer_discard = true;
-            xmax = x + 1;
-            ymax = y + 1;
+            clip.width = 1;
+            clip.height = 1;
          }
       }
-
-      khrn_render_state_set_remove(&state->dirty.viewport, rs);
+#endif
 
       glxx_cl_record_begin(cl_record, GLXX_CL_STATE_VIEWPORT, instr);
 
-      v3d_cl_clip(&instr, x, y, xmax - x, ymax - y);
+      v3d_cl_clip(&instr, clip.x, clip.y, clip.width, clip.height);
 
-      v3d_cl_clipper_xy(&instr,
-        clipper_xy_scale * (float)vpw,
-        clipper_xy_scale * (float)vph);
+      // Don't bother with the rest of the state if clip window is empty --
+      // prims won't get far enough down the pipeline for it to matter
+      if (!empty_clip)
+      {
+         v3d_cl_clipper_xy(&instr,
+            state->vp_internal.xscale,
+            state->vp_internal.yscale);
 
-      v3d_cl_viewport_offset(&instr,
-         viewport_offset_scale * (2*vpx + vpw),
-         (viewport_offset_scale * (2*vpy + vph)));
+         v3d_cl_viewport_offset_from_rect(&instr,
+            state->viewport.x, state->viewport.y,
+            state->viewport.width, state->viewport.height);
 
-      v3d_cl_clipper_z(&instr,
-         0.5f * (state->viewport.vp_far - state->viewport.vp_near),
-         0.5f * (state->viewport.vp_far + state->viewport.vp_near));
+         v3d_cl_clipper_z(&instr,
+            state->vp_internal.zscale,
+            state->vp_internal.zoffset);
 
-      v3d_cl_clipz(&instr,
-         fminf(state->viewport.vp_near, state->viewport.vp_far),
-         fmaxf(state->viewport.vp_near, state->viewport.vp_far));
+         v3d_cl_clipz(&instr,
+            fminf(state->depth_range.z_near, state->depth_range.z_far),
+            fmaxf(state->depth_range.z_near, state->depth_range.z_far));
+      }
 
       glxx_cl_record_end(cl_record, GLXX_CL_STATE_VIEWPORT, instr);
    }
 
-   if (khrn_render_state_set_contains(state->dirty.sample_coverage, rs))
+   if (khrn_render_state_set_contains(state->dirty.sample_state, rs))
    {
-      khrn_render_state_set_remove(&state->dirty.sample_coverage, rs);
+      khrn_render_state_set_remove(&state->dirty.sample_state, rs);
 
       float sample_coverage = 1.0f; /* Disable */
-      if (state->sample_coverage.enable)
+      if (state->sample_coverage.enable && rs->installed_fb.ms)
       {
          /* Invert sets the sign bit. Can't write using floats because -0 == 0 */
          uint32_t cov_val = gfx_float_to_bits(state->sample_coverage.value);
@@ -1150,9 +1131,19 @@ static bool do_changed_cfg(
          sample_coverage = gfx_float_from_bits(cov_val);
       }
 
-      glxx_cl_record_begin(cl_record, GLXX_CL_STATE_SAMPLE_COVERAGE, instr);
-      v3d_cl_sample_coverage(&instr, sample_coverage);
-      glxx_cl_record_end(cl_record, GLXX_CL_STATE_SAMPLE_COVERAGE, instr);
+#if V3D_HAS_FEP_SAMPLE_MASK
+      uint8_t mask = 0xf;     /* Disable */
+      if (state->sample_mask.enable && rs->installed_fb.ms)
+         mask = state->sample_mask.mask[0] & 0xf;
+#endif
+
+      glxx_cl_record_begin(cl_record, GLXX_CL_STATE_SAMPLE_STATE, instr);
+#if V3D_HAS_FEP_SAMPLE_MASK
+      v3d_cl_sample_state(&instr, mask, sample_coverage);
+#else
+      v3d_cl_sample_state(&instr, sample_coverage);
+#endif
+      glxx_cl_record_end(cl_record, GLXX_CL_STATE_SAMPLE_STATE, instr);
    }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -1170,9 +1161,12 @@ static bool do_changed_cfg(
    {
       khrn_render_state_set_remove(&state->dirty.blend_cfg, rs);
 
-      glxx_cl_record_begin(cl_record, GLXX_CL_STATE_BLEND_CFG, instr);
-      write_blend_cfg(&instr, rs, state);
-      glxx_cl_record_end(cl_record, GLXX_CL_STATE_BLEND_CFG, instr);
+      if (!glxx_advanced_blend_eqn_set(state))
+      {
+         glxx_cl_record_begin(cl_record, GLXX_CL_STATE_BLEND_CFG, instr);
+         write_blend_cfg(&instr, rs, state);
+         glxx_cl_record_end(cl_record, GLXX_CL_STATE_BLEND_CFG, instr);
+      }
    }
 
    if (khrn_render_state_set_contains(state->dirty.blend_color, rs))
@@ -1252,7 +1246,7 @@ static bool do_changed_cfg(
 
       cfg_bits.front_prims = !state->caps.cull_face || enable_front(state->cull_mode);
       cfg_bits.back_prims  = !state->caps.cull_face || enable_back(state->cull_mode);
-      if (state->caps.rasterizer_discard || rasterizer_discard)
+      if (rasterizer_discard)
          cfg_bits.front_prims = cfg_bits.back_prims = false;
 
       cfg_bits.cwise_is_front = glxx_front_facing_is_clockwise(state->front_face);
@@ -1281,18 +1275,15 @@ static bool do_changed_cfg(
 
       GFX_LFMT_T depth_lfmt = glxx_attachment_get_api_fmt(
          &state->bound_draw_framebuffer->attachment[GLXX_DEPTH_ATT]);
-      GLfloat units = state->polygon_offset.units;
 
-      if(depth_lfmt != GFX_LFMT_NONE && gfx_lfmt_depth_bits(depth_lfmt) == 16)
-      {
-         /* The hardware always applies a constant amount of unit depth offset (2^-24),
-            regardless of how much precission the depth buffer has. Therefore if we have
-            a 16-bit depth buffer increase the amount of units to compensate. */
-         units *= 1 << 8;
-      }
+      unsigned depth_bits = depth_lfmt != GFX_LFMT_NONE ? gfx_lfmt_depth_bits(depth_lfmt) : 0;
 
       glxx_cl_record_begin(cl_record, GLXX_CL_STATE_POLYGON_OFFSET, instr);
-      v3d_cl_depth_offset(&instr, state->polygon_offset.factor, units);
+      v3d_cl_set_depth_offset(&instr, state->polygon_offset.factor, state->polygon_offset.units,
+#if V3D_HAS_POLY_OFFSET_CLAMP
+                                      state->polygon_offset.limit,
+#endif
+                                      depth_bits);
       glxx_cl_record_end(cl_record, GLXX_CL_STATE_POLYGON_OFFSET, instr);
    }
 
@@ -1313,79 +1304,74 @@ static bool do_changed_cfg(
       glxx_cl_record_end(cl_record, GLXX_CL_STATE_LINE_WIDTH, instr);
    }
 
+#if !V3D_HAS_UNCONSTR_VP_CLIP
 end:
+#endif
    // end write to cl (pass in actual end point)
    khrn_fmem_end_cle(fmem, instr);
 
    return true;
 }
 
-static bool insert_flat_shading_flags(GLXX_HW_RENDER_STATE_T *rs, GLXX_SERVER_STATE_T *state, const GLXX_LINK_RESULT_DATA_T *link_data)
-{
-   const uint32_t *flags = link_data->varying_flat;
+static v3d_cl_flag_set_func flags_set(glxx_cl_state_t state) {
+   switch (state) {
+      case GLXX_CL_STATE_FLAT_SHADING_FLAGS:  return v3d_cl_flatshade_flags;
+      case GLXX_CL_STATE_CENTROID_FLAGS:      return v3d_cl_centroid_flags;
+#if V3D_HAS_VARY_NO_PERSP
+      case GLXX_CL_STATE_NOPERSPECTIVE_FLAGS: return v3d_cl_noperspective_flags;
+#endif
+      default: unreachable(); return NULL;
+   }
+}
 
-   if (  !rs->flat_shading_flags_set
-      || memcmp(rs->prev_flat_shading_flags, flags, sizeof(rs->prev_flat_shading_flags))
-      )
+static v3d_cl_flag_zero_func flags_zero(glxx_cl_state_t state) {
+   switch (state) {
+      case GLXX_CL_STATE_FLAT_SHADING_FLAGS:  return v3d_cl_zero_all_flatshade_flags;
+      case GLXX_CL_STATE_CENTROID_FLAGS:      return v3d_cl_zero_all_centroid_flags;
+#if V3D_HAS_VARY_NO_PERSP
+      case GLXX_CL_STATE_NOPERSPECTIVE_FLAGS: return v3d_cl_zero_all_noperspective_flags;
+#endif
+      default: unreachable(); return NULL;
+   }
+}
+
+static bool update_vary_flags(GLXX_HW_RENDER_STATE_T *rs, const uint32_t *flags, uint32_t *prev_flags,
+                              bool *set, glxx_cl_state_t flag_type)
+{
+   if (!*set || memcmp(prev_flags, flags, GLXX_NUM_SHADING_FLAG_WORDS * sizeof(uint32_t)))
    {
-      uint8_t *instr = glxx_hw_render_state_begin_cle(rs, GLXX_CL_STATE_FLAT_SHADING_FLAGS);
+      uint8_t *instr = glxx_hw_render_state_begin_cle(rs, flag_type);
       if (!instr)
          return false;;
 
-      rs->flat_shading_flags_set = true;
-      memcpy(rs->prev_flat_shading_flags, flags, sizeof(rs->prev_flat_shading_flags));
+      *set = true;
+      memcpy(prev_flags, flags, GLXX_NUM_SHADING_FLAG_WORDS * sizeof(uint32_t));
 
-      v3d_flags_action_t lower_action = V3D_FLAGS_ACTION_ZERO;
-      for (uint32_t i = 0; i < GLXX_NUM_SHADING_FLAG_WORDS; i++)
-      {
-         if (flags[i] != 0)
-         {
-            v3d_cl_flatshade_flags(&instr, i, lower_action, V3D_FLAGS_ACTION_ZERO, flags[i]);
-            lower_action = V3D_FLAGS_ACTION_KEEP;
-         }
-      }
-      if (lower_action != V3D_FLAGS_ACTION_KEEP)
-      {
-         v3d_cl_zero_all_flatshade_flags(&instr);
-      }
+      v3d_cl_write_vary_flags(&instr, flags, flags_set(flag_type), flags_zero(flag_type));
 
-      glxx_hw_render_state_end_cle(rs, GLXX_CL_STATE_FLAT_SHADING_FLAGS, instr);
+      glxx_hw_render_state_end_cle(rs, flag_type, instr);
    }
    return true;
 }
 
-static bool insert_centroid_flags(GLXX_HW_RENDER_STATE_T *rs, GLXX_SERVER_STATE_T *state, const GLXX_LINK_RESULT_DATA_T *link_data)
+static bool insert_flat_shading_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data)
 {
-   const uint32_t *flags = link_data->varying_centroid;
+   return update_vary_flags(rs, link_data->varying_flat, rs->prev_flat_shading_flags,
+                            &rs->flat_shading_flags_set, GLXX_CL_STATE_FLAT_SHADING_FLAGS);
+}
 
-   if (  !rs->centroid_flags_set
-      || memcmp(rs->prev_centroid_flags, flags, sizeof(rs->prev_centroid_flags))
-      )
-   {
-      uint8_t *instr = glxx_hw_render_state_begin_cle(rs, GLXX_CL_STATE_CENTROID_FLAGS);
-      if (!instr)
-         return false;;
+#if V3D_HAS_VARY_NO_PERSP
+static bool insert_noperspective_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data)
+{
+   return update_vary_flags(rs, link_data->varying_noperspective, rs->prev_noperspective_flags,
+                            &rs->noperspective_flags_set, GLXX_CL_STATE_NOPERSPECTIVE_FLAGS);
+}
+#endif
 
-      rs->centroid_flags_set = true;
-      memcpy(rs->prev_centroid_flags, flags, sizeof(rs->prev_centroid_flags));
-
-      v3d_flags_action_t lower_action = V3D_FLAGS_ACTION_ZERO;
-      for (uint32_t i = 0; i < GLXX_NUM_SHADING_FLAG_WORDS; i++)
-      {
-         if (flags[i] != 0)
-         {
-            v3d_cl_centroid_flags(&instr, i, lower_action, V3D_FLAGS_ACTION_ZERO, flags[i]);
-            lower_action = V3D_FLAGS_ACTION_KEEP;
-         }
-      }
-      if (lower_action != V3D_FLAGS_ACTION_KEEP)
-      {
-         v3d_cl_zero_all_centroid_flags(&instr);
-      }
-
-      glxx_hw_render_state_end_cle(rs, GLXX_CL_STATE_CENTROID_FLAGS, instr);
-   }
-   return true;
+static bool insert_centroid_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data)
+{
+   return update_vary_flags(rs, link_data->varying_centroid, rs->prev_centroid_flags,
+                            &rs->centroid_flags_set, GLXX_CL_STATE_CENTROID_FLAGS);
 }
 
 bool glxx_is_stencil_updated(GLXX_SERVER_STATE_T *state) {
@@ -1400,7 +1386,7 @@ bool glxx_is_stencil_updated(GLXX_SERVER_STATE_T *state) {
 
 static bool glxx_hw_draw_arrays_record(GLXX_SERVER_STATE_T *state,
       GLXX_HW_RENDER_STATE_T *rs,
-      const GLXX_DRAW_T *draw,
+      const glxx_hw_draw *draw,
       const GLXX_LINK_RESULT_DATA_T *link_data)
 {
    int size = (draw->instance_count > 1) ?
@@ -1433,11 +1419,12 @@ static bool glxx_hw_draw_arrays_record(GLXX_SERVER_STATE_T *state,
 
 static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
    GLXX_HW_RENDER_STATE_T *rs,
-   const GLXX_DRAW_T *draw,
-   const GLXX_ATTRIBS_MAX *attribs_max,
-   const GLXX_STORAGE_T *indices)
+   const glxx_hw_draw *draw,
+#if !V3D_HAS_ATTR_MAX_INDEX
+   const glxx_attribs_max *attribs_max,
+#endif
+   const glxx_hw_indices *indices)
 {
-   v3d_addr_t indices_addr;
    v3d_prim_mode_t mode = convert_primitive_type(state, draw->mode);
    v3d_index_type_t index_type = convert_index_type(draw->index_type);
    int size = (draw->instance_count > 1) ?
@@ -1455,9 +1442,6 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
    if (draw->basevertex || draw->baseinstance)
       v3d_cl_base_vertex_base_instance(&instr, draw->basevertex, draw->baseinstance);
 
-   indices_addr = khrn_fmem_lock_and_sync(&rs->fmem, indices->handle, V3D_BARRIER_CLE_PRIMIND_READ, V3D_BARRIER_NO_ACCESS);
-   indices_addr += indices->offset;
-
    if (draw->instance_count > 1)
    {
       V3D_CL_INDEXED_INSTANCED_PRIM_LIST_T indexed_instanced_prim_list = {
@@ -1466,8 +1450,13 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
          .num_indices = draw->count,
          .prim_restart = state->caps.primitive_restart,
          .num_instances = draw->instance_count,
-         .indices_addr = indices_addr,
-         .max_index = attribs_max->index};
+#if V3D_HAS_ATTR_MAX_INDEX
+         .indices_offset = indices->offset,
+#else
+         .indices_addr = indices->addr + indices->offset,
+         .max_index = attribs_max->index
+#endif
+      };
       v3d_cl_indexed_instanced_prim_list_indirect(&instr, &indexed_instanced_prim_list);
    }
    else
@@ -1477,8 +1466,13 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
          .index_type = index_type,
          .num_indices = draw->count,
          .prim_restart = state->caps.primitive_restart,
-         .indices_addr = indices_addr,
-         .max_index = attribs_max->index};
+#if V3D_HAS_ATTR_MAX_INDEX
+         .indices_offset = indices->offset,
+#else
+         .indices_addr = indices->addr + indices->offset,
+         .max_index = attribs_max->index
+#endif
+      };
       v3d_cl_indexed_prim_list_indirect(&instr, &indexed_prim_list);
    }
 
@@ -1490,20 +1484,23 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
 static bool glxx_hw_draw_indirect_record(
    GLXX_SERVER_STATE_T *state,
    GLXX_HW_RENDER_STATE_T *rs,
-   const GLXX_DRAW_T *draw,
-   const GLXX_ATTRIBS_MAX *attribs_max,
-   const GLXX_STORAGE_T *indices,
-   const GLXX_STORAGE_T *indirect)
+   const glxx_hw_draw *draw,
+#if !V3D_HAS_ATTR_MAX_INDEX
+   const glxx_attribs_max *attribs_max,
+#endif
+   const glxx_hw_indices *indices,
+   v3d_addr_t indirect_addr)
 {
    assert(draw->num_indirect > 0); /* Should not get this far if num_indirect is 0! */
 
    v3d_prim_mode_t mode = convert_primitive_type(state, draw->mode);
-   unsigned size = V3D_CL_INDIRECT_PRIMITIVE_LIMITS_SIZE;
-   v3d_addr_t indirect_addr = khrn_fmem_lock_and_sync(
-      &rs->fmem, indirect->handle, V3D_BARRIER_CLE_DRAWREC_READ, V3D_BARRIER_NO_ACCESS);
-   indirect_addr += indirect->offset;
+   unsigned size = 0;
 
    // TODO v3d_cl_indirect_primitive_limits() can be omitted if buffers have not changed
+#if !V3D_HAS_ATTR_MAX_INDEX
+   size += V3D_CL_INDIRECT_PRIMITIVE_LIMITS_SIZE;
+#endif
+
    if (draw->is_draw_arrays)
       size += V3D_CL_INDIRECT_VERTEX_ARRAY_PRIMS_SIZE;
    else
@@ -1515,21 +1512,28 @@ static bool glxx_hw_draw_indirect_record(
 
    if (!draw->is_draw_arrays)
    {
+      assert(indices->offset == 0); //gl api drawelementsindirect does not specify offset in index buffer
       v3d_index_type_t index_type = convert_index_type(draw->index_type);
+#if !V3D_HAS_ATTR_MAX_INDEX
       unsigned type_size = glxx_get_index_type_size(draw->index_type);
-      unsigned num_indices = (indices->size - indices->offset) / type_size;
-      v3d_addr_t indices_addr = khrn_fmem_lock_and_sync(
-         &rs->fmem, indices->handle, V3D_BARRIER_CLE_PRIMIND_READ, V3D_BARRIER_NO_ACCESS);
-      indices_addr += indices->offset;
-
-      v3d_cl_indirect_primitive_limits(&instr, attribs_max->index, attribs_max->instance, num_indices);
+      v3d_cl_indirect_primitive_limits(&instr, attribs_max->index,
+            attribs_max->instance, indices->size / type_size);
+#endif
       v3d_cl_indirect_indexed_prim_list(
          &instr, mode, index_type, draw->num_indirect, state->caps.primitive_restart,
-         indirect_addr, indices_addr, draw->indirect_stride);
+         indirect_addr,
+#if !V3D_HAS_ATTR_MAX_INDEX
+         indices->addr,
+#endif
+         draw->indirect_stride);
+
    }
    else
    {
-      v3d_cl_indirect_primitive_limits(&instr, attribs_max->index, attribs_max->instance, 0);
+#if !V3D_HAS_ATTR_MAX_INDEX
+      v3d_cl_indirect_primitive_limits(&instr, attribs_max->index,
+            attribs_max->instance, 0);
+#endif
       v3d_cl_indirect_vertex_array_prims(&instr, mode, draw->num_indirect, indirect_addr, draw->indirect_stride);
    }
 
@@ -1545,22 +1549,27 @@ static bool glxx_hw_draw_indirect_record(
  * per-batch tasks like setting up the shaders and uniforms and then runs the binning
  * pipeline, binning the primitives into the according tile lists.
  */
-bool glxx_hw_draw_triangles(
-      GLXX_SERVER_STATE_T          *state,
-      GLXX_HW_RENDER_STATE_T       *rs,
-      const GLXX_DRAW_T            *draw,
-      GLXX_ATTRIB_CONFIG_T          attrib_config[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
-      const GLXX_ATTRIBS_MAX       *attribs_max,
-      const GLXX_VERTEX_BUFFER_CONFIG_T *vb_config,
-      const GLXX_STORAGE_T         *indices,
-      const GLXX_VERTEX_POINTERS_T *vertex_pointers)
+bool glxx_hw_draw_triangles(GLXX_SERVER_STATE_T *state,
+      GLXX_HW_RENDER_STATE_T *rs,
+      const glxx_hw_draw *draw,
+      const glxx_hw_indices *indices,
+      const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs
+#if !V3D_HAS_ATTR_MAX_INDEX
+      , const glxx_attribs_max *attribs_max
+#endif
+      )
 {
-   /* create or retrieve shaders from cache and setup attribs_live */
-   GLXX_LINK_RESULT_DATA_T* link_data = glxx_get_shaders(state);
-   if (!link_data)
+   /* compute texture/image unifs, create or retrieve shaders from cache */
+   glxx_hw_image_like_uniforms image_like_uniforms;
+   GLXX_LINK_RESULT_DATA_T* link_data;
    {
-      log_warn("[%s] shader compilation failed for %p", VCOS_FUNCTION, state);
-      goto fail;
+      GLSL_BACKEND_CFG_T key;
+      if (!glxx_compute_image_like_uniforms(state, &rs->base, &image_like_uniforms, &key))
+         goto fail;
+      key.backend = compute_backend_shader_key(state, rs, draw->mode);
+      link_data = glxx_get_shaders(state, &key);
+      if (!link_data)
+         goto fail;
    }
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -1576,16 +1585,10 @@ bool glxx_hw_draw_triangles(
 #endif
 
    /* Write the shader record */
-   bool ok = write_gl_shader_record(
-      rs,
-      link_data,
-      state,
-      attrib_config,
-      vb_config,
-      vertex_pointers);
+   bool ok = write_gl_shader_record(rs, state, link_data, &image_like_uniforms, attribs, vbs);
    if (!ok)
    {
-      log_warn("%s: creating shader record failed", VCOS_FUNCTION);
+      log_warn("%s: creating shader record failed", __FUNCTION__);
       goto fail;
    }
 
@@ -1597,17 +1600,19 @@ bool glxx_hw_draw_triangles(
    {
       bool nothing_to_draw = false;
       ok = do_changed_cfg(rs, state, &nothing_to_draw);
-      ok &= insert_flat_shading_flags(rs, state, link_data);
-      ok &= insert_centroid_flags(rs, state, link_data);
+      ok &= insert_flat_shading_flags(rs, link_data);
+      ok &= insert_centroid_flags(rs, link_data);
+#if V3D_HAS_VARY_NO_PERSP
+      ok &= insert_noperspective_flags(rs, link_data);
+#endif
       if (!ok)
       {
-         log_warn("%s: applying state changes failed",
-               VCOS_FUNCTION);
+         log_warn("%s: applying state changes failed", __FUNCTION__);
          goto fail;
       }
       if (nothing_to_draw)
       {
-         log_trace("%s: nothing to draw", VCOS_FUNCTION);
+         log_trace("%s: nothing to draw", __FUNCTION__);
          return true;
       }
    }
@@ -1634,51 +1639,50 @@ bool glxx_hw_draw_triangles(
    }
 #endif
 
+#if V3D_HAS_ATTR_MAX_INDEX
+   if (!draw->is_draw_arrays)
+   {
+      //setup index buffer
+      uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, V3D_CL_INDEX_BUFFER_SETUP_SIZE);
+      if (!instr)
+         return false;
+      v3d_cl_index_buffer_setup(&instr, indices->addr, indices->size);
+      khrn_fmem_end_cle_exact(&rs->fmem, instr);
+   }
+#endif
+
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    // Instanced renders on 3.2 might encounter GFXH-1313.
    if (draw->instance_count > 1 || draw->is_indirect)
       rs->workaround_gfxh_1313 = true;
 #endif
 
-
-   bool record;
    if (!draw->is_indirect)
    {
-      if (draw->is_draw_arrays)
-         record = glxx_hw_draw_arrays_record(state, rs, draw, link_data);
-      else
-         record = glxx_hw_draw_elements_record(state, rs, draw, attribs_max, indices);
+      if (!(draw->is_draw_arrays ?
+            glxx_hw_draw_arrays_record(state, rs, draw, link_data) :
+            glxx_hw_draw_elements_record(state, rs, draw,
+#if !V3D_HAS_ATTR_MAX_INDEX
+               attribs_max,
+#endif
+               indices)))
+         goto fail;
    }
    else
    {
-      GLXX_BUFFER_T        *buffer;
-      GLXX_STORAGE_T       indirect_storage;
-      KHRN_RES_INTERLOCK_T *res_i;
-
-      buffer = state->bound_buffer[GLXX_BUFTGT_DRAW_INDIRECT].obj;
-      res_i = glxx_buffer_get_tf_aware_res_interlock(rs, buffer);
-      indirect_storage.handle = res_i->handle;
-      assert(draw->indirect_offset <= UINT_MAX);
-      indirect_storage.offset = (unsigned int)draw->indirect_offset;
-
-      khrn_fmem_record_res_interlock_read(&rs->fmem, res_i, KHRN_INTERLOCK_STAGES_BIN_RENDER);
-
-      record = glxx_hw_draw_indirect_record(
-         state, rs, draw, attribs_max, indices, &indirect_storage);
-   }
-
-   if (!record)
-   {
-      log_warn("%s: draw record failed", VCOS_FUNCTION);
-      goto fail;
+      khrn_resource *res = state->bound_buffer[GLXX_BUFTGT_DRAW_INDIRECT].obj->resource;
+      if (!glxx_hw_tf_aware_sync_res(rs, res, V3D_BARRIER_CLE_DRAWREC_READ, V3D_BARRIER_NO_ACCESS))
+         goto fail;
+      if (!glxx_hw_draw_indirect_record(
+            state, rs, draw,
+#if !V3D_HAS_ATTR_MAX_INDEX
+            attribs_max,
+#endif
+            indices, gmem_get_addr(res->handle) + draw->indirect_offset))
+         goto fail;
    }
 
    glxx_server_tf_install_post_draw(state, rs);
-
-#ifdef SIMPENROSE_WRITE_LOG
-   // Increment batch count
-   log_batchcount++;
-#endif
 
    /* Update buffer states with rw operation */
    glxx_hw_render_state_rw(state, rs);
@@ -1689,23 +1693,26 @@ bool glxx_hw_draw_triangles(
       khrn_render_state_set_remove(&state->dirty.stuff, rs);
    }
 
-   // save current GPU state following this draw
-   if (GLXX_MULTICORE_BIN_ENABLED && rs->do_multicore_bin && rs->tf.waited_count == 0
+   // If potentially doing multicore binning, save current GPU state following
+   // this draw. CL may be split at this point for multicore binning.
+   if ((glxx_hw_render_state_max_bin_subjobs(rs) > 1) &&
+      // Do *not* do this between glBeginTransformFeedback &
+      // glEndTransformFeedback as transform feedback state is not saved by
+      // post_draw_journal
+      !glxx_tf_is_active(glxx_get_bound_tf(state)) &&
 #if V3D_VER_AT_LEAST(4,0,2,0)
-         && (rs->fmem.persist->prim_counts_query_list == NULL)
+      // Similarly, do not do this if any prim count queries are active -- this
+      // state is not saved either
+      !state->queries.queries[GLXX_Q_PRIM_GEN].active &&
+      !state->queries.queries[GLXX_Q_PRIM_WRITTEN].active &&
 #endif
-       )
-   {
-      if (!post_draw_journal(rs, attrib_config, vb_config, vertex_pointers, link_data, draw))
-         goto fail;
-   }
+      !post_draw_journal(rs, draw, link_data, attribs, vbs))
+      goto fail;
 
    return true;
 
 fail:
-   glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
    glxx_hw_discard_frame(rs);
-
    return false;
 }
 
@@ -1714,30 +1721,26 @@ fail:
  *************************************************************/
 
 static uint64_t estimate_bin_cost(
-   const GLXX_ATTRIB_CONFIG_T    *attrib,
-   const GLXX_VERTEX_BUFFER_CONFIG_T *vb_config,
-   const GLXX_VERTEX_POINTERS_T *vertex_pointers,
+   const glxx_hw_draw *draw,
    const GLXX_LINK_RESULT_DATA_T *link_data,
-   const GLXX_DRAW_T             *draw
-   )
+   const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs)
 {
-    // hardware SoL figures
+   // Hardware limits
    uint32_t const c_instr_per_cycle = khrn_get_num_qpus_per_core()*4;
    uint32_t const c_bytes_per_cycle = 16;
-
    // VCD is also limited (per-cycle) to
-   // - 16 bytes per cycle peak bandwidth
    // - 2 attribute-vectors
    // - 1 cache-line check (but can reuse check from previous attribute)
+   // But we don't take these limitations into account here.
 
    // estimate bandwidth used with following caveats:
-   // - assume whole vertex is fetched in each stream (even unused attributes)
+   // - assume whole vertex is fetched in each buffer (even unused attributes)
    // - ignore effect of VCD cache and cache-line size (so we assume fetching whole vertex for each vertex processed)
    uint32_t vertex_size = 0;
    uint32_t attrib_remaining = (1 << link_data->attr_count) - 1;
    while (attrib_remaining)
    {
-      gmem_handle_t this_buffer = GMEM_HANDLE_INVALID;
+      uint32_t this_vbo = UINT32_MAX;
       uint32_t this_stride = 0;
 
       for (unsigned n = 0; n != link_data->attr_count; ++n)
@@ -1745,15 +1748,14 @@ static uint64_t estimate_bin_cost(
          if (link_data->attr[n].c_scalars_used > 0 && attrib_remaining & (1 << n))
          {
             const int i = link_data->attr[n].idx;
-            if (attrib[i].enabled)
+            if (attribs[i].enabled)
             {
-               gmem_handle_t buffern = vertex_pointers->array[i].handle;
-               if (this_buffer == GMEM_HANDLE_INVALID)
+               if (this_vbo == UINT32_MAX)
                {
-                  this_buffer = buffern;
-                  this_stride = vb_config[i].stride;
+                  this_vbo = attribs[i].vbo_index;
+                  this_stride = vbs[i].stride;
                }
-               else if (this_buffer != buffern && this_stride != vb_config[i].stride)
+               else if (this_vbo != attribs[i].vbo_index || this_stride != vbs[i].stride)
                {
                   // leave till next pass
                   continue;
@@ -1799,24 +1801,21 @@ static uint64_t estimate_bin_cost(
    // estimate number of cycles for draw
    uint64_t bandwidth_cycles = (vertex_size*est_num_vertices + index_size*num_indices) / c_bytes_per_cycle;
    uint64_t instr_cycles = (link_data->num_bin_qpu_instructions * est_num_vertices) / c_instr_per_cycle;
-   uint64_t bin_cost = vcos_max(bandwidth_cycles, instr_cycles);
+   uint64_t bin_cost = gfx_umax64(bandwidth_cycles, instr_cycles);
    return bin_cost;
 }
 
 static bool post_draw_journal(
-   GLXX_HW_RENDER_STATE_T        *rs,
-   const GLXX_ATTRIB_CONFIG_T    *attrib,
-   const GLXX_VERTEX_BUFFER_CONFIG_T *vb_config,
-   const GLXX_VERTEX_POINTERS_T  *vertex_pointers,
+   GLXX_HW_RENDER_STATE_T *rs,
+   const glxx_hw_draw *draw,
    const GLXX_LINK_RESULT_DATA_T *link_data,
-   const GLXX_DRAW_T             *draw
-   )
+   const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs)
 {
    // should only call this if multi-core bin is compiled in
-   assert(GLXX_MULTICORE_BIN_ENABLED && rs->do_multicore_bin);
+   assert(GLXX_MULTICORE_BIN_ENABLED);
 
    // get estimated cost of bin in cycles
-   uint64_t const bin_cost = estimate_bin_cost(attrib, vb_config, vertex_pointers, link_data, draw);
+   uint64_t const bin_cost = estimate_bin_cost(draw, link_data, attribs, vbs);
 
    // increment bin-cost in current draw record
    GLXX_CL_RECORD_T* cl_record = &rs->cl_records[rs->num_cl_records];
@@ -1864,36 +1863,35 @@ static bool post_draw_journal(
    return true;
 }
 
-GLXX_LINK_RESULT_DATA_T *glxx_get_shaders(GLXX_SERVER_STATE_T *state)
+GLXX_LINK_RESULT_DATA_T *glxx_get_shaders(
+   GLXX_SERVER_STATE_T *state, const GLSL_BACKEND_CFG_T *key)
 {
-   GLXX_BINARY_CACHE_T     *cache;
-   IR_PROGRAM_T            *ir;
-
-   assert(IS_GL_11(state) || gl20_program_common_get(state)->linked_glsl_program->ir != NULL);
-
+   GLXX_BINARY_CACHE_T *cache;
+   IR_PROGRAM_T *ir;
    if (IS_GL_11(state))
    {
-      GL11_CACHE_ENTRY_T *e;
-
       /* Get the ES1 equivalent of a program from the cache */
-      e = gl11_get_backend_cache(state->gl11.shader_cache, &state->gl11.shaderkey);
+      GL11_CACHE_ENTRY_T *e = gl11_get_backend_cache(state->gl11.shader_cache, &state->gl11.shaderkey);
       cache = &e->backend_cache;
-      ir =  e->blob;
+      ir = e->blob;
    }
    else
    {
       GL20_PROGRAM_COMMON_T *program_common = gl20_program_common_get(state);
       cache = &program_common->cache;
-      ir    = program_common->linked_glsl_program->ir;
+      ir = program_common->linked_glsl_program->ir;
    }
+   assert(ir);
 
    /* Try to get a previous binary from the cache */
-   GLXX_LINK_RESULT_DATA_T *result;
-   result = glxx_binary_cache_get_shaders(cache, &state->shaderkey_common);
+   GLXX_LINK_RESULT_DATA_T *result = glxx_binary_cache_get_shaders(cache, key);
 
-   if (result == NULL) {
+   if (result == NULL)
+   {
       /* If the cache lookup failed, make a new shader and put it in the cache */
-      result = glxx_get_shaders_and_cache(cache, ir, &state->shaderkey_common);
+      result = glxx_get_shaders_and_cache(cache, ir, key);
+      if (result == NULL)
+         log_warn("[%s] shader compilation failed for %p", __FUNCTION__, state);
    }
 
    return result;
@@ -1946,17 +1944,18 @@ static uint32_t assemble_tmu_param(uint32_t param, uint32_t u_value,
 }
 
 v3d_addr_t glxx_hw_install_uniforms(
-   glxx_render_state                *rs,
-   const GLXX_SERVER_STATE_T        *state,
-   enum shader_mode                  mode,
-   const GLXX_UNIFORM_MAP_T         *map,
-   GL20_HW_INDEXED_UNIFORM_T        *iu,
-   const glxx_hw_compute_uniforms   *compute_uniforms)
+   glxx_render_state                 *rs,
+   const GLXX_SERVER_STATE_T         *state,
+   enum shader_mode                   mode,
+   const GLXX_UNIFORM_MAP_T          *map,
+   GL20_HW_INDEXED_UNIFORM_T         *iu,
+   const glxx_hw_image_like_uniforms *image_like_uniforms,
+   const glxx_hw_compute_uniforms    *compute_uniforms)
 {
    khrn_fmem* fmem = &rs->fmem;
 
-   uint32_t* ustream_ptr = khrn_fmem_data(fmem, sizeof(uint32_t) * map->num_uniforms, V3D_QPU_UNIFS_ALIGN);
-   if (!ustream_ptr)
+   uint32_t* uniforms_ptr = khrn_fmem_data(fmem, sizeof(uint32_t) * map->num_uniforms, V3D_QPU_UNIFS_ALIGN);
+   if (!uniforms_ptr)
       return 0;
 
    GL20_PROGRAM_COMMON_T* program_common = NULL;
@@ -1972,11 +1971,11 @@ v3d_addr_t glxx_hw_install_uniforms(
    }
 
    /* Install uniforms */
-   uint32_t* ptr = ustream_ptr;
-   for (unsigned i = 0; i < map->num_immediates; i++)
+   uint32_t* ptr = uniforms_ptr;
+   for (unsigned i = 0; i < map->num_general_uniforms; i++)
    {
-      const BackendUniformFlavour u_type  = map->immediates[i].type;
-      const uint32_t              u_value = map->immediates[i].value;
+      const BackendUniformFlavour u_type  = map->general_uniforms[i].type;
+      const uint32_t              u_value = map->general_uniforms[i].value;
 
       assert(u_type >= 0 && u_type <= BACKEND_UNIFORM_LAST_ELEMENT);
 
@@ -1989,6 +1988,14 @@ v3d_addr_t glxx_hw_install_uniforms(
       case BACKEND_UNIFORM_PLAIN:
          *ptr = data[u_value];
          break;
+
+      case BACKEND_UNIFORM_PLAIN_FPACK:
+      {
+         unsigned idx1 = u_value >> 16;
+         unsigned idx2 = u_value & 0xFFFF;
+         *ptr = (gfx_floatbits_to_float16(data[idx1]) << 16) | gfx_floatbits_to_float16(data[idx2]);
+         break;
+      }
 
       case BACKEND_UNIFORM_ADDRESS:
          if (!iu->valid) {
@@ -2030,28 +2037,23 @@ v3d_addr_t glxx_hw_install_uniforms(
          }
          if (write)
             rs->has_buffer_writes = true;
-         GLXX_BUFFER_T *buffer = binding->buffer.obj;
-         KHRN_RES_INTERLOCK_T *res_i =
-            (((KHRN_RENDER_STATE_T *)rs)->type == KHRN_RENDER_STATE_TYPE_GLXX) ?
-            glxx_buffer_get_tf_aware_res_interlock((GLXX_HW_RENDER_STATE_T *)rs, buffer) :
-            glxx_buffer_get_res_interlock(buffer);
 
-         khrn_interlock_stages_t stages = mode == MODE_BIN ? KHRN_INTERLOCK_STAGES_BIN_RENDER : KHRN_INTERLOCK_STAGE_RENDER;
-         if (write)
+         khrn_resource *res = binding->buffer.obj->resource;
+
+         v3d_barrier_flags rw_flags = V3D_BARRIER_TMU_DATA_READ | (write ? V3D_BARRIER_TMU_DATA_WRITE : 0);
+         v3d_barrier_flags bin_rw_flags = mode == MODE_BIN ? rw_flags : V3D_BARRIER_NO_ACCESS;
+         if (((khrn_render_state *)rs)->type == KHRN_RENDER_STATE_TYPE_GLXX)
          {
-            if (!khrn_fmem_record_res_interlock_write(fmem, res_i, stages, KHRN_INTERLOCK_PARTS_ALL, NULL))
+            if (!glxx_hw_tf_aware_sync_res((GLXX_HW_RENDER_STATE_T *)rs, res, bin_rw_flags, rw_flags))
                return 0;
          }
          else
          {
-            if (!khrn_fmem_record_res_interlock_read(fmem, res_i, stages))
+            if (!khrn_fmem_sync_res(&rs->fmem, res, bin_rw_flags, rw_flags))
                return 0;
          }
 
-         v3d_barrier_flags rw_flags = V3D_BARRIER_TMU_DATA_READ | (write ? V3D_BARRIER_TMU_DATA_WRITE : 0);
-         v3d_barrier_flags bin_rw_flags = mode == MODE_BIN ? rw_flags : V3D_BARRIER_NO_ACCESS;
-         v3d_addr_t uniform_addr = khrn_fmem_lock_and_sync(fmem, res_i->handle, bin_rw_flags, rw_flags);
-         *ptr = uniform_addr + binding->offset + offset;
+         *ptr = gmem_get_addr(res->handle) + binding->offset + offset;
          break;
       }
 
@@ -2078,69 +2080,69 @@ v3d_addr_t glxx_hw_install_uniforms(
       }
 
       case BACKEND_UNIFORM_TEX_PARAM1:
-         *ptr = assemble_tmu_param(1, u_value, state->texture_unif);
+         *ptr = assemble_tmu_param(1, u_value, image_like_uniforms->tex);
          break;
       case BACKEND_UNIFORM_TEX_PARAM0:
-         *ptr = assemble_tmu_param(0, u_value, state->texture_unif);
+         *ptr = assemble_tmu_param(0, u_value, image_like_uniforms->tex);
          break;
       case BACKEND_UNIFORM_TEX_SIZE_X:
-         *ptr = state->texture_unif[u_value].width;
+         *ptr = image_like_uniforms->tex[u_value].width;
          break;
       case BACKEND_UNIFORM_TEX_SIZE_Y:
-         *ptr = state->texture_unif[u_value].height;
+         *ptr = image_like_uniforms->tex[u_value].height;
          break;
       case BACKEND_UNIFORM_TEX_SIZE_Z:
-         *ptr = state->texture_unif[u_value].depth;
+         *ptr = image_like_uniforms->tex[u_value].depth;
          break;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
       case BACKEND_UNIFORM_TEX_BASE_LEVEL:
-         *ptr = state->texture_unif[u_value].base_level;
+         *ptr = image_like_uniforms->tex[u_value].base_level;
          break;
       case BACKEND_UNIFORM_TEX_BASE_LEVEL_FLOAT:
-         *ptr = gfx_float_to_bits((float)state->texture_unif[u_value].base_level);
+         *ptr = gfx_float_to_bits((float)image_like_uniforms->tex[u_value].base_level);
          break;
 #endif
-
-      case BACKEND_UNIFORM_IMAGE_PARAM1:
-         *ptr = assemble_tmu_param(1, u_value, state->image_unif);
-         break;
-      case BACKEND_UNIFORM_IMAGE_PARAM0:
-         *ptr = assemble_tmu_param(0, u_value, state->image_unif);
-         break;
       case BACKEND_UNIFORM_TEXBUFFER_LOG2_ARR_ELEM_W:
-         *ptr = state->texture_unif[u_value].texbuffer_log2_arr_elem_w;
+         *ptr = image_like_uniforms->tex[u_value].texbuffer_log2_arr_elem_w;
          break;
       case BACKEND_UNIFORM_TEXBUFFER_ARR_ELEM_W_MINUS_1:
-         *ptr = state->texture_unif[u_value].texbuffer_arr_elem_w_minus_1;
+         *ptr = image_like_uniforms->tex[u_value].texbuffer_arr_elem_w_minus_1;
+         break;
+
+      case BACKEND_UNIFORM_IMAGE_PARAM1:
+         *ptr = assemble_tmu_param(1, u_value, image_like_uniforms->img);
+         break;
+      case BACKEND_UNIFORM_IMAGE_PARAM0:
+         *ptr = assemble_tmu_param(0, u_value, image_like_uniforms->img);
          break;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
       case BACKEND_UNIFORM_IMAGE_SWIZZLING:
-         *ptr = (uint32_t)state->image_unif[u_value].lx_swizzling;
+         *ptr = (uint32_t)image_like_uniforms->img[u_value].lx_swizzling;
          break;
       case BACKEND_UNIFORM_IMAGE_XOR_ADDR:
-         *ptr = state->image_unif[u_value].lx_swizzling == GLSL_IMGUNIT_SWIZZLING_UIF_XOR ? GFX_UIF_XOR_ADDR : 0;
+         *ptr = image_like_uniforms->img[u_value].lx_swizzling == GLSL_IMGUNIT_SWIZZLING_UIF_XOR ? GFX_UIF_XOR_ADDR : 0;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_ADDR:
-         *ptr = state->image_unif[u_value].lx_addr;
+         *ptr = image_like_uniforms->img[u_value].lx_addr;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_PITCH:
-         *ptr = state->image_unif[u_value].lx_pitch;
+         *ptr = image_like_uniforms->img[u_value].lx_pitch;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_SLICE_PITCH:
-         *ptr = state->image_unif[u_value].lx_slice_pitch;
+         *ptr = image_like_uniforms->img[u_value].lx_slice_pitch;
          break;
       case BACKEND_UNIFORM_IMAGE_ARR_STRIDE:
-         *ptr = state->image_unif[u_value].arr_stride;
+         *ptr = image_like_uniforms->img[u_value].arr_stride;
          break;
 #endif
       case BACKEND_UNIFORM_IMAGE_LX_WIDTH:
-         *ptr = state->image_unif[u_value].width;
+         *ptr = image_like_uniforms->img[u_value].width;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_HEIGHT:
-         *ptr = state->image_unif[u_value].height;
+         *ptr = image_like_uniforms->img[u_value].height;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_DEPTH:
-         *ptr = state->image_unif[u_value].depth;
+         *ptr = image_like_uniforms->img[u_value].depth;
          break;
 
       case BACKEND_UNIFORM_SPECIAL:
@@ -2152,56 +2154,49 @@ v3d_addr_t glxx_hw_install_uniforms(
          switch (u_special) {
 
          case BACKEND_SPECIAL_UNIFORM_VP_SCALE_X:
-            *ptr = gfx_float_to_bits(state->viewport.internal_xscale);
+            *ptr = gfx_float_to_bits(state->vp_internal.xscale);
             break;
 
          case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Y:
-            *ptr = gfx_float_to_bits(state->viewport.internal_yscale);
+            *ptr = gfx_float_to_bits(state->vp_internal.yscale);
             break;
 
          case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Z:
-            *ptr = gfx_float_to_bits(state->viewport.internal_zscale);
+            *ptr = gfx_float_to_bits(state->vp_internal.zscale);
             break;
 
          case BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z:
-            *ptr = gfx_float_to_bits(state->viewport.internal_zoffset);
+            *ptr = gfx_float_to_bits(state->vp_internal.zoffset);
             break;
 
          case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_NEAR:
-            *ptr = gfx_float_to_bits(state->viewport.internal_dr_near);
+            *ptr = gfx_float_to_bits(state->depth_range.z_near);
             break;
 
          case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_FAR:
-            *ptr = gfx_float_to_bits(state->viewport.internal_dr_far);
+            *ptr = gfx_float_to_bits(state->depth_range.z_far);
             break;
 
          case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_DIFF:
-            *ptr = gfx_float_to_bits(state->viewport.internal_dr_diff);
+            *ptr = gfx_float_to_bits(state->vp_internal.dr_diff);
             break;
 
+#if !V3D_HAS_FEP_SAMPLE_MASK
          case BACKEND_SPECIAL_UNIFORM_SAMPLE_MASK:
             *ptr = state->sample_mask.mask[0];
             break;
-
-         case BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_X:
-            *ptr = compute_uniforms->num_work_groups[0];
+#endif
+#if GLXX_HAS_TNG
+         case BACKEND_SPECIAL_UNIFORM_TCS_QUORUM:
+            *ptr = (state->num_patch_vertices + 15)/ 16;
             break;
-
-         case BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_Y:
-            *ptr = compute_uniforms->num_work_groups[1];
-            break;
-
-         case BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_Z:
-            *ptr = compute_uniforms->num_work_groups[2];
-            break;
-
-         case BACKEND_SPECIAL_UNIFORM_QUORUM:
-            *ptr = compute_uniforms->quorum;
-            break;
-
+#endif
          case BACKEND_SPECIAL_UNIFORM_SHARED_PTR:
             *ptr = compute_uniforms->shared_ptr;
             break;
+
+         default:
+            unreachable();
          }
          break;
       }
@@ -2214,60 +2209,53 @@ v3d_addr_t glxx_hw_install_uniforms(
       ptr++;
    }
 
-   if (map->num_buffers > 0)
+   unsigned load_start = 0;
+   for (unsigned b = 0; b != map->num_ubo_load_batches; ++b)
    {
-      unsigned fetch_start = 0;
-      for (unsigned b = 0; b != map->num_buffers; ++b)
+      glxx_shader_ubo_load_batch const* load_batch = &map->ubo_load_batches[b];
+
+      bool read_now;
+      void const* src;
+      if (load_batch->index != GLXX_SHADER_COMPUTE_INDIRECT_BUFFER)
       {
-         glxx_ustream_buffer const* ubo_buffer = &map->buffers[b];
-
-         unsigned fetch_end = ubo_buffer->fetch_end;
-         unsigned num_fetches = fetch_end - fetch_start;
-
-         uint32_t binding_point = program_common->ubo_binding_point[ubo_buffer->index];
+         uint32_t binding_point = program_common->ubo_binding_point[load_batch->index];
          const GLXX_INDEXED_BINDING_POINT_T* binding = &state->uniform_block.binding_points[binding_point];
+         khrn_resource* res = binding->buffer.obj->resource;
+         assert((binding->offset & 3) == 0);
 
-         KHRN_RES_INTERLOCK_T* res = glxx_buffer_get_res_interlock(binding->buffer.obj);
-         v3d_size_t src_offset = binding->offset + ubo_buffer->range_start;
-         v3d_size_t src_size = ubo_buffer->range_end - ubo_buffer->range_start;
-         assert((src_offset & 3) == 0);
-
-         if (  khrn_options.no_ustream_jobs
-            || (!khrn_options.force_ustream_jobs && !khrn_interlock_read_now_would_stall(&res->interlock)))
-         {
-            uint32_t const* src = (uint32_t*)khrn_res_interlock_pre_cpu_access_now(
-               &res,
-               src_offset,
-               src_size,
-               KHRN_MAP_READ_BIT);
-            if (!src)
-               return 0;
-            glxx_shader_fill_ustream(ustream_ptr, src, map->fetches + fetch_start, num_fetches);
-            khrn_res_interlock_post_cpu_access(res, src_offset, src_size, KHRN_MAP_READ_BIT);
-         }
-         else
-         {
-            // Ensure UBO is mapped as usermode job depends on this.
-            if (!gmem_map_and_get_ptr(res->handle))
-               return 0;
-
-            khrn_fmem_record_res_interlock_read(fmem, res, KHRN_INTERLOCK_STAGE_PREPROCESS);
-            glxx_ustream_job* job = khrn_fmem_add_ustream_job(&rs->fmem);
-            if (!job)
-               return 0;
-            job->dst_ptr = ustream_ptr;
-            job->src_mem = res->handle;
-            job->fetches = map->fetches + fetch_start;
-            job->num_fetches = num_fetches;
-            job->src_offset = src_offset;
-            job->src_size = src_size;
-         }
-
-         fetch_start = fetch_end;
+         v3d_size_t res_offset = binding->offset + load_batch->range_start;
+         src = khrn_fmem_resource_read_now_or_in_preprocess(&rs->fmem, res, res_offset, load_batch->range_size, &read_now);
+         if (!src)
+            return 0;
       }
+      else
+      {
+         read_now = !compute_uniforms->read_in_preprocess;
+         src = (char const*)compute_uniforms->num_work_groups + load_batch->range_start;
+      }
+
+      const glxx_hw_ubo_load_batch batch =
+      {
+         .uniform_map = (khrn_mem_handle_t)map,
+         .dst_ptr = uniforms_ptr,
+         .src_ptr = src,
+         .loads = map->ubo_loads + load_start,
+         .num_loads = load_batch->load_end - load_start
+      };
+
+      if (read_now)
+         glxx_hw_process_ubo_load_batch(&batch, false);
+      else
+      {
+         if (!khrn_vector_push_back(glxx_hw_ubo_load_batch, &fmem->persist->preprocess_ubo_loads, batch))
+            return 0;
+         khrn_mem_acquire((khrn_mem_handle_t)map);
+      }
+
+      load_start = load_batch->load_end;
    }
 
-   return khrn_fmem_hw_address(fmem, ustream_ptr);
+   return khrn_fmem_hw_address(fmem, uniforms_ptr);
 }
 
 static v3d_prim_mode_t convert_primitive_type(GLXX_SERVER_STATE_T const* state, GLenum mode)
@@ -2328,9 +2316,9 @@ static v3d_index_type_t convert_index_type(GLenum type)
 
 static bool write_gl_shader_record_defaults(
    v3d_addr_t*                      defaults_addr,
-   KHRN_FMEM_T*                     fmem,
+   khrn_fmem*                     fmem,
    const GLXX_LINK_RESULT_DATA_T*   link_data,
-   const GLXX_ATTRIB_CONFIG_T*      attr_cfgs)
+   const GLXX_ATTRIB_CONFIG_T*      attribs)
 {
    uint32_t *defaults = NULL;
    *defaults_addr = 0;
@@ -2341,11 +2329,11 @@ static bool write_gl_shader_record_defaults(
    // from the last default down when required.
    for (unsigned n = link_data->attr_count; n-- != 0; )
    {
-      const GLXX_ATTRIB_CONFIG_T *attr_cfg = &attr_cfgs[link_data->attr[n].idx];
-      if (attr_cfg->enabled)
+      const GLXX_ATTRIB_CONFIG_T *attrib = &attribs[link_data->attr[n].idx];
+      if (attrib->enabled)
       {
-         if (  link_data->attr[n].c_scalars_used > attr_cfg->size
-            || link_data->attr[n].v_scalars_used > attr_cfg->size )
+         if (  link_data->attr[n].c_scalars_used > attrib->size
+            || link_data->attr[n].v_scalars_used > attrib->size )
          {
             if (!defaults)
             {
@@ -2358,7 +2346,7 @@ static bool write_gl_shader_record_defaults(
             defaults[n*4 + 0] = 0u; // or 0.0f
             defaults[n*4 + 1] = 0u; // or 0.0f
             defaults[n*4 + 2] = 0u; // or 0.0f
-            defaults[n*4 + 3] = attr_cfg->is_int ? 1u : 0x3f800000; // or 1.0f
+            defaults[n*4 + 3] = attrib->is_int ? 1u : 0x3f800000; // or 1.0f
          }
       }
    }
@@ -2368,11 +2356,10 @@ static bool write_gl_shader_record_defaults(
 static bool write_gl_shader_record_attribs(
    uint32_t*                           packed_attrs,
    v3d_addr_t                          defaults_addr,
-   KHRN_FMEM_T*                        fmem,
+   khrn_fmem*                        fmem,
    const GLXX_LINK_RESULT_DATA_T*      link_data,
-   const GLXX_ATTRIB_CONFIG_T*         attr_cfgs,
-   const GLXX_VERTEX_BUFFER_CONFIG_T*  vb_cfgs,
-   const GLXX_VERTEX_POINTERS_T*       vb_pointers,
+   const GLXX_ATTRIB_CONFIG_T*         attribs,
+   const glxx_hw_vb*                   vbs,
    const GLXX_GENERIC_ATTRIBUTE_T*     generic_attrs)
 {
    // Workaround GFXH-930, must have at least 1 attribute:
@@ -2394,6 +2381,9 @@ static bool write_gl_shader_record_attribs(
          .vs_num_reads    = 1,
          .divisor         = 0,
          .stride          = 0,
+#if V3D_HAS_ATTR_MAX_INDEX
+         .max_index        = 0,
+#endif
       };
       v3d_pack_shadrec_gl_attr(packed_attrs, &attr);
       return true;
@@ -2419,18 +2409,12 @@ static bool write_gl_shader_record_attribs(
          vs_num_reads = cs_num_reads;
       }
 
-      const unsigned vb_idx = link_data->attr[n].idx;
-      const GLXX_ATTRIB_CONFIG_T *attr_cfg = &attr_cfgs[vb_idx];
-      if (attr_cfg->enabled)
+      const unsigned i = link_data->attr[n].idx;
+      const GLXX_ATTRIB_CONFIG_T *attrib = &attribs[i];
+      if (attrib->enabled)
       {
-         const GLXX_STORAGE_T *vertex_p = &vb_pointers->array[vb_idx];
-         assert(vertex_p->handle != GMEM_HANDLE_INVALID);
-
-         v3d_addr_t attrib_addr = khrn_fmem_lock_and_sync(
-            fmem, vertex_p->handle, V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ);
-
-         uint32_t divisor = vb_cfgs[vb_idx].divisor;
-         uint32_t stride = vb_cfgs[vb_idx].stride;
+         uint32_t divisor = vbs[i].divisor;
+         uint32_t stride = vbs[i].stride;
          if (divisor == 0xffffffff)
          {
             // Handle special divisor case.
@@ -2439,22 +2423,25 @@ static bool write_gl_shader_record_attribs(
          }
 
          V3D_SHADREC_GL_ATTR_T attr = {
-            .addr             = attrib_addr + vertex_p->offset,
-            .size             = attr_cfg->size,
-            .type             = attr_cfg->v3d_type,
-            .signed_int       = attr_cfg->is_signed,
-            .normalised_int   = attr_cfg->norm,
-            .read_as_int      = attr_cfg->is_int,
+            .addr             = vbs[i].addr,
+            .size             = attrib->size,
+            .type             = attrib->v3d_type,
+            .signed_int       = attrib->is_signed,
+            .normalised_int   = attrib->norm,
+            .read_as_int      = attrib->is_int,
             .cs_num_reads     = cs_num_reads,
             .vs_num_reads     = vs_num_reads,
             .divisor          = divisor,
             .stride           = stride,
+#if V3D_HAS_ATTR_MAX_INDEX
+            .max_index        = gfx_umin(vbs[i].max_index, V3D_VCD_MAX_INDEX),
+#endif
          };
          v3d_pack_shadrec_gl_attr(packed_attrs + V3D_SHADREC_GL_ATTR_PACKED_SIZE/sizeof(uint32_t)*n, &attr);
       }
       else
       {
-         const GLXX_GENERIC_ATTRIBUTE_T *generic = &generic_attrs[vb_idx];
+         const GLXX_GENERIC_ATTRIBUTE_T *generic = &generic_attrs[i];
          uint32_t* generic_data = khrn_fmem_data(fmem, sizeof(uint32_t)*4u, V3D_ATTR_ALIGN);
          if (!generic_data)
             return false;
@@ -2474,6 +2461,9 @@ static bool write_gl_shader_record_attribs(
             .vs_num_reads    = vs_num_reads,
             .divisor         = 0,
             .stride          = 0,
+#if V3D_HAS_ATTR_MAX_INDEX
+            .max_index        = 0,
+#endif
          };
          v3d_pack_shadrec_gl_attr(packed_attrs + V3D_SHADREC_GL_ATTR_PACKED_SIZE/sizeof(uint32_t)*n, &attr);
       }
@@ -2483,21 +2473,17 @@ static bool write_gl_shader_record_attribs(
 }
 
 #if GLXX_HAS_TNG
-static bool compute_tng_vpm_cfg(
-   v3d_vpm_cfg_v* cfg_v,
+static void compute_tng_vpm_cfg(
+   v3d_vpm_cfg_v cfg_v[2],
    uint32_t shadrec_tg_packed[],
    GLXX_LINK_RESULT_DATA_T const* link_data,
    unsigned num_patch_vertices)
 {
-   v3d_vpm_cfg_t vpm_t;
-   v3d_vpm_cfg_g vpm_g;
-   if (!link_data->has_tess) v3d_vpm_default_cfg_t(&vpm_t);
-   if (!link_data->has_geom) v3d_vpm_default_cfg_g(&vpm_g);
-
+   V3D_VPM_CFG_TG_T cfg_tg[2];
    bool ok = v3d_vpm_compute_cfg_tg(
-      cfg_v,
-      link_data->has_tess ? &vpm_t : NULL,
-      link_data->has_geom ? &vpm_g : NULL,
+      cfg_v, cfg_tg,
+      link_data->has_tess,
+      link_data->has_geom,
       khrn_get_vpm_size() / 512,
       link_data->vs_input_words,
       link_data->vs_output_words,
@@ -2510,10 +2496,9 @@ static bool compute_tng_vpm_cfg(
       link_data->tess_type,
       6u, // maximum number of vertices per GS primitive
       link_data->gs_output_words);
-   if (!ok)
-      return false;
+   assert(ok); // GL requirements mean this should always succeed.
 
-   V3D_SHADREC_GL_TESS_OR_GEOM_T shadrec_tog =
+   V3D_SHADREC_GL_TESS_OR_GEOM_T shadrec_tg =
    {
       .tess_type                                = link_data->tess_type,
       .tess_point_mode                          = link_data->tess_point_mode,
@@ -2521,61 +2506,31 @@ static bool compute_tng_vpm_cfg(
       .tess_clockwise                           = link_data->tess_clockwise,
       //.tcs_bypass                             = todo_not_implemented,
       //.tcs_bypass_render                      = todo_not_implemented,
-      .tcs_batch_flush                          = vpm_t.tcs_batch_flush,
       .num_tcs_invocations                      = gfx_umax(link_data->tcs_output_vertices_per_patch, 1u),
       .geom_output                              = link_data->geom_prim_type,
       .geom_num_instances                       = gfx_umax(link_data->geom_invocations, 1u),
-      .per_patch_depth_bin                      = vpm_t.per_patch_depth[0],
-      .per_patch_depth_render                   = vpm_t.per_patch_depth[1],
-      .tcs_output_bin                           = vpm_t.tcs_output[0],
-      .tcs_output_render                        = vpm_t.tcs_output[1],
-      .tes_output_bin                           = vpm_t.tes_output[0],
-      .tes_output_render                        = vpm_t.tes_output[1],
-      .geom_output_bin                          = vpm_g.geom_output[0],
-      .geom_output_render                       = vpm_g.geom_output[1],
-      .max_patches_per_tcs_batch                = vpm_t.max_patches_per_tcs_batch,
-      .max_extra_vert_segs_per_tcs_batch_bin    = vpm_t.max_extra_vert_segs_per_tcs_batch[0],
-      .max_extra_vert_segs_per_tcs_batch_render = vpm_t.max_extra_vert_segs_per_tcs_batch[1],
-      .min_tcs_segs_bin                         = vpm_t.min_tcs_segs[0],
-      .min_tcs_segs_render                      = vpm_t.min_tcs_segs[1],
-      .min_per_patch_segs_bin                   = vpm_t.min_per_patch_segs[0],
-      .min_per_patch_segs_render                = vpm_t.min_per_patch_segs[1],
-      .max_patches_per_tes_batch                = vpm_t.max_patches_per_tes_batch,
-      .max_extra_vert_segs_per_tes_batch_bin    = vpm_t.max_extra_vert_segs_per_tes_batch[0],
-      .max_extra_vert_segs_per_tes_batch_render = vpm_t.max_extra_vert_segs_per_tes_batch[1],
-      .max_tcs_segs_per_tes_batch_bin           = vpm_t.max_tcs_segs_per_tes_batch[0],
-      .max_tcs_segs_per_tes_batch_render        = vpm_t.max_tcs_segs_per_tes_batch[1],
-      .min_tes_segs_bin                         = vpm_t.min_tes_segs[0],
-      .min_tes_segs_render                      = vpm_t.min_tes_segs[1],
-      .max_extra_vert_segs_per_gs_batch_bin     = vpm_g.max_extra_vert_segs_per_gs_batch[0],
-      .max_extra_vert_segs_per_gs_batch_render  = vpm_g.max_extra_vert_segs_per_gs_batch[1],
-      .min_gs_segs_bin                          = vpm_g.min_gs_segs[0],
-      .min_gs_segs_render                       = vpm_g.min_gs_segs[1],
    };
+   v3d_shadrec_gl_tg_set_vpm_cfg(&shadrec_tg, cfg_tg);
 
-   v3d_pack_shadrec_gl_tess_or_geom(shadrec_tg_packed, &shadrec_tog);
-   return true;
+   v3d_pack_shadrec_gl_tess_or_geom(shadrec_tg_packed, &shadrec_tg);
 }
 #endif
 
 static bool write_gl_shader_record(
-   GLXX_HW_RENDER_STATE_T              *rs,
-   GLXX_LINK_RESULT_DATA_T             *link_data,
-   const GLXX_SERVER_STATE_T           *state,
-   const GLXX_ATTRIB_CONFIG_T          *attr_cfgs,
-   const GLXX_VERTEX_BUFFER_CONFIG_T   *vb_cfgs,
-   const GLXX_VERTEX_POINTERS_T        *vb_pointers)
+   GLXX_HW_RENDER_STATE_T *rs,
+   const GLXX_SERVER_STATE_T *state,
+   GLXX_LINK_RESULT_DATA_T *link_data, const glxx_hw_image_like_uniforms *image_like_uniforms,
+   const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs)
 {
    v3d_addr_t defaults_addr;
-   if (!write_gl_shader_record_defaults(&defaults_addr, &rs->fmem, link_data, attr_cfgs))
+   if (!write_gl_shader_record_defaults(&defaults_addr, &rs->fmem, link_data, attribs))
       return false;
 
    rs->has_tcs_barriers |= !!(link_data->flags & GLXX_SHADER_FLAGS_TCS_BARRIERS);
 
-   v3d_addr_t code_addr = khrn_fmem_lock_and_sync(&rs->fmem, link_data->res_i->handle,
-      V3D_BARRIER_QPU_INSTR_READ, V3D_BARRIER_QPU_INSTR_READ);
-   if (!khrn_fmem_record_res_interlock_read(&rs->fmem, link_data->res_i, KHRN_INTERLOCK_STAGES_BIN_RENDER))
+   if (!khrn_fmem_sync_res(&rs->fmem, link_data->res, V3D_BARRIER_QPU_INSTR_READ, V3D_BARRIER_QPU_INSTR_READ))
       return false;
+   v3d_addr_t code_addr = gmem_get_addr(link_data->res->handle);
 
    GL20_HW_INDEXED_UNIFORM_T iu;
    iu.valid = false;
@@ -2588,7 +2543,7 @@ static bool write_gl_shader_record(
       {
          if (link_data->vps[s][m].uniform_map != NULL)
          {
-            vp_unifs_addrs[s][m] = glxx_hw_install_uniforms(&rs->base, state, m, link_data->vps[s][m].uniform_map, &iu, NULL);
+            vp_unifs_addrs[s][m] = glxx_hw_install_uniforms(&rs->base, state, m, link_data->vps[s][m].uniform_map, &iu, image_like_uniforms, NULL);
             if (!vp_unifs_addrs[s][m])
                return false;
          }
@@ -2596,7 +2551,7 @@ static bool write_gl_shader_record(
    }
 
    // Fragment shader uniforms.
-   v3d_addr_t frag_unifs_addr = glxx_hw_install_uniforms(&rs->base, state, MODE_RENDER, link_data->fs.uniform_map, &iu, NULL);
+   v3d_addr_t frag_unifs_addr = glxx_hw_install_uniforms(&rs->base, state, MODE_RENDER, link_data->fs.uniform_map, &iu, image_like_uniforms, NULL);
    if (!frag_unifs_addr)
       return false;
 
@@ -2677,12 +2632,11 @@ static bool write_gl_shader_record(
          link_data->cached_vpm_cfg.key.valid = true;
          link_data->cached_vpm_cfg.key.tg.num_patch_vertices = num_patch_vertices;
 
-         bool ok = compute_tng_vpm_cfg(
-            &link_data->cached_vpm_cfg.vpm_cfg_v,
+         compute_tng_vpm_cfg(
+            link_data->cached_vpm_cfg.vpm_cfg_v,
             link_data->cached_vpm_cfg.shadrec_tg_packed,
             link_data,
             state->num_patch_vertices);
-         assert(ok); // GL requirements mean this should always succeed.
       }
 
 
@@ -2708,7 +2662,7 @@ static bool write_gl_shader_record(
          link_data->cached_vpm_cfg.key.v.z_pre_pass = z_pre_pass;
 
          v3d_vpm_compute_cfg(
-            &link_data->cached_vpm_cfg.vpm_cfg_v,
+            link_data->cached_vpm_cfg.vpm_cfg_v,
             khrn_get_vpm_size() / 512,
             link_data->vs_input_words,
             link_data->vs_output_words,
@@ -2716,7 +2670,7 @@ static bool write_gl_shader_record(
       }
    }
 
-   v3d_vpm_cfg_v const* vpm_cfg_v = &link_data->cached_vpm_cfg.vpm_cfg_v;
+   v3d_vpm_cfg_v const* vpm_cfg_v = link_data->cached_vpm_cfg.vpm_cfg_v;
 
    V3D_SHADREC_GL_MAIN_T main_shadrec =
    {
@@ -2746,10 +2700,10 @@ static bool write_gl_shader_record(
                              (khrn_options.force_multisample || rs->installed_fb.ms),
 #endif
       .num_varys = link_data->num_varys,
-      .cs_output_size = vpm_cfg_v->output_size[MODE_BIN],
-      .cs_input_size = vpm_cfg_v->input_size[MODE_BIN],
-      .vs_output_size = vpm_cfg_v->output_size[MODE_RENDER],
-      .vs_input_size = vpm_cfg_v->input_size[MODE_RENDER],
+      .cs_output_size = vpm_cfg_v[MODE_BIN].output_size,
+      .cs_input_size = vpm_cfg_v[MODE_BIN].input_size,
+      .vs_output_size = vpm_cfg_v[MODE_RENDER].output_size,
+      .vs_input_size = vpm_cfg_v[MODE_RENDER].input_size,
       .defaults = defaults_addr,
 #if V3D_HAS_RELAXED_THRSW
       .fs.four_thread = link_data->fs.four_thread,
@@ -2797,9 +2751,8 @@ static bool write_gl_shader_record(
       defaults_addr,
       &rs->fmem,
       link_data,
-      attr_cfgs,
-      vb_cfgs,
-      vb_pointers,
+      attribs,
+      vbs,
       state->generic_attrib);
    if (!ok)
       return false;
@@ -2819,7 +2772,7 @@ static bool write_gl_shader_record(
    uint8_t* cl = khrn_fmem_begin_cle(&rs->fmem, V3D_CL_VCM_CACHE_SIZE_SIZE + V3D_CL_GL_SHADER_SIZE);
    if (!cl)
       return false;
-   v3d_cl_vcm_cache_size(&cl, vpm_cfg_v->vcm_cache_size[0], vpm_cfg_v->vcm_cache_size[1]);
+   v3d_cl_vcm_cache_size(&cl, vpm_cfg_v[0].vcm_cache_size, vpm_cfg_v[1].vcm_cache_size);
    // todo, replace with generalised v3d_cl_gl_shader
    v3d_cl_add_8(&cl, shader_cl_opcode);
    cl[0] = (uint8_t)gfx_pack_uint_0_is_max(num_attrs, 5) | (uint8_t)(gfx_exact_lsr(shadrec_addr, 5) << 5);
@@ -2832,10 +2785,11 @@ static bool write_gl_shader_record(
 }
 
 static v3d_addr_t create_nv_shader_record(
-   KHRN_FMEM_T       *fmem,
+   khrn_fmem       *fmem,
    uint32_t          *fshader_ptr,
    uint32_t          *funif_ptr,
    uint32_t          *vdata_ptr,
+   uint32_t          vdata_max_index,
    bool              does_z_writes,
    v3d_threading_t   threading)
 {
@@ -2865,8 +2819,10 @@ static v3d_addr_t create_nv_shader_record(
       khrn_fmem_hw_address(fmem, fshader_ptr),
       khrn_fmem_hw_address(fmem, funif_ptr),
       khrn_fmem_hw_address(fmem, vdata_ptr),
+      vdata_max_index,
       does_z_writes,
-      threading);
+      threading
+      );
 
    return shader_record_packed_addr;
 }
@@ -2880,16 +2836,22 @@ static void nv_vertex(uint32_t *addr, uint32_t x, uint32_t y, uint32_t z)
 }
 
 /* Allocate vertex data for draw_rect in fmem */
-static uint32_t *draw_rect_vertex_data(KHRN_FMEM_T *fmem, int x, int xmax, int y, int ymax, uint32_t z)
+static uint32_t *draw_rect_vertex_data(uint32_t *vdata_max_index,
+      khrn_fmem *fmem, const glxx_rect *rect, uint32_t z)
 {
-   uint32_t *addr = khrn_fmem_data(fmem, 4 * 3 * 4, V3D_ATTR_ALIGN);
+   *vdata_max_index = 3;
+   unsigned attr_components= 3 ; /* x, y, z */
+   uint32_t *addr = khrn_fmem_data(fmem, attr_components * sizeof(uint32_t) * (*vdata_max_index + 1),
+         V3D_ATTR_ALIGN);
    if (addr == NULL)
       return NULL;
 
-   nv_vertex(addr + 0, x, y, z);
-   nv_vertex(addr + 3, xmax, y, z);
-   nv_vertex(addr + 6, xmax, ymax, z);
-   nv_vertex(addr + 9, x, ymax, z);
+   int xmax = rect->x + rect->width;
+   int ymax = rect->y + rect->height;
+   nv_vertex(addr, rect->x, rect->y, z);
+   nv_vertex(addr + attr_components, xmax, rect->y, z);
+   nv_vertex(addr + 2 * attr_components, xmax, ymax, z);
+   nv_vertex(addr + 3 * attr_components, rect->x, ymax, z);
 
    return addr;
 }
@@ -2898,7 +2860,7 @@ static bool glxx_draw_rect_write_state_changes(
    GLXX_SERVER_STATE_T *state,
    GLXX_HW_RENDER_STATE_T *rs,
    const GLXX_CLEAR_T *clear,
-   int x, int y, int xmax, int ymax)
+   const glxx_rect *rect)
 {
    // Set up control list
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
@@ -2912,7 +2874,7 @@ static bool glxx_draw_rect_write_state_changes(
       return false;
 
    //  Emit scissor/clipper/viewport instructions
-   v3d_cl_clip(&instr, x, y, xmax - x, ymax - y);
+   v3d_cl_clip(&instr, rect->x, rect->y, rect->width, rect->height);
    v3d_cl_clipz(&instr, 0.0f, 1.0f);
    khrn_render_state_set_add(&state->dirty.viewport, rs); /* Clear and render might end up with different clip rectangles - clear doesn't clip to viewport */
 
@@ -2969,7 +2931,11 @@ static bool glxx_draw_rect_write_state_changes(
       khrn_render_state_set_add(&state->dirty.color_write, rs);
    }
 
+#if V3D_HAS_UNCONSTR_VP_CLIP
+   v3d_cl_viewport_offset(&instr, 0, 0, 0, 0);
+#else
    v3d_cl_viewport_offset(&instr, 0, 0);
+#endif
 
    //TODO: other miscellaneous pieces of state
 
@@ -2978,7 +2944,7 @@ static bool glxx_draw_rect_write_state_changes(
    return true;
 }
 
-static uint32_t *copy_shader_to_fmem(KHRN_FMEM_T* fmem, uint32_t shaderSize, uint32_t *shaderCode)
+static uint32_t *copy_shader_to_fmem(khrn_fmem* fmem, uint32_t shaderSize, uint32_t *shaderCode)
 {
    uint32_t *fshader_ptr = khrn_fmem_data(fmem, shaderSize, V3D_QPU_INSTR_ALIGN);
    if (fshader_ptr)
@@ -2994,8 +2960,7 @@ bool glxx_draw_rect(
    GLXX_SERVER_STATE_T     *state,
    GLXX_HW_RENDER_STATE_T  *rs,
    const GLXX_CLEAR_T      *clear,
-   int x, int y,
-   int xmax, int ymax)
+   const glxx_rect         *rect)
 {
    assert(clear->color_buffer_mask || clear->depth || clear->stencil);
 
@@ -3025,12 +2990,13 @@ bool glxx_draw_rect(
    uint32_t *shader_code;
    uint32_t shader_size;
    if (clear->color_buffer_mask)
-      v3d_clear_shader_color(&shader_code, &shader_size, funif_ptr, hw_fb->color_internal_type[rt], rt, clear->color_value);
+      v3d_clear_shader_color(&shader_code, &shader_size, funif_ptr, hw_fb->color_rt_format[rt].type, rt, clear->color_value);
    else
       v3d_clear_shader_no_color(&shader_code, &shader_size, funif_ptr);
 
-   /* Use x, y, z to create vertex data to be used in the clear */
-   uint32_t *vdata_ptr = draw_rect_vertex_data(&rs->fmem, x, xmax, y, ymax, gfx_float_to_bits(clear->depth_value));
+   uint32_t vdata_max_index;
+   uint32_t *vdata_ptr = draw_rect_vertex_data( &vdata_max_index, &rs->fmem, rect,
+      gfx_float_to_bits(clear->depth_value));
    if (vdata_ptr == NULL)
       return false;
 
@@ -3039,11 +3005,12 @@ bool glxx_draw_rect(
    if (fshader_ptr == NULL)
       return false;
    v3d_addr_t nv_shadrec_hw = create_nv_shader_record(&rs->fmem, fshader_ptr, funif_ptr, vdata_ptr,
+       vdata_max_index,
       /*does_z_writes=*/false, V3D_HAS_RELAXED_THRSW ? V3D_THREADING_T4 : V3D_THREADING_T1);
    if (!nv_shadrec_hw)
       return false;
 
-   if (!glxx_draw_rect_write_state_changes(state, rs, clear, x, y, xmax, ymax))
+   if (!glxx_draw_rect_write_state_changes(state, rs, clear, rect))
       return false;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -3060,11 +3027,6 @@ bool glxx_draw_rect(
 
    khrn_fmem_end_cle_exact(&rs->fmem, instr);
 
-#ifdef SIMPENROSE_WRITE_LOG
-   // Increment batch count
-   log_batchcount++;
-#endif
-
    return true;
 }
 
@@ -3076,7 +3038,7 @@ static uint32_t setup_render_dummy_point_no_shader_no_query_addr_size(void)
       + V3D_CL_CLIP_SIZE
       + V3D_CL_POINT_SIZE_SIZE
       + V3D_CL_PRIM_LIST_FORMAT_SIZE
-      + V3D_CL_SAMPLE_COVERAGE_SIZE
+      + V3D_CL_SAMPLE_STATE_SIZE
       + V3D_CL_CLIPZ_SIZE
       + V3D_CL_CFG_BITS_SIZE
       + V3D_CL_COLOR_WMASKS_SIZE;
@@ -3096,7 +3058,7 @@ static uint32_t clear_shader_no_color_point[] =
  * The pixels (if there are any) will pass the Z tests but nothing will be
  * written to the tilebuffer. */
 
-static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr, v3d_addr_t* shader_addr, KHRN_FMEM_T* fmem, float size)
+static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr, v3d_addr_t* shader_addr, khrn_fmem* fmem, float size, uint32_t fb_width, uint32_t fb_height)
 {
    /* set up the config uniform; unused config entries must be all 1s */
    /* Configure tlb for f32 color writes, but disable the write masks later */
@@ -3107,6 +3069,7 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
    funif_ptr[0] = 0xffffff00 | 0x3F;
 
    /* create single point vertex */
+   uint32_t vdata_max_index = 0;
    uint32_t* vdata_ptr = khrn_fmem_data(fmem, sizeof(uint32_t) * 3, V3D_ATTR_ALIGN);
    if (!vdata_ptr)
       return false;
@@ -3116,7 +3079,8 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
    uint32_t* fshader_ptr = copy_shader_to_fmem(fmem, sizeof(clear_shader_no_color_point), clear_shader_no_color_point);
    if (!fshader_ptr)
       return false;
-   *shader_addr = create_nv_shader_record(fmem, fshader_ptr, funif_ptr, vdata_ptr, false, V3D_THREADING_T1);
+   *shader_addr = create_nv_shader_record(fmem, fshader_ptr, funif_ptr,
+         vdata_ptr, vdata_max_index, false, V3D_THREADING_T1);
    if (!*shader_addr)
       return false;
 
@@ -3125,13 +3089,13 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
 
    // Emit scissor/clipper/viewport instructions
    v3d_cl_viewport_offset(&instr, 0, 0);
-   v3d_cl_clip(&instr, 0, 0, 0x1000, 0x1000);
+   v3d_cl_clip(&instr, 0, 0, fb_width, fb_height);
 
    v3d_cl_point_size(&instr, size);
    v3d_cl_prim_list_format(&instr, 1, false, false);
 
    // Emit enough configuration to ensure we pass the Z tests.
-   v3d_cl_sample_coverage(&instr, 1.0f);
+   v3d_cl_sample_state(&instr, 1.0f);
    v3d_cl_clipz(&instr, 0.0f, 1.0f);
    v3d_cl_cfg_bits(&instr,
       true,                      /* front_prims */
@@ -3168,13 +3132,14 @@ static uint32_t setup_render_dummy_point_size()
       + V3D_CL_GL_SHADER_SIZE;
 }
 
-static bool setup_render_dummy_point(uint8_t** instr_ptr, KHRN_FMEM_T* fmem, float size)
+static bool setup_render_dummy_point(uint8_t** instr_ptr, khrn_fmem* fmem, float size,
+   uint32_t fb_width, uint32_t fb_height)
 {
    // Items written to instr begin here.
    uint8_t* instr = *instr_ptr;
 
    v3d_addr_t shader_addr;
-   if (!setup_render_dummy_point_no_shader_no_query_addr(&instr, &shader_addr, fmem, size))
+   if (!setup_render_dummy_point_no_shader_no_query_addr(&instr, &shader_addr, fmem, size, fb_width, fb_height))
       return false;
 
    v3d_cl_occlusion_query_counter_enable(&instr, 0);
@@ -3210,9 +3175,10 @@ uint32_t glxx_workaround_gfxh_1313_size(void)
    return setup_render_dummy_point_size() + render_dummy_point_size();
 }
 
-bool glxx_workaround_gfxh_1313(uint8_t** instr_ptr, KHRN_FMEM_T* fmem)
+bool glxx_workaround_gfxh_1313(uint8_t** instr_ptr, khrn_fmem* fmem,
+   uint32_t fb_width, uint32_t fb_height)
 {
-   if (!setup_render_dummy_point(instr_ptr, fmem, 0.0f))
+   if (!setup_render_dummy_point(instr_ptr, fmem, 0.0f, fb_width, fb_height))
       return false;
 
    render_dummy_point(instr_ptr);
@@ -3225,19 +3191,20 @@ uint32_t glxx_workaround_gfxh_1320_size(void)
       + (V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE_SIZE + V3D_CL_GL_SHADER_SIZE + render_dummy_point_size()) * 8;
 }
 
-bool glxx_workaround_gfxh_1320(uint8_t** instr_ptr, KHRN_FMEM_T* fmem)
+bool glxx_workaround_gfxh_1320(uint8_t** instr_ptr, khrn_fmem* fmem,
+   uint32_t fb_width, uint32_t fb_height)
 {
    uint8_t* instr = *instr_ptr;
 
    // Get address of scratch buffer for TLB to spray writes to.
    gmem_handle_t scratch_mem = khrn_get_gfxh_1320_buffer();
-   v3d_addr_t scratch_addr = khrn_fmem_lock_and_sync(fmem, scratch_mem, 0, V3D_BARRIER_TLB_OQ_READ | V3D_BARRIER_TLB_OQ_WRITE);
+   v3d_addr_t scratch_addr = khrn_fmem_sync_and_get_addr(fmem, scratch_mem, 0, V3D_BARRIER_TLB_OQ_READ | V3D_BARRIER_TLB_OQ_WRITE);
    if (!scratch_addr)
       return false;
 
    // Setup for rendering a point of size 1 pixel.
    v3d_addr_t shader_addr;
-   if (!setup_render_dummy_point_no_shader_no_query_addr(&instr, &shader_addr, fmem, 1.5f))
+   if (!setup_render_dummy_point_no_shader_no_query_addr(&instr, &shader_addr, fmem, 1.5f, fb_width, fb_height))
       return false;
 
    // Draw a pixel for each way in the occlusion query cache.
@@ -3294,7 +3261,7 @@ static bool glxx_hw_update_z_prepass_state(
    {
       // disable z-only if using blending (currently a conservative test)
 #if V3D_VER_AT_LEAST(4,0,2,0)
-      if (state->blend.rt_enables)
+      if (state->blend.rt_enables & gfx_mask(rs->installed_fb.rt_count))
 #else
       if (state->blend.enable)
 #endif
@@ -3304,7 +3271,8 @@ static bool glxx_hw_update_z_prepass_state(
 
       // disable z-prepass if using colour write masks (currently a conservative test)
       // timh-todo: should only care if this changes
-      if (state->color_write != gfx_mask(rs->installed_fb.rt_count * 4))
+      uint32_t relevant_channels = gfx_mask(rs->installed_fb.rt_count * 4);
+      if ((state->color_write & relevant_channels) != relevant_channels)
       {
          goto disallowed;
       }
@@ -3372,4 +3340,41 @@ disallowed:
    }
    rs->z_prepass_allowed = false;
    return true;
+}
+
+bool glxx_hw_tf_aware_sync_res(GLXX_HW_RENDER_STATE_T *rs,
+   khrn_resource *res, v3d_barrier_flags bin_rw_flags, v3d_barrier_flags render_rw_flags)
+{
+   unsigned wait_count;
+   if ((khrn_resource_get_write_stages(res, (khrn_render_state *)rs) & KHRN_STAGE_BIN) &&
+      (wait_count = res->last_tf_write_count))
+   {
+      // We have written to this buffer with transform feedback in this render
+      // state
+
+      if (bin_rw_flags)
+      {
+         if (rs->tf.waited_count < wait_count)
+         {
+            uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
+               V3D_CL_FLUSH_TRANSFORM_FEEDBACK_DATA_SIZE +
+               V3D_CL_WAIT_TRANSFORM_FEEDBACK_SIZE);
+            if (!instr)
+               return false;
+            v3d_cl_flush_transform_feedback_data(&instr);
+            v3d_cl_wait_transform_feedback(&instr, wait_count);
+            khrn_fmem_end_cle_exact(&rs->fmem, instr);
+
+            rs->tf.waited_count = wait_count;
+            rs->tf.done_cache_ops = V3D_CACHE_OPS_NONE;
+         }
+
+         khrn_fmem_cle_barrier(&rs->fmem, V3D_BARRIER_PTB_TF_WRITE, bin_rw_flags, &rs->tf.done_cache_ops);
+      }
+
+      if (render_rw_flags)
+         rs->fmem.br_info.render_depends_on_bin = true;
+   }
+
+   return khrn_fmem_sync_res(&rs->fmem, res, bin_rw_flags, render_rw_flags);
 }

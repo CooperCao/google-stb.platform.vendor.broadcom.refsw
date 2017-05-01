@@ -503,6 +503,9 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		/* BDSP_AF_P_AlgoId_eFadeCtrlPostProc */
 		0x036c5000,
 
+		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
+		0x03753800,
+
 		/* BDSP_AF_P_AlgoId_eEndOfPpAlgos */
 		0x00000000,
 

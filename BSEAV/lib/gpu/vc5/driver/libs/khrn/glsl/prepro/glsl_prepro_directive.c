@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  prepro
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_globals.h"
 
@@ -536,7 +529,7 @@ static void parse_directive()
    }
 }
 
-TokenSeq *glsl_directive_next_token(void)
+Token *glsl_directive_next_token(void)
 {
    while (true) {
       TokenData tok_data;
@@ -565,11 +558,14 @@ TokenSeq *glsl_directive_next_token(void)
             allow_directive = true;
          else {
             allow_directive = false;
-            allow_extension = false;
             allow_version   = false;
 
-            if (is_active(0))
-               return glsl_tokenseq_construct(glsl_token_construct(type, tok_data), NULL, NULL);
+            /* We only disallow extensions when returning active tokens. It's debatable
+             * whether inactive ones should count as 'non-preprocessor tokens' */
+            if (is_active(0)) {
+               allow_extension = false;
+               return glsl_token_construct(type, tok_data);
+            }
          }
       }
    }

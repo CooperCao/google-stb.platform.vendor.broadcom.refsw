@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,10 +70,10 @@
 /***************************************************************************
  *DVP_MT_AON_TOP - Top-Level
  ***************************************************************************/
-#define BCHP_DVP_MT_AON_TOP_SW_INIT              0x20d83000 /* [RW] MHL AON CBUS SW-INIT */
-#define BCHP_DVP_MT_AON_TOP_CBUS_PHY_CTL         0x20d83004 /* [RW] MHL CBUS PHY Control Register */
-#define BCHP_DVP_MT_AON_TOP_RCAL_PHY_CTL         0x20d83008 /* [RW] RCAL PHY Control Register */
-#define BCHP_DVP_MT_AON_TOP_RCAL_CBUS_PHY_STATUS 0x20d8300c /* [RO] RCAL and CBUS PHY Status register */
+#define BCHP_DVP_MT_AON_TOP_SW_INIT              0x20d83000 /* [RW][32] MHL AON CBUS SW-INIT */
+#define BCHP_DVP_MT_AON_TOP_CBUS_PHY_CTL         0x20d83004 /* [RW][32] MHL CBUS PHY Control Register */
+#define BCHP_DVP_MT_AON_TOP_RCAL_PHY_CTL         0x20d83008 /* [RW][32] RCAL PHY Control Register */
+#define BCHP_DVP_MT_AON_TOP_RCAL_CBUS_PHY_STATUS 0x20d8300c /* [RO][32] RCAL and CBUS PHY Status register */
 
 /***************************************************************************
  *SW_INIT - MHL AON CBUS SW-INIT

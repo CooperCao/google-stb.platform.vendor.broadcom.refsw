@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Creates GLES1.1 shaders as dataflow graphs and passes them to the compiler
-backend.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl11_shader.h"
 #include "../glsl/glsl_dataflow.h"
 #include "../glxx/glxx_shader_ops.h"
@@ -186,7 +177,7 @@ static void texture_lookup(GLXX_VEC4_T *result, Dataflow *sampler, const GLXX_VE
 {
    Dataflow *coords = glsl_dataflow_construct_vec4(coord->x, coord->y, NULL, NULL);
    Dataflow *r, *g, *b, *a;
-   glsl_dataflow_construct_texture_gadget(&r, &g, &b, &a, 0,
+   glsl_dataflow_construct_texture_lookup(&r, &g, &b, &a, 0,
                                           sampler, coords,
                                           NULL, NULL, NULL, 0xF, DF_FLOAT);
 
@@ -537,7 +528,7 @@ static void construct_builtins(struct builtin_unifs_s *unif, int *bindings) {
    new_bound_u(&unif->alpha_func_ref, &count, bindings, GL11_STATE_OFFSET(alpha_func.ref));
    new_bound_v4_u(&unif->projected_clip_plane, &count, bindings, GL11_STATE_OFFSET(projected_clip_plane));
    for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
-      unif->texunits[i].sampler = glsl_dataflow_construct_const_sampler(DF_FSAMPLER, count, false);
+      unif->texunits[i].sampler = glsl_dataflow_construct_const_image(DF_FSAMPLER, count, false);
       bindings[count++] = i;
       new_bound_v4_u(&unif->texunits[i].color, &count, bindings, GL11_STATE_OFFSET(texunits[i].color));
       new_bound_u(&unif->texunits[i].rgb_scale, &count, bindings, GL11_STATE_OFFSET(texunits[i].rgb_scale));

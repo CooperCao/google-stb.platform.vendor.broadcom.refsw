@@ -70,7 +70,7 @@ else # B_REFSW_REAL_MAKE
 NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
 OBJDIR ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}/nexus/bin
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 vpath %.c ${NEXUS_TOP}/../BSEAV/tools/bmemconfig
@@ -96,11 +96,11 @@ clean: clean_api clean_apps clean_boa
 api:
 	@$(MAKE) -C $(NEXUS_TOP)/build
 boa:
-	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa
+	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa
 clean_api:
 	@$(MAKE) -C $(NEXUS_TOP)/build clean
 clean_boa:
-	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
+	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa clean
 
 clean_apps:
 clean_light:
@@ -122,6 +122,7 @@ CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/media
 CFLAGS += -I${NEXUS_BIN_DIR}/../bmemconfig
 
 CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
+CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 
 # Always build with debug
 CFLAGS += -g

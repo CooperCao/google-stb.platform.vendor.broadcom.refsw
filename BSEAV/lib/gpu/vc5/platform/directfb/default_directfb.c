@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default DirectFB platform API for EGL driver
-Module   :  DirectFB platform on NEXUS
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_directfb.h"
 #include "private_directfb.h"
 

@@ -85,8 +85,7 @@ void BAPE_GetDefaultSettings(
     pSettings->maxIndependentDelay = 0;
     pSettings->maxPcmSampleRate = 48000;
     pSettings->numPcmBuffers = BAPE_CHIP_DEFAULT_NUM_PCM_BUFFERS;
-    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
-         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
+    if ( BAPE_P_DolbyCapabilities_MultichannelPcmFormat() == BAPE_MultichannelFormat_e7_1 )
     {
         pSettings->numPcmBuffers += 1;
     }
@@ -219,7 +218,7 @@ static unsigned BAPE_P_GetNumberOfBuffers(
     return numBuffers;
 }
 
-void BAPE_P_BufferNode_Free(BAPE_BufferNode *pNode)
+static void BAPE_P_BufferNode_Free(BAPE_BufferNode *pNode)
 {
     BDBG_OBJECT_ASSERT(pNode, BAPE_BufferNode);
     if ( pNode->block )
@@ -1860,6 +1859,12 @@ void BAPE_GetCapabilities(
                 case BDSP_Algorithm_eFadeCtrl:
                     pCaps->dsp.processing[BAPE_PostProcessorType_eFade] = true;
                     break;
+                case BDSP_Algorithm_eMixerDapv2:
+                    pCaps->dsp.dapv2 = true;
+                    break;
+                case BDSP_Algorithm_eTsmCorrection:
+                    pCaps->dsp.processing[BAPE_PostProcessorType_eAdvancedTsm] = true;
+                    break;
                 default:
                     break;
                 }
@@ -1869,13 +1874,13 @@ void BAPE_GetCapabilities(
         /* special cases */
         {
             /* disable DDP encode in MS12 config C */
-            if ( pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3Plus].encode && BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eC )
+            if ( pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3Plus].encode && !BAPE_P_DolbyCapabilities_DdpEncode(BAPE_MultichannelFormat_e5_1) )
             {
                 pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3Plus].encode = false;
             }
 
             if ( pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3].encode &&
-                 (BAPE_P_GetDolbyMSVersion_isrsafe() == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion_isrsafe() == BAPE_DolbyMSVersion_eMS11) )
+                 (BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11) )
             {
                 pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3].encode = false;
             }

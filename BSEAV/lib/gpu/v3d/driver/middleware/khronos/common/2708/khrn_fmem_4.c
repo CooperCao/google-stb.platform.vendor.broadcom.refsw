@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Control per-frame memory allocator
-
-FILE DESCRIPTION
-Handles allocation of memory for control lists and associated data that will be
-generated each frame as HW input.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/common/2708/khrn_fmem_4.h"
@@ -39,8 +30,6 @@ static void do_ramp_lock(KHRN_FMEM_T *fmem);
 static void do_ramp_unlock(KHRN_FMEM_T *fmem);
 #endif /* NO_OPENVG */
 static uint32_t *alloc_junk(KHRN_FMEM_T *fmem, int size, int align, MEM_LOCK_T *lbh);
-
-static bool inited = false;
 
 KHRN_FMEM_T *khrn_fmem_init(KHRN_INTERLOCK_USER_T interlock_user)
 {

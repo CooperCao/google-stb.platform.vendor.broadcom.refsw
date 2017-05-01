@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,8 +71,9 @@
 #include "nexus_mpod.h"
 #include "nexus_transport_wakeup.h"
 #include "nexus_vcxo.h"
-#if NEXUS_HAS_XPT_DMA
 #include "nexus_dma.h"
+#include "nexus_xpt_dma.h"
+#if NEXUS_HAS_XPT_DMA
 #include "bxpt_dma.h"
 #endif
 
@@ -139,6 +140,10 @@ B_REFSW_DSS_SUPPORT means the SW supports it and is set by env variable. */
 #include "nexus_tsio.h"
 #endif
 
+#if NEXUS_TRANSPORT_EXTENSION_EPR
+#include "nexus_epr.h"
+#endif
+
 #include "nexus_tsmf.h"
 #include "nexus_parser_band_channelbonding.h"
 #include "nexus_gcb_sw_priv.h"
@@ -175,33 +180,6 @@ typedef struct NEXUS_P_HwPidChannel NEXUS_P_HwPidChannel;
 #ifndef NEXUS_RAVE_THRESHOLD_UNITS
 /* XPT HW has a programmable units for CDB/ITB threshold interrupts. Nexus uses a fixed value. */
 #define NEXUS_RAVE_THRESHOLD_UNITS 256
-#endif
-
-#ifndef BXPT_NUM_FILTER_BANKS
-/*
-XPT legacy (pre-7422) mapping
-if NEXUS_HAS_LEGACY_XPT == 0, then it's latest XPT. today that's 7422, 7425.
-if NEXUS_HAS_LEGACY_XPT == 1, then it's pre-7422.
-NEXUS_HAS_LEGACY_XPT could have other non-zero values as XPT evolves.
-*/
-#define NEXUS_HAS_LEGACY_XPT 1
-#define BXPT_NUM_FILTER_BANKS   BXPT_P_MAX_FILTER_BANKS
-#define BXPT_NUM_TPIT_PIDS      BXPT_P_MAX_TPIT_PIDS
-#define BXPT_NUM_PID_PARSERS    BXPT_P_MAX_PID_PARSERS
-#define BXPT_NUM_PLAYBACKS      BXPT_P_MAX_PLAYBACKS
-#ifndef BXPT_P_MAX_REMULTIPLEXORS
-#define BXPT_NUM_REMULTIPLEXORS 0
-#else
-#define BXPT_NUM_REMULTIPLEXORS BXPT_P_MAX_REMULTIPLEXORS
-#endif
-#define BXPT_NUM_PCR_OFFSET_CHANNELS BXPT_P_MAX_PCR_OFFSET_CHANNELS
-#define BXPT_NUM_PID_CHANNELS   BXPT_P_MAX_PID_CHANNELS
-#define BXPT_NUM_PCRS           BXPT_P_MAX_PCRS
-#define BXPT_NUM_STCS           BXPT_P_MAX_STCS
-#define BXPT_NUM_PACKETSUBS     BXPT_P_MAX_PACKETSUBS
-#define BXPT_NUM_RAVE_CHANNELS  BXPT_P_MAX_RAVE_CHANNELS
-#define BXPT_NUM_RAVE_CONTEXTS  BXPT_P_MAX_RAVE_CONTEXTS
-#define NEXUS_PARSER_BAND_CC_CHECK 1
 #endif
 
 #if BXPT_NUM_REMULTIPLEXORS
@@ -468,6 +446,7 @@ struct NEXUS_PidChannel {
     BLST_S_ENTRY(NEXUS_PidChannel) link; /* link to link multiple pid-channels to same NEXUS_P_HwPidChannel */
     NEXUS_P_HwPidChannel *hwPidChannel; /* pointer to HW pid_channel */
     bool open; /* if true, public Close not called */
+    bool enabled; /* NEXUS_PidChannelSettings.enabled is aggregated */
 };
 
 
@@ -489,6 +468,7 @@ struct NEXUS_P_HwPidChannel {
     unsigned combinedPid;
     NEXUS_PidChannelSettings settings;
     NEXUS_PlaypumpHandle playpump; /* set if this is a playpump pidchannel */
+    NEXUS_DmaJobHandle dma;
     struct {
         NEXUS_RaveHandle rave;
         NEXUS_PidChannelScramblingSettings settings;
@@ -713,10 +693,7 @@ struct NEXUS_Transport_P_State {
 #endif
     NEXUS_RecpumpHandle recpump[BXPT_NUM_RAVE_CONTEXTS];
 
-#if NEXUS_NUM_PID_CHANNELS
     BLST_S_HEAD(NEXUS_Transport_P_PidChannels, NEXUS_P_HwPidChannel) pidChannels;
-    unsigned hwPidChannelRefCnt[NEXUS_NUM_PID_CHANNELS];
-#endif
 
 #if BXPT_NUM_PCRS
     NEXUS_TimebaseHandle timebase[BXPT_NUM_PCRS];
@@ -812,8 +789,10 @@ NEXUS_Error NEXUS_InputBand_P_SetTransportType(NEXUS_InputBand inputBand, NEXUS_
 void NEXUS_P_HwPidChannel_StopScramblingCheck(NEXUS_P_HwPidChannel *pidChannel);
 NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBand, NEXUS_PlaypumpHandle playpump, unsigned pid,
     const NEXUS_PidChannelSettings *pSettings, bool bandContinuityCountEnabled);
+NEXUS_Error NEXUS_P_HwPidChannel_CalcEnabled( NEXUS_P_HwPidChannel *pidChannel);
 void NEXUS_P_HwPidChannel_CloseAll(NEXUS_P_HwPidChannel *hwPidChannel); /* this function would close all SW pid channels, and then close hwPidChannel */
 NEXUS_Error NEXUS_Playpump_P_HwPidChannel_Disconnect(NEXUS_PlaypumpHandle p, NEXUS_P_HwPidChannel *pidChannel);
+NEXUS_Error NEXUS_DmaJob_P_HwPidChannel_Disconnect(NEXUS_DmaJobHandle handle, NEXUS_P_HwPidChannel *pidChannel);
 NEXUS_Error NEXUS_P_HwPidChannel_GetStatus(NEXUS_P_HwPidChannel *pidChannel, NEXUS_PidChannelStatus *pStatus);
 unsigned nexus_p_xpt_parser_band(NEXUS_P_HwPidChannel *hwPidChannel);
 
@@ -840,6 +819,10 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_MpodInput);
 
 #if NEXUS_TRANSPORT_EXTENSION_TSIO
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_TsioCard);
+#endif
+
+#if NEXUS_TRANSPORT_EXTENSION_EPR
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Epr);
 #endif
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Tsmf);

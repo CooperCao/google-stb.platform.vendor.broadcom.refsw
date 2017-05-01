@@ -367,6 +367,8 @@
 /* Core fetched addresses FNSC bitmask */
 #define PC_FETCHING_COMPRESSED_MASK 33554432
 
+/* Configurable reset vector */
+#define CORE_HAS_CONFIGURABLE_RESET_VECTOR 0
 
 /************************************************************************
  * Define behaviour at init time.

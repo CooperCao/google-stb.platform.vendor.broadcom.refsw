@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -826,6 +826,9 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
            mux->muxStartSettings.stPCRData.uiPIDChannelIndex = status.pidChannelIndex;
         }
     }
+    else {
+        mux->muxStartSettings.stPCRData.uiInterval = 0;
+    }
     for(i=0;i<NEXUS_MAX_MUX_PIDS;i++) {
         if(pSettings->userdata[i].message==NULL) {
             break;
@@ -852,7 +855,6 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
     rc = NEXUS_TsMux_SetSettings_priv(mux->tsMux, &tsMuxSettings, pSettings->stcChannel);
     NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.transport);
     if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }
-
 
     rc = BMUXlib_TS_Start(mux->mux, &mux->muxStartSettings);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
@@ -998,18 +1000,36 @@ NEXUS_StreamMux_AddSystemDataBuffer(NEXUS_StreamMuxHandle mux, const NEXUS_Strea
     BDBG_OBJECT_ASSERT(mux, NEXUS_StreamMux);
     BDBG_ASSERT(pSystemDataBuffer);
 
+    if(mux->started && !mux->startSettings.pcr.playpump) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     BKNI_Memset( &astSystemDataBuffer[0], 0, sizeof( BMUXlib_TS_SystemData ) );
     astSystemDataBuffer[0].uiTimestampDelta = pSystemDataBuffer->timestampDelta;
     astSystemDataBuffer[0].uiSize = pSystemDataBuffer->size;
 
+    if (!NEXUS_P_CpuAccessibleAddress(pSystemDataBuffer->pData)) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
     NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.core);
     rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv((void*)pSystemDataBuffer->pData, pSystemDataBuffer->size, &block, &offset);
-    if (!rc )
-    {
+    NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.core);
+    if (rc) {
+        return BERR_TRACE(rc);
+    }
+    else {
+        BSTD_DeviceOffset blockOffset;
+        BERR_Code rc;
         astSystemDataBuffer[0].uiBlockOffset = offset;
         astSystemDataBuffer[0].hBlock = NEXUS_MemoryBlock_GetBlock_priv(block);
+        blockOffset = BMMA_LockOffset(astSystemDataBuffer[0].hBlock);
+        rc = BCHP_OffsetOnMemc(g_pCoreHandles->chp, blockOffset, 0);
+        BMMA_UnlockOffset(astSystemDataBuffer[0].hBlock, blockOffset);
+        if (!rc) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
     }
-    NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.core);
     if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }
 
     queuedCount = 0;

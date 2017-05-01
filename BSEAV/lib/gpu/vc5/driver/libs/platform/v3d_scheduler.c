@@ -1,14 +1,6 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Job submission handler
-
-FILE DESCRIPTION
-Submission of jobs to the scheduler
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "vcos_atomic.h"
 #include "bcm_sched_api.h"
@@ -226,24 +218,6 @@ void v3d_scheduler_merge_deps(v3d_scheduler_deps* a, const v3d_scheduler_deps* b
    }
 }
 
-static void fill_sched_job_deps(struct bcm_sched_job *job, const v3d_scheduler_deps *deps,
-      v3d_sched_deps_state deps_state)
-{
-   job->completed_dependencies.n = 0;
-   job->finalised_dependencies.n = 0;
-   switch (deps_state)
-   {
-      case V3D_SCHED_DEPS_COMPLETED:
-         job->completed_dependencies = *deps;
-         break;
-      case V3D_SCHED_DEPS_FINALISED:
-         job->finalised_dependencies = *deps;
-         break;
-      default:
-         assert(0);
-   }
-}
-
 uint64_t v3d_scheduler_submit_null_job(const v3d_scheduler_deps *deps,
       v3d_sched_completion_fn completion, void *data)
 {
@@ -253,7 +227,7 @@ uint64_t v3d_scheduler_submit_null_job(const v3d_scheduler_deps *deps,
 
    memset(&job, 0, sizeof job);
    job.job_type = BCM_SCHED_JOB_TYPE_NULL;
-   fill_sched_job_deps(&job, deps, V3D_SCHED_DEPS_COMPLETED);
+   v3d_scheduler_copy_deps(&job.completed_dependencies, deps);
 
    job.completion_fn = completion;
    job.completion_data = data;
@@ -308,7 +282,7 @@ uint64_t v3d_scheduler_submit_tfu_job(
 
    memset(&job, 0, sizeof(job));
    job.job_type = BCM_SCHED_JOB_TYPE_V3D_TFU;
-   fill_sched_job_deps(&job, deps, V3D_SCHED_DEPS_COMPLETED);
+   v3d_scheduler_copy_deps(&job.completed_dependencies, deps);
    job.driver.tfu = tfu_cmd_to_tfu_job(tfu_cmd);
    job.completion_fn = completion;
    job.completion_data = data;
@@ -330,7 +304,7 @@ uint64_t v3d_scheduler_submit_render_job(
    struct bcm_sched_job job;
    memset(&job, 0, sizeof(job));
    job.job_type = BCM_SCHED_JOB_TYPE_V3D_RENDER;
-   fill_sched_job_deps(&job, deps, V3D_SCHED_DEPS_COMPLETED);
+   v3d_scheduler_copy_deps(&job.completed_dependencies, deps);
 
    job.driver.render.n = info->num_renders;
    for (unsigned i = 0; i < job.driver.render.n; i++)
@@ -340,6 +314,8 @@ uint64_t v3d_scheduler_submit_render_job(
    }
    job.driver.render.empty_tile_mode = info->empty_tile_mode;
    job.driver.render.gmp_table = info->render_gmp_table;
+   job.driver.render.workaround_gfxh_1181 = info->render_workaround_gfxh_1181;
+   job.driver.render.no_bin_overlap = info->render_no_bin_overlap;
 
    job.completion_fn = completion;
    job.completion_data = data;
@@ -363,7 +339,7 @@ void v3d_scheduler_submit_bin_render_job(
 
    /* Create the bin job */
    jobs[0].job_type = BCM_SCHED_JOB_TYPE_V3D_BIN;
-   fill_sched_job_deps(&jobs[0], bin_deps, V3D_SCHED_DEPS_COMPLETED);
+   v3d_scheduler_copy_deps(&jobs[0].completed_dependencies, bin_deps);
    jobs[0].driver.bin.n = br_info->num_bins;
    jobs[0].driver.bin.workaround_gfxh_1181 = br_info->bin_workaround_gfxh_1181;
    jobs[0].driver.bin.no_render_overlap = br_info->bin_no_render_overlap;
@@ -376,13 +352,16 @@ void v3d_scheduler_submit_bin_render_job(
       jobs[0].driver.bin.end[i] = br_info->bin_ends[i];
    }
    jobs[0].driver.bin.gmp_table = br_info->bin_gmp_table;
+#if V3D_HAS_QTS
+   jobs[0].driver.bin.tile_state_size = br_info->bin_tile_state_size;
+#endif
    jobs[0].completion_fn = bin_completion;
    jobs[0].completion_data = bin_compl_data;
    jobs[0].cache_ops |= br_info->bin_cache_ops;
 
    /* And the render job */
    jobs[1].job_type = BCM_SCHED_JOB_TYPE_V3D_RENDER;
-   fill_sched_job_deps(&jobs[1], render_deps, V3D_SCHED_DEPS_COMPLETED);
+   v3d_scheduler_copy_deps(&jobs[1].completed_dependencies, render_deps);
    jobs[1].driver.render.n = br_info->num_renders;
    jobs[1].driver.render.workaround_gfxh_1181 = br_info->render_workaround_gfxh_1181;
    jobs[1].driver.render.no_bin_overlap = br_info->render_no_bin_overlap;
@@ -439,25 +418,27 @@ void v3d_scheduler_submit_bin_render_job(
 uint64_t v3d_scheduler_submit_usermode_job(const v3d_scheduler_deps* deps,
       v3d_sched_user_fn user_fn, void *data)
 {
-   // Take a copy of deps so we can keep the interface using const deps
-   v3d_scheduler_deps copyDeps;
-   v3d_scheduler_copy_deps(&copyDeps, deps);
-
-   remove_finalised_deps(&copyDeps);
-   if (copyDeps.n == 0)
-   {
-      if (user_fn)
-         user_fn(data);
-      return 0;
-   }
-
    struct bcm_sched_job job;
    memset(&job, 0, sizeof job);
    job.job_type = BCM_SCHED_JOB_TYPE_USERMODE;
-   fill_sched_job_deps(&job, &copyDeps, V3D_SCHED_DEPS_COMPLETED);
+   v3d_scheduler_copy_deps(&job.completed_dependencies, deps);
    job.driver.usermode.user_fn = user_fn;
    job.driver.usermode.data = data;
+   return submit_job(&job, true);
+}
 
+uint64_t v3d_scheduler_submit_usermode_job2(
+   const v3d_scheduler_deps* completed_deps,
+   const v3d_scheduler_deps* finalised_deps,
+   v3d_sched_user_fn user_fn, void *data)
+{
+   struct bcm_sched_job job;
+   memset(&job, 0, sizeof job);
+   job.job_type = BCM_SCHED_JOB_TYPE_USERMODE;
+   v3d_scheduler_copy_deps(&job.completed_dependencies, completed_deps);
+   v3d_scheduler_copy_deps(&job.finalised_dependencies, finalised_deps);
+   job.driver.usermode.user_fn = user_fn;
+   job.driver.usermode.data = data;
    return submit_job(&job, true);
 }
 
@@ -470,33 +451,49 @@ uint64_t v3d_scheduler_submit_barrier_job(
    assert(!(cache_ops & V3D_CACHE_CLEAR_VCD));
 
    struct bcm_sched_job job;
-
    memset(&job, 0, sizeof(job));
    job.job_type = BCM_SCHED_JOB_TYPE_V3D_BARRIER;
-   fill_sched_job_deps(&job, deps, V3D_SCHED_DEPS_COMPLETED);
+   v3d_scheduler_copy_deps(&job.completed_dependencies, deps);
    job.cache_ops = cache_ops;
 
    return submit_job(&job, false);
 }
 
+static void setCompletedFinalisedDeps(const v3d_scheduler_deps *source_deps,
+                                    struct bcm_sched_dependencies *empty_deps,
+                                    v3d_sched_deps_state deps_state,
+                                    struct bcm_sched_dependencies **completed_deps,
+                                    struct bcm_sched_dependencies **finalised_deps)
+{
+   switch (deps_state)
+   {
+   case V3D_SCHED_DEPS_COMPLETED:
+      *completed_deps = (struct bcm_sched_dependencies *)source_deps;
+      *finalised_deps = empty_deps;
+      break;
+   case V3D_SCHED_DEPS_FINALISED:
+      *completed_deps = empty_deps;
+      *finalised_deps = (struct bcm_sched_dependencies *)source_deps;
+      break;
+   default:
+      unreachable();
+   }
+}
+
 int v3d_scheduler_create_fence(const v3d_scheduler_deps *deps,
       v3d_sched_deps_state deps_state, bool force_create)
 {
-   struct bcm_sched_dependencies completed_deps, finalised_deps;
-   completed_deps.n = 0;
-   finalised_deps.n = 0;
-   switch (deps_state)
-   {
-   case V3D_SCHED_DEPS_COMPLETED:   completed_deps = *deps; break;
-   case V3D_SCHED_DEPS_FINALISED:   finalised_deps = *deps; break;
-   default:                         unreachable();
-   }
+   struct bcm_sched_dependencies *completed_deps, *finalised_deps;
+   struct bcm_sched_dependencies empty_deps;
+   empty_deps.n = 0;
+
+   setCompletedFinalisedDeps(deps, &empty_deps, deps_state, &completed_deps, &finalised_deps);
 
    v3d_scheduler_flush();
-   int fence = bcm_sched_create_fence(&completed_deps, &finalised_deps, force_create);
+   int fence = bcm_sched_create_fence(completed_deps, finalised_deps, force_create);
 
    if (scheduler.dump_node_graph)
-      v3d_sched_graph_add_fence(fence, &completed_deps, &finalised_deps);
+      v3d_sched_graph_add_fence(fence, completed_deps, finalised_deps);
 
    return fence;
 }
@@ -552,12 +549,55 @@ void v3d_scheduler_wait_jobs(v3d_scheduler_deps *deps, v3d_sched_deps_state deps
    if (v3d_scheduler_jobs_reached_state(deps, deps_state, false))
       return;
 
-   int fence = v3d_scheduler_create_fence(deps, deps_state, /*force_create=*/false);
-   v3d_platform_fence_wait(fence);
-   v3d_platform_fence_close(fence);
+   struct bcm_sched_dependencies *completed_deps, *finalised_deps;
+   struct bcm_sched_dependencies empty_deps;
+   empty_deps.n = 0;
+
+   setCompletedFinalisedDeps(deps, &empty_deps, deps_state, &completed_deps, &finalised_deps);
+
+   v3d_scheduler_flush();
+   bcm_sched_wait_jobs(completed_deps, finalised_deps);
 
    if (deps_state == V3D_SCHED_DEPS_FINALISED)
       deps->n = 0;
+}
+
+bool v3d_scheduler_wait_jobs_timeout(v3d_scheduler_deps *deps, v3d_sched_deps_state deps_state, int timeout)
+{
+   if (v3d_scheduler_jobs_reached_state(deps, deps_state, false))
+      return true;
+
+   struct bcm_sched_dependencies *completed_deps, *finalised_deps;
+   struct bcm_sched_dependencies empty_deps;
+   empty_deps.n = 0;
+
+   setCompletedFinalisedDeps(deps, &empty_deps, deps_state, &completed_deps, &finalised_deps);
+
+   bcm_wait_status status = bcm_sched_wait_jobs_timeout(completed_deps, finalised_deps, timeout);
+
+   if (status == BCM_WaitJobDone)
+   {
+      if (deps_state == V3D_SCHED_DEPS_FINALISED)
+         deps->n = 0;
+      return true;
+   }
+   return false;
+}
+
+bool v3d_scheduler_wait_any_job_timeout(v3d_scheduler_deps *deps, v3d_sched_deps_state deps_state, int timeout)
+{
+   if (v3d_scheduler_jobs_reached_state(deps, deps_state, false))
+      return true;
+
+   struct bcm_sched_dependencies *completed_deps, *finalised_deps;
+   struct bcm_sched_dependencies empty_deps;
+   empty_deps.n = 0;
+
+   setCompletedFinalisedDeps(deps, &empty_deps, deps_state, &completed_deps, &finalised_deps);
+
+   bcm_wait_status status = bcm_sched_wait_any_job_timeout(completed_deps, finalised_deps, timeout);
+
+   return status == BCM_WaitJobDone;
 }
 
 void v3d_scheduler_wait_all(void)
@@ -569,10 +609,8 @@ bool v3d_scheduler_wait_any(void)
 {
    v3d_scheduler_flush();
 
-   int fence = bcm_sched_create_fence_for_any_non_finalised();
-   v3d_platform_fence_wait(fence);
-   v3d_platform_fence_close(fence);
-   return fence != V3D_PLATFORM_NULL_FENCE;
+   bool waited = bcm_sched_wait_for_any_non_finalised();
+   return waited;
 }
 
 void v3d_scheduler_flush(void)

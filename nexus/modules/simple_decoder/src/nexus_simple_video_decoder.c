@@ -80,12 +80,6 @@ struct nexus_captured_surface {
     } state;
 };
 
-static struct nexus_simplevideodecoder_defaultsettings {
-    NEXUS_VideoDecoderSettings settings;
-    NEXUS_VideoDecoderPlaybackSettings playbackSettings;
-    NEXUS_VideoDecoderExtendedSettings extendedSettings;
-} *g_default;
-
 struct NEXUS_SimpleVideoAsGraphics
 {
     NEXUS_SimpleVideoDecoderServerHandle server;
@@ -133,6 +127,7 @@ struct NEXUS_SimpleVideoDecoder
     NEXUS_VideoDecoderPlaybackSettings playbackSettings;
     NEXUS_VideoDecoderExtendedSettings extendedSettings;
     NEXUS_VideoDecoderSettings settings;
+    bool crcMode;
 
     struct {
         NEXUS_SimpleVideoDecoderStartCaptureSettings settings;
@@ -195,7 +190,7 @@ static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle hand
 static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHandle handle);
 static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle handle, bool allow_cache);
 static bool nexus_simplevideodecoder_p_nondecoder(NEXUS_SimpleVideoDecoderHandle handle);
-
+static NEXUS_Error nexus_simplevideodecoder_p_setvbisetings(NEXUS_SimpleVideoDecoderHandle handle, bool closedCaptionRouting);
 static void nexus_simple_p_close_primer(NEXUS_SimpleVideoDecoderHandle handle);
 
 /* server settings cache */
@@ -234,40 +229,20 @@ void NEXUS_SimpleVideoDecoder_GetDefaultServerSettings( NEXUS_SimpleVideoDecoder
 
 void NEXUS_SimpleVideoDecoderModule_LoadDefaultSettings( NEXUS_VideoDecoderHandle videoDecoder )
 {
-    if (!g_default) {
-        g_default = BKNI_Malloc(sizeof(*g_default));
-        if (!g_default) return;
-        BKNI_Memset(g_default, 0, sizeof(*g_default));
-    }
-    NEXUS_VideoDecoder_GetSettings(videoDecoder, &g_default->settings);
-    NEXUS_VideoDecoder_GetExtendedSettings(videoDecoder, &g_default->extendedSettings);
-    NEXUS_VideoDecoder_GetPlaybackSettings(videoDecoder, &g_default->playbackSettings);
-
-    /* default to an orthogonal feature set */
-    g_default->settings.supportedCodecs[NEXUS_VideoCodec_eH264_Svc] = false;
-    g_default->settings.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = false;
-    g_default->settings.colorDepth = 10; /* will be lowered to 8 bit if decoder doesn't support 10 */
-    if (g_default->settings.maxHeight > 1088) {
-        g_default->settings.maxWidth = 1920;
-        g_default->settings.maxHeight = 1080;
-    }
+    BSTD_UNUSED(videoDecoder);
 }
 
-void NEXUS_SimpleVideoDecoderModule_P_UnloadDefaultSettings(void)
+static void nexus_simplevideodecoder_p_set_default_decoder_settings(NEXUS_SimpleVideoDecoderHandle handle)
 {
-    if (g_default) {
-        BKNI_Free(g_default);
-        g_default = NULL;
-    }
+    NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(&handle->settings);
+    handle->settings.colorDepth = 10; /* will be lowered to 8 bit if decoder doesn't support 10 */
+    NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(&handle->extendedSettings);
+    NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(&handle->playbackSettings);
 }
 
 static void nexus_simplevideodecoder_p_set_default_settings(NEXUS_SimpleVideoDecoderHandle handle)
 {
-    if (g_default) {
-        handle->settings = g_default->settings;
-        handle->extendedSettings = g_default->extendedSettings;
-        handle->playbackSettings = g_default->playbackSettings;
-    }
+    nexus_simplevideodecoder_p_set_default_decoder_settings(handle);
     NEXUS_VideoDecoder_GetNormalPlay(&handle->trickSettings);
     BKNI_Memset(&handle->pictureQualitySettings, 0, sizeof(handle->pictureQualitySettings));
     NEXUS_VideoWindow_GetDefaultDnrSettings(&handle->pictureQualitySettings.dnr);
@@ -412,15 +387,6 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
 
     handle->serverSettings = *pSettings;
 
-    if (!g_default && handle->serverSettings.videoDecoder) {
-        /* this is added for backward compat with the risk that we wipe out client settings already made */
-        NEXUS_SimpleVideoDecoderHandle d;
-        NEXUS_SimpleVideoDecoderModule_LoadDefaultSettings(handle->serverSettings.videoDecoder);
-        for (d=BLST_S_FIRST(&server->decoders); d; d=BLST_S_NEXT(d, link)) {
-            nexus_simplevideodecoder_p_set_default_settings(d);
-        }
-    }
-
     if (handle->stcChannel)
     {
         /* notify ssc that something may have changed */
@@ -522,6 +488,7 @@ void NEXUS_SimpleVideoDecoder_GetDefaultStartSettings( NEXUS_SimpleVideoDecoderS
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_VideoDecoder_GetDefaultStartSettings(&pSettings->settings);
+    NEXUS_VideoDecoderPrimer_GetDefaultCreateSettings(&pSettings->primer.createSettings);
     pSettings->maxWidth = 1920;
     pSettings->maxHeight = 1080;
     pSettings->displayEnabled = true;
@@ -572,7 +539,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
 
     BDBG_MSG(("nexus_simplevideodecoder_p_connect %p", (void *)handle));
     rc = nexus_simplevideodecoder_p_setdecodersettings(handle, true);
-    if (rc) return BERR_TRACE(rc);
+    if (rc) {BERR_TRACE(rc); goto error;}
 
     videoInput = nexus_simplevideodecoder_p_getinput(handle);
     if (!videoInput) {
@@ -612,6 +579,11 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
         if (rc) {rc = BERR_TRACE(rc); goto error;}
         handle->capture.displayConnected = true;
     }
+
+    /* must call after NEXUS_VideoWindow_AddInput so that MTG settings can have effect before NEXUS_VideoInput_SetVbiSettings
+    creates the BVDC_Source without window context. */
+    rc = nexus_simplevideodecoder_p_setvbisetings(handle, handle->clientSettings.closedCaptionRouting);
+    if (rc) {BERR_TRACE(rc); goto error;}
 
     handle->connected = true;
     return 0;
@@ -1217,6 +1189,28 @@ static NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHan
 
     nexus_simplevideodecoder_p_enable_tsm_extensions(handle);
 
+    if (handle->crcMode) {
+        NEXUS_VideoInputSettings videoInputSettings;
+        unsigned i;
+        NEXUS_VideoInput videoInput = NEXUS_VideoDecoder_GetConnector(handle->serverSettings.videoDecoder);
+        NEXUS_VideoInput_GetSettings(videoInput, &videoInputSettings);
+        if (videoInputSettings.crcQueueSize == 0) {
+            videoInputSettings.crcQueueSize = 128;
+            rc = NEXUS_VideoInput_SetSettings(videoInput, &videoInputSettings);
+            if (rc) return BERR_TRACE(rc);
+        }
+        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+            if (handle->serverSettings.window[i]) {
+                NEXUS_VideoWindowSettings windowSettings;
+                NEXUS_VideoWindow_GetSettings(handle->serverSettings.window[i], &windowSettings);
+                if (windowSettings.scaleFactorRounding.verticalTolerance) {
+                    windowSettings.scaleFactorRounding.verticalTolerance = 0;
+                    NEXUS_VideoWindow_SetSettings(handle->serverSettings.window[i], &windowSettings);
+                }
+            }
+        }
+    }
+
     {
         NEXUS_VideoDecoderStartSettings startSettings = handle->startSettings.settings;
         if (handle->stcChannel)
@@ -1306,6 +1300,7 @@ static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle hand
     nexus_simplevideodecoder_p_disable_tsm_extensions(handle); /* must be after stop, before started=false */
     handle->started = false;
     handle->primer.started = false;
+    handle->crcMode = false;
 
     nexus_simplevideodecoder_p_reset_caps(handle);
 }
@@ -1562,18 +1557,9 @@ static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVid
         rc = NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &handle->extendedSettings);
         if (rc) return BERR_TRACE(rc);
     }
-    else if (g_default) {
-        /* restore the regular decoder's initial settings */
-        rc = NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &g_default->playbackSettings);
-        if (rc) return BERR_TRACE(rc);
-        rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, &g_default->settings);
-        if (rc) return BERR_TRACE(rc);
-        rc = NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &g_default->extendedSettings);
-        if (rc) return BERR_TRACE(rc);
+    else {
+        nexus_simplevideodecoder_p_set_default_decoder_settings(handle);
     }
-
-    rc = nexus_simplevideodecoder_p_setvbisetings(handle, currentSettings && handle->clientSettings.closedCaptionRouting);
-    if (rc) return BERR_TRACE(rc);
 
     return 0;
 }
@@ -1644,7 +1630,7 @@ static int nexus_simple_p_open_primer(NEXUS_SimpleVideoDecoderHandle handle)
 {
     if (!handle->primer.handle) {
         int rc;
-        handle->primer.handle = NEXUS_VideoDecoderPrimer_Create(NULL);
+        handle->primer.handle = NEXUS_VideoDecoderPrimer_Create(&handle->startSettings.primer.createSettings);
         if (!handle->primer.handle) {
             return BERR_TRACE(NEXUS_NOT_AVAILABLE);
         }
@@ -2194,6 +2180,10 @@ NEXUS_VideoImageInputHandle NEXUS_SimpleVideoDecoder_StartImageInput( NEXUS_Simp
     if (handle->connected) {
         nexus_simplevideodecoder_p_disconnect(handle, false);
     }
+    else {
+        /* We cannot use a cached decoder. NEXUS_VideoWindow_RemoveInput must be called so that VideoImageInput can be used for the same MFD. */
+        NEXUS_SimpleVideoDecoderModule_CheckCache(handle->server, NULL, handle->serverSettings.videoDecoder);
+    }
     if (pStartSettings) {
         handle->startSettings = *pStartSettings;
     }
@@ -2363,6 +2353,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SwapWindows( NEXUS_SimpleVideoDecoderServer
     NEXUS_SimpleVideoDecoderServerSettings swap;
     unsigned i;
     int rc;
+    NEXUS_VideoWindowStatus status;
 
     if (decoder1->server != server || decoder2->server != server) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
@@ -2370,9 +2361,20 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SwapWindows( NEXUS_SimpleVideoDecoderServer
     nexus_simplevideodecoder_p_setmanualpowerstate(decoder1, true);
     nexus_simplevideodecoder_p_setmanualpowerstate(decoder2, true);
 
+    /* Swap so decoder2 is sync locked so we RemoveInput on syncslip then synclock,
+    then AddInput in reverse order to reduce churn on nexus_video_window synclock prediction. */
+    rc = NEXUS_VideoWindow_GetStatus(decoder1->serverSettings.window[0], &status);
+    if (!rc && status.isSyncLocked) {
+        NEXUS_SimpleVideoDecoderHandle temp = decoder1;
+        decoder1 = decoder2;
+        decoder2 = temp;
+    }
+
     swap = decoder1->serverSettings;
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    /* Iterate backwards so we RemoveInput from SD then HD,
+    then AddInput in reverse order to reduce churn on nexus_video_window synclock prediction. */
+    for (i=NEXUS_MAX_DISPLAYS-1;i<NEXUS_MAX_DISPLAYS;i--) {
         NEXUS_VideoWindowHandle window;
 
         /* disconnect */
@@ -2437,19 +2439,20 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_GetVideoInputCrcData( NEXUS_SimpleVideoDeco
 {
     NEXUS_Error rc;
     NEXUS_VideoInput videoInput;
-    NEXUS_VideoInputSettings videoInputSettings;
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
     *pNumReturned = 0;
     if (nexus_simplevideodecoder_has_resource(handle, &rc)) {
         return NEXUS_SUCCESS;
     }
-    videoInput = NEXUS_VideoDecoder_GetConnector(handle->serverSettings.videoDecoder);
-    NEXUS_VideoInput_GetSettings(videoInput, &videoInputSettings);
-    if (videoInputSettings.crcQueueSize == 0) {
-        videoInputSettings.crcQueueSize = 128;
-        rc = NEXUS_VideoInput_SetSettings(videoInput, &videoInputSettings);
-        if (rc) return BERR_TRACE(rc);
+    if (!handle->started) {
+        handle->crcMode = true;
+        return NEXUS_SUCCESS;
     }
+    if (!handle->crcMode) {
+        BDBG_ERR(("NEXUS_SimpleVideoDecoder_GetVideoInputCrcData must be called once before Start to enable CRC mode"));
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+    videoInput = NEXUS_VideoDecoder_GetConnector(handle->serverSettings.videoDecoder);
     return NEXUS_VideoInput_GetCrcData(videoInput, pEntries, numEntries, pNumReturned);
 }
 

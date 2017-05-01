@@ -854,7 +854,7 @@ static void setup_decryptor()
 
     // New API - initializing Decryptor
     psshDataStr = s_app.parser->GetPssh();
-    dump_hex("pssh", psshDataStr.data(), psshDataStr.size());
+    dump_hex("pssh", psshDataStr.data(), psshDataStr.size(), true);
     if (!s_app.decryptor->Initialize(psshDataStr)) {
            LOGE(("Failed to initialize Decryptor"));
         exit(EXIT_FAILURE);
@@ -862,7 +862,7 @@ static void setup_decryptor()
 
     // New API - GenerateKeyRequest
     cpsSpecificData = s_app.parser->GetCpsSpecificData();
-    dump_hex("cpsSpecificData", cpsSpecificData.data(), cpsSpecificData.size());
+    dump_hex("cpsSpecificData", cpsSpecificData.data(), cpsSpecificData.size(), true);
     if (!s_app.decryptor->GenerateKeyRequest(cpsSpecificData)) {
         LOGE(("Failed to generate key request"));
         exit(EXIT_FAILURE);
@@ -1010,6 +1010,12 @@ int main(int argc, char* argv[])
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
+
+#ifdef NEXUS_EXPORT_HEAP
+    /* Configure export heap since it's not allocated by nexus by default */
+    /* FIXME: for now, using the same size as used in bpiff example */
+    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024*1024;
+#endif
 
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
     if (secure_video)

@@ -179,6 +179,8 @@ unset NEXUS_PLATFORM_7241_T2SFF
 unset NEXUS_USE_75525_C
 fi
 
+B_REFSW_OBJ_SUFFIX=$(echo "$@")
+
 for cmd in $@; do
 
 # test for chip versions
@@ -349,7 +351,7 @@ mixed)
     NEW_TOOLCHAIN_PATH=xxx
     ;;
 
-4.1-1.7|4.1-1.8|4.1-1.9)
+4.1-1.7|4.1-1.8|4.1-1.9|4.1-1.10)
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
     NEW_MIPS=y
@@ -833,10 +835,11 @@ if [ -z "$NEXUS_PLATFORM" -a -n "$BCHP_VER" ] || [ -n "$NEXUS_PLATFORM" -a -z "$
    echo ' '
 fi
 
-if [ "$LINUX_ROOT" == "" ] ; then
-   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.9
+if [ -z "$LINUX_ROOT" ]; then
+   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.10
    URSR_ARM64_LINUX_ROOT=$URSR_ARM_LINUX_ROOT
    URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-4.1
+   URSR_MIPS_LINUX_4_1_ROOT=/opt/brcm/linux-4.1-1.10
 else
    URSR_ARM_LINUX_ROOT=$LINUX_ROOT
    URSR_ARM64_LINUX_ROOT=$LINUX_ROOT
@@ -1134,15 +1137,17 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
     97435)
         case $BCHP_VER in
         B0)
-	    case $NEXUS_USE_7425_SV_BOARD in
-            y|Y)
-	    LINUX_ROOT=/opt/brcm/linux-4.1-1.9
-	    NEW_MIPS=y
-	    ;;
-	    *)
-	    LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
-	    ;;
-	    esac
+	    if [ 'y' = $NEXUS_USE_7425_SV_BOARD -o 'Y' = $NEXUS_USE_7425_SV_BOARD ]; then
+	        LINUX_ROOT=$URSR_MIPS_LINUX_4_1_ROOT
+	        NEW_MIPS=y
+	    else
+	        if [ 'y' = $NEXUS_USE_7425_VMS_SFF -o 'Y' = $NEXUS_USE_7425_VMS_SFF ]; then
+	            LINUX_ROOT=$URSR_MIPS_LINUX_4_1_ROOT
+	            NEW_MIPS=y
+		else
+		    LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
+		fi
+	    fi
         ;;
         *)
         CHIP_VER_NOT_VALID=1
@@ -1644,6 +1649,24 @@ case $NEXUS_PLATFORM in
     ;;
 esac
 
+fi
+
+if [ -z "$IM_DEAD" -a ! -z "${NEXUS_PLATFORM}"  -a ! -z "${B_REFSW_OBJ_SUFFIX}" ]; then
+    B_REFSW_OBJ_SUFFIX=$(
+        echo ${B_REFSW_OBJ_SUFFIX}|tr /a-z/ /A-Z/|xargs -n1 | # upperase command line and convert words to lines
+        grep -v -F "${NEXUS_PLATFORM}"|grep -v -F "${BCHP_VER}"| # filter out platform and chip revsion (we would add them latter)
+        sort -u|xargs|sed -e 's/ /./g') # sort (to get consistent order) and convert lines to words separated by dots
+    B_REFSW_OBJ_DIR="obj.${NEXUS_PLATFORM}"
+    if [ ! -z "${BCHP_VER}" ]; then
+        # add chip revision (if known)
+        B_REFSW_OBJ_DIR="${B_REFSW_OBJ_DIR}.${BCHP_VER}"
+    fi
+    if [ ! -z "${B_REFSW_OBJ_SUFFIX}" ]; then
+        # add everything else
+        B_REFSW_OBJ_DIR="${B_REFSW_OBJ_DIR}.${B_REFSW_OBJ_SUFFIX}"
+    fi
+    export B_REFSW_OBJ_DIR
+    echo "B_REFSW_OBJ_DIR=${B_REFSW_OBJ_DIR}"
 fi
 
 # End of file

@@ -38,28 +38,22 @@
 #############################################################################
 
 
-# WLAN drivers and WPA Supplicant setup (only option is -f which forces setup)
-
-if [ ! -f wl.ko ] || [ ! -f wpa_supplicant ]; then
-    # wlan and wpa_supplicant do not exist so do nothing
-    exit 0
-fi
+# WPA Supplicant setup
+#   -q which removes wpa supplicant and wl drivers
+#   -f forces reinstallation of wpa supplicant (not wl drivers)
 
 export LD_LIBRARY_PATH=.
 FORCE="false"
+QUIT="false"
 
-#find appropriate wlan driver configuration based on board
-if [ ! -f /proc/device-tree/bolt/board ]; then
-    echo "atlas_wlan_prep.sh ERROR: wlan driver config cannot be determined"
-    exit -1
-fi
-WLAN_CONFIG_FILE=`cat /proc/device-tree/bolt/board | awk '{print tolower($0)}'`
-
-while getopts 'f' opt ;
+while getopts "fq" opt ;
 do
     case $opt in
     f)
         FORCE="true"
+    ;;
+    q)
+        QUIT="true"
     ;;
     esac
 done
@@ -69,22 +63,62 @@ if [ ! -d /var/run/wpa_supplicant ]; then
     FORCE="true"
 fi
 
-if [ "${FORCE}" == "true" ]; then
-    killall -9 wpa_supplicant
-fi
+if [ "${QUIT}" == "true" ]; then
+    TEST=`ps aux|grep wpa_supplicant|grep -v grep >/dev/null && echo 1`
+    if [ ! -z $TEST ]; then
+        echo "kill wpa_supplicant"
+        killall -9 wpa_supplicant
+        sleep 1
+    fi
 
-if [ -f /tmp/udhcpc.wlan0.pid ]; then
-    #remnants from previous instance - kill/remove
-    kill -9 `cat /tmp/udhcpc.wlan0.pid`
-    rm -f /tmp/udhcpc.wlan0.pid
-fi
+    if [ -f /tmp/udhcpc.wlan0.pid ]; then
+        #remnants from previous instance - kill/remove
+        echo "kill udhcpc for wlan0"
+        kill -9 `cat /tmp/udhcpc.wlan0.pid`
+        rm -f /tmp/udhcpc.wlan0.pid
+    fi
 
-TEST=`lsmod|grep wl >/dev/null && echo 1`
-if [ -z $TEST ] || [ "${FORCE}" == "true" ]; then
-    wlinstall wl.ko wlan0 $WLAN_CONFIG_FILE.txt
-fi
+    TEST=`lsmod|grep -w wl >/dev/null && echo 1`
+    if [ ! -z $TEST ]; then
+        echo "rmmod wl.ko"
+        rmmod wl.ko
+    fi
 
-TEST=`pidof wpa_supplicant >/dev/null && echo 1`
-if [ -z $TEST ] || [ "${FORCE}" == "true" ]; then
-    wpa_supplicant -Dnl80211 -iwlan0 -c wpa_supplicant.conf -B
+    TEST=`lsmod|grep -w wlan_plat > /dev/null && echo 1`
+    if [ ! -z $TEST ]; then
+	echo "rmmod wlan_plat.ko"
+	rmmod wlan_plat.ko
+    fi
+
+    TEST=`lsmod|grep wakeup_drv >/dev/null && echo 1`
+    if [ ! -z $TEST ]; then
+        echo "rmmod wakeup_drv.ko"
+        rmmod wakeup_drv.ko
+    fi
+
+    TEST=`lsmod|grep nexus >/dev/null && echo 1`
+    if [ ! -z $TEST ]; then
+        echo "rmmod nexus.ko"
+        rmmod nexus.ko
+    fi
+
+    TEST=`lsmod|grep brcmv3d >/dev/null && echo 1`
+    if [ ! -z $TEST ]; then
+        echo "rmmod brcmv3d.ko"
+        rmmod brcmv3d.ko
+    fi
+else
+    TEST=`lsmod|grep -w wl >/dev/null && echo 1`
+    TEST1=`lsmod|grep -w wlan_plat > /dev/null && echo 1`
+    if [ "$TEST" != "1" ] || [ "$TEST1" != "1" ]; then
+        if [ -e wl.ko ] && [ -e wlinstall ] && [ -e wlan_plat.ko ]; then
+            wlinstall wl.ko wlan0
+        fi
+    fi
+
+    TEST=`ps aux|grep wpa_supplicant|grep -v grep >/dev/NULL && echo 1`
+    if [ "$TEST" != "1" ] || [ "${FORCE}" == "true" ]; then
+        echo "start wpa_supplicant"
+        wpa_supplicant -Dnl80211 -iwlan0 -c wpa_supplicant.conf -B
+    fi
 fi

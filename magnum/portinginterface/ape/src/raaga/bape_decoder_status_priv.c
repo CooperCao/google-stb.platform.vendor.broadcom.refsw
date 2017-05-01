@@ -343,6 +343,29 @@ static BERR_Code BAPE_Decoder_P_GetAc4Status(
     return BERR_SUCCESS;
 }
 
+static void BAPE_DecoderStatus_P_StatusReady_isr(void *pParam1, int param2)
+{
+    BAPE_DecoderHandle handle = pParam1;
+    BDSP_AudioInterruptHandlers interrupts;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
+    BSTD_UNUSED(param2);
+    BDBG_MSG(("Status Ready Interrupt Received [decoder %u]", handle->index));
+
+    /* to be used on demand when we need to block for status */
+    if ( handle->statusEvent )
+    {
+        BDBG_MSG(("\nSetting Status event\n"));
+        BKNI_SetEvent_isr(handle->statusEvent);
+    }
+
+    /* Disable the interrupt after it fires. Other status calls will manually set it if they need it. */
+    BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
+    interrupts.statusReady.pCallback_isr = NULL;
+    interrupts.statusReady.pParam1 = handle;
+    (void)BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
+}
+
 BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
     BAPE_DecoderHandle handle,
     unsigned presentationIndex,
@@ -353,6 +376,48 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
 
     if ( !handle->passthrough )
     {
+        errCode = BDSP_Stage_GetSettings(handle->hPrimaryStage, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4));
+        if ( errCode )
+        {
+            return errCode;
+        }
+
+        if ( handle->userConfig.ac4.i32StreamInfoPresentationNumber != (int)presentationIndex )
+        {
+            if ( handle->firstStatusComplete )
+            {
+                BDSP_AudioInterruptHandlers interrupts;
+
+                BKNI_EnterCriticalSection();
+                BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
+                interrupts.statusReady.pCallback_isr = BAPE_DecoderStatus_P_StatusReady_isr;
+                interrupts.statusReady.pParam1 = handle;
+                (void)BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
+                BKNI_LeaveCriticalSection();
+            }
+
+            handle->userConfig.ac4.i32StreamInfoPresentationNumber = (int)presentationIndex;
+            errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4));
+            if ( errCode )
+            {
+                return errCode;
+            }
+        }
+
+        if ( handle->firstStatusComplete && handle->statusEvent )
+        {
+            errCode = BKNI_WaitForEvent(handle->statusEvent, 100);
+            if ( errCode == BERR_TIMEOUT )
+            {
+                BDBG_WRN(("Timed out waiting for BDSP status ready signal."));
+            }
+        }
+        else
+        {
+            BDBG_WRN(("WARNING - status event was never created."));
+            BKNI_Sleep(50);
+        }
+
         errCode = BDSP_Stage_GetStatus(handle->hPrimaryStage, &handle->streamInfo.ac4, sizeof(handle->streamInfo.ac4));
         if ( errCode )
         {
@@ -370,31 +435,31 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
             unsigned i;
             for (i=0; i<AC4_DEC_PRESENTATION_NAME_LENGTH/4; i++)
             {
-                pInfo->info.ac4.name[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>24)&0xFF);
-                pInfo->info.ac4.name[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>16)&0xFF);
-                pInfo->info.ac4.name[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>8)&0xFF);
-                pInfo->info.ac4.name[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i])&0xFF);
-                /*BDBG_ERR(("  name[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]));*/
+                pInfo->info.ac4.name[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationName[i]>>24)&0xFF);
+                pInfo->info.ac4.name[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationName[i]>>16)&0xFF);
+                pInfo->info.ac4.name[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationName[i]>>8)&0xFF);
+                pInfo->info.ac4.name[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationName[i])&0xFF);
+                /*BDBG_ERR(("  name[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationName[i]));*/
             }
             for (i=0; i<BAPE_AC4_LANGUAGE_NAME_LENGTH/4; i++)
             {
-                pInfo->info.ac4.language[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>24)&0xFF);
-                pInfo->info.ac4.language[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>16)&0xFF);
-                pInfo->info.ac4.language[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>8)&0xFF);
-                pInfo->info.ac4.language[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i])&0xFF);
-                /*BDBG_ERR(("  language[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]));*/
+                pInfo->info.ac4.language[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32MainLanguage[i]>>24)&0xFF);
+                pInfo->info.ac4.language[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32MainLanguage[i]>>16)&0xFF);
+                pInfo->info.ac4.language[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32MainLanguage[i]>>8)&0xFF);
+                pInfo->info.ac4.language[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.ui32MainLanguage[i])&0xFF);
+                /*BDBG_ERR(("  language[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo.ui32MainLanguage[i]));*/
             }
             for (i=0; i<BAPE_AC4_PRESENTATION_ID_LENGTH/4; i++)
             {
-                pInfo->info.ac4.id[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]>>24)&0xFF);
-                pInfo->info.ac4.id[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]>>16)&0xFF);
-                pInfo->info.ac4.id[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]>>8)&0xFF);
-                pInfo->info.ac4.id[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i])&0xFF);
-                /*BDBG_ERR(("  id[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]));*/
+                pInfo->info.ac4.id[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.i32ProgramIdentifier[i]>>24)&0xFF);
+                pInfo->info.ac4.id[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.i32ProgramIdentifier[i]>>16)&0xFF);
+                pInfo->info.ac4.id[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.i32ProgramIdentifier[i]>>8)&0xFF);
+                pInfo->info.ac4.id[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo.i32ProgramIdentifier[i])&0xFF);
+                /*BDBG_ERR(("  id[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo.i32ProgramIdentifier[i]));*/
             }
         }
-        pInfo->info.ac4.index = handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationIndex;
-        pInfo->info.ac4.associateType = (BAPE_Ac4AssociateType)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32AssociateType;
+        pInfo->info.ac4.index = handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationIndex;
+        pInfo->info.ac4.associateType = (BAPE_Ac4AssociateType)handle->streamInfo.ac4.AC4DECPresentationInfo.ui32AssociateType;
         BDBG_MSG(("Presentation Info for idx %lu:", (unsigned long)presentationIndex));
         BDBG_MSG(("  index: %lu", (unsigned long)pInfo->info.ac4.index));
         BDBG_MSG(("  id: %s", pInfo->info.ac4.id));

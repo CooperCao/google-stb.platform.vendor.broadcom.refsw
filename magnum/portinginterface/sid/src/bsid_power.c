@@ -176,8 +176,6 @@ BERR_Code BSID_P_Standby(BSID_Handle hSid)
          }
        }
 
-       BSID_P_HaltArc(hSid->hReg);
-
        /* callback must be disabled and re-enabled */
        retCode = BINT_DisableCallback(hSid->hServiceIsr);
        if (retCode != BERR_SUCCESS)
@@ -186,6 +184,10 @@ BERR_Code BSID_P_Standby(BSID_Handle hSid)
            if (BERR_SUCCESS == failureCode)
                 failureCode = retCode;
        }
+
+       BSID_P_HaltArc(hSid->hReg);
+       BSID_P_ArcSoftwareReset(hSid->hReg);
+
        retCode = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
        if (retCode != BERR_SUCCESS)
        {
@@ -242,20 +244,21 @@ BERR_Code BSID_P_Resume(BSID_Handle hSid)
        (i.e. leaves the firmware disabled) */
 
     /* acquire power resources */
-    retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
+    retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_ePower);
     if (BERR_SUCCESS != retCode)
     {
-        /* if we can't acquire the clock, then were done - cant resume so dont do anything */
-        BDBG_ERR(("Resume: Unable to Acquire Clock Resource"));
+        /* if we can't acquire the power, then were done - cant resume so dont do anything */
+        BDBG_ERR(("Resume: Unable to Acquire Power Resource"));
         BDBG_LEAVE(BSID_P_Resume);
         return BERR_SUCCESS;
     }
 
-    retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_ePower);
+    retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
     if (BERR_SUCCESS != retCode)
     {
         BDBG_ERR(("Resume: Unable to Acquire Power Resource"));
-        goto errorClock;  /* release clock */
+        goto errorClock;  /* release Power Resource acquired above */
+
     }
     /* NOTE: from this point on, if fail any step then release power and clock */
 
@@ -266,14 +269,14 @@ BERR_Code BSID_P_Resume(BSID_Handle hSid)
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("Resume: BSID_P_BootArc failed"));
-        goto errorPower;
+        goto error;
     }
 
     retCode = BINT_EnableCallback(hSid->hServiceIsr);
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("Resume: BINT_EnableCallback failed"));
-        goto errorPower;
+        goto error;
     }
 
 #if 0
@@ -282,7 +285,7 @@ BERR_Code BSID_P_Resume(BSID_Handle hSid)
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("Resume: BINT_EnableCallback failed"));
-        goto errorPower;
+        goto error;
     }
 #endif
 
@@ -290,14 +293,14 @@ BERR_Code BSID_P_Resume(BSID_Handle hSid)
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("Resume: BSID_P_SendCmdInit failed"));
-        goto errorPower;
+        goto error;
     }
 
     retCode = BSID_P_ResumeActiveChannels(hSid);
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BSID_P_ResumeActiveChannels failed with error 0x%x", retCode));
-        goto errorPower;
+        goto error;
     }
 
     /* NOTE: we can release this here since SendCmdInit and SendCmdOpenChannels
@@ -307,7 +310,7 @@ BERR_Code BSID_P_Resume(BSID_Handle hSid)
     if (BERR_SUCCESS != retCode)
     {
         BDBG_ERR(("Resume: Unable to release Clock Resource"));
-        goto errorPower;
+        goto errorClock;   /* release power resource previously acquired */
     }
 #endif
 
@@ -315,18 +318,18 @@ BERR_Code BSID_P_Resume(BSID_Handle hSid)
     BDBG_LEAVE( BSID_P_Resume );
     return BERR_SUCCESS;
 
-errorPower:
-    rc = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_ePower);
-    if (BERR_SUCCESS != rc)
-    {
-       BDBG_ERR(("Resume: Unable to release Power Resource"));
-    }
-
-errorClock:
+error:
     rc = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
     if (BERR_SUCCESS != rc)
     {
        BDBG_ERR(("Resume: Unable to release Clock Resource"));
+    }
+
+errorClock:
+    rc = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_ePower);
+    if (BERR_SUCCESS != rc)
+    {
+       BDBG_ERR(("Resume: Unable to release Power Resource"));
     }
 
     BDBG_LEAVE( BSID_P_Resume );

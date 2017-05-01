@@ -155,39 +155,44 @@ _P_IsSdlValid(
     bool rc = false;
     uint32_t sdlTHLSigShort;
 
-    if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
-         pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
-      rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
-      if (rc != true) {
-        BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
-                  __FUNCTION__, pHeader->ucSsfVersion[0],
-                  pHeader->ucSsfVersion[1],
-                  pHeader->ucSsfVersion[2],
-                  pHeader->ucSsfVersion[3]));
-        BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
-                  __FUNCTION__));
-        BDBG_ERR(("%s: The SDL must be recompiled using SAGE version %u.%u.%u.%u SDK",
-                  __FUNCTION__, hSAGElib->frameworkInfo.version[0],
-                  hSAGElib->frameworkInfo.version[1],
-                  hSAGElib->frameworkInfo.version[2],
-                  hSAGElib->frameworkInfo.version[3]));
-        goto end;
-      }
-    }
-    else {
-      BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", __FUNCTION__));
-    }
-
     sdlTHLSigShort = pHeader->ucSsfThlShortSig[0] | (pHeader->ucSsfThlShortSig[1] << 8) |
                      (pHeader->ucSsfThlShortSig[2] << 16) | (pHeader->ucSsfThlShortSig[3] << 24);
 
-    rc = (sdlTHLSigShort == hSAGElib->frameworkInfo.THLShortSig);
-    if (rc != true) {
-        BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
-                  __FUNCTION__, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
-        BDBG_ERR(("%s: The SDL must be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
-                  __FUNCTION__));
-        goto end;
+    if (sdlTHLSigShort != 0) {
+        rc = (sdlTHLSigShort == hSAGElib->frameworkInfo.THLShortSig);
+        if (rc != true) {
+            if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
+                 pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
+                rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
+                if (rc != true) {
+                    BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
+                              __FUNCTION__, pHeader->ucSsfVersion[0],
+                              pHeader->ucSsfVersion[1],
+                              pHeader->ucSsfVersion[2],
+                              pHeader->ucSsfVersion[3]));
+                    BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
+                              __FUNCTION__));
+                    BDBG_ERR(("%s: The SDL must be recompiled using SAGE version %u.%u.%u.%u SDK",
+                              __FUNCTION__, hSAGElib->frameworkInfo.version[0],
+                              hSAGElib->frameworkInfo.version[1],
+                              hSAGElib->frameworkInfo.version[2],
+                              hSAGElib->frameworkInfo.version[3]));
+                    goto end;
+                }
+            }
+            else {
+                BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", __FUNCTION__));
+            }
+
+            BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
+                      __FUNCTION__, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
+            BDBG_ERR(("%s: The SDL must be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
+                      __FUNCTION__));
+            goto end;
+        }
+    } else {
+        BDBG_MSG(("%s: Trusted App THL signature indicates Load-Time-Resolution", __FUNCTION__));
+        rc = true;
     }
 
 end:
@@ -977,9 +982,9 @@ BSAGElib_Rai_Memory_Allocate(
     BDBG_OBJECT_ASSERT(hSAGElibClient, BSAGElib_P_Client);
     hSAGElib = hSAGElibClient->hSAGElib;
 
-    /* size is rounded up to a multiple of 16 bytes for SAGE-side flush concerns. */
-    if (size & 0x1F) {
-        size = (size | 0x1F) + 1;
+    /* size is rounded up to a multiple of 4096 bytes for SAGE-side concerns. */
+    if (size & 0xFFF) {
+        size = (size | 0xFFF) + 1;
     }
 
     switch (memoryType) {

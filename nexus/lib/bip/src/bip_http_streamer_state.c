@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,6 +43,10 @@
 #include "bip_streamer_priv.h"
 #include "b_playback_ip_lib.h"
 #include "namevalue.h"
+#ifdef NEXUS_HAS_ASP
+#include "b_asp_lib.h"
+#endif
+
 
 BDBG_MODULE( bip_http_streamer );
 BDBG_OBJECT_ID_DECLARE( BIP_HttpStreamer );
@@ -89,12 +93,20 @@ static void httpStreamerPrintStatus(
     BIP_HttpStreamerHandle hHttpStreamer
     )
 {
+#ifdef NEXUS_HAS_ASP
+    if (hHttpStreamer->hAspChannel)
+    {
+        B_AspChannel_PrintStatus(hHttpStreamer->hAspChannel);
+    }
+#endif
+
     if (hHttpStreamer->playbackIpState.hFileStreamer)
     {
         B_PlaybackIpFileStreamingStatus status;
 
         B_PlaybackIp_FileStreamingGetStatus( hHttpStreamer->playbackIpState.hFileStreamer, &status );
-        BDBG_WRN(("PBIP FileStreaming: state=%s bytesStreamed=%"PRId64 ,
+        BDBG_WRN(("PBIP FileStreaming[sockFd=%d]: state=%s bytesStreamed=%"PRId64 ,
+                    hHttpStreamer->currentStreamingFd,
                     status.connectionState == B_PlaybackIpConnectionState_eActive  ? "Streaming":
                     status.connectionState == B_PlaybackIpConnectionState_eTimeout ? "Timedout":
                     status.connectionState == B_PlaybackIpConnectionState_eError   ? "Error":
@@ -108,7 +120,8 @@ static void httpStreamerPrintStatus(
         B_PlaybackIpLiveStreamingStatus status;
 
         B_PlaybackIp_LiveStreamingGetStatus( hHttpStreamer->playbackIpState.hLiveStreamer, &status );
-        BDBG_WRN(("PBIP LiveStreaming: state=%s bytesStreamed=%"PRId64 ,
+        BDBG_WRN(("PBIP LiveStreaming[fd=%d]: state=%s bytesStreamed=%"PRId64 ,
+                    hHttpStreamer->currentStreamingFd,
                     status.connectionState == B_PlaybackIpConnectionState_eActive  ? "Streaming":
                     status.connectionState == B_PlaybackIpConnectionState_eTimeout ? "Timedout":
                     status.connectionState == B_PlaybackIpConnectionState_eError   ? "Error":
@@ -268,6 +281,43 @@ static void playbackIpStreamerCallback(
     BDBG_ASSERT( brc == BIP_SUCCESS );
 
 } /* playbackIpStreamerCallback */
+
+static void aspStreamerCallback(
+    void *appCtx,
+    int eventId
+    )
+{
+    BIP_Status brc;
+    BIP_HttpStreamerHandle hHttpStreamer = appCtx;
+
+    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    if(brc != BIP_SUCCESS)
+    {
+        return;
+    }
+
+    BDBG_ASSERT(hHttpStreamer);
+    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %s, got eventId %d from PBIP: Defer the callback"
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), eventId ));
+    B_Mutex_Lock( hHttpStreamer->hStateMutex );
+    /* Change state to streaming done only if we are in streaming state. */
+    if ( hHttpStreamer->state == BIP_HttpStreamerState_eStreaming )
+    {
+        hHttpStreamer->state = BIP_HttpStreamerState_eStreamingDone;
+        ++hHttpStreamer->hls.numSegmentsStreamed;
+    }
+
+    hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.callback = &playbackIpStreamerCallbackViaArbTimer;
+    hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.context = hHttpStreamer;
+    BIP_Arb_AddDeferredCallback( hHttpStreamer->startApi.hArb, &hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback );
+    B_Mutex_Unlock( hHttpStreamer->hStateMutex );
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+    brc = BIP_Arb_DoDeferred( hHttpStreamer->startApi.hArb, BIP_Arb_ThreadOrigin_eUnknown);
+    BDBG_ASSERT( brc == BIP_SUCCESS );
+
+} /* aspStreamerCallback */
 
 static NEXUS_HeapHandle getStreamerHeapHandle(
    NEXUS_HeapHandle heapHandleFromSettings)
@@ -610,7 +660,7 @@ error:
     return bipStatus;
 } /* startPBipFileStreamer */
 
-static BIP_Status startPBipStreamer(
+static BIP_Status createAndStartPBipStreamer(
     BIP_HttpStreamerHandle hHttpStreamer,
     int                     socketFd
     )
@@ -628,7 +678,97 @@ static BIP_Status startPBipStreamer(
     }
 
     return ( bipStatus );
-} /* startPBipStreamer */
+} /* createAndStartPBipStreamer */
+
+#ifdef NEXUS_HAS_ASP
+static BIP_Status createAndStartAspStreamer(
+    BIP_HttpStreamerHandle hHttpStreamer,
+    int                     socketFd
+    )
+{
+    BIP_Status bipStatus = BIP_SUCCESS;
+    B_Error rc;
+
+    {
+        B_AspChannelCreateSettings createSettings;
+
+        B_AspChannel_GetDefaultCreateSettings( B_AspStreamingProtocol_eHttp,  /* example assumes HTTP protocol based streaming. */
+                                                  &createSettings);
+
+        /* Setup HTTP Protocol related settings. */
+        createSettings.protocol = B_AspStreamingProtocol_eHttp;
+        createSettings.mode = B_AspStreamingMode_eOut;
+        createSettings.modeSettings.streamOut.hRecpump = hHttpStreamer->pStreamer->hRecpump;   /* source of AV data. */
+        createSettings.mediaInfoSettings.transportType = hHttpStreamer->pStreamer->streamerStreamInfo.transportType;
+        createSettings.mediaInfoSettings.maxBitRate = hHttpStreamer->fileInputSettingsApi.pFileInputSettings->maxDataRate;
+
+        /* Create ASP Channel. */
+        hHttpStreamer->hAspChannel = B_AspChannel_Create(socketFd, &createSettings);
+        BIP_CHECK_GOTO(( hHttpStreamer->hAspChannel ), ( "B_AspChannel_Create Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+    }
+
+    /* Setup callbacks. */
+    {
+        B_AspChannelSettings settings;
+
+        B_AspChannel_GetSettings(hHttpStreamer->hAspChannel, &settings);
+
+        /* Setup a callback to notify state transitions indicating either network errors or EOF condition. */
+        settings.stateChanged.context = hHttpStreamer;
+        settings.stateChanged.callback = aspStreamerCallback;
+
+        rc = B_AspChannel_SetSettings(hHttpStreamer->hAspChannel, &settings);
+        BIP_CHECK_GOTO((rc == B_ERROR_SUCCESS), ( "B_AspChannel_SetSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+    }
+
+    /* Start Streaming. */
+    {
+        rc = B_AspChannel_StartStreaming(hHttpStreamer->hAspChannel);
+        BIP_CHECK_GOTO((rc == B_ERROR_SUCCESS), ( "B_AspChannel_SetSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+    }
+    BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Started Streaming using ASP..." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
+
+error:
+    if (bipStatus != BIP_SUCCESS)
+    {
+        if (hHttpStreamer->hAspChannel) B_AspChannel_Destroy(hHttpStreamer->hAspChannel, NULL);
+        hHttpStreamer->hAspChannel = NULL;
+    }
+    return ( bipStatus );
+} /* createAndStartAspStreamer */
+
+#else
+static BIP_Status createAndStartAspStreamer(
+    BIP_HttpStreamerHandle hHttpStreamer,
+    int                     socketFd
+    )
+{
+    BSTD_UNUSED(hHttpStreamer);
+    BSTD_UNUSED(socketFd);
+    BDBG_ERR(("NEXUS_ASP_SUPPORT is not enabled! ASP h/w is current only supported on 97278 platforms."));
+    return (BIP_ERR_NOT_AVAILABLE);
+} /* createAndStartAspStreamer */
+#endif
+
+static BIP_Status startAspOrPBipStreamer(
+    BIP_HttpStreamerHandle hHttpStreamer,
+    int                     socketFd
+    )
+{
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+    /* Determine whether Streamer should use Playback or Direct Network path for Streaming. */
+    if ( hHttpStreamer->pStreamer->offloadStreamerToAsp )
+    {
+        bipStatus = createAndStartAspStreamer(hHttpStreamer, socketFd);
+    }
+    else
+    {
+        bipStatus = createAndStartPBipStreamer(hHttpStreamer, socketFd);
+    }
+
+    return ( bipStatus );
+} /* startAspOrPBipStreamer */
 
 static BIP_Status addContentTypeHeader(
     BIP_HttpStreamerHandle hHttpStreamer,
@@ -1045,6 +1185,7 @@ static BIP_Status addAVInfoHeaders(
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "addHeaderValueUnsigned Failed" ), error, bipStatus, bipStatus );
 
         if ( ( hHttpStreamer->pStreamer->inputType == BIP_StreamerInputType_eFile &&
+                    hHttpStreamer->pStreamer->file.inputSettings.enableHwPacing &&
                     hHttpStreamer->pStreamer->file.feedUsingPlaybackChannel && convertPlaySpeedToInt(BIP_String_GetString(hHttpStreamer->pStreamer->file.hPlaySpeed)) == 1 ) ||
                 (hHttpStreamer->pStreamer->inputType == BIP_StreamerInputType_eTuner )
            )
@@ -1422,7 +1563,12 @@ static BIP_Status finalizeHeadersAndSendResponse(
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "addAVInfoHeaders Failed" ), error, bipStatus, bipStatus );
         }
 
-        if ( pTranscodeProfile )
+        if ( hHttpStreamer->output.settings.disableContentLengthInsertion )
+        {
+            BDBG_WRN((BIP_MSG_PRE_FMT "!!!!!! Note: disableContentLengthInsertion is set: so not sending the HTTP Content Length in HTTP Response !!!!!" BIP_MSG_PRE_ARG));
+            messageLength = 0;
+        }
+        else if ( pTranscodeProfile )
         {
             /* If stream is being encoded, we dont know the encoded length, so clear the message length. */
             messageLength = 0;
@@ -1503,6 +1649,58 @@ error:
     *successfullResponseSent = (bipStatus == BIP_SUCCESS) ? true : false;
     return (bipStatus);
 } /* finalizeHeadersAndSendResponse */
+
+static void stopAndDestroyStreamer(
+        BIP_HttpStreamerHandle hHttpStreamer
+        )
+{
+#ifdef NEXUS_HAS_ASP
+    /* Notify ASP or PBIP to stop streaming. */
+    if (hHttpStreamer->hAspChannel)
+    {
+        B_AspChannel_StopStreaming( hHttpStreamer->hAspChannel );
+    }
+    else
+#endif
+    {
+        stopPBipStreamer( hHttpStreamer );
+    }
+
+    /* Then stop the streamer so that it stops/releases the resources associated w/ streaming pipe. */
+    if ( BIP_Streamer_Stop( hHttpStreamer->hStreamer ) != BIP_SUCCESS )
+    {
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Stop Streamer Failed" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+        /* continue w/ stopping rest of the streamer related resources! */
+    }
+
+    /* Notify ASP or PBIP to Destroy the streaming channel. */
+#ifdef NEXUS_HAS_ASP
+    if (hHttpStreamer->hAspChannel)
+    {
+        B_AspChannel_Destroy( hHttpStreamer->hAspChannel, NULL/* TODO: &socketFd: need to see if this is a new or existing socket. If new, then need a way to let HttpSocket know about this!!!*/ );
+        hHttpStreamer->hAspChannel = NULL;
+    }
+    else
+#endif
+    {
+        destroyPBipStreamer( hHttpStreamer );
+    }
+
+    /* Only issue requestProcessed callback if we either we haven't already done it or ProcessRequest didn't even come. */
+    if ( (hHttpStreamer->state != BIP_HttpStreamerState_eWaitingForStopApi &&
+            hHttpStreamer->state != BIP_HttpStreamerState_eWaitingForProcessRequestApi &&
+            hHttpStreamer->processRequest.requestProcessedCallback.callback) ||
+            hHttpStreamer->inactivityTimerExpired
+                    )
+    {
+        /* Add a deferred callback to let HttpServerSocket know that we are done processing the Request. */
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
+        BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
+        hHttpStreamer->inactivityTimerExpired = false;
+    }
+
+    return;
+} /* stopAndDestroyStreamer */
 
 #if NEXUS_HAS_VIDEO_ENCODER
 
@@ -2431,8 +2629,8 @@ static BIP_Status processRequestForMediaSegment(
                 bipStatus = BIP_Streamer_Start( hHttpStreamer->hStreamer, NULL );
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Streamer_Start Failed!" ), error, bipStatus, bipStatus );
 
-                bipStatus = startPBipStreamer( hHttpStreamer, socketFd );
-                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "startPBipStreamer Failed!" ), error, bipStatus, bipStatus );
+                bipStatus = createAndStartPBipStreamer( hHttpStreamer, socketFd );
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndStartPBipStreamer Failed!" ), error, bipStatus, bipStatus );
             }
             else /* _eWaitingForNextMediaSegmentReq || eStreamingDone */
             {
@@ -2457,36 +2655,6 @@ static BIP_Status processRequestForMediaSegment(
 error:
     return ( bipStatus );
 } /* processRequestForMediaSegment */
-
-static void stopStreamer(
-        BIP_HttpStreamerHandle hHttpStreamer
-        )
-{
-    /* Tell PBIP to stop streaming. */
-    stopPBipStreamer( hHttpStreamer );
-
-    /* Then stop the streamer so that it stops/releases the resources associated w/ streaming pipe. */
-    if ( BIP_Streamer_Stop( hHttpStreamer->hStreamer ) != BIP_SUCCESS )
-    {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Stop Streamer Failed" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
-        /* continue w/ stopping rest of the streamer related resources! */
-    }
-
-    /* Now destroy PBIP streamer. */
-    destroyPBipStreamer( hHttpStreamer );
-
-    /* Only issue requestProcessed callback if we either we haven't already done it or ProcessRequest didn't even come. */
-    if ( hHttpStreamer->state != BIP_HttpStreamerState_eWaitingForStopApi &&
-            hHttpStreamer->state != BIP_HttpStreamerState_eWaitingForProcessRequestApi &&
-            hHttpStreamer->processRequest.requestProcessedCallback.callback )
-    {
-        /* Add a deferred callback to let HttpServerSocket know that we are done processing the Request. */
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
-        BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
-    }
-
-    return;
-} /* stopStreamer */
 
 /* Function to handle HLS adaptive streaming specific logic. */
 static void processHttpHlsStreamerState(
@@ -2938,7 +3106,7 @@ errorInWaitingForEndOfSegment:
             {
                 /* For all other states, we will stop the Streamer. */
 
-                stopStreamer( hHttpStreamer );
+                stopAndDestroyStreamer( hHttpStreamer );
 
                 /* Since we have stopped the Streamer, we are back to the idle state */
                 hHttpStreamer->state = BIP_HttpStreamerState_eIdle;
@@ -3096,8 +3264,11 @@ static void processHttpDirectStreamerState(
                         since Rave interrupt internally is always enable only we don't wait for that event in systemTimer mode.
                         Now in system timer mode since we are running based on systemTimer,
                         so we can set dataReadyThreshold high based on the systemTimer duration, which eventually reduce the number of interrupt.*/
+#if 0
                     prepareSettings.recpumpOpenSettings.data.dataReadyThreshold =
                             prepareSettings.recpumpOpenSettings.data.atomSize * hHttpStreamer->startSettings.streamingSettings.raveInterruptBasedSettings.dataReadyScaleFactor;
+#endif
+                    prepareSettings.recpumpOpenSettings.data.bufferSize = prepareSettings.recpumpOpenSettings.data.bufferSize;
 
                     hHttpStreamer->completionStatus = BIP_Streamer_Prepare( hHttpStreamer->hStreamer, &prepareSettings );
                 }
@@ -3146,7 +3317,7 @@ static void processHttpDirectStreamerState(
                         if (hHttpStreamer->completionStatus == BIP_SUCCESS)
                         {
                             hHttpStreamer->currentStreamingFd = httpSocketStatus.socketFd;
-                            hHttpStreamer->completionStatus = startPBipStreamer( hHttpStreamer, httpSocketStatus.socketFd );
+                            hHttpStreamer->completionStatus = startAspOrPBipStreamer( hHttpStreamer, httpSocketStatus.socketFd );
                         }
                     }
                 }
@@ -3188,7 +3359,7 @@ static void processHttpDirectStreamerState(
                     /* Stop streamer to release any of its resources. */
                     BIP_Streamer_Stop( hHttpStreamer->hStreamer );
 
-                    /* Start related cleanup (including closing of Nexus Resources) should be already done either above or in the startPBipStreamer(). */
+                    /* Start related cleanup (including closing of Nexus Resources) should be already done either above or in the createAndStartPBipStreamer(). */
                     /* So we just reset the streamer state. */
                     resetHttpStreamerResponseState( hHttpStreamer );
                     hHttpStreamer->state = BIP_HttpStreamerState_eIdle;
@@ -3231,24 +3402,9 @@ static void processHttpDirectStreamerState(
                     /* Normal case where PBIP callback came, ArbTimer ran our state, we notified app about endOfStreaming, and it issued _Stop(). */
                     )
             {
-                /* Tell PBIP to stop & destroy. */
-                stopPBipStreamer( hHttpStreamer );
+                /* Stop the Streamer. */
 
-                hHttpStreamer->completionStatus = BIP_Streamer_Stop( hHttpStreamer->hStreamer );
-                destroyPBipStreamer( hHttpStreamer );
-                if ( hHttpStreamer->completionStatus != BIP_SUCCESS )
-                {
-                    BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Stop Streamer Failed"
-                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
-                    /* continue w/ stopping rest of the streamer related resources! */
-                }
-
-                /* Only issue requestProcessed callback if we haven't done so. */
-                if ( hHttpStreamer->state != BIP_HttpStreamerState_eWaitingForStopApi && hHttpStreamer->processRequest.requestProcessedCallback.callback )
-                {
-                    /* Add a deferred callback to let HttpServerSocket know that we are done processing the Request. */
-                    BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
-                }
+                stopAndDestroyStreamer( hHttpStreamer );
 
                 /* Since we have stopped the Streamer, we are back to the idle state */
                 hHttpStreamer->state = BIP_HttpStreamerState_eIdle;
@@ -3373,7 +3529,12 @@ void processHttpStreamerState(
         /* App is requesting to print HttpStreamer status. */
         BIP_Arb_AcceptRequest(hArb);
 
-        BIP_Streamer_PrintStatus( hHttpStreamer->hStreamer );
+#ifdef NEXUS_HAS_ASP
+        if (!hHttpStreamer->hAspChannel)
+#endif
+        {
+            BIP_Streamer_PrintStatus( hHttpStreamer->hStreamer );
+        }
         httpStreamerPrintStatus( hHttpStreamer );
 
         hHttpStreamer->completionStatus = BIP_SUCCESS;
@@ -3499,9 +3660,9 @@ void processHttpStreamerState(
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
-        else if ( hHttpStreamer->outputSettingsApi.pOutputSettings->appInitialPayload.valid || hHttpStreamer->outputSettingsApi.pOutputSettings->enableHwOffload )
+        else if ( hHttpStreamer->outputSettingsApi.pOutputSettings->appInitialPayload.valid )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetOutputSettings: enableHwOffload, appInitialPayload, output.settings are not yet supported!"
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetOutputSettings: output.settings: appInitialPayload are not yet supported!"
                         BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
@@ -3855,9 +4016,17 @@ void processHttpStreamerState(
                 B_PlaybackIp_FileStreamingGetStatus( hHttpStreamer->playbackIpState.hFileStreamer, &status );
                 bytesStreamed = status.bytesStreamed;
             }
-            if ( bytesStreamed > hHttpStreamer->totalBytesStreamed )
+#ifdef NEXUS_HAS_ASP
+            else if (hHttpStreamer->hAspChannel)
             {
-                /* We have streamed more bytes since the last poll interval, so streamer is still actively streaming. */
+                B_AspChannelStatus status;
+                B_AspChannel_GetStatus(hHttpStreamer->hAspChannel, &status);
+                bytesStreamed = status.nexusStatus.stats.mcpbConsumedInBytes;
+            }
+#endif
+            if ( bytesStreamed != hHttpStreamer->totalBytesStreamed )
+            {
+                /* Currently streamed bytes dont match the one from the last poll interval, so streamer is still actively streaming. */
                 hHttpStreamer->lastActivityTime = endTime;
                 hHttpStreamer->totalBytesStreamed = bytesStreamed;
             }
@@ -3867,6 +4036,9 @@ void processHttpStreamerState(
                 if ( hHttpStreamer->startSettings.inactivityTimeoutInMs > 0 && B_Time_Diff( &endTime, &hHttpStreamer->lastActivityTime ) >= hHttpStreamer->startSettings.inactivityTimeoutInMs )
                 {
                     /* App has defined inactivity timeout and streamer has been inactive for that duration, so time to let app know about it. */
+                    BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: inactivity timer expired, totalBytesStreamed=%" PRIu64
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), hHttpStreamer->totalBytesStreamed ));
+                    hHttpStreamer->inactivityTimerExpired = true;
                     if (hHttpStreamer->startSettings.inactivityTimeoutCallback.callback)
                     {
                         /* App wants to get the in-activity timeout callback, so lets issue that. */
@@ -3877,14 +4049,6 @@ void processHttpStreamerState(
                     else if (hHttpStreamer->createSettings.endOfStreamingCallback.callback)
                     {
                         /* Else, app didn't define the inactivity timeout callback but had the inactivity timeout set, so we issue the endOfStreaming Callback. */
-
-                        /* Add a deferred callback to let HttpServerSocket know that we are done processing the Request. */
-                        if ( hHttpStreamer->processRequest.requestProcessedCallback.callback &&
-                                ( hHttpStreamer->state == BIP_HttpStreamerState_eStreaming || hHttpStreamer->state == BIP_HttpStreamerState_eStreamingDone ) )
-                        {
-                            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s: Added requestProcessedCallback" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE( hHttpStreamer->state ) ));
-                            BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
-                        }
 
                         /* queue up endOfStreaming CB */
                         initiateEndOfStreamingCallback( hHttpStreamer ); /* function changes the state to eWaitingForStopApi */
@@ -3905,7 +4069,7 @@ void processHttpStreamerState(
                 }
                 else timerRestarted = true;
             }
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: state=%s inactivityTimerRestarted=%s inactivityTimeoutCallbackIssued=%s endOfStreamingCallbackIssued=%s totalBytesStreamed=%"PRId64 "inactivityTimeout=%d"
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: state=%s inactivityTimerRestarted=%s inactivityTimeoutCallbackIssued=%s endOfStreamingCallbackIssued=%s totalBytesStreamed=%"PRId64 " inactivityTimeout=%d"
                         BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state),
                         timerRestarted?"Y":"N", inactivityTimeoutCallbackIssued?"Y":"N", endOfStreamingCallbackIssued?"Y":"N", hHttpStreamer->totalBytesStreamed, hHttpStreamer->startSettings.inactivityTimeoutInMs  ));
         } /* inactivity poll timer expired. */

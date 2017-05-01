@@ -60,12 +60,22 @@ B_DCC_LIB_DEFINES += B_HAS_SOFT_GFX=1
 endif #SOFT_GFX_SUPPORT
 
 ifeq ($(FREETYPE_SUPPORT),y)
-FREETYPE_DIR = $(B_BSEAV_TOP)/opensource/freetype
-FREETYPE_NAME = freetype-2.1.5
-FREETYPE_ODIR = $(B_BSEAV_TOP)/../obj.${NEXUS_PLATFORM}/BSEAV/opensource/$(FREETYPE_NAME)
-B_DCC_LIB_PRIVATE_INCLUDES += $(FREETYPE_ODIR)/include
+FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype
+include $(FREETYPE_DIR)/freetype.inc
+B_DCC_LIB_PRIVATE_INCLUDES += $(FREETYPE_SOURCE_PATH)/include
 B_DCC_LIB_DEFINES += FREETYPE_SUPPORT
+else
+
+ifeq ($(FONT_CFG),SCALE_480I_FONTS)
+B_DCC_LIB_DEFINES += SCALE_480I_FONTS
 endif
+
+ifeq ($(FONT_CFG),SCALE_720P_FONTS)
+B_DCC_LIB_DEFINES += SCALE_720P_FONTS
+endif
+
+endif
+
 
 #
 # Define source files in this library
@@ -84,7 +94,7 @@ B_DCC_LIB_SOURCES += \
                     $(B_BSEAV_TOP)/lib/dcc/src/bdcc_engine.c \
                     $(B_BSEAV_TOP)/lib/dcc/src/win_library/bdcc_winlib.c \
                     $(B_BSEAV_TOP)/../nexus/nxclient/apps/utils/bfont.c
-                    
+
 #
 # Define public include path(s) for this library
 #
@@ -106,20 +116,6 @@ B_DCC_LIB_PRIVATE_INCLUDES += $(B_BSEAV_TOP)/lib/dcc/src \
 
 ifeq ($(TEST_STRING),y)
 B_DCC_LIB_DEFINES += TEST_STRING_SUPPORT
-endif
-
-ifeq ($(FREETYPE_SUPPORT),y)
-B_DCC_LIB_DEFINES += FREETYPE_SUPPORT
-else
-
-ifeq ($(FONT_CFG),SCALE_480I_FONTS)
-B_DCC_LIB_DEFINES += SCALE_480I_FONTS
-endif
-
-ifeq ($(FONT_CFG),SCALE_720P_FONTS)
-B_DCC_LIB_DEFINES += SCALE_720P_FONTS
-endif
-
 endif
 
 ifeq ($(ARGB2222_FRAMEBUFFER),y)

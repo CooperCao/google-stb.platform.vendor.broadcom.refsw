@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:08 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,16 +70,16 @@
 /***************************************************************************
  *SM_0 - Subcarrier Modulator SM_0
  ***************************************************************************/
-#define BCHP_SM_0_SM_REV_ID                      0x206e3280 /* [RO] REVISION ID REGISTER */
-#define BCHP_SM_0_PG_CNTRL                       0x206e328c /* [RW] PHASE GENERATOR CONTROL REGISTER */
-#define BCHP_SM_0_PG_CONFIG                      0x206e3290 /* [RW] PHASE GENERATOR CONFIG REGISTER */
-#define BCHP_SM_0_SC_FREQ_0                      0x206e3294 /* [RW] SUBCARRIER FREQUENCY 0 */
-#define BCHP_SM_0_COMP_CNTRL                     0x206e3298 /* [RW] COMPOSITOR CONTROL REGISTER */
-#define BCHP_SM_0_SA_CH2                         0x206e329c /* [RO] CHANNEL2 SA STATUS REGISTER */
-#define BCHP_SM_0_SA_CH1                         0x206e32a0 /* [RO] CHANNEL1 SA STATUS REGISTER */
-#define BCHP_SM_0_SA_CH0                         0x206e32a4 /* [RO] CHANNEL0 SA STATUS REGISTER */
-#define BCHP_SM_0_SA_CONFIG                      0x206e32a8 /* [RW] SA CONFIGURATION REGISTER */
-#define BCHP_SM_0_COMP_CONFIG                    0x206e32ac /* [RW] COMPOSITOR CONFIG REGISTER */
+#define BCHP_SM_0_SM_REV_ID                      0x206e3280 /* [RO][32] REVISION ID REGISTER */
+#define BCHP_SM_0_PG_CNTRL                       0x206e328c /* [RW][32] PHASE GENERATOR CONTROL REGISTER */
+#define BCHP_SM_0_PG_CONFIG                      0x206e3290 /* [RW][32] PHASE GENERATOR CONFIG REGISTER */
+#define BCHP_SM_0_SC_FREQ_0                      0x206e3294 /* [RW][32] SUBCARRIER FREQUENCY 0 */
+#define BCHP_SM_0_COMP_CNTRL                     0x206e3298 /* [RW][32] COMPOSITOR CONTROL REGISTER */
+#define BCHP_SM_0_SA_CH2                         0x206e329c /* [RO][32] CHANNEL2 SA STATUS REGISTER */
+#define BCHP_SM_0_SA_CH1                         0x206e32a0 /* [RO][32] CHANNEL1 SA STATUS REGISTER */
+#define BCHP_SM_0_SA_CH0                         0x206e32a4 /* [RO][32] CHANNEL0 SA STATUS REGISTER */
+#define BCHP_SM_0_SA_CONFIG                      0x206e32a8 /* [RW][32] SA CONFIGURATION REGISTER */
+#define BCHP_SM_0_COMP_CONFIG                    0x206e32ac /* [RW][32] COMPOSITOR CONFIG REGISTER */
 
 /***************************************************************************
  *SM_REV_ID - REVISION ID REGISTER

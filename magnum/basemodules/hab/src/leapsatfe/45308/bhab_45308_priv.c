@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bhab_45308_priv.h"
 #include "bchp_45308_leap_ctrl.h"
@@ -74,25 +71,21 @@ BDBG_MODULE(bhab_45308_priv);
 #endif
 
 /* local private functions */
-BERR_Code BHAB_45308_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable);
-BERR_Code BHAB_45308_P_RunAp(BHAB_Handle h);
-BERR_Code BHAB_45308_P_ServiceHab(BHAB_Handle h, uint32_t *read_buf, uint16_t read_len);
-BERR_Code BHAB_45308_P_CheckHab(BHAB_Handle h);
-BERR_Code BHAB_45308_P_DecodeHabError(BHAB_Handle h);
-BERR_Code BHAB_45308_P_DisableLeapInterrupts(BHAB_Handle h);
-BERR_Code BHAB_45308_P_DecodeInterrupt(BHAB_Handle h);
-bool BHAB_45308_P_IsLeapRunning(BHAB_Handle h);
-BERR_Code BHAB_45308_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec);
-BERR_Code BHAB_45308_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable);
-BERR_Code BHAB_45308_P_WriteBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint32_t n);
-BERR_Code BHAB_45308_P_ReadBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint32_t n);
-BERR_Code BHAB_45308_P_ReadRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
-BERR_Code BHAB_45308_P_WriteRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
-BERR_Code BHAB_45308_P_WaitForBbsiDone(BHAB_Handle h);
-BERR_Code BHAB_45308_P_DispatchCallback(BHAB_45308_P_CallbackInfo *pCallbackInfo, uint32_t status0, uint32_t status1);
-void BHAB_45308_P_DumpGpRegisters(BHAB_Handle h, uint32_t startReg, uint32_t endReg);
+static BERR_Code BHAB_45308_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable);
+static BERR_Code BHAB_45308_P_RunAp(BHAB_Handle h);
+static BERR_Code BHAB_45308_P_ServiceHab(BHAB_Handle h, uint32_t *read_buf, uint16_t read_len);
+static BERR_Code BHAB_45308_P_CheckHab(BHAB_Handle h);
+static BERR_Code BHAB_45308_P_DecodeHabError(BHAB_Handle h);
+static BERR_Code BHAB_45308_P_DisableLeapInterrupts(BHAB_Handle h);
+static BERR_Code BHAB_45308_P_DecodeInterrupt(BHAB_Handle h);
+static bool BHAB_45308_P_IsLeapRunning(BHAB_Handle h);
+static BERR_Code BHAB_45308_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec);
+static BERR_Code BHAB_45308_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable);
+static BERR_Code BHAB_45308_P_WaitForBbsiDone(BHAB_Handle h);
+static BERR_Code BHAB_45308_P_DispatchCallback(BHAB_45308_P_CallbackInfo *pCallbackInfo, uint32_t status0, uint32_t status1);
+static void BHAB_45308_P_DumpGpRegisters(BHAB_Handle h, uint32_t startReg, uint32_t endReg);
 #ifdef BHAB_VERIFY_DOWNLOAD
-bool BHAB_45308_VerifyMemory(BHAB_Handle h, uint32_t addr, const uint8_t *pHexImage, uint32_t len);
+static bool BHAB_45308_VerifyMemory(BHAB_Handle h, uint32_t addr, const uint8_t *pHexImage, uint32_t len);
 #endif
 
 
@@ -675,9 +668,13 @@ BERR_Code BHAB_45308_P_WriteMemory(BHAB_Handle h, uint32_t start_addr, const uin
 BERR_Code BHAB_45308_P_ReadMemory(BHAB_Handle h, uint32_t start_addr, uint8_t *buf, uint32_t n)
 {
    BERR_Code retCode = BERR_SUCCESS;
-   uint32_t i, j, buf_idx, addr, end_addr, nReads, x, idx, val32, hab[128];
+   uint32_t i, j, buf_idx, addr, end_addr, nReads, x, val32;
+#if 0
+   uint32_t idx, hab[128];
    int32_t nReadsLeft;
-   bool bIsRunning, bCsrAddrSet = false;
+   bool bIsRunning;
+#endif
+   bool bCsrAddrSet = false;
    uint8_t i2c_buf[5];
 
    if ((n == 0) || ((start_addr >= 0xB0000) && (start_addr < 0xc8000)) ||
@@ -692,6 +689,7 @@ BERR_Code BHAB_45308_P_ReadMemory(BHAB_Handle h, uint32_t start_addr, uint8_t *b
       end_addr = (end_addr & ~0x03) + 4;
    nReads = (end_addr - addr) >> 2; /* total number of 32-bit reads */
 
+#if 0
    bIsRunning = BHAB_45308_P_IsLeapRunning(h);
    if (bIsRunning && ((addr < BCHP_LEAP_HAB_MEM_WORDi_ARRAY_BASE) || (addr & 0x80000000)))
    {
@@ -728,6 +726,7 @@ BERR_Code BHAB_45308_P_ReadMemory(BHAB_Handle h, uint32_t start_addr, uint8_t *b
       }
    }
    else
+#endif
    {
       for (i = buf_idx = 0; i < nReads; i++)
       {
@@ -1018,7 +1017,7 @@ BERR_Code BHAB_45308_P_Reset(BHAB_Handle h)
 /******************************************************************************
  BHAB_45308_P_RunAp()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_RunAp(BHAB_Handle h)
+static BERR_Code BHAB_45308_P_RunAp(BHAB_Handle h)
 {
    BERR_Code retCode;
    uint32_t ctrl;
@@ -1051,7 +1050,7 @@ BERR_Code BHAB_45308_P_RunAp(BHAB_Handle h)
 /******************************************************************************
  BHAB_45308_P_ServiceHab()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_ServiceHab(
+static BERR_Code BHAB_45308_P_ServiceHab(
    BHAB_Handle h,      /* [in] BHAB handle */
    uint32_t *read_buf,  /* [out] holds the data read from the HAB */
    uint16_t read_len   /* [in] number of words to read from the HAB (including the checksum) */
@@ -1154,7 +1153,7 @@ BERR_Code BHAB_45308_P_HandleInterrupt_isr(
 /******************************************************************************
  BHAB_45308_P_DispatchCallback()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_DispatchCallback(BHAB_45308_P_CallbackInfo *pCallbackInfo, uint32_t status0, uint32_t status1)
+static BERR_Code BHAB_45308_P_DispatchCallback(BHAB_45308_P_CallbackInfo *pCallbackInfo, uint32_t status0, uint32_t status1)
 {
    BERR_Code retCode = BERR_SUCCESS;
 
@@ -1172,7 +1171,7 @@ BERR_Code BHAB_45308_P_DispatchCallback(BHAB_45308_P_CallbackInfo *pCallbackInfo
 /******************************************************************************
  BHAB_45308_P_DecodeInterrupt()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_DecodeInterrupt(BHAB_Handle h)
+static BERR_Code BHAB_45308_P_DecodeInterrupt(BHAB_Handle h)
 {
    BHAB_45308_P_Handle *pImpl = (BHAB_45308_P_Handle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1284,7 +1283,7 @@ BERR_Code BHAB_45308_P_DecodeInterrupt(BHAB_Handle h)
 /******************************************************************************
  BHAB_45308_P_IsLeapRunning()
 ******************************************************************************/
-bool BHAB_45308_P_IsLeapRunning(
+static bool BHAB_45308_P_IsLeapRunning(
    BHAB_Handle h  /* [in] BHAB handle */
 )
 {
@@ -1301,7 +1300,7 @@ bool BHAB_45308_P_IsLeapRunning(
 /******************************************************************************
  BHAB_45308_P_CheckHab()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_CheckHab(
+static BERR_Code BHAB_45308_P_CheckHab(
    BHAB_Handle h    /* [in] BHAB handle */
 )
 {
@@ -1332,7 +1331,7 @@ BERR_Code BHAB_45308_P_CheckHab(
 /******************************************************************************
  BHAB_45308_P_DecodeHabError() - called when the command was not ack'd
 ******************************************************************************/
-BERR_Code BHAB_45308_P_DecodeHabError(BHAB_Handle h)
+static BERR_Code BHAB_45308_P_DecodeHabError(BHAB_Handle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t status0, spare3, gp26, fw_err = 0;
@@ -1405,7 +1404,7 @@ BERR_Code BHAB_45308_P_DecodeHabError(BHAB_Handle h)
 /******************************************************************************
  BHAB_45308_P_DisableLeapInterrupts()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_DisableLeapInterrupts(
+static BERR_Code BHAB_45308_P_DisableLeapInterrupts(
    BHAB_Handle h   /* [in] BHAB handle */
 )
 {
@@ -1450,7 +1449,7 @@ int BHAB_45308_P_CompareMemory(const void *p1, const void *p2, size_t n)
 /******************************************************************************
  BHAB_45308_VerifyMemory() - Read the IRAM
 ******************************************************************************/
-bool BHAB_45308_VerifyMemory(BHAB_Handle h, uint32_t addr, const uint8_t *pHexImage, uint32_t len)
+static bool BHAB_45308_VerifyMemory(BHAB_Handle h, uint32_t addr, const uint8_t *pHexImage, uint32_t len)
 {
    static uint8_t *pVerifyBuf = NULL;
    bool b;
@@ -1479,7 +1478,7 @@ bool BHAB_45308_VerifyMemory(BHAB_Handle h, uint32_t addr, const uint8_t *pHexIm
 /******************************************************************************
  BERR_Code BHAB_45308_P_WaitForEvent()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec)
+static BERR_Code BHAB_45308_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec)
 {
    BHAB_45308_P_Handle *pImpl = (BHAB_45308_P_Handle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1539,7 +1538,7 @@ BERR_Code BHAB_45308_P_ProcessInterruptEvent(BHAB_Handle handle)
 /******************************************************************************
  BHAB_45308_P_EnableHostInterrupt()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable)
+static BERR_Code BHAB_45308_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable)
 {
    BKNI_EnterCriticalSection();
    h->settings.interruptEnableFunc(bEnable, h->settings.interruptEnableFuncParam);
@@ -1745,7 +1744,7 @@ BERR_Code BHAB_45308_P_WriteRbus(
 /******************************************************************************
  BHAB_45308_P_WaitForBbsiDone()
 ******************************************************************************/
-BERR_Code BHAB_45308_P_WaitForBbsiDone(BHAB_Handle h)
+static BERR_Code BHAB_45308_P_WaitForBbsiDone(BHAB_Handle h)
 {
    BERR_Code retCode;
    uint32_t retry;
@@ -1794,7 +1793,7 @@ BERR_Code BHAB_45308_P_GetAvsData(BHAB_Handle handle, BHAB_AvsData *pData)
 /******************************************************************************
  BHAB_45308_P_DumpGpRegisters()
 ******************************************************************************/
-void BHAB_45308_P_DumpGpRegisters(BHAB_Handle h, uint32_t startReg, uint32_t endReg)
+static void BHAB_45308_P_DumpGpRegisters(BHAB_Handle h, uint32_t startReg, uint32_t endReg)
 {
    uint32_t i, reg, val;
 

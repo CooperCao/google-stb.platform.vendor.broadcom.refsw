@@ -52,7 +52,7 @@ typedef enum BSAGElib_BinFileDrmTypes_e
     BSAGElib_BinFileDrmType_eWidevine,
     BSAGElib_BinFileDrmType_eDtcpIp,
     BSAGElib_BinFileDrmType_ePlayready,
-    BSAGElib_BinFileDrmType_eSecureSwRsa,
+    BSAGElib_BinFileDrmType_eSecureRsa,
     BSAGElib_BinFileDrmType_eCustomPrivate,
     BSAGElib_BinFileDrmType_eAdobeAxcess,
     BSAGElib_BinFileDrmType_eHdcp22Rx,
@@ -63,6 +63,11 @@ typedef enum BSAGElib_BinFileDrmTypes_e
     BSAGElib_BinFileDrmType_eEcc,
     BSAGElib_BinFileDrmType_ePlayready30,
     BSAGElib_BinFileDrmType_eMediaroom,
+    BSAGElib_BinFileDrmType_eBp3,
+    BSAGElib_BinFileDrmType_eSecuremedia,
+    BSAGElib_BinFileDrmType_eHdcp14Rx,
+    BSAGElib_BinFileDrmType_eHdcp14Tx,
+    BSAGElib_BinFileDrmType_eMarlin,
     BSAGElib_BinFileDrmType_eMax
 } BSAGElib_BinFileDrmTypes_e;
 

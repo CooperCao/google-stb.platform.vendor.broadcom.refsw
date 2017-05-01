@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-Job scheduler API
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef BCM_SCHED_API_H_
 #define BCM_SCHED_API_H_
 #include "bcm_sched_job.h"
@@ -16,6 +10,12 @@ Job scheduler API
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum bcm_wait_status
+{
+   BCM_WaitJobDone,
+   BCM_WaitJobTimeout
+} bcm_wait_status;
 
 /* Job IDs have process scope. Inter-process dependencies must use fences. */
 
@@ -53,9 +53,31 @@ extern int bcm_sched_create_fence(
    const struct bcm_sched_dependencies *finalised_deps,
    bool force_create);
 
-/* Returns V3D_PLATFORM_NULL_FENCE if all jobs have been finalised. Otherwise,
- * returns a fence that will wait for a non-finalised job to be finalised. */
-extern int bcm_sched_create_fence_for_any_non_finalised(void);
+/* Wait for a non-finalised job to be finalised
+ * Returns true if a job has been waited for
+ * Returns false if all job have been finalised */
+extern bool bcm_sched_wait_for_any_non_finalised(void);
+
+/* Wait until one of the completed_deps and finalised_deps has reached
+ * either completed or finalised state respectively or the function timeout */
+extern bcm_wait_status bcm_sched_wait_any_job_timeout(
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps,
+   int timeout);
+
+/* Wait until all the completed_deps and finalised_deps have
+ * reached their corresponding state. */
+extern void bcm_sched_wait_jobs(
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps);
+
+
+/* Wait until all the completed_deps and finalised_deps have reached
+ * either completed or finalised state respectively or the function timeout */
+extern bcm_wait_status bcm_sched_wait_jobs_timeout(
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps,
+   int timeout);
 
 #ifdef __cplusplus
 }

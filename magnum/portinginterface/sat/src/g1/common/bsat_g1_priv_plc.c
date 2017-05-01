@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
@@ -430,7 +429,7 @@ enum {
 /******************************************************************************
  BSAT_g1_P_LookupPlcTable_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_LookupPlcTable_isr(const uint8_t *pBwTable, const uint16_t *pBwScaleTable, const uint32_t *pMinBwTable, uint32_t symRateIdx, uint32_t *pBw, uint32_t *pDamp8)
+static BERR_Code BSAT_g1_P_LookupPlcTable_isr(const uint8_t *pBwTable, const uint16_t *pBwScaleTable, const uint32_t *pMinBwTable, uint32_t symRateIdx, uint32_t *pBw, uint32_t *pDamp8)
 {
    BERR_Code retCode = BERR_SUCCESS;
 
@@ -451,7 +450,7 @@ BERR_Code BSAT_g1_P_LookupPlcTable_isr(const uint8_t *pBwTable, const uint16_t *
 /******************************************************************************
  BSAT_g1_P_SetPlc_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_SetPlc_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t damp)
+static BERR_Code BSAT_g1_P_SetPlc_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t damp)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t i, j, b0, b1, b2, b3, val, P_hi, P_lo, Q_hi, Q_lo;

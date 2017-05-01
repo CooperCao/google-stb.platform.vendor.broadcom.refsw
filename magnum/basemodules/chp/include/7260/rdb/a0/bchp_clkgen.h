@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Aug  9 10:38:31 2016
- *                 Full Compile MD5 Checksum  2fc4ffa32ef0f86829791e986d7cf629
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               9d3742b236fc379a864711376326d700
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,344 +70,344 @@
 /***************************************************************************
  *CLKGEN - clkgen registers
  ***************************************************************************/
-#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0 0x204e0000 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1 0x204e0004 /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2 0x204e0008 /* [RW] PLL CHANNEL control CH 2 */
-#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3 0x204e000c /* [RW] PLL CHANNEL control CH 3 */
-#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4 0x204e0010 /* [RW] PLL CHANNEL control CH 4 */
-#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_5 0x204e0014 /* [RW] PLL CHANNEL control CH 5 */
-#define BCHP_CLKGEN_PLL_AVX_PLL_DIV              0x204e0018 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_AVX_PLL_FRAC             0x204e001c /* [RW] Fractional */
-#define BCHP_CLKGEN_PLL_AVX_PLL_GAIN             0x204e0020 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_AVX_PLL_LDO_PWRON        0x204e0024 /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_AVX_PLL_LOCK_STATUS      0x204e0028 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_AVX_PLL_MISC             0x204e002c /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_AVX_PLL_MISC2            0x204e0030 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_AVX_PLL_PWRON            0x204e0034 /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_AVX_PLL_RESET            0x204e0038 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_AVX_PLL_SSC_MODE_CONTROL_HIGH 0x204e003c /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_AVX_PLL_SSC_MODE_CONTROL_LOW 0x204e0040 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_AVX_PLL_STATUS           0x204e0044 /* [RO] Status */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_0 0x204e0048 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_1 0x204e004c /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2 0x204e0050 /* [RW] PLL CHANNEL control CH 2 */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_3 0x204e0054 /* [RW] PLL CHANNEL control CH 3 */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_4 0x204e0058 /* [RW] PLL CHANNEL control CH 4 */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5 0x204e005c /* [RW] PLL CHANNEL control CH 5 */
-#define BCHP_CLKGEN_PLL_CPU_PLL_DIV              0x204e0060 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_CPU_PLL_FRAC             0x204e0064 /* [RW] Fractional */
-#define BCHP_CLKGEN_PLL_CPU_PLL_GAIN             0x204e0068 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_CPU_PLL_LDO_PWRON        0x204e006c /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_CPU_PLL_LOCK_STATUS      0x204e0070 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_CPU_PLL_MISC             0x204e0074 /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_CPU_PLL_MISC2            0x204e0078 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_CPU_PLL_PWRON            0x204e007c /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_CPU_PLL_RESET            0x204e0080 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_CPU_PLL_SSC_MODE_CONTROL_HIGH 0x204e0084 /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_CPU_PLL_SSC_MODE_CONTROL_LOW 0x204e0088 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_CPU_PLL_STATUS           0x204e008c /* [RO] Status */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0 0x204e0090 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_1 0x204e0094 /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_2 0x204e0098 /* [RW] PLL CHANNEL control CH 2 */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3 0x204e009c /* [RW] PLL CHANNEL control CH 3 */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_4 0x204e00a0 /* [RW] PLL CHANNEL control CH 4 */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5 0x204e00a4 /* [RW] PLL CHANNEL control CH 5 */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_DIV          0x204e00a8 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_GAIN         0x204e00ac /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_LDO_PWRON    0x204e00b0 /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_LOCK_STATUS  0x204e00b4 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_MISC         0x204e00b8 /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_MISC2        0x204e00bc /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_PWRON        0x204e00c0 /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_RESET        0x204e00c4 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_SSC_MODE_CONTROL_HIGH 0x204e00c8 /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_SSC_MODE_CONTROL_LOW 0x204e00cc /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_STATUS       0x204e00d0 /* [RO] Status */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0 0x204e00d4 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_1 0x204e00d8 /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_DIV            0x204e00dc /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_GAIN           0x204e00e0 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_LDO_PWRON      0x204e00e4 /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_LOCK_STATUS    0x204e00e8 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_MISC           0x204e00ec /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_MISC2          0x204e00f0 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_PWRON          0x204e00f4 /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_RESET          0x204e00f8 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_SSC_MODE_CONTROL_HIGH 0x204e00fc /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_SSC_MODE_CONTROL_LOW 0x204e0100 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_STATUS         0x204e0104 /* [RO] Status */
-#define BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0 0x204e0108 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_SC0_PLL_DIV              0x204e010c /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_SC0_PLL_FRAC             0x204e0110 /* [RW] Fractional */
-#define BCHP_CLKGEN_PLL_SC0_PLL_GAIN             0x204e0114 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_SC0_PLL_LDO_PWRON        0x204e0118 /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_SC0_PLL_LOCK_STATUS      0x204e011c /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_SC0_PLL_MISC             0x204e0120 /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_SC0_PLL_MISC2            0x204e0124 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_SC0_PLL_PWRON            0x204e0128 /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_SC0_PLL_RESET            0x204e012c /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_SC0_PLL_SSC_MODE_CONTROL_HIGH 0x204e0130 /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_SC0_PLL_SSC_MODE_CONTROL_LOW 0x204e0134 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_SC0_PLL_STATUS           0x204e0138 /* [RO] Status */
-#define BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0 0x204e013c /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_SC1_PLL_DIV              0x204e0140 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_SC1_PLL_FRAC             0x204e0144 /* [RW] Fractional */
-#define BCHP_CLKGEN_PLL_SC1_PLL_GAIN             0x204e0148 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_SC1_PLL_LDO_PWRON        0x204e014c /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_SC1_PLL_LOCK_STATUS      0x204e0150 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_SC1_PLL_MISC             0x204e0154 /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_SC1_PLL_MISC2            0x204e0158 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_SC1_PLL_PWRON            0x204e015c /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_SC1_PLL_RESET            0x204e0160 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_SC1_PLL_SSC_MODE_CONTROL_HIGH 0x204e0164 /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_SC1_PLL_SSC_MODE_CONTROL_LOW 0x204e0168 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_SC1_PLL_STATUS           0x204e016c /* [RO] Status */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_BG_PWRON        0x204e0170 /* [RW] Bandgap Power on */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0 0x204e0174 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1 0x204e0178 /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2 0x204e017c /* [RW] PLL CHANNEL control CH 2 */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_3 0x204e0180 /* [RW] PLL CHANNEL control CH 3 */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_4 0x204e0184 /* [RW] PLL CHANNEL control CH 4 */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5 0x204e0188 /* [RW] PLL CHANNEL control CH 5 */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_DIV             0x204e018c /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_GAIN            0x204e0190 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_HOLD_CH_ALL     0x204e0194 /* [RW] Hold PLL all channels */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_LDO_CTRL        0x204e0198 /* [RW] Ldo voltage control */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_LDO_PWRON       0x204e019c /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_LOCK_STATUS     0x204e01a0 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_MISC            0x204e01a4 /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_MISC2           0x204e01a8 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_PWRON           0x204e01ac /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_RESET           0x204e01b0 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_SSC_MODE_CONTROL_HIGH 0x204e01b4 /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_SSC_MODE_CONTROL_LOW 0x204e01b8 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_SYS0_PLL_STATUS          0x204e01bc /* [RO] Status */
-#define BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0 0x204e01c0 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_1 0x204e01c4 /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_V3D_PLL_DIV              0x204e01c8 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_V3D_PLL_FRAC             0x204e01cc /* [RW] Fractional */
-#define BCHP_CLKGEN_PLL_V3D_PLL_GAIN             0x204e01d0 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON        0x204e01d4 /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_V3D_PLL_LOCK_STATUS      0x204e01d8 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_V3D_PLL_MISC             0x204e01dc /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_V3D_PLL_MISC2            0x204e01e0 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_V3D_PLL_PWRON            0x204e01e4 /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_V3D_PLL_RESET            0x204e01e8 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_V3D_PLL_SSC_MODE_CONTROL_HIGH 0x204e01ec /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_V3D_PLL_SSC_MODE_CONTROL_LOW 0x204e01f0 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_V3D_PLL_STATUS           0x204e01f4 /* [RO] Status */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_BG_PWRON       0x204e01f8 /* [RW] Bandgap Power on */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0 0x204e01fc /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1 0x204e0200 /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_2 0x204e0204 /* [RW] PLL CHANNEL control CH 2 */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_DIV            0x204e0208 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_FRAC           0x204e020c /* [RW] Fractional */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_GAIN           0x204e0210 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_HOLD_CH_ALL    0x204e0214 /* [RW] Hold PLL all channels */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_LDO_CTRL       0x204e0218 /* [RW] Ldo voltage control */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_LDO_PWRON      0x204e021c /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_LOCK_STATUS    0x204e0220 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_MISC           0x204e0224 /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_MISC2          0x204e0228 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_PWRON          0x204e022c /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_RESET          0x204e0230 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_SSC_MODE_CONTROL_HIGH 0x204e0234 /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_SSC_MODE_CONTROL_LOW 0x204e0238 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_STATUS         0x204e023c /* [RO] Status */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_BG_PWRON       0x204e0240 /* [RW] Bandgap Power on */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0 0x204e0244 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1 0x204e0248 /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_2 0x204e024c /* [RW] PLL CHANNEL control CH 2 */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_DIV            0x204e0250 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_FRAC           0x204e0254 /* [RW] Fractional */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_GAIN           0x204e0258 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_HOLD_CH_ALL    0x204e025c /* [RW] Hold PLL all channels */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_LDO_CTRL       0x204e0260 /* [RW] Ldo voltage control */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_LDO_PWRON      0x204e0264 /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_LOCK_STATUS    0x204e0268 /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_MISC           0x204e026c /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_MISC2          0x204e0270 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_PWRON          0x204e0274 /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_RESET          0x204e0278 /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_SSC_MODE_CONTROL_HIGH 0x204e027c /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_SSC_MODE_CONTROL_LOW 0x204e0280 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_STATUS         0x204e0284 /* [RO] Status */
-#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0 0x204e0288 /* [RW] PLL CHANNEL control CH 0 */
-#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1 0x204e028c /* [RW] PLL CHANNEL control CH 1 */
-#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2 0x204e0290 /* [RW] PLL CHANNEL control CH 2 */
-#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_3 0x204e0294 /* [RW] PLL CHANNEL control CH 3 */
-#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4 0x204e0298 /* [RW] PLL CHANNEL control CH 4 */
-#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_5 0x204e029c /* [RW] PLL CHANNEL control CH 5 */
-#define BCHP_CLKGEN_PLL_XPT_PLL_DIV              0x204e02a0 /* [RW] Pre multiplier */
-#define BCHP_CLKGEN_PLL_XPT_PLL_GAIN             0x204e02a4 /* [RW] PLL GAIN */
-#define BCHP_CLKGEN_PLL_XPT_PLL_LDO_PWRON        0x204e02a8 /* [RW] LDO Power on */
-#define BCHP_CLKGEN_PLL_XPT_PLL_LOCK_STATUS      0x204e02ac /* [RO] Lock Status */
-#define BCHP_CLKGEN_PLL_XPT_PLL_MISC             0x204e02b0 /* [RW] Mscellaneous control bus. */
-#define BCHP_CLKGEN_PLL_XPT_PLL_MISC2            0x204e02b4 /* [RW] Mscellaneous control bus continued. */
-#define BCHP_CLKGEN_PLL_XPT_PLL_PWRON            0x204e02b8 /* [RW] Poweron */
-#define BCHP_CLKGEN_PLL_XPT_PLL_RESET            0x204e02bc /* [RW] Resets */
-#define BCHP_CLKGEN_PLL_XPT_PLL_SSC_MODE_CONTROL_HIGH 0x204e02c0 /* [RW] Higher bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_XPT_PLL_SSC_MODE_CONTROL_LOW 0x204e02c4 /* [RW] Lower bits of Spread Spectrum mode control */
-#define BCHP_CLKGEN_PLL_XPT_PLL_STATUS           0x204e02c8 /* [RO] Status */
-#define BCHP_CLKGEN_AON_SYS_AON_INST_CLOCK_ENABLE 0x204e02cc /* [RW] Aon sys aon inst clock enable */
-#define BCHP_CLKGEN_AON_SYS_AON_INST_CLOCK_ENABLE_STATUS 0x204e02d0 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_AON_SYS_AON_INST_OBSERVE_CLOCK 0x204e02d4 /* [RW] Aon sys aon inst observe clock */
-#define BCHP_CLKGEN_CLKGEN_CLOCK_DISABLE         0x204e02d8 /* [RW] Disable CLKGEN's clocks */
-#define BCHP_CLKGEN_CLKGEN_CLOCK_DISABLE_STATUS  0x204e02dc /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_BSPI_CLOCK_SELECT            0x204e02e0 /* [RW] Clkgen inst clock select */
-#define BCHP_CLKGEN_CLKGEN_INST_CTRL             0x204e02e4 /* [RW] Clkgen inst ctrl */
-#define BCHP_CLKGEN_CLOCK_MONITOR_CONTROL        0x204e02e8 /* [RW] Clock Monitor Control */
-#define BCHP_CLKGEN_CLOCK_MONITOR_MAX_COUNT      0x204e02ec /* [RW] Clock Monitor Max Reference Count */
-#define BCHP_CLKGEN_CLOCK_MONITOR_REF_COUNTER    0x204e02f0 /* [RO] Clock Monitor Reference Counter */
-#define BCHP_CLKGEN_CLOCK_MONITOR_REF_DONE       0x204e02f4 /* [RO] Clock Monitor Reference Counter */
-#define BCHP_CLKGEN_CLOCK_MONITOR_VIEW_COUNTER   0x204e02f8 /* [RO] Clock Monitor View Counter */
-#define BCHP_CLKGEN_CPU_ORION_TOP_INST_CLOCK_ENABLE 0x204e02fc /* [RW] Cpu orion top inst clock enable */
-#define BCHP_CLKGEN_CPU_ORION_TOP_INST_CLOCK_ENABLE_STATUS 0x204e0300 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_CPU_ORION_TOP_INST_CLOCK_SELECT 0x204e0304 /* [RW] Cpu orion top inst clock select */
-#define BCHP_CLKGEN_CPU_ORION_TOP_INST_OBSERVE_CLOCK 0x204e0308 /* [RW] Cpu orion top inst observe clock */
-#define BCHP_CLKGEN_DISABLE_AVS_TOP_DURING_S2    0x204e030c /* [RW] Disable AVS_TOP 54MHz clocks during S2 standby. */
-#define BCHP_CLKGEN_DISABLE_AVS_TOP_DURING_S2_SECURE 0x204e0310 /* [RW] Secure AVS_TOP clock disable. Set at start-up to guarantee AVS_TOP is clock gated in S2 standby. */
-#define BCHP_CLKGEN_INTERNAL_MUX_SELECT          0x204e0314 /* [RW] Mux selects for Internal clocks */
-#define BCHP_CLKGEN_ITU656_0_MUX_SELECT          0x204e0318 /* [RW] Mux selects for itu656_0 clocks */
-#define BCHP_CLKGEN_PAD_CLK_OUT0_OBSERVATION     0x204e031c /* [RW] Select observation clk */
-#define BCHP_CLKGEN_PAD_CLK_OUT1_OBSERVATION     0x204e0320 /* [RW] Select observation clk */
-#define BCHP_CLKGEN_PAD_CLOCK_DISABLE            0x204e0324 /* [RW] Disable PAD's clocks */
-#define BCHP_CLKGEN_PAD_CLOCK_DISABLE_STATUS     0x204e0328 /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_PAD_MUX_SELECT               0x204e032c /* [RW] Mux selects for Pad clocks */
-#define BCHP_CLKGEN_PLL_AVX_PLL_RESET_STATUS     0x204e0330 /* [RO] PLL_AVX Reset Status */
-#define BCHP_CLKGEN_PLL_CPU_CHANNEL0_WFI_SM_CONTROL 0x204e0334 /* [RW] WFI PLL state machine controls. */
-#define BCHP_CLKGEN_PLL_CPU_CHANNEL0_WFI_SM_MDIV_ALTERNATE 0x204e0338 /* [RW] WFI SM MDIV Alternate */
-#define BCHP_CLKGEN_PLL_CPU_CHANNEL0_WFI_SM_STATUS 0x204e033c /* [RO] WFI PLL state machine status */
-#define BCHP_CLKGEN_PLL_NETWORK_PLL_RESET_STATUS 0x204e0340 /* [RO] PLL_NETWORK Reset Status */
-#define BCHP_CLKGEN_PLL_RAAGA_PLL_RESET_STATUS   0x204e0344 /* [RO] PLL_RAAGA Reset Status */
-#define BCHP_CLKGEN_PLL_SC0_PLL_RESET_STATUS     0x204e0348 /* [RO] PLL_SC0 Reset Status */
-#define BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL       0x204e034c /* [RW] PLL RDB Macro Disable */
-#define BCHP_CLKGEN_PLL_SC1_PLL_RESET_STATUS     0x204e0350 /* [RO] PLL_SC1 Reset Status */
-#define BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL       0x204e0354 /* [RW] PLL RDB Macro Disable */
-#define BCHP_CLKGEN_PLL_STRAP_OVERRIDE           0x204e0358 /* [RW] Disable */
-#define BCHP_CLKGEN_PLL_V3D_PLL_RESET_STATUS     0x204e035c /* [RO] PLL_V3D Reset Status */
-#define BCHP_CLKGEN_PLL_VCXO0_PLL_RESET_STATUS   0x204e0360 /* [RO] PLL_VCXO0 Reset Status */
-#define BCHP_CLKGEN_PLL_VCXO1_PLL_RESET_STATUS   0x204e0364 /* [RO] PLL_VCXO1 Reset Status */
-#define BCHP_CLKGEN_PM_CLOCK_Async_ALIVE_SEL     0x204e0368 /* [RW] Select clocks that can stay alive during power management standby mode. */
-#define BCHP_CLKGEN_PM_PLL_ALIVE_SEL             0x204e036c /* [RW] PLL Alive in Standby Mode */
-#define BCHP_CLKGEN_PM_PLL_LDO_POWERUP           0x204e0370 /* [RW] Power management LDO PLL */
-#define BCHP_CLKGEN_SMARTCARD_MUX_SELECT         0x204e0374 /* [RW] Mux selects for Smartcard clocks */
-#define BCHP_CLKGEN_SPARE                        0x204e0378 /* [RW] Spares */
-#define BCHP_CLKGEN_STB_ANA_SDAC_TS28HPM_6MX_2MR_FC_H_E_INST_CLOCK_DISABLE 0x204e037c /* [RW] Disable STB_ANA_SDAC_TS28HPM_6MX_2MR_FC_H_E_INST's clocks */
-#define BCHP_CLKGEN_STB_ANA_SDAC_TS28HPM_6MX_2MR_FC_H_E_INST_CLOCK_DISABLE_STATUS 0x204e0380 /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE 0x204e0384 /* [RW] Stb bvn top inst clock enable */
-#define BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_STATUS 0x204e0388 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE 0x204e038c /* [RW] Disable STB_CORE_XPT_HIF_INST's clocks */
-#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_STATUS 0x204e0390 /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_ENABLE 0x204e0394 /* [RW] Stb core xpt hif inst clock enable */
-#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_ENABLE_STATUS 0x204e0398 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_OBSERVE_CLOCK 0x204e039c /* [RW] Stb core xpt hif inst observe clock */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_DISABLE 0x204e03a0 /* [RW] Disable STB_DVP_HR_INST's clocks */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_DISABLE_STATUS 0x204e03a4 /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE 0x204e03a8 /* [RW] Stb dvp hr inst clock enable */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE0 0x204e03ac /* [RW] Stb dvp hr inst clock enable0 */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE0_STATUS 0x204e03b0 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE2 0x204e03b4 /* [RW] Stb dvp hr inst clock enable2 */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE2_STATUS 0x204e03b8 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_STATUS 0x204e03bc /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_DVP_HR_INST_OBSERVE_CLOCK 0x204e03c0 /* [RW] Stb dvp hr inst observe clock */
-#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_DISABLE 0x204e03c4 /* [RW] Disable STB_DVP_MHT_INST's clocks */
-#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_DISABLE_STATUS 0x204e03c8 /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE 0x204e03cc /* [RW] Stb dvp mht inst clock enable */
-#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_STATUS 0x204e03d0 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_DVP_MHT_INST_OBSERVE_CLOCK 0x204e03d4 /* [RW] Stb dvp mht inst observe clock */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_DISABLE 0x204e03d8 /* [RW] Disable STB_GENET_TOP_INST's clocks */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_DISABLE_STATUS 0x204e03dc /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_ENABLE 0x204e03e0 /* [RW] Stb genet top inst clock enable */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_ENABLE_STATUS 0x204e03e4 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_SELECT 0x204e03e8 /* [RW] Stb genet top inst clock select */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_SELECT_GENET0 0x204e03ec /* [RW] Stb genet top inst clock select genet0 */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_SELECT_GENET1 0x204e03f0 /* [RW] Stb genet top inst clock select genet1 */
-#define BCHP_CLKGEN_STB_GENET_TOP_INST_OBSERVE_CLOCK 0x204e03f4 /* [RW] Stb genet top inst observe clock */
-#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE 0x204e03f8 /* [RW] Stb hvdp0 top inst clock enable */
-#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_STATUS 0x204e03fc /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_SELECT 0x204e0400 /* [RW] Stb hvdp0 top inst clock select */
-#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_OBSERVE_CLOCK 0x204e0404 /* [RW] Stb hvdp0 top inst observe clock */
-#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE 0x204e0408 /* [RW] Stb hvds0 top inst clock enable */
-#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE_STATUS 0x204e040c /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_SELECT 0x204e0410 /* [RW] Stb hvds0 top inst clock select */
-#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_OBSERVE_CLOCK 0x204e0414 /* [RW] Stb hvds0 top inst observe clock */
-#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_CLOCK_ENABLE 0x204e0418 /* [RW] Stb memsys 32 0 inst clock enable */
-#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_CLOCK_ENABLE_STATUS 0x204e041c /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_OBSERVE_CLOCK 0x204e0420 /* [RW] Stb memsys 32 0 inst observe clock */
-#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_STATUS  0x204e0424 /* [RO] Stb memsys 32 0 inst status */
-#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_DISABLE 0x204e0428 /* [RW] Disable STB_PROD_OTP_INST's clocks */
-#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_DISABLE_STATUS 0x204e042c /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_ENABLE 0x204e0430 /* [RW] Stb prod otp inst clock enable */
-#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_ENABLE_STATUS 0x204e0434 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0 0x204e0438 /* [RW] Stb raaga dsp top 0 inst clock enable aio raaga0 */
-#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0_STATUS 0x204e043c /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0 0x204e0440 /* [RW] Stb raaga dsp top 0 inst clock enable raaga0 */
-#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_STATUS 0x204e0444 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_OBSERVE_CLOCK 0x204e0448 /* [RW] Stb raaga dsp top 0 inst observe clock */
-#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_RAAGA0 0x204e044c /* [RW] Stb raaga dsp top 0 inst raaga0 */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_DISABLE 0x204e0450 /* [RW] Disable STB_SATA3_PCIE_TOP_INST's clocks */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_DISABLE_STATUS 0x204e0454 /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0 0x204e0458 /* [RW] Stb sata3 pcie top inst clock enable pcie0 */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0_STATUS 0x204e045c /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_SATA30 0x204e0460 /* [RW] Stb sata3 pcie top inst clock enable sata30 */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_SATA30_STATUS 0x204e0464 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_SELECT_SATA30 0x204e0468 /* [RW] Stb sata3 pcie top inst clock select sata30 */
-#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_OBSERVE_CLOCK 0x204e046c /* [RW] Stb sata3 pcie top inst observe clock */
-#define BCHP_CLKGEN_STB_SECTOP_INST_CLOCK_ENABLE_SECTOP_XPT 0x204e0470 /* [RW] Stb sectop inst clock enable sectop xpt */
-#define BCHP_CLKGEN_STB_SECTOP_INST_CLOCK_ENABLE_SECTOP_XPT_STATUS 0x204e0474 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_SECTOP_INST_OBSERVE_CLOCK 0x204e0478 /* [RW] Stb sectop inst observe clock */
-#define BCHP_CLKGEN_STB_SFE_TOP_INST_CLOCK_ENABLE 0x204e047c /* [RW] Stb sfe top inst clock enable */
-#define BCHP_CLKGEN_STB_SFE_TOP_INST_CLOCK_ENABLE_STATUS 0x204e0480 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_SFE_TOP_INST_OBSERVE_CLOCK 0x204e0484 /* [RW] Stb sfe top inst observe clock */
-#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_DISABLE 0x204e0488 /* [RW] Disable STB_SYS_CTRL_INST's clocks */
-#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_DISABLE_STATUS 0x204e048c /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_ENABLE 0x204e0490 /* [RW] Stb sys ctrl inst clock enable */
-#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_ENABLE_STATUS 0x204e0494 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_SYS_CTRL_INST_OBSERVE_CLOCK 0x204e0498 /* [RW] Stb sys ctrl inst observe clock */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_DISABLE 0x204e049c /* [RW] Disable STB_USB0_TOP_INST's clocks */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_DISABLE_STATUS 0x204e04a0 /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE 0x204e04a4 /* [RW] Stb usb0 top inst clock enable */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_STATUS 0x204e04a8 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB20 0x204e04ac /* [RW] Stb usb0 top inst clock enable usb20 */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB20_STATUS 0x204e04b0 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB30 0x204e04b4 /* [RW] Stb usb0 top inst clock enable usb30 */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB30_STATUS 0x204e04b8 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USBD 0x204e04bc /* [RW] Stb usb0 top inst clock enable usbd */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USBD_STATUS 0x204e04c0 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_USB0_TOP_INST_OBSERVE_CLOCK 0x204e04c4 /* [RW] Stb usb0 top inst observe clock */
-#define BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE 0x204e04c8 /* [RW] Stb v3d top inst clock enable */
-#define BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_STATUS 0x204e04cc /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_SELECT 0x204e04d0 /* [RW] Stb v3d top inst clock select */
-#define BCHP_CLKGEN_STB_V3D_TOP_INST_OBSERVE_CLOCK 0x204e04d4 /* [RW] Stb v3d top inst observe clock */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_DISABLE 0x204e04d8 /* [RW] Disable STB_VEC_AIO_GFX_TOP_INST's clocks */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_DISABLE_STATUS 0x204e04dc /* [RO] Clock Disable Status */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_AIO 0x204e04e0 /* [RW] Stb vec aio gfx top inst clock enable aio */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_AIO_STATUS 0x204e04e4 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0 0x204e04e8 /* [RW] Stb vec aio gfx top inst clock enable m2mc0 */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0_STATUS 0x204e04ec /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC 0x204e04f0 /* [RW] Stb vec aio gfx top inst clock enable vdac */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC_STATUS 0x204e04f4 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC 0x204e04f8 /* [RW] Stb vec aio gfx top inst clock enable vec */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO 0x204e04fc /* [RW] Stb vec aio gfx top inst clock enable vec aio */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO_STATUS 0x204e0500 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_STATUS 0x204e0504 /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP 0x204e0508 /* [RW] Stb vec aio gfx top inst clock enable vip */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP_STATUS 0x204e050c /* [RO] Clock Enable Status */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_M2MC0 0x204e0510 /* [RW] Stb vec aio gfx top inst m2mc0 */
-#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_OBSERVE_CLOCK 0x204e0514 /* [RW] Stb vec aio gfx top inst observe clock */
-#define BCHP_CLKGEN_TESTPORT                     0x204e0518 /* [RW] Special Testport Controls */
-#define BCHP_CLKGEN_UART_0_CLOCK_MUX_SELECT      0x204e051c /* [RW] Mux selects for Uart_0_Clock clocks */
-#define BCHP_CLKGEN_UART_1_CLOCK_MUX_SELECT      0x204e0520 /* [RW] Mux selects for Uart_1_Clock clocks */
-#define BCHP_CLKGEN_UART_2_CLOCK_MUX_SELECT      0x204e0524 /* [RW] Mux selects for Uart_2_Clock clocks */
-#define BCHP_CLKGEN_STB_CLKGEN_BVB_MUX_SELECT    0x204e0528 /* [RW] BVB clocks muxing */
-#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_ARRAY        0x204e1000 /* [RW] Power management DVFS NDIV state machine fractional array. */
-#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_CONTROL0     0x204e1004 /* [RW] Power management DVFS NDIV state machine controls. */
-#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_CONTROL1     0x204e1008 /* [RW] Power management DVFS NDIV state machine controls. */
-#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_STATUS       0x204e100c /* [RO] Power management DVFS NDIV state machine status. */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_0_4K 0x204e1010 /* [RW] PLL CHANNEL control CH 0 registers in separate 4K boundary */
-#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_1_4K 0x204e1014 /* [RW] PLL CHANNEL control CH 1 registers in separate 4K boundary */
-#define BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K           0x204e1018 /* [RW] Multiplier in separate 4K boundary */
+#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0 0x204e0000 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1 0x204e0004 /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2 0x204e0008 /* [RW][32] PLL CHANNEL control CH 2 */
+#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3 0x204e000c /* [RW][32] PLL CHANNEL control CH 3 */
+#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4 0x204e0010 /* [RW][32] PLL CHANNEL control CH 4 */
+#define BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_5 0x204e0014 /* [RW][32] PLL CHANNEL control CH 5 */
+#define BCHP_CLKGEN_PLL_AVX_PLL_DIV              0x204e0018 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_AVX_PLL_FRAC             0x204e001c /* [RW][32] Fractional */
+#define BCHP_CLKGEN_PLL_AVX_PLL_GAIN             0x204e0020 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_AVX_PLL_LDO_PWRON        0x204e0024 /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_AVX_PLL_LOCK_STATUS      0x204e0028 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_AVX_PLL_MISC             0x204e002c /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_AVX_PLL_MISC2            0x204e0030 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_AVX_PLL_PWRON            0x204e0034 /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_AVX_PLL_RESET            0x204e0038 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_AVX_PLL_SSC_MODE_CONTROL_HIGH 0x204e003c /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_AVX_PLL_SSC_MODE_CONTROL_LOW 0x204e0040 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_AVX_PLL_STATUS           0x204e0044 /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_0 0x204e0048 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_1 0x204e004c /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2 0x204e0050 /* [RW][32] PLL CHANNEL control CH 2 */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_3 0x204e0054 /* [RW][32] PLL CHANNEL control CH 3 */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_4 0x204e0058 /* [RW][32] PLL CHANNEL control CH 4 */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5 0x204e005c /* [RW][32] PLL CHANNEL control CH 5 */
+#define BCHP_CLKGEN_PLL_CPU_PLL_DIV              0x204e0060 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_CPU_PLL_FRAC             0x204e0064 /* [RW][32] Fractional */
+#define BCHP_CLKGEN_PLL_CPU_PLL_GAIN             0x204e0068 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_CPU_PLL_LDO_PWRON        0x204e006c /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_CPU_PLL_LOCK_STATUS      0x204e0070 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_CPU_PLL_MISC             0x204e0074 /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_CPU_PLL_MISC2            0x204e0078 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_CPU_PLL_PWRON            0x204e007c /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_CPU_PLL_RESET            0x204e0080 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_CPU_PLL_SSC_MODE_CONTROL_HIGH 0x204e0084 /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_CPU_PLL_SSC_MODE_CONTROL_LOW 0x204e0088 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_CPU_PLL_STATUS           0x204e008c /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0 0x204e0090 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_1 0x204e0094 /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_2 0x204e0098 /* [RW][32] PLL CHANNEL control CH 2 */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3 0x204e009c /* [RW][32] PLL CHANNEL control CH 3 */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_4 0x204e00a0 /* [RW][32] PLL CHANNEL control CH 4 */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5 0x204e00a4 /* [RW][32] PLL CHANNEL control CH 5 */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_DIV          0x204e00a8 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_GAIN         0x204e00ac /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_LDO_PWRON    0x204e00b0 /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_LOCK_STATUS  0x204e00b4 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_MISC         0x204e00b8 /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_MISC2        0x204e00bc /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_PWRON        0x204e00c0 /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_RESET        0x204e00c4 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_SSC_MODE_CONTROL_HIGH 0x204e00c8 /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_SSC_MODE_CONTROL_LOW 0x204e00cc /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_STATUS       0x204e00d0 /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0 0x204e00d4 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_1 0x204e00d8 /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_DIV            0x204e00dc /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_GAIN           0x204e00e0 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_LDO_PWRON      0x204e00e4 /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_LOCK_STATUS    0x204e00e8 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_MISC           0x204e00ec /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_MISC2          0x204e00f0 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_PWRON          0x204e00f4 /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_RESET          0x204e00f8 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_SSC_MODE_CONTROL_HIGH 0x204e00fc /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_SSC_MODE_CONTROL_LOW 0x204e0100 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_STATUS         0x204e0104 /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0 0x204e0108 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_SC0_PLL_DIV              0x204e010c /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_SC0_PLL_FRAC             0x204e0110 /* [RW][32] Fractional */
+#define BCHP_CLKGEN_PLL_SC0_PLL_GAIN             0x204e0114 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_SC0_PLL_LDO_PWRON        0x204e0118 /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_SC0_PLL_LOCK_STATUS      0x204e011c /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_SC0_PLL_MISC             0x204e0120 /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_SC0_PLL_MISC2            0x204e0124 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_SC0_PLL_PWRON            0x204e0128 /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_SC0_PLL_RESET            0x204e012c /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_SC0_PLL_SSC_MODE_CONTROL_HIGH 0x204e0130 /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_SC0_PLL_SSC_MODE_CONTROL_LOW 0x204e0134 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_SC0_PLL_STATUS           0x204e0138 /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0 0x204e013c /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_SC1_PLL_DIV              0x204e0140 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_SC1_PLL_FRAC             0x204e0144 /* [RW][32] Fractional */
+#define BCHP_CLKGEN_PLL_SC1_PLL_GAIN             0x204e0148 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_SC1_PLL_LDO_PWRON        0x204e014c /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_SC1_PLL_LOCK_STATUS      0x204e0150 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_SC1_PLL_MISC             0x204e0154 /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_SC1_PLL_MISC2            0x204e0158 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_SC1_PLL_PWRON            0x204e015c /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_SC1_PLL_RESET            0x204e0160 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_SC1_PLL_SSC_MODE_CONTROL_HIGH 0x204e0164 /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_SC1_PLL_SSC_MODE_CONTROL_LOW 0x204e0168 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_SC1_PLL_STATUS           0x204e016c /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_BG_PWRON        0x204e0170 /* [RW][32] Bandgap Power on */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0 0x204e0174 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1 0x204e0178 /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2 0x204e017c /* [RW][32] PLL CHANNEL control CH 2 */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_3 0x204e0180 /* [RW][32] PLL CHANNEL control CH 3 */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_4 0x204e0184 /* [RW][32] PLL CHANNEL control CH 4 */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5 0x204e0188 /* [RW][32] PLL CHANNEL control CH 5 */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_DIV             0x204e018c /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_GAIN            0x204e0190 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_HOLD_CH_ALL     0x204e0194 /* [RW][32] Hold PLL all channels */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_LDO_CTRL        0x204e0198 /* [RW][32] Ldo voltage control */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_LDO_PWRON       0x204e019c /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_LOCK_STATUS     0x204e01a0 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_MISC            0x204e01a4 /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_MISC2           0x204e01a8 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_PWRON           0x204e01ac /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_RESET           0x204e01b0 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_SSC_MODE_CONTROL_HIGH 0x204e01b4 /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_SSC_MODE_CONTROL_LOW 0x204e01b8 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_SYS0_PLL_STATUS          0x204e01bc /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0 0x204e01c0 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_1 0x204e01c4 /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_V3D_PLL_DIV              0x204e01c8 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_V3D_PLL_FRAC             0x204e01cc /* [RW][32] Fractional */
+#define BCHP_CLKGEN_PLL_V3D_PLL_GAIN             0x204e01d0 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON        0x204e01d4 /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_V3D_PLL_LOCK_STATUS      0x204e01d8 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_V3D_PLL_MISC             0x204e01dc /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_V3D_PLL_MISC2            0x204e01e0 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_V3D_PLL_PWRON            0x204e01e4 /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_V3D_PLL_RESET            0x204e01e8 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_V3D_PLL_SSC_MODE_CONTROL_HIGH 0x204e01ec /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_V3D_PLL_SSC_MODE_CONTROL_LOW 0x204e01f0 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_V3D_PLL_STATUS           0x204e01f4 /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_BG_PWRON       0x204e01f8 /* [RW][32] Bandgap Power on */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0 0x204e01fc /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1 0x204e0200 /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_2 0x204e0204 /* [RW][32] PLL CHANNEL control CH 2 */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_DIV            0x204e0208 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_FRAC           0x204e020c /* [RW][32] Fractional */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_GAIN           0x204e0210 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_HOLD_CH_ALL    0x204e0214 /* [RW][32] Hold PLL all channels */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_LDO_CTRL       0x204e0218 /* [RW][32] Ldo voltage control */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_LDO_PWRON      0x204e021c /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_LOCK_STATUS    0x204e0220 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_MISC           0x204e0224 /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_MISC2          0x204e0228 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_PWRON          0x204e022c /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_RESET          0x204e0230 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_SSC_MODE_CONTROL_HIGH 0x204e0234 /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_SSC_MODE_CONTROL_LOW 0x204e0238 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_STATUS         0x204e023c /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_BG_PWRON       0x204e0240 /* [RW][32] Bandgap Power on */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0 0x204e0244 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1 0x204e0248 /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_2 0x204e024c /* [RW][32] PLL CHANNEL control CH 2 */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_DIV            0x204e0250 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_FRAC           0x204e0254 /* [RW][32] Fractional */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_GAIN           0x204e0258 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_HOLD_CH_ALL    0x204e025c /* [RW][32] Hold PLL all channels */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_LDO_CTRL       0x204e0260 /* [RW][32] Ldo voltage control */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_LDO_PWRON      0x204e0264 /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_LOCK_STATUS    0x204e0268 /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_MISC           0x204e026c /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_MISC2          0x204e0270 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_PWRON          0x204e0274 /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_RESET          0x204e0278 /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_SSC_MODE_CONTROL_HIGH 0x204e027c /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_SSC_MODE_CONTROL_LOW 0x204e0280 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_STATUS         0x204e0284 /* [RO][32] Status */
+#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0 0x204e0288 /* [RW][32] PLL CHANNEL control CH 0 */
+#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1 0x204e028c /* [RW][32] PLL CHANNEL control CH 1 */
+#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2 0x204e0290 /* [RW][32] PLL CHANNEL control CH 2 */
+#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_3 0x204e0294 /* [RW][32] PLL CHANNEL control CH 3 */
+#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4 0x204e0298 /* [RW][32] PLL CHANNEL control CH 4 */
+#define BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_5 0x204e029c /* [RW][32] PLL CHANNEL control CH 5 */
+#define BCHP_CLKGEN_PLL_XPT_PLL_DIV              0x204e02a0 /* [RW][32] Pre multiplier */
+#define BCHP_CLKGEN_PLL_XPT_PLL_GAIN             0x204e02a4 /* [RW][32] PLL GAIN */
+#define BCHP_CLKGEN_PLL_XPT_PLL_LDO_PWRON        0x204e02a8 /* [RW][32] LDO Power on */
+#define BCHP_CLKGEN_PLL_XPT_PLL_LOCK_STATUS      0x204e02ac /* [RO][32] Lock Status */
+#define BCHP_CLKGEN_PLL_XPT_PLL_MISC             0x204e02b0 /* [RW][32] Mscellaneous control bus. */
+#define BCHP_CLKGEN_PLL_XPT_PLL_MISC2            0x204e02b4 /* [RW][32] Mscellaneous control bus continued. */
+#define BCHP_CLKGEN_PLL_XPT_PLL_PWRON            0x204e02b8 /* [RW][32] Poweron */
+#define BCHP_CLKGEN_PLL_XPT_PLL_RESET            0x204e02bc /* [RW][32] Resets */
+#define BCHP_CLKGEN_PLL_XPT_PLL_SSC_MODE_CONTROL_HIGH 0x204e02c0 /* [RW][32] Higher bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_XPT_PLL_SSC_MODE_CONTROL_LOW 0x204e02c4 /* [RW][32] Lower bits of Spread Spectrum mode control */
+#define BCHP_CLKGEN_PLL_XPT_PLL_STATUS           0x204e02c8 /* [RO][32] Status */
+#define BCHP_CLKGEN_AON_SYS_AON_INST_CLOCK_ENABLE 0x204e02cc /* [RW][32] Aon sys aon inst clock enable */
+#define BCHP_CLKGEN_AON_SYS_AON_INST_CLOCK_ENABLE_STATUS 0x204e02d0 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_AON_SYS_AON_INST_OBSERVE_CLOCK 0x204e02d4 /* [RW][32] Aon sys aon inst observe clock */
+#define BCHP_CLKGEN_CLKGEN_CLOCK_DISABLE         0x204e02d8 /* [RW][32] Disable CLKGEN's clocks */
+#define BCHP_CLKGEN_CLKGEN_CLOCK_DISABLE_STATUS  0x204e02dc /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_BSPI_CLOCK_SELECT            0x204e02e0 /* [RW][32] Clkgen inst clock select */
+#define BCHP_CLKGEN_CLKGEN_INST_CTRL             0x204e02e4 /* [RW][32] Clkgen inst ctrl */
+#define BCHP_CLKGEN_CLOCK_MONITOR_CONTROL        0x204e02e8 /* [RW][32] Clock Monitor Control */
+#define BCHP_CLKGEN_CLOCK_MONITOR_MAX_COUNT      0x204e02ec /* [RW][32] Clock Monitor Max Reference Count */
+#define BCHP_CLKGEN_CLOCK_MONITOR_REF_COUNTER    0x204e02f0 /* [RO][32] Clock Monitor Reference Counter */
+#define BCHP_CLKGEN_CLOCK_MONITOR_REF_DONE       0x204e02f4 /* [RO][32] Clock Monitor Reference Counter */
+#define BCHP_CLKGEN_CLOCK_MONITOR_VIEW_COUNTER   0x204e02f8 /* [RO][32] Clock Monitor View Counter */
+#define BCHP_CLKGEN_CPU_ORION_TOP_INST_CLOCK_ENABLE 0x204e02fc /* [RW][32] Cpu orion top inst clock enable */
+#define BCHP_CLKGEN_CPU_ORION_TOP_INST_CLOCK_ENABLE_STATUS 0x204e0300 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_CPU_ORION_TOP_INST_CLOCK_SELECT 0x204e0304 /* [RW][32] Cpu orion top inst clock select */
+#define BCHP_CLKGEN_CPU_ORION_TOP_INST_OBSERVE_CLOCK 0x204e0308 /* [RW][32] Cpu orion top inst observe clock */
+#define BCHP_CLKGEN_DISABLE_AVS_TOP_DURING_S2    0x204e030c /* [RW][32] Disable AVS_TOP 54MHz clocks during S2 standby. */
+#define BCHP_CLKGEN_DISABLE_AVS_TOP_DURING_S2_SECURE 0x204e0310 /* [RW][32] Secure AVS_TOP clock disable. Set at start-up to guarantee AVS_TOP is clock gated in S2 standby. */
+#define BCHP_CLKGEN_INTERNAL_MUX_SELECT          0x204e0314 /* [RW][32] Mux selects for Internal clocks */
+#define BCHP_CLKGEN_ITU656_0_MUX_SELECT          0x204e0318 /* [RW][32] Mux selects for itu656_0 clocks */
+#define BCHP_CLKGEN_PAD_CLK_OUT0_OBSERVATION     0x204e031c /* [RW][32] Select observation clk */
+#define BCHP_CLKGEN_PAD_CLK_OUT1_OBSERVATION     0x204e0320 /* [RW][32] Select observation clk */
+#define BCHP_CLKGEN_PAD_CLOCK_DISABLE            0x204e0324 /* [RW][32] Disable PAD's clocks */
+#define BCHP_CLKGEN_PAD_CLOCK_DISABLE_STATUS     0x204e0328 /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_PAD_MUX_SELECT               0x204e032c /* [RW][32] Mux selects for Pad clocks */
+#define BCHP_CLKGEN_PLL_AVX_PLL_RESET_STATUS     0x204e0330 /* [RO][32] PLL_AVX Reset Status */
+#define BCHP_CLKGEN_PLL_CPU_CHANNEL0_WFI_SM_CONTROL 0x204e0334 /* [RW][32] WFI PLL state machine controls. */
+#define BCHP_CLKGEN_PLL_CPU_CHANNEL0_WFI_SM_MDIV_ALTERNATE 0x204e0338 /* [RW][32] WFI SM MDIV Alternate */
+#define BCHP_CLKGEN_PLL_CPU_CHANNEL0_WFI_SM_STATUS 0x204e033c /* [RO][32] WFI PLL state machine status */
+#define BCHP_CLKGEN_PLL_NETWORK_PLL_RESET_STATUS 0x204e0340 /* [RO][32] PLL_NETWORK Reset Status */
+#define BCHP_CLKGEN_PLL_RAAGA_PLL_RESET_STATUS   0x204e0344 /* [RO][32] PLL_RAAGA Reset Status */
+#define BCHP_CLKGEN_PLL_SC0_PLL_RESET_STATUS     0x204e0348 /* [RO][32] PLL_SC0 Reset Status */
+#define BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL       0x204e034c /* [RW][32] PLL RDB Macro Disable */
+#define BCHP_CLKGEN_PLL_SC1_PLL_RESET_STATUS     0x204e0350 /* [RO][32] PLL_SC1 Reset Status */
+#define BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL       0x204e0354 /* [RW][32] PLL RDB Macro Disable */
+#define BCHP_CLKGEN_PLL_STRAP_OVERRIDE           0x204e0358 /* [RW][32] Disable */
+#define BCHP_CLKGEN_PLL_V3D_PLL_RESET_STATUS     0x204e035c /* [RO][32] PLL_V3D Reset Status */
+#define BCHP_CLKGEN_PLL_VCXO0_PLL_RESET_STATUS   0x204e0360 /* [RO][32] PLL_VCXO0 Reset Status */
+#define BCHP_CLKGEN_PLL_VCXO1_PLL_RESET_STATUS   0x204e0364 /* [RO][32] PLL_VCXO1 Reset Status */
+#define BCHP_CLKGEN_PM_CLOCK_Async_ALIVE_SEL     0x204e0368 /* [RW][32] Select clocks that can stay alive during power management standby mode. */
+#define BCHP_CLKGEN_PM_PLL_ALIVE_SEL             0x204e036c /* [RW][32] PLL Alive in Standby Mode */
+#define BCHP_CLKGEN_PM_PLL_LDO_POWERUP           0x204e0370 /* [RW][32] Power management LDO PLL */
+#define BCHP_CLKGEN_SMARTCARD_MUX_SELECT         0x204e0374 /* [RW][32] Mux selects for Smartcard clocks */
+#define BCHP_CLKGEN_SPARE                        0x204e0378 /* [RW][32] Spares */
+#define BCHP_CLKGEN_STB_ANA_SDAC_TS28HPM_6MX_2MR_FC_H_E_INST_CLOCK_DISABLE 0x204e037c /* [RW][32] Disable STB_ANA_SDAC_TS28HPM_6MX_2MR_FC_H_E_INST's clocks */
+#define BCHP_CLKGEN_STB_ANA_SDAC_TS28HPM_6MX_2MR_FC_H_E_INST_CLOCK_DISABLE_STATUS 0x204e0380 /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE 0x204e0384 /* [RW][32] Stb bvn top inst clock enable */
+#define BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_STATUS 0x204e0388 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE 0x204e038c /* [RW][32] Disable STB_CORE_XPT_HIF_INST's clocks */
+#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_STATUS 0x204e0390 /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_ENABLE 0x204e0394 /* [RW][32] Stb core xpt hif inst clock enable */
+#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_ENABLE_STATUS 0x204e0398 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_OBSERVE_CLOCK 0x204e039c /* [RW][32] Stb core xpt hif inst observe clock */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_DISABLE 0x204e03a0 /* [RW][32] Disable STB_DVP_HR_INST's clocks */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_DISABLE_STATUS 0x204e03a4 /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE 0x204e03a8 /* [RW][32] Stb dvp hr inst clock enable */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE0 0x204e03ac /* [RW][32] Stb dvp hr inst clock enable0 */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE0_STATUS 0x204e03b0 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE2 0x204e03b4 /* [RW][32] Stb dvp hr inst clock enable2 */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE2_STATUS 0x204e03b8 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_STATUS 0x204e03bc /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_DVP_HR_INST_OBSERVE_CLOCK 0x204e03c0 /* [RW][32] Stb dvp hr inst observe clock */
+#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_DISABLE 0x204e03c4 /* [RW][32] Disable STB_DVP_MHT_INST's clocks */
+#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_DISABLE_STATUS 0x204e03c8 /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE 0x204e03cc /* [RW][32] Stb dvp mht inst clock enable */
+#define BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_STATUS 0x204e03d0 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_DVP_MHT_INST_OBSERVE_CLOCK 0x204e03d4 /* [RW][32] Stb dvp mht inst observe clock */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_DISABLE 0x204e03d8 /* [RW][32] Disable STB_GENET_TOP_INST's clocks */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_DISABLE_STATUS 0x204e03dc /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_ENABLE 0x204e03e0 /* [RW][32] Stb genet top inst clock enable */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_ENABLE_STATUS 0x204e03e4 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_SELECT 0x204e03e8 /* [RW][32] Stb genet top inst clock select */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_SELECT_GENET0 0x204e03ec /* [RW][32] Stb genet top inst clock select genet0 */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_CLOCK_SELECT_GENET1 0x204e03f0 /* [RW][32] Stb genet top inst clock select genet1 */
+#define BCHP_CLKGEN_STB_GENET_TOP_INST_OBSERVE_CLOCK 0x204e03f4 /* [RW][32] Stb genet top inst observe clock */
+#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE 0x204e03f8 /* [RW][32] Stb hvdp0 top inst clock enable */
+#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_STATUS 0x204e03fc /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_SELECT 0x204e0400 /* [RW][32] Stb hvdp0 top inst clock select */
+#define BCHP_CLKGEN_STB_HVDP0_TOP_INST_OBSERVE_CLOCK 0x204e0404 /* [RW][32] Stb hvdp0 top inst observe clock */
+#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE 0x204e0408 /* [RW][32] Stb hvds0 top inst clock enable */
+#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE_STATUS 0x204e040c /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_SELECT 0x204e0410 /* [RW][32] Stb hvds0 top inst clock select */
+#define BCHP_CLKGEN_STB_HVDS0_TOP_INST_OBSERVE_CLOCK 0x204e0414 /* [RW][32] Stb hvds0 top inst observe clock */
+#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_CLOCK_ENABLE 0x204e0418 /* [RW][32] Stb memsys 32 0 inst clock enable */
+#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_CLOCK_ENABLE_STATUS 0x204e041c /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_OBSERVE_CLOCK 0x204e0420 /* [RW][32] Stb memsys 32 0 inst observe clock */
+#define BCHP_CLKGEN_STB_MEMSYS_32_0_INST_STATUS  0x204e0424 /* [RO][32] Stb memsys 32 0 inst status */
+#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_DISABLE 0x204e0428 /* [RW][32] Disable STB_PROD_OTP_INST's clocks */
+#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_DISABLE_STATUS 0x204e042c /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_ENABLE 0x204e0430 /* [RW][32] Stb prod otp inst clock enable */
+#define BCHP_CLKGEN_STB_PROD_OTP_INST_CLOCK_ENABLE_STATUS 0x204e0434 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0 0x204e0438 /* [RW][32] Stb raaga dsp top 0 inst clock enable aio raaga0 */
+#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0_STATUS 0x204e043c /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0 0x204e0440 /* [RW][32] Stb raaga dsp top 0 inst clock enable raaga0 */
+#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_STATUS 0x204e0444 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_OBSERVE_CLOCK 0x204e0448 /* [RW][32] Stb raaga dsp top 0 inst observe clock */
+#define BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_RAAGA0 0x204e044c /* [RW][32] Stb raaga dsp top 0 inst raaga0 */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_DISABLE 0x204e0450 /* [RW][32] Disable STB_SATA3_PCIE_TOP_INST's clocks */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_DISABLE_STATUS 0x204e0454 /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0 0x204e0458 /* [RW][32] Stb sata3 pcie top inst clock enable pcie0 */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0_STATUS 0x204e045c /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_SATA30 0x204e0460 /* [RW][32] Stb sata3 pcie top inst clock enable sata30 */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_SATA30_STATUS 0x204e0464 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_CLOCK_SELECT_SATA30 0x204e0468 /* [RW][32] Stb sata3 pcie top inst clock select sata30 */
+#define BCHP_CLKGEN_STB_SATA3_PCIE_TOP_INST_OBSERVE_CLOCK 0x204e046c /* [RW][32] Stb sata3 pcie top inst observe clock */
+#define BCHP_CLKGEN_STB_SECTOP_INST_CLOCK_ENABLE_SECTOP_XPT 0x204e0470 /* [RW][32] Stb sectop inst clock enable sectop xpt */
+#define BCHP_CLKGEN_STB_SECTOP_INST_CLOCK_ENABLE_SECTOP_XPT_STATUS 0x204e0474 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_SECTOP_INST_OBSERVE_CLOCK 0x204e0478 /* [RW][32] Stb sectop inst observe clock */
+#define BCHP_CLKGEN_STB_SFE_TOP_INST_CLOCK_ENABLE 0x204e047c /* [RW][32] Stb sfe top inst clock enable */
+#define BCHP_CLKGEN_STB_SFE_TOP_INST_CLOCK_ENABLE_STATUS 0x204e0480 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_SFE_TOP_INST_OBSERVE_CLOCK 0x204e0484 /* [RW][32] Stb sfe top inst observe clock */
+#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_DISABLE 0x204e0488 /* [RW][32] Disable STB_SYS_CTRL_INST's clocks */
+#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_DISABLE_STATUS 0x204e048c /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_ENABLE 0x204e0490 /* [RW][32] Stb sys ctrl inst clock enable */
+#define BCHP_CLKGEN_STB_SYS_CTRL_INST_CLOCK_ENABLE_STATUS 0x204e0494 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_SYS_CTRL_INST_OBSERVE_CLOCK 0x204e0498 /* [RW][32] Stb sys ctrl inst observe clock */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_DISABLE 0x204e049c /* [RW][32] Disable STB_USB0_TOP_INST's clocks */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_DISABLE_STATUS 0x204e04a0 /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE 0x204e04a4 /* [RW][32] Stb usb0 top inst clock enable */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_STATUS 0x204e04a8 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB20 0x204e04ac /* [RW][32] Stb usb0 top inst clock enable usb20 */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB20_STATUS 0x204e04b0 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB30 0x204e04b4 /* [RW][32] Stb usb0 top inst clock enable usb30 */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USB30_STATUS 0x204e04b8 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USBD 0x204e04bc /* [RW][32] Stb usb0 top inst clock enable usbd */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_CLOCK_ENABLE_USBD_STATUS 0x204e04c0 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_USB0_TOP_INST_OBSERVE_CLOCK 0x204e04c4 /* [RW][32] Stb usb0 top inst observe clock */
+#define BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE 0x204e04c8 /* [RW][32] Stb v3d top inst clock enable */
+#define BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_STATUS 0x204e04cc /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_SELECT 0x204e04d0 /* [RW][32] Stb v3d top inst clock select */
+#define BCHP_CLKGEN_STB_V3D_TOP_INST_OBSERVE_CLOCK 0x204e04d4 /* [RW][32] Stb v3d top inst observe clock */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_DISABLE 0x204e04d8 /* [RW][32] Disable STB_VEC_AIO_GFX_TOP_INST's clocks */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_DISABLE_STATUS 0x204e04dc /* [RO][32] Clock Disable Status */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_AIO 0x204e04e0 /* [RW][32] Stb vec aio gfx top inst clock enable aio */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_AIO_STATUS 0x204e04e4 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0 0x204e04e8 /* [RW][32] Stb vec aio gfx top inst clock enable m2mc0 */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0_STATUS 0x204e04ec /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC 0x204e04f0 /* [RW][32] Stb vec aio gfx top inst clock enable vdac */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC_STATUS 0x204e04f4 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC 0x204e04f8 /* [RW][32] Stb vec aio gfx top inst clock enable vec */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO 0x204e04fc /* [RW][32] Stb vec aio gfx top inst clock enable vec aio */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO_STATUS 0x204e0500 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_STATUS 0x204e0504 /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP 0x204e0508 /* [RW][32] Stb vec aio gfx top inst clock enable vip */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP_STATUS 0x204e050c /* [RO][32] Clock Enable Status */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_M2MC0 0x204e0510 /* [RW][32] Stb vec aio gfx top inst m2mc0 */
+#define BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_OBSERVE_CLOCK 0x204e0514 /* [RW][32] Stb vec aio gfx top inst observe clock */
+#define BCHP_CLKGEN_TESTPORT                     0x204e0518 /* [RW][32] Special Testport Controls */
+#define BCHP_CLKGEN_UART_0_CLOCK_MUX_SELECT      0x204e051c /* [RW][32] Mux selects for Uart_0_Clock clocks */
+#define BCHP_CLKGEN_UART_1_CLOCK_MUX_SELECT      0x204e0520 /* [RW][32] Mux selects for Uart_1_Clock clocks */
+#define BCHP_CLKGEN_UART_2_CLOCK_MUX_SELECT      0x204e0524 /* [RW][32] Mux selects for Uart_2_Clock clocks */
+#define BCHP_CLKGEN_STB_CLKGEN_BVB_MUX_SELECT    0x204e0528 /* [RW][32] BVB clocks muxing */
+#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_ARRAY        0x204e1000 /* [RW][32] Power management DVFS NDIV state machine fractional array. */
+#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_CONTROL0     0x204e1004 /* [RW][32] Power management DVFS NDIV state machine controls. */
+#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_CONTROL1     0x204e1008 /* [RW][32] Power management DVFS NDIV state machine controls. */
+#define BCHP_CLKGEN_PLL_CPU_DVFS_SM_STATUS       0x204e100c /* [RO][32] Power management DVFS NDIV state machine status. */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_0_4K 0x204e1010 /* [RW][32] PLL CHANNEL control CH 0 registers in separate 4K boundary */
+#define BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_1_4K 0x204e1014 /* [RW][32] PLL CHANNEL control CH 1 registers in separate 4K boundary */
+#define BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K           0x204e1018 /* [RW][32] Multiplier in separate 4K boundary */
 
 /***************************************************************************
  *PLL_AVX_PLL_CHANNEL_CTRL_CH_0 - PLL CHANNEL control CH 0

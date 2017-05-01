@@ -62,7 +62,24 @@ typedef struct NEXUS_VideoImageInputPicture
     BLST_SQ_ENTRY(NEXUS_VideoImageInputPicture) node;
     NEXUS_SurfaceHandle hSurface;
 } NEXUS_VideoImageInputPicture;
+
+struct NEXUS_VideoImageInput_P_PushSurface_xdm_State {
+    BVDC_Source_Capabilities vdcCapabilities;
+    BXDM_Picture xdmPicture;
+    NEXUS_StripedSurfaceCreateSettings stripeSettings;
+    NEXUS_VideoImageInputSurfaceSettings defaults;
+    NEXUS_SurfaceStatus surfaceStatus;
+    NEXUS_SurfaceMemoryProperties surfaceMemory;
+};
 #endif
+
+struct NEXUS_VideoImageInput_P_PushSurface_queue_State {
+    NEXUS_SurfaceCreateSettings surfaceCfg;
+    NEXUS_VideoImageInputSurfaceSettings defaultSettings;
+    BVDC_Source_Capabilities vdcCapabilities;
+    NEXUS_StripedSurfaceCreateSettings stripeSettings;
+    BAVC_Gfx_Picture pic;
+};
 
 struct NEXUS_VideoImageInput {
     NEXUS_OBJECT(NEXUS_VideoImageInput);
@@ -124,6 +141,12 @@ struct NEXUS_VideoImageInput {
         unsigned priority;
     } stc;
 #endif
+    union {
+        struct NEXUS_VideoImageInput_P_PushSurface_queue_State NEXUS_VideoImageInput_P_PushSurface_queue;
+#if NEXUS_HAS_VIDEO_DECODER
+        struct NEXUS_VideoImageInput_P_PushSurface_xdm_State NEXUS_VideoImageInput_P_PushSurface_xdm;
+#endif
+    } functionState;
 };
 
 #if NEXUS_HAS_VIDEO_DECODER
@@ -763,8 +786,8 @@ NEXUS_Error NEXUS_VideoImageInput_CheckSurfaceCompletion( NEXUS_VideoImageInputH
     }
 }
 
-NEXUS_Error
-NEXUS_VideoImageInput_PushSurface(NEXUS_VideoImageInputHandle imageInput, NEXUS_SurfaceHandle image, const NEXUS_VideoImageInputSurfaceSettings *pSettings ) {
+static NEXUS_Error
+NEXUS_VideoImageInput_P_PushSurface_queue(NEXUS_VideoImageInputHandle imageInput, NEXUS_SurfaceHandle image, const NEXUS_VideoImageInputSurfaceSettings *pSettings ) {
 
     int i,j,availableSlots=0;
     const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
@@ -772,23 +795,11 @@ NEXUS_VideoImageInput_PushSurface(NEXUS_VideoImageInputHandle imageInput, NEXUS_
     BERR_Code rc;
     unsigned width;
     unsigned height;
-    NEXUS_SurfaceCreateSettings surfaceCfg;
-    NEXUS_VideoImageInputSurfaceSettings defaultSettings;
     NEXUS_VideoInput_P_Link *link;
-    BVDC_Source_Capabilities vdcCapabilities;
     BPXL_Format magnumPixelFormat;
-    NEXUS_StripedSurfaceCreateSettings stripeSettings;
-
-    BAVC_Gfx_Picture pic;
+    struct NEXUS_VideoImageInput_P_PushSurface_queue_State *state = &imageInput->functionState.NEXUS_VideoImageInput_P_PushSurface_queue;
 
     BDBG_OBJECT_ASSERT(imageInput, NEXUS_VideoImageInput);
-
-#if NEXUS_HAS_VIDEO_DECODER
-    if ( !imageInput->settings.lowDelayMode )
-    {
-        return NEXUS_VideoImageInput_P_PushSurface_xdm(imageInput, image, pSettings);
-    }
-#endif
 
     if(image==NULL && pSettings->stripedSurface==NULL) {
         /* Passing in NULL, flushes the pipeline, first set current feeder to NULL */
@@ -797,8 +808,8 @@ NEXUS_VideoImageInput_PushSurface(NEXUS_VideoImageInputHandle imageInput, NEXUS_
     }
 
     if(!pSettings) {
-        NEXUS_VideoImageInput_GetDefaultSurfaceSettings(&defaultSettings);
-        pSettings = &defaultSettings;
+        NEXUS_VideoImageInput_GetDefaultSurfaceSettings(&state->defaultSettings);
+        pSettings = &state->defaultSettings;
     }
 
     /* clean up any surfaces newly freed */
@@ -807,9 +818,9 @@ NEXUS_VideoImageInput_PushSurface(NEXUS_VideoImageInputHandle imageInput, NEXUS_
 
     /* add new surface to queue */
     if(image) {
-        NEXUS_Surface_GetCreateSettings(image, &surfaceCfg);
-        width = surfaceCfg.width;
-        height = surfaceCfg.height;
+        NEXUS_Surface_GetCreateSettings(image, &state->surfaceCfg);
+        width = state->surfaceCfg.width;
+        height =  state->surfaceCfg.height;
         if (width < 64 || height < 64) {
             BDBG_ERR(("minimum surface size for VideoImageInput is 64x64. surface %p is %dx%d", (void *)image, width, height));
             rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -827,18 +838,18 @@ NEXUS_VideoImageInput_PushSurface(NEXUS_VideoImageInputHandle imageInput, NEXUS_
             goto err_surface;
         }
 
-        rc = NEXUS_P_PixelFormat_ToMagnum_isrsafe( surfaceCfg.pixelFormat, &magnumPixelFormat);
+        rc = NEXUS_P_PixelFormat_ToMagnum_isrsafe( state->surfaceCfg.pixelFormat, &magnumPixelFormat);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_surface;}
 
-        BVDC_Source_GetCapabilities(link->sourceVdc, &vdcCapabilities) ;
-        if ( !vdcCapabilities.pfIsPxlfmtSupported(magnumPixelFormat) ) {
-            BDBG_WRN(("pixelFormat %d of image=%p is NOT supported", surfaceCfg.pixelFormat, (void *)image ));
+        BVDC_Source_GetCapabilities(link->sourceVdc, &state->vdcCapabilities) ;
+        if ( !state->vdcCapabilities.pfIsPxlfmtSupported(magnumPixelFormat) ) {
+            BDBG_WRN(("pixelFormat %d of image=%p is NOT supported", state->surfaceCfg.pixelFormat, (void *)image ));
             rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); /* unsupported  pixelFormat */
             goto err_surface;
         }
     } else {/* striped surface */
         BDBG_ASSERT(pSettings->stripedSurface);
-        NEXUS_StripedSurface_GetCreateSettings(pSettings->stripedSurface, &stripeSettings);
+        NEXUS_StripedSurface_GetCreateSettings(pSettings->stripedSurface, &state->stripeSettings);
     }
 
     if ( pSettings->infront ) {
@@ -895,15 +906,15 @@ NEXUS_VideoImageInput_PushSurface(NEXUS_VideoImageInputHandle imageInput, NEXUS_
     }
 doQueue:
 
-    NEXUS_ImageInput_P_GetDefaultGfxPic(&pic);
+    NEXUS_ImageInput_P_GetDefaultGfxPic(&state->pic);
     if(image) { /* gfx surface */
         NEXUS_Module_Lock(video->modules.surface);
 
         frame = NEXUS_Surface_GetPixelPlane_priv(image);
         BDBG_ASSERT(frame);
 
-        pic.pSurface = frame;
-        pic.ulOrigPTS = pSettings->pts;
+        state->pic.pSurface = frame;
+        state->pic.ulOrigPTS = pSettings->pts;
 
         NEXUS_Module_Unlock(video->modules.surface);
     }
@@ -911,23 +922,23 @@ doQueue:
     BKNI_EnterCriticalSection();
     if(!image) { /* striped video surface */
         BDBG_MSG(("prep the striped surface parameters..."));
-        pic.pstMfdPic = &(imageInput->feeder[imageInput->quePic].mfdPic);
-        pic.pstMfdPic->ePxlFmt = BPXL_INVALID;
-        pic.pstMfdPic->eSourcePolarity = BAVC_Polarity_eFrame;
-        pic.pstMfdPic->ulDisplayHorizontalSize = stripeSettings.imageWidth;
-        pic.pstMfdPic->ulDisplayVerticalSize   = stripeSettings.imageHeight;
-        pic.pstMfdPic->ulSourceHorizontalSize  = stripeSettings.imageWidth;
-        pic.pstMfdPic->ulSourceVerticalSize    = stripeSettings.imageHeight;
-        pic.pstMfdPic->eStripeWidth = NEXUS_P_StripeWidth_ToMagnum_isrsafe(stripeSettings.stripedWidth);
-        pic.pstMfdPic->eYCbCrType = BAVC_YCbCrType_e4_2_0;
-        pic.pstMfdPic->eBitDepth  = (stripeSettings.lumaPixelFormat == NEXUS_PixelFormat_eY10)?
+        state->pic.pstMfdPic = &(imageInput->feeder[imageInput->quePic].mfdPic);
+        state->pic.pstMfdPic->ePxlFmt = BPXL_INVALID;
+        state->pic.pstMfdPic->eSourcePolarity = BAVC_Polarity_eFrame;
+        state->pic.pstMfdPic->ulDisplayHorizontalSize = state->stripeSettings.imageWidth;
+        state->pic.pstMfdPic->ulDisplayVerticalSize   = state->stripeSettings.imageHeight;
+        state->pic.pstMfdPic->ulSourceHorizontalSize  = state->stripeSettings.imageWidth;
+        state->pic.pstMfdPic->ulSourceVerticalSize    = state->stripeSettings.imageHeight;
+        state->pic.pstMfdPic->eStripeWidth = NEXUS_P_StripeWidth_ToMagnum_isrsafe(state->stripeSettings.stripedWidth);
+        state->pic.pstMfdPic->eYCbCrType = BAVC_YCbCrType_e4_2_0;
+        state->pic.pstMfdPic->eBitDepth  = (state->stripeSettings.lumaPixelFormat == NEXUS_PixelFormat_eY10)?
             BAVC_VideoBitDepth_e10Bit : BAVC_VideoBitDepth_e8Bit;
-        pic.pstMfdPic->ulLuminanceNMBY = stripeSettings.lumaStripedHeight/16;
-        pic.pstMfdPic->ulChrominanceNMBY = stripeSettings.chromaStripedHeight/16;
-        pic.pstMfdPic->hLuminanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(stripeSettings.lumaBuffer);
-        pic.pstMfdPic->hChrominanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(stripeSettings.chromaBuffer);
-        pic.pstMfdPic->ulLuminanceFrameBufferBlockOffset = stripeSettings.lumaBufferOffset;
-        pic.pstMfdPic->ulChrominanceFrameBufferBlockOffset = stripeSettings.chromaBufferOffset;
+        state->pic.pstMfdPic->ulLuminanceNMBY = state->stripeSettings.lumaStripedHeight/16;
+        state->pic.pstMfdPic->ulChrominanceNMBY = state->stripeSettings.chromaStripedHeight/16;
+        state->pic.pstMfdPic->hLuminanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.lumaBuffer);
+        state->pic.pstMfdPic->hChrominanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.chromaBuffer);
+        state->pic.pstMfdPic->ulLuminanceFrameBufferBlockOffset = state->stripeSettings.lumaBufferOffset;
+        state->pic.pstMfdPic->ulChrominanceFrameBufferBlockOffset = state->stripeSettings.chromaBufferOffset;
     }
     imageInput->feeder[imageInput->quePic].usrSurface = image? image : (NEXUS_SurfaceHandle)pSettings->stripedSurface;
     imageInput->feeder[imageInput->quePic].surface.frame  = frame;
@@ -935,7 +946,7 @@ doQueue:
     imageInput->feeder[imageInput->quePic].primed = pSettings->displayVsyncs;
     imageInput->feeder[imageInput->quePic].age = 1;
 
-    imageInput->feeder[imageInput->quePic].pic = pic;
+    imageInput->feeder[imageInput->quePic].pic = state->pic;
     BDBG_MSG(("feeder[%u].pMfd=  %p", imageInput->quePic, (void *)imageInput->feeder[imageInput->quePic].pic.pstMfdPic));
 
     imageInput->waitingPics++;
@@ -943,8 +954,8 @@ doQueue:
 
     /* lock device memory before passing into VDC */
     if(!image) { /* striped video surface */
-        imageInput->feeder[imageInput->quePic].lumaOffset = BMMA_LockOffset(pic.pstMfdPic->hLuminanceFrameBufferBlock);
-        imageInput->feeder[imageInput->quePic].chromaOffset = BMMA_LockOffset(pic.pstMfdPic->hChrominanceFrameBufferBlock);
+        imageInput->feeder[imageInput->quePic].lumaOffset = BMMA_LockOffset(state->pic.pstMfdPic->hLuminanceFrameBufferBlock);
+        imageInput->feeder[imageInput->quePic].chromaOffset = BMMA_LockOffset(state->pic.pstMfdPic->hChrominanceFrameBufferBlock);
     }
     BDBG_MSG(("xx_PushSurf image=%p timestamp=0x%8x curPic=%d quePic=%d waitPics=%d", (void *)image , pSettings->pts, imageInput->curPic, imageInput->quePic, imageInput->waitingPics ));
     BKNI_SetEvent(imageInput->event); /* synchronise adding pictures with isr */
@@ -953,6 +964,18 @@ done:
     return BERR_SUCCESS;
 err_surface:
     return rc;
+}
+
+NEXUS_Error
+NEXUS_VideoImageInput_PushSurface(NEXUS_VideoImageInputHandle imageInput, NEXUS_SurfaceHandle image, const NEXUS_VideoImageInputSurfaceSettings *pSettings )
+{
+#if NEXUS_HAS_VIDEO_DECODER
+    if ( !imageInput->settings.lowDelayMode )
+    {
+        return NEXUS_VideoImageInput_P_PushSurface_xdm(imageInput, image, pSettings);
+    }
+#endif
+    return NEXUS_VideoImageInput_P_PushSurface_queue(imageInput, image, pSettings);
 }
 
 NEXUS_Error
@@ -1518,18 +1541,15 @@ static NEXUS_Error NEXUS_VideoImageInput_P_PushSurface_xdm(
     )
 {
     NEXUS_VideoImageInputPicture *pPicture;
-    BXDM_Picture xdmPicture;
-    NEXUS_VideoImageInputSurfaceSettings defaults;
-    BVDC_Source_Capabilities vdcCapabilities;
     NEXUS_VideoInput_P_Link *link;
     BPXL_Format magnumPixelFormat;
-    NEXUS_StripedSurfaceCreateSettings stripeSettings;
     BERR_Code rc;
+    struct NEXUS_VideoImageInput_P_PushSurface_xdm_State  *state = &imageInput->functionState.NEXUS_VideoImageInput_P_PushSurface_xdm;
 
     if ( NULL == pSettings )
     {
-        NEXUS_VideoImageInput_GetDefaultSurfaceSettings(&defaults);
-        pSettings = &defaults;
+        NEXUS_VideoImageInput_GetDefaultSurfaceSettings(&state->defaults);
+        pSettings = &state->defaults;
     }
 
     /* Handle EOS */
@@ -1579,106 +1599,103 @@ static NEXUS_Error NEXUS_VideoImageInput_P_PushSurface_xdm(
     }
 
     /* Prepare XDM picture structure at task time */
-    BKNI_Memset(&xdmPicture, 0, sizeof(BXDM_Picture));
+    BKNI_Memset(&state->xdmPicture, 0, sizeof(state->xdmPicture));
 
     if(image) { /* regular surface */
-        NEXUS_SurfaceStatus surfaceStatus;
-        NEXUS_SurfaceMemoryProperties surfaceMemory;
+        NEXUS_Surface_GetStatus(image, &state->surfaceStatus);
+        NEXUS_Surface_GetMemoryProperties(image, &state->surfaceMemory);
 
-        NEXUS_Surface_GetStatus(image, &surfaceStatus);
-        NEXUS_Surface_GetMemoryProperties(image, &surfaceMemory);
-
-        rc = NEXUS_P_PixelFormat_ToMagnum_isrsafe( surfaceStatus.pixelFormat, &magnumPixelFormat);
+        rc = NEXUS_P_PixelFormat_ToMagnum_isrsafe( state->surfaceStatus.pixelFormat, &magnumPixelFormat);
         if (rc!=BERR_SUCCESS) { return BERR_TRACE(rc); }
 
-        BVDC_Source_GetCapabilities(link->sourceVdc, &vdcCapabilities) ;
-        if ( !vdcCapabilities.pfIsPxlfmtSupported(magnumPixelFormat) ) {
-            BDBG_WRN(("pixelFormat %d of image=%p is NOT supported", surfaceStatus.pixelFormat, (void *)image ));
+        BVDC_Source_GetCapabilities(link->sourceVdc, &state->vdcCapabilities) ;
+        if ( !state->vdcCapabilities.pfIsPxlfmtSupported(magnumPixelFormat) ) {
+            BDBG_WRN(("pixelFormat %d of image=%p is NOT supported", state->surfaceStatus.pixelFormat, (void *)image ));
             return BERR_TRACE(NEXUS_INVALID_PARAMETER); /* unsupported  pixelFormat */
         }
-        xdmPicture.stBufferInfo.hLuminanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(surfaceMemory.pixelMemory);
-        xdmPicture.stBufferInfo.ulLuminanceFrameBufferBlockOffset = surfaceMemory.pixelMemoryOffset;
-        xdmPicture.stBufferInfo.stPixelFormat.ePixelFormat = magnumPixelFormat;
-        xdmPicture.stBufferInfo.stPixelFormat.bValid = true;
-        xdmPicture.stBufferInfo.uiRowStride = surfaceStatus.pitch;
-        xdmPicture.stBufferInfo.stSource.bValid = true;
-        xdmPicture.stBufferInfo.stSource.uiHeight = surfaceStatus.height;
-        xdmPicture.stBufferInfo.stSource.uiWidth = surfaceStatus.width;
+        state->xdmPicture.stBufferInfo.hLuminanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(state->surfaceMemory.pixelMemory);
+        state->xdmPicture.stBufferInfo.ulLuminanceFrameBufferBlockOffset = state->surfaceMemory.pixelMemoryOffset;
+        state->xdmPicture.stBufferInfo.stPixelFormat.ePixelFormat = magnumPixelFormat;
+        state->xdmPicture.stBufferInfo.stPixelFormat.bValid = true;
+        state->xdmPicture.stBufferInfo.uiRowStride = state->surfaceStatus.pitch;
+        state->xdmPicture.stBufferInfo.stSource.bValid = true;
+        state->xdmPicture.stBufferInfo.stSource.uiHeight = state->surfaceStatus.height;
+        state->xdmPicture.stBufferInfo.stSource.uiWidth = state->surfaceStatus.width;
     } else { /* striped surface */
         BDBG_ASSERT(pSettings->stripedSurface);
-        NEXUS_StripedSurface_GetCreateSettings(pSettings->stripedSurface, &stripeSettings);
-        rc = NEXUS_P_PixelFormat_ToMagnum_isrsafe( stripeSettings.lumaPixelFormat, &magnumPixelFormat);
-        xdmPicture.stBufferInfo.hLuminanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(stripeSettings.lumaBuffer);
-        xdmPicture.stBufferInfo.ulLuminanceFrameBufferBlockOffset = stripeSettings.lumaBufferOffset;
-        xdmPicture.stBufferInfo.hChrominanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(stripeSettings.chromaBuffer);
-        xdmPicture.stBufferInfo.ulChrominanceFrameBufferBlockOffset = stripeSettings.chromaBufferOffset;
-        xdmPicture.stBufferInfo.uiLumaStripeHeight   = stripeSettings.lumaStripedHeight;
-        xdmPicture.stBufferInfo.uiChromaStripeHeight = stripeSettings.chromaStripedHeight;
-        xdmPicture.stBufferInfo.eStripeWidth = NEXUS_P_StripeWidth_ToMagnum_isrsafe(stripeSettings.stripedWidth);
+        NEXUS_StripedSurface_GetCreateSettings(pSettings->stripedSurface, &state->stripeSettings);
+        rc = NEXUS_P_PixelFormat_ToMagnum_isrsafe( state->stripeSettings.lumaPixelFormat, &magnumPixelFormat);
+        state->xdmPicture.stBufferInfo.hLuminanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.lumaBuffer);
+        state->xdmPicture.stBufferInfo.ulLuminanceFrameBufferBlockOffset = state->stripeSettings.lumaBufferOffset;
+        state->xdmPicture.stBufferInfo.hChrominanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.chromaBuffer);
+        state->xdmPicture.stBufferInfo.ulChrominanceFrameBufferBlockOffset = state->stripeSettings.chromaBufferOffset;
+        state->xdmPicture.stBufferInfo.uiLumaStripeHeight   = state->stripeSettings.lumaStripedHeight;
+        state->xdmPicture.stBufferInfo.uiChromaStripeHeight = state->stripeSettings.chromaStripedHeight;
+        state->xdmPicture.stBufferInfo.eStripeWidth = NEXUS_P_StripeWidth_ToMagnum_isrsafe(state->stripeSettings.stripedWidth);
     }
 
-    xdmPicture.stBufferInfo.eBufferFormat = BXDM_Picture_BufferFormat_eSingle;
-    xdmPicture.stBufferInfo.eBufferHandlingMode = BXDM_Picture_BufferHandlingMode_eNormal;
-    xdmPicture.stBufferInfo.eLumaBufferType = xdmPicture.stBufferInfo.eChromaBufferType =
+    state->xdmPicture.stBufferInfo.eBufferFormat = BXDM_Picture_BufferFormat_eSingle;
+    state->xdmPicture.stBufferInfo.eBufferHandlingMode = BXDM_Picture_BufferHandlingMode_eNormal;
+    state->xdmPicture.stBufferInfo.eLumaBufferType = state->xdmPicture.stBufferInfo.eChromaBufferType =
         (BPXL_IS_YCbCr422_10BIT_FORMAT(magnumPixelFormat) || BPXL_IS_YCbCr420_10BIT_FORMAT(magnumPixelFormat))? BXDM_Picture_BufferType_e10Bit : BXDM_Picture_BufferType_e8Bit;
-    xdmPicture.stBufferInfo.stDisplay = xdmPicture.stBufferInfo.stSource;
+    state->xdmPicture.stBufferInfo.stDisplay = state->xdmPicture.stBufferInfo.stSource;
     /* Omit display size and striping info for now */
-    xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eFrame].bValid = true;
-    xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eFrame].eMpegType = BAVC_MpegType_eMpeg2;
-    xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eTopField].bValid = true;
-    xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eTopField].eMpegType= BAVC_MpegType_eMpeg2;
-    xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].bValid = true;
-    xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].eMpegType= BAVC_MpegType_eMpeg2;
-    xdmPicture.stBufferInfo.eYCbCrType = BPXL_IS_YCbCr420_FORMAT(magnumPixelFormat) ? BAVC_YCbCrType_e4_2_0 : BAVC_YCbCrType_e4_2_2;
+    state->xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eFrame].bValid = true;
+    state->xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eFrame].eMpegType = BAVC_MpegType_eMpeg2;
+    state->xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eTopField].bValid = true;
+    state->xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eTopField].eMpegType= BAVC_MpegType_eMpeg2;
+    state->xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].bValid = true;
+    state->xdmPicture.stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].eMpegType= BAVC_MpegType_eMpeg2;
+    state->xdmPicture.stBufferInfo.eYCbCrType = BPXL_IS_YCbCr420_FORMAT(magnumPixelFormat) ? BAVC_YCbCrType_e4_2_0 : BAVC_YCbCrType_e4_2_2;
     switch (pSettings->pullDown) {
     case NEXUS_PicturePullDown_eFrame:
-        xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eFrameX1;
+        state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eFrameX1;
         break;
     default:
-        xdmPicture.stBufferInfo.ePulldown = pSettings->pullDown;
+        state->xdmPicture.stBufferInfo.ePulldown = pSettings->pullDown;
         break;
     }
-    xdmPicture.stBufferInfo.eSourceFormat = pSettings->sourceFormat;
-    xdmPicture.stBufferInfo.bValid = true;
-    xdmPicture.uiSerialNumber = imageInput->xdm.serialNum++;
-    BDBG_MSG(("Push %u pts %08x %s", xdmPicture.uiSerialNumber,pSettings->pts,pSettings->ptsValid?"valid":"invalid"));
+    state->xdmPicture.stBufferInfo.eSourceFormat = pSettings->sourceFormat;
+    state->xdmPicture.stBufferInfo.bValid = true;
+    state->xdmPicture.uiSerialNumber = imageInput->xdm.serialNum++;
+    BDBG_MSG(("Push %u pts %08x %s", state->xdmPicture.uiSerialNumber,pSettings->pts,pSettings->ptsValid?"valid":"invalid"));
     switch ( pSettings->pictureCoding )
     {
     default:
-        xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eUnknown;
+        state->xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eUnknown;
         break;
     case NEXUS_PictureCoding_eI:
-        xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eI;
-        xdmPicture.stPictureType.bReference = true;
+        state->xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eI;
+        state->xdmPicture.stPictureType.bReference = true;
         break;
     case NEXUS_PictureCoding_eP:
-        xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eP;
-        xdmPicture.stPictureType.bReference = true;
+        state->xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eP;
+        state->xdmPicture.stPictureType.bReference = true;
         break;
     case NEXUS_PictureCoding_eB:
-        xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eB;
+        state->xdmPicture.stPictureType.eCoding = BXDM_Picture_Coding_eB;
         break;
     }
-    xdmPicture.stPictureType.eSequence = pSettings->sequence;
-    xdmPicture.stPTS.bValid = pSettings->ptsValid;
-    xdmPicture.stPTS.uiValue = pSettings->pts;
+    state->xdmPicture.stPictureType.eSequence = pSettings->sequence;
+    state->xdmPicture.stPTS.bValid = pSettings->ptsValid;
+    state->xdmPicture.stPTS.uiValue = pSettings->pts;
     if ( pSettings->frameRate == NEXUS_VideoFrameRate_eUnknown )
     {
-        xdmPicture.stFrameRate.eType = BXDM_Picture_FrameRateType_eUnknown;
+        state->xdmPicture.stFrameRate.eType = BXDM_Picture_FrameRateType_eUnknown;
     }
     else
     {
         unsigned frameRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(pSettings->frameRate);
-        xdmPicture.stFrameRate.eType = BXDM_Picture_FrameRateType_eFixed;
-        xdmPicture.stFrameRate.stRate.uiNumerator = frameRate;
-        xdmPicture.stFrameRate.stRate.uiDenominator = 1000;
+        state->xdmPicture.stFrameRate.eType = BXDM_Picture_FrameRateType_eFixed;
+        state->xdmPicture.stFrameRate.stRate.uiNumerator = frameRate;
+        state->xdmPicture.stFrameRate.stRate.uiDenominator = 1000;
     }
-    xdmPicture.stFrameRate.bValid = true;
+    state->xdmPicture.stFrameRate.bValid = true;
 
-    xdmPicture.stAspectRatio.eAspectRatio = NEXUS_P_AspectRatio_ToMagnum_isrsafe(pSettings->aspectRatio);
-    xdmPicture.stAspectRatio.uiSampleAspectRatioX = pSettings->sampleAspectRatio.x;
-    xdmPicture.stAspectRatio.uiSampleAspectRatioY = pSettings->sampleAspectRatio.y;
-    xdmPicture.stAspectRatio.bValid = true;
+    state->xdmPicture.stAspectRatio.eAspectRatio = NEXUS_P_AspectRatio_ToMagnum_isrsafe(pSettings->aspectRatio);
+    state->xdmPicture.stAspectRatio.uiSampleAspectRatioX = pSettings->sampleAspectRatio.x;
+    state->xdmPicture.stAspectRatio.uiSampleAspectRatioY = pSettings->sampleAspectRatio.y;
+    state->xdmPicture.stAspectRatio.bValid = true;
 
     /* Add frame to ready queue in isr context */
     BKNI_EnterCriticalSection();
@@ -1689,7 +1706,7 @@ static NEXUS_Error NEXUS_VideoImageInput_P_PushSurface_xdm(
             BLST_SQ_REMOVE_HEAD(&imageInput->xdm.freeList, node);
             BLST_SQ_INSERT_TAIL(&imageInput->xdm.readyQueue, pPicture, node);
             pPicture->hSurface = image? image : (NEXUS_SurfaceHandle)pSettings->stripedSurface;
-            pPicture->xdmPicture = xdmPicture;
+            pPicture->xdmPicture = state->xdmPicture;
         }
     }
     BKNI_LeaveCriticalSection();

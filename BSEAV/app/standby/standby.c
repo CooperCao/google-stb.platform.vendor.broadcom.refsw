@@ -489,13 +489,7 @@ int deepStandbyMode(void)
     NEXUS_PlatformStandbyStatus nexusStandbyStatus;
     unsigned timeout = g_DeviceState.timer_wake?g_cmd_options.timeout:0;
 
-#if BCHP_CHIP == 7271 || BCHP_CHIP == 7268
-    printf("\nS3 is not supported on this platform\n");
-    return;
-#endif
-
     printf("\n\nEntering S3 Mode\n\n");
-
 
     BKNI_AcquireMutex(mutex);
 
@@ -685,9 +679,9 @@ int onMode(void)
 
 #ifdef WOWLAN
     if (wakeonwlan) {
-        rmmod("wowl_plat");
+        rmmod("wlan_plat");
         rmmod("wl");
-        insmod("/root/wowl-plat.ko","");
+        insmod("/root/wlan_plat.ko","");
         insmod("/root/wl.ko","wlan0 /root/nvram.txt");
         wakeonwlan = 0;
     }

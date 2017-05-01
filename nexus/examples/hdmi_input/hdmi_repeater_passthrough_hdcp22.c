@@ -304,7 +304,8 @@ void source_changed(void *context, int param)
     NEXUS_HdmiInputHandle hdmiInput ;
 
     NEXUS_HdmiInputStatus hdmiInputStatus ;
-    NEXUS_HdmiOutputSettings hdmiOutputSettings ;
+    NEXUS_HdmiOutputStatus hdmiOutputStatus;
+    NEXUS_HdmiOutputSettings hdmiOutputSettings;
     NEXUS_DisplaySettings displaySettings ;
     BSTD_UNUSED(param);
 
@@ -322,26 +323,28 @@ void source_changed(void *context, int param)
     }
 
     NEXUS_Display_GetSettings(display, &displaySettings);
-        displaySettings.format = hdmiInputStatus.originalFormat ;
-     NEXUS_Display_SetSettings(display, &displaySettings);
+    NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus);
+    BDBG_MSG(("source changed video format from %d to %d", displaySettings.format, hdmiInputStatus.originalFormat));
+    if (displaySettings.format != hdmiInputStatus.originalFormat && hdmiOutputStatus.videoFormatSupported[hdmiInputStatus.originalFormat]) {
+        displaySettings.format = hdmiInputStatus.originalFormat;
+    }
+    NEXUS_Display_SetSettings(display, &displaySettings);
 
-    NEXUS_HdmiOutput_GetSettings(hdmiOutput, &hdmiOutputSettings);
-
-    /* debug messages */
-    BDBG_MSG(("hdmiInput Colorspace: %d", hdmiInputStatus.colorSpace)) ;
-    BDBG_MSG(("hdmiOutput Colorspace: %d", hdmiOutputSettings.colorSpace)) ;
-
-    hdmiOutputSettings.autoColorSpace = true ;
-    hdmiOutputSettings.colorSpace = hdmiInputStatus.colorSpace ;
-
-    /* debug messages */
-    BDBG_MSG(("hdmiInput Colorspace: %d", hdmiInputStatus.colorSpace)) ;
-    BDBG_MSG(("hdmiOutput Colorspace: %d", hdmiOutputSettings.colorSpace)) ;
-
-
-    NEXUS_HdmiOutput_SetSettings(hdmiOutput, &hdmiOutputSettings);
-
-    BDBG_MSG(("source changed to %d\n", hdmiInputStatus.originalFormat)) ;
+    if (compliance_test)
+    {
+        NEXUS_HdmiOutput_GetSettings(hdmiOutput, &hdmiOutputSettings);
+        if (hdmiOutputSettings.colorSpace != hdmiInputStatus.colorSpace)
+        {
+            BDBG_MSG(("color space %d -> %d", hdmiOutputSettings.colorSpace, hdmiInputStatus.colorSpace));
+            hdmiOutputSettings.colorSpace = hdmiInputStatus.colorSpace;
+        }
+        if (hdmiOutputSettings.colorDepth != hdmiInputStatus.colorDepth)
+        {
+            BDBG_MSG(("color depth %u -> %u", hdmiOutputSettings.colorDepth, hdmiInputStatus.colorDepth));
+            hdmiOutputSettings.colorDepth = hdmiInputStatus.colorDepth;
+        }
+        NEXUS_HdmiOutput_SetSettings(hdmiOutput, &hdmiOutputSettings);
+    }
  }
 
 void avmute_changed(void *context, int param)
@@ -808,9 +811,9 @@ void hdmi_input_status(void )
         "Max",
     } ;
 
-    BDBG_GetModuleLevel("repeater_passthrough", &saveLevel) ;
+    BDBG_GetModuleLevel("repeater_passthrough_hdcp2x", &saveLevel) ;
 
-    BDBG_SetModuleLevel("repeater_passthrough", BDBG_eMsg) ;
+    BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", BDBG_eMsg) ;
 
     NEXUS_HdmiInput_GetStatus(hdmiInput, &status) ;
     if (!status.validHdmiStatus)
@@ -829,7 +832,7 @@ void hdmi_input_status(void )
     BDBG_MSG(("HDCP Enabled    : %s", status.hdcpRiUpdating ? "Yes" : "No")) ;
 
     /* restore debug level */
-    BDBG_SetModuleLevel("repeater_passthrough", saveLevel) ;
+    BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", saveLevel) ;
 
 }
 
@@ -1206,7 +1209,7 @@ open_with_edid:
             BDBG_MSG(("0) Exit\n")) ;
             BDBG_MSG(("Enter Selection: ")) ;
 
-        BDBG_SetModuleLevel("repeater_passthrough", debugLevel) ;
+        BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", debugLevel) ;
 
 
         scanf("%d", &tmp);
@@ -1231,7 +1234,7 @@ open_with_edid:
                 BDBG_MSG(("Current format is %d", tmp)) ;
                 BDBG_MSG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC):")) ;
 
-            BDBG_SetModuleLevel("repeater_passthrough", debugLevel) ;
+            BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", debugLevel) ;
 
             scanf("%d", &tmp);
             switch ( tmp )

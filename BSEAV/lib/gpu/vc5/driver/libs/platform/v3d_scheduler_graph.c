@@ -1,8 +1,6 @@
-/*
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-* All rights reserved.
-*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_scheduler_graph.h"
 #include "libs/platform/v3d_platform.h"
 

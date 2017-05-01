@@ -89,6 +89,8 @@ extern const namevalue_t g_macrovisionStrs[];
 extern const namevalue_t g_videoEotfStrs[];
 extern const namevalue_t g_syncModeStrs[];
 extern const namevalue_t g_matrixCoeffStrs[];
+extern const namevalue_t g_dbvPriorityModeStrs[];
+extern const namevalue_t g_dolbyVisionModeStrs[];
 
 unsigned lookup(const namevalue_t *table, const char *name);
 const char *lookup_name(const namevalue_t *table, int value);

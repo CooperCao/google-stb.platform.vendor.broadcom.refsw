@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_CONTEXT_BASE_H
 #define EGL_CONTEXT_BASE_H
 
@@ -23,7 +17,7 @@ typedef struct
     * before the function returns. flush() can be called with wait=true to wait
     * for the copy. */
    bool (*convert_image)(EGL_CONTEXT_T *context,
-         KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src);
+         khrn_image *dst, khrn_image *src);
 
    /* Invalidate the specified draw surface buffers.
     * color implies color_ms (if color is set, color_ms is ignored), but not
@@ -65,6 +59,7 @@ struct egl_context_base
    EGLDisplay              display;
    egl_api_t               api;
    bool                    valid;
+   bool                    debug;
    bool                    robustness;
    bool                    secure;
    bool                    reset_notification;
@@ -85,7 +80,7 @@ struct egl_context_base
 
 /* Common initialization for a context. */
 extern void egl_context_base_init(EGL_CONTEXT_T *context,
-      egl_api_t api, EGLConfig config,
+      egl_api_t api, EGLConfig config, bool debug,
       bool robustness, bool reset_notification,
       bool secure);
 

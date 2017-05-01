@@ -369,7 +369,7 @@ BERR_Code BTHD_P_Init(BTHD_3x7x_ChnHandle h)
 /***************************************************************************
  * BTHD_P_EnableLockInterrupts()
  ***************************************************************************/
-void BTHD_P_EnableLockInterrupts(BTHD_3x7x_ChnHandle h)
+static void BTHD_P_EnableLockInterrupts(BTHD_3x7x_ChnHandle h)
 {
 #ifdef BTHD_ISDBT_SUPPORT
   uint32_t segs_b, segs_c;
@@ -1125,7 +1125,7 @@ void BTHD_P_SetCE( BTHD_3x7x_ChnHandle h,
 /***************************************************************************
  * BTHD_P_WriteTICoef()
  ***************************************************************************/
-void BTHD_P_WriteTICoef( BTHD_3x7x_ChnHandle h)
+static void BTHD_P_WriteTICoef( BTHD_3x7x_ChnHandle h)
 {
   /* time_interp_polyphase_1pre_3post_1_16_15dB (1/16) */
   BREG_Write32(h->hRegister, BCHP_THD_CORE_CE_TCOEF01,	0x0f8922af);
@@ -1171,7 +1171,7 @@ void BTHD_P_WriteFICoef( BTHD_3x7x_ChnHandle h,
 /***************************************************************************
 * BTHD_P_GetChannelSpan()
 ***************************************************************************/
-BTHD_RESULT BTHD_P_GetChannelSpan(BTHD_3x7x_ChnHandle h, THD_FFTWindowMode_t FFTWindowMode, THD_TransmissionMode_t TransmissionMode,THD_GuardInterval_t GuardInterval)
+static BTHD_RESULT BTHD_P_GetChannelSpan(BTHD_3x7x_ChnHandle h, THD_FFTWindowMode_t FFTWindowMode, THD_TransmissionMode_t TransmissionMode,THD_GuardInterval_t GuardInterval)
 {
   bool bInSpan = false;
 
@@ -1370,7 +1370,7 @@ const  uint16_t ac1_loc_8k[7] = {5065, 5080, 5165, 5224, 5273, 5300, 5356};
 /***************************************************************************
 * BTHD_P_GetFFTTriggerPosition()
 ***************************************************************************/
-bool BTHD_P_GetFFTTriggerPosition(BTHD_3x7x_ChnHandle h, THD_TransmissionMode_t TransmissionMode,THD_GuardInterval_t GuardInterval)
+static bool BTHD_P_GetFFTTriggerPosition(BTHD_3x7x_ChnHandle h, THD_TransmissionMode_t TransmissionMode,THD_GuardInterval_t GuardInterval)
 {
   /* completed GetFFTTriggerPosition successfully */
   bool bCompletedSuccess = false;
@@ -1938,7 +1938,7 @@ BTHD_P_GetFFTTriggerPosition_Exit:
 /***************************************************************************
 * BTHD_P_SetFFTTriggerPosition()
 ***************************************************************************/
-void BTHD_P_SetFFTTriggerPosition(BTHD_3x7x_ChnHandle h, THD_TransmissionMode_t TransmissionMode,THD_GuardInterval_t GuardInterval)
+static void BTHD_P_SetFFTTriggerPosition(BTHD_3x7x_ChnHandle h, THD_TransmissionMode_t TransmissionMode,THD_GuardInterval_t GuardInterval)
 {
   BSTD_UNUSED(TransmissionMode);
   BSTD_UNUSED(GuardInterval);
@@ -1969,7 +1969,7 @@ void BTHD_P_SetFFTTriggerPosition(BTHD_3x7x_ChnHandle h, THD_TransmissionMode_t 
 /***************************************************************************
 * BTHD_P_StatusSsi()
 ***************************************************************************/
-void BTHD_P_StatusSsi(BTHD_3x7x_ChnHandle h)
+static void BTHD_P_StatusSsi(BTHD_3x7x_ChnHandle h)
 {
   int16_t			prel[3], ssi[3]={0,0,0};
   int32_t			n=0, NumOfLoops;
@@ -2028,7 +2028,7 @@ void BTHD_P_StatusSsi(BTHD_3x7x_ChnHandle h)
 * BTHD_P_StatusSqi()
 ***************************************************************************/
 
-void BTHD_P_StatusSqi(BTHD_3x7x_ChnHandle h)
+static void BTHD_P_StatusSqi(BTHD_3x7x_ChnHandle h)
 {
   int16_t	ber_sqi[3]={0,0,0};
   int16_t	cnrel[3]={0,0,0}, sqi[3]={0,0,0};

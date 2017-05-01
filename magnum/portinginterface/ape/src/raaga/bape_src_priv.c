@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1019,7 +1019,7 @@ static void BAPE_SrcGroup_P_SetEnable_isr(BAPE_SrcGroupHandle handle, uint32_t e
 #endif
 }
 
-#if BAPE_CHIP_SRC_TYPE_IS_IIR       
+#if BAPE_CHIP_SRC_TYPE_IS_IIR
 BERR_Code BAPE_SrcCoefficients_P_Allocate(
                                         BAPE_Handle deviceHandle,
                                         const BAPE_SrcCoefficientsSettings *pSettings,

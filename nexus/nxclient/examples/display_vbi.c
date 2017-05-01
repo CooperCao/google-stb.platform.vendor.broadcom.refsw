@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nxclient.h"
 #include "nxclient_global.h"
@@ -100,7 +90,7 @@ int main(void)
 
     NxClient_Join(NULL);
 
-    printf("Select VBI type: 0=tt, 1=cc, 2=wss, 3=cgms: ");
+    printf("Select VBI type: 0=tt, 1=cc, 2=wss, 3=cgms, 4=cgms_b: ");
     fflush(stdout);
     fgets(buf, sizeof(buf), stdin);
 
@@ -110,7 +100,7 @@ int main(void)
 /* intentionally make it larger than encoder queue to show flow control */
 #define NUM_TT_DATA 50
         NEXUS_TeletextLine ttData[NUM_TT_DATA];
-        unsigned num;
+        size_t num;
         unsigned i;
         unsigned total = 0;
 
@@ -123,8 +113,8 @@ int main(void)
         printf("write %d teletext entries\n", NUM_TT_DATA);
         while (1) {
             rc = NxClient_Display_WriteTeletext(&ttData[total], NUM_TT_DATA-total, &num);
-            BDBG_ASSERT(!rc);
-            printf(" wrote %d\n", num);
+            BERR_TRACE(rc);
+            printf(" wrote %d\n", (unsigned)num);
             total += num;
             if (total == NUM_TT_DATA) break;
             BKNI_Sleep(10); /* simple flow control */
@@ -138,16 +128,16 @@ int main(void)
         printf("write CC data\n");
         while (1) {
             NEXUS_ClosedCaptionData ccData[10];
-            unsigned num;
+            size_t num;
             for (num=0;num<10 && (total+num)<sizeof(g_ccData);num++) {
                 ccData[num].field = 0;
                 ccData[num].data[0] = g_ccData[(total+num)*2];
                 ccData[num].data[1] = g_ccData[(total+num)*2+1];
             }
             rc = NxClient_Display_WriteClosedCaption(ccData, num, &num);
-            BDBG_ASSERT(!rc);
+            BERR_TRACE(rc);
             if (num) {
-                printf(" wrote %d\n", num);
+                printf(" wrote %d\n", (unsigned)num);
                 total += num;
                 if (total*2 >= sizeof(g_ccData)) break;
             }
@@ -161,13 +151,22 @@ int main(void)
     case 2:
         printf("set WSS\n");
         rc = NxClient_Display_SetWss(0x00);
-        BDBG_ASSERT(!rc);
+        BERR_TRACE(rc);
         break;
 
     case 3:
         printf("set CGMS\n");
         rc = NxClient_Display_SetCgms(0x00);
-        BDBG_ASSERT(!rc);
+        BERR_TRACE(rc);
+        break;
+
+    case 4:
+        {
+        uint32_t data[5] = {0,1,2,3,4};
+        printf("set CGMS B\n");
+        rc = NxClient_Display_SetCgmsB(data, 5);
+        BERR_TRACE(rc);
+        }
         break;
     }
 

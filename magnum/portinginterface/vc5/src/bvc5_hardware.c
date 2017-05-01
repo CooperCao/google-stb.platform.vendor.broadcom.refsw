@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,9 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -256,21 +254,13 @@ static void BVC5_P_ClearMmuEntries(BVC5_Handle hVC5)
       while(BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMUC_CONTROL) & BCHP_FIELD_DATA(V3D_MMUC_CONTROL, FLUSHING, 1));
    }
 
-   /*
-    * NOTE: Using MMU_T field defintions because the MMU_0 ones are
-    *       missing from the RDB files at the time of writing. To be
-    *       fixed later.
-    *
-    *       Also note that there has been no instance of a
-    *       per core MMU in a multi-core system despite the register naming.
-    */
    uiReg = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMU_0_CTRL);
 
-   if (uiReg & BCHP_FIELD_DATA(V3D_MMU_T_CTRL, ENABLE, 1))
+   if (uiReg & BCHP_FIELD_DATA(V3D_MMU_0_CTRL, ENABLE, 1))
    {
-      uiReg |= BCHP_FIELD_DATA(V3D_MMU_T_CTRL, TLB_CLEAR, 1);
+      uiReg |= BCHP_FIELD_DATA(V3D_MMU_0_CTRL, TLB_CLEAR, 1);
       BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_MMU_0_CTRL, uiReg);
-      while(BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMU_0_CTRL) & BCHP_FIELD_DATA(V3D_MMU_T_CTRL, TLB_CLEARING, 1));
+      while(BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMU_0_CTRL) & BCHP_FIELD_DATA(V3D_MMU_0_CTRL, TLB_CLEARING, 1));
    }
 
 #if !V3D_VER_AT_LEAST(4,0,0,0)
@@ -308,24 +298,17 @@ static void BVC5_P_EnableMmu(
    uint32_t    uiMaxVirtualAddress
 )
 {
-   /*
-    * NOTE: Using MMU_T field defintions because the MMU_0 ones are
-    *       missing from the RDB files at the time of writing. To be
-    *       fixed later.
-    */
    const uint32_t uiCtrl =
-      BCHP_FIELD_DATA(V3D_MMU_T_CTRL, ENABLE, 1) |
-      BCHP_FIELD_DATA(V3D_MMU_T_CTRL, STATS_ENABLE, 1) |
-      BCHP_FIELD_DATA(V3D_MMU_T_CTRL, PT_INVALID_EN, 1) |
-      BCHP_FIELD_DATA(V3D_MMU_T_CTRL, PT_INVALID_ABORT_EN, 1) |
-      BCHP_FIELD_DATA(V3D_MMU_T_CTRL, WRITE_VIOLATION_ABORT_EN, 1) |
-      BCHP_FIELD_DATA(V3D_MMU_T_CTRL, CAP_EXCEEDED_ABORT_EN, 1);
+      BCHP_FIELD_DATA(V3D_MMU_0_CTRL, ENABLE, 1) |
+      BCHP_FIELD_DATA(V3D_MMU_0_CTRL, STATS_ENABLE, 1) |
+      BCHP_FIELD_DATA(V3D_MMU_0_CTRL, PT_INVALID_EN, 1) |
+      BCHP_FIELD_DATA(V3D_MMU_0_CTRL, PT_INVALID_ABORT_EN, 1) |
+      BCHP_FIELD_DATA(V3D_MMU_0_CTRL, WRITE_VIOLATION_ABORT_EN, 1) |
+      BCHP_FIELD_DATA(V3D_MMU_0_CTRL, CAP_EXCEEDED_ABORT_EN, 1);
 
    uint32_t uiIllegalAdr = (hVC5->uiMmuSafePageOffset >> MMU_ADDR_SHIFT) |
-                           BCHP_FIELD_DATA(V3D_MMU_T_ILLEGAL_ADR, ENABLE, 1);
-
+                           BCHP_FIELD_DATA(V3D_MMU_0_ILLEGAL_ADR, ENABLE, 1);
    uint32_t uiAddrCap;
-
 
    /*
     * Check the maximum virtual address is on a 256MB - 1 boundary
@@ -333,7 +316,7 @@ static void BVC5_P_EnableMmu(
    BDBG_ASSERT((uiMaxVirtualAddress & 0x0fffffff) == 0x0fffffff);
 
    uiAddrCap = uiMaxVirtualAddress >> MMU_ADDR_CAP_SHIFT;
-   uiAddrCap |= BCHP_FIELD_DATA(V3D_MMU_T_ADDR_CAP, ENABLE, 1);
+   uiAddrCap |= BCHP_FIELD_DATA(V3D_MMU_0_ADDR_CAP, ENABLE, 1);
 
    BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_MMU_0_PT_PA_BASE, uiPhys);
    BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_MMU_0_ILLEGAL_ADR, uiIllegalAdr);
@@ -354,7 +337,7 @@ static bool BVC5_P_HardwareSetupMmu(
    BVC5_P_InternalJob *pJob)
 {
 #if V3D_VER_AT_LEAST(3,3,0,0)
-   const uint64_t uiBaseMask = BCHP_MASK(V3D_MMU_T_PT_PA_BASE, PAGE);
+   const uint64_t uiBaseMask = BCHP_MASK(V3D_MMU_0_PT_PA_BASE, PAGE);
 
    uint32_t uiReg;
    uint32_t uiPhys;
@@ -1370,9 +1353,7 @@ static bool BVC5_P_IssueBinJob(
          BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sBinJobFifoCLE, psJob);
          BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sBinJobFifoPTB, psJob);
       }
-#endif
-
-#if INCLUDE_LEGACY_EVENT_TRACKS
+#else
       BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,
                              BVC5_EventBegin, psJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
 #endif
@@ -1471,9 +1452,7 @@ static void BVC5_P_IssueRenderJob(
          BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sRenderJobFifoCLE, psJob);
          BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sRenderJobFifoTLB, psJob);
       }
-#endif
-
-#if INCLUDE_LEGACY_EVENT_TRACKS
+#else
       /* Job is issued straight away so record start.  In the other case, we record the start when the previous job
          has finished */
       if (bUseRunning)
@@ -1929,7 +1908,7 @@ void BVC5_P_HardwareJobDone(
 
          if (pState->psJob[BVC5_P_HW_QUEUE_RUNNING] != NULL)
          {
-#if INCLUDE_LEGACY_EVENT_TRACKS
+#if !V3D_VER_AT_LEAST(3,3,0,0)
             BVC5_P_InternalJob   *pRunning = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
 
             BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK, BVC5_P_EVENT_MONITOR_RENDERING,
@@ -2099,13 +2078,13 @@ static void BVC5_P_ReportMmuException_isr(
    uint64_t uiAddr = (uint64_t)uiVIOAddr << MMU_VIO_ADDR_SHIFT;
 
    BKNI_Printf("%s Access violation ctrl: %#x AXI ID: %u VIO ADDR: 0x%x%x\n", pName, uiMmuCtrl, uiAxiId, (uint32_t)(uiAddr >> 32), (uint32_t)(uiAddr & 0xffffffff));
-   if (uiMmuCtrl & BCHP_FIELD_DATA(V3D_MMU_T_CTRL, PT_INVALID, 1))
+   if (uiMmuCtrl & BCHP_FIELD_DATA(V3D_MMU_0_CTRL, PT_INVALID, 1))
       BKNI_Printf("   PT_INVALID");
 
-   if (uiMmuCtrl & BCHP_FIELD_DATA(V3D_MMU_T_CTRL, WRITE_VIOLATION, 1))
+   if (uiMmuCtrl & BCHP_FIELD_DATA(V3D_MMU_0_CTRL, WRITE_VIOLATION, 1))
       BKNI_Printf("   WRITE_VIOLATION");
 
-   if (uiMmuCtrl & BCHP_FIELD_DATA(V3D_MMU_T_CTRL, CAP_EXCEEDED, 1))
+   if (uiMmuCtrl & BCHP_FIELD_DATA(V3D_MMU_0_CTRL, CAP_EXCEEDED, 1))
       BKNI_Printf("   CAP_EXCEEDED (%#x)", uiCap);
 
    BKNI_Printf("\n");
@@ -2168,9 +2147,9 @@ void BVC5_P_InterruptHandlerHub_isr(
       if (uiIntStatus)
       {
          uint32_t uiMmuIntFlagsMask =
-            BCHP_FIELD_DATA(V3D_MMU_T_CTRL, PT_INVALID, 1) |
-            BCHP_FIELD_DATA(V3D_MMU_T_CTRL, WRITE_VIOLATION, 1) |
-            BCHP_FIELD_DATA(V3D_MMU_T_CTRL, CAP_EXCEEDED, 1);
+            BCHP_FIELD_DATA(V3D_MMU_0_CTRL, PT_INVALID, 1) |
+            BCHP_FIELD_DATA(V3D_MMU_0_CTRL, WRITE_VIOLATION, 1) |
+            BCHP_FIELD_DATA(V3D_MMU_0_CTRL, CAP_EXCEEDED, 1);
          uint32_t uiMmuCtrl;
          uint32_t uiAxiId;
          uint64_t uiVIOAddr;

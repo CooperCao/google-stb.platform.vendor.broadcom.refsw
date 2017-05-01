@@ -3,6 +3,12 @@
  ******************************************************************************/
 #pragma once
 
+#include "libs/util/common.h"
+
+EXTERN_C_BEGIN
+
 extern void glsl_init_intern(int size);
 
 extern const char *glsl_intern(const char *s, bool dup);
+
+EXTERN_C_END

@@ -42,9 +42,11 @@ NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 #  Sanity check... Make sure that $(NEXUS_TOP) exists and is accessible.
 $(if $(realpath ${NEXUS_TOP}),,$(error Cannot find (or access) NEXUS_TOP: "$(NEXUS_TOP)"))
 
-#  More Nexus definitions...
-include $(NEXUS_TOP)/build/nexus_defs.inc
+BSEAV = ${NEXUS_TOP}/../BSEAV
+
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+B_REFSW_CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+B_REFSW_LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES) -lm
 
 #  More sanity checks... By now, the following variables should be defined... fail if not.
 $(if ${B_REFSW_ARCH},,$(error B_REFSW_ARCH is not defined))
@@ -55,9 +57,6 @@ include ../include/blive_ext.mak
 include ../../livemedia.inc
 
 include ../../../../api/build/tools.mak
-BSEAV = ${NEXUS_TOP}/../BSEAV
-
-include $(BSEAV)/build/refsw_inc.mak
 
 BLIVE_EXT_ODIR := ${BLIVE_EXT_LIBDIR}
 BLIVE_EXT_LIB = $(BLIVE_EXT_ODIR)/libblive_ext.a

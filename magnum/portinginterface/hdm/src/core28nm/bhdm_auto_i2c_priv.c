@@ -112,32 +112,6 @@ static const BHDM_AUTO_I2C_P_InterruptMap
 
 BDBG_MODULE(BHDM_AUTO_I2C_PRIV) ;
 
-BERR_Code BHDM_AUTO_I2C_P_EnableInterrupts(BHDM_Handle hHDMI)
-{
-	uint8_t i ;
-	BERR_Code rc = BERR_SUCCESS ;
-
-	for (i = 0; i < MAKE_AUTO_I2C_INTR_ENUM(LAST) ; i++)
-	{
-		BHDM_CHECK_RC( rc, BINT_CreateCallback(&(hHDMI->hAutoI2cCallback[i]),
-			hHDMI->hInterrupt, s_BHDM_AUTO_I2C_IntrMap[hHDMI->eCoreId][i].IntrId,
-			BHDM_AUTO_I2C_P_isr, hHDMI, i ));
-
-		/* clear interrupt callback */
-		BHDM_CHECK_RC(rc, BINT_ClearCallback( hHDMI->hAutoI2cCallback[i])) ;
-
-		/* skip interrupt if not enabled in table...  */
-		if (!s_BHDM_AUTO_I2C_IntrMap[hHDMI->eCoreId][i].enable)
-		{
-			continue ;
-		}
-
-		BHDM_CHECK_RC(rc, BINT_EnableCallback( hHDMI->hAutoI2cCallback[i])) ;
-	}
-done:
-	return rc ;
-}
-
 
 static void BHDM_AUTO_I2C_P_ResetHwStateMachine(BHDM_Handle hHDMI)
 {
@@ -166,6 +140,7 @@ BERR_Code  BHDM_AUTO_I2C_P_AllocateResources(const BHDM_Handle hHDMI)
 	BREG_Handle hRegister ;
 	uint32_t Register ;
 	uint32_t ulOffset ;
+	uint8_t i ;
 
 	hRegister = hHDMI->hRegister ;
 	ulOffset = hHDMI->ulOffset ;
@@ -264,8 +239,23 @@ BERR_Code  BHDM_AUTO_I2C_P_AllocateResources(const BHDM_Handle hHDMI)
 
 	/* Register/enable interrupt callbacks */
 
-	rc = BHDM_AUTO_I2C_P_EnableInterrupts(hHDMI) ;
-	if (rc) { (void)BERR_TRACE(rc) ; goto done ;}
+	for (i = 0; i < MAKE_AUTO_I2C_INTR_ENUM(LAST) ; i++)
+	{
+		BHDM_CHECK_RC( rc, BINT_CreateCallback(&(hHDMI->hAutoI2cCallback[i]),
+			hHDMI->hInterrupt, s_BHDM_AUTO_I2C_IntrMap[hHDMI->eCoreId][i].IntrId,
+			BHDM_AUTO_I2C_P_isr, hHDMI, i ));
+
+		/* clear interrupt callback */
+		BHDM_CHECK_RC(rc, BINT_ClearCallback( hHDMI->hAutoI2cCallback[i])) ;
+
+		/* skip interrupt if not enabled in table...  */
+		if (!s_BHDM_AUTO_I2C_IntrMap[hHDMI->eCoreId][i].enable)
+		{
+			continue ;
+		}
+
+		BHDM_CHECK_RC(rc, BINT_EnableCallback( hHDMI->hAutoI2cCallback[i])) ;
+	}
 
 	/*configure polling channels; NOTE: Polling is not started here */
 
@@ -296,15 +286,19 @@ done :
 }
 
 
-BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI)
+BERR_Code  BHDM_AUTO_I2C_P_FreeResources(const BHDM_Handle hHDMI)
 {
-	uint8_t i ;
 	BERR_Code rc = BERR_SUCCESS ;
+	uint8_t i ;
 
-	/* disable the auto i2c channels */
-	BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-	BKNI_LeaveCriticalSection() ;
+	/* Disable and Destroy the HDMI Auto I2C Callbacks */
+	BHDM_AUTO_I2C_P_DisableInterrupts(hHDMI) ;
+
+	/* disable any auto transactions that may be in progress */
+	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
+		BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, 0) ;
+	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
+		BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 0) ;
 
 	for (i = 0; i < MAKE_AUTO_I2C_INTR_ENUM(LAST); i++)
 	{
@@ -332,22 +326,6 @@ BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI)
 			}
 		}
 	}
-	return rc ;
-}
-
-
-BERR_Code  BHDM_AUTO_I2C_P_FreeResources(const BHDM_Handle hHDMI)
-{
-	BERR_Code rc = BERR_SUCCESS ;
-
-	/* disable any auto transactions that may be in progress */
-	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
-		BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, 0) ;
-	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
-		BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 0) ;
-
-	/* Disable and Destroy the HDMI Auto I2C Callbacks */
-	BHDM_AUTO_I2C_P_DisableInterrupts(hHDMI) ;
 
 	/* Destroy the Auto I2C events for use with Interrupts */
 	if (hHDMI->AutoI2CEvent_ScdcUpdate)
@@ -371,6 +349,32 @@ BERR_Code  BHDM_AUTO_I2C_P_FreeResources(const BHDM_Handle hHDMI)
 	}
 
 	BHDM_AUTO_I2C_P_ResetHwStateMachine(hHDMI) ;
+
+	return rc ;
+}
+
+
+BERR_Code BHDM_AUTO_I2C_P_EnableInterrupts(BHDM_Handle hHDMI)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+
+	/* disable the auto i2c channels */
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+	BKNI_LeaveCriticalSection() ;
+
+	return rc ;
+}
+
+
+BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+
+	/* disable the auto i2c channels */
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+	BKNI_LeaveCriticalSection() ;
 
 	return rc ;
 }

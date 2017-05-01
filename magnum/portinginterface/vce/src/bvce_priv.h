@@ -102,6 +102,7 @@ extern "C" {
 #define BVCE_P_NEW_METADATA_MASK 0x0FFFFFFF
 
 #define BVCE_P_SET_32BIT_HI_LO_FROM_64( _32bit, _64bit ) { (_32bit ## Hi) = (uint32_t)( ((_64bit) >> 32) & 0xFFFFFFFF ); (_32bit ## Lo) = (uint32_t)( ((_64bit) >> 0) & 0xFFFFFFFF ); }
+#define BVCE_P_SET_32BIT_HI_LO_FROM_64_OLD( _32bit, _64bit ) { (_32bit ## Hi) = (uint32_t)( ((_64bit) >> 32) & 0xFFFFFFFF ); (_32bit) = (uint32_t)( ((_64bit) >> 0) & 0xFFFFFFFF ); }
 
 typedef union BVCE_P_Command
 {
@@ -825,6 +826,9 @@ typedef struct BVCE_P_DebugFifo_Entry
 extern const BAVC_FrameRateCode BVCE_P_FW2PI_FrameRateLUT[];
 extern const unsigned BAVC_FrameRateCodeNumEntries;
 extern const unsigned BAVC_FWMaxFrameRateCode;
+
+void BVCE_P_ValidateStructSizes(void);
+void BVCE_P_ValidateFrameRateEnum(void);
 
 #ifdef __cplusplus
 }

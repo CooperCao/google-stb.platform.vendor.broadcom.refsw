@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  VG server
-
-FILE DESCRIPTION
-Top-level VG server-side functions.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 /*
    Applies to all functions
@@ -316,7 +309,6 @@ static INLINE void vg_unlock_server_state(void)
 
 static INLINE VG_SERVER_SHARED_STATE_T *vg_lock_server_shared_state(VG_SERVER_STATE_T *state)
 {
-   EGL_SERVER_STATE_T *egl_state = EGL_GET_SERVER_STATE();
    return (VG_SERVER_SHARED_STATE_T *)mem_lock(state->shared_state, NULL);
 }
 
@@ -346,7 +338,6 @@ static INLINE VG_SERVER_SHARED_STATE_T *vg_lock_server_shared_state(VG_SERVER_ST
 
 static INLINE void vg_unlock_server_shared_state(VG_SERVER_STATE_T *state)
 {
-   EGL_SERVER_STATE_T *egl_state = EGL_GET_SERVER_STATE();
    mem_unlock(state->shared_state);
 }
 
@@ -379,7 +370,6 @@ static INLINE void vg_unlock_server_shared_state(VG_SERVER_STATE_T *state)
 
 static INLINE void *vg_lock_server_shared_state_objects_storage(VG_SERVER_SHARED_STATE_T *shared_state)
 {
-   EGL_SERVER_STATE_T *egl_state = EGL_GET_SERVER_STATE();
    return mem_lock(shared_state->objects.storage, NULL);
 }
 
@@ -409,7 +399,6 @@ static INLINE void *vg_lock_server_shared_state_objects_storage(VG_SERVER_SHARED
 
 static INLINE void vg_unlock_server_shared_state_objects_storage(VG_SERVER_SHARED_STATE_T *shared_state)
 {
-   EGL_SERVER_STATE_T *egl_state = EGL_GET_SERVER_STATE();
    mem_unlock(shared_state->objects.storage);
 }
 

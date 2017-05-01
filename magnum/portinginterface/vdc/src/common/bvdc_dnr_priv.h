@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -189,7 +189,7 @@ typedef struct BVDC_P_DnrContext
     /* adj_Qp */
     uint32_t                       ulMnrQp;
     uint32_t                       ulBnrQp;
-    uint32_t                       ulDcrQp;
+    int32_t                        iDcrLevel;
 
     BVDC_P_BnrCfgEntry             stBnrCfg;
     BVDC_P_MnrCfgEntry             stMnrCfg;
@@ -208,6 +208,7 @@ typedef struct BVDC_P_DnrContext
 
     bool                           bDnrH;
     bool                           b10BitMode;
+    BVDC_FilterMode                eDcrMode;
 } BVDC_P_DnrContext;
 
 
@@ -248,7 +249,7 @@ BERR_Code BVDC_P_Dnr_SetEnable_isr
       bool                          bEnable );
 
 const BVDC_P_DcrCfgEntry* BVDC_P_Dnr_GetDcrCfg_isr
-    ( uint32_t                       ulDcrQp,
+    ( int32_t                        iDcrLevel,
       const BFMT_VideoInfo          *pFmtInfo,
       void                          *pvUserInfo );
 

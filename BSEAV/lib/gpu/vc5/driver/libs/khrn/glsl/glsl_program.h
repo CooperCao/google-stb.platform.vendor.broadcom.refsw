@@ -28,6 +28,7 @@ typedef struct {
    GLenum    type;
    char     *name;
    unsigned  offset;
+   bool      is_array;
    unsigned  array_length;
    unsigned  array_stride;
    unsigned  matrix_stride;
@@ -78,6 +79,7 @@ typedef struct {
    uint32_t  precision;    /* TODO: Maybe some other SSO stuff for ease of comparison */
    bool      flat;
    bool      centroid;
+   bool      noperspective;
    bool      is_per_patch;
 } GLSL_INOUT_T;
 
@@ -135,8 +137,8 @@ typedef struct GLSL_PROGRAM_T_ {
    unsigned int           num_uniform_offsets;
    unsigned int          *uniform_offsets;
 
-   unsigned               wg_size[3];
-   unsigned               shared_block_size;
+   unsigned               cs_shared_block_size;
+   bool                   cs_has_barrier;
 } GLSL_PROGRAM_T;
 
 GLSL_PROGRAM_T *glsl_program_create();
@@ -149,7 +151,7 @@ void            glsl_program_shrink(GLSL_PROGRAM_T *program);
 static inline bool glsl_program_has_stage(GLSL_PROGRAM_T const* program, ShaderFlavour flavour)
 {
    if (flavour == SHADER_COMPUTE)
-      return program->shared_block_size != ~0u;
+      return program->cs_shared_block_size != ~0u;
    else
       return program->ir->stage[flavour].ir != NULL;
 }

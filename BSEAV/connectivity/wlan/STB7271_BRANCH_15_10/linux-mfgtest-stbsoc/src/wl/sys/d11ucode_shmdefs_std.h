@@ -5,7 +5,7 @@
  * FILE-CSTYLED 
  *
  * Ucode directory: ../
- * Derived from major_rev = 1202, minor_rev = 209
+ * Derived from major_rev = 1202, minor_rev = 216
  *
  * Broadcom Proprietary and Confidential. Copyright (C) 2017, 
  * All Rights Reserved. 
@@ -18,7 +18,7 @@
  *
  * <<Broadcom-WL-IPTag/Proprietary:>> 
  *
- * $Id: /projects/hnd_video6/ytpark/git_refsw/refsw/wlan_ucode_repo_local_b/result/d11ucode_shmdefs_std.h Mar. 17, 2017 10:24:09 AM <ytpark> $
+ * $Id: /local/public/users/ptimariu/stbucode/refsw/ptrepo/result/d11ucode_shmdefs_std.h May. 11, 2017 02:17:10 PM <ptimariu> $
  */
 // COMMON SHMS
 //REVID Specific SHMs
@@ -74965,7 +74965,9 @@
 #define	M_IQEST_TOUT_CTR	(0xcc5*2)
 #define	M_BPHYPEAKEN_VAL	(0xcc6*2)
 #define	M_PHY_SAMPLECMD	(0xcc7*2)
-#define	M_SHM_END	(0xcc8*2)
+#define	M_BTCX_TRANSCTL	(0xcc8*2)
+#define	M_BTCX_DEBUG_GPIOINOUT	(0xcc9*2)
+#define	M_SHM_END	(0xcca*2)
 #define	M_BOM_REV_MAJOR	(M_PSM_SOFT_REGS+(0x0*2))
 #define	M_BOM_REV_MAJOR_OFFSET	(0x0*2)
 #define	M_BOM_REV_MINOR	(M_PSM_SOFT_REGS+(0x1*2))

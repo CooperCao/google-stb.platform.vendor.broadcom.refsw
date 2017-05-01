@@ -63,7 +63,7 @@ BDBG_MODULE(bthd_api);
  * BTHD_P_EventIsdbtIsr()
  ***************************************************************************/
 #ifdef BTHD_ISDBT_SUPPORT
-void BTHD_P_EventIsdbtIsr(void *p, int param)
+static void BTHD_P_EventIsdbtIsr(void *p, int param)
 {
   BTHD_3x7x_Handle pHandle = (BTHD_3x7x_Handle)p;
   uint32_t      segs_b=0, segs_c=0;
@@ -166,7 +166,7 @@ return;
 /***************************************************************************
  * BTHD_P_EventIsr()
  ***************************************************************************/
-void BTHD_P_EventIsr(void *p, int param)
+static void BTHD_P_EventIsr(void *p, int param)
 {
   BTHD_3x7x_Handle pHandle = (BTHD_3x7x_Handle)p;
 
@@ -222,7 +222,7 @@ void BTHD_P_EventIsr(void *p, int param)
 /******************************************************************************
  * BTHD_P_ResetEvent()
  ******************************************************************************/
-BERR_Code BTHD_P_ResetEvent(BTHD_3x7x_Handle h)
+static BERR_Code BTHD_P_ResetEvent(BTHD_3x7x_Handle h)
 {
   /* BDBG_WRN(("ResetThdEvent")); */
   BKNI_ResetEvent(h->hFwCorrMaxEvent);
@@ -243,7 +243,7 @@ BERR_Code BTHD_P_ResetEvent(BTHD_3x7x_Handle h)
 /******************************************************************************
 BTHD_P_BBSTimerFunc()
 ******************************************************************************/
-BERR_Code BTHD_P_BBSTimerFunc(BTHD_Handle h)
+static BERR_Code BTHD_P_BBSTimerFunc(BTHD_Handle h)
 {
   BTHD_3x7x_P_Handle *p3x7x;
   p3x7x = (BTHD_3x7x_P_Handle *)(h->pImpl);
@@ -256,7 +256,7 @@ BERR_Code BTHD_P_BBSTimerFunc(BTHD_Handle h)
 /******************************************************************************
 BTHD_P_TimerFunc()
 ******************************************************************************/
-BERR_Code BTHD_P_TimerFunc(BTHD_Handle h)
+static BERR_Code BTHD_P_TimerFunc(BTHD_Handle h)
 {
   BTHD_3x7x_P_Handle *p3x7x;
   p3x7x = (BTHD_3x7x_P_Handle *)(h->pImpl);
@@ -610,7 +610,7 @@ BERR_Code BTHD_3x7x_InitializeParams(BTHD_Handle h, const uint8_t *var1, uint32_
 /***************************************************************************
 * BTHD_P_AppDVBTSettings()
 ***************************************************************************/
-void BTHD_P_AppDVBTSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParams)
+static void BTHD_P_AppDVBTSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParams)
 {
   BDBG_ASSERT(h);
   BDBG_ASSERT(pParams);
@@ -745,7 +745,7 @@ void BTHD_P_AppDVBTSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParams
 * BTHD_P_AppISDBTSettings()
 ***************************************************************************/
 #ifdef BTHD_ISDBT_SUPPORT
-void BTHD_P_AppISDBTSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParams)
+static void BTHD_P_AppISDBTSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParams)
 {
 
   BDBG_ASSERT(h);
@@ -982,7 +982,7 @@ void BTHD_P_AppISDBTSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParam
 /*******************************************************************************
 *   BTHD_SetAcqSettings
 *******************************************************************************/
-BERR_Code BTHD_P_SetAcqSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParams)
+static BERR_Code BTHD_P_SetAcqSettings(BTHD_3x7x_Handle h, const BTHD_InbandParams *pParams)
 {
     BERR_Code eResult = BERR_SUCCESS;
     BDBG_MSG(("BTHD_3x7x_SetAcqSettings"));
@@ -1214,7 +1214,7 @@ BERR_Code BTHD_3x7x_Acquire(BTHD_Handle h, const BTHD_InbandParams *pParams)
 /***************************************************************************
  * BTHD_P_GetDvbtStatus()
  ***************************************************************************/
-void BTHD_P_GetDvbtStatus (BTHD_3x7x_Handle p3x7x, BTHD_THDStatus *pStatus)
+static void BTHD_P_GetDvbtStatus (BTHD_3x7x_Handle p3x7x, BTHD_THDStatus *pStatus)
 {
   /* Decode Priority */
   switch (p3x7x->pStatus->StdStatus.DvbtStatus.Priority)
@@ -1295,7 +1295,7 @@ void BTHD_P_GetDvbtStatus (BTHD_3x7x_Handle p3x7x, BTHD_THDStatus *pStatus)
 /***************************************************************************
  * BTHD_P_GetIsdbtStatus()
  ***************************************************************************/
-void BTHD_P_GetIsdbtStatus (BTHD_3x7x_Handle p3x7x, BTHD_THDStatus *pStatus)
+static void BTHD_P_GetIsdbtStatus (BTHD_3x7x_Handle p3x7x, BTHD_THDStatus *pStatus)
 {
 #ifdef BTHD_ISDBT_SUPPORT
   pStatus->bIsdbtEWS                    = p3x7x->pStatus->StdStatus.IsdbtStatus.Ews;                /* This return the EWS status bit */

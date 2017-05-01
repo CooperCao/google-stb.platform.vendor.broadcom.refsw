@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -138,9 +138,9 @@ ifneq ($(B_REFSW_WPA_SUPPLICANT_IS_EXTERNAL),y)
 		echo "LDFLAGS+=$(B_WPA_SUPPLICANT_LDFLAGS)" >> .config && \
 		echo "CONFIG_LIBNL32=y" >> .config && \
 		echo "CONFIG_EAPOL_TEST=y" >> .config && \
-		echo "LIBDIR=$(B_WPA_SUPPLICANT_LIB_INSTALL_DIR)" >> .config && \
-		echo "INCDIR=$(B_WPA_SUPPLICANT_INC_INSTALL_DIR)" >> .config && \
-		echo "BINDIR=$(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)" >> .config && \
+		echo "override LIBDIR=$(B_WPA_SUPPLICANT_LIB_INSTALL_DIR)" >> .config && \
+		echo "override INCDIR=$(B_WPA_SUPPLICANT_INC_INSTALL_DIR)" >> .config && \
+		echo "override BINDIR=$(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)" >> .config && \
 		echo "CONFIG_WPS=y" >> .config && \
 		echo "CONFIG_WPS_ER=y" >> .config && \
 		echo "CONFIG_WPS_REG_DISABLE_OPEN=y" >> .config && \
@@ -165,7 +165,7 @@ export PKG_CONFIG_PATH=$(B_LIBNL_PKG_INSTALL_DIR)
 .$(B_WPA_SUPPLICANT_NAME): .source .configure
 ifneq ($(B_REFSW_WPA_SUPPLICANT_IS_EXTERNAL),y)
 	@echo "[Build.... (wpa_supplicant)]"
-	@${MAKE} ${MAKE_OPTIONS} -C ${B_WPA_SUPPLICANT_SOURCE_PATH}/wpa_supplicant CC=$(WPA_CC) ${MAKE_SUFFIX}  ${B_WPA_SUPPLICANT_COMPILE_REDIR}
+	@DESTDIR= ${MAKE} ${MAKE_OPTIONS} -C ${B_WPA_SUPPLICANT_SOURCE_PATH}/wpa_supplicant CC=$(WPA_CC) ${MAKE_SUFFIX}  ${B_WPA_SUPPLICANT_COMPILE_REDIR}
 endif   #  ifeq ($(B_REFSW_WPA_SUPPLICANT_IS_EXTERNAL),y)
 
 
@@ -184,7 +184,7 @@ endif
 install: .$(B_WPA_SUPPLICANT_NAME) $(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)/wpa_supplicant.conf
 ifneq ($(B_REFSW_WPA_SUPPLICANT_IS_EXTERNAL),y)
 	@echo "[Install.. (wpa_supplicant)]"
-	@${MAKE} -C ${B_WPA_SUPPLICANT_SOURCE_PATH}/wpa_supplicant install CC=$(WPA_CC) ${MAKE_SUFFIX} ${B_WPA_SUPPLICANT_COMPILE_REDIR}
+	@DESTDIR= ${MAKE} -C ${B_WPA_SUPPLICANT_SOURCE_PATH}/wpa_supplicant install CC=$(WPA_CC) ${MAKE_SUFFIX} ${B_WPA_SUPPLICANT_COMPILE_REDIR}
 ifdef B_INSTALL_DIR
 	@cp -fp $(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)/wpa_supplicant $(B_INSTALL_DIR)
 	@cp -fp $(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)/wpa_supplicant.conf $(B_INSTALL_DIR)

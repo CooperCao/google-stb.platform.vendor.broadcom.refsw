@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_STILL_DECODER_IMPL_H__
@@ -79,6 +71,7 @@ struct NEXUS_HwStillDecoder {
     NEXUS_TimerHandle timer;
     NEXUS_TaskCallbackHandle endCodeFoundCallback;
     NEXUS_IsrCallbackHandle stillPictureReadyCallback;
+    BXVD_DecodeResolution eDecodeResolution;
 
     BXVD_ChannelHandle xvdChannel;
 
@@ -95,7 +88,6 @@ struct NEXUS_HwStillDecoder {
         BMMA_Block_Handle mem;
         unsigned memoryOffset; /* offset into mem */
         unsigned size;
-        unsigned maxHeight;
         BMMA_Block_Handle pictureMemory;
     } buffer;
 };

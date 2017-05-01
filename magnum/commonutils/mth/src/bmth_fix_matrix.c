@@ -77,7 +77,7 @@ BDBG_MODULE(BMTH_FIX_MATRIX);
  * Takes two matrices and multiplies them together.  Result is a matrix
  * with the same size and fixed point fractional bits.
  */
-void BMTH_FIX_Matrix_Mult(BMTH_FIX_Matrix *pMatrix1, BMTH_FIX_Matrix *pMatrix2, BMTH_FIX_Matrix *pRetMatrix)
+void BMTH_FIX_Matrix_Mult_isrsafe(BMTH_FIX_Matrix *pMatrix1, BMTH_FIX_Matrix *pMatrix2, BMTH_FIX_Matrix *pRetMatrix)
 {
 	BMTH_FIX_Matrix stMatrixTemp;
 	uint32_t ulSize = pMatrix1->ulSize;
@@ -114,7 +114,7 @@ void BMTH_FIX_Matrix_Mult(BMTH_FIX_Matrix *pMatrix1, BMTH_FIX_Matrix *pMatrix2, 
  * Multiplies a Matrix with a Vector.  Result is a vector with the same
  * size as the original vector and same fixed point fractional bits.
  */
-void BMTH_FIX_Matrix_MultVector(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Vector *pVector, BMTH_FIX_Vector *pRetVector)
+void BMTH_FIX_Matrix_MultVector_isrsafe(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Vector *pVector, BMTH_FIX_Vector *pRetVector)
 {
 	BMTH_FIX_Vector stTempVector;
 	uint32_t ulSize = pMatrix->ulSize;
@@ -140,7 +140,7 @@ void BMTH_FIX_Matrix_MultVector(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Vector *pVect
 	BKNI_Memcpy(pRetVector, &stTempVector, sizeof(stTempVector));
 }
 
-void BMTH_FIX_Matrix_MultVector_64(BMTH_FIX_Matrix_64 *pMatrix, BMTH_FIX_Vector_64 *pVector, BMTH_FIX_Vector_64 *pRetVector)
+void BMTH_FIX_Matrix_MultVector_64_isrsafe(BMTH_FIX_Matrix_64 *pMatrix, BMTH_FIX_Vector_64 *pVector, BMTH_FIX_Vector_64 *pRetVector)
 {
 	BMTH_FIX_Vector_64 stTempVector;
 	uint32_t ulSize = pMatrix->ulSize;
@@ -172,7 +172,7 @@ void BMTH_FIX_Matrix_MultVector_64(BMTH_FIX_Matrix_64 *pMatrix, BMTH_FIX_Vector_
  *
  * Takes a 3x3 matrix and converts it to a 4x4 matrix.
  */
-void BMTH_FIX_Matrix_Make4x4(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatrix)
+void BMTH_FIX_Matrix_Make4x4_isrsafe(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatrix)
 {
 	uint32_t ulFractBits = pMatrix->ulFractBits;
 	uint32_t i = 0;
@@ -200,7 +200,7 @@ void BMTH_FIX_Matrix_Make4x4(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatr
  *
  * Calculates the cofactor of a matrix at a specific position.
  */
-static uint32_t BMTH_P_FIX_Matrix_Cofactor(BMTH_FIX_Matrix *pMatrix, uint32_t ulRow, uint32_t ulCol)
+static uint32_t BMTH_P_FIX_Matrix_Cofactor_isrsafe(BMTH_FIX_Matrix *pMatrix, uint32_t ulRow, uint32_t ulCol)
 {
 	uint32_t ulSignPos = (ulCol + ulRow) & 1;
 	uint32_t ulSize = pMatrix->ulSize;
@@ -249,7 +249,7 @@ static uint32_t BMTH_P_FIX_Matrix_Cofactor(BMTH_FIX_Matrix *pMatrix, uint32_t ul
  * Calculates the determinant of a matrix.  If cofactor matrix is present,
  * precaculated cofactors from the table are used.
  */
-uint32_t BMTH_FIX_Matrix_Determinant(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pCofactors)
+uint32_t BMTH_FIX_Matrix_Determinant_isrsafe(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pCofactors)
 {
 	uint32_t ulCol;
 	uint32_t ulDeterminant = 0;
@@ -288,7 +288,7 @@ uint32_t BMTH_FIX_Matrix_Determinant(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *
 			}
 			else
 			{
-				ulDeterminant += BMTH_P_FIX_MATRIX_MUL(pMatrix->data[0][ulCol], BMTH_P_FIX_Matrix_Cofactor(pMatrix, 0, ulCol), ulFractBits);
+				ulDeterminant += BMTH_P_FIX_MATRIX_MUL(pMatrix->data[0][ulCol], BMTH_P_FIX_Matrix_Cofactor_isrsafe(pMatrix, 0, ulCol), ulFractBits);
 			}
 		}
 	}
@@ -302,7 +302,7 @@ uint32_t BMTH_FIX_Matrix_Determinant(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *
  *
  * Creates a matrix holding all cofactors of a matrix.
  */
-static void BMTH_P_FIX_Matrix_CofactorMatrix(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pCofactors)
+static void BMTH_P_FIX_Matrix_CofactorMatrix_isrsafe(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pCofactors)
 {
 	uint32_t ulRow;
 	uint32_t ulCol;
@@ -313,7 +313,7 @@ static void BMTH_P_FIX_Matrix_CofactorMatrix(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_
 	{
 		for (ulCol = 0; ulCol < ulSize; ulCol++)
 		{
-			pCofactors->data[ulRow][ulCol] = BMTH_P_FIX_Matrix_Cofactor(pMatrix, ulRow, ulCol);
+			pCofactors->data[ulRow][ulCol] = BMTH_P_FIX_Matrix_Cofactor_isrsafe(pMatrix, ulRow, ulCol);
 		}
 	}
 
@@ -326,7 +326,7 @@ static void BMTH_P_FIX_Matrix_CofactorMatrix(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_
  *
  * Transposes a matrix.
  */
-void BMTH_FIX_Matrix_Transpose(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatrix)
+void BMTH_FIX_Matrix_Transpose_isrsafe(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatrix)
 {
 	uint32_t ulRow;
 	uint32_t ulCol;
@@ -350,7 +350,7 @@ void BMTH_FIX_Matrix_Transpose(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMa
  *
  * Multiplies a matrix by a scalar.
  */
-void BMTH_FIX_Matrix_MultScalar(BMTH_FIX_Matrix *pMatrix, uint32_t ulScalar, BMTH_FIX_Matrix *pRetMatrix)
+void BMTH_FIX_Matrix_MultScalar_isrsafe(BMTH_FIX_Matrix *pMatrix, uint32_t ulScalar, BMTH_FIX_Matrix *pRetMatrix)
 {
 	uint32_t ulRow;
 	uint32_t ulCol;
@@ -374,7 +374,7 @@ void BMTH_FIX_Matrix_MultScalar(BMTH_FIX_Matrix *pMatrix, uint32_t ulScalar, BMT
  *
  * Calculates the inverse matrix.
  */
-void BMTH_FIX_Matrix_Inverse(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatrix)
+void BMTH_FIX_Matrix_Inverse_isrsafe(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatrix)
 {
 	uint32_t ulFractBits = pMatrix->ulFractBits;
 	BMTH_FIX_Matrix stCofactorMatrix;
@@ -389,7 +389,7 @@ void BMTH_FIX_Matrix_Inverse(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatr
 	/* InvM = 1/det(M) * Transpose(Cofactor(M)) */
 
 	/* compute all cofactors */
-	BMTH_P_FIX_Matrix_CofactorMatrix(pMatrix, &stCofactorMatrix);
+	BMTH_P_FIX_Matrix_CofactorMatrix_isrsafe(pMatrix, &stCofactorMatrix);
 	ulDeterminant = BMTH_FIX_Matrix_Determinant(pMatrix, &stCofactorMatrix);
 	BDBG_ASSERT(ulDeterminant);
 	ulOneOverDeterminant = BMTH_P_FIX_MATRIX_DIV(ulFixOne, ulDeterminant, ulFractBits);
@@ -402,7 +402,7 @@ void BMTH_FIX_Matrix_Inverse(BMTH_FIX_Matrix *pMatrix, BMTH_FIX_Matrix *pRetMatr
  *
  * Prints a matrix.
  */
-void BMTH_FIX_Matrix_Dump(BMTH_FIX_Matrix *pMatrix)
+void BMTH_FIX_Matrix_Dump_isrsafe(BMTH_FIX_Matrix *pMatrix)
 {
 	uint32_t i = 0;
 	uint32_t j = 0;

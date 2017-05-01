@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -80,6 +80,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -gui off\n"
         "  -mosaic_pip              2 mosaics played as full + 1/4 screen (like main + PiP)\n"
         "  -move                    moving mosaic windows\n"
+        "  -persistent_audio        use persistent audio decoders\n"
         );
 }
 
@@ -329,6 +330,9 @@ int main(int argc, const char **argv)
             mosaic_move = true;
             gui = false;
         }
+        else if (!strcmp(argv[curarg], "-persistent_audio")) {
+            create_settings.audio.usePersistent = true;
+        }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
                 print_usage(&cmdline);
@@ -451,6 +455,11 @@ int main(int argc, const char **argv)
         g_app.mosaic[i].start_settings.program = file[cur_file].programindex;
         g_app.mosaic[i].start_settings.stcTrick = false; /* doesn't work for shared STC */
         g_app.mosaic[i].start_settings.audio_primers = audio_primers;
+
+        if (create_settings.audio.usePersistent) {
+             g_app.mosaic[i].start_settings.audio.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+        }
+
         rc = media_player_start(g_app.mosaic[i].player, &g_app.mosaic[i].start_settings);
         if (rc) {
             if (file[cur_file].programindex) {

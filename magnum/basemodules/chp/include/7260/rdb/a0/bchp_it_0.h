@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -44,20 +41,22 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Tue Apr 18 11:38:33 2017
+ *                 Full Compile MD5 Checksum  c15538464e5ff0aea31086dcd1a5d6b2
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1395
  *                 unknown                    unknown
  *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -68,48 +67,48 @@
 /***************************************************************************
  *IT_0 - Input and Timing Control IT_0
  ***************************************************************************/
-#define BCHP_IT_0_IT_REV_ID                      0x206e1000 /* [RO] Revision ID register */
-#define BCHP_IT_0_TG_CONFIG                      0x206e1004 /* [RW] Timing Generator Configuration Register */
-#define BCHP_IT_0_ADDR_0_3                       0x206e1008 /* [RW] Timing Generator Address 0-3 Register */
-#define BCHP_IT_0_ADDR_4_6                       0x206e100c /* [RW] Timing Generator Address 4-6 Register */
-#define BCHP_IT_0_STACK_reg_0_1                  0x206e1010 /* [RW] General Lookup Registers 0&1 Register */
-#define BCHP_IT_0_STACK_reg_2_3                  0x206e1014 /* [RW] General Lookup Registers 2&3 Register */
-#define BCHP_IT_0_STACK_reg_4_5                  0x206e1018 /* [RW] General Lookup Registers 4&5 Register */
-#define BCHP_IT_0_STACK_reg_6_7                  0x206e101c /* [RW] General Lookup Registers 6&7 Register */
-#define BCHP_IT_0_EVENT_SELECTION                0x206e1020 /* [RW] Timing Generator Event Selection Register. */
-#define BCHP_IT_0_PCL_0                          0x206e1024 /* [RW] External Digital H/V Syncs and Negative Sync PCL Register. */
-#define BCHP_IT_0_PCL_1                          0x206e1028 /* [RW] Color Burst and Bottles PCL Register. */
-#define BCHP_IT_0_PCL_2                          0x206e102c /* [RW] External Digital H/V Syncs and U and V flip PCL Register. */
-#define BCHP_IT_0_PCL_3                          0x206e1030 /* [RW] VSync, VBlank, Active Video and Odd/Even Field PCL Register. */
-#define BCHP_IT_0_PCL_4                          0x206e1034 /* [RW] Positive Sync A/B PCL Register. */
-#define BCHP_IT_0_PCL_5                          0x206e1038 /* [RW] Patten Generation PCL Register. */
-#define BCHP_IT_0_PCL_6                          0x206e103c /* [RW] Positive Sync C/D PCL Register. */
-#define BCHP_IT_0_PCL_7                          0x206e1040 /* [RW] Negative Sync D1 PCL Register. */
-#define BCHP_IT_0_PCL_8                          0x206e1044 /* [RW] Negative Sync D2 PCL Register. */
-#define BCHP_IT_0_STACK_reg_8_9                  0x206e1048 /* [RW] General Lookup Registers 8&9 Register */
-#define BCHP_IT_0_BVB_SIZE                       0x206e104c /* [RW] BVB Size Register. */
-#define BCHP_IT_0_BVB_RSTATUS                    0x206e1050 /* [RO] BVB status read Register. */
-#define BCHP_IT_0_BVB_CSTATUS                    0x206e1054 /* [WO] BVB status clear Register. */
-#define BCHP_IT_0_VEC_TRIGGER_0                  0x206e1058 /* [RW] VEC Trigger Register 0 */
-#define BCHP_IT_0_VEC_TRIGGER_1                  0x206e105c /* [RW] VEC Trigger Register 1 */
-#define BCHP_IT_0_VEC_CTRL_STAT                  0x206e1060 /* [RO] VEC Control BUS Status Register */
-#define BCHP_IT_0_IT_LCNTR                       0x206e1064 /* [RO] Line Counter Register */
-#define BCHP_IT_0_ALT_RM_CNTRL                   0x206e1068 /* [RW] ALTERNATE RATE MANAGER CONTROL REGISTER */
-#define BCHP_IT_0_CABLE_DETECT_SEL               0x206e106c /* [RW] Cable detect select register */
-#define BCHP_IT_0_ACCESS_CNTRL                   0x206e1070 /* [WO] VEC Access Control Register */
-#define BCHP_IT_0_ACCESS_STATUS                  0x206e1074 /* [RO] VEC Access Status Register */
-#define BCHP_IT_0_MSYNC_CTRL                     0x206e11bc /* [RW] Master Sync Control */
-#define BCHP_IT_0_SSYNC_CTRL                     0x206e11c0 /* [RW] Slave Sync Control */
-#define BCHP_IT_0_MS_TIMEOUT                     0x206e11c4 /* [RW] Master Slave Time Out register */
-#define BCHP_IT_0_MSSYNC_START                   0x206e11c8 /* [RW] Master Slave Sync Start */
-#define BCHP_IT_0_MSSYNC_PCL                     0x206e11cc /* [RW] Master Slave flag select PCL */
-#define BCHP_IT_0_MSYNC_PHASE                    0x206e11d0 /* [RW] Master Sync Phase */
-#define BCHP_IT_0_EOF0_LINE                      0x206e11d4 /* [RW] Field0 End line number for interlaced format */
-#define BCHP_IT_0_MSSYNC_STATUS                  0x206e11d8 /* [RO] "Status register for MSSYNC" */
-#define BCHP_IT_0_AS_CONTROL                     0x206e12b4 /* [RW] Active Space Control register */
-#define BCHP_IT_0_AS_PIXEL_C0_C1                 0x206e12b8 /* [RW] Active Space Pixel Value Register */
-#define BCHP_IT_0_AS_PIXEL_C2                    0x206e12bc /* [RW] Active Space Pixel Value Register */
-#define BCHP_IT_0_AS_LINE_NUMBER                 0x206e12c0 /* [RW] Active Space Line Number Register */
+#define BCHP_IT_0_IT_REV_ID                      0x206e1000 /* [RO][32] Revision ID register */
+#define BCHP_IT_0_TG_CONFIG                      0x206e1004 /* [RW][32] Timing Generator Configuration Register */
+#define BCHP_IT_0_ADDR_0_3                       0x206e1008 /* [RW][32] Timing Generator Address 0-3 Register */
+#define BCHP_IT_0_ADDR_4_6                       0x206e100c /* [RW][32] Timing Generator Address 4-6 Register */
+#define BCHP_IT_0_STACK_reg_0_1                  0x206e1010 /* [RW][32] General Lookup Registers 0&1 Register */
+#define BCHP_IT_0_STACK_reg_2_3                  0x206e1014 /* [RW][32] General Lookup Registers 2&3 Register */
+#define BCHP_IT_0_STACK_reg_4_5                  0x206e1018 /* [RW][32] General Lookup Registers 4&5 Register */
+#define BCHP_IT_0_STACK_reg_6_7                  0x206e101c /* [RW][32] General Lookup Registers 6&7 Register */
+#define BCHP_IT_0_EVENT_SELECTION                0x206e1020 /* [RW][32] Timing Generator Event Selection Register. */
+#define BCHP_IT_0_PCL_0                          0x206e1024 /* [RW][32] External Digital H/V Syncs and Negative Sync PCL Register. */
+#define BCHP_IT_0_PCL_1                          0x206e1028 /* [RW][32] Color Burst and Bottles PCL Register. */
+#define BCHP_IT_0_PCL_2                          0x206e102c /* [RW][32] External Digital H/V Syncs and U and V flip PCL Register. */
+#define BCHP_IT_0_PCL_3                          0x206e1030 /* [RW][32] VSync, VBlank, Active Video and Odd/Even Field PCL Register. */
+#define BCHP_IT_0_PCL_4                          0x206e1034 /* [RW][32] Positive Sync A/B PCL Register. */
+#define BCHP_IT_0_PCL_5                          0x206e1038 /* [RW][32] Patten Generation PCL Register. */
+#define BCHP_IT_0_PCL_6                          0x206e103c /* [RW][32] Positive Sync C/D PCL Register. */
+#define BCHP_IT_0_PCL_7                          0x206e1040 /* [RW][32] Negative Sync D1 PCL Register. */
+#define BCHP_IT_0_PCL_8                          0x206e1044 /* [RW][32] Negative Sync D2 PCL Register. */
+#define BCHP_IT_0_STACK_reg_8_9                  0x206e1048 /* [RW][32] General Lookup Registers 8&9 Register */
+#define BCHP_IT_0_BVB_SIZE                       0x206e104c /* [RW][32] BVB Size Register. */
+#define BCHP_IT_0_BVB_RSTATUS                    0x206e1050 /* [RO][32] BVB status read Register. */
+#define BCHP_IT_0_BVB_CSTATUS                    0x206e1054 /* [WO][32] BVB status clear Register. */
+#define BCHP_IT_0_VEC_TRIGGER_0                  0x206e1058 /* [RW][32] VEC Trigger Register 0 */
+#define BCHP_IT_0_VEC_TRIGGER_1                  0x206e105c /* [RW][32] VEC Trigger Register 1 */
+#define BCHP_IT_0_VEC_CTRL_STAT                  0x206e1060 /* [RO][32] VEC Control BUS Status Register */
+#define BCHP_IT_0_IT_LCNTR                       0x206e1064 /* [RO][32] Line Counter Register */
+#define BCHP_IT_0_ALT_RM_CNTRL                   0x206e1068 /* [RW][32] ALTERNATE RATE MANAGER CONTROL REGISTER */
+#define BCHP_IT_0_CABLE_DETECT_SEL               0x206e106c /* [RW][32] Cable detect select register */
+#define BCHP_IT_0_ACCESS_CNTRL                   0x206e1070 /* [WO][32] VEC Access Control Register */
+#define BCHP_IT_0_ACCESS_STATUS                  0x206e1074 /* [RO][32] VEC Access Status Register */
+#define BCHP_IT_0_MSYNC_CTRL                     0x206e11bc /* [RW][32] Master Sync Control */
+#define BCHP_IT_0_SSYNC_CTRL                     0x206e11c0 /* [RW][32] Slave Sync Control */
+#define BCHP_IT_0_MS_TIMEOUT                     0x206e11c4 /* [RW][32] Master Slave Time Out register */
+#define BCHP_IT_0_MSSYNC_START                   0x206e11c8 /* [RW][32] Master Slave Sync Start */
+#define BCHP_IT_0_MSSYNC_PCL                     0x206e11cc /* [RW][32] Master Slave flag select PCL */
+#define BCHP_IT_0_MSYNC_PHASE                    0x206e11d0 /* [RW][32] Master Sync Phase */
+#define BCHP_IT_0_EOF0_LINE                      0x206e11d4 /* [RW][32] Field0 End line number for interlaced format */
+#define BCHP_IT_0_MSSYNC_STATUS                  0x206e11d8 /* [RO][32] \"Status register for MSSYNC\" */
+#define BCHP_IT_0_AS_CONTROL                     0x206e12b4 /* [RW][32] Active Space Control register */
+#define BCHP_IT_0_AS_PIXEL_C0_C1                 0x206e12b8 /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_IT_0_AS_PIXEL_C2                    0x206e12bc /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_IT_0_AS_LINE_NUMBER                 0x206e12c0 /* [RW][32] Active Space Line Number Register */
 
 /***************************************************************************
  *IT_REV_ID - Revision ID register
@@ -1535,7 +1534,7 @@
 #define BCHP_IT_0_EOF0_LINE_COUNT_DEFAULT                          0x00000000
 
 /***************************************************************************
- *MSSYNC_STATUS - "Status register for MSSYNC"
+ *MSSYNC_STATUS - \"Status register for MSSYNC\"
  ***************************************************************************/
 /* IT_0 :: MSSYNC_STATUS :: reserved0 [31:30] */
 #define BCHP_IT_0_MSSYNC_STATUS_reserved0_MASK                     0xc0000000

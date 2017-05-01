@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,27 +70,27 @@
 /***************************************************************************
  *MDI_PPB_0 - MADR Pixel Processing Block Registers
  ***************************************************************************/
-#define BCHP_MDI_PPB_0_CONSTANT_COLOR            0x2068a800 /* [RW] Constant Color */
-#define BCHP_MDI_PPB_0_STATS_RANGE               0x2068a804 /* [RW] Statistics Results Collection Range */
-#define BCHP_MDI_PPB_0_LA_MAX_ANGLE_STRENGTH     0x2068a860 /* [RW] Low Angle Maximum Angle Strength */
-#define BCHP_MDI_PPB_0_LA_MIN_NORTH_STRENGTH     0x2068a864 /* [RW] Low Angle Minimum North Strength */
-#define BCHP_MDI_PPB_0_LA_STRENGTH_CONTROL       0x2068a868 /* [RW] Low Angle Strength Control */
-#define BCHP_MDI_PPB_0_LA_SCALE_0                0x2068a86c /* [RW] Low Angle Strength Scale Set 0 */
-#define BCHP_MDI_PPB_0_LA_BC_CONTROL             0x2068a874 /* [RW] Low Angle Bound Check Control */
-#define BCHP_MDI_PPB_0_XCHROMA_CONTROL_4         0x2068a888 /* [RW] Cross Chroma Control Set 4 */
-#define BCHP_MDI_PPB_0_IT_REPF_HISTOGRAM_THRESH_0 0x2068a894 /* [RW] Inverse Telecine Repeat Field Histogram Threshold Control 0 */
-#define BCHP_MDI_PPB_0_IT_REPF_HISTOGRAM_THRESH_1 0x2068a898 /* [RW] Inverse Telecine Repeat Field Histogram Threshold Control 1 */
-#define BCHP_MDI_PPB_0_IT_PCC_CONTROL            0x2068a89c /* [RW] IT PCC Control for IT cadence and Bad Edit */
-#define BCHP_MDI_PPB_0_BWV_CHECK                 0x2068a8ac /* [RW] Bad Weave pattern Checking */
-#define BCHP_MDI_PPB_0_DEBUG_MODE                0x2068a8b0 /* [RW] PPB Debug Mode */
-#define BCHP_MDI_PPB_0_STAIR_DETECT_THRESH       0x2068a8bc /* [RW] Stairstep detection thresholds */
-#define BCHP_MDI_PPB_0_MOTION_CAL_CONTROL        0x2068a8e0 /* [RW] Motion Calculation Control */
-#define BCHP_MDI_PPB_0_QM_MAPPING_RANGE          0x2068a8e4 /* [RW] Motion Histody 2-bit Quantized Motion Mapping RANGE */
-#define BCHP_MDI_PPB_0_MH_MAPPING_VALUE          0x2068a8e8 /* [RW] History Motion Mapping Value */
-#define BCHP_MDI_PPB_0_OBTS_CONTROL_0            0x2068a8ec /* [RW] OBTS Control Set 0 */
-#define BCHP_MDI_PPB_0_PIXEL_COMPUTATION_CONTROL 0x2068a8f0 /* [RW] Pixel Computation Control */
-#define BCHP_MDI_PPB_0_BWV_CHECK_MADR_PCC_IT     0x2068a8f4 /* [RW] Bad Weave pattern Checking Set for MADR PCC-based IT enhancement */
-#define BCHP_MDI_PPB_0_SCRATCH_0                 0x2068abfc /* [RW] Scratch register 0 */
+#define BCHP_MDI_PPB_0_CONSTANT_COLOR            0x2068a800 /* [RW][32] Constant Color */
+#define BCHP_MDI_PPB_0_STATS_RANGE               0x2068a804 /* [RW][32] Statistics Results Collection Range */
+#define BCHP_MDI_PPB_0_LA_MAX_ANGLE_STRENGTH     0x2068a860 /* [RW][32] Low Angle Maximum Angle Strength */
+#define BCHP_MDI_PPB_0_LA_MIN_NORTH_STRENGTH     0x2068a864 /* [RW][32] Low Angle Minimum North Strength */
+#define BCHP_MDI_PPB_0_LA_STRENGTH_CONTROL       0x2068a868 /* [RW][32] Low Angle Strength Control */
+#define BCHP_MDI_PPB_0_LA_SCALE_0                0x2068a86c /* [RW][32] Low Angle Strength Scale Set 0 */
+#define BCHP_MDI_PPB_0_LA_BC_CONTROL             0x2068a874 /* [RW][32] Low Angle Bound Check Control */
+#define BCHP_MDI_PPB_0_XCHROMA_CONTROL_4         0x2068a888 /* [RW][32] Cross Chroma Control Set 4 */
+#define BCHP_MDI_PPB_0_IT_REPF_HISTOGRAM_THRESH_0 0x2068a894 /* [RW][32] Inverse Telecine Repeat Field Histogram Threshold Control 0 */
+#define BCHP_MDI_PPB_0_IT_REPF_HISTOGRAM_THRESH_1 0x2068a898 /* [RW][32] Inverse Telecine Repeat Field Histogram Threshold Control 1 */
+#define BCHP_MDI_PPB_0_IT_PCC_CONTROL            0x2068a89c /* [RW][32] IT PCC Control for IT cadence and Bad Edit */
+#define BCHP_MDI_PPB_0_BWV_CHECK                 0x2068a8ac /* [RW][32] Bad Weave pattern Checking */
+#define BCHP_MDI_PPB_0_DEBUG_MODE                0x2068a8b0 /* [RW][32] PPB Debug Mode */
+#define BCHP_MDI_PPB_0_STAIR_DETECT_THRESH       0x2068a8bc /* [RW][32] Stairstep detection thresholds */
+#define BCHP_MDI_PPB_0_MOTION_CAL_CONTROL        0x2068a8e0 /* [RW][32] Motion Calculation Control */
+#define BCHP_MDI_PPB_0_QM_MAPPING_RANGE          0x2068a8e4 /* [RW][32] Motion Histody 2-bit Quantized Motion Mapping RANGE */
+#define BCHP_MDI_PPB_0_MH_MAPPING_VALUE          0x2068a8e8 /* [RW][32] History Motion Mapping Value */
+#define BCHP_MDI_PPB_0_OBTS_CONTROL_0            0x2068a8ec /* [RW][32] OBTS Control Set 0 */
+#define BCHP_MDI_PPB_0_PIXEL_COMPUTATION_CONTROL 0x2068a8f0 /* [RW][32] Pixel Computation Control */
+#define BCHP_MDI_PPB_0_BWV_CHECK_MADR_PCC_IT     0x2068a8f4 /* [RW][32] Bad Weave pattern Checking Set for MADR PCC-based IT enhancement */
+#define BCHP_MDI_PPB_0_SCRATCH_0                 0x2068abfc /* [RW][32] Scratch register 0 */
 
 /***************************************************************************
  *CONSTANT_COLOR - Constant Color

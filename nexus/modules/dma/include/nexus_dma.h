@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,8 +53,8 @@ extern "C" {
 /*=************************************************************************
 The Nexus Dma interface provides M2M (mem-to-mem) DMA functionality to applications.
 
-The caller is responsible to maintain cache coherency using NEXUS_FlushCache.
-All nexus memory pointers provided to the caller are cached addresses, so you should assume that cache coherency is an issue.
+If NEXUS_DmaJobBlockSettings.cached is set false, the caller is responsible to maintain cache coherency using NEXUS_FlushCache.
+This cacheflush advice is general and can be applied in other contexts as well.
 
 There are potentially three CPU caches you should be aware of:
     1) L1 cache - this is a write-back cache
@@ -65,49 +65,42 @@ NEXUS_FlushCache will do a wback_invalidate of the L1 and L2 caches and an inval
 
 The following cache flush rules will allow your app to maintain cache coherency.
 
-Rule 1: After DMA writes to RAM, you must flush the cache before the CPU reads from that memory. That is:
+Rule 1: After DMA writes to an address, you must flush the cache before the CPU reads from that memory. That is:
 
-    1. DMA writes to RAM
-    2. flush cache for that RAM
-    3. CPU reads from that RAM
+    1. DMA writes to an address
+    2. flush cache for that address
+    3. CPU reads from that address
 
-Rule 2: After the CPU writes to RAM, you must flush the cache before DMA does any access to that memory. That is:
+Rule 2: After the CPU writes to an address, you must flush the cache before DMA does any access to that memory. That is:
 
-    1. CPU writes to RAM
-    2. flush cache for that RAM
-    3. DMA reads from that RAM
+    1. CPU writes to an address
+    2. flush cache for that address
+    3. DMA reads from that address
 
-There is a danger created by the RAC's 4K-bounded prefetch that requires special attention.
-The danger is in reversing the order of steps 1 & 2 in Rule 1 if an allocation is not front and back aligned to 4K boundaries
-(i.e. no adjacent allocation shares addresses within a 4K block of the front or back of this allocation).
-If an allocation is not so aligned, then a cached read in an adjacent allocation may populate the RAC before DMA updates it.
-The RAC will then contain stale data that the application does not invalidate. A critical error could easily result.
-By default, the magnum MEM heap (which underlies all nexus heaps) is aligned to the max of the L1 and L2 cache line size (e.g. 64
-or 128 bytes). So there is no "adjacent allocation" danger for these caches.
-However, the MEM heap is not aligned to the RAC's 4K prefetch. So the "adjacent allocation" danger does occur for the RAC.
+The developer must assume that any mapped address could be read into the cache at any time. This can happen with
+a variety of read-ahead operations used by CPU to speed execution. Therefore Rule 1 must be strictly followed.
+You cannot assume that a flush before a DMA write is sufficient.
 
-This danger can appear in a variety of ways. One basic scenario is:
+One basic scenario is:
 
-    1. CPU writes to RAM
-    2. flush cache for that RAM
-    3. DMA reads from that RAM
-    4. a CPU read from an adjacent allocation (within the 4K boundary) occurs in another thread; the RAC is populated for both the adjacent
-       allocation and the memory about to be written to in step 5
-    5. DMA writes to RAM
+    1. CPU writes to an address
+    2. flush cache for that address
+    3. DMA reads from that address
+    4. CPU does some read-ahead from that address and populates the cache
+    5. DMA writes to address
        >>app mistakenly thinks that it doesn't need to flush here because it already flushed in step 2.
-    6. CPU reads stale data from the RAC for that RAM
-
-Even though the multiple accesses make the scenario more complicated, the root of this problem is that the application mistakenly believed
-that steps 1 & 2 in Rule 1 could be reversed. They cannot. In this case, a flush before the DMA read and another flush after the DMA write are both required.
+    6. CPU reads stale data from the cache for that address
 
 In nexus, interfaces like Recpump and Message fall into Rule 1. Nexus internally flushes the cache in the GetBuffer call.
 Interfaces like Playpump fall into Rule 2. Nexus internally flushes the cache in the ReadComplete call.
-Interfaces like Surface typically combine both CPU reads and writes and DMA reads and writes. Nexus cannot efficiently flush before and after all DMA transactions.
-Therefore, Nexus defaults all surface allocations to 4K alignment so that the RAC coherency danger does not spill over from a surface
-to an adjacent allocation or from an adjacent allocation into the surface. However, any combination of blits and CPU writes/reads within the surface need to follow
-both cache flush rules to avoid problems.
+Interfaces like Surface typically combine both CPU reads and writes and DMA reads and writes. Nexus cannot efficiently flush before and after all DMA transactions
+and Nexus may lack kernel mode memory mapping. Therefore the caller is responsible to flush as required.
 
-See nexus/examples/graphics/bad_rac_blit.c for a demonstration of the problem and the recommended solutions.
+Because NEXUS_FlushCache uses wback_invalidate, Nexus/Magnum heaps are aligned to the max of the L1 and L2 cache line size (e.g. 64
+or 128 bytes) to prevent an unintentional writeback of stale data. If we had less than that alignment, a write to one allocation
+would cause the entire cache line to become dirty. If that cache line contained another allocation, which could be from a different part of the system,
+that other software would do a NEXUS_FlushCache thinking it was invalidating but it was actually doing a writeback of stale data.
+If you are using NEXUS_FlushCache with non-heap memory, be sure to have this minimum allocation alignment.
 **************************************************************************/
 
 /***************************************************************************

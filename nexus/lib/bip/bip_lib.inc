@@ -83,9 +83,9 @@ BIP_LIB_PREFIX_FOR_NICKNAME_server := BIP_SERVER_LIB
 BIP_LIB_PREFIX_FOR_NICKNAME_all    := BIP_ALL_LIB
 
 # Library directories
-  BIP_BASE_LIB_OBJ_DIR := $(abspath ${B_REFSW_OBJ_ROOT}/nexus/lib/$(BIP_BASE_LIB_OUTPUT_NAME))
-BIP_CLIENT_LIB_OBJ_DIR := $(abspath ${B_REFSW_OBJ_ROOT}/nexus/lib/$(BIP_CLIENT_LIB_OUTPUT_NAME))
-BIP_SERVER_LIB_OBJ_DIR := $(abspath ${B_REFSW_OBJ_ROOT}/nexus/lib/$(BIP_SERVER_LIB_OUTPUT_NAME))
+  BIP_BASE_LIB_OBJ_DIR := $(abspath ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_REFSW_ARCH)/$(BIP_BASE_LIB_OUTPUT_NAME))
+BIP_CLIENT_LIB_OBJ_DIR := $(abspath ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_REFSW_ARCH)/$(BIP_CLIENT_LIB_OUTPUT_NAME))
+BIP_SERVER_LIB_OBJ_DIR := $(abspath ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_REFSW_ARCH)/$(BIP_SERVER_LIB_OUTPUT_NAME))
 
 include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
@@ -309,6 +309,12 @@ BIP_CLIENT_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  $(BIP_OPENSS
 BIP_SERVER_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
    BIP_ALL_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
 
+ifeq ($(NEXUS_ASP_SUPPORT), y)
+BIP_CLIENT_LIB_SUBLIBS += b_asp
+BIP_SERVER_LIB_SUBLIBS += b_asp
+   BIP_ALL_LIB_SUBLIBS += b_asp
+endif
+
 # Define the nicknames of the libraries that aren't cleaned by the normal
 # "clean" target... but require a "make distclean" to clean.
 BIP_LIB_DISTCLEAN_SUBLIBS := $(BIP_OPENSSL_LIB_MAYBE) livemedia
@@ -437,6 +443,13 @@ $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,tshdrbuilder, -ltshdrbuilder)
 include ${NEXUS_TOP}/lib/os/b_os_lib.inc
 BIP_COMMON_PRIVATE_INCLUDES += $(B_OS_LIB_PUBLIC_INCLUDES)
 $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,b_os, -L$(NEXUS_BIN_DIR) -lb_os)
+
+ifeq ($(NEXUS_ASP_SUPPORT), y)
+# Library: b_asp
+include ${NEXUS_TOP}/lib/asp/b_asp_lib.inc
+BIP_COMMON_PRIVATE_INCLUDES += $(B_ASP_LIB_PUBLIC_INCLUDES)
+$(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,b_asp, -L$(NEXUS_BIN_DIR) -lb_asp)
+endif
 
 #
 # Apply the COMMON sets to the variant-specific sets.

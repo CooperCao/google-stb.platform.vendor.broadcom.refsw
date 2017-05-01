@@ -272,7 +272,7 @@ BERR_Code BVDC_Window_Create
         }
 
         /* is user provided vfd the right one for this window? */
-        eSrcId = BAVC_SourceId_eVfd0 + (hWindow->pResource->ePlayback - BVDC_P_FeederId_eVfd0);
+        eSrcId = BAVC_SourceId_eVfd0 + (hWindow->stResourceRequire.ePlayback - BVDC_P_FeederId_eVfd0);
         if (hSource->eId != eSrcId)
         {
             BDBG_ERR(("feeder %d is not the proper VFD to feed Window[%d]",
@@ -290,14 +290,14 @@ BERR_Code BVDC_Window_Create
         BAVC_SourceId  eSrcId;
 
         /* the assigned playback should not be already in use for gfx surface */
-        eSrcId = BAVC_SourceId_eVfd0 + (hWindow->pResource->ePlayback - BVDC_P_FeederId_eVfd0);
+        eSrcId = BAVC_SourceId_eVfd0 + (hWindow->stResourceRequire.ePlayback - BVDC_P_FeederId_eVfd0);
         if (hWindow->hCompositor->hVdc->ahSource[eSrcId])
         {
             hVfdFeeder = hWindow->hCompositor->hVdc->ahSource[eSrcId]->hVfdFeeder;
             if (hVfdFeeder->hWindow)
             {
                 BDBG_ERR(("Window[%d]'s playback feeder %d is in use for gfx",
-                    hWindow->eId, hWindow->pResource->ePlayback - BVDC_P_FeederId_eVfd0));
+                    hWindow->eId, hWindow->stResourceRequire.ePlayback - BVDC_P_FeederId_eVfd0));
                 return BERR_TRACE(BVDC_ERR_RESOURCE_NOT_AVAILABLE);
             }
 
@@ -561,7 +561,6 @@ BERR_Code BVDC_Window_Destroy
         hWindow->eState = BVDC_P_State_eDestroy;
         BDBG_MSG(("Window[%d] is BVDC_P_State_eDestroy", hWindow->eId));
     }
-    BKNI_LeaveCriticalSection();
 
     if (BVDC_P_SRC_IS_GFX(hSource->eId))
     {
@@ -588,7 +587,7 @@ BERR_Code BVDC_Window_Destroy
         BAVC_SourceId  eSrcId;
 
         /* mark the vfd as NOT being in use */
-        eSrcId = BAVC_SourceId_eVfd0 + (hWindow->pResource->ePlayback - BVDC_P_FeederId_eVfd0);
+        eSrcId = BAVC_SourceId_eVfd0 + (hWindow->stResourceRequire.ePlayback - BVDC_P_FeederId_eVfd0);
         if (hWindow->hCompositor->hVdc->ahSource[eSrcId])
         {
             hWindow->hCompositor->hVdc->ahSource[eSrcId]->hVfdFeeder->hWindow = NULL;
@@ -600,6 +599,7 @@ BERR_Code BVDC_Window_Destroy
             hSource->hMpegFeeder->hWindow = NULL;
         }
     }
+    BKNI_LeaveCriticalSection();
 
 done:
     BDBG_LEAVE(BVDC_Window_Destroy);
@@ -2810,7 +2810,7 @@ BERR_Code BVDC_Window_GetMaxDelay
     if(puiMaxVsyncDelay)
     {
         *puiMaxVsyncDelay  = BVDC_P_LIP_SYNC_VEC_DELAY;
-        *puiMaxVsyncDelay += (hWindow->pResource->bRequirePlayback)
+        *puiMaxVsyncDelay += (hWindow->stResourceRequire.bRequirePlayback)
             ? BVDC_P_LIP_SYNC_CAP_PLK_SLIP_DELAY : 0;
         *puiMaxVsyncDelay += (hWindow->stResourceFeature.ulMad != BVDC_P_Able_eInvalid)
             ? BVDC_P_LIP_SYNC_DEINTERLACED_DELAY : 0;
@@ -4217,17 +4217,38 @@ void BVDC_Window_GetCores
             /* Get CAP, VFD, SCL */
             if (pResourceRequire->bRequireCapture)
             {
-                pCoreList->aeCores[BAVC_CoreId_eCAP_0 + (pResourceRequire->eCapture - BVDC_P_CaptureId_eCap0)] = true;
+                BVDC_P_CaptureId eCapture;
+
+                BDBG_ASSERT(pBoxVdcResource->eCap != BBOX_Vdc_Resource_Capture_eUnknown);
+
+                eCapture = (pBoxVdcResource->eCap == BBOX_VDC_DISREGARD) ?
+                    pResourceRequire->eCapture : (BVDC_P_CaptureId)pBoxVdcResource->eCap;
+
+                pCoreList->aeCores[BAVC_CoreId_eCAP_0 + (eCapture - BVDC_P_CaptureId_eCap0)] = true;
             }
 
             if (pResourceRequire->bRequirePlayback)
             {
-                pCoreList->aeCores[BAVC_CoreId_eVFD_0 + (pResourceRequire->ePlayback - BVDC_P_FeederId_eVfd0)] = true;
+                BVDC_P_FeederId ePlayback;
+
+                BDBG_ASSERT(pBoxVdcResource->eVfd != BBOX_Vdc_Resource_Feeder_eUnknown);
+
+                ePlayback = (pBoxVdcResource->eVfd == BBOX_VDC_DISREGARD) ?
+                    pResourceRequire->ePlayback : (BVDC_P_FeederId)pBoxVdcResource->eVfd;
+
+                pCoreList->aeCores[BAVC_CoreId_eVFD_0 + (ePlayback - BVDC_P_FeederId_eVfd0)] = true;
             }
 
             if (pResourceRequire->bRequireScaler)
             {
-                pCoreList->aeCores[BAVC_CoreId_eSCL_0 + (pResourceRequire->eScaler - BVDC_P_ScalerId_eScl0)] = true;
+                BVDC_P_ScalerId eScaler;
+
+                BDBG_ASSERT(pBoxVdcResource->eScl != BBOX_Vdc_Resource_Scaler_eUnknown);
+
+                eScaler = (pBoxVdcResource->eScl == BBOX_VDC_DISREGARD) ?
+                    pResourceRequire->eScaler : (BVDC_P_ScalerId)pBoxVdcResource->eScl;
+
+                pCoreList->aeCores[BAVC_CoreId_eSCL_0 + (eScaler - BVDC_P_ScalerId_eScl0)] = true;
             }
             else
             {
@@ -4235,7 +4256,14 @@ void BVDC_Window_GetCores
                 BVDC_P_Resource_GetResourceId(BVDC_P_ResourceType_eScl, pResourceFeature->ulScl, &ulResId);
                 if (ulResId != BVDC_P_HW_ID_INVALID)
                 {
-                    pCoreList->aeCores[BAVC_CoreId_eSCL_0 + (ulResId - BVDC_P_ScalerId_eScl0)] = true;
+                    BVDC_P_ScalerId eScaler;
+
+                    BDBG_ASSERT(pBoxVdcResource->eScl != BBOX_Vdc_Resource_Scaler_eUnknown);
+
+                    eScaler = (pBoxVdcResource->eScl == BBOX_VDC_DISREGARD) ?
+                        ulResId : (BVDC_P_ScalerId)pBoxVdcResource->eScl;
+
+                    pCoreList->aeCores[BAVC_CoreId_eSCL_0 + (eScaler - BVDC_P_ScalerId_eScl0)] = true;
                 }
             }
         }

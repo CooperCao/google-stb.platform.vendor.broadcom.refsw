@@ -61,13 +61,16 @@ typedef struct StreamPlayer
 {
     StreamSourceList sources;
     unsigned sourceCount;
-    StreamSource * pCurrent;
+    StreamSource * pCurrentSource;
     PlatformMediaPlayerHandle platformPlayer;
+    char * pCurrentUrl;
     PlatformPictureInfo info;
     bool paused;
+    bool started;
 } StreamPlayer;
 
 bool stream_player_p_file_filter(const char * path);
 PlatformDynamicRange stream_player_p_get_eotf_from_source_name(const char * sourceName);
+void stream_player_play_stream_by_path(StreamPlayerHandle player, const char * streamPath, bool mosaic);
 
 #endif /* STREAM_PLAYER_PRIV_H__ */

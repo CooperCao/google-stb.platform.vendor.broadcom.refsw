@@ -1,15 +1,8 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  GPUMonitor Hook
-Module   :  API function table
-
-FILE DESCRIPTION
-API function table
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "api.h"
+#include "debuglog.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -77,7 +70,7 @@ static LibHandle logLibHandle = NULL;
 #define HOOK(f) \
    *(FuncPtr*)(&(table->real_##f)) = GetFunc(logLibHandle, #f); \
    if (table->real_##f == NULL) \
-      printf("%s = %p\n", #f, table->real_##f);
+      debug_log(DEBUG_WARN, "%s = %p\n", #f, table->real_##f);
 
 static int hook_is_enabled( void )
 {
@@ -93,7 +86,7 @@ extern bool fill_real_func_table(REAL_GL_API_TABLE *table)
       char *realDLL = getenv("GPUMonitorDriverDLL");
       if (realDLL == NULL)
       {
-         printf("*** GPUMonitorDriverDLL environment variable must point to the real VC5 driver library\n");
+         debug_log(DEBUG_ERROR, "*** GPUMonitorDriverDLL environment variable must point to the real VC5 driver library\n");
          return false;
       }
 #else
@@ -104,7 +97,7 @@ extern bool fill_real_func_table(REAL_GL_API_TABLE *table)
       logLibHandle = OpenDll(realDLL);
       if (logLibHandle == NULL)
       {
-         printf("*** %s does not appear to be a valid dll\n", realDLL);
+         debug_log(DEBUG_ERROR, "*** %s does not appear to be a valid dll\n", realDLL);
          return false;
       }
    }

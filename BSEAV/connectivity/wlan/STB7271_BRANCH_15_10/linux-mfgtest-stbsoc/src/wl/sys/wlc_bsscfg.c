@@ -1484,8 +1484,9 @@ wlc_bsscfg_ap_init(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg)
 	bsscfg->maxassoc = wlc->pub->tunables->maxscb;
 #endif /* MBSS || WLP2P */
 #if defined(MBSS)
-	bsscfg->bcmc_fid = INVALIDFID;
-	bsscfg->bcmc_fid_shm = INVALIDFID;
+	if (MBSS_ENAB(wlc->pub)) {
+		wlc_mbss_bcmc_reset(wlc, bsscfg);
+	}
 #endif
 
 	BSSCFG_SET_PSINFO(bsscfg);

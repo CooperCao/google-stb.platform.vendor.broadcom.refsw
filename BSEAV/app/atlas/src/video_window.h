@@ -83,7 +83,7 @@ public:
     eRet                         setZorder(uint16_t zorder);
     eRet                         setVisible(bool bVisible = true);
     bool                         isVisible(void);
-    eRet                         setGeometry(MRect rect, uint8_t percent = 100, eWinArea area = eWinArea_UpperLeft, uint8_t border = 0, uint16_t zorder = 0);
+    eRet                         setGeometryPercent(MRect rect, uint16_t percent = 1000, eWinArea area = eWinArea_UpperLeft, uint16_t border = 0, uint16_t zorder = 0);
     void                         setType(eWindowType type)      { _type = type; }
     eWindowType                  getType(void)                  { return(_type); }
     bool                         isCheckedOut()                 { return(_checkedOut); }

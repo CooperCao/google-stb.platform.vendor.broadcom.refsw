@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -94,7 +94,6 @@ typedef struct BSAT_45216_P_ChannelHandle
 BERR_Code BSAT_45216_P_Open(BSAT_Handle *h, BCHP_Handle hChip, void *pReg, BINT_Handle hInterrupt, const BSAT_Settings *pSettings);
 BERR_Code BSAT_45216_P_Close(BSAT_Handle h);
 BERR_Code BSAT_45216_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels);
-BERR_Code BSAT_45216_P_GetChannelDefaultSettings(BSAT_Handle h, uint32_t chan, BSAT_ChannelSettings *pSettings);
 BERR_Code BSAT_45216_P_OpenChannel(BSAT_Handle h, BSAT_ChannelHandle *pChannelHandle, uint32_t chan, const BSAT_ChannelSettings *pSettings);
 BERR_Code BSAT_45216_P_CloseChannel(BSAT_ChannelHandle h);
 BERR_Code BSAT_45216_P_GetDevice(BSAT_ChannelHandle h, BSAT_Handle *pDev);

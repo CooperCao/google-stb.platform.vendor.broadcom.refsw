@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,9 +91,7 @@ BERR_Code BAST_g3_P_InitChannelHandle(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
-#ifndef BAST_EXCLUDE_LDPC
    int i;
-#endif
 
    hChn->baudTimerIsr = NULL;
    hChn->berTimerIsr = NULL;
@@ -130,6 +128,11 @@ BERR_Code BAST_g3_P_InitChannelHandle(BAST_ChannelHandle h)
    hChn->bLastLocked = false;
    hChn->bUndersample = false;
    hChn->timeSinceStableLock = 0;
+   for (i = 0; i < BAST_TUNER_KVCO_CAL_TABLE_SIZE; i++)
+   {
+      hChn->tuner_kvco_cal_capcntl_table[i] = 0;
+      hChn->tuner_kvco_cal_kvcocntl_table[i] = 0;
+   }
 #ifndef BAST_EXCLUDE_SPUR_CANCELLER
    BAST_g3_P_ClearSpurCancellerConfig(h);
 #endif
@@ -242,7 +245,7 @@ BERR_Code BAST_g3_P_InitChannelHandle(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_InitNextChannel_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_InitNextChannel_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_InitNextChannel_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_Handle *pDev = (BAST_g3_P_Handle*)(h->pDevice->pImpl);
 
@@ -556,7 +559,7 @@ void BAST_g3_P_ToggleBit_isrsafe(BAST_ChannelHandle h, uint32_t reg, uint32_t ma
 /******************************************************************************
  BAST_g3_P_UpdateUndersampleMode_isr()
 ******************************************************************************/
-void BAST_g3_P_UpdateUndersampleMode_isr(BAST_ChannelHandle h)
+static void BAST_g3_P_UpdateUndersampleMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, Fb4;
@@ -688,7 +691,7 @@ BERR_Code BAST_g3_P_SetSampleFreq_isr(BAST_ChannelHandle h, uint32_t ndiv, uint3
 /******************************************************************************
  BAST_g3_P_GetVcoRefClock_isrsafe() - updates vcoRefClock
 ******************************************************************************/
-BERR_Code BAST_g3_P_GetVcoRefClock_isrsafe(BAST_ChannelHandle h, uint32_t *pVcoRefClock)
+static BERR_Code BAST_g3_P_GetVcoRefClock_isrsafe(BAST_ChannelHandle h, uint32_t *pVcoRefClock)
 {
    BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
    uint32_t val, ndiv, pdiv, P_hi, P_lo, Q_hi;
@@ -756,7 +759,7 @@ BERR_Code BAST_g3_P_GetSampleFreq_isrsafe(BAST_ChannelHandle h, uint32_t *pSampl
 /******************************************************************************
  BAST_g3_P_SetNyquistAlpha_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_SetNyquistAlpha_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_SetNyquistAlpha_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t Fs_over_Fb, nvctl, pfctl;
@@ -811,10 +814,11 @@ BERR_Code BAST_g3_P_SetBaudBw_isr(BAST_ChannelHandle h, uint32_t bw, uint32_t da
 }
 
 
+#if 0
 /******************************************************************************
  BAST_g3_P_GetNumHb() - returns the number of halfbands
 ******************************************************************************/
-uint32_t BAST_g3_P_GetNumHb(uint32_t Fb, uint32_t Fs)
+static uint32_t BAST_g3_P_GetNumHb(uint32_t Fb, uint32_t Fs)
 {
    uint32_t hb_number, rx_os_ratio, P_hi, P_lo, Q_hi;
 
@@ -835,6 +839,7 @@ uint32_t BAST_g3_P_GetNumHb(uint32_t Fb, uint32_t Fs)
       hb_number = 5;
    return hb_number;
 }
+#endif
 
 
 /******************************************************************************
@@ -957,7 +962,7 @@ BERR_Code BAST_g3_P_SetDecimationFilters_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_ConfigFe_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_ConfigFe_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_ConfigFe_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1361,7 +1366,7 @@ BERR_Code BAST_g3_P_SetAgcTrackingBw_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_CheckTimingLoopStateMachine_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_CheckTimingLoopStateMachine_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_CheckTimingLoopStateMachine_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1456,7 +1461,7 @@ BERR_Code BAST_g3_P_CheckTimingLoopStateMachine_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_CheckTimingLoop_isr() - sets bTimingLock if timing loop is locked
 ******************************************************************************/
-BERR_Code BAST_g3_P_CheckTimingLoop_isr(BAST_ChannelHandle h, BAST_g3_FUNCT nextFunct)
+static BERR_Code BAST_g3_P_CheckTimingLoop_isr(BAST_ChannelHandle h, BAST_g3_FUNCT nextFunct)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -1472,7 +1477,7 @@ BERR_Code BAST_g3_P_CheckTimingLoop_isr(BAST_ChannelHandle h, BAST_g3_FUNCT next
 /******************************************************************************
  BAST_g3_P_SignalDetectModeExit()
 ******************************************************************************/
-BERR_Code BAST_g3_P_SignalDetectModeExit(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_SignalDetectModeExit(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -1486,7 +1491,7 @@ BERR_Code BAST_g3_P_SignalDetectModeExit(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_Acquire2_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_Acquire2_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_Acquire2_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -1505,8 +1510,7 @@ BERR_Code BAST_g3_P_Acquire2_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_VcoAvoidance_isr()
 ******************************************************************************/
-
-BERR_Code BAST_g3_P_VcoAvoidance_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_VcoAvoidance_isr(BAST_ChannelHandle h)
 {
 #if (BCHP_CHIP==4517) || (BCHP_CHIP==7346) || (BCHP_CHIP==73465)
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
@@ -1644,7 +1648,7 @@ BERR_Code BAST_g3_P_VcoAvoidance_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_CheckTimingLoop0_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_CheckTimingLoop0_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_CheckTimingLoop0_isr(BAST_ChannelHandle h)
 {
    return BAST_g3_P_CheckTimingLoop_isr(h, BAST_g3_P_SignalDetectModeExit);
 }
@@ -1714,7 +1718,7 @@ BERR_Code BAST_g3_P_Acquire1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_Acquire0_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_Acquire0_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_Acquire0_isr(BAST_ChannelHandle h)
 {
    static const uint32_t script_acq_1[] =
    {
@@ -1853,7 +1857,7 @@ BERR_Code BAST_g3_P_Acquire0_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_Acquire_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_Acquire_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_Acquire_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -2243,7 +2247,7 @@ BERR_Code BAST_g3_P_SetFlifOffset_isr(BAST_ChannelHandle h, int32_t offset)
 /******************************************************************************
  BAST_g3_P_IsCarrierOffsetOutOfRange_isr()
 ******************************************************************************/
-bool BAST_g3_P_IsCarrierOffsetOutOfRange_isr(BAST_ChannelHandle h)
+static bool BAST_g3_P_IsCarrierOffsetOutOfRange_isr(BAST_ChannelHandle h)
 {
 #ifndef BAST_EXCLUDE_EXT_TUNER
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
@@ -2314,21 +2318,23 @@ void BAST_g3_P_IndicateNotLocked_isrsafe(BAST_ChannelHandle h)
 }
 
 
+#if 0
 /******************************************************************************
  BAST_g3_P_TunerTestMode()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerTestMode(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerTestMode(BAST_ChannelHandle h)
 {
    BSTD_UNUSED(h);
    /* any register settings for tuner test mode goes here... */
    return BERR_SUCCESS;
 }
+#endif
 
 
 /******************************************************************************
  BAST_g3_P_BlindScanSetNextMode_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_BlindScanSetNextMode_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_BlindScanSetNextMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
@@ -2415,7 +2421,7 @@ BERR_Code BAST_g3_P_BlindScanSetNextMode_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_BlindScanInit_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_BlindScanInit_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_BlindScanInit_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
 
@@ -2428,7 +2434,7 @@ BERR_Code BAST_g3_P_BlindScanInit_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_ResetAcquisitionTimer_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_ResetAcquisitionTimer_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_ResetAcquisitionTimer_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -2442,7 +2448,7 @@ BERR_Code BAST_g3_P_ResetAcquisitionTimer_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_GetAcquisitionTimerValue_isr()
 ******************************************************************************/
-void BAST_g3_P_GetAcquisitionTimerValue_isr(BAST_ChannelHandle h, uint32_t *pVal)
+static void BAST_g3_P_GetAcquisitionTimerValue_isr(BAST_ChannelHandle h, uint32_t *pVal)
 {
    uint32_t lval1;
 
@@ -2454,7 +2460,7 @@ void BAST_g3_P_GetAcquisitionTimerValue_isr(BAST_ChannelHandle h, uint32_t *pVal
 /******************************************************************************
  BAST_g3_P_ClearTraceBuffer()
 ******************************************************************************/
-BERR_Code BAST_g3_P_ClearTraceBuffer(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_ClearTraceBuffer(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t i;
@@ -2984,7 +2990,7 @@ BERR_Code BAST_g3_P_SetFunctTable_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_ResetLockFilter_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_ResetLockFilter_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_ResetLockFilter_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi;
@@ -3011,7 +3017,7 @@ BERR_Code BAST_g3_P_ResetLockFilter_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_SmartTune_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_SmartTune_isr(BAST_ChannelHandle h, BAST_g3_FUNCT nextFunct)
+static BERR_Code BAST_g3_P_SmartTune_isr(BAST_ChannelHandle h, BAST_g3_FUNCT nextFunct)
 {
 #if BCHP_CHIP==4517
    #define num_smart_tune_special_case_freqs 1
@@ -3120,13 +3126,10 @@ BERR_Code BAST_g3_P_SmartTune_isr(BAST_ChannelHandle h, BAST_g3_FUNCT nextFunct)
 /******************************************************************************
  BAST_g3_P_TuneAcquire1_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TuneAcquire1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TuneAcquire1_isr(BAST_ChannelHandle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
-
-   if (retCode != BERR_SUCCESS)
-      return BAST_g3_P_EnableTimer_isr(h, BAST_TimerSelect_eBaudUsec, 100, BAST_g3_P_TuneAcquire0_isr); /* retry */
 
    BAST_g3_P_UpdateUndersampleMode_isr(h);
 #ifndef BAST_EXCLUDE_SPUR_CANCELLER
@@ -3281,13 +3284,13 @@ BERR_Code BAST_g3_P_Reacquire_isr(BAST_ChannelHandle h)
 
 
 /******************************************************************************
- BAST_g3_P_OnReacqTimerExpired()
+ BAST_g3_P_OnReacqTimerExpired_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_OnReacqTimerExpired(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_OnReacqTimerExpired_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
-   BAST_DEBUG_ACQ(BDBG_MSG(("BAST_g3_P_OnReacqTimerExpired()")));
+   BAST_DEBUG_ACQ(BDBG_MSG(("BAST_g3_P_OnReacqTimerExpired_isr()")));
 
    hChn->bReacqTimerExpired = true;
 
@@ -3303,7 +3306,7 @@ BERR_Code BAST_g3_P_OnReacqTimerExpired(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_StartReacqTimer_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_StartReacqTimer_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_StartReacqTimer_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
    uint32_t reacquisition_timeout, P_hi, P_lo, Q_hi, min_timeout;
@@ -3324,7 +3327,7 @@ BERR_Code BAST_g3_P_StartReacqTimer_isr(BAST_ChannelHandle h)
 
    hChn->bReacqTimerExpired = false;
    BAST_DEBUG_ACQ(BDBG_MSG(("setting reacq timer to %d usecs", reacquisition_timeout)));
-   return BAST_g3_P_EnableTimer_isr(h, BAST_TimerSelect_eReacqTimer, reacquisition_timeout, BAST_g3_P_OnReacqTimerExpired);
+   return BAST_g3_P_EnableTimer_isr(h, BAST_TimerSelect_eReacqTimer, reacquisition_timeout, BAST_g3_P_OnReacqTimerExpired_isr);
 }
 
 
@@ -3368,7 +3371,7 @@ BERR_Code BAST_g3_P_StartTracking_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_LeakPliToFli_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_LeakPliToFli_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_LeakPliToFli_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -3428,7 +3431,7 @@ BERR_Code BAST_g3_P_LeakPliToFli_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_OnMonitorLock_isr() - scheduled every 100 msecs
 ******************************************************************************/
-BERR_Code BAST_g3_P_OnMonitorLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_OnMonitorLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode;
@@ -3492,7 +3495,7 @@ BERR_Code BAST_g3_P_OnMonitorLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_OnStableLock1_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_OnStableLock1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_OnStableLock1_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -3512,7 +3515,7 @@ BERR_Code BAST_g3_P_OnStableLock1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_OnStableLock_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_OnStableLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_OnStableLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode;
@@ -3721,7 +3724,7 @@ BERR_Code BAST_g3_P_WriteVerifyRegister(BAST_ChannelHandle h, uint32_t reg, uint
 /******************************************************************************
  BAST_g3_P_SetMixctl_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_SetMixctl_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_SetMixctl_isr(BAST_ChannelHandle h)
 {
 #if 0
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;

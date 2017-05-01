@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -175,24 +169,19 @@ static bool is_valid_android_recordable(const EGL_CONFIG_T *config, EGLint attri
 /* Return the value of attrib in config, or 0 if attrib is not recognized as
  * something specific to this platform.
  * Sets *used to true if attrib was recognized. */
-static EGLint config_get_attrib(const EGL_CONFIG_T *config, EGLint attrib, bool *used)
+static bool config_get_attrib(const EGL_CONFIG_T *config, EGLint attrib, EGLint *value)
 {
-   EGLint value = 0;
-   *used = false;
-
    switch (attrib)
    {
    case EGL_FRAMEBUFFER_TARGET_ANDROID:
-      value = is_valid_android_framebuffer_target(config, attrib) ? EGL_TRUE : EGL_FALSE;
-      *used = true;
-      break;
+      *value = is_valid_android_framebuffer_target(config, attrib) ? EGL_TRUE : EGL_FALSE;
+      return true;
    case EGL_RECORDABLE_ANDROID:
-      value = is_valid_android_recordable(config, attrib) ? EGL_TRUE : EGL_FALSE;
-      *used = true;
-      break;
+      *value = is_valid_android_recordable(config, attrib) ? EGL_TRUE : EGL_FALSE;
+      return true;
    }
 
-   return value;
+   return false;
 }
 
 /* Return true if attrib is an attribute specific to this platform and value
@@ -203,24 +192,24 @@ static bool config_check_attrib(EGLint attrib, EGLint value)
    {
    case EGL_MATCH_NATIVE_PIXMAP :
    case EGL_NATIVE_BUFFER_ANDROID :
-   {
-      BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
-      BEGL_SurfaceInfo      surfaceInfo;
-      EGLNativePixmapType   pixmap = (EGLNativePixmapType)(uintptr_t)value;
-
-      if (sizeof(uintptr_t) == 8)
       {
-         // TODO : fixme
-         printf("EGL_MATCH_NATIVE_PIXMAP & EGL_NATIVE_BUFFER_ANDROID queries will not work on 64-bit platforms.\n");
-         printf("See SWVC5-526 for details. The EGL specification cannot allow this to work.\n");
-         return false;
-      }
+         BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
+         BEGL_SurfaceInfo      surfaceInfo;
+         EGLNativePixmapType   pixmap = (EGLNativePixmapType)(uintptr_t)value;
 
-      /* Check that value is a valid pixmap */
-      if (platform->SurfaceGetInfo &&
-          platform->SurfaceGetInfo(platform->context, pixmap, &surfaceInfo) == BEGL_Success)
-         return true;
-   }
+         if (sizeof(uintptr_t) == 8)
+         {
+            // TODO : fixme
+            printf("EGL_MATCH_NATIVE_PIXMAP & EGL_NATIVE_BUFFER_ANDROID queries will not work on 64-bit platforms.\n");
+            printf("See SWVC5-526 for details. The EGL specification cannot allow this to work.\n");
+            return false;
+         }
+
+         /* Check that value is a valid pixmap */
+         if (platform->SurfaceGetInfo &&
+             platform->SurfaceGetInfo(platform->context, pixmap, &surfaceInfo) == BEGL_Success)
+            return true;
+      }
       break;
    case EGL_FRAMEBUFFER_TARGET_ANDROID:
       if (value == EGL_DONT_CARE || value == EGL_FALSE || value == EGL_TRUE)

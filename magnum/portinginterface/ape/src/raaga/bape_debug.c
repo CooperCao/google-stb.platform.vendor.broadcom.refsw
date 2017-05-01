@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,6 +73,12 @@ typedef struct BAPE_Debug
 #if BAPE_CHIP_MAX_MAI_OUTPUTS > 0 
     BAPE_OutputPort hdmi[BAPE_CHIP_MAX_MAI_OUTPUTS];
 #endif
+#if BAPE_CHIP_MAX_DACS > 0
+    BAPE_OutputPort dac[BAPE_CHIP_MAX_DACS];
+#endif
+#if BAPE_CHIP_MAX_I2S_OUTPUTS > 0
+    BAPE_OutputPort i2s[BAPE_CHIP_MAX_I2S_OUTPUTS];
+#endif
 } BAPE_Debug;
 
 
@@ -137,9 +143,11 @@ BERR_Code BAPE_Debug_GetStatus(
 
     switch (pStatus->type)
     {
-        case BAPE_DebugSourceType_eOutput:            
-            pStatus->status.outputStatus.type = pStatus->type;
-            errCode = BAPE_Debug_GetOutputStatus(handle,pStatus);
+        case BAPE_DebugSourceType_eOutput:
+            errCode = BAPE_Debug_GetOutputStatus(handle, pStatus);
+            break;
+        case BAPE_DebugSourceType_eVolume:
+            errCode = BAPE_Debug_GetOutputVolume(handle, pStatus);
             break;
         default:
             BDBG_ERR(("%s pStatus->type %u not supported",__FUNCTION__,pStatus->type));
@@ -341,6 +349,79 @@ BERR_Code BAPE_Debug_GetChannelStatus(
   
 }
 
+static BERR_Code BAPE_Debug_P_GetVolume(
+    BAPE_DebugHandle handle,
+    BAPE_OutputPort output,
+    BAPE_DebugOutputVolume *volume)
+{
+
+    BERR_Code errCode = BERR_SUCCESS;
+    const BAPE_FMT_Descriptor     *pFormat;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Debug);
+    BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
+    BDBG_MSG(("%s called for output->type %s[%d]",__FUNCTION__, output->pName, output->index));
+
+    volume->enabled = true;
+    volume->pName = (char *)output->pName;
+    volume->index = output->index;
+    if (output->mixer)
+    {
+        pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+        volume->type = pFormat->type;
+        BAPE_GetOutputVolume(output, &volume->outputVolume);
+    }
+    else
+    {
+        /* If for whatever reason it can't get the mixer then consider that output as not enabled. */
+        volume->enabled = false;
+    }
+
+    return errCode;
+
+}
+
+BERR_Code BAPE_Debug_GetOutputVolume(
+    BAPE_DebugHandle handle,
+    BAPE_DebugStatus * pStatus /* out */
+    )
+
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    int i;
+
+#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
+    for (i = 0; i < BAPE_CHIP_MAX_SPDIF_OUTPUTS; i++) {
+        if (handle->spdif[i]) {
+           errCode |= BAPE_Debug_P_GetVolume(handle, handle->spdif[i], &pStatus->status.volumeStatus.spdif[i]);
+        }
+    }
+#endif
+#if BAPE_CHIP_MAX_MAI_OUTPUTS > 0
+    for (i = 0; i < BAPE_CHIP_MAX_MAI_OUTPUTS; i++) {
+        if (handle->hdmi[i]) {
+           errCode |= BAPE_Debug_P_GetVolume(handle, handle->hdmi[i], &pStatus->status.volumeStatus.hdmi[i]);
+        }
+    }
+#endif
+#if BAPE_CHIP_MAX_DACS > 0
+    for (i = 0; i < BAPE_CHIP_MAX_DACS; i++) {
+        if (handle->dac[i]) {
+           errCode |= BAPE_Debug_P_GetVolume(handle, handle->dac[i], &pStatus->status.volumeStatus.dac[i]);
+        }
+    }
+#endif
+#if BAPE_CHIP_MAX_I2S_OUTPUTS > 0
+    for (i = 0; i < BAPE_CHIP_MAX_I2S_OUTPUTS; i++) {
+        if (handle->i2s[i]) {
+           errCode |= BAPE_Debug_P_GetVolume(handle, handle->i2s[i], &pStatus->status.volumeStatus.i2s[i]);
+        }
+    }
+#endif
+
+    return errCode;
+}
+
 #if !B_REFSW_MINIMAL
 void BAPE_Debug_GetInterruptHandlers(
     BAPE_DebugHandle handle,
@@ -386,6 +467,16 @@ BERR_Code BAPE_Debug_AddOutput(
             handle->spdif[output->index] = output;
 #endif
         break;
+        case BAPE_OutputPortType_eDac:
+#if BAPE_CHIP_MAX_DACS
+            handle->dac[output->index] = output;
+#endif
+            break;
+        case BAPE_OutputPortType_eI2sOutput:
+#if BAPE_CHIP_MAX_I2S_OUTPUTS
+            handle->i2s[output->index] = output;
+#endif
+            break;
         default:
             break;
     }
@@ -412,6 +503,16 @@ BERR_Code BAPE_Debug_RemoveOutput(
         case BAPE_OutputPortType_eSpdifOutput:
 #if BAPE_CHIP_MAX_SPDIF_OUTPUTS
             handle->spdif[output->index] = NULL;
+#endif
+            break;
+        case BAPE_OutputPortType_eDac:
+#if BAPE_CHIP_MAX_DACS
+            handle->dac[output->index] = NULL;
+#endif
+            break;
+        case BAPE_OutputPortType_eI2sOutput:
+#if BAPE_CHIP_MAX_I2S_OUTPUTS
+            handle->i2s[output->index] = NULL;
 #endif
             break;
         default:

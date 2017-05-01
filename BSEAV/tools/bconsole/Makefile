@@ -73,8 +73,7 @@ ${BINDIR}/exists:
 
 else # B_REFSW_REAL_MAKE
 NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
-
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 APPS = $(THEAPPS)
 APPS ?= $(APP)
@@ -93,9 +92,9 @@ EXTRA_OBJS += ${NEXUS_TOP}/../BSEAV/tools/bmemperf/common/bmemperf_utils.c ${NEX
 clean: clean_apps clean_boa
 
 boa:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa
 clean_boa:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa clean
 
 clean_apps:
 	@-$(RM) $(APPS) *.d *.o *.out
@@ -113,6 +112,8 @@ CFLAGS += -Wimplicit-function-declaration -Wall -lm
 ifeq ($(ANDROID_BUILD),y)
 CFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DB_ANDROID_BUILD
 endif
+
+CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 
 # Always build with debug
 CFLAGS += -g

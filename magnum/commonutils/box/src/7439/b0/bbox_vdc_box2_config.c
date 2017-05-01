@@ -78,7 +78,8 @@ static const BBOX_MemConfig stBoxMemConfig_7439B0_box2 =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 6 */
       }
    },
-   BBOX_INVALID_NUM_MEMC
+   BBOX_INVALID_NUM_MEMC,
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 
 void BBOX_P_Vdc_SetBox2SourceCapabilities
@@ -98,22 +99,22 @@ void BBOX_P_Vdc_SetBox2DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid, Class2);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video1, DISREGARD, 2,                  2,                  Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video1, DISREGARD, Disregard, Disregard, Disregard, 2,                  2,                  Disregard);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID,   Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1, PAL_G,           PAL_G,           Invalid, Invalid, Invalid, Class0);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video0, INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video1, INVALID,   2,                  2,                  Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Gfx0,   INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video0, INVALID,   Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video1, INVALID,   Disregard, Disregard, Disregard, 2,                  2,                  Disregard);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Gfx0,   INVALID,   Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display2, 720p,            720p,            1,       0,       1,       Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display2, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display2, Gfx0,   INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display2, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display2, Gfx0,   INVALID,   Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display3, 720p,            720p,            0,       0,       0,       Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Gfx0,   INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Gfx0,   INVALID,   Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 }
 
 void BBOX_P_Vdc_SetBox2DeinterlacerCapabilities

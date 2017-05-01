@@ -346,7 +346,9 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
         switch (pEntry->colorSpace)
         {
         case NEXUS_ColorSpace_eYCbCr422:
-            supported = rXCapabilities->hdmiVsdb.deepColor30bit ;
+            /* Per HDMI spec, Colorspace YCbCr 4:2:2 is always 12 bit */
+            /* colordepth setting of 10 is ignored */
+            supported = true ;
             break ;
 
         case NEXUS_ColorSpace_eYCbCr420:
@@ -354,7 +356,8 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
             break ;
 
         case NEXUS_ColorSpace_eYCbCr444:
-            /* YCbCr 4:4:4 10 bit is not supported by HDMI 2.0 */
+            /* 4Kp50/60 YCbCr 4:4:4 10 bit is not supported by HDMI 2.0 */
+            /* 4Kp30/25/24 YCbCr 4:4:4 10 bit are supported */
             supported =
                 ((videoFormat != NEXUS_VideoFormat_e3840x2160p50hz)
             && (videoFormat != NEXUS_VideoFormat_e3840x2160p60hz)) ;
@@ -374,7 +377,8 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
         switch (pEntry->colorSpace)
         {
         case NEXUS_ColorSpace_eYCbCr422:
-            supported = rXCapabilities->hdmiVsdb.deepColor36bit ;
+            /* HDMI Colorspace YCbCr 4:2:2 is always 12 bit */
+            supported = true ;
             break ;
 
         case NEXUS_ColorSpace_eYCbCr420:
@@ -382,7 +386,8 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
             break ;
 
         case NEXUS_ColorSpace_eYCbCr444:
-            /* YCbCr 4:4:4 12 bit is not supported by HDMI 2.0 */
+            /* 4Kp50/60 YCbCr 4:4:4 12 bit is not supported by HDMI 2.0 */
+            /* 4Kp30/25/24 YCbCr 4:4:4 12 bit are supported */
             supported =
                 ((videoFormat != NEXUS_VideoFormat_e3840x2160p50hz)
             && (videoFormat != NEXUS_VideoFormat_e3840x2160p60hz)) ;
@@ -407,6 +412,14 @@ done:
 }
 
 
+/**
+Summary:
+Check if the requested NEXUS_HdmiOutputVideoSettings are valid for 4Kp50/60 formats
+This check does not include HDMI 1.4 4K formats 4Kp30, 4Kp25, and 4Kp24
+NEXUS_HdmiOutputVideoSettings must be supported by both the TV and the STB.
+If not, return the best possible preferred NEXUS_HdmiOutputVideoSettings
+The validation does not include 4Kp30 and below
+**/
 static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
     NEXUS_HdmiOutputVideoSettings *requested,
@@ -433,6 +446,16 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     /* Get the Capabilities of the attached Rx */
     rc = NEXUS_HdmiOutput_GetEdidData(hdmiOutput, &edid);
     if (rc) {BERR_TRACE(rc); goto done ;}
+
+    /* flag usage of invalid EDID */
+    if (!edid.valid)
+    {
+        BDBG_ERR(("Validating 4K format against an invalid/unknown EDID; defaulting to VGA")) ;
+        preferred->videoFormat = NEXUS_VideoFormat_eVesa640x480p60hz ;
+        preferred->colorDepth = 8 ;
+        preferred->colorSpace = NEXUS_ColorSpace_eRgb ;
+        goto done ;
+    }
 
     if (localRequested.videoFormat == NEXUS_VideoFormat_eUnknown)
         goto selectPreferredFormat ;
@@ -648,8 +671,10 @@ done: ;
 
 /**
 Summary:
-Check if the requested Video Settings are supported by both the TV and the STB.
-If not, reduce the settings to the best possible.
+Check if the requested NEXUS_HdmiOutputVideoSettings are valid for non 4Kp50/60 formats.
+This check includes HDMI 1.4 4K formats 4Kp30, 4Kp25, and 4Kp24
+NEXUS_HdmiOutputVideoSettings must be supported by both the TV and the STB.
+If not, return the best possible preferred NEXUS_HdmiOutputVideoSettings
 **/
 static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
@@ -671,6 +696,16 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     /* Get the Capabilities of the attached Rx */
     rc = NEXUS_HdmiOutput_GetEdidData(hdmiOutput, &edid);
     if (rc) {BERR_TRACE(rc); goto done ;}
+
+    /* flag usage of invalid EDID */
+    if (!edid.valid)
+    {
+        BDBG_ERR(("Validating Non4K format against an invalid/unknown EDID; defaulting to VGA")) ;
+        preferred->videoFormat = NEXUS_VideoFormat_eVesa640x480p60hz ;
+        preferred->colorDepth = 8 ;
+        preferred->colorSpace = NEXUS_ColorSpace_eRgb ;
+        goto done ;
+    }
 
     if (requested->videoFormat == NEXUS_VideoFormat_eUnknown)
         goto selectPreferredFormat ;

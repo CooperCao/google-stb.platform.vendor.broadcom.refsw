@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -329,7 +329,7 @@ static void BVDC_P_Scaler_BuildRul_DrainVnet_isr
       bool                           bNoCoreReset)
 {
     BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
-#if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_8)
+#if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_7)
     /* drain */
     BVDC_P_SubRul_Drain_isr(&(hScaler->SubRul), pList,
     hScaler->ulResetRegAddr, hScaler->ulResetMask,
@@ -340,7 +340,8 @@ static void BVDC_P_Scaler_BuildRul_DrainVnet_isr
     BVDC_P_SubRul_Drain_isr(&(hScaler->SubRul), pList,
     bNoCoreReset?0:hScaler->ulResetRegAddr,
     bNoCoreReset?0:hScaler->ulResetMask,
-    hScaler->ulVnetResetAddr, hScaler->ulVnetResetMask);
+    bNoCoreReset?0:hScaler->ulVnetResetAddr,
+    bNoCoreReset?0:hScaler->ulVnetResetMask);
 #endif
 }
 

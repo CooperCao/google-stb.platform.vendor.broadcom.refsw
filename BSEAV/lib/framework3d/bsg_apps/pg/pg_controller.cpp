@@ -1,45 +1,6 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "pg_controller.h"
 #include "pg_info.h"
 #include "pg_region.h"
@@ -86,7 +47,7 @@ void Controller::Initialise(const GridInfo &info, const Region &activeRegion, co
    pgBackTex->TexImage2D(Image("bcm_logo", "png", Image::eRGB888));
 
    MaterialHandle pgBackMaterial(New, "PgBack");
-   pgBackMaterial->SetEffect(pgBackEffect); 
+   pgBackMaterial->SetEffect(pgBackEffect);
 
    pgBackMaterial->SetTexture("u_tex", pgBackTex);
 
@@ -95,26 +56,26 @@ void Controller::Initialise(const GridInfo &info, const Region &activeRegion, co
 
    /* float halfChannelFuzz = halfChannels + 0.1f; */
 
-   GeometryHandle stencilRect = QuadFactory(Vec2(-halfDuration, -halfChannels), 
-                                            Vec2( halfDuration,  halfChannels), 
+   GeometryHandle stencilRect = QuadFactory(Vec2(-halfDuration, -halfChannels),
+                                            Vec2( halfDuration,  halfChannels),
                                             0.0f, eZ_AXIS).MakeGeometry(stencilMaterial);
 
-   GeometryHandle pgBackRec = QuadFactory(Vec2( -halfDuration - m_channelLabelLength,  -halfChannels), 
+   GeometryHandle pgBackRec = QuadFactory(Vec2( -halfDuration - m_channelLabelLength,  -halfChannels),
                                           Vec2(halfDuration, halfChannels),
                                             -1.0f, eZ_AXIS).MakeGeometry(pgBackMaterial);
 
-   GeometryHandle stencilTimeRect = QuadFactory(Vec2(-halfDuration/* - Metrics::GetTimeTickSize().X() * 0.5f*/, halfChannels), 
-                                                Vec2( halfDuration, halfChannels + ChannelStride() * 1.0f), 
+   GeometryHandle stencilTimeRect = QuadFactory(Vec2(-halfDuration/* - Metrics::GetTimeTickSize().X() * 0.5f*/, halfChannels),
+                                                Vec2( halfDuration, halfChannels + ChannelStride() * 1.0f),
                                                 0.0f, eZ_AXIS).MakeGeometry(stencilFrameMaterial);
 
    // A tiny rect for the end tick (excluding the text above)
-   GeometryHandle stencilTimeRect2 = QuadFactory(Vec2(halfDuration, halfChannels), 
-                                                 Vec2(halfDuration + Metrics::GetTimeTickSize().X() * 0.5f, 
-                                                 halfChannels + Metrics::GetTimeTickSize().Y() + 0.06f), 
+   GeometryHandle stencilTimeRect2 = QuadFactory(Vec2(halfDuration, halfChannels),
+                                                 Vec2(halfDuration + Metrics::GetTimeTickSize().X() * 0.5f,
+                                                 halfChannels + Metrics::GetTimeTickSize().Y() + 0.06f),
                                                  0.0f, eZ_AXIS).MakeGeometry(stencilFrameMaterial);
 
-   GeometryHandle stencilChanRect = QuadFactory(Vec2(-halfDuration - m_channelLabelLength, -halfChannels), 
-                                                Vec2(-halfDuration, halfChannels), 
+   GeometryHandle stencilChanRect = QuadFactory(Vec2(-halfDuration - m_channelLabelLength, -halfChannels),
+                                                Vec2(-halfDuration, halfChannels),
                                                 0.0f, eZ_AXIS).MakeGeometry(stencilFrameMaterial);
 
    stencilRect->SetSortPriority(PANEL_STENCIL);
@@ -129,7 +90,7 @@ void Controller::Initialise(const GridInfo &info, const Region &activeRegion, co
 
    // Add a geometry at the beck of the programs panels
    m_3d->AppendGeometry(pgBackRec);
-   pgBackRec->SetReflected(true);  
+   pgBackRec->SetReflected(true);
 
    // Make the graph
 
@@ -211,13 +172,13 @@ void Controller::UpdatePastRectangle()
    // Updates the visual rectangle that shows the past
    if (m_activeRegion.GetStartTime() < now - Time(10, Time::eSECONDS))
    {
-      Vec2  bl(TimeToXCoord(m_activeRegion.GetStartTime()), 
+      Vec2  bl(TimeToXCoord(m_activeRegion.GetStartTime()),
                -ChannelStride() * (m_activeRegion.GetStartIndex() + (float)m_activeRegion.GetNumChannels() - 1));
       Vec2  tr(TimeToXCoord(now),
                -ChannelStride() * (m_activeRegion.GetStartIndex() - 1.0f));
 
       SurfaceHandle surf = QuadFactory(bl, tr, 0.0f, eZ_AXIS).MakeSurface();
-      
+
       GeometryHandle geom(New);
       geom->AppendSurfaceWithSortPriority(surf, m_pastMaterial, OVERLAY);
 
@@ -284,7 +245,7 @@ void Controller::SetKeepRegion(const Region &region)
       if (!m_channelRoot[i].IsValid())
       {
          m_channelRoot[i] = ChannelNode(i, m_info->GetChannel(i));
-         
+
 #ifdef ALLOW_CHANNEL_BLIND_ROTATION
          m_channelRoot[i].GetRoot()->GetTransform().SetPosition(Vec3(0.0f, -0.5f, 0.0f));
 #else
@@ -356,4 +317,3 @@ void Controller::DisplayLongScrolling(bool longScrollingOn)
       m_pastMarker->SetOpacity(1);
    }
 }
-

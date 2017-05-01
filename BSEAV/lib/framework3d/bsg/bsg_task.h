@@ -1,51 +1,15 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __BSG_TASK_H__
 #define __BSG_TASK_H__
 
 #include <stdint.h>
 #include <list>
 #include <memory>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
 
 #include "bsg_common.h"
 #include "bsg_no_copy.h"
@@ -56,76 +20,8 @@ namespace bsg
 
 class Tasker;
 
-// These classes are implemented (opaquely) by specific platforms
-class MutexData;
-class EventData;
-class TaskData;
-
 //! @ingroup task
 //! @{
-
-//! Mutex provides a simple platform independent interface to mutual-exclusion primitives.
-//!
-//! Threads can use the mutex Lock() and Unlock() to protect critical sections.
-class Mutex : public NoCopy
-{
-public:
-   Mutex();
-   ~Mutex();
-
-   void Lock();
-   void Unlock();
-
-private:
-   std::auto_ptr<MutexData>  m_platform;
-};
-
-//! MutexLock
-//!
-//! This object is used to lock a mutex.
-//! Use as:
-//! \code
-//! {
-//!    MutexLock  lock(myMutex);
-//!    do stuff
-//! } // Mutex is released in MutexLock destructor
-//! \endcode
-//! Very useful if a method can throw exceptions or returns early as
-//! the mutex is guarenteed to be released.
-class MutexLock : public NoCopy
-{
-public:
-   MutexLock(Mutex &mutex) :
-      m_mutex(mutex)
-   {
-      m_mutex.Lock();
-   }
-
-   ~MutexLock()
-   {
-      m_mutex.Unlock();
-   }
-
-private:
-   Mutex &m_mutex;
-};
-
-//! Event
-//!
-//! Event provides a platform independent "Event" object which can be used
-//! to synchronise tasks
-class Event : public NoCopy
-{
-public:
-   Event();
-   ~Event();
-
-   void Signal();
-   void Wait();
-
-private:
-   std::auto_ptr<EventData>   m_platform;
-};
 
 //! Task
 //!
@@ -163,7 +59,8 @@ public:
 
 private:
    Tasker                  *m_tasker;
-   std::auto_ptr<TaskData> m_platform;
+
+   std::thread             *m_thread;
 };
 
 // @cond
@@ -423,20 +320,24 @@ private:
    void CallbackWait()
    {
       Callback();
-      m_event.Wait();
+      std::unique_lock<std::mutex> lock(m_eventGuard);
+      m_eventConditional.wait(lock, [&] {return m_event == true;});
    }
 
    // Runs in main thread
    // Signals the worker thread that the main thread is ready.
    void CallbackDone()
    {
-      m_event.Signal();
+      std::unique_lock<std::mutex> lock(m_eventGuard);
+      m_event = true;
+      m_eventConditional.notify_one();
    }
-
 
 private:
    // Used to syncronise callbacks
-   Event          m_event;
+   std::condition_variable m_eventConditional;
+   mutable std::mutex m_eventGuard;
+   bool m_event = false;
    TaskCallable   *m_callable;
 };
 
@@ -476,21 +377,21 @@ public:
    //! Push adds an item to the back of the queue.
    void Push(T v)
    {
-      MutexLock   lock(m_mutex);
+      std::lock_guard<std::mutex> guard(m_mutex);
       m_queue.push_back(v);
    }
 
    //! Inserts an item to the head of the queue, it will ne the next popped
    void PushFront(T v)
    {
-      MutexLock   lock(m_mutex);
+      std::lock_guard<std::mutex> guard(m_mutex);
       m_queue.push_front(v);
    }
 
    //! Dequeue the oldest item from the queue.
    T Pop()
    {
-      MutexLock   lock(m_mutex);
+      std::lock_guard<std::mutex> guard(m_mutex);
 
       if (m_queue.size() == 0)
          BSG_THROW("Can't Pop() an empty Queue");
@@ -504,7 +405,7 @@ public:
 
    T Peek()
    {
-      MutexLock   lock(m_mutex);
+      std::lock_guard<std::mutex> guard(m_mutex);
 
       if (m_queue.size() == 0)
          BSG_THROW("Can't Peek() an empty Queue");
@@ -514,8 +415,7 @@ public:
 
    uint32_t NumPending() const
    {
-      MutexLock   lock(m_mutex);
-
+      std::lock_guard<std::mutex> guard(m_mutex);
       return m_queue.size() != 0;
    }
 
@@ -526,12 +426,12 @@ public:
 
    void Clear()
    {
-      MutexLock   lock(m_mutex);
+      std::lock_guard<std::mutex> guard(m_mutex);
       m_queue.clear();
    }
 
 private:
-   mutable Mutex  m_mutex; // Mutable because it is not part of the observable state and we want e.g. Pending() to be const
+   mutable std::mutex  m_mutex; // Mutable because it is not part of the observable state and we want e.g. Pending() to be const
    std::list<T>   m_queue;
 };
 
@@ -607,6 +507,4 @@ private:
 
 }
 
-
 #endif /* __BSG_TASK_H__ */
-

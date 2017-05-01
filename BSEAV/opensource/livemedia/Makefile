@@ -47,14 +47,8 @@ NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
 endif
 NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 
-
 BSEAV ?= $(abspath ${NEXUS_TOP}/../BSEAV)
 LIVEMEDIA_SRC_DIR ?= $(abspath ${NEXUS_TOP}/../${B_THIS_DIR})
-
-ifeq ($(B_REFSW_ARCH),)
-B_REFSW_ARCH=mipsel-linux
-export B_REFSW_ARCH
-endif
 
 ifeq ($(NEXUS_PLATFORM),)
 NEXUS_PLATFORM=$(PLATFORM)
@@ -62,12 +56,7 @@ endif
 
 $(if ${NEXUS_PLATFORM},,$(error NEXUS_PLATFORM is not defined.))
 
-#  More Nexus definitions...
-include $(NEXUS_TOP)/build/nexus_defs.inc
-
-# include cross-compiler definitions
-include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
-include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
+include ${NEXUS_TOP}/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 include $(LIVEMEDIA_SRC_DIR)/livemedia.inc
 export B_REFSW_CROSS_COMPILE
 

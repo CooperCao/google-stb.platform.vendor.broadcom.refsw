@@ -212,6 +212,9 @@ extern void wlc_txfifo_complete(wlc_info_t *wlc, uint fifo, uint16 txpktpend);
 #define WLC_LOWEST_SCB_RSPEC(scb) 0
 #define WLC_LOWEST_BAND_RSPEC(band) 0
 #endif /* TXQ_MUX */
+#ifdef AP
+extern void wlc_tx_fifo_sync_bcmc_reset(wlc_info_t *wlc);
+#endif /* AP */
 extern uint16 wlc_get_txh_frameid(wlc_info_t* wlc, void* pkt);
 extern void wlc_get_txh_info(wlc_info_t* wlc, void* pkt, wlc_txh_info_t* tx_info);
 extern void wlc_set_txh_info(wlc_info_t* wlc, void* pkt, wlc_txh_info_t* tx_info);

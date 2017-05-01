@@ -1,15 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  GPUMonitor intercept hook
-
-FILE DESCRIPTION
-Provides entry points to match the VC5 driver
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 // The GL/EGL headers are included as part of this
 #include "api.h"
+#include "debuglog.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,23 +27,14 @@ Provides entry points to match the VC5 driver
 #include "control.h"
 #include "archive.h"
 
-#include "circularbuffer.h"
-
 #ifndef WIN32
 #include <dlfcn.h>
-#endif
-
-#ifdef ANDROID
-#include <cutils/log.h>
-#else
-#define ALOGD printf
-#define ALOGE printf
 #endif
 
 // The version of the SpyHook API (SpyHook<->SpyTool)
 // Update this when the interface between the SpyHook & SpyTool changes
 #define SPYHOOK_MAJOR_VER 2
-#define SPYHOOK_MINOR_VER 2
+#define SPYHOOK_MINOR_VER 5
 
 // The version of the binary capture format
 // Update this when the capture data changes
@@ -90,7 +75,6 @@ static bool     sCaptureStream = false;
 static Archive *sCaptureArchive = NULL;
 static bool     sIgnoreEGLTerminate = false;
 
-static EGLBoolean            sEventOverflow = EGL_FALSE;
 static std::set<eGLCommand>  sMinimalModeCmds;
 
 static std::map< uint32_t, std::vector<uint32_t> > sVarset;
@@ -121,22 +105,51 @@ extern "C"
    static void gpumon_initialize();
    static void send_thread_change(uint32_t threadID, EGLContext context);
    static void SendPerfDataPacket();
+   static void SendEventDataPacket();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
 
+class EventBuffer
+{
+public:
+   EventBuffer(size_t maxSize) : m_maxSize(maxSize), m_overflow(false) {};
+   uint8_t *Data()                  { return m_buffer.data(); }
+   size_t   Size() const            { return m_buffer.size(); }
+   void     Clear()                 { m_buffer.clear(); m_overflow = false; }
+   bool     Overflow() const        { return m_overflow; }
+   void     SetMaxSize(size_t size) { m_maxSize = size; }
+   uint8_t *GetPointerToWriteData(size_t size)
+   {
+      size_t old = m_buffer.size();
+      if (old + size <= m_maxSize)
+      {
+         m_buffer.resize(old + size);
+         return m_buffer.data() + old;
+      }
+      else
+      {
+         m_overflow = true;
+         return nullptr;
+      }
+   }
+
+private:
+   std::vector<uint8_t> m_buffer;
+   size_t m_maxSize;
+   bool m_overflow;
+};
+
 #define EVENT_BUFFER_CHUNK        (2 * 1024* 1024)              /* bytes */
 #define MAX_EVENT_BUFFER_SIZE     (EVENT_BUFFER_CHUNK * 10)   /* bytes */
-#define BLANK_EVENTS_BUFFER_SIZE    28 * 2                        /* 2 small API event */
 
-CircularEventBuffer sEventBuffer(MAX_EVENT_BUFFER_SIZE, EVENT_BUFFER_CHUNK);
+static EventBuffer sEventBuffer(MAX_EVENT_BUFFER_SIZE);
 
 // Used to track the length of time between the first API
 // event and the first kept event in the circular buffer
 uint64_t sFirstApiCapTime;
 
 // This will contain two blank events (no_command): start and end
-uint8_t sBlankEventBuffer[BLANK_EVENTS_BUFFER_SIZE];
 
 //////////////////////////////////////////////////////////////////////////////////////
 
@@ -171,7 +184,14 @@ public:
          }
 
          if (sendMe)
+         {
             SendPerfDataPacket();
+            if (sCaptureEvents)
+               SendEventDataPacket();
+
+            sTimeStampMs = plGetTimeNowMs();
+            sFrameCnt = 0;
+         }
       }
    }
 
@@ -266,206 +286,20 @@ static void InitExtensions()
        !sSetPerfCountingBRCM || !sChoosePerfCountersBRCM || !sGetPerfCounterDataBRCM ||
        !sGetEventConstantBRCM || !sGetEventTrackInfoBRCM || !sGetEventInfoBRCM || !sGetEventDataFieldInfoBRCM ||
        !sSetEventCollectionBRCM || !sGetEventDataBRCM)
-       ALOGE("**** Performance / event extensions not found\n");
+       debug_log(DEBUG_ERROR, "**** Performance / event extensions not found\n");
 }
 
-template <typename T1>
-void Packetize(T1 u)
+template <typename T>
+void Packetize(T u)
 {
    sCurPacket->AddItem(u);
 }
 
-template <typename T1, typename T2>
-void Packetize(T1 t1, T2 t2)
+template<typename T, typename... Args>
+void Packetize(T u, Args... args)
 {
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-}
-
-template <typename T1, typename T2, typename T3>
-void Packetize(T1 t1, T2 t2, T3 t3)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-}
-
-template <typename T1, typename T2, typename T3, typename T4>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10, T11 t11)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-   sCurPacket->AddItem(t11);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11,
-          typename T12>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10, T11 t11, T12 t12)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-   sCurPacket->AddItem(t11);
-   sCurPacket->AddItem(t12);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11,
-   typename T12, typename T13>
-   void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10, T11 t11, T12 t12, T13 t13)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-   sCurPacket->AddItem(t11);
-   sCurPacket->AddItem(t12);
-   sCurPacket->AddItem(t13);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11,
-   typename T12, typename T13, typename T14>
-   void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10, T11 t11, T12 t12, T13 t13, T14 t14)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-   sCurPacket->AddItem(t11);
-   sCurPacket->AddItem(t12);
-   sCurPacket->AddItem(t13);
-   sCurPacket->AddItem(t14);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11,
-   typename T12, typename T13, typename T14, typename T15>
-   void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10, T11 t11, T12 t12, T13 t13, T14 t14, T15 t15)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-   sCurPacket->AddItem(t11);
-   sCurPacket->AddItem(t12);
-   sCurPacket->AddItem(t13);
-   sCurPacket->AddItem(t14);
-   sCurPacket->AddItem(t15);
+   sCurPacket->AddItem(u);
+   Packetize(args...);
 }
 
 static uint32_t TextureSize(uint32_t w, uint32_t h, uint32_t format, uint32_t type, uint32_t unpackAlignment)
@@ -972,12 +806,10 @@ static void SendPerfDataPacket()
    p.AddItem(PacketItem(numBytes));
    p.AddItem(PacketItem(buf, numBytes));
 
-   PostPacketize(&p);
+   if (remote)
+      p.Send(remote);
 
    delete[] buf;
-
-   sTimeStampMs = plGetTimeNowMs();
-   sFrameCnt = 0;
 }
 
 static void GetPerfData(const Packet &packet)
@@ -1033,7 +865,7 @@ static void GetPerfData(const Packet &packet)
    }
    else if (action == Control::ePerfGet)
    {
-      ALOGE("ERROR: gpumon_hook received legacy ePerfGet request");
+      debug_log(DEBUG_ERROR, "ERROR: gpumon_hook received legacy ePerfGet request");
    }
    else if (action == Control::ePerfNames)
    {
@@ -1102,96 +934,68 @@ static void GetPerfData(const Packet &packet)
    }
 }
 
-static void CollectLowerLevelEventData()
+static void MakeEventPacket(Packet &p, Control::eEventAction action)
+{
+   p.Reset();
+   p.SetType(eEVENT_DATA);
+   p.AddItem(PacketItem(3)); // Version 3 of event block data
+   p.AddItem(action);
+}
+
+static void MakeEventDataPacket(Packet &p)
 {
    EGLuint64BRCM  timebase;
    EGLBoolean     overflowed;
    EGLint         bytes;
 
-   // Get the number of bytes to be read
+   MakeEventPacket(p, Control::eEventGet);
+
+   uint32_t numArrays = 0;
+
+   //get platform events
    sGetEventDataBRCM(0, NULL, &bytes, &overflowed, &timebase);
-
-   if (bytes > 0)
+   std::shared_ptr<uint8_t> events;
+   if (bytes)
    {
-      uint32_t *buffer = NULL;
-      uint32_t buffer_max_size = sEventBuffer.getMaxSize();
-      if ((EGLint)buffer_max_size < bytes)
-      {
-         EGLint bytes_read;
-         uint32_t bytes_to_ignore = bytes - buffer_max_size;
-
-         buffer = sEventBuffer.getPointerToWriteData(buffer_max_size);
-         if (!buffer)
-            return;
-         bytes = buffer_max_size;
-
-         while (bytes_to_ignore > 0)
-         {
-            if (bytes_to_ignore > buffer_max_size)
-            {
-               sGetEventDataBRCM(buffer_max_size, buffer, &bytes_read, &overflowed, &timebase);
-               bytes_to_ignore -= buffer_max_size;
-            }
-            else
-            {
-               sGetEventDataBRCM(bytes_to_ignore, buffer, &bytes_read, &overflowed, &timebase);
-               bytes_to_ignore = 0;
-            }
-         }
-      }
-      else
-         buffer = sEventBuffer.getPointerToWriteData(bytes);
-
-
-      if (buffer)
-         sGetEventDataBRCM(bytes, buffer, &bytes, &overflowed, &timebase);
-
-      if (overflowed)
-         sEventOverflow = EGL_TRUE;
+      events = p.AddBuffer(bytes);
+      sGetEventDataBRCM(bytes, events.get(), &bytes, &overflowed, &timebase);
+      numArrays++;
    }
-}
 
-// This function is used to create two dummy events (start and end) to fill the gap between
-// the first event that has been recorded and lost, and the oldest event in the event buffer
-static void UpdateBlankEventBuffer(uint32_t *buffer, const void *recentEvents, uint64_t firstAPIEventTime)
-{
-   // Start event
-   *((uint64_t*)buffer) = firstAPIEventTime;
-   buffer += 2;
-   *buffer++ = sEventApiTrack;
-   *buffer++ = sEventId;
-   *buffer++ = sApiEventCode;
-   *buffer++ = 0;
-   *buffer++ = cmd_none;
+   if (sEventBuffer.Size() > 0)
+      ++numArrays;
 
-   // End event
-   *((uint64_t*)buffer) = *((uint64_t*)recentEvents);
-   buffer += 2;
-   *buffer++ = sEventApiTrack;
-   *buffer++ = sEventId;
-   *buffer++ = sApiEventCode;
-   *buffer++ = 1;
-   *buffer   = cmd_none;
+   uint64_t nowUs = plGetTimeNowUs();
 
-   sEventId++;
+   p.AddItem((uint32_t)(bytes + sEventBuffer.Size()));
+   p.AddItem((uint32_t)(timebase >> 32));
+   p.AddItem((uint32_t)(timebase & 0xFFFFFFFF));
+   p.AddItem((uint32_t)(nowUs >> 32));
+   p.AddItem((uint32_t)(nowUs & 0xFFFFFFFF));
+   p.AddItem(overflowed || sEventBuffer.Overflow());
+   p.AddItem(numArrays);
+   if (bytes > 0)
+      p.AddItem(PacketItem(events.get(), bytes));
+   if (sEventBuffer.Size() > 0)
+      p.AddItem(PacketItem(sEventBuffer.Data(), sEventBuffer.Size()));
 }
 
 static void GetEventData(const Packet &packet)
 {
-   Packet p(eEVENT_DATA);
-
-   bool  clearBuffers = false;
-   char *name = NULL;
-   uint8_t *data = NULL;
-   std::vector<char*> strings;    // String buffers must stay alive until data is sent
+   EGLDisplay disp = Real(eglGetDisplay)(EGL_DEFAULT_DISPLAY);
+   Real(eglInitialize)( disp, NULL, NULL );
 
    Control::eEventAction action = (Control::eEventAction)packet.Item(1).GetUInt32();
 
-   p.AddItem(PacketItem(3)); // Version 3 of event block data
-   p.AddItem(action);
-
    if (action == Control::eEventNames)
    {
+      Packet p;
+      MakeEventPacket(p, action);
+
+      char *name = NULL;
+      uint8_t *data = NULL;
+      std::vector<char*> strings;    // String buffers must stay alive until data is sent
+
       EGLint numEventTracks, eventMaxStrLen, numEvents;
 
       eventMaxStrLen = sGetEventConstantBRCM(EGL_MAX_EVENT_STRING_LEN_BRCM);
@@ -1266,98 +1070,32 @@ static void GetEventData(const Packet &packet)
       p.AddItem(strings.back());                // Add the name of the field
       p.AddItem(0);                             // Add unsigned
       p.AddItem(4);                             // Add number of bytes for that field
+
+      if (remote)
+         p.Send(remote);
+
+      for (unsigned ss = 0; ss < strings.size(); ss++)
+         free(strings[ss]);
+
+      if (name)
+         delete[] name;
+
+      if (data)
+         delete[] data;
    }
    else if (action == Control::eEventGet)
-   {
-      if (sCaptureEvents)
-      {
-         CollectLowerLevelEventData();
+      SendEventDataPacket();
+}
 
-         if (sEventBuffer.size() == 0)
-         {
-            p.AddItem(0);
-         }
-         else
-         {
-            EGLuint64BRCM  timebase;
-            EGLBoolean     overflowed;
-            EGLint         bytes;
-
-            // We're just using this to get the timebase
-            sGetEventDataBRCM(0, NULL, &bytes, &overflowed, &timebase);
-            uint64_t nowUs = plGetTimeNowUs();
-
-            if (sEventBuffer.dataHasBeenLost())
-               p.AddItem(sEventBuffer.size() + BLANK_EVENTS_BUFFER_SIZE);
-            else
-               p.AddItem(sEventBuffer.size());
-
-            p.AddItem((uint32_t)(timebase >> 32));
-            p.AddItem((uint32_t)(timebase & 0xFFFFFFFF));
-            p.AddItem((uint32_t)(nowUs >> 32));
-            p.AddItem((uint32_t)(nowUs & 0xFFFFFFFF));
-            p.AddItem(sEventOverflow);
-
-            uint32_t numArrays = 0;
-            if (sEventBuffer.size() > 0)
-            {
-               numArrays++;
-               uint32_t size = 0;
-               sEventBuffer.getSecondBufferPart(&size);
-               if (size != 0)
-                  numArrays++;
-               if (sEventBuffer.dataHasBeenLost())
-                  numArrays++;   // a blank event will be added to cover the lost data
-            }
-
-            p.AddItem(numArrays);
-            // The first event in this buffer should have the smallest time stamp - this is only
-            // needed to set the timestamp of the start of the recorded range in GPUMonitor.
-            // The events can be in any order after that.
-            if (sEventBuffer.size() > 0)
-            {
-               uint32_t size = 0;
-               void *data = sEventBuffer.getFirstBufferPart(&size);
-
-               // If some data has been lost add a blank event
-               // lasting between the first API call and the
-               // oldest event in the buffer
-               if (sEventBuffer.dataHasBeenLost())
-               {
-                  UpdateBlankEventBuffer(reinterpret_cast<uint32_t *> (sBlankEventBuffer), data, sFirstApiCapTime);
-                  p.AddItem(PacketItem(sBlankEventBuffer, BLANK_EVENTS_BUFFER_SIZE));
-               }
-
-               p.AddItem(PacketItem(data, size));
-               data = sEventBuffer.getSecondBufferPart(&size);
-               if (size != 0)
-                  p.AddItem(PacketItem(data, size));
-            }
-
-            sEventOverflow = false;
-            clearBuffers = true;
-         }
-      }
-      else
-      {
-         p.AddItem(0);
-      }
-   }
+static void SendEventDataPacket()
+{
+   Packet p;
+   MakeEventDataPacket(p);
 
    if (remote)
       p.Send(remote);
 
-   if (clearBuffers)
-      sEventBuffer.reset();
-
-   for (unsigned ss = 0; ss < strings.size(); ss++)
-      free(strings[ss]);
-
-   if (name)
-      delete[] name;
-
-   if (data)
-      delete[] data;
+   sEventBuffer.Clear();
 }
 
 static void GetUniforms(const Packet &packet)
@@ -2189,16 +1927,26 @@ static void GetMemory(const Packet &packet)
       dataPacket.Send(remote);
 }
 
+static void Disconnect()
+{
+   if (remote)
+   {
+      remote->Disconnect();
+      delete remote;
+      remote = nullptr;
+   }
+
+   sSetEventCollectionBRCM(EGL_STOP_EVENTS_BRCM);
+   sSetEventCollectionBRCM(EGL_RELEASE_EVENTS_BRCM);
+   sEventBuffer.Clear();
+}
+
 static void CtrlCHandler(int dummy)
 {
    if (sCaptureArchive != NULL)
-   {
-      sCaptureArchive->Flush();
-      sCaptureArchive->Disconnect();
-   }
+      sCaptureArchive->Close();
 
-   if (remote != NULL)
-      remote->Disconnect();
+   Disconnect();
 
    exit(0);
 }
@@ -2238,7 +1986,7 @@ static void SetCapture(bool tf, char * processName)
          else
          {
             // This should never happen on Android, should it?
-            ALOGE("Unable to determine where to save Capture file!");
+            debug_log(DEBUG_ERROR, "Unable to determine where to save Capture file!");
             sCaptureStream = false;
             return;
          }
@@ -2249,14 +1997,14 @@ static void SetCapture(bool tf, char * processName)
 #endif
       }
 
-      ALOGE("********** CAPTURING TO %s ********* \n", file);
-      sCaptureArchive = new Archive(file);
-      if (sCaptureArchive->Connect())
+      debug_log(DEBUG_WARN, "********** CAPTURING TO %s ********* \n", file);
+      sCaptureArchive = new Archive();
+      if (sCaptureArchive->Open(file))
       {
-         sCaptureArchive->Send((uint8_t*)&ident, sizeof(uint32_t), false);
-         sCaptureArchive->Send((uint8_t*)&maj, sizeof(uint32_t), false);
-         sCaptureArchive->Send((uint8_t*)&min, sizeof(uint32_t), false);
-         sCaptureArchive->Send((uint8_t*)&ptrsize, sizeof(uint32_t), false);
+         sCaptureArchive->Write(&ident, sizeof(ident));
+         sCaptureArchive->Write(&maj, sizeof(maj));
+         sCaptureArchive->Write(&min, sizeof(min));
+         sCaptureArchive->Write(&ptrsize, sizeof(ptrsize));
       }
       else
          sCaptureStream = false;
@@ -2277,11 +2025,11 @@ static void ChangePort(const Packet &packet)
    if (packet.NumItems() > 2)
       capture = packet.Item(2).GetBoolean();
 
-   delete remote;
+   Disconnect();
    remote = new Remote(port);
    if (remote->Connect())
    {
-      ALOGD("GPU Monitor initialized on port %d\n", port);
+      debug_log(DEBUG_WARN, "GPU Monitor initialized on port %d\n", port);
 
       SetCapture(capture, NULL);
    }
@@ -2356,9 +2104,11 @@ static void SetVarSet(const Packet &packet)
    if (key == FOURCC('E','V','T','D'))
    {
       sCaptureEvents = !inVarSet(FOURCC('E', 'V', 'T', 'D'), 1);
+      sFrameCnt = 0;
+      sTimeStampMs = plGetTimeNowMs();
       if (sCaptureEvents)
       {
-         sEventBuffer.reset();
+         sEventBuffer.Clear();
 
          // Need a timebase so we can create sensible timestamps for the API funcs
          EGLint         uDummy;
@@ -2380,7 +2130,7 @@ static void SetVarSet(const Packet &packet)
          sSetEventCollectionBRCM(EGL_STOP_EVENTS_BRCM);
          sSetEventCollectionBRCM(EGL_RELEASE_EVENTS_BRCM);
 
-         sEventBuffer.reset();
+         sEventBuffer.Clear();
       }
    }
 
@@ -2388,7 +2138,7 @@ static void SetVarSet(const Packet &packet)
       SetCapture(inVarSet(FOURCC('C','A','P','T'), 1), NULL);
 
    if (key == FOURCC('E','B','M','S'))
-      sEventBuffer.setMaxSize(sVarset[key].back());
+      sEventBuffer.SetMaxSize(sVarset[key].back() * 1024 * 1024);
 }
 
 static void ChangeShader(const Packet &packet)
@@ -2668,7 +2418,7 @@ static bool PostPacketize(Packet *p)
       uint32_t mb = (uint32_t)(sCaptureArchive->BytesWritten() / (1024 * 1024));
       if (mb > prevMB)
       {
-         ALOGD("Capture file = %d MB\n", mb);
+         debug_log(DEBUG_WARN, "Capture file = %d MB\n", mb);
          prevMB = mb;
       }
 
@@ -2690,7 +2440,7 @@ static bool PostPacketize(Packet *p)
       Packet retPacket;
       if (!remote->ReceivePacket(&retPacket))
       {
-         ALOGE("Didn't receive a return control packet\n");
+         debug_log(DEBUG_ERROR, "Didn't receive a return control packet\n");
          sOrphaned = true;
          gotDone = true;
          break;
@@ -2710,7 +2460,7 @@ static bool PostPacketize(Packet *p)
          case Control::eBottleneck            : SetBottleneckMode(retPacket); break;
          case Control::eGetPerfData           : GetPerfData(retPacket); break;
          case Control::eGetEventData          : GetEventData(retPacket); break;
-         case Control::eDisconnect            : sOrphaned = true; gotDone = true; delete remote; remote = NULL; break;
+         case Control::eDisconnect            : sOrphaned = true; gotDone = true; Disconnect(); break;
          case Control::eChangePort            : ChangePort(retPacket); gotDone = true; break;
          case Control::eGetState              : GetState(retPacket); break;
          case Control::eGetMemory             : GetMemory(retPacket); break;
@@ -2801,7 +2551,7 @@ static uint32_t BytesForType(GLenum type)
    case GL_FLOAT :          return 4;
    }
 
-   ALOGE("Unknown type (%08X) in BytesForType\n", type);
+   debug_log(DEBUG_ERROR, "Unknown type (%08X) in BytesForType\n", type);
    return 0;
 }
 
@@ -2867,20 +2617,22 @@ static bool WantCommand(eGLCommand cmd)
    if (sEventApiTrack != -1 && (code) != -1)\
    {\
       uint32_t *p;\
-      p = sEventBuffer.getPointerToWriteData(bytes); \
-      if (sEventBuffer.size() == bytes)\
-      {\
-         sFirstApiCapTime = plGetTimeNowUs() + sEventTimebaseOffset; \
-         *((uint64_t*)p) = sFirstApiCapTime; p += 2; \
-      }\
-      else\
-      {\
-         *((uint64_t*)p) = plGetTimeNowUs() + sEventTimebaseOffset; p += 2; \
-      }\
-      *p++ = sEventApiTrack; \
-      *p++ = (id); \
-      *p++ = (code); \
-      *p++ = (type); \
+      p = (uint32_t *)sEventBuffer.GetPointerToWriteData(bytes); \
+      if (p) { \
+         if (sEventBuffer.Size() == bytes)\
+         {\
+            sFirstApiCapTime = plGetTimeNowUs() + sEventTimebaseOffset; \
+            *((uint64_t*)p) = sFirstApiCapTime; p += 2; \
+         }\
+         else\
+         {\
+            *((uint64_t*)p) = plGetTimeNowUs() + sEventTimebaseOffset; p += 2; \
+         }\
+         *p++ = sEventApiTrack; \
+         *p++ = (id); \
+         *p++ = (code); \
+         *p++ = (type); \
+      } \
       extraPtr = p;\
    }\
 }
@@ -3617,7 +3369,11 @@ static bool determine_capture_params(char *procname, char *capname, size_t bufle
       strncpy(procname, strtok(cmdline, ": \n"), buflen);
    }
 
-   char *value = getenv("GPUMonitorCapture");
+   char *value = getenv("GPUMonitorAppName");
+   if (value)
+      strncpy(capname, value, buflen);
+
+   value = getenv("GPUMonitorCapture");
    if (value == NULL || atoi(value) == 0)
       return false;
 
@@ -3627,8 +3383,21 @@ static bool determine_capture_params(char *procname, char *capname, size_t bufle
 
 #define NAME_SIZE 1024
 
+extern bool process_match(void)
+{
+   char ourProcName[NAME_SIZE];
+   char exeToCapture[NAME_SIZE];
+
+   // Do we have an environment / property that tells us to capture?
+   determine_capture_params(ourProcName, exeToCapture, NAME_SIZE);
+
+   // If no exe was specified, always log
+   return ((strlen(exeToCapture) == 0) ||
+       (strcmp(exeToCapture, ourProcName) == 0));
+}
+
 // Must be called with GLOBAL_LOCK in place
-static void gpumon_initialize()
+static void gpumon_initialize(void)
 {
    static bool alreadyInited = false;
    static bool alreadyLoaded = false;
@@ -3652,7 +3421,7 @@ static void gpumon_initialize()
    {
       if (!fill_real_func_table(&sRealFuncs))
       {
-         ALOGE("GPUMonitor disabled\n");
+         debug_log(DEBUG_WARN, "GPUMonitor disabled\n");
          sOrphaned = true;
          return;
       }
@@ -3673,15 +3442,11 @@ static void gpumon_initialize()
    // Do we have an environment / property that tells us to capture?
    bool capture = determine_capture_params(ourProcName, exeToCapture, NAME_SIZE);
 
-   ALOGD("*************************** GPUMON : capture = %d, process = %s, exeToCapture = %s\n", capture ? 1 : 0, ourProcName, exeToCapture);
+   debug_log(DEBUG_WARN, "*************************** GPUMON : capture = %d, process = %s, exeToCapture = %s\n", capture ? 1 : 0, ourProcName, exeToCapture);
 
    if (capture)
    {
-      // If no exe was specified, assume this one
-      if (strlen(exeToCapture) == 0)
-         strcpy(exeToCapture, ourProcName);
-
-      if (strcmp(exeToCapture, ourProcName))
+      if (!process_match())
       {
          // This app does not match what we want to capture
          capture = false;
@@ -3697,34 +3462,34 @@ static void gpumon_initialize()
 
    if (!sCaptureStream)
    {
-      ALOGD("Waiting for GPU Monitor connection...\n");
-
-      remote = new Remote(28015);
-      if (remote->Connect())
+      if (process_match())
       {
-         ALOGD("GPU Monitor initializing...\n");
+         debug_log(DEBUG_WARN, "Waiting for GPU Monitor connection...\n");
 
-         // Send our init packet
-         Packet   p(eINIT);
-         sCurPacket = &p;
+         remote = new Remote(28015);
+         if (remote->Connect())
+         {
+            debug_log(DEBUG_WARN, "GPU Monitor initializing...\n");
+
+            // Send our init packet
+            Packet   p(eINIT);
+            sCurPacket = &p;
 
 #ifdef NDEBUG
-         static const bool debug = false;
+            static const bool debug = false;
 #else
-         static const bool debug = true;
+            static const bool debug = true;
 #endif
-         static const uint32_t ptrSize = sizeof(void*);
+            static const uint32_t ptrSize = sizeof(void*);
 
-         Packetize((uint32_t)getpid(), debug, SPYHOOK_MAJOR_VER, SPYHOOK_MINOR_VER, GLESVER, ptrSize);
-         PostPacketize(&p);
-         plGetTimeNowMs(); // Initialize the internal timebases
-         plGetTimeNowUs();
+            Packetize((uint32_t)getpid(), debug, SPYHOOK_MAJOR_VER, SPYHOOK_MINOR_VER, GLESVER, ptrSize);
+            PostPacketize(&p);
+            plGetTimeNowMs(); // Initialize the internal timebases
+            plGetTimeNowUs();
+            return;
+         }
       }
-      else
-      {
-         sOrphaned = true;
-         return;
-      }
+      sOrphaned = true;
    }
 }
 
@@ -4621,10 +4386,6 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glFinish (void)
    {
       sFrameCnt++;
       sTotalFrameCnt++;
-
-      // Poll the event timeline from the driver & kernel. Note: this does not send the event
-      // data to GPUMonitor.
-      CollectLowerLevelEventData();
 
       Packet   p(eAPI_FUNCTION);
       sCurPacket = &p;
@@ -5685,7 +5446,7 @@ DLLEXPORT EGLBoolean EGLAPIENTRY specialized_eglMakeCurrent(EGLDisplay dpy, EGLS
          // Extract config data and attach to packet
          // Failure leaves configId unmodified (which is 1)
          if (Real(eglQueryContext)(dpy, ctx, EGL_CONFIG_ID, (EGLint*)&configId) == EGL_FALSE)
-            ALOGD("******************* Unable to get a sensible return from eglQueryContext\n");
+            debug_log(DEBUG_ERROR, "******************* Unable to get a sensible return from eglQueryContext\n");
 
          config = ConfigIDToConfig(dpy, configId);
 
@@ -5740,10 +5501,6 @@ DLLEXPORT EGLBoolean EGLAPIENTRY specialized_eglSwapBuffers(EGLDisplay dpy, EGLS
    {
       sFrameCnt++;
       sTotalFrameCnt++;
-
-      // Poll the event timeline from the driver & kernel. Note: this does not send the event
-      // data to GPUMonitor.
-      CollectLowerLevelEventData();
 
       Packet   p(eAPI_FUNCTION);
       sCurPacket = &p;
@@ -6642,6 +6399,9 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glDebugMessageCallbackKHR(GLDEBUGPROCK
 }
 #endif
 
+// A unique function that we can search for
+static void ___uniqueFunctionNameInThisBcmInterposerLibrary___() {}
+
 DLLEXPORT __eglMustCastToProperFunctionPointerType DLLEXPORTENTRY specialized_eglGetProcAddress(const char *procname)
 {
    APIInitAndLock locker(PL_FUNCTION);
@@ -6657,22 +6417,36 @@ DLLEXPORT __eglMustCastToProperFunctionPointerType DLLEXPORTENTRY specialized_eg
          TIMESTAMP start, end;
          plGetTime(&start);
 
-         // Find the function in the default search paths
-         void *func = dlsym(RTLD_DEFAULT, procname);
+         Dl_info info;
+         int ok = dladdr((const void*)___uniqueFunctionNameInThisBcmInterposerLibrary___, &info);
 
-         __eglMustCastToProperFunctionPointerType r;
-         if (func != NULL)
-            r = (__eglMustCastToProperFunctionPointerType)func;
-         else
-            r = Real(eglGetProcAddress)(procname);
+         if (ok)
+         {
+            void *shared_object = dlopen(info.dli_fname, RTLD_LAZY);
 
-         plGetTime(&end);
-         LogEGLError();
-         RetFunc(plTimeDiffNano(&start, &end), ((void*)r));
-         return r;
+            if (shared_object)
+            {
+               // Find the function in the interposer only
+               void *func = dlsym(shared_object, procname);
+
+               __eglMustCastToProperFunctionPointerType r = (__eglMustCastToProperFunctionPointerType)NULL;
+               if (func != NULL)
+                  r = (__eglMustCastToProperFunctionPointerType)func;
+#if 0
+               else
+                  debug_log(DEBUG_ERROR, "%s : Fetching from missing API call %s : %s\n", __FUNCTION__, info.dli_fname, procname);
+#endif
+               dlclose(shared_object);
+
+               plGetTime(&end);
+               LogEGLError();
+               RetFunc(plTimeDiffNano(&start, &end), ((void*)r));
+               return r;
+            }
+         }
       }
-      else
-         return 0;
+
+      return 0;
    }
    else
       RetRealApiEvent(__eglMustCastToProperFunctionPointerType, eglGetProcAddress, (procname));

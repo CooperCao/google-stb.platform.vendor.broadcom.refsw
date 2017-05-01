@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_tfu.h"
 #include "libs/core/gfx_buffer/gfx_buffer.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
@@ -217,4 +215,225 @@ bool v3d_build_tfu_cmd(V3D_TFU_COMMAND_T *cmd,
    cmd->dst_base_addr = dst_base_addr + dst_desc->planes[0].offset;
 
    return true;
+}
+
+/* TODO share with calc_tlb_ldst_pitch? */
+static uint32_t calc_pitch(
+   GFX_LFMT_T lfmt, v3d_memory_format_t memory_format, uint32_t width, uint32_t height)
+{
+   GFX_LFMT_BASE_DETAIL_T bd;
+   gfx_lfmt_base_detail(&bd, lfmt);
+   switch (memory_format)
+   {
+   case V3D_MEMORY_FORMAT_RASTER:
+      assert(bd.block_w == 1);
+      return width * bd.bytes_per_block;
+   case V3D_MEMORY_FORMAT_LINEARTILE:
+      assert(
+         /* In this case, pitch should be 1 utile */
+         (width <= (bd.ut_w_in_blocks_2d * bd.block_w)) ||
+         /* In this case, pitch is essentially ignored, so 1 utile is fine */
+         (height <= (bd.ut_h_in_blocks_2d * bd.block_h)));
+      return bd.ut_w_in_blocks_2d * bd.bytes_per_block;
+   case V3D_MEMORY_FORMAT_UBLINEAR_1:
+      return gfx_lfmt_ub_w_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(&lfmt)) * bd.bytes_per_block;
+   case V3D_MEMORY_FORMAT_UBLINEAR_2:
+      return 2 * gfx_lfmt_ub_w_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(&lfmt)) * bd.bytes_per_block;
+   case V3D_MEMORY_FORMAT_UIF_NO_XOR:
+   case V3D_MEMORY_FORMAT_UIF_XOR:
+   {
+      uint32_t height_in_blocks = gfx_udiv_round_up(height, bd.block_h);
+      height_in_blocks = gfx_uround_up_p2(height_in_blocks,
+         gfx_lfmt_ub_h_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(&lfmt)));
+      return height_in_blocks * bd.bytes_per_block;
+   }
+   default:
+      unreachable();
+      return 0;
+   }
+}
+
+void v3d_tfu_calc_src_desc(
+   v3d_addr_t *base_addr, GFX_BUFFER_DESC_T *desc,
+   v3d_tfu_yuv_col_space_t *yuv_col_space, // May be NULL
+   const V3D_TFU_COMMAND_T *cmd, unsigned dram_map_version)
+{
+   desc->width = cmd->width;
+   desc->height = cmd->height;
+   desc->depth = 1;
+
+   GFX_LFMT_T layout = gfx_lfmt_translate_from_tfu_iformat(
+      cmd->src_memory_format, dram_map_version);
+
+   GFX_LFMT_T fmts[GFX_BUFFER_MAX_PLANES];
+   gfx_lfmt_translate_from_tfu_type(fmts, &desc->num_planes, yuv_col_space,
+      cmd->src_ttype, cmd->src_channel_order, cmd->srgb, gfx_lfmt_is_bigend_sand_family(layout));
+
+   /* ref: arch spec "Texture Formatting Unit (TFU)": "input formats: [...]
+    * Packed YUYV 4:2:2 images in raster format"
+    * 3-plane YUV 4:2:0 also always raster (YV12) */
+   if (v3d_is_tfu_ttype_yuv(cmd->src_ttype) && ((desc->num_planes == 1) || (desc->num_planes == 3)))
+      assert(cmd->src_memory_format == V3D_TFU_IFORMAT_RASTER);
+
+   /* src addrs from APB registers are always to start of the plane's memory
+    * (i.e. lowest address).
+    *
+    * Technically, our choice of base_addr could be arbitrary, as long as
+    * offsets are corrected accordingly and all calculations involving offset
+    * overflow correctly. I choose base_addr to be the start of the lowest
+    * plane to avoid overflow and keep the numbers more sane.
+    */
+   *base_addr = cmd->src_base_addrs[0];
+   for (uint32_t i = 1; i != desc->num_planes; ++i)
+      *base_addr = v3d_addr_min(*base_addr, cmd->src_base_addrs[i]);
+
+   for (uint32_t p = 0; p != desc->num_planes; ++p)
+   {
+      GFX_BUFFER_DESC_PLANE_T *plane = &desc->planes[p];
+
+      GFX_LFMT_BASE_DETAIL_T bd;
+      gfx_lfmt_base_detail(&bd, fmts[p]);
+
+      plane->lfmt = gfx_lfmt_set_format(layout, fmts[p]);
+
+      /* src_memory_format from APB reg isn't enough to determine lfmt layout:
+         2-plane YUV is NOUTILE */
+      if (desc->num_planes == 2)
+      {
+         switch (cmd->src_memory_format)
+         {
+         case V3D_TFU_IFORMAT_LINEARTILE:
+         case V3D_TFU_IFORMAT_UBLINEAR_1:
+         case V3D_TFU_IFORMAT_UBLINEAR_2:
+            /* can't see a case where this would happen */
+            not_impl();
+            break;
+         case V3D_TFU_IFORMAT_UIF_NO_XOR:
+            plane->lfmt = gfx_lfmt_set_format(GFX_LFMT_2D_UIF_NOUTILE, plane->lfmt);
+            break;
+         case V3D_TFU_IFORMAT_UIF_XOR:
+            plane->lfmt = gfx_lfmt_set_format(GFX_LFMT_2D_UIF_NOUTILE_XOR, plane->lfmt);
+            break;
+         case V3D_TFU_IFORMAT_RASTER:
+         case V3D_TFU_IFORMAT_SAND_128:
+         case V3D_TFU_IFORMAT_SAND_256:
+            break;
+         default: unreachable();
+         }
+      }
+
+      if (cmd->src_memory_format == V3D_TFU_IFORMAT_RASTER && cmd->flip_y)
+      {
+         assert(gfx_lfmt_yflip_base_is_nop(gfx_lfmt_get_base(&plane->lfmt)));
+         gfx_lfmt_set_yflip(&plane->lfmt, GFX_LFMT_YFLIP_YFLIP);
+      }
+
+      assert(v3d_addr_aligned(cmd->src_base_addrs[p],
+         gfx_buffer_get_align(plane->lfmt, GFX_BUFFER_ALIGN_MIN)));
+
+      plane->offset =  cmd->src_base_addrs[p] - *base_addr;
+
+      /* 2nd & 3rd planes use same stride field... */
+      uint32_t cmd_stride = cmd->src_strides[gfx_umin(p, 1)];
+      switch (cmd->src_memory_format)
+      {
+      case V3D_TFU_IFORMAT_UIF_NO_XOR:
+      case V3D_TFU_IFORMAT_UIF_XOR:
+         /* APB register gives stride (image height) in uif blocks */
+         plane->pitch = cmd_stride * gfx_lfmt_ub_h_in_blocks_2d(&bd,
+               gfx_lfmt_get_swizzling(&plane->lfmt)) * bd.bytes_per_block;
+         break;
+      case V3D_TFU_IFORMAT_RASTER:
+      case V3D_TFU_IFORMAT_SAND_128:
+      case V3D_TFU_IFORMAT_SAND_256:
+      {
+         uint32_t pitch_in_blocks;
+         bool vertical_pitch = v3d_tfu_iformat_vertical_pitch(cmd->src_memory_format);
+
+         /* APB register gives stride in blocks for compressed formats, pixels otherwise. */
+         /* TFU doesn't consider some formats as compressed formats the same
+          * way gfx_lfmt does */
+
+         switch (gfx_lfmt_get_base(&plane->lfmt))
+         {
+         case GFX_LFMT_BASE_C1:
+         case GFX_LFMT_BASE_C4:
+         case GFX_LFMT_BASE_C8_C8_C8_C8_2X1:
+         case GFX_LFMT_BASE_C8_C8_2X1:
+         case GFX_LFMT_BASE_C8_C8_2X2:
+            pitch_in_blocks = gfx_udiv_exactly(cmd_stride,
+               vertical_pitch ? bd.block_h : bd.block_w);
+            break;
+         default:
+            pitch_in_blocks = cmd_stride;
+         }
+
+         plane->pitch = pitch_in_blocks * bd.bytes_per_block;
+         break;
+      }
+      default:
+         /* APB register unnecessary */
+         plane->pitch = calc_pitch(plane->lfmt,
+            v3d_tfu_iformat_to_memory_format(cmd->src_memory_format),
+            cmd->width, cmd->height);
+      }
+
+      plane->slice_pitch = 0;
+   }
+}
+
+void v3d_tfu_calc_dst_descs(
+   v3d_addr_t *base_addr, GFX_BUFFER_DESC_T *descs,
+   const V3D_TFU_COMMAND_T *cmd)
+{
+   GFX_LFMT_T fmt = v3d_is_tfu_ttype_yuv(cmd->src_ttype) ?
+      GFX_LFMT_R8_G8_B8_A8_SRGB_SRGB_SRGB_UNORM :
+      /* This will be the same as the source format but without rgbord applied */
+      gfx_lfmt_translate_from_tmu_type((v3d_tmu_type_t)cmd->src_ttype, cmd->srgb);
+
+   {
+      /* desc gen just wants dimensionality, not swizzling */
+      GFX_LFMT_T fmt_dims = gfx_lfmt_to_2d(fmt);
+
+      size_t buffer_size;
+      size_t buffer_align;
+      gfx_buffer_desc_gen(descs, &buffer_size, &buffer_align,
+         GFX_BUFFER_USAGE_V3D_TEXTURE,
+         cmd->width, cmd->height, 1,
+         cmd->num_mip_levels,
+         1, &fmt_dims);
+   }
+
+   if (!cmd->disable_main_texture_write)
+   {
+      /* Level 0 layout explicitly specified in the APB regs, so override its
+       * lfmt and pitch. This means the size and align from desc_gen are now
+       * invalid, but we aren't using them anyway. */
+
+      descs[0].planes[0].lfmt =
+         gfx_lfmt_set_format(
+            gfx_lfmt_translate_from_tfu_oformat(cmd->dst_memory_format),
+            descs[0].planes[0].lfmt);
+
+      descs[0].planes[0].pitch = calc_pitch(
+         descs[0].planes[0].lfmt,
+         v3d_tfu_oformat_to_memory_format(cmd->dst_memory_format),
+         cmd->width, cmd->height);
+
+      if (cmd->dst_memory_format == V3D_TFU_OFORMAT_UIF_NO_XOR
+         || cmd->dst_memory_format == V3D_TFU_OFORMAT_UIF_XOR)
+      {
+         GFX_LFMT_BASE_DETAIL_T bd;
+         gfx_lfmt_base_detail(&bd, fmt);
+
+         descs[0].planes[0].pitch +=
+            cmd->dst_pad_in_uif_blocks *
+            gfx_lfmt_ub_h_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(
+                  &descs[0].planes[0].lfmt)) *
+            bd.bytes_per_block;
+      }
+   }
+
+   /* Base addr provided to TFU is address of level 0... */
+   *base_addr = cmd->dst_base_addr - descs[0].planes[0].offset;
 }

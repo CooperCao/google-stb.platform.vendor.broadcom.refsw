@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,6 +82,20 @@ typedef enum BBOX_MemcIndex
 } BBOX_MemcIndex;
 
 /***************************************************************************
+Summary:
+    Used to specify DRAM refresh rate.
+****************************************************************************/
+typedef enum BBOX_DramRefreshRate
+{
+    BBOX_DramRefreshRate_eDefault = 0,
+    BBOX_DramRefreshRate_e1x,
+    BBOX_DramRefreshRate_e2x,     /* high-temp */
+    BBOX_DramRefreshRate_e4x = 4, /* high-temp */
+    BBOX_DramRefreshRate_eInvalid
+} BBOX_DramRefreshRate;
+
+
+/***************************************************************************
 Summary: Specifies settings for a box mode.
 
 Description:
@@ -111,6 +125,10 @@ typedef struct BBOX_MemConfig
     BBOX_Vdc_MemcIndexSettings     stVdcMemcIndex;
 
     uint32_t                       ulNumMemc;
+
+    /* specifies refresh rate */
+    BBOX_DramRefreshRate           eRefreshRate;
+
     /* TODO: Add XVD MEMC index */
 
 } BBOX_MemConfig;
@@ -143,6 +161,7 @@ typedef struct BBOX_Config
     /* Add other module capabilities here */
 
     BBOX_MemConfig        stMemConfig;
+
 } BBOX_Config;
 
 /***************************************************************************
@@ -241,6 +260,44 @@ BERR_Code BBOX_GetConfig
 
 /***************************************************************************
 Summary:
+    Data structure describing LoadRts settings
+
+Description:
+
+See Also: BBOX_LoadRts
+****************************************************************************/
+
+typedef struct BBOX_LoadRtsSettings
+{
+    /* BBOX may lower the refresh rate for certain clients if the RTS specified
+       (default) refresh rate allows it. This gives more BW to these clients
+       BUT the limits remain the same.
+
+       The amount by which the refresh rate is lowered is the ratio of the
+       default refresh rate and eRefreshRate. For example, default rate is 2x,
+       eRefreshRate is 1x, then the amount to lower the default rate is 2.
+
+       If the caller doesn't set this, the default refresh rate is used. */
+    BBOX_DramRefreshRate               eRefreshRate;
+
+} BBOX_LoadRtsSettings;
+
+/***************************************************************************
+Summary:
+    Loads the default Load RTS settings
+
+Description:
+
+Returns:
+
+See Also:
+    BBOX_LoadRts
+****************************************************************************/
+
+void BBOX_GetDefaultLoadRtsSettings( BBOX_LoadRtsSettings *pSettings );
+
+/***************************************************************************
+Summary:
     Loads the RTS set according to the given box mode.
 
 Description:
@@ -259,7 +316,8 @@ See Also:
 
 BERR_Code BBOX_LoadRts
     ( BBOX_Handle                      hBox,
-      const BREG_Handle                hReg );
+      const BREG_Handle                hReg,
+      const BBOX_LoadRtsSettings *pSettings );
 
 #ifdef __cplusplus
 }

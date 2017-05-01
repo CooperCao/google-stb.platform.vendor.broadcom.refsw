@@ -85,6 +85,8 @@
 #include "bbox_vdc_box26_config.h"
 #include "bbox_vdc_box27_config.h"
 #include "bbox_vdc_box28_config.h"
+#include "bbox_vdc_box29_config.h"
+#include "bbox_vdc_box30_config.h"
 
 
 BDBG_MODULE(BBOX_PRIV);
@@ -167,6 +169,7 @@ void BBOX_P_Vdc_SetSourceCapabilities
             BBOX_P_Vdc_SetBox22SourceCapabilities(pSourceCap);
             break;
         case 23:
+        case 29:
             BBOX_P_Vdc_SetBox23SourceCapabilities(pSourceCap);
             break;
         case 24:
@@ -184,6 +187,9 @@ void BBOX_P_Vdc_SetSourceCapabilities
             break;
         case 28:
             BBOX_P_Vdc_SetBox28SourceCapabilities(pSourceCap);
+            break;
+        case 30:
+            BBOX_P_Vdc_SetBox30SourceCapabilities(pSourceCap);
             break;
     }
 }
@@ -252,6 +258,7 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             BBOX_P_Vdc_SetBox22DisplayCapabilities(pDisplayCap);
             break;
         case 23:
+        case 29:
             BBOX_P_Vdc_SetBox23DisplayCapabilities(pDisplayCap);
             break;
          case 24:
@@ -268,6 +275,9 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             break;
          case 28:
             BBOX_P_Vdc_SetBox28DisplayCapabilities(pDisplayCap);
+            break;
+         case 30:
+            BBOX_P_Vdc_SetBox30DisplayCapabilities(pDisplayCap);
             break;
     }
 }
@@ -337,6 +347,7 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
             BBOX_P_Vdc_SetBox22DeinterlacerCapabilities(pDeinterlacerCap);
             break;
         case 23:
+        case 29:
             BBOX_P_Vdc_SetBox23DeinterlacerCapabilities(pDeinterlacerCap);
             break;
         case 24:
@@ -353,6 +364,9 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
             break;
         case 28:
             BBOX_P_Vdc_SetBox28DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
+        case 30:
+            BBOX_P_Vdc_SetBox30DeinterlacerCapabilities(pDeinterlacerCap);
             break;
     }
 }
@@ -421,6 +435,7 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             BBOX_P_Vdc_SetBox22XcodeCapabilities(pXcodeCap);
             break;
         case 23:
+        case 29:
             BBOX_P_Vdc_SetBox23XcodeCapabilities(pXcodeCap);
             break;
         case 24:
@@ -437,6 +452,9 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 28:
             BBOX_P_Vdc_SetBox28XcodeCapabilities(pXcodeCap);
+            break;
+        case 30:
+            BBOX_P_Vdc_SetBox30XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -510,6 +528,7 @@ BERR_Code BBOX_P_GetMemConfig
             BBOX_P_GetBox22MemConfig(pBoxMemConfig);
             break;
         case 23:
+        case 29:
             BBOX_P_GetBox23MemConfig(pBoxMemConfig);
             break;
         case 24:
@@ -526,6 +545,9 @@ BERR_Code BBOX_P_GetMemConfig
             break;
         case 28:
             BBOX_P_GetBox28MemConfig(pBoxMemConfig);
+            break;
+        case 30:
+            BBOX_P_GetBox30MemConfig(pBoxMemConfig);
             break;
     }
     return BERR_SUCCESS;
@@ -611,6 +633,12 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 28:
             BBOX_P_GetBox28Rts(pBoxRts);
+            break;
+        case 29:
+            BBOX_P_GetBox29Rts(pBoxRts);
+            break;
+        case 30:
+            BBOX_P_GetBox30Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

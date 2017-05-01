@@ -9,12 +9,9 @@ endif
 
 LIBNAME = bcm_wl_server
 
-WAYLAND_TOP ?= $(NEXUS_TOP)/../../wayland/install
-WAYLAND_CFLAGS ?= -I$(WAYLAND_TOP)/include
-WAYLAND_LIBS ?= -L$(WAYLAND_TOP)/lib -lwayland-server
+include wayland_paths.mk
 
 # auto-generated wayland files
-WAYLAND_SCANNER ?= $(WAYLAND_TOP)/wayland-scanner
 include wayland_nexus_protocol.mk
 
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc

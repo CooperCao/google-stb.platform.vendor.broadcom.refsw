@@ -1,18 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  SpyHook
-Module   :  Proxy server for Android
-
-FILE DESCRIPTION
-
-Provides a local proxy server than can be run with root privileges to allow
-applications which have been built without INTERNET permissions to be
-monitored.
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __SPYPROXY_H__
 #define __SPYPROXY_H__
 

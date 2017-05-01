@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -64,6 +64,9 @@ BDBG_OBJECT_ID(BMUXlib_InputGroup_P_Context);  /* BMUXlib_InputGroup_Handle */
 #define BMUXLIB_INPUTGROUP_P_SIGNATURE_CREATESETTINGS 0x494E5002
 #define BMUXLIB_INPUTGROUP_P_SIGNATURE_SETTINGS       0x494E5003
 
+#define BMUXLIB_INPUT_P_SIGNATURE_STARTSETTINGS       0x494E5004
+#define BMUXLIB_INPUTGROUP_P_SIGNATURE_STARTSETTINGS  0x494E5005
+
 #define BMUXLIB_INPUTGROUP_P_SCALED_DTS_MIDRANGE      0x80000000
 #define BMUXLIB_INPUTGROUP_P_ESCR_MIDRANGE            0x80000000
 
@@ -90,48 +93,9 @@ typedef struct BMUXlib_Input_P_Context
 {
    BDBG_OBJECT(BMUXlib_Input_P_Context)
    BMUXlib_Input_CreateSettings stCreateSettings;
-
-   struct
-   {
-      struct
-      {
-         union
-         {
-            BAVC_CompressedBufferDescriptor stCommon;
-            BAVC_VideoBufferDescriptor stVideo;
-            BAVC_AudioBufferDescriptor stAudio;
-         } stDescriptor;
-
-         size_t uiSourceDescriptorCount;
-         bool bModified;
-         size_t uiFrameSize;
-         size_t uiBurstSize;
-         size_t uiDataUnitSize;
-         uint32_t uiFrameDuration90kHz;
-      } astQueue[BMUXLIB_INPUT_P_MAX_DESCRIPTORS];
-
-      size_t uiReadOffset; /* Keeps track of # of input descriptors that have been fully consumed since ProcessNewDescriptors was called.
-                            * uiReadOffset = 0 when ProcessNewDescriptors is called */
-      size_t uiPendingOffset;  /* Keeps track of # of input descriptors that have been retrieved by the mux via GetNextDescriptor.
-                                * uiReadOffset <= uiPendingOffset <= uiWriteOffset
-                                */
-      size_t uiWriteOffset; /* Keeps track of the # of input descriptors after calling ProcessNewDescriptors */
-
-      size_t uiStaleDescriptorCount; /* Keeps track of descriptors that went missing from the input between GetBufferDescriptor calls (e.g. input watchdogged) */
-   } stDescriptorInfo;
-
-   bool bBufferStatusValid;
-   BMUXlib_CompressedBufferStatus stBufferStatus;
-
-   size_t uiCurrentFrameSize;
-
-   struct
-   {
-      BMUXlib_Input_Status stStatus;
-      bool bMetadataSeen;
-      BMUXlib_Input_Settings stSettingsPending;
-      BMUXlib_Input_Settings stSettingsCurrent;
-   } stats;
+   BMUXlib_Input_StartSettings stStartSettings;
+   BMUXlib_Input_Settings stSettingsPending;
+   BMUXlib_Input_Settings stSettingsCurrent;
 
 #if BMUXLIB_INPUT_P_DUMP_DESC
    BMuxlib_Debug_CSV_Handle hDescDumpFile;
@@ -143,7 +107,49 @@ typedef struct BMUXlib_Input_P_Context
    BMuxlib_Debug_CSV_Handle hConfigDumpFile;
 #endif
 
-   bool bFirstTime;           /* first time run since Start() */
+   struct
+   {
+      struct
+      {
+         struct
+         {
+            union
+            {
+               BAVC_CompressedBufferDescriptor stCommon;
+               BAVC_VideoBufferDescriptor stVideo;
+               BAVC_AudioBufferDescriptor stAudio;
+            } stDescriptor;
+
+            size_t uiSourceDescriptorCount;
+            bool bModified;
+            size_t uiFrameSize;
+            size_t uiBurstSize;
+            size_t uiDataUnitSize;
+            uint32_t uiFrameDuration90kHz;
+         } astQueue[BMUXLIB_INPUT_P_MAX_DESCRIPTORS];
+
+         size_t uiReadOffset; /* Keeps track of # of input descriptors that have been fully consumed since ProcessNewDescriptors was called.
+                               * uiReadOffset = 0 when ProcessNewDescriptors is called */
+         size_t uiPendingOffset;  /* Keeps track of # of input descriptors that have been retrieved by the mux via GetNextDescriptor.
+                                   * uiReadOffset <= uiPendingOffset <= uiWriteOffset
+                                   */
+         size_t uiWriteOffset; /* Keeps track of the # of input descriptors after calling ProcessNewDescriptors */
+
+         size_t uiStaleDescriptorCount; /* Keeps track of descriptors that went missing from the input between GetBufferDescriptor calls (e.g. input watchdogged) */
+      } stDescriptorInfo;
+
+      bool bBufferStatusValid;
+      BMUXlib_CompressedBufferStatus stBufferStatus;
+
+      size_t uiCurrentFrameSize;
+
+      struct
+      {
+         BMUXlib_Input_Status stStatus;
+         bool bMetadataSeen;
+      } stats;
+      bool bFirstTime;           /* first time run since Start() */
+   } state;
 } BMUXlib_Input_P_Context;
 
 typedef struct BMUXlib_InputGroup_P_InputEntry
@@ -156,18 +162,21 @@ typedef struct BMUXlib_InputGroup_P_InputEntry
 typedef struct BMUXlib_InputGroup_P_Context
 {
    BDBG_OBJECT(BMUXlib_InputGroup_P_Context)
-
+   BMUXlib_InputGroup_CreateSettings stCreateSettings;
+   BMUXlib_InputGroup_StartSettings stStartSettings;
    BMUXlib_InputGroup_Settings stSettings;
-   BMUXlib_InputGroup_Status stStatus;
-
-   BMUXlib_InputGroup_P_InputEntry *pInputTable;         /* table of all available inputs in the group */
-   uint32_t uiNumInputs;
-
    BMUXlib_InputGroup_P_InputEntry **pInputSelectTable;  /* table of active input entries for input selection */
+   BMUXlib_InputGroup_P_InputEntry *pInputTable;         /* table of all available inputs in the group */
+
    /* NOTE: not all available inputs may be active */
 #if BMUXLIB_INPUT_P_DUMP_DESC
    uint32_t uiDescCount;   /* common descriptor count for associating descriptors from different inputs */
 #endif
+
+   struct
+   {
+      BMUXlib_InputGroup_Status stStatus;
+   } state;
 } BMUXlib_InputGroup_P_Context;
 
 /*****************
@@ -179,6 +188,10 @@ static void BMUXlib_InputGroup_P_SortInputs(BMUXlib_InputGroup_P_InputEntry *aDa
 #if BMUXLIB_INPUT_P_DUMP_DESC
 static void BMUXlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsigned int uiNumOldDescriptors);
 #endif
+static void BMUXlib_Input_P_AddDescriptors(BMUXlib_Input_Handle hInput, size_t uiCount);
+static void BMUXlib_Input_P_SkipDescriptors(BMUXlib_Input_Handle hInput, size_t uiCount);
+static void BMUXlib_Input_P_RewindDescriptors(BMUXlib_Input_Handle hInput, size_t uiCount);
+static void BMUXlib_Input_P_ConsumeDescriptors(BMUXlib_Input_Handle hInput, size_t uiCount);
 
 /*****************
    Input API
@@ -199,11 +212,6 @@ BMUXlib_Input_GetDefaultCreateSettings(
             );
 
    pstSettings->uiSignature = BMUXLIB_INPUT_P_SIGNATURE_CREATESETTINGS;
-   pstSettings->eType = BMUXlib_Input_Type_eVideo;
-   pstSettings->eBurstMode = BMUXlib_Input_BurstMode_eDescriptor;
-   pstSettings->uiBurstMaxLength = BMUXLIB_INPUT_P_DEFAULT_BURST_LENGTH;
-   pstSettings->uiBurstMaxDuration = BMUXLIB_INPUT_P_DEFAULT_BURST_DURATION;
-   pstSettings->bFilterUntilMetadataSeen = true;
 
    BDBG_LEAVE( BMUXlib_Input_GetDefaultCreateSettings );
 }
@@ -224,59 +232,6 @@ BMUXlib_Input_Create(
 
    *phInput = NULL;
 
-   /* verify the settings (as a minimum, we need a type and an interface) ...
-      NOTE: it is valid for pMetadata to not be set */
-   if (((pstSettings->eType != BMUXlib_Input_Type_eVideo) && (pstSettings->eType != BMUXlib_Input_Type_eAudio))
-      || ((pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eDescriptor)
-         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eFrame)
-         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eDataUnit)
-         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eFrameDataUnit))
-      )
-   {
-      BDBG_LEAVE( BMUXlib_Input_Create );
-      return BERR_TRACE( BERR_INVALID_PARAMETER );
-   }
-
-   if (((pstSettings->eBurstMode == BMUXlib_Input_BurstMode_eDataUnit)
-        || (pstSettings->eBurstMode == BMUXlib_Input_BurstMode_eFrameDataUnit))
-      && (pstSettings->eType != BMUXlib_Input_Type_eVideo))
-   {
-      BDBG_LEAVE( BMUXlib_Input_Create );
-      BDBG_ERR(("Data-Unit Burst Mode is currently only applicable to video input type"));
-      return BERR_TRACE( BERR_INVALID_PARAMETER );
-   }
-
-   /* verify the interface settings ... */
-   switch (pstSettings->eType)
-   {
-      case BMUXlib_Input_Type_eVideo:
-      {
-         const BMUXlib_VideoEncoderInterface *pInterface = &pstSettings->interface.stVideo;
-         if ((NULL == pInterface->fGetBufferDescriptors) ||
-            (NULL == pInterface->fConsumeBufferDescriptors) ||
-            (NULL == pInterface->fGetBufferStatus))
-         {
-            BDBG_LEAVE( BMUXlib_Input_Create );
-            return BERR_TRACE( BERR_INVALID_PARAMETER );
-         }
-         break;
-      }
-      case BMUXlib_Input_Type_eAudio:
-      {
-         const BMUXlib_AudioEncoderInterface *pInterface = &pstSettings->interface.stAudio;
-         if ((NULL == pInterface->fGetBufferDescriptors) ||
-            (NULL == pInterface->fConsumeBufferDescriptors) ||
-            (NULL == pInterface->fGetBufferStatus))
-         {
-            BDBG_LEAVE( BMUXlib_Input_Create );
-            return BERR_TRACE( BERR_INVALID_PARAMETER );
-         }
-         break;
-      }
-      default: /* can't happen */
-         break;
-   }
-
    hInput = ( BMUXlib_Input_Handle ) BKNI_Malloc( sizeof( BMUXlib_Input_P_Context ) );
 
    if ( NULL == hInput )
@@ -294,25 +249,143 @@ BMUXlib_Input_Create(
    BDBG_OBJECT_SET(hInput, BMUXlib_Input_P_Context);
    hInput->stCreateSettings = *pstSettings;
 
-   if ( 0 == hInput->stCreateSettings.uiBurstMaxLength )
+   BMUXlib_Input_GetDefaultSettings( &hInput->stSettingsPending );
+   BMUXlib_Input_GetDefaultSettings( &hInput->stSettingsCurrent );
+
+   *phInput = hInput;
+
+   BDBG_LEAVE( BMUXlib_Input_Create );
+
+   return BERR_TRACE( BERR_SUCCESS );
+}
+
+BERR_Code
+BMUXlib_Input_Destroy(
+         BMUXlib_Input_Handle hInput
+         )
+{
+   BDBG_ENTER( BMUXlib_Input_Destroy );
+
+   BDBG_OBJECT_ASSERT(hInput, BMUXlib_Input_P_Context);
+
+   BDBG_OBJECT_DESTROY(hInput, BMUXlib_Input_P_Context);
+   BKNI_Free( hInput );
+
+   BDBG_LEAVE( BMUXlib_Input_Destroy );
+
+   return BERR_TRACE( BERR_SUCCESS );
+}
+
+void
+BMUXlib_Input_GetDefaultStartSettings(
+         BMUXlib_Input_StartSettings *pstSettings
+         )
+{
+   BDBG_ENTER( BMUXlib_Input_GetDefaultStartSettings );
+
+   BDBG_ASSERT( pstSettings );
+
+   BKNI_Memset(
+            pstSettings,
+            0,
+            sizeof ( BMUXlib_Input_StartSettings )
+            );
+
+   pstSettings->uiSignature = BMUXLIB_INPUT_P_SIGNATURE_STARTSETTINGS;
+   pstSettings->eType = BMUXlib_Input_Type_eVideo;
+   pstSettings->eBurstMode = BMUXlib_Input_BurstMode_eDescriptor;
+   pstSettings->uiBurstMaxLength = BMUXLIB_INPUT_P_DEFAULT_BURST_LENGTH;
+   pstSettings->uiBurstMaxDuration = BMUXLIB_INPUT_P_DEFAULT_BURST_DURATION;
+   pstSettings->bFilterUntilMetadataSeen = true;
+
+   BDBG_LEAVE( BMUXlib_Input_GetDefaultStartSettings );
+}
+
+BERR_Code
+BMUXlib_Input_Start(
+         BMUXlib_Input_Handle hInput,
+         const BMUXlib_Input_StartSettings *pstSettings
+         )
+{
+   BDBG_OBJECT_ASSERT( hInput, BMUXlib_Input_P_Context );
+   BDBG_ENTER( BMUXlib_Input_Start );
+
+   BDBG_ASSERT( pstSettings );
+   BDBG_ASSERT( BMUXLIB_INPUT_P_SIGNATURE_STARTSETTINGS == pstSettings->uiSignature );
+
+   /* verify the settings (as a minimum, we need a type and an interface) ...
+      NOTE: it is valid for pMetadata to not be set */
+   if (((pstSettings->eType != BMUXlib_Input_Type_eVideo) && (pstSettings->eType != BMUXlib_Input_Type_eAudio))
+      || ((pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eDescriptor)
+         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eFrame)
+         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eDataUnit)
+         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eFrameDataUnit))
+      )
    {
-      hInput->stCreateSettings.uiBurstMaxLength = BMUXLIB_INPUT_P_DEFAULT_BURST_LENGTH;
+      BDBG_LEAVE( BMUXlib_Input_Start);
+      return BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
-   if ( 0 == hInput->stCreateSettings.uiBurstMaxDuration )
+   if (((pstSettings->eBurstMode == BMUXlib_Input_BurstMode_eDataUnit)
+        || (pstSettings->eBurstMode == BMUXlib_Input_BurstMode_eFrameDataUnit))
+      && (pstSettings->eType != BMUXlib_Input_Type_eVideo))
    {
-      hInput->stCreateSettings.uiBurstMaxDuration = BMUXLIB_INPUT_P_DEFAULT_BURST_DURATION;
+      BDBG_LEAVE( BMUXlib_Input_Start );
+      BDBG_ERR(("Data-Unit Burst Mode is currently only applicable to video input type"));
+      return BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
-   BMUXlib_Input_GetDefaultSettings( &hInput->stats.stSettingsPending );
-   BMUXlib_Input_GetDefaultSettings( &hInput->stats.stSettingsCurrent );
+   /* verify the interface settings ... */
+   switch (pstSettings->eType)
+   {
+      case BMUXlib_Input_Type_eVideo:
+      {
+         const BMUXlib_VideoEncoderInterface *pInterface = &pstSettings->interface.stVideo;
+         if ((NULL == pInterface->fGetBufferDescriptors) ||
+            (NULL == pInterface->fConsumeBufferDescriptors) ||
+            (NULL == pInterface->fGetBufferStatus))
+         {
+            BDBG_LEAVE( BMUXlib_Input_Start );
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+         }
+         break;
+      }
+      case BMUXlib_Input_Type_eAudio:
+      {
+         const BMUXlib_AudioEncoderInterface *pInterface = &pstSettings->interface.stAudio;
+         if ((NULL == pInterface->fGetBufferDescriptors) ||
+            (NULL == pInterface->fConsumeBufferDescriptors) ||
+            (NULL == pInterface->fGetBufferStatus))
+         {
+            BDBG_LEAVE( BMUXlib_Input_Start );
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+         }
+         break;
+      }
+      default: /* can't happen */
+         break;
+   }
+
+   BKNI_Memset( &hInput->state, 0, sizeof( hInput->state ) );
+
+   hInput->stStartSettings = *pstSettings;
+
+   if ( 0 == hInput->stStartSettings.uiBurstMaxLength )
+   {
+      hInput->stStartSettings.uiBurstMaxLength = BMUXLIB_INPUT_P_DEFAULT_BURST_LENGTH;
+   }
+
+   if ( 0 == hInput->stStartSettings.uiBurstMaxDuration )
+   {
+      hInput->stStartSettings.uiBurstMaxDuration = BMUXLIB_INPUT_P_DEFAULT_BURST_DURATION;
+   }
 
 #if BMUXLIB_INPUT_P_DUMP_DESC
    {
       char fname[256];
       sprintf(fname, "BMUXlib_INPUT_DESC_");
 
-      switch ( hInput->stCreateSettings.eType )
+      switch ( hInput->stStartSettings.eType )
       {
          case BMUXlib_Input_Type_eVideo:
             sprintf(fname, "%sVIDEO_", fname);
@@ -327,9 +400,9 @@ BMUXlib_Input_Create(
       }
 #if BMUXLIB_INPUT_P_TEST_MODE
       /* when running in test mode, do not name file with handle to the input, since this will change from run-to-run */
-      sprintf(fname, "%s%02d_%02d.csv", fname, hInput->stCreateSettings.uiTypeInstance, hInput->stCreateSettings.uiMuxId);
+      sprintf(fname, "%s%02d_%02d.csv", fname, hInput->stStartSettings.uiTypeInstance, hInput->stStartSettings.uiMuxId);
 #else
-      sprintf(fname, "%s%02d_%02d_%08x.csv", fname, hInput->stCreateSettings.uiTypeInstance, hInput->stCreateSettings.uiMuxId, (unsigned)hInput);
+      sprintf(fname, "%s%02d_%02d_%08x.csv", fname, hInput->stStartSettings.uiTypeInstance, hInput->stStartSettings.uiMuxId, (unsigned)hInput);
 #endif
       BKNI_Printf("Creating Input Descriptor Dump File (%s)\n", fname);
 
@@ -340,7 +413,7 @@ BMUXlib_Input_Create(
       else
       {
          BMuxlib_Debug_CSVWrite(hInput->hDescDumpFile, "count,base_addr,frame_size,flags,offset,length,opts_45khz,pts,escr,tpb,shr,stc_snapshot");
-         switch ( hInput->stCreateSettings.eType )
+         switch ( hInput->stStartSettings.eType )
          {
             case BMUXlib_Input_Type_eVideo:
                BMuxlib_Debug_CSVWrite( hInput->hDescDumpFile, ",vflags,dts,dut,rai" );
@@ -360,7 +433,7 @@ BMUXlib_Input_Create(
       char fname[256];
       sprintf(fname, "BMUXlib_METADATA_DESC_");
 
-      switch ( hInput->stCreateSettings.eType )
+      switch ( hInput->stStartSettings.eType )
       {
          case BMUXlib_Input_Type_eVideo:
             sprintf(fname, "%sVIDEO_", fname);
@@ -375,9 +448,9 @@ BMUXlib_Input_Create(
       }
 #if BMUXLIB_INPUT_P_TEST_MODE
       /* when running in test mode, do not name file with handle to the input, since this will change from run-to-run */
-      sprintf(fname, "%s%02d_%02d.csv", fname, hInput->stCreateSettings.uiTypeInstance, hInput->stCreateSettings.uiMuxId);
+      sprintf(fname, "%s%02d_%02d.csv", fname, hInput->stStartSettings.uiTypeInstance, hInput->stStartSettings.uiMuxId);
 #else
-      sprintf(fname, "%s%02d_%02d_%08x.csv", fname, hInput->stCreateSettings.uiTypeInstance, hInput->stCreateSettings.uiMuxId, (unsigned)hInput);
+      sprintf(fname, "%s%02d_%02d_%08x.csv", fname, hInput->stStartSettings.uiTypeInstance, hInput->stStartSettings.uiMuxId, (unsigned)hInput);
 #endif
       BKNI_Printf("Creating Input Metadata Descriptor Dump File (%s)\n", fname);
       if (!BMuxlib_Debug_CSVOpen(&hInput->hMetadataDumpFile, fname))
@@ -386,7 +459,7 @@ BMUXlib_Input_Create(
       }
       else
       {
-         switch ( hInput->stCreateSettings.eType )
+         switch ( hInput->stStartSettings.eType )
          {
             case BMUXlib_Input_Type_eVideo:
                BMuxlib_Debug_CSVWrite(hInput->hMetadataDumpFile, "flags, protocol, profile, level, max_bitrate, frame_rate, coded_width, coded_height, "
@@ -409,7 +482,7 @@ BMUXlib_Input_Create(
       char fname[256];
       sprintf(fname, "BMUXlib_INPUT_CONFIG_");
 
-      switch ( hInput->stCreateSettings.eType )
+      switch ( hInput->stStartSettings.eType )
       {
          case BMUXlib_Input_Type_eVideo:
             sprintf(fname, "%sVIDEO_", fname);
@@ -424,9 +497,9 @@ BMUXlib_Input_Create(
       }
 #if BMUXLIB_INPUT_P_TEST_MODE
       /* when running in test mode, do not name file with handle to the input, since this will change from run-to-run */
-      sprintf(fname, "%s%02d_%02d.csv", fname, hInput->stCreateSettings.uiTypeInstance, hInput->stCreateSettings.uiMuxId);
+      sprintf(fname, "%s%02d_%02d.csv", fname, hInput->stStartSettings.uiTypeInstance, hInput->stStartSettings.uiMuxId);
 #else
-      sprintf(fname, "%s%02d_%02d_%08x.csv", fname, hInput->stCreateSettings.uiTypeInstance, hInput->stCreateSettings.uiMuxId, (unsigned)hInput);
+      sprintf(fname, "%s%02d_%02d_%08x.csv", fname, hInput->stStartSettings.uiTypeInstance, hInput->stStartSettings.uiMuxId, (unsigned)hInput);
 #endif
       BKNI_Printf("Creating Input Config Dump File (%s)\n", fname);
 
@@ -441,39 +514,21 @@ BMUXlib_Input_Create(
    }
 #endif /* end: descriptor dump */
 
-   hInput->bFirstTime = true;
-   *phInput = hInput;
+   hInput->state.bFirstTime = true;
 
-   BDBG_LEAVE( BMUXlib_Input_Create );
+   BDBG_LEAVE( BMUXlib_Input_Start );
 
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-BERR_Code
-BMUXlib_Input_GetCreateSettings(
-         BMUXlib_Input_Handle hInput,
-         BMUXlib_Input_CreateSettings *pstSettings
-         )
-{
-   BDBG_OBJECT_ASSERT( hInput, BMUXlib_Input_P_Context );
-
-   BDBG_ENTER( BMUXlib_Input_GetCreateSettings );
-
-   *pstSettings = hInput->stCreateSettings;
-
-   BDBG_LEAVE( BMUXlib_Input_GetCreateSettings );
-   return BERR_SUCCESS;
-}
-
-BERR_Code
-BMUXlib_Input_Destroy(
+void
+BMUXlib_Input_Stop(
          BMUXlib_Input_Handle hInput
          )
 {
-   BDBG_ENTER( BMUXlib_Input_Destroy );
-
    BDBG_OBJECT_ASSERT(hInput, BMUXlib_Input_P_Context);
 
+   BDBG_ENTER(BMUXlib_Input_Stop);
 
 #if BMUXLIB_INPUT_P_DUMP_DESC
    BMuxlib_Debug_CSVClose(hInput->hDescDumpFile);
@@ -488,12 +543,25 @@ BMUXlib_Input_Destroy(
    hInput->hConfigDumpFile = NULL;
 #endif
 
-   BDBG_OBJECT_DESTROY(hInput, BMUXlib_Input_P_Context);
-   BKNI_Free( hInput );
+   BKNI_Memset(&hInput->stStartSettings, 0, sizeof( BMUXlib_Input_StartSettings ));
 
-   BDBG_LEAVE( BMUXlib_Input_Destroy );
+   BDBG_LEAVE(BMUXlib_Input_Stop);
+}
 
-   return BERR_TRACE( BERR_SUCCESS );
+BERR_Code
+BMUXlib_Input_GetStartSettings(
+         BMUXlib_Input_Handle hInput,
+         BMUXlib_Input_StartSettings *pstSettings
+         )
+{
+   BDBG_OBJECT_ASSERT( hInput, BMUXlib_Input_P_Context );
+
+   BDBG_ENTER( BMUXlib_Input_GetStartSettings );
+
+   *pstSettings = hInput->stStartSettings;
+
+   BDBG_LEAVE( BMUXlib_Input_GetStartSettings );
+   return BERR_SUCCESS;
 }
 
 void
@@ -521,14 +589,14 @@ BMUXlib_Input_SetSettings(
    BDBG_ASSERT( BMUXLIB_INPUT_P_SIGNATURE_SETTINGS == pstSettings->uiSignature );
 
    BDBG_ENTER( BMUXlib_Input_SetSettings );
-   hInput->stats.stSettingsPending = *pstSettings;
+   hInput->stSettingsPending = *pstSettings;
 
 #if BMUXLIB_INPUT_P_DUMP_DESC
    if ( NULL != hInput->hConfigDumpFile )
    {
       BMuxlib_Debug_CSVWrite(hInput->hConfigDumpFile, "%d,%d\n",
          *hInput->puiDescCount,
-         hInput->stats.stSettingsPending.bEnable
+         hInput->stSettingsPending.bEnable
          );
    }
 #endif
@@ -549,13 +617,13 @@ BMUXlib_Input_GetSettings(
 
    BDBG_ENTER( BMUXlib_Input_GetSettings );
 
-   *pstSettings = hInput->stats.stSettingsPending;
+   *pstSettings = hInput->stSettingsPending;
 
    BDBG_LEAVE( BMUXlib_Input_GetSettings );
    return BERR_SUCCESS;
 }
 
-void
+static void
 BMUXlib_Input_P_AddDescriptors(
    BMUXlib_Input_Handle hInput,
    size_t uiCount
@@ -563,13 +631,13 @@ BMUXlib_Input_P_AddDescriptors(
 {
    BDBG_ENTER( BMUXlib_Input_P_AddDescriptors );
 
-   hInput->stDescriptorInfo.uiWriteOffset += uiCount;
-   hInput->stDescriptorInfo.uiWriteOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
+   hInput->state.stDescriptorInfo.uiWriteOffset += uiCount;
+   hInput->state.stDescriptorInfo.uiWriteOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
 
    BDBG_LEAVE( BMUXlib_Input_P_AddDescriptors );
 }
 
-void
+static void
 BMUXlib_Input_P_SkipDescriptors(
    BMUXlib_Input_Handle hInput,
    size_t uiCount
@@ -579,20 +647,20 @@ BMUXlib_Input_P_SkipDescriptors(
 
    BDBG_ENTER( BMUXlib_Input_P_SkipDescriptors );
 
-   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->stDescriptorInfo.uiPendingOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >= uiCount );
+   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->state.stDescriptorInfo.uiPendingOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >= uiCount );
 
-   for ( uiIndex = hInput->stDescriptorInfo.uiPendingOffset; uiIndex != (hInput->stDescriptorInfo.uiPendingOffset + uiCount) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = (uiIndex + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+   for ( uiIndex = hInput->state.stDescriptorInfo.uiPendingOffset; uiIndex != (hInput->state.stDescriptorInfo.uiPendingOffset + uiCount) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = (uiIndex + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
    {
-      hInput->stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount = 0;
-      hInput->stDescriptorInfo.astQueue[uiIndex].bModified = false;
+      hInput->state.stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount = 0;
+      hInput->state.stDescriptorInfo.astQueue[uiIndex].bModified = false;
    }
-   hInput->stDescriptorInfo.uiPendingOffset += uiCount;
-   hInput->stDescriptorInfo.uiPendingOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
+   hInput->state.stDescriptorInfo.uiPendingOffset += uiCount;
+   hInput->state.stDescriptorInfo.uiPendingOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
 
    BDBG_LEAVE( BMUXlib_Input_P_SkipDescriptors );
 }
 
-void
+static void
 BMUXlib_Input_P_RewindDescriptors(
    BMUXlib_Input_Handle hInput,
    size_t uiCount
@@ -602,19 +670,19 @@ BMUXlib_Input_P_RewindDescriptors(
 
    BDBG_ENTER( BMUXlib_Input_P_RewindDescriptors );
 
-   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->stDescriptorInfo.uiReadOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >= uiCount );
+   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->state.stDescriptorInfo.uiReadOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >= uiCount );
 
-   for ( uiIndex = (hInput->stDescriptorInfo.uiWriteOffset - 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex != (hInput->stDescriptorInfo.uiWriteOffset - ( uiCount + 1 ) ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = (uiIndex - 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+   for ( uiIndex = (hInput->state.stDescriptorInfo.uiWriteOffset - 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex != (hInput->state.stDescriptorInfo.uiWriteOffset - ( uiCount + 1 ) ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = (uiIndex - 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
    {
-      BKNI_Memset( &hInput->stDescriptorInfo.astQueue[uiIndex], 0, sizeof( hInput->stDescriptorInfo.astQueue[uiIndex] ) );
+      BKNI_Memset( &hInput->state.stDescriptorInfo.astQueue[uiIndex], 0, sizeof( hInput->state.stDescriptorInfo.astQueue[uiIndex] ) );
    }
-   hInput->stDescriptorInfo.uiWriteOffset -= uiCount;
-   hInput->stDescriptorInfo.uiWriteOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
+   hInput->state.stDescriptorInfo.uiWriteOffset -= uiCount;
+   hInput->state.stDescriptorInfo.uiWriteOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
 
    BDBG_LEAVE( BMUXlib_Input_P_RewindDescriptors );
 }
 
-void
+static void
 BMUXlib_Input_P_ConsumeDescriptors(
    BMUXlib_Input_Handle hInput,
    size_t uiCount
@@ -624,14 +692,14 @@ BMUXlib_Input_P_ConsumeDescriptors(
 
    BDBG_ENTER( BMUXlib_Input_P_ConsumeDescriptors );
 
-   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->stDescriptorInfo.uiReadOffset, hInput->stDescriptorInfo.uiPendingOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >= uiCount );
+   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->state.stDescriptorInfo.uiReadOffset, hInput->state.stDescriptorInfo.uiPendingOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >= uiCount );
 
-   for ( uiIndex = hInput->stDescriptorInfo.uiReadOffset; uiIndex != (hInput->stDescriptorInfo.uiReadOffset + uiCount) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = (uiIndex + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+   for ( uiIndex = hInput->state.stDescriptorInfo.uiReadOffset; uiIndex != (hInput->state.stDescriptorInfo.uiReadOffset + uiCount) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = (uiIndex + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
    {
-      BKNI_Memset( &hInput->stDescriptorInfo.astQueue[uiIndex], 0, sizeof( hInput->stDescriptorInfo.astQueue[uiIndex] ) );
+      BKNI_Memset( &hInput->state.stDescriptorInfo.astQueue[uiIndex], 0, sizeof( hInput->state.stDescriptorInfo.astQueue[uiIndex] ) );
    }
-   hInput->stDescriptorInfo.uiReadOffset += uiCount;
-   hInput->stDescriptorInfo.uiReadOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
+   hInput->state.stDescriptorInfo.uiReadOffset += uiCount;
+   hInput->state.stDescriptorInfo.uiReadOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
 
    BDBG_LEAVE( BMUXlib_Input_P_ConsumeDescriptors );
 }
@@ -645,21 +713,21 @@ BMUXlib_Input_ProcessNewDescriptors(
    size_t auiNumDescriptors[2];
    const BAVC_VideoBufferDescriptor *astVideo[2];
    const BAVC_AudioBufferDescriptor *astAudio[2];
-   size_t uiPreviousWriteOffset = hInput->stDescriptorInfo.uiWriteOffset;
+   size_t uiPreviousWriteOffset = hInput->state.stDescriptorInfo.uiWriteOffset;
 
 #if BMUXLIB_INPUT_P_DUMP_DESC
-   size_t uiNumOldDescriptors = BMUXLIB_INPUT_P_QUEUE_DEPTH(hInput->stDescriptorInfo.uiReadOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS);
+   size_t uiNumOldDescriptors = BMUXLIB_INPUT_P_QUEUE_DEPTH(hInput->state.stDescriptorInfo.uiReadOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS);
 #endif
 
    BDBG_OBJECT_ASSERT( hInput, BMUXlib_Input_P_Context );
 
    BDBG_ENTER( BMUXlib_Input_ProcessNewDescriptors );
 
-   switch ( hInput->stCreateSettings.eType )
+   switch ( hInput->stStartSettings.eType )
    {
       case BMUXlib_Input_Type_eVideo:
       {
-         BMUXlib_VideoEncoderInterface *pInterface = &hInput->stCreateSettings.interface.stVideo;
+         BMUXlib_VideoEncoderInterface *pInterface = &hInput->stStartSettings.interface.stVideo;
 
          /* Get Descriptors */
          rc = BERR_TRACE( pInterface->fGetBufferDescriptors(
@@ -674,7 +742,7 @@ BMUXlib_Input_ProcessNewDescriptors(
 
       case BMUXlib_Input_Type_eAudio:
       {
-         BMUXlib_AudioEncoderInterface *pInterface = &hInput->stCreateSettings.interface.stAudio;
+         BMUXlib_AudioEncoderInterface *pInterface = &hInput->stStartSettings.interface.stAudio;
 
          /* Get Descriptors */
          rc = BERR_TRACE( pInterface->fGetBufferDescriptors(
@@ -689,21 +757,21 @@ BMUXlib_Input_ProcessNewDescriptors(
 
       default:
          /* should not happen - checked for at Create() time */
-         BDBG_ERR(("Unknown input type: %d", hInput->stCreateSettings.eType));
+         BDBG_ERR(("Unknown input type: %d", hInput->stStartSettings.eType));
          rc = BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
    /* Check for error */
    if ( BERR_SUCCESS != rc )
    {
-      BDBG_ERR(("INPUT[%02d][%02d]: Error getting buffer descriptors", hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance));
+      BDBG_ERR(("INPUT[%02d][%02d]: Error getting buffer descriptors", hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance));
    }
 
    /* SW7425-5205: If we have descriptors in the internal queue, as a sanity check, ensure the first descriptor
     * from the input matches the first descriptor in the internal queue.  If not, we need to reconcile the internal queue.
     * E.g. the input may have watchdogged and/or the input had stale descriptors between stop/start which were flushed
     */
-   if ( 0 != BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->stDescriptorInfo.uiReadOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) )
+   if ( 0 != BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->state.stDescriptorInfo.uiReadOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) )
    {
       void *pDescInternal = NULL, *pDescInput = NULL;
       unsigned uiDescLength = 0;
@@ -717,15 +785,15 @@ BMUXlib_Input_ProcessNewDescriptors(
           * descriptor is not 1.  If this is not 1, it implies we have disabled inputs, so the internal queue and external queue
           * no longer match.
           */
-         if ( 1 != hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiReadOffset].uiSourceDescriptorCount ) break;
+         if ( 1 != hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiReadOffset].uiSourceDescriptorCount ) break;
 
-         if ( true == hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiReadOffset].bModified ) break;
+         if ( true == hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiReadOffset].bModified ) break;
 
-         switch ( hInput->stCreateSettings.eType )
+         switch ( hInput->stStartSettings.eType )
          {
             case BMUXlib_Input_Type_eVideo:
             {
-               pDescInternal = (void*) &hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiReadOffset].stDescriptor.stVideo;
+               pDescInternal = (void*) &hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiReadOffset].stDescriptor.stVideo;
                pDescInput = (void*) &astVideo[0][0];
                uiDescLength = sizeof( BAVC_VideoBufferDescriptor );
             }
@@ -733,7 +801,7 @@ BMUXlib_Input_ProcessNewDescriptors(
 
             case BMUXlib_Input_Type_eAudio:
             {
-               pDescInternal = (void*) &hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiReadOffset].stDescriptor.stAudio;
+               pDescInternal = (void*) &hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiReadOffset].stDescriptor.stAudio;
                pDescInput = (void*) &astAudio[0][0];
                uiDescLength = sizeof( BAVC_AudioBufferDescriptor );
             }
@@ -741,7 +809,7 @@ BMUXlib_Input_ProcessNewDescriptors(
 
             default:
                /* should not happen - checked for at Create() time */
-               BDBG_ERR(("Unknown input type: %d", hInput->stCreateSettings.eType));
+               BDBG_ERR(("Unknown input type: %d", hInput->stStartSettings.eType));
                rc = BERR_TRACE( BERR_INVALID_PARAMETER );
          }
 
@@ -752,7 +820,7 @@ BMUXlib_Input_ProcessNewDescriptors(
             if ( 0 == BKNI_Memcmp( pDescInternal, pDescInput, uiDescLength ) ) break;
          }
 
-         if ( hInput->stDescriptorInfo.uiReadOffset == hInput->stDescriptorInfo.uiPendingOffset )
+         if ( hInput->state.stDescriptorInfo.uiReadOffset == hInput->state.stDescriptorInfo.uiPendingOffset )
          {
             BMUXlib_Input_P_SkipDescriptors( hInput, 1 );
          }
@@ -766,15 +834,15 @@ BMUXlib_Input_ProcessNewDescriptors(
          BDBG_ASSERT( 0 != uiNumOldDescriptors );
          uiNumOldDescriptors--;
 #endif
-      } while ( ( 0 != BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->stDescriptorInfo.uiReadOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) ) );
+      } while ( ( 0 != BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->state.stDescriptorInfo.uiReadOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) ) );
 
       if ( 0 != uiReconciledDescriptors )
       {
          BDBG_WRN(("INPUT[%02d][%02d]: %d Descriptors went missing from input (watchdog or stop/start occurred?), reconciling internal descriptor queue...",
-            hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
+            hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance,
             uiReconciledDescriptors));
 
-         hInput->stDescriptorInfo.uiStaleDescriptorCount += uiReconciledPendingDescriptors;
+         hInput->state.stDescriptorInfo.uiStaleDescriptorCount += uiReconciledPendingDescriptors;
       }
    }
 
@@ -784,11 +852,11 @@ BMUXlib_Input_ProcessNewDescriptors(
       {
          BMUXlib_CompressedBufferStatus stBufferStatus;
 
-         switch ( hInput->stCreateSettings.eType )
+         switch ( hInput->stStartSettings.eType )
          {
             case BMUXlib_Input_Type_eVideo:
             {
-               BMUXlib_VideoEncoderInterface *pInterface = &hInput->stCreateSettings.interface.stVideo;
+               BMUXlib_VideoEncoderInterface *pInterface = &hInput->stStartSettings.interface.stVideo;
 
                rc = BERR_TRACE( pInterface->fGetBufferStatus(
                         pInterface->pContext,
@@ -801,22 +869,22 @@ BMUXlib_Input_ProcessNewDescriptors(
                }
                else
                {
-                  if ( true == hInput->bBufferStatusValid )
+                  if ( true == hInput->state.bBufferStatusValid )
                   {
-                     if ( ( stBufferStatus.hFrameBufferBlock != hInput->stBufferStatus.hFrameBufferBlock )
-                          || ( stBufferStatus.hMetadataBufferBlock != hInput->stBufferStatus.hMetadataBufferBlock) )
+                     if ( ( stBufferStatus.hFrameBufferBlock != hInput->state.stBufferStatus.hFrameBufferBlock )
+                          || ( stBufferStatus.hMetadataBufferBlock != hInput->state.stBufferStatus.hMetadataBufferBlock) )
                      {
                         BDBG_WRN(("Video Input block buffer handles have changed. Did a watchdog occur?"));
                      }
                   }
-                  hInput->stBufferStatus = stBufferStatus;
-                  hInput->bBufferStatusValid = true;
+                  hInput->state.stBufferStatus = stBufferStatus;
+                  hInput->state.bBufferStatusValid = true;
                }
             }
                break;
             case BMUXlib_Input_Type_eAudio:
             {
-               BMUXlib_AudioEncoderInterface *pInterface = &hInput->stCreateSettings.interface.stAudio;
+               BMUXlib_AudioEncoderInterface *pInterface = &hInput->stStartSettings.interface.stAudio;
 
                rc = BERR_TRACE( pInterface->fGetBufferStatus(
                         pInterface->pContext,
@@ -829,23 +897,23 @@ BMUXlib_Input_ProcessNewDescriptors(
                }
                else
                {
-                  if ( true == hInput->bBufferStatusValid )
+                  if ( true == hInput->state.bBufferStatusValid )
                   {
-                     if ( ( stBufferStatus.hFrameBufferBlock != hInput->stBufferStatus.hFrameBufferBlock )
-                          || ( stBufferStatus.hMetadataBufferBlock != hInput->stBufferStatus.hMetadataBufferBlock) )
+                     if ( ( stBufferStatus.hFrameBufferBlock != hInput->state.stBufferStatus.hFrameBufferBlock )
+                          || ( stBufferStatus.hMetadataBufferBlock != hInput->state.stBufferStatus.hMetadataBufferBlock) )
                      {
                         BDBG_WRN(("Audio Input block buffer handles have changed. Did a watchdog occur?"));
                      }
                   }
-                  hInput->stBufferStatus = stBufferStatus;
-                  hInput->bBufferStatusValid = true;
+                  hInput->state.stBufferStatus = stBufferStatus;
+                  hInput->state.bBufferStatusValid = true;
                }
             }
                break;
 
             default:
                /* should not happen - checked for at Create() time */
-               BDBG_ERR(("Unknown input type: %d", hInput->stCreateSettings.eType));
+               BDBG_ERR(("Unknown input type: %d", hInput->stStartSettings.eType));
                rc = BERR_INVALID_PARAMETER;
          }
       }
@@ -856,9 +924,9 @@ BMUXlib_Input_ProcessNewDescriptors(
    {
       unsigned i,j,uiOldDescriptors = 0;
 
-      for ( i = hInput->stDescriptorInfo.uiReadOffset; i != hInput->stDescriptorInfo.uiWriteOffset; i = ( i + 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+      for ( i = hInput->state.stDescriptorInfo.uiReadOffset; i != hInput->state.stDescriptorInfo.uiWriteOffset; i = ( i + 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
       {
-         uiOldDescriptors += hInput->stDescriptorInfo.astQueue[i].uiSourceDescriptorCount;
+         uiOldDescriptors += hInput->state.stDescriptorInfo.astQueue[i].uiSourceDescriptorCount;
       }
 
       /* Copy the descriptors to the internal queue */
@@ -873,44 +941,44 @@ BMUXlib_Input_ProcessNewDescriptors(
                continue;
             }
 
-            if ( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->stDescriptorInfo.uiReadOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) == ( BMUXLIB_INPUT_P_MAX_DESCRIPTORS - 1 ) )
+            if ( BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->state.stDescriptorInfo.uiReadOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) == ( BMUXLIB_INPUT_P_MAX_DESCRIPTORS - 1 ) )
             {
                /* Our internal queue is full, so continue */
                continue;
             }
 
-            switch ( hInput->stCreateSettings.eType )
+            switch ( hInput->stStartSettings.eType )
             {
                case BMUXlib_Input_Type_eVideo:
                {
-                  hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stVideo = astVideo[i][j];
+                  hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stVideo = astVideo[i][j];
                }
                break;
 
                case BMUXlib_Input_Type_eAudio:
                {
-                  hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stAudio = astAudio[i][j];
+                  hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stAudio = astAudio[i][j];
                }
                break;
 
                default:
                   /* should not happen - checked for at Create() time */
-                  BDBG_ERR(("Unknown input type: %d", hInput->stCreateSettings.eType));
+                  BDBG_ERR(("Unknown input type: %d", hInput->stStartSettings.eType));
                   rc = BERR_TRACE( BERR_INVALID_PARAMETER );
             }
 
             if ( rc == BERR_SUCCESS )
             {
-               hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].uiSourceDescriptorCount++;
+               hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].uiSourceDescriptorCount++;
 
                /* SW7346-1363: Check to see if we need to enable/disable this input */
-               if ( hInput->stats.stSettingsPending.bEnable != hInput->stats.stSettingsCurrent.bEnable )
+               if ( hInput->stSettingsPending.bEnable != hInput->stSettingsCurrent.bEnable )
                {
                   BMUXlib_Input_Descriptor stDescriptor;
 
                   BMUXlib_Input_P_PeekAtDescriptor(
                            hInput,
-                           hInput->stDescriptorInfo.uiWriteOffset,
+                           hInput->state.stDescriptorInfo.uiWriteOffset,
                            &stDescriptor
                            );
 
@@ -918,23 +986,23 @@ BMUXlib_Input_ProcessNewDescriptors(
                   if ( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stDescriptor )
                        && BMUXLIB_INPUT_DESCRIPTOR_IS_KEYFRAME( &stDescriptor ) )
                   {
-                     hInput->stats.stSettingsCurrent.bEnable = hInput->stats.stSettingsPending.bEnable;
+                     hInput->stSettingsCurrent.bEnable = hInput->stSettingsPending.bEnable;
 
                      BDBG_MODULE_MSG( BMUXLIB_INPUT_ENABLE, ("INPUT[%02d][%02d]: Enable %d",
-                        hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
-                        hInput->stats.stSettingsCurrent.bEnable
+                        hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance,
+                        hInput->stSettingsCurrent.bEnable
                      ));
                   }
                }
 
                /* Check to see if we need to filter descriptors */
-               if ( false == hInput->stats.stSettingsCurrent.bEnable )
+               if ( false == hInput->stSettingsCurrent.bEnable )
                {
                   BMUXlib_Input_Descriptor stDescriptor;
 
                   BMUXlib_Input_P_PeekAtDescriptor(
                            hInput,
-                           hInput->stDescriptorInfo.uiWriteOffset,
+                           hInput->state.stDescriptorInfo.uiWriteOffset,
                            &stDescriptor
                            );
 
@@ -948,20 +1016,20 @@ BMUXlib_Input_ProcessNewDescriptors(
                      /* Change the FRAME_START descriptor to an EMPTY_FRAME */
                      if ( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stDescriptor ) )
                      {
-                        hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiFlags &= ~BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START;
-                        hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EMPTY_FRAME;
-                        hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiLength = 0;
-                        hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].bModified = true;
+                        hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiFlags &= ~BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START;
+                        hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EMPTY_FRAME;
+                        hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiLength = 0;
+                        hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].bModified = true;
                         BDBG_MODULE_MSG( BMUXLIB_INPUT_ENABLE, ("INPUT[%02d][%02d]: Converting FRAME_START --> EMPTY_FRAME (ESCR: %08x, Count: %d)",
-                           hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
-                           hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiESCR,
-                           (int)hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].uiSourceDescriptorCount));
+                           hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance,
+                           hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiESCR,
+                           (int)hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].uiSourceDescriptorCount));
                      }
 
-                     if ( 0 != hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiLength )
+                     if ( 0 != hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiLength )
                      {
-                        hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiLength = 0;
-                        hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].bModified = true;
+                        hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiLength = 0;
+                        hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset].bModified = true;
                      }
                   }
                   else
@@ -976,14 +1044,14 @@ BMUXlib_Input_ProcessNewDescriptors(
          }
       }
       /* We want to make sure we zero out any non-frame descriptors that we haven't seen a subsequent FRAME_START to avoid counting them twice */
-      BKNI_Memset( &hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset], 0, sizeof( hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset] ) );
+      BKNI_Memset( &hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset], 0, sizeof( hInput->state.stDescriptorInfo.astQueue[hInput->state.stDescriptorInfo.uiWriteOffset] ) );
    }
 
    if ( BERR_SUCCESS == rc )
    {
       /* See if we need to filter descriptors based on the burst mode */
-      if ( (BMUXlib_Input_BurstMode_eFrame == hInput->stCreateSettings.eBurstMode)
-         || (BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode) )
+      if ( (BMUXlib_Input_BurstMode_eFrame == hInput->stStartSettings.eBurstMode)
+         || (BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stStartSettings.eBurstMode) )
       {
          /* Frame Burst ... */
          size_t i;
@@ -1000,7 +1068,7 @@ BMUXlib_Input_ProcessNewDescriptors(
          /* NOTE: if a frame is not complete, then this will always return to the first
             descriptor with a FRAME_START next time we enter here with new descriptors
             hence the duration calc will start from the correct location */
-         for ( i = uiPreviousWriteOffset; i != hInput->stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+         for ( i = uiPreviousWriteOffset; i != hInput->state.stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
          {
             BMUXlib_Input_P_PeekAtDescriptor( hInput, i, &stDescriptor );
             /* the following should not happen */
@@ -1008,18 +1076,18 @@ BMUXlib_Input_ProcessNewDescriptors(
 
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stDescriptor ) )
             {
-               if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
+               if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stStartSettings.eBurstMode)
                   && !BMUXLIB_INPUT_DESCRIPTOR_IS_DATA_UNIT_START(&stDescriptor))
                {
                   BDBG_WRN(("INPUT[%02d][%02d]: DU Burst: Expecting DU Start indicator on Frame Start Descriptor",
-                      hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance));
+                      hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance));
                }
                /* end the current frame ... */
                uiNumNewDescriptors += uiNumDescriptorsInCurrentFrame;
                uiNumDescriptorsInCurrentFrame = 0;
-               hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
+               hInput->state.stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
                /* calculate the duration of this frame (assumes any duration is less than ~13 hours!)... */
-               hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameDuration90kHz = (uint32_t)(BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor) - uiCurrentFrameStartDTS);
+               hInput->state.stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameDuration90kHz = (uint32_t)(BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor) - uiCurrentFrameStartDTS);
 
                /* start the new frame ... */
                uiCurrentFrameSize = BMUXLIB_INPUT_DESCRIPTOR_LENGTH ( &stDescriptor );
@@ -1031,7 +1099,7 @@ BMUXlib_Input_ProcessNewDescriptors(
                   )
                {
                   /* If this descriptor is also an EOS or FRAME_END, then this frame is complete */
-                  hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
+                  hInput->state.stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
                   uiNumNewDescriptors++;
                }
                else
@@ -1055,7 +1123,7 @@ BMUXlib_Input_ProcessNewDescriptors(
 
                uiNumNewDescriptors += uiNumDescriptorsInCurrentFrame;
                uiNumDescriptorsInCurrentFrame = 0;
-               hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
+               hInput->state.stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
                /* Include this descriptor as part of this new frame */
                uiNumNewDescriptors++;
             }
@@ -1068,18 +1136,18 @@ BMUXlib_Input_ProcessNewDescriptors(
          } /* end: for each incoming descriptor */
 
          /* Adjust num descriptors to ignore incomplete frames */
-         BMUXlib_Input_P_RewindDescriptors( hInput, ( BMUXLIB_INPUT_P_QUEUE_DEPTH( uiPreviousWriteOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) - uiNumNewDescriptors ) );
+         BMUXlib_Input_P_RewindDescriptors( hInput, ( BMUXLIB_INPUT_P_QUEUE_DEPTH( uiPreviousWriteOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) - uiNumNewDescriptors ) );
 
          /* if there were descriptors processed for new frames ... */
          if (0 != uiNumNewDescriptors)
          {
-            if (BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
+            if (BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stStartSettings.eBurstMode)
             {
                /* locate and calculate the sizes of every DU within the frame */
                if (BMUXlib_Input_P_ProcessDUBurstMode(hInput, uiPreviousWriteOffset) != uiNumNewDescriptors)
                   /* should not happen! */
                   BDBG_WRN(("INPUT[%02d][%02d]: DU Burst: Not all descriptors in the Frame were processed as DUs",
-                      hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance));
+                      hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance));
             }
 
             if ( BMUXlib_Input_Type_eAudio == BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) )
@@ -1090,7 +1158,7 @@ BMUXlib_Input_ProcessNewDescriptors(
                size_t uiCurrentStartDTS = 0;
                size_t uiCurrentBurstSize = 0;
 
-               for ( i = uiPreviousWriteOffset; i != hInput->stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+               for ( i = uiPreviousWriteOffset; i != hInput->state.stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
                {
                   BMUXlib_Input_P_PeekAtDescriptor( hInput, i, &stDescriptor );
                   /* the following should not happen */
@@ -1105,10 +1173,10 @@ BMUXlib_Input_ProcessNewDescriptors(
                         bCurrentBurstStartIndexValid = true;
                      }
 
-                     if ( ( ( uiCurrentBurstSize + stDescriptor.uiFrameSize ) >= hInput->stCreateSettings.uiBurstMaxLength )
-                          || ( ( (uint32_t) ( ( BMUXLIB_INPUT_DESCRIPTOR_DTS( &stDescriptor ) - uiCurrentStartDTS ) / 90 ) ) >= hInput->stCreateSettings.uiBurstMaxDuration ) )
+                     if ( ( ( uiCurrentBurstSize + stDescriptor.uiFrameSize ) >= hInput->stStartSettings.uiBurstMaxLength )
+                          || ( ( (uint32_t) ( ( BMUXLIB_INPUT_DESCRIPTOR_DTS( &stDescriptor ) - uiCurrentStartDTS ) / 90 ) ) >= hInput->stStartSettings.uiBurstMaxDuration ) )
                      {
-                        hInput->stDescriptorInfo.astQueue[uiCurrentBurstStartIndex].uiBurstSize = uiCurrentBurstSize;
+                        hInput->state.stDescriptorInfo.astQueue[uiCurrentBurstStartIndex].uiBurstSize = uiCurrentBurstSize;
                         uiCurrentBurstSize = 0;
                         uiCurrentBurstStartIndex = i;
                         uiCurrentStartDTS = BMUXLIB_INPUT_DESCRIPTOR_DTS( &stDescriptor );
@@ -1119,26 +1187,26 @@ BMUXlib_Input_ProcessNewDescriptors(
                }
                if ( true == bCurrentBurstStartIndexValid )
                {
-                  hInput->stDescriptorInfo.astQueue[uiCurrentBurstStartIndex].uiBurstSize = uiCurrentBurstSize;
+                  hInput->state.stDescriptorInfo.astQueue[uiCurrentBurstStartIndex].uiBurstSize = uiCurrentBurstSize;
                }
             }
          } /* end: if new descriptors processed */
       } /* end: frame burst mode */
-      else if (BMUXlib_Input_BurstMode_eDataUnit == hInput->stCreateSettings.eBurstMode)
+      else if (BMUXlib_Input_BurstMode_eDataUnit == hInput->stStartSettings.eBurstMode)
       {
          /* Data Unit Burst */
          unsigned uiNumNewDescriptors = BMUXlib_Input_P_ProcessDUBurstMode(hInput, uiPreviousWriteOffset);
 
          /* adjust new descriptor queue to ignore incomplete DUs ... */
-         BMUXlib_Input_P_RewindDescriptors( hInput, ( BMUXLIB_INPUT_P_QUEUE_DEPTH( uiPreviousWriteOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) - uiNumNewDescriptors ) );
+         BMUXlib_Input_P_RewindDescriptors( hInput, ( BMUXLIB_INPUT_P_QUEUE_DEPTH( uiPreviousWriteOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) - uiNumNewDescriptors ) );
       } /* end: burst mode handling */
 
 #if BMUXLIB_INPUT_P_DUMP_DESC
       BMUXlib_Input_P_DumpNewDescriptors(hInput, uiNumOldDescriptors);
 #endif
 
-      if ( ( true == hInput->stCreateSettings.bFilterUntilMetadataSeen )
-           && ( false == hInput->stats.bMetadataSeen ) )
+      if ( ( true == hInput->stStartSettings.bFilterUntilMetadataSeen )
+           && ( false == hInput->state.stats.bMetadataSeen ) )
       {
          BMUXlib_Input_Descriptor stDescriptor;
          size_t uiFilterCount = 0;
@@ -1168,13 +1236,13 @@ BMUXlib_Input_ProcessNewDescriptors(
          if ( 0 != uiFilterCount )
          {
             BDBG_WRN(("INPUT[%02d][%02d]: Filtered %d stale descriptors",
-               hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
+               hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance,
                (int)uiFilterCount));
             rc = BMUXlib_Input_ConsumeDescriptors( hInput, uiFilterCount );
             uiFilterCount = 0;
          }
 
-         hInput->stats.bMetadataSeen = bMetadataSeen;
+         hInput->state.stats.bMetadataSeen = bMetadataSeen;
       }
    }
 
@@ -1193,12 +1261,12 @@ BMUXlib_Input_IsDescriptorAvailable(
    BDBG_OBJECT_ASSERT( hInput, BMUXlib_Input_P_Context );
 
    BDBG_MSG(("INPUT[%02d][%02d]: Available: %d Pending %d",
-      hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
-      (int)hInput->stDescriptorInfo.uiWriteOffset, (int)hInput->stDescriptorInfo.uiPendingOffset));
+      hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance,
+      (int)hInput->state.stDescriptorInfo.uiWriteOffset, (int)hInput->state.stDescriptorInfo.uiPendingOffset));
 
    BDBG_LEAVE( BMUXlib_Input_IsDescriptorAvailable );
 
-   return ( 0 != BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->stDescriptorInfo.uiPendingOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) );
+   return ( 0 != BMUXLIB_INPUT_P_QUEUE_DEPTH( hInput->state.stDescriptorInfo.uiPendingOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) );
 }
 
 /* Returns true if a valid descriptor is available in pstDescriptor
@@ -1215,7 +1283,7 @@ BMUXlib_Input_PeekAtNextDescriptor(
 
    BDBG_ENTER( BMUXlib_Input_PeekAtNextDescriptor );
 
-   if ( hInput->stDescriptorInfo.uiWriteOffset == hInput->stDescriptorInfo.uiPendingOffset )
+   if ( hInput->state.stDescriptorInfo.uiWriteOffset == hInput->state.stDescriptorInfo.uiPendingOffset )
    {
       /* No more descriptors */
       pstDescriptor->descriptor.pstCommon = NULL;
@@ -1223,7 +1291,7 @@ BMUXlib_Input_PeekAtNextDescriptor(
    }
    else
    {
-      BMUXlib_Input_P_PeekAtDescriptor( hInput, hInput->stDescriptorInfo.uiPendingOffset, pstDescriptor );
+      BMUXlib_Input_P_PeekAtDescriptor( hInput, hInput->state.stDescriptorInfo.uiPendingOffset, pstDescriptor );
       /* the following should not happen since we checked for descriptors available, above */
       BDBG_ASSERT(pstDescriptor->descriptor.pstCommon != NULL);
    }
@@ -1239,10 +1307,10 @@ BMUXlib_Input_PeekAtDescriptor(
          BMUXlib_Input_Descriptor *pstDescriptor
          )
 {
-   uiIndex += hInput->stDescriptorInfo.uiPendingOffset;
+   uiIndex += hInput->state.stDescriptorInfo.uiPendingOffset;
    uiIndex %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
 
-   if ( BMUXlib_Input_GetDescriptorCount( hInput ) < BMUXLIB_INPUT_P_QUEUE_DEPTH ( uiIndex, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) )
+   if ( BMUXlib_Input_GetDescriptorCount( hInput ) < BMUXLIB_INPUT_P_QUEUE_DEPTH ( uiIndex, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) )
    {
       return false;
    }
@@ -1256,7 +1324,7 @@ BMUXlib_Input_GetDescriptorCount(
    BMUXlib_Input_Handle hInput
    )
 {
-   return BMUXLIB_INPUT_P_QUEUE_DEPTH ( hInput->stDescriptorInfo.uiPendingOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS );
+   return BMUXLIB_INPUT_P_QUEUE_DEPTH ( hInput->state.stDescriptorInfo.uiPendingOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS );
 }
 
 /* Returns true if a valid descriptor is available in pstDescriptor
@@ -1279,8 +1347,8 @@ BMUXlib_Input_GetNextDescriptor(
    if (bDescAvail)
    {
       /* descriptor is available, so return it to the user */
-      hInput->stDescriptorInfo.uiPendingOffset++;
-      hInput->stDescriptorInfo.uiPendingOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
+      hInput->state.stDescriptorInfo.uiPendingOffset++;
+      hInput->state.stDescriptorInfo.uiPendingOffset %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
    }
 
    BDBG_LEAVE( BMUXlib_Input_GetNextDescriptor );
@@ -1304,38 +1372,38 @@ BMUXlib_Input_ConsumeDescriptors(
    /* SW7425-5205: There was a mismatch between the pending descriptors and the available descriptors,
     * reduce the released count to match the available descriptors
     */
-   if ( hInput->stDescriptorInfo.uiStaleDescriptorCount >= uiCount )
+   if ( hInput->state.stDescriptorInfo.uiStaleDescriptorCount >= uiCount )
    {
-      hInput->stDescriptorInfo.uiStaleDescriptorCount -= uiCount;
+      hInput->state.stDescriptorInfo.uiStaleDescriptorCount -= uiCount;
       uiCount = 0;
    }
    else
    {
-      uiCount -= hInput->stDescriptorInfo.uiStaleDescriptorCount;
-      hInput->stDescriptorInfo.uiStaleDescriptorCount = 0;
+      uiCount -= hInput->state.stDescriptorInfo.uiStaleDescriptorCount;
+      hInput->state.stDescriptorInfo.uiStaleDescriptorCount = 0;
    }
 
-   for ( uiIndex = hInput->stDescriptorInfo.uiReadOffset; uiIndex != ( hInput->stDescriptorInfo.uiReadOffset + uiCount ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = ( uiIndex + 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+   for ( uiIndex = hInput->state.stDescriptorInfo.uiReadOffset; uiIndex != ( hInput->state.stDescriptorInfo.uiReadOffset + uiCount ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex = ( uiIndex + 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
    {
-      if ( 0 != hInput->stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount )
+      if ( 0 != hInput->state.stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount )
       {
-         switch ( hInput->stCreateSettings.eType )
+         switch ( hInput->stStartSettings.eType )
          {
             case BMUXlib_Input_Type_eVideo:
             {
-               BMUXlib_VideoEncoderInterface *pInterface = &hInput->stCreateSettings.interface.stVideo;
+               BMUXlib_VideoEncoderInterface *pInterface = &hInput->stStartSettings.interface.stVideo;
 
                /* Consume Descriptors */
                rc = BERR_TRACE(pInterface->fConsumeBufferDescriptors(
                         pInterface->pContext,
-                        hInput->stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount
+                        hInput->state.stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount
                         ));
 
                /* Check for error */
                if ( BERR_SUCCESS != rc )
                {
                   /* This is warning if immediately after start (flushing after previous unclean stop), error any other time */
-                  if (hInput->bFirstTime)
+                  if (hInput->state.bFirstTime)
                   {
                      BDBG_WRN(("VIDEO Error consuming buffer descriptors"));
                   }
@@ -1349,19 +1417,19 @@ BMUXlib_Input_ConsumeDescriptors(
 
             case BMUXlib_Input_Type_eAudio:
             {
-               BMUXlib_AudioEncoderInterface *pInterface = &hInput->stCreateSettings.interface.stAudio;
+               BMUXlib_AudioEncoderInterface *pInterface = &hInput->stStartSettings.interface.stAudio;
 
                /* Consume Descriptors */
                rc = BERR_TRACE(pInterface->fConsumeBufferDescriptors(
                         pInterface->pContext,
-                        hInput->stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount
+                        hInput->state.stDescriptorInfo.astQueue[uiIndex].uiSourceDescriptorCount
                         ));
 
                /* Check for error */
                if ( BERR_SUCCESS != rc )
                {
                   /* This is warning if immediately after start (flushing after previous unclean stop), error any other time */
-                  if (hInput->bFirstTime)
+                  if (hInput->state.bFirstTime)
                   {
                      BDBG_WRN(("AUDIO Error consuming buffer descriptors"));
                   }
@@ -1389,20 +1457,20 @@ BMUXlib_Input_ConsumeDescriptors(
       }
    }
 
-   if ( ( ( true == hInput->stCreateSettings.bFilterUntilMetadataSeen )
-          && ( true == hInput->stats.bMetadataSeen ) )
-        || ( false == hInput->stCreateSettings.bFilterUntilMetadataSeen ) )
+   if ( ( ( true == hInput->stStartSettings.bFilterUntilMetadataSeen )
+          && ( true == hInput->state.stats.bMetadataSeen ) )
+        || ( false == hInput->stStartSettings.bFilterUntilMetadataSeen ) )
    {
       if ( uiConsumedCount > 0 )
       {
          unsigned i;
          BMUXlib_Input_Descriptor stDescriptor;
 
-         if ( false == hInput->stats.stStatus.bInitialDTSValid )
+         if ( false == hInput->state.stats.stStatus.bInitialDTSValid )
          {
             /* look forward thru the consumed descriptors to find the initial DTS
                (i.e. the first DTS encountered) */
-            for (i = hInput->stDescriptorInfo.uiReadOffset; i != hInput->stDescriptorInfo.uiReadOffset + uiConsumedCount; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+            for (i = hInput->state.stDescriptorInfo.uiReadOffset; i != hInput->state.stDescriptorInfo.uiReadOffset + uiConsumedCount; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
             {
                BMUXlib_Input_P_PeekAtDescriptor( hInput, i, &stDescriptor );
                /* the following should not happen  */
@@ -1410,15 +1478,15 @@ BMUXlib_Input_ConsumeDescriptors(
 
                if ( BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID( &stDescriptor ) )
                {
-                  hInput->stats.stStatus.uiInitialDTS = BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor);
-                  hInput->stats.stStatus.bInitialDTSValid = true;
+                  hInput->state.stats.stStatus.uiInitialDTS = BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor);
+                  hInput->state.stats.stStatus.bInitialDTSValid = true;
                   break;
                }
             }
          }
          /* look backward thru the consumed descriptors to find the current DTS
             (i.e. the latest consumed DTS) */
-         for ( i = ( hInput->stDescriptorInfo.uiReadOffset + uiConsumedCount - 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; /* No Conditional */ ; i = (i - 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+         for ( i = ( hInput->state.stDescriptorInfo.uiReadOffset + uiConsumedCount - 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; /* No Conditional */ ; i = (i - 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
          {
             BMUXlib_Input_P_PeekAtDescriptor( hInput, i, &stDescriptor );
             /* the following should not happen  */
@@ -1426,16 +1494,16 @@ BMUXlib_Input_ConsumeDescriptors(
 
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID( &stDescriptor ) )
             {
-               hInput->stats.stStatus.uiCurrentDTS = BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor);
+               hInput->state.stats.stStatus.uiCurrentDTS = BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor);
                break;
             }
-            if ( i == hInput->stDescriptorInfo.uiReadOffset ) break;
+            if ( i == hInput->state.stDescriptorInfo.uiReadOffset ) break;
          }
       }
    }
 
    BMUXlib_Input_P_ConsumeDescriptors( hInput, uiConsumedCount );
-   hInput->bFirstTime = false;
+   hInput->state.bFirstTime = false;
 
    BDBG_LEAVE( BMUXlib_Input_ConsumeDescriptors );
 
@@ -1454,7 +1522,7 @@ BMUXlib_Input_GetStatus(
 
    BDBG_ENTER( BMUXlib_Input_GetStatus );
 
-   *pstStatus = hInput->stats.stStatus;
+   *pstStatus = hInput->state.stats.stStatus;
 
    BDBG_LEAVE( BMUXlib_Input_GetStatus );
    return BERR_TRACE( rc );
@@ -1482,6 +1550,7 @@ BMUXlib_InputGroup_GetDefaultCreateSettings(
    /* this ensures there are no inputs in the group, and we do not wait for inputs */
    BKNI_Memset(pstSettings, 0, sizeof(BMUXlib_InputGroup_CreateSettings));
    pstSettings->uiSignature = BMUXLIB_INPUTGROUP_P_SIGNATURE_CREATESETTINGS;
+   pstSettings->uiMaxInputCount = 2;
 
    BDBG_LEAVE( BMUXlib_InputGroup_GetDefaultCreateSettings );
 }
@@ -1503,8 +1572,7 @@ BMUXlib_InputGroup_Create(
    *phInputGroup = NULL;
 
    /* verify the settings ... */
-   if ((0 == pstSettings->uiInputCount)
-      || (NULL == pstSettings->pInputTable))
+   if (0 == pstSettings->uiMaxInputCount)
    {
       BDBG_LEAVE(BMUXlib_InputGroup_Create);
       return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -1513,11 +1581,10 @@ BMUXlib_InputGroup_Create(
    hInputGroup = BKNI_Malloc(sizeof(struct BMUXlib_InputGroup_P_Context));
    if (NULL != hInputGroup)
    {
-      uint32_t uiInputIndex;
       BKNI_Memset( hInputGroup, 0, sizeof( struct BMUXlib_InputGroup_P_Context ));
       BDBG_OBJECT_SET(hInputGroup, BMUXlib_InputGroup_P_Context);
-      hInputGroup->pInputTable = BKNI_Malloc(sizeof( BMUXlib_InputGroup_P_InputEntry ) * pstSettings->uiInputCount);
-      hInputGroup->pInputSelectTable = BKNI_Malloc(sizeof( BMUXlib_InputGroup_P_InputEntry *) * pstSettings->uiInputCount);
+      hInputGroup->pInputTable = BKNI_Malloc(sizeof( BMUXlib_InputGroup_P_InputEntry ) * pstSettings->uiMaxInputCount);
+      hInputGroup->pInputSelectTable = BKNI_Malloc(sizeof( BMUXlib_InputGroup_P_InputEntry *) * pstSettings->uiMaxInputCount);
 
       if ((NULL == hInputGroup->pInputTable) ||
           (NULL == hInputGroup->pInputSelectTable))
@@ -1526,39 +1593,10 @@ BMUXlib_InputGroup_Create(
          BDBG_LEAVE(BMUXlib_InputGroup_Create);
          return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
       }
-      /* clear the two tables... */
-      BKNI_Memset(hInputGroup->pInputTable, 0, sizeof( BMUXlib_InputGroup_P_InputEntry ) * pstSettings->uiInputCount);
-      BKNI_Memset(hInputGroup->pInputSelectTable, 0 , sizeof( BMUXlib_InputGroup_P_InputEntry *) * pstSettings->uiInputCount);
 
-      for (uiInputIndex = 0; uiInputIndex < pstSettings->uiInputCount; uiInputIndex++)
-      {
-         BMUXlib_InputGroup_P_InputEntry *pEntry = &(hInputGroup->pInputTable)[uiInputIndex];
-         BMUXlib_Input_Handle hInput = (pstSettings->pInputTable)[uiInputIndex];
-         /* verify table contains valid inputs */
-         if (NULL == hInput)
-         {
-            rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-            break;
-         }
-         BDBG_OBJECT_ASSERT(hInput, BMUXlib_Input_P_Context);
-         pEntry->hInput = hInput;
-         pEntry->bActive = true; /* initially, all inputs are "active" */
-         /* descriptor will be filled in as needed during input selection */
-#if BMUXLIB_INPUT_P_DUMP_DESC
-         BMUXlib_Input_P_SetCountLocation(hInput, &hInputGroup->uiDescCount);
-#endif
-      }
-
-      if (BERR_SUCCESS == rc)
-      {
-         BMUXlib_InputGroup_GetDefaultSettings(&hInputGroup->stSettings);
-         hInputGroup->uiNumInputs = pstSettings->uiInputCount;
-         /* initially, all inputs are "active" */
-         hInputGroup->stStatus.uiNumActiveInputs = pstSettings->uiInputCount;
-         *phInputGroup = hInputGroup;
-      }
-      else
-         BMUXlib_InputGroup_Destroy(hInputGroup);
+      BMUXlib_InputGroup_GetDefaultSettings(&hInputGroup->stSettings);
+      hInputGroup->stCreateSettings = *pstSettings;
+      *phInputGroup = hInputGroup;
    }
    else
       rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -1588,6 +1626,97 @@ BMUXlib_InputGroup_Destroy(
    BKNI_Free(hInputGroup);
 
    BDBG_LEAVE(BMUXlib_Input_DestroyGroup);
+}
+
+void
+BMUXlib_InputGroup_GetDefaultStartSettings(
+         BMUXlib_InputGroup_StartSettings *pstSettings
+         )
+{
+   BDBG_ENTER( BMUXlib_InputGroup_GetDefaultStartSettings );
+   BDBG_ASSERT( pstSettings );
+
+   /* this ensures there are no inputs in the group, and we do not wait for inputs */
+   BKNI_Memset(pstSettings, 0, sizeof(BMUXlib_InputGroup_StartSettings));
+   pstSettings->uiSignature = BMUXLIB_INPUTGROUP_P_SIGNATURE_STARTSETTINGS;
+
+   BDBG_LEAVE( BMUXlib_InputGroup_GetDefaultStartSettings );
+}
+
+BERR_Code
+BMUXlib_InputGroup_Start(
+         BMUXlib_InputGroup_Handle hInputGroup,
+         const BMUXlib_InputGroup_StartSettings *pstSettings
+         )
+{
+   BERR_Code rc = BERR_SUCCESS;
+   BDBG_OBJECT_ASSERT(hInputGroup, BMUXlib_InputGroup_P_Context);
+
+   BDBG_ASSERT(pstSettings);
+   BDBG_ASSERT(BMUXLIB_INPUTGROUP_P_SIGNATURE_STARTSETTINGS == pstSettings->uiSignature);
+
+   BDBG_ENTER(BMUXlib_InputGroup_Start);
+
+   /* verify the settings ... */
+   if ((0 == pstSettings->uiInputCount)
+      || (NULL == pstSettings->pInputTable)
+      || ( pstSettings->uiInputCount > hInputGroup->stCreateSettings.uiMaxInputCount ))
+   {
+      BDBG_LEAVE(BMUXlib_InputGroup_Create);
+      return BERR_TRACE(BERR_INVALID_PARAMETER);
+   }
+
+   /* clear the two tables... */
+   BKNI_Memset(hInputGroup->pInputTable, 0, sizeof( BMUXlib_InputGroup_P_InputEntry ) * hInputGroup->stCreateSettings.uiMaxInputCount);
+   BKNI_Memset(hInputGroup->pInputSelectTable, 0 , sizeof( BMUXlib_InputGroup_P_InputEntry *) * hInputGroup->stCreateSettings.uiMaxInputCount);
+
+   {
+      uint32_t uiInputIndex;
+
+      for (uiInputIndex = 0; uiInputIndex < pstSettings->uiInputCount; uiInputIndex++)
+      {
+         BMUXlib_InputGroup_P_InputEntry *pEntry = &(hInputGroup->pInputTable)[uiInputIndex];
+         BMUXlib_Input_Handle hInput = (pstSettings->pInputTable)[uiInputIndex];
+         /* verify table contains valid inputs */
+         if (NULL == hInput)
+         {
+            BMUXlib_InputGroup_Stop(hInputGroup);
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+         }
+         BDBG_OBJECT_ASSERT(hInput, BMUXlib_Input_P_Context);
+         pEntry->hInput = hInput;
+         pEntry->bActive = true; /* initially, all inputs are "active" */
+         /* descriptor will be filled in as needed during input selection */
+#if BMUXLIB_INPUT_P_DUMP_DESC
+         BMUXlib_Input_P_SetCountLocation(hInput, &hInputGroup->uiDescCount);
+#endif
+      }
+
+      hInputGroup->stStartSettings = *pstSettings;
+      /* initially, all inputs are "active" */
+      hInputGroup->state.stStatus.uiNumActiveInputs = pstSettings->uiInputCount;
+   }
+
+   BDBG_LEAVE(BMUXlib_InputGroup_Start);
+   return rc;
+}
+
+void
+BMUXlib_InputGroup_Stop(
+         BMUXlib_InputGroup_Handle hInputGroup
+         )
+{
+   BDBG_OBJECT_ASSERT(hInputGroup, BMUXlib_InputGroup_P_Context);
+
+   BDBG_ENTER(BMUXlib_InputGroup_Stop);
+
+   /* clear the two tables... */
+   BKNI_Memset(hInputGroup->pInputTable, 0, sizeof( BMUXlib_InputGroup_P_InputEntry ) * hInputGroup->stCreateSettings.uiMaxInputCount);
+   BKNI_Memset(hInputGroup->pInputSelectTable, 0 , sizeof( BMUXlib_InputGroup_P_InputEntry *) * hInputGroup->stCreateSettings.uiMaxInputCount);
+   BKNI_Memset(&hInputGroup->stStartSettings, 0, sizeof( BMUXlib_InputGroup_StartSettings ));
+   hInputGroup->state.stStatus.uiNumActiveInputs = 0;
+
+   BDBG_LEAVE(BMUXlib_InputGroup_Stop);
 }
 
 void
@@ -1661,13 +1790,13 @@ BMUXlib_InputGroup_ActivateInput(
    BDBG_ENTER( BMUXlib_InputGroup_ActivateInput );
 
    /* find the entry for this input */
-   for (uiInputIndex = 0; uiInputIndex < hInputGroup->uiNumInputs; uiInputIndex++)
+   for (uiInputIndex = 0; uiInputIndex < hInputGroup->stStartSettings.uiInputCount; uiInputIndex++)
    {
       pEntry = &(hInputGroup->pInputTable)[uiInputIndex];
       if (pEntry->hInput == hInput)
          break;
    }
-   if (uiInputIndex == hInputGroup->uiNumInputs)
+   if (uiInputIndex == hInputGroup->stStartSettings.uiInputCount)
    {
       /* invalid input specified ... */
       BDBG_LEAVE( BMUXlib_InputGroup_DisableInput );
@@ -1675,10 +1804,10 @@ BMUXlib_InputGroup_ActivateInput(
    }
 
    if (bActive && !pEntry->bActive)
-      hInputGroup->stStatus.uiNumActiveInputs++;
+      hInputGroup->state.stStatus.uiNumActiveInputs++;
 
    if (!bActive && pEntry->bActive)
-      hInputGroup->stStatus.uiNumActiveInputs--;
+      hInputGroup->state.stStatus.uiNumActiveInputs--;
 
    pEntry->bActive = bActive;
 
@@ -1702,7 +1831,7 @@ BMUXlib_InputGroup_GetStatus(
    BDBG_ENTER( BMUXlib_InputGroup_GetStatus );
 
    /* Calculate completed duration */
-   for ( uiInputNum = 0; uiInputNum < hInputGroup->uiNumInputs; uiInputNum++ )
+   for ( uiInputNum = 0; uiInputNum < hInputGroup->stStartSettings.uiInputCount; uiInputNum++ )
    {
       BMUXlib_InputGroup_P_InputEntry *pEntry = &(hInputGroup->pInputTable)[uiInputNum];
       BMUXlib_Input_Handle hInput = pEntry->hInput;
@@ -1728,12 +1857,12 @@ BMUXlib_InputGroup_GetStatus(
       }
    }
 
-   if ( hInputGroup->stStatus.uiNumActiveInputs > 0 )
+   if ( hInputGroup->state.stStatus.uiNumActiveInputs > 0 )
    {
-      hInputGroup->stStatus.uiDuration = (uiSmallestCurrentDTS - uiSmallestInitialDTS)/90;
+      hInputGroup->state.stStatus.uiDuration = (uiSmallestCurrentDTS - uiSmallestInitialDTS)/90;
    }
 
-   *pstStatus = hInputGroup->stStatus;
+   *pstStatus = hInputGroup->state.stStatus;
 
    BDBG_LEAVE( BMUXlib_InputGroup_GetStatus );
    return BERR_SUCCESS;
@@ -1757,7 +1886,7 @@ BMUXlib_InputGroup_GetNextInput(
    BDBG_ASSERT( phInput );
 
    *phInput = NULL;
-   for ( uiInputNum = 0; uiInputNum < hInputGroup->uiNumInputs; uiInputNum++ )
+   for ( uiInputNum = 0; uiInputNum < hInputGroup->stStartSettings.uiInputCount; uiInputNum++ )
    {
       BMUXlib_InputGroup_P_InputEntry *pEntry = &(hInputGroup->pInputTable)[uiInputNum];
       BMUXlib_Input_Handle hInput = pEntry->hInput;
@@ -1781,7 +1910,7 @@ BMUXlib_InputGroup_GetNextInput(
          if ( true == hInputGroup->stSettings.bWaitForAllInputs )
          {
             BDBG_MSG(( "INPUT[%02d][%02d]: is dry",
-               hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance
+               hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance
                ));
             BDBG_LEAVE( BMUXlib_InputGroup_GetNextInput );
             return;       /* wait until all inputs have descriptors available */
@@ -1935,35 +2064,35 @@ BMUXlib_Input_P_PeekAtDescriptor(
 
    pstDescriptor->descriptor.pstCommon = NULL;
    /* check for attempt to peek at non-existent descriptor */
-   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH ( hInput->stDescriptorInfo.uiReadOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >=
-                BMUXLIB_INPUT_P_QUEUE_DEPTH ( uiDescNum, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) );
+   BDBG_ASSERT( BMUXLIB_INPUT_P_QUEUE_DEPTH ( hInput->state.stDescriptorInfo.uiReadOffset, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) >=
+                BMUXLIB_INPUT_P_QUEUE_DEPTH ( uiDescNum, hInput->state.stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) );
 
-   pstDescriptor->eType = hInput->stCreateSettings.eType;
-   switch ( hInput->stCreateSettings.eType )
+   pstDescriptor->eType = hInput->stStartSettings.eType;
+   switch ( hInput->stStartSettings.eType )
    {
       case BMUXlib_Input_Type_eVideo:
-         pstDescriptor->descriptor.pstVideo = &hInput->stDescriptorInfo.astQueue[uiDescNum].stDescriptor.stVideo;
+         pstDescriptor->descriptor.pstVideo = &hInput->state.stDescriptorInfo.astQueue[uiDescNum].stDescriptor.stVideo;
          break;
       case BMUXlib_Input_Type_eAudio:
-         pstDescriptor->descriptor.pstAudio = &hInput->stDescriptorInfo.astQueue[uiDescNum].stDescriptor.stAudio;
+         pstDescriptor->descriptor.pstAudio = &hInput->state.stDescriptorInfo.astQueue[uiDescNum].stDescriptor.stAudio;
          break;
       default:
          /* NOTE: since eType is checked at Create-time, this should not happen */
          break;
    }
-   BDBG_ASSERT( true == hInput->bBufferStatusValid );
+   BDBG_ASSERT( true == hInput->state.bBufferStatusValid );
 
    if ( NULL != pstDescriptor->descriptor.pstCommon )
    {
       if ( BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA( pstDescriptor ) )
       {
-         BDBG_ASSERT(hInput->stBufferStatus.hMetadataBufferBlock);
-         pstDescriptor->hBlock = hInput->stBufferStatus.hMetadataBufferBlock;
+         BDBG_ASSERT(hInput->state.stBufferStatus.hMetadataBufferBlock);
+         pstDescriptor->hBlock = hInput->state.stBufferStatus.hMetadataBufferBlock;
       }
       else
       {
-         BDBG_ASSERT(hInput->stBufferStatus.hFrameBufferBlock);
-         pstDescriptor->hBlock = hInput->stBufferStatus.hFrameBufferBlock;
+         BDBG_ASSERT(hInput->state.stBufferStatus.hFrameBufferBlock);
+         pstDescriptor->hBlock = hInput->state.stBufferStatus.hFrameBufferBlock;
       }
    }
    else
@@ -1971,10 +2100,10 @@ BMUXlib_Input_P_PeekAtDescriptor(
       pstDescriptor->hBlock = NULL;
    }
 
-   pstDescriptor->uiFrameSize = hInput->stDescriptorInfo.astQueue[uiDescNum].uiFrameSize;
-   pstDescriptor->uiBurstSize = hInput->stDescriptorInfo.astQueue[uiDescNum].uiBurstSize;
-   pstDescriptor->uiDataUnitSize = hInput->stDescriptorInfo.astQueue[uiDescNum].uiDataUnitSize;
-   pstDescriptor->uiFrameDuration90kHz = hInput->stDescriptorInfo.astQueue[uiDescNum].uiFrameDuration90kHz;
+   pstDescriptor->uiFrameSize = hInput->state.stDescriptorInfo.astQueue[uiDescNum].uiFrameSize;
+   pstDescriptor->uiBurstSize = hInput->state.stDescriptorInfo.astQueue[uiDescNum].uiBurstSize;
+   pstDescriptor->uiDataUnitSize = hInput->state.stDescriptorInfo.astQueue[uiDescNum].uiDataUnitSize;
+   pstDescriptor->uiFrameDuration90kHz = hInput->state.stDescriptorInfo.astQueue[uiDescNum].uiFrameDuration90kHz;
 
    BDBG_LEAVE( BMUXlib_Input_P_PeekAtDescriptor );
 }
@@ -1988,7 +2117,7 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
    size_t uiCurrentDUDescCount = 0;
    size_t uiCurrentDUStartOffset = uiStartingOffset;
    size_t uiCurrentDUSize = 0;
-   size_t uiEndOffset = (hInput->stDescriptorInfo.uiWriteOffset==0)?(BMUXLIB_INPUT_P_MAX_DESCRIPTORS-1):(hInput->stDescriptorInfo.uiWriteOffset-1);
+   size_t uiEndOffset = (hInput->state.stDescriptorInfo.uiWriteOffset==0)?(BMUXLIB_INPUT_P_MAX_DESCRIPTORS-1):(hInput->state.stDescriptorInfo.uiWriteOffset-1);
    BMUXlib_Input_Descriptor stDescriptor;
    unsigned i;
 
@@ -1998,7 +2127,7 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
       Once the end of the DU has been found, the DULength field in the DU starting descriptor
       is updated with the DU total length.
     */
-   for (i = uiStartingOffset; i != hInput->stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS)
+   for (i = uiStartingOffset; i != hInput->state.stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS)
    {
       BMUXlib_Input_P_PeekAtDescriptor( hInput, i, &stDescriptor );
       /* the following should not happen */
@@ -2010,7 +2139,7 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
          && !BMUXLIB_INPUT_DESCRIPTOR_IS_DATA_UNIT_START(&stDescriptor))
       {
          BDBG_WRN(("INPUT[%02d][%02d]: DU Burst: Expecting DU start indicator on frame start descriptor",
-                      hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance));
+                      hInput->stStartSettings.eType, hInput->stStartSettings.uiTypeInstance));
       }
 
       if (BMUXLIB_INPUT_DESCRIPTOR_IS_DATA_UNIT_START(&stDescriptor)
@@ -2019,7 +2148,7 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
          /* end the current DU ... */
          uiNewDescCount += uiCurrentDUDescCount;
          uiCurrentDUDescCount = 0;
-         hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+         hInput->state.stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
 
          /* start the next DU ... */
          uiCurrentDUSize = BMUXLIB_INPUT_DESCRIPTOR_LENGTH(&stDescriptor);
@@ -2030,7 +2159,7 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
              || BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMEEND(&stDescriptor))
          {
             /* If this descriptor is also an EOS or FRAME_END, then this DU is complete */
-            hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+            hInput->state.stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
             uiNewDescCount++;
          }
          else
@@ -2039,12 +2168,12 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
             uiCurrentDUDescCount++;
             /* if we are in frame mode and this is the last descriptor of the frame
                then it also ENDS the current DU */
-            if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
+            if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stStartSettings.eBurstMode)
               && (i == uiEndOffset))
             {
                uiNewDescCount += uiCurrentDUDescCount;
                uiCurrentDUDescCount = 0;
-               hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+               hInput->state.stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
             }
          }
       }
@@ -2070,7 +2199,7 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
             /* NOTE: for isolated EOS (not on a descriptor with data), length MUST be zero */
          }
 
-         hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+         hInput->state.stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
          /* Include this descriptor as part of this new DU */
          uiNewDescCount++;
       }
@@ -2079,13 +2208,13 @@ static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, si
          /* add this descriptor to the current DU ...*/
          uiCurrentDUSize +=  BMUXLIB_INPUT_DESCRIPTOR_LENGTH(&stDescriptor);
          uiCurrentDUDescCount++;
-         if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
+         if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stStartSettings.eBurstMode)
             && (i == uiEndOffset))
          {
             /* NOTE: if we are in frame mode, the _last_ descriptor ALSO ends the current DU (since it
                is known to be the end of the current frame) */
             uiNewDescCount += uiCurrentDUDescCount;
-            hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+            hInput->state.stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
             uiCurrentDUDescCount = 0;
          }
       }
@@ -2120,14 +2249,14 @@ static void BMUXlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsi
    {
       unsigned uiIndex;
 
-      for ( uiIndex = ( hInput->stDescriptorInfo.uiReadOffset + uiNumOldDescriptors ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex != hInput->stDescriptorInfo.uiWriteOffset; uiIndex = ( uiIndex + 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
+      for ( uiIndex = ( hInput->state.stDescriptorInfo.uiReadOffset + uiNumOldDescriptors ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS; uiIndex != hInput->state.stDescriptorInfo.uiWriteOffset; uiIndex = ( uiIndex + 1 ) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
       {
          BMUXlib_Input_Descriptor stDescriptor;
          BMUXlib_Input_P_PeekAtDescriptor( hInput, uiIndex, &stDescriptor );
          /* the following should not happen */
          BDBG_ASSERT(stDescriptor.descriptor.pstCommon != NULL);
          /* all descriptors for a given input are of the type for the input */
-         BDBG_ASSERT(BMUXLIB_INPUT_DESCRIPTOR_TYPE(&stDescriptor) == hInput->stCreateSettings.eType);
+         BDBG_ASSERT(BMUXLIB_INPUT_DESCRIPTOR_TYPE(&stDescriptor) == hInput->stStartSettings.eType);
 
 #if BMUXLIB_INPUT_P_DUMP_FRAME_DESC
          if ( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stDescriptor ) )
@@ -2138,7 +2267,7 @@ static void BMUXlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsi
          BMuxlib_Debug_CSVWrite(hInput->hDescDumpFile, "%d,%p,%d,",
             *hInput->puiDescCount,
             pBufferBase,
-            (hInput->stCreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame)?BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE(&stDescriptor):0);
+            (hInput->stStartSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame)?BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE(&stDescriptor):0);
          BMMA_Unlock( BMUXLIB_INPUT_DESCRIPTOR_BLOCK(&stDescriptor), pBufferBase );
          /* Common */
          BMuxlib_Debug_CSVWrite( hInput->hDescDumpFile, "0x%08x,%u,%u,%u,%llu,%u,%u,%d,%llu",
@@ -2186,7 +2315,7 @@ static void BMUXlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsi
             BMUXlib_Input_Descriptor *pDesc = &stDescriptor;
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA(pDesc) && (NULL != pDesc->hBlock))
             {
-               switch ( hInput->stCreateSettings.eType )
+               switch ( hInput->stStartSettings.eType )
                {
                   case BMUXlib_Input_Type_eVideo:
                      /* read the data unit type to determine the metadata type */

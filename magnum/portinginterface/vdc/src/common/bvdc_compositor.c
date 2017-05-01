@@ -116,6 +116,16 @@ BERR_Code BVDC_Compositor_Create
                 BMMA_LockOffset(hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock);
         }
     }
+#if BVDC_P_DBV_SUPPORT
+    else if(hVdc->ahCompositor[eCompositorId]->stCfcCapability[0].stBits.bDbvCmp) {
+        BDBG_ERR(("DBV must provide hCfcHeap for HDR CMP LUT RUL!"));
+    }
+#endif
+#if BVDC_P_TCH_SUPPORT
+    else if(hVdc->ahCompositor[eCompositorId]->stCfcCapability[0].stBits.bTpToneMapping) {
+        BDBG_ERR(("TCH must provide hCfcHeap for HDR CMP LUT RUL!"));
+    }
+#endif
 #else
     BSTD_UNUSED(pDefSettings);
 #endif

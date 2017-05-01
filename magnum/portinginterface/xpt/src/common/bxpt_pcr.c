@@ -387,10 +387,6 @@ BERR_Code   BXPT_PCR_SetStreamPcrConfig_isr(
      * This overrided the jitter disable bits
      * */
 #ifndef BXPT_P_JITTER_CORRECTION_FIX
-    BSTD_UNUSED(hXpt);
-    BSTD_UNUSED(JitterTimestamp);
-    BSTD_UNUSED(PbJitterDisable);
-    BSTD_UNUSED(LiveJitterDisable);
     Reg = BREG_Read32(hRegister, BCHP_XPT_DPCR_PP_PP_CTRL );
     Reg &= ~(
         BCHP_MASK( XPT_DPCR_PP_PP_CTRL, PP_FIXED_OFFSET_EN )
@@ -403,7 +399,6 @@ BERR_Code   BXPT_PCR_SetStreamPcrConfig_isr(
     BREG_Write32( hRegister, BCHP_XPT_DPCR_PP_PP_FIXED_OFFSET, 0 );
 #endif
 
-#ifdef BXPT_P_JITTER_CORRECTION_FIX
     if( PcrCfg->JitterTimestamp >= BXPT_PCR_JitterTimestampMode_eMax )
     {
         BDBG_ERR(( "Invalid jitter timestamp mode %u", PcrCfg->JitterTimestamp ));
@@ -446,7 +441,6 @@ BERR_Code   BXPT_PCR_SetStreamPcrConfig_isr(
         BCHP_FIELD_DATA( XPT_DPCR_PP_PP_CTRL, PP_LIVE_PCR_JITTER_DIS, LiveJitterDisable )
         );
     BREG_Write32( hRegister, BCHP_XPT_DPCR_PP_PP_CTRL, Reg );
-#endif
 
     Reg = BREG_Read32(hRegister, BCHP_XPT_DPCR0_PID_CH  + hPcr->RegOffset);
     Reg &= ~(
@@ -485,10 +479,7 @@ BERR_Code   BXPT_PCR_SetStreamPcrConfig_isr(
     Reg |= BCHP_FIELD_DATA( XPT_DPCR0_PID_CH, PCR_PID_CH_VALID, 1 );
     BREG_Write32( hRegister, BCHP_XPT_DPCR0_PID_CH + hPcr->RegOffset, Reg);
 
-#ifdef BXPT_P_JITTER_CORRECTION_FIX
     Done:
-#endif
-
     hPcr->pidChnlConfigured = true;
     BDBG_LEAVE(BXPT_PCR_SetStreamPcrConfig_isr);
 

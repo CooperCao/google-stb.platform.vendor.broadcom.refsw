@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:26 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,8 +70,8 @@
 /***************************************************************************
  *V3D_VPM_0 - V3D Vertex Pipe Memory Allocation Registers
  ***************************************************************************/
-#define BCHP_V3D_VPM_0_ACNTL                     0x21308500 /* [RW] VPM Allocator Control */
-#define BCHP_V3D_VPM_0_MEMBASE                   0x21308504 /* [RW] VPM base (user) memory reservation (DEPRECATED) */
+#define BCHP_V3D_VPM_0_ACNTL                     0x21308500 /* [RW][32] VPM Allocator Control */
+#define BCHP_V3D_VPM_0_MEMBASE                   0x21308504 /* [RW][32] VPM base (user) memory reservation (DEPRECATED) */
 
 /***************************************************************************
  *ACNTL - VPM Allocator Control

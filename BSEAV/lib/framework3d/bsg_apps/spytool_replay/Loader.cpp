@@ -1,20 +1,16 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "Loader.h"
 #include "spytool_replay.h"
 #include "Command.h"
 #include "packet.h"
+#include "packetreader.h"
 #include "bsg_task.h"
-
+#include <mutex>
+#include <chrono>
+using namespace std::chrono;
+#include <thread>
 
 #include <memory.h>
 
@@ -22,35 +18,7 @@ DESC
 #include "unzip.h"
 #endif
 
-#ifdef WIN32
-#include <windows.h>
-#define usleep(x) Sleep((x) / 1000)
-#else
-#include <unistd.h>
-#endif
-
 #define BUFFER_IO
-
-#ifdef BIG_ENDIAN_CPU
-#define TO_LE_W(w) \
-{ \
-   uint32_t tmp = *((uint32_t*)&w);\
-   uint8_t *t = (uint8_t*)&tmp;\
-   uint8_t *p = (uint8_t*)&w;\
-   p[0] = t[3];\
-   p[1] = t[2];\
-   p[2] = t[1];\
-   p[3] = t[0];\
-}
-#else
-#define TO_LE_W(w)
-#endif
-
-static uint32_t To32(uint8_t *ptr)
-{
-   return *(uint32_t*)ptr;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -65,12 +33,11 @@ void LoaderTask::OnThread()
    {
       bool filled = m_loader.FillBuffer(false);
       if (filled)
-         usleep(1000);
+         std::this_thread::sleep_for(milliseconds(1000));
       else
       {
-         m_loader.m_queueMutex.Lock();
+         std::lock_guard<std::mutex> guard(m_loader.m_queueMutex);
          m_loader.m_taskDone = true;
-         m_loader.m_queueMutex.Unlock();
          return;
       }
    }
@@ -90,6 +57,7 @@ Loader::Loader(SpyToolReplay *replay) :
    m_minor(0),
    m_bufferLen(0),
    m_buffer(NULL),
+   m_readBytes(0),
    m_cmdQueueBytes(0),
    m_taskDone(false),
    m_insertAt(0),
@@ -128,17 +96,30 @@ Loader::~Loader()
    delete m_tasker;
 }
 
-int32_t Loader::Read(void *buf, size_t count)
+size_t Loader::Read(void *buf, size_t count)
 {
 #ifndef BUFFER_IO
 #ifdef HAS_UNZIP
    if (m_zipFile)
-      return unzReadCurrentFile(m_zipFP, buf, count);
+   {
+      int bytesRead = unzReadCurrentFile(m_zipFP, buf, count);
+      if (bytesRead > 0)
+      {
+         m_readBytes += bytesRead;
+         return bytesRead;
+      }
+      else
+         return 0;
+   }
    else
 #endif
-      return fread(buf, 1, count, m_fp);
+   {
+      size_t bytesRead = fread(buf, 1, count, m_fp);
+      m_readBytes += bytesRead;
+      return bytesRead;
+   }
 #else
-   int32_t bytesRead = 0;
+   size_t bytesRead = 0;
 
    while ((uint32_t)bytesRead < count)
    {
@@ -171,21 +152,9 @@ int32_t Loader::Read(void *buf, size_t count)
          bytesRead += count - bytesRead;
       }
    }
+   m_readBytes += bytesRead;
    return bytesRead;
 #endif
-}
-
-int32_t Loader::Read32()
-{
-   uint8_t  buffer[4];
-
-   int n = Read(buffer, sizeof(buffer));
-   if (n != sizeof(buffer))
-      return -1;
-
-   TO_LE_W(buffer);
-
-   return To32(buffer);
 }
 
 bool Loader::LoadCommand(Command **cmd)
@@ -214,22 +183,17 @@ bool Loader::LoadCommand(Command **cmd)
    else
    {
       // Multi-threaded background loading
-      m_queueMutex.Lock();
+      std::unique_lock<std::mutex> q(m_queueMutex);
 
       while (m_numCmds == 0)
       {
-         m_queueMutex.Unlock();
-
+         q.unlock();
          printf("Waiting for data - file reading too slow - FPS may be inaccurate\n");
-         usleep(1000);
-
-         m_queueMutex.Lock();
+         std::this_thread::sleep_for(milliseconds(1000));
+         q.lock();
 
          if (m_taskDone && m_numCmds == 0)
-         {
-            m_queueMutex.Unlock();
             return false;
-         }
       }
 
       *cmd = &m_cmdQueue[m_takeAt];
@@ -247,9 +211,6 @@ bool Loader::LoadCommand(Command **cmd)
          lastBytes = m_cmdQueueBytes;
       }
 */
-
-      m_queueMutex.Unlock();
-
       return true;
    }
 }
@@ -258,72 +219,18 @@ bool Loader::ReadCommand(Command *cmd)
 {
    while (!cmd->Valid())
    {
-      int32_t type = Read32();
-
-      if (type == -1 || type >= eLAST_PACKET_TYPE)
+      Packet packet;
+      m_readBytes = 0;
+      if (!PacketReader::Read(&packet, *this))
          return false;
+      cmd->ByteSize() += m_readBytes;
 
-      Packet *p = NULL;
-      Packet skipPacket;
+      ePacketType type = packet.Type();
 
       if ((type == eAPI_FUNCTION && !cmd->HasRetCode()) || type == eREINIT || type == eTHREAD_CHANGE)
-         p = &cmd->GetPacket();
+         cmd->GetPacket() = packet;
       else if (type == eRET_CODE && cmd->HasAPIFunc())
-         p = &cmd->GetRetPacket();
-      else
-         p = &skipPacket;
-
-      if (p != NULL)
-      {
-         p->SetType((ePacketType)type);
-
-         int32_t numItems = Read32();
-         if (numItems == -1 || numItems > 10000)
-            return false;
-
-         cmd->ByteSize() += 8;
-
-         for (int32_t i = 0; i < numItems; i++)
-         {
-            int32_t itemType = Read32();
-            if (itemType == -1)
-               return false;
-
-            int32_t numBytes = Read32();
-            if (numBytes == -1 || numBytes > 64 * 1024 * 1024)
-               return false;
-
-            cmd->ByteSize() += 8;
-
-            if (numBytes > 4 || itemType == eBYTE_ARRAY || itemType == eCHAR_PTR)
-            {
-               uint8_t  *buffer = new uint8_t[numBytes];
-
-               int n = Read(buffer, numBytes);
-               cmd->ByteSize() += numBytes;
-               if (n == (int)numBytes)
-               {
-                  p->AddItem(PacketItem((eDataType)itemType, (uintptr_t)buffer, numBytes));
-                  cmd->AddDeleteItem(buffer);
-               }
-               else
-               {
-                  delete [] buffer;
-                  return false;
-               }
-            }
-            else if (numBytes > 0)
-            {
-               uint32_t data = Read32();
-               p->AddItem(PacketItem((eDataType)itemType, data, 4));
-               cmd->ByteSize() += 4;
-            }
-            else
-            {
-               p->AddItem(PacketItem((eDataType)itemType, 0, 0));
-            }
-         }
-      }
+         cmd->GetRetPacket() = packet;
    }
 
    return true;
@@ -430,7 +337,7 @@ bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t io
    if (m_fp)
 #endif
    {
-      int32_t ident = Read32();
+      int32_t ident = PacketReader::Read32(*this);
       if (ident != (int32_t)0xBCCA97DA)
       {
          printf("Error: Not a capture file\n");
@@ -449,8 +356,8 @@ bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t io
 #endif
       }
 
-      m_major = Read32();
-      m_minor = Read32();
+      m_major = PacketReader::Read32(*this);
+      m_minor = PacketReader::Read32(*this);
 
       if (m_major > CAPTURE_MAJOR_VER || (m_major <= CAPTURE_MAJOR_VER && m_minor > CAPTURE_MINOR_VER))
       {
@@ -473,7 +380,7 @@ bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t io
 #if V3D_TECH_VERSION >= 3
       #define DEFAULT_PTR_SIZE 4 // Assume 32-bit platform if not specified
       unsigned capturePtrSize = CaptureHasPointerSize() ?
-            Read32() : DEFAULT_PTR_SIZE;
+            PacketReader::Read32(*this) : DEFAULT_PTR_SIZE;
       if (!PacketItem::SetPointerSize(capturePtrSize))
       {
          unsigned ourPtrSize = sizeof(void*);
@@ -533,7 +440,7 @@ void Loader::PrimeBuffer()
             fflush(stdout);
             last = m_cmdQueueBytes;
          }
-         usleep(1000);
+         std::this_thread::sleep_for(milliseconds(1000));
       }
 
       printf("Buffered %d MB, %d commands               \n", m_cmdQueueBytes / (1024 * 1024), m_numCmds);
@@ -559,14 +466,14 @@ bool Loader::FillBuffer(bool print)
       if (m_insertAt >= m_maxCmds)
          m_insertAt = 0;
 
-      m_queueMutex.Lock();
+      {
+         std::lock_guard<std::mutex> guard(m_queueMutex);
+         m_cmdQueueBytes += cmd->ByteSize();
+         m_numCmds++;
 
-      m_cmdQueueBytes += cmd->ByteSize();
-      m_numCmds++;
-
-      size = m_cmdQueueBytes;
-      cmds = m_numCmds;
-      m_queueMutex.Unlock();
+         size = m_cmdQueueBytes;
+         cmds = m_numCmds;
+      }
 
       if (print && abs(last - (int32_t)m_cmdQueueBytes) > 1 * 1024 * 1024)
       {

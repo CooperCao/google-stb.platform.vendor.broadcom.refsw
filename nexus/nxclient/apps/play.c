@@ -84,6 +84,9 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     printf(
     "  -hdcp {m[andatory]|o[ptional]}\n"
+    "  -hdcp_version {auto|hdcp1x|hdcp22}\n"
+    );
+    printf(
     "  -3d {lr|ou|auto}         stereoscopic (3D) source format\n"
     "  -audio_primers           use primers for fast resumption of pcm and compressed audio\n"
     "  -initial_audio_primers   if audio decoder already in use, use primers\n"
@@ -446,9 +449,6 @@ int main(int argc, const char **argv)  {
             hdcp_version_flag = true;
             if (!strcmp(argv[curarg],"auto")) {
                 start_settings.hdcp_version = NxClient_HdcpVersion_eAuto;
-            }
-            else if (!strcmp(argv[curarg],"follow")) {
-                start_settings.hdcp_version = NxClient_HdcpVersion_eFollow;
             }
             else if (!strcmp(argv[curarg],"hdcp1x")) {
                 start_settings.hdcp_version = NxClient_HdcpVersion_eHdcp1x;

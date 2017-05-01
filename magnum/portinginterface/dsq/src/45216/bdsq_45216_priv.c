@@ -51,9 +51,9 @@ BDBG_MODULE(bdsq_45216_priv);
 
 
 /* local functions */
-BERR_Code BDSQ_45216_P_InterruptCallback(void *pParm1, int parm2);
-BERR_Code BDSQ_45216_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n);
-BERR_Code BDSQ_45216_P_EnableChannelInterrupt(BDSQ_ChannelHandle h, bool bEnable, uint32_t mask);
+static BERR_Code BDSQ_45216_P_InterruptCallback(void *pParm1, int parm2);
+static BERR_Code BDSQ_45216_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n);
+static BERR_Code BDSQ_45216_P_EnableChannelInterrupt(BDSQ_ChannelHandle h, bool bEnable, uint32_t mask);
 
 
 /******************************************************************************

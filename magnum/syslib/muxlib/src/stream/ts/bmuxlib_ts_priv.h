@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BMUXLIB_TS_PRIV_H_
@@ -54,6 +51,9 @@ extern "C" {
 }
 #endif
 #endif
+
+#define BMUXLIB_TS_P_MAX(a,b) ((a > b) ? a : b)
+#define BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(a,b) ((b)?(((a) + ((b)-1))/(b)):0)
 
 /* NOTE: MUX treats a physical offset of zero as "invalid" (since its extremely unlikely to
    occur in reality) as a way of tracking a physical offset that has not been set
@@ -280,7 +280,7 @@ typedef enum BMUXlib_TS_P_DataType
 {
       BMUXlib_TS_P_DataType_eCDB,   /* this used for external inputs (i.e. video, audio, sys data, userdata) */
       BMUXlib_TS_P_DataType_ePESHeader,
-      BMUXlib_TS_P_DataType_ePCRPacket,
+      BMUXlib_TS_P_DataType_eTSPacket,
       BMUXlib_TS_P_DataType_eBPP,
       BMUXlib_TS_P_DataType_eNULL,
       BMUXlib_TS_P_DataType_eUserdataPTS,    /* a PTS entry for userdata packet timing updates */
@@ -289,6 +289,34 @@ typedef enum BMUXlib_TS_P_DataType
 
       BMUXlib_TS_P_DataType_eMax
 } BMUXlib_TS_P_DataType;
+
+typedef struct BMUXlib_TS_P_InputMetaData
+{
+   BMUXlib_Input_Handle hInput;
+   unsigned uiInputIndex;
+   unsigned uiTransportChannelIndex;   /* Which transport channel interface to use for this PID */
+   uint16_t uiPID;                     /* The PID associated with this input data */
+   uint8_t uiPESStreamID;
+   unsigned uiPIDIndex;
+
+   /* State */
+   bool bEOSSeen;  /* true if EOS descriptor has been seen */
+
+   unsigned uiMetadataDescriptorsSkipped; /* Number of source metdata descriptors skipped */
+#if ( BMUXLIB_TS_P_DUMP_VIDEO_DESC | BMUXLIB_TS_P_DUMP_AUDIO_DESC )
+   FILE *hDescDumpFile;
+   bool bPrintedHeader;
+#endif
+
+   struct BMUXlib_TS_P_UserdataVideoInfo *pstUserdata;   /* information required by userdata related to this input (video only) */
+
+   BAVC_FrameRateCode eSourceFrameRateCode;              /* used by userdata for dDTS verification */
+
+   unsigned uiPreviousPacket2PacketTimestampDelta;
+   unsigned uiCurrentSegmentCount;
+} BMUXlib_TS_P_InputMetaData;
+
+#include "bmuxlib_ts_userdata.h"
 
 /* if data type is CDB, this defines the source of the data */
 typedef enum BMUXlib_TS_P_SourceType
@@ -320,6 +348,17 @@ typedef struct BMUXLib_TS_P_EfficiencyStats
    uint32_t uiFrameSize[BMUXlib_TS_P_SourceType_eMax];
 } BMUXLib_TS_P_EfficiencyStats;
 
+BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_PESHeader )
+BMUXLIB_LIST_DEFINE( BMUXlib_TS_SystemData )
+BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_TSPacket )
+BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_BPPData )
+BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_MTUBPPData )
+BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_UserdataPending )
+BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_UserdataPTSEntry )
+
+#define BMUXLIB_TS_TRANSPORT_IS_FULL( _pmux, _index ) ( BMUXLIB_LIST_COUNT ( &(_pmux)->stTransportDescriptorPendingList[_index] ) >= (_pmux)->status.aTransportDescriptorPendingListCountTable[_index] )
+#define BMUXLIB_TS_TRANSPORT_GET_NUM_FREE( _pmux, _index, _pcount ) ( *(_pcount) = ((_pmux)->status.aTransportDescriptorPendingListCountTable[_index] - BMUXLIB_LIST_COUNT ( &(_pmux)->stTransportDescriptorPendingList[_index] ) ) )
+
 typedef struct BMUXlib_TS_P_TransportDescriptorMetaData
 {
       BMUXlib_TS_P_DataType eDataType;
@@ -336,10 +375,35 @@ typedef struct BMUXlib_TS_P_TransportDescriptorMetaData
          uint32_t uiDtsIn27Mhz;
       } stDtsInfo;
 
+      /* uiBufferBaseOffset is obtained through LockOffset when hBufferBaseBlock is set,
+      and unlocked when hBufferBaseBlock is cleared.
+      Enforced by bmuxlib_p_lock_metadata_memory and bmuxlib_p_unlock_metadata_memory.
+      It should never be on stTransportDescriptorFreeList with locked memory. */
       BMMA_Block_Handle hBufferBaseBlock;
       BSTD_DeviceOffset uiBufferBaseOffset;
       void *pBufferAddress;
+      union
+      {
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_PESHeader ) *pPESHeader;
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_SystemData ) *pSystemData;
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_TSPacket ) *pTSPacket;
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_BPPData ) *pBPPData;
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_MTUBPPData ) *pMTUBPPData;
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_UserdataPending ) *pUserDataPending;
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_UserdataPTSEntry ) *pUserDataPTSEntry;
+      } uListEntry;
 } BMUXlib_TS_P_TransportDescriptorMetaData;
+
+typedef struct BMUXlib_TS_P_TransportDescriptorEntry
+{
+   BLST_SQ_ENTRY(BMUXlib_TS_P_TransportDescriptorEntry) link;
+
+   BMUXlib_TS_TransportDescriptor stData;
+   BMUXlib_TS_P_TransportDescriptorMetaData stMetaData;
+} BMUXlib_TS_P_TransportDescriptorEntry;
+
+BMUXLIB_LIST_DEFINE_HEAD( BMUXlib_TS_P_TransportDescriptor )
+BMUXLIB_LIST_DEFINE_LIST( BMUXlib_TS_P_TransportDescriptor )
 
 typedef struct BMUXlib_TS_P_PCRInfo
 {
@@ -371,32 +435,6 @@ typedef struct BMUXlib_TS_P_SystemDataInfo
       bool bCSVOpened;
 #endif
 } BMUXlib_TS_P_SystemDataInfo;
-
-typedef struct BMUXlib_TS_P_InputMetaData
-{
-   BMUXlib_Input_Handle hInput;
-   unsigned uiInputIndex;
-   unsigned uiTransportChannelIndex;   /* Which transport channel interface to use for this PID */
-   uint16_t uiPID;                     /* The PID associated with this input data */
-   uint8_t uiPESStreamID;
-   unsigned uiPIDIndex;
-
-   /* State */
-   bool bEOSSeen;  /* true if EOS descriptor has been seen */
-
-   unsigned uiMetadataDescriptorsSkipped; /* Number of source metdata descriptors skipped */
-#if ( BMUXLIB_TS_P_DUMP_VIDEO_DESC | BMUXLIB_TS_P_DUMP_AUDIO_DESC )
-   FILE *hDescDumpFile;
-   bool bPrintedHeader;
-#endif
-
-   struct BMUXlib_TS_P_UserdataVideoInfo *pstUserdata;   /* information required by userdata related to this input (video only) */
-
-   BAVC_FrameRateCode eSourceFrameRateCode;              /* used by userdata for dDTS verification */
-
-   unsigned uiPreviousPacket2PacketTimestampDelta;
-   unsigned uiCurrentSegmentCount;
-} BMUXlib_TS_P_InputMetaData;
 
 typedef enum BMUXlib_TS_P_MemoryType
 {
@@ -469,7 +507,6 @@ typedef struct BMUXlib_TS_P_MemoryBuffers
    void* pSharedBuffer; /* Memory accessed by both the host and device(s). If NULL, allocated in BMUXlib_TS_Create() from specified hMem. */
 } BMUXlib_TS_P_MemoryBuffers;
 
-#include "bmuxlib_ts_userdata.h"
 typedef struct BMUXlib_TS_P_Input_Info
 {
    unsigned uiTransportChannelIndex;
@@ -543,55 +580,48 @@ typedef struct BMUXlib_TS_P_Context
       BMUXlib_TS_CreateSettings stCreateSettings;
       BMUXlib_TS_P_MemoryBuffers stMemoryBuffers;
 
-      BMMA_RangeAllocator_Block_Handle hTransportDescriptorBlock;
-      BMUXlib_TS_TransportDescriptor *astTransportDescriptor;
       BMMA_RangeAllocator_Block_Handle hTransportDescriptorTempBlock;
       BMUXlib_TS_TransportDescriptor *astTransportDescriptorTemp;
       BMMA_RangeAllocator_Block_Handle hTransportDescriptorMetaDataTempBlock;
       BMUXlib_TS_P_TransportDescriptorMetaData *astTransportDescriptorMetaDataTemp;
-      BMUXlib_List_Handle hTransportDescriptorFreeList; /* Stack containing free transport descriptors */
-      BMUXlib_List_Handle hTransportDescriptorPendingList[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES]; /* FIFO containing the pending transport descriptors
+      BMMA_RangeAllocator_Block_Handle hTransportDescriptorBlock;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *astTransportDescriptor;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_TransportDescriptor) stTransportDescriptorFreeList; /* Stack containing free transport descriptors */
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_TransportDescriptor) stTransportDescriptorPendingList[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES]; /* FIFO containing the pending transport descriptors
                                                                                                      * for each transport interface.  Entries move between
                                                                                                      * the pending and free lists */
 
-      BMMA_RangeAllocator_Block_Handle hTransportDescriptorMetaDataBlock;
-      BMUXlib_TS_P_TransportDescriptorMetaData *astTransportDescriptorMetaData;
-      BMUXlib_List_Handle hTransportDescriptorMetaDataFreeList; /* Stack containing free transport metadata descriptors */
-      BMUXlib_List_Handle hTransportDescriptorMetaDataPendingList[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES]; /* FIFO containing the pending transport metadata descriptors
-                                                                                                             * for each transport interface.  Entries move between
-                                                                                                             * the pending and free lists */
       unsigned uiPendingCompleted[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
       BMMA_RangeAllocator_Block_Handle hPESHeaderBlock;
-      BMUXlib_TS_P_PESHeader *astPESHeader;
-      BMUXlib_List_Handle hPESHeaderFreeList; /* Stack containing free PES Header buffers */
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_PESHeader) *astPESHeader;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_PESHeader) stPESHeaderFreeList; /* Stack containing free PES Header buffers */
 
       BMMA_RangeAllocator_Block_Handle hTSPacketBlock;
-      BMUXlib_TS_P_TSPacket *astTSPacket;
-      BMUXlib_List_Handle hTSPacketFreeList; /* Stack containing TS Packet buffers */
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) *astTSPacket;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_TSPacket) stTSPacketFreeList; /* Stack containing TS Packet buffers */
 
       BMMA_RangeAllocator_Block_Handle hBPPDataBlock;
-      BMUXlib_TS_P_BPPData *astBPPData; /* Used for BPP packets.  Can be reused within a playback. */
-      BMUXlib_List_Handle hBPPFreeList; /* Stack containing BPP buffers */
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData) *astBPPData; /* Used for BPP packets.  Can be reused within a playback. */
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_BPPData) stBPPFreeList; /* Stack containing BPP buffers */
 
       BMMA_RangeAllocator_Block_Handle hMTUBPPDataBlock;
-      BMUXlib_TS_P_MTUBPPData *astMTUBPPData; /* Used for MTU BPP packets.  Cannot be reused within a playback. */
-      BMUXlib_List_Handle hMTUBPPFreeList; /* Stack containing MTU BPP buffers */
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_MTUBPPData) *astMTUBPPData; /* Used for MTU BPP packets.  Cannot be reused within a playback. */
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_MTUBPPData) stMTUBPPFreeList; /* Stack containing MTU BPP buffers */
 
-      BMUXlib_List_Handle hSystemDataPendingList;
-      BMMA_RangeAllocator_Block_Handle hSystemDataPendingListBlock;
-      BMUXlib_TS_SystemData *astSystemDataPendingList;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_SystemData) stSystemDataPendingList;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_SystemData) stSystemDataFreeList;
+      BMMA_RangeAllocator_Block_Handle hSystemDataBlock;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData) *astSystemData;
 
-      BMUXlib_TS_SystemData *astSystemDataPendingListPreQ;
-
-      BMUXlib_List_Handle hUserdataPendingList[BMUXLIB_TS_MAX_USERDATA_PIDS]; /* data pending for sending to transport for each userdata input */
-      BMUXlib_List_Handle hUserdataFreeList;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_UserdataPending) stUserdataPendingList[BMUXLIB_TS_MAX_USERDATA_PIDS]; /* data pending for sending to transport for each userdata input */
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_UserdataPending) stUserdataFreeList;
       BMMA_RangeAllocator_Block_Handle hUserdataPendingBlock;
-      BMUXlib_TS_P_UserdataPending *astUserdataPending;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPending) *astUserdataPending;
 
       /* the memory used to store updated PTS values for userdata PES packets */
-      BMUXlib_List_Handle hUserdataPTSFreeList;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_P_UserdataPTSEntry) stUserdataPTSFreeList;
       BMMA_RangeAllocator_Block_Handle hUserdataPTSBlock;
-      BMUXlib_TS_P_UserdataPTSEntry *astUserdataPTS;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPTSEntry) *astUserdataPTS;
 
       /* memory used for "unwrapping" TS packets for sending to transport */
       BMMA_RangeAllocator_Block_Handle hUserdataUnwrapBlock;
@@ -602,6 +632,9 @@ typedef struct BMUXlib_TS_P_Context
       BMUXlib_TS_P_UserdataReleaseQEntry *pUserdataReleaseQFreeList;
       BMMA_RangeAllocator_Block_Handle hUserdataReleaseQFreeListBaseBlock;
       BMUXlib_TS_P_UserdataReleaseQEntry *pUserdataReleaseQFreeListBase;
+
+      BMUXlib_Input_Handle ahInput[BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS];
+      BMUXlib_InputGroup_Handle hInputGroup;
 
       struct
       {
@@ -644,12 +677,7 @@ typedef struct BMUXlib_TS_P_Context
          bool bAllInputsReady;
          bool bWaitForAllInputs;
 
-         BMUXlib_InputGroup_Handle hInputGroup;
-
          /* System Data */
-         unsigned uiSystemDataPreQCount;
-         unsigned uiSystemDataPendingListReadOffset;
-         unsigned uiSystemDataPendingListWriteOffset;
          uint32_t uiSystemDataCompletedCount;
 
          /* userdata */
@@ -662,8 +690,6 @@ typedef struct BMUXlib_TS_P_Context
          BMUXlib_TS_P_MemoryConfig stMemoryConfig;
          BMUXlib_TS_P_MemoryConfigTotal stMemoryConfigTotal;
 
-         unsigned uiSystemDataMaxCount;
-
          unsigned uiPreviousESCR;
          unsigned uiPreviousPacket2PacketTimestampDelta;
          unsigned uiTotalPacket2PacketTimestampDelta;
@@ -673,8 +699,8 @@ typedef struct BMUXlib_TS_P_Context
 
          bool aFoundPIDs[8192];  /* Table of flags indicating PIDs in use: 2^13 possible PIDs */
 
-         BMUXlib_TS_P_TSPacket *pNullTSPacketBuffer;
-         BMUXlib_TS_P_BPPData *pDummyPESBuffer;
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) *pNullTSPacketBuffer;
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData) *pDummyPESBuffer;
 
          uint32_t uiLastESCRDTSDelta;  /* SW7425-4340: used primarily for debugging A2PDelay */
 
@@ -711,6 +737,16 @@ typedef struct BMUXlib_TS_P_Context
          bool bTimingOffsetValid;
          uint32_t uiTimingOffsetIn27Mhz;
          uint64_t uiTimingOffsetIn90Khz;
+
+         uint32_t aTransportDescriptorPendingListCountTable[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
+         bool bSystemDataPreQ;
+
+         struct
+         {
+            BMUXlib_TS_P_MemoryConfig stMemoryConfig;
+            BMUXlib_TS_MuxConfig stMuxConfig;
+            BMMA_RangeAllocator_Status stRangeAllocatorStatus;
+         } stTempMemoryConfig;
       } status;
 
 } BMUXlib_TS_P_Context;
@@ -753,8 +789,7 @@ BERR_Code
 BMUXlib_TS_P_AddTransportDescriptor(
          BMUXlib_TS_Handle hMuxTS,
          unsigned uiTransportChannelIndex,
-         BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
-         BMUXlib_TS_P_TransportDescriptorMetaData *pstTransportDescriptorMetaData
+         BMUXlib_TS_P_TransportDescriptorEntry *pstTransportDescriptor
          );
 
 BERR_Code
@@ -787,6 +822,9 @@ BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR(
    BMUXlib_TS_Handle hMuxTS,
    const BMUXlib_Input_Descriptor *pstDescriptor
    );
+
+#define BMUXLIB_P_LOCK_METADATA_MEMORY(pDesc, block) bmuxlib_p_lock_metadata_memory(pDesc, block, __FILE__, __LINE__)
+void bmuxlib_p_lock_metadata_memory(BMUXlib_TS_P_TransportDescriptorMetaData *pDesc, BMMA_Block_Handle block, const char *file, int line);
 
 #ifdef __cplusplus
 }

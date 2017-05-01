@@ -48,7 +48,7 @@
 
 typedef struct Plm * PlmHandle;
 
-PlmHandle plm_create(const char * name, const char * sdr2hdrRoot, const char * hdr2sdrRoot, const char * hlg2hdrRoot, PlatformHandle platform, unsigned index, unsigned rect, PwlPointMutator set_point, PwlPointAccessor get_point, bool demo);
+PlmHandle plm_create(const char * name, const char * sdr2hdrRoot, const char * hdr2sdrRoot, const char * hlg2hdrRoot, PlatformHandle platform, unsigned index, unsigned rect, PwlPointMutator set_point, PwlPointAccessor get_point, PwlLraMutator set_lra, PwlLraAccessor get_lra);
 void plm_destroy(PlmHandle plm);
 void plm_update_dynamic_range(PlmHandle plm, PlatformDynamicRange input, PlatformDynamicRange output);
 void plm_set(PlmHandle plm, int plmSetting);

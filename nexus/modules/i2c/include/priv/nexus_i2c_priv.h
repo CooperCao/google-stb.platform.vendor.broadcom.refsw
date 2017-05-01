@@ -141,6 +141,14 @@ void NEXUS_I2c_DestroyHandle(
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_I2c);
 
+/***************************************************************************
+Summary:
+    This function gets the I2C channel default settings.
+    When platform opens the I2C channels by default, this api is called before I2C module is initialized.
+    Hence, it has to be a private function.
+See Also:
+    NEXUS_I2c_GetDefaultSettings
+****************************************************************************/
 void NEXUS_I2c_GetDefaultSettings_priv(
     NEXUS_I2cSettings *pSettings    /* [out] */
     );

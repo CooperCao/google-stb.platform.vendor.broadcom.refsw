@@ -1,14 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2012 Broadcom.
- All rights reserved.
-
- FILE DESCRIPTION
-
- Image Format Library - Public APIs.
-
- GFX_LFMT_T: describes buffer memory layout and pixel format.
-==============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GFX_LFMT_H
 #define GFX_LFMT_H
 

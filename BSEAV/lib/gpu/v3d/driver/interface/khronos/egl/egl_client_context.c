@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of EGL contexts.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/glxx/glxx_client.h"
@@ -23,10 +15,10 @@ Implementation of EGL contexts.
 #include <string.h>
 #include <stdlib.h>
 
-EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version, EGLint *version, bool *secure)
+EGLint egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version, EGLint *version, bool *secure)
 {
    if (!attrib_list)
-      return EGL_TRUE;
+      return EGL_SUCCESS;
 
    while (1) {
       switch (*attrib_list++) {
@@ -35,21 +27,21 @@ EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_versi
          EGLint value = *attrib_list++;
 
          if (value < 1 || value > max_version)
-            return EGL_FALSE;
+            return EGL_BAD_CONFIG;
          else
             *version = value;
 
          break;
       }
       case EGL_NONE:
-         return EGL_TRUE;
+         return EGL_SUCCESS;
 #if EGL_EXT_protected_content
       case EGL_PROTECTED_CONTENT_EXT:
       {
          EGLint value = *attrib_list++;
 
          if (value != EGL_TRUE && value != EGL_FALSE)
-            return EGL_FALSE;
+            return EGL_BAD_ATTRIBUTE;
          else
             *secure = value == EGL_TRUE;
 
@@ -57,7 +49,7 @@ EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_versi
       }
 #endif
       default:
-         return EGL_FALSE;
+         return EGL_BAD_ATTRIBUTE;
       }
    }
 }
@@ -105,12 +97,11 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
          return 0;
       }
 
-      {
-      CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+      CLIENT_GET_THREAD_STATE();
          /* uint64_t pid = khronos_platform_get_process_id(); */ /* unused */
       context->servercontext = eglIntCreateVG_impl(share_context ? share_context->servercontext : 0,
                                                    share_context ? share_context->type : OPENVG/*ignored*/);
-      }
+
       if (!context->servercontext) {
          vg_client_state_free((VG_CLIENT_STATE_T *)context->state);
          khrn_platform_free(context);
@@ -130,7 +121,7 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
 
       context->state = state;
       if (gl11_client_state_init(state)) {
-         CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+         CLIENT_GET_THREAD_STATE();
          context->servercontext = eglIntCreateGLES11_impl(share_context ? share_context->servercontext : 0,
                                                           share_context ? share_context->type : OPENGL_ES_11/*ignored*/);
          if (!context->servercontext) {
@@ -152,7 +143,7 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
       context->state = state;
 
       if (gl20_client_state_init(state)) {
-         CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+         CLIENT_GET_THREAD_STATE();
          context->servercontext = eglIntCreateGLES20_impl(share_context ? share_context->servercontext : 0,
                                                           share_context ? share_context->type : OPENGL_ES_20/*ignored*/);
          if (!context->servercontext) {
@@ -173,7 +164,7 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
 
 void egl_context_term(EGL_CONTEXT_T *context)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    /* If we're current then there should still be a reference to us */
    /* (if this wasn't the case we should call egl_context_release_surfaces here) */
    vcos_assert(!context->is_current);

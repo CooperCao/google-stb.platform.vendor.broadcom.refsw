@@ -1,0 +1,3 @@
+stream=Fourth_Phase_JacksonHole.ts
+dynrng=dvs
+osd=off

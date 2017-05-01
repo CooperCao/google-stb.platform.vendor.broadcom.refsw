@@ -42,8 +42,12 @@
 #define UTIL_PRIV_H__ 1
 
 #define LINE_LEN 1024
+
 extern const char * UTIL_STR_UNNAMED;
 extern const char * UTIL_STR_UNKNOWN;
 extern const char * UTIL_STR_NONE;
+
+char * trim(char * s);
+char * set_string(char * old_str, const char * new_str);
 
 #endif /* UTIL_PRIV_H__ */

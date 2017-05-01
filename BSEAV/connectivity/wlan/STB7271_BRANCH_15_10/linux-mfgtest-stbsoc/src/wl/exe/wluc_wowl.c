@@ -46,7 +46,7 @@ static cmd_func_t wl_nshostip;
 static cmd_func_t wl_wowl_pattern, wl_wowl_wakeind, wl_wowl_pkt, wl_wowl_status;
 static cmd_func_t wl_wowl_extended_magic, wl_wowl_radio_duty_cycle;
 static cmd_func_t wl_wowl_wog_appid;
-static cmd_func_t wl_wowl_wog_resp;
+static cmd_func_t wl_wowl_wog_resp, wl_wowl_rls_mdns;
 
 static cmd_t wl_wowl_cmds[] = {
 	{ "ns_hostip", wl_nshostip, WLC_GET_VAR, WLC_SET_VAR,
@@ -131,6 +131,8 @@ static cmd_t wl_wowl_cmds[] = {
 	"\t    [srv port <port> [ttl <srv_ttl>]]\n"
 	"\t    [a ttl]\n"
 	"\n\t wl wowl_wog_resp show\n\n"},
+	{"wowl_rls_wake_mdns",wl_wowl_rls_mdns, WLC_GET_VAR, - 1,
+	" Get the MAC source addr and payload for triggering a wakeup mDNS packet \n"},
 	{ NULL, NULL, 0, 0, NULL }
 };
 
@@ -229,6 +231,53 @@ wl_wowl_status(void *wl, cmd_t *cmd, char **argv)
 }
 
 static int
+wl_wowl_rls_mdns(void *wl, cmd_t *cmd, char **argv)
+{
+	int err, i;
+	UNUSED_PARAMETER(cmd);
+	uint16 len;
+	uint8 buf[WLC_IOCTL_MEDLEN];
+	argv++;
+
+	if ((err = wlu_iovar_get(wl,"wowl_rls_wake_mdns",buf, WLC_IOCTL_MEDLEN)))
+		return err;
+
+	len = (uint16)buf[0];
+
+	if (len > 0) {
+		printf ("\n Source MAC Addr (hex): ");
+		for (i = 0; i < ETHER_ADDR_LEN; i++)
+			printf ("%02x ",buf[i+2]);
+		printf("\n\n Payload of the mDNS pkt (hex) \n");
+
+		for (i = 0; i < len; i++) {
+			printf (" %02x ",buf[i+ 2 + ETHER_ADDR_LEN]);
+			if (((i + 1) % 8) == 0)
+				printf ("\n");
+
+		}
+
+		printf("\n\n Payload of the mDNS pkt (char) \n");
+
+		for (i = 0; i < len; i++) {
+			if ((uint8)buf[i+ 2 + ETHER_ADDR_LEN]>=32)
+				printf (" %c ",(uint8)buf[i+ 2 + ETHER_ADDR_LEN]);
+			else
+				printf (" . ");
+			if (((i + 1) % 8) == 0)
+				printf ("\n");
+                }
+
+		printf("\n");
+	}
+	else
+	       err = BCME_ERROR;
+
+	return err;
+
+}
+
+static int
 wl_wowl_wakeind(void *wl, cmd_t *cmd, char **argv)
 {
 	wl_wowl_wakeind_t wake = {0, 0};
@@ -260,6 +309,8 @@ wl_wowl_wakeind(void *wl, cmd_t *cmd, char **argv)
 			printf("\tMAGIC packet received\n");
 		if ((wake.ucode_wakeind & WL_WOWL_NET) == WL_WOWL_NET)
 			printf("\tPacket received with Netpattern\n");
+		if ((wake.ucode_wakeind & WL_WOWL_MDNS_SERVICE) == WL_WOWL_MDNS_SERVICE)
+			printf("\tmDNS packet received\n");
 		if ((wake.ucode_wakeind & WL_WOWL_DIS) == WL_WOWL_DIS)
 			printf("\tDisassociation/Deauth received\n");
 		if ((wake.ucode_wakeind & WL_WOWL_RETR) == WL_WOWL_RETR)
@@ -278,7 +329,8 @@ wl_wowl_wakeind(void *wl, cmd_t *cmd, char **argv)
 			printf("\tExtended Magic Packet received.\n");
 		if ((wake.ucode_wakeind & WL_WOWL_KEYROT) == WL_WOWL_KEYROT)
 			printf("\tKey Rotation Packet received.\n");
-		if ((wake.ucode_wakeind & (WL_WOWL_NET | WL_WOWL_MAGIC | WL_WOWL_EXTMAGPAT))) {
+		if ((wake.ucode_wakeind & (WL_WOWL_NET | WL_WOWL_MAGIC | WL_WOWL_EXTMAGPAT |
+			WL_WOWL_MDNS_SERVICE))) {
 			if ((wake.ucode_wakeind & WL_WOWL_BCAST) == WL_WOWL_BCAST)
 				printf("\t\tBroadcast/Mcast frame received\n");
 			else

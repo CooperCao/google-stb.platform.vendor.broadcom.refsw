@@ -92,8 +92,9 @@ static void BAPE_Decoder_P_DialnormChange_isr(void *pParam1, int param2);
 static BERR_Code BAPE_Decoder_P_DeriveMultistreamLinkage(BAPE_DecoderHandle handle);
 static void BAPE_Decoder_P_EncoderOverflow_isr(void *pParam1, int param2);
 static bool BAPE_Decoder_P_OrphanConnector(BAPE_DecoderHandle handle, BAPE_ConnectorFormat format);
-BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(BAPE_DecoderHandle handle, unsigned *pDelay);
+static BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(BAPE_DecoderHandle handle, unsigned *pDelay);
 static void BAPE_Decoder_P_FreeDecodeToMemory(BAPE_DecoderHandle hDecoder);
+static bool BAPE_Decoder_P_HasConnectedOutput(BAPE_DecoderHandle handle, BAPE_ConnectorFormat format);
 
 #define BAVC_CODEC_IS_AAC(c) \
     (c == BAVC_AudioCompressionStd_eAacAdts || \
@@ -117,8 +118,7 @@ void BAPE_Decoder_GetDefaultOpenSettings(
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->rateControlSupport = true;
-    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
-         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
+    if ( BAPE_P_DolbyCapabilities_MultichannelPcmFormat() == BAPE_MultichannelFormat_e7_1 )
     {
         pSettings->multichannelFormat = BAPE_MultichannelFormat_e7_1;
     }
@@ -128,7 +128,7 @@ void BAPE_Decoder_GetDefaultOpenSettings(
     }
 }
 
-void BAPE_Decoder_P_FreeAncillaryResources(BAPE_DecoderHandle handle)
+static void BAPE_Decoder_P_FreeAncillaryResources(BAPE_DecoderHandle handle)
 {
     if ( handle->ancDataDspBlock )
     {
@@ -226,6 +226,8 @@ BERR_Code BAPE_Decoder_Open(
     handle->node.pName = handle->name;
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].pName = "stereo";
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].useBufferPool = true;
+    handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo].pName = "stereo";
+    handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo].useBufferPool = true;
     handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].pName = "multichannel";
     handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].useBufferPool = true;
     handle->node.connectors[BAPE_ConnectorFormat_eCompressed].pName = "compressed";
@@ -241,6 +243,10 @@ BERR_Code BAPE_Decoder_Open(
     format.source = BAPE_DataSource_eDspBuffer;
     format.type = BAPE_DataType_ePcmStereo;
     errCode = BAPE_Connector_P_SetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eStereo], &format);
+    if ( errCode ) { (void)BERR_TRACE(errCode); goto err_connector_format; }
+
+    format.type = BAPE_DataType_ePcmStereo;
+    errCode = BAPE_Connector_P_SetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo], &format);
     if ( errCode ) { (void)BERR_TRACE(errCode); goto err_connector_format; }
 
     format.type = BAPE_DataType_ePcm5_1;
@@ -530,6 +536,8 @@ BERR_Code BAPE_Decoder_Open(
         }
     }
 
+    BKNI_CreateEvent(&handle->statusEvent);
+
     /* Success */
     *pHandle = handle;
     deviceHandle->decoders[index] = handle;
@@ -558,6 +566,7 @@ void BAPE_Decoder_Close(
 
     /* Disconnect from all mixers, post-processors */
     BAPE_Connector_P_RemoveAllConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]);
+    BAPE_Connector_P_RemoveAllConnections(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo]);
     BAPE_Connector_P_RemoveAllConnections(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel]);
     BAPE_Connector_P_RemoveAllConnections(&handle->node.connectors[BAPE_ConnectorFormat_eCompressed]);
     BAPE_Connector_P_RemoveAllConnections(&handle->node.connectors[BAPE_ConnectorFormat_eMono]);
@@ -606,6 +615,13 @@ void BAPE_Decoder_Close(
     {
         BDSP_Stage_Destroy(handle->hOutputFormatter);
     }
+
+    if ( handle->statusEvent )
+    {
+        BKNI_DestroyEvent(handle->statusEvent);
+        handle->statusEvent = NULL;
+    }
+
     handle->deviceHandle->decoders[handle->index] = NULL;
     BDBG_OBJECT_DESTROY(handle, BAPE_Decoder);
     BKNI_Free(handle);
@@ -1077,7 +1093,7 @@ unsigned BAPE_P_BDSPSampleFrequencyToInt( BDSP_AF_P_SampFreq bdspSF )
     return sr;
 }
 
-unsigned BAPE_P_GetOutputSamplerate( BDSP_AF_P_SampFreq bdspSF, bool constrainToFamily, unsigned maxSampleRate )
+static unsigned BAPE_P_GetOutputSamplerate( BDSP_AF_P_SampFreq bdspSF, bool constrainToFamily, unsigned maxSampleRate )
 {
     unsigned sr = 0;
 
@@ -1210,6 +1226,7 @@ static BERR_Code BAPE_Decoder_P_Start(
 
     /* Do we have compressed outputs directly connected? */
     BDBG_MSG(("%s: %u stereo consumers", handle->node.pName, handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections));
+    BDBG_MSG(("%s: %u alternate stereo consumers", handle->node.pName, handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eAlternateStereo].directConnections));
     BDBG_MSG(("%s: %u multichannel consumers", handle->node.pName, handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections));
     BDBG_MSG(("%s: %u compressed consumers", handle->node.pName, handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eCompressed].directConnections));
     BDBG_MSG(("%s: %u compressed 4x consumers", handle->node.pName, handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eCompressed4x].directConnections));
@@ -1263,6 +1280,13 @@ static BERR_Code BAPE_Decoder_P_Start(
     }
 
     BDBG_MSG(("BDSP Path Delay Mode %d", taskStartSettings.audioTaskDelayMode));
+
+    if ( (handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eAlternateStereo].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, BAPE_ConnectorFormat_eAlternateStereo)) &&
+          pSettings->codec != BAVC_AudioCompressionStd_eAc4 )
+    {
+        BDBG_ERR(("Alternate Stereo Output is currently only supported for AC4 Audio Codec."));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
 
     if ( taskStartSettings.audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLow ||
          taskStartSettings.audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLowest )
@@ -1537,6 +1561,18 @@ static BERR_Code BAPE_Decoder_P_Start(
             goto err_format_change;
         }
     }
+    if ( handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eAlternateStereo].directConnections )
+    {
+        BAPE_Connector_P_GetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo], &format);
+        format.sampleRate = 0;
+        format.ppmCorrection = pSettings->ppmCorrection;
+        errCode = BAPE_Connector_P_SetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo], &format);
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            goto err_format_change;
+        }
+    }
     if ( handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections )
     {
         BAPE_Connector_P_GetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel], &format);
@@ -1698,6 +1734,12 @@ static BERR_Code BAPE_Decoder_P_Start(
         }
     }
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage = hStage;
+
+    if ( handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eAlternateStereo].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, BAPE_ConnectorFormat_eAlternateStereo) )
+    {
+        /* SRC? DSOLA? */
+        handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo].hStage = handle->hPrimaryStage;
+    }
 
     if ( handle->stereoOnMultichannel )
     {
@@ -1910,10 +1952,18 @@ static BERR_Code BAPE_Decoder_P_Start(
         {
             if ((BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11 || BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS10) && BAVC_CODEC_IS_AAC(pSettings->codec) )
             {
-                BDBG_MSG(("Setting Decoder %p to output 48k since DDRE is attached", (void *)handle));
+                BDBG_MSG(("Setting AAC Decoder %p to output 48k for MS10/11", (void *)handle));
                 fixedOutputRate = 48000;
             }
-            else if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->ddre && BAVC_CODEC_IS_AAC(pSettings->codec) )
+            else if (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->ddre &&
+                     (handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eSoundEffects || handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eApplicationAudio) &&
+                     ( ( BAPE_Decoder_P_HasConnectedOutput(handle, BAPE_ConnectorFormat_eStereo) && !BAPE_Decoder_P_HasConnectedOutput(handle, BAPE_ConnectorFormat_eMultichannel) ) ||
+                       ( BAPE_Decoder_P_HasConnectedOutput(handle, BAPE_ConnectorFormat_eMultichannel) && pSettings->codec == BAVC_AudioCompressionStd_ePcmWav && handle->settings.multichannelFormat == BAPE_MultichannelFormat_e5_1 ) ) )
+            {
+                BDBG_MSG(("Setting App/SFx Decoder %p to output 48k since DDRE is attached", (void *)handle));
+                fixedOutputRate = 48000;
+            }
+            else if (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->ddre && BAVC_CODEC_IS_AAC(pSettings->codec))
             {
                 BDBG_MSG(("Setting Decoder %p to output the content samplerate for AAC since DDRE is attached", (void *)handle));
                 stayInSamplRateFamily = false;
@@ -2004,7 +2054,7 @@ static BERR_Code BAPE_Decoder_P_Start(
            errCode = BERR_TRACE(errCode);
            goto err_timer_start;
        }
-   }
+    }
 
     handle->pathDelayMode = taskStartSettings.audioTaskDelayMode;
     handle->state = BAPE_DecoderState_eStarted;
@@ -2253,6 +2303,13 @@ void BAPE_Decoder_Stop(
 
     BAPE_Decoder_P_Stop(handle);
 
+    /* Temp work around for SWSTB-3311 until we get a DSP fix for maintaining
+       the film standard mode during a decoder stop. */
+    if ( handle->ddre && (NULL == handle->fwMixer || handle->fwMixerMaster == true) )
+    {
+        BAPE_DolbyDigitalReencode_P_SettingsChanged(handle->ddre, NULL);
+    }
+
     /* Reset multistream state */
     handle->ddre = NULL;
     handle->fwMixer = NULL;
@@ -2263,6 +2320,7 @@ void BAPE_Decoder_Stop(
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eCompressed], false);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel], false);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eStereo], false);
+        BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo], false);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eMono], false);
     }
 }
@@ -2304,6 +2362,7 @@ BERR_Code BAPE_Decoder_Pause(
     if ( handle->type != BAPE_DecoderType_eDecodeToMemory )
     {
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eStereo], true);
+        BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo], true);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel], true);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eCompressed], true);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eMono], true);
@@ -2362,6 +2421,7 @@ BERR_Code BAPE_Decoder_Resume(
         }
 
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eStereo], false);
+        BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo], false);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel], false);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eCompressed], false);
         BAPE_Connector_P_SetMute(&handle->node.connectors[BAPE_ConnectorFormat_eMono], false);
@@ -3163,6 +3223,7 @@ void BAPE_Decoder_GetConnector(
     switch ( format )
     {
     case BAPE_ConnectorFormat_eStereo:
+    case BAPE_ConnectorFormat_eAlternateStereo:
     case BAPE_ConnectorFormat_eMultichannel:
     case BAPE_ConnectorFormat_eCompressed:
     case BAPE_ConnectorFormat_eCompressed4x:
@@ -3237,6 +3298,7 @@ BERR_Code BAPE_Decoder_SetInterruptHandlers(
 #endif
         interrupts.statusReady.pCallback_isr = BAPE_Decoder_P_StatusReady_isr;
         interrupts.statusReady.pParam1 = handle;
+        handle->firstStatusComplete = false;
         interrupts.ancillaryData.pCallback_isr = pInterrupts->ancillaryData.pCallback_isr;
         interrupts.ancillaryData.pParam1 = pInterrupts->ancillaryData.pParam1;
         interrupts.ancillaryData.param2 = pInterrupts->ancillaryData.param2;
@@ -3267,6 +3329,7 @@ void BAPE_Decoder_P_SetSampleRate_isr(BAPE_DecoderHandle handle, unsigned sample
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
     BAPE_Connector_P_SetSampleRate_isr(&handle->node.connectors[BAPE_ConnectorFormat_eStereo], sampleRate);
+    BAPE_Connector_P_SetSampleRate_isr(&handle->node.connectors[BAPE_ConnectorFormat_eAlternateStereo], sampleRate);
     BAPE_Connector_P_SetSampleRate_isr(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel], sampleRate);
     BAPE_Connector_P_SetSampleRate_isr(&handle->node.connectors[BAPE_ConnectorFormat_eMono], sampleRate);
     /* Catch AC3+ Passthrough */
@@ -3549,10 +3612,14 @@ static void BAPE_Decoder_P_StatusReady_isr(void *pParam1, int param2)
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
     BSTD_UNUSED(param2);
     BDBG_MSG(("Status Ready Interrupt Received [decoder %u]", handle->index));
+
+    /* only propagate first status ready event. */
     if ( handle->interrupts.statusReady.pCallback_isr )
     {
         handle->interrupts.statusReady.pCallback_isr(handle->interrupts.statusReady.pParam1, handle->interrupts.statusReady.param2);
     }
+
+    handle->firstStatusComplete = true;
 
     /* This interrupt will fire each frame, but we only want the first one.  Disable the interrupt after it fires. */
     BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
@@ -3917,6 +3984,21 @@ static bool BAPE_Decoder_P_OrphanConnector(BAPE_DecoderHandle handle, BAPE_Conne
     return allChildrenOrphans;
 }
 
+static bool BAPE_Decoder_P_HasConnectedOutput(BAPE_DecoderHandle handle, BAPE_ConnectorFormat format)
+{
+    bool connected = (handle->outputStatus.connectorStatus[format].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, format));
+
+    if ( format == BAPE_ConnectorFormat_eStereo && handle->stereoOnMultichannel ) {
+        connected = true;
+    }
+
+    if ( format == BAPE_ConnectorFormat_eMultichannel && handle->stereoOnMultichannel ) {
+        return false;
+    }
+
+    return connected;
+}
+
 void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
 {
     BAPE_DecoderHandle handle = pParam1;
@@ -3944,7 +4026,7 @@ void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
 Summary:
 Get Decoder Path Delay
 ***************************************************************************/
-BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(
+static BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(
     BAPE_DecoderHandle handle,
     unsigned *pDelay    /* [out] in ms */
     )
@@ -4326,7 +4408,7 @@ BERR_Code BAPE_Decoder_GetDecodeToMemoryStatus(
     return BERR_SUCCESS;
 }
 
-void BAPE_Decoder_P_FreeMetadata(BAPE_DecodeToMemoryNode *pNode)
+static void BAPE_Decoder_P_FreeMetadata(BAPE_DecodeToMemoryNode *pNode)
 {
     if ( pNode->metadataBlock )
     {

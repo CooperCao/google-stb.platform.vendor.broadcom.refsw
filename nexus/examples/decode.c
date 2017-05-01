@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -139,27 +139,23 @@ int main(void)
     /* Bring up audio decoders and outputs */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-    if ( AUDIO_CODEC == NEXUS_AudioCodec_eAc3 )
-    {
-        /* Only pass through AC3 */
-#if NEXUS_NUM_SPDIF_OUTPUTS
+
+    if (platformConfig.outputs.audioDacs[0]) {
         NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-            NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-#endif
-    }
-    else
-    {
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
             NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    }
+    if (platformConfig.outputs.spdif[0]) {
+        if ( AUDIO_CODEC == NEXUS_AudioCodec_eAc3 ) {
+            NEXUS_AudioOutput_AddInput(
+                NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+        }
+        else {
+            NEXUS_AudioOutput_AddInput(
+                NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        }
     }
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_AudioOutput_AddInput(

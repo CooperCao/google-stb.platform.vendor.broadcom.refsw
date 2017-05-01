@@ -21,22 +21,26 @@
 #define VARYING_ID_HW_0 (V3D_MAX_VARYING_COMPONENTS)
 #define VARYING_ID_HW_1 (V3D_MAX_VARYING_COMPONENTS + 1)
 
-#define CONFLICT_UNIF       (1<<0)
-#define CONFLICT_ADDFLAG    (1<<1)
-#define CONFLICT_MULFLAG    (1<<2)
-#define CONFLICT_SETFLAG    (1<<3)
-#define CONFLICT_TMU_W      (1<<4)
-#define CONFLICT_TMU_R      (1<<5)
-#define CONFLICT_TMU_C      (1<<6)
-#define CONFLICT_TLB_R      (1<<7)
-#define CONFLICT_TLB_W      (1<<8)
-#define CONFLICT_VPM        (1<<9)
-#define CONFLICT_SFU        (1<<10)
-#define CONFLICT_POST_THRSW (1<<11)
-#define CONFLICT_VARY       (1<<12)
-#define CONFLICT_MSF        (1<<13)
+typedef enum {
+   CONFLICT_NONE       = 0,
+   CONFLICT_UNIF       = (1<<0),
+   CONFLICT_ADDFLAG    = (1<<1),
+   CONFLICT_MULFLAG    = (1<<2),
+   CONFLICT_SETFLAG    = (1<<3),
+   CONFLICT_TMU_W      = (1<<4),
+   CONFLICT_TMU_R      = (1<<5),
+   CONFLICT_TMU_C      = (1<<6),
+   CONFLICT_TLB_R      = (1<<7),
+   CONFLICT_TLB_W      = (1<<8),
+   CONFLICT_VPM        = (1<<9),
+   CONFLICT_SFU        = (1<<10),
+   CONFLICT_POST_THRSW = (1<<11),
+   CONFLICT_VARY       = (1<<12),
+   CONFLICT_MSF        = (1<<13),
+   CONFLICT_UNIFRF     = (1<<14)
 /* TMU, VPM write conflicts handled by iodeps */
 /* Conflicts between things that write to r3,r4,r5 are handled by reg_user and reg_available */
+} QBEConflict;
 
 #define PHASE_UNVISITED 0
 #define PHASE_STACKED   1
@@ -103,8 +107,8 @@ typedef struct {
 
 typedef struct _INSTR_T
 {
-   uint32_t conflicts;
-   uint32_t sigbits;
+   QBEConflict       conflicts;
+   v3d_qpu_sigbits_t sigbits;
    uint64_t unif;
    uint32_t varying;
 
@@ -149,7 +153,6 @@ typedef struct
 
    uint32_t regfile_max;            /* Determined by threadability. */
    uint32_t regfile_usable;         /* regfile_max minus number of registers in blackout. */
-   uint32_t threadability;          /* 4, 2 or 1. Restricts the regfile sizes */
    uint32_t thrsw_remaining;
    bool     lthrsw;
 

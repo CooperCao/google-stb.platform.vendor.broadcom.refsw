@@ -237,6 +237,8 @@ typedef struct BWT_VideoWindowCreateSettings
     bool visible;
     const char * name;
     unsigned scale;
+    BWT_Dimensions dims;
+    unsigned id;
 } BWT_VideoWindowCreateSettings;
 
 void BWT_VideoWindow_GetDefaultCreateSettings(BWT_VideoWindowCreateSettings * pSettings);
@@ -253,11 +255,11 @@ typedef struct BWT_ToolkitCreateSettings
     PlatformGraphicsHandle gfx;
 } BWT_ToolkitCreateSettings;
 
-void BWT_GetDefaultCreateSettings(BWT_ToolkitCreateSettings * pSettings);
+void BWT_Toolkit_GetDefaultCreateSettings(BWT_ToolkitCreateSettings * pSettings);
 BWT_ToolkitHandle BWT_Toolkit_Create(const BWT_ToolkitCreateSettings * pSettings);
 void BWT_Toolkit_Destroy(BWT_ToolkitHandle bwt);
 unsigned BWT_Toolkit_GetTextHeight(BWT_ToolkitHandle bwt);
 const BWT_Dimensions * BWT_Toolkit_GetFramebufferDimensions(BWT_ToolkitHandle bwt);
-void BWT_Submit(BWT_ToolkitHandle bwt);
+void BWT_Toolkit_Submit(BWT_ToolkitHandle bwt);
 
 #endif /* BWT_H__ */

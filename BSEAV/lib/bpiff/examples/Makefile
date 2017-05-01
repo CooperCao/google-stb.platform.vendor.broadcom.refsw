@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 NEXUS_TOP := $(shell cd ../../../../nexus; pwd)
@@ -45,6 +44,22 @@ BSEAV_TOP := $(shell cd ../../../../BSEAV; pwd)
 APPS = encode_piff encode_playback_piff
 SRCS = encode_piff.c encode_playback_piff.c
 OBJS = ${SRCS:.c=.o}
+
+ifeq ($(USE_TEST_CA_TA), y)
+UTILS_SRCS = configure_keyslots.o
+UTILS_OBJS = ${UTILS_SRCS:.c=.o}
+USE_LOADABLE_TA ?= y
+endif
+
+USE_DIF ?= n
+ifeq ($(USE_DIF), y)
+DIF_APPS += encode_playback_dif
+DIF_SRCS += encode_playback_dif.cpp
+OBJS += ${DIF_SRCS:.cpp=.o}
+endif
+
+# Redirect logs to
+LOG_REDIRECT_FILE ?= /dev/null
 
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
@@ -70,25 +85,40 @@ endif
 include $(BSEAV_TOP)/lib/security/common_drm/lib/prdy_libdir.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
-ifeq ($(SAGE_VERSION), 2x)
-PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
-else
-PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+ifeq ($(USE_DIF), y)
+include $(BSEAV_TOP)/lib/security/dif/dif_libdir.inc
+-include $(BSEAV_TOP)/opensource/protobuf/protobuf.inc
 endif
 
-APP_BINS = $(APPS)
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= $(abspath ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR})
+BPIFF_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/bpiff
+
+END_OBJS := $(addprefix ${BPIFF_OBJ_ROOT}/,${OBJS})
+
+ifeq ($(USE_TEST_CA_TA), y)
+END_UTILS_OBJS := $(addprefix ${BPIFF_OBJ_ROOT}/,${UTILS_OBJS})
+endif
+
+ifeq ($(SAGE_VERSION), 2x)
+PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
+else
+PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+endif
+
+APP_BINS = $(addprefix ${BPIFF_OBJ_ROOT}/,${APPS})
+ifeq ($(USE_DIF), y)
+DIF_APP_BINS = $(addprefix ${BPIFF_OBJ_ROOT}/,${DIF_APPS})
+endif
 
 .PHONY: api clean prep_drmrootfs
 
-all: do_prep $(APP_BINS) copy
-
-$(APP_BINS):
+all: do_prep $(APP_BINS) $(DIF_APP_BINS) copy
 
 LDFLAGS := ${COMMON_DRM_LDFLAGS}
 LDFLAGS += -L$(NEXUS_BIN_DIR)/ -lpthread -lm -lnexus${NEXUS_LIB_SUFFIX}
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
 ifeq ($(SAGE_SUPPORT), y)
-LDFLAGS := -L$(BSEAV_TOP)/lib/security/common_drm_tl/lib/${CMNDRM_DIR} -lcmndrm_tl
 LDFLAGS += -L$(BSEAV_TOP)/lib/security/sage/srai/lib -lsrai
 LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk_host
 else
@@ -99,6 +129,21 @@ LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIB
 LDFLAGS += $(B_OPENSSL_LDFLAGS)
 LDFLAGS += -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR)/libbcrypt.so -lbcrypt
 LDFLAGS += -L$(BSEAV_TOP)/lib/bpiff -lbpiff
+
+ifeq ($(USE_DIF), y)
+DIF_LDFLAGS += -L$(NEXUS_BIN_DIR) -ldif -lcurl
+ifeq ($(SAGE_SUPPORT),y)
+DIF_LDFLAGS += -lplayready30pk
+endif
+#ifeq ($(WIDEVINE_SUPPORT),y)
+DIF_LDFLAGS += $(PROTOBUF_LDFLAGS) $(GTEST_LDFLAGS)
+ifeq ($(SAGE_SUPPORT),y)
+DIF_LDFLAGS += -lwvcdm -loemcrypto_tl
+else
+DIF_LDFLAGS += -lwvcdm -loemcrypto
+endif
+#endif
+endif
 
 #$(error XXX $(LDFLAGS))
 
@@ -111,6 +156,10 @@ CFLAGS += -I$(BSEAV_TOP)/lib/media
 CFLAGS += -I${BSEAV_TOP}/lib/media/build
 CFLAGS += -I${BSEAV_TOP}/lib/piff
 
+ifeq ($(USE_DIF), y)
+DIF_CFLAGS = -I${BSEAV_TOP}/lib/security/dif/include
+endif
+
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 CFLAGS += -g
@@ -120,19 +169,26 @@ CFLAGS += -I$(BSEAV_TOP)/lib/bpiff/include
 CFLAGS += ${COMMON_DRM_CFLAGS}
 CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/media -I$(NEXUS_TOP)/../BSEAV/lib/utils -I$(NEXUS_TOP)/../BSEAV/lib/asf
 
+ifeq ($(SAGE_SUPPORT), y)
+CFLAGS += -DSAGE_SUPPORT
+CFLAGS += -I$(BSEAV_TOP)/lib/security/sage/srai/include
+endif
+
+ifeq ($(USE_TEST_CA_TA), y)
+CFLAGS += -DUSE_TEST_CA_TA
+ifeq ($(USE_LOADABLE_TA), y)
+CFLAGS += -DUSE_LOADABLE_TA
+endif
+endif
+
+CXXFLAGS = $(CFLAGS) $(DIF_CFLAGS) -fpermissive
+
 #$(error XXX $(CFLAGS))
 
 # This cleans nexus and local apps
 clean:
-	-$(RM) $(APP_BINS) *.d *.o *.out;
+	-$(RM) $(APP_BINS) $(DIF_APP_BINS) $(END_OBJS) $(END_UTILS_OBJS);
 
-# Implicit rule for building local apps
-#$(APPS): prep_openssl $(OBJS)
-#	@echo [Link... $@]
-#	@echo $(NEXUS_TOP)
-#	@echo $(LDFLAGS)
-#	${Q_} $(CC) -o $@ $@.o $(LDFLAGS)
-#
 #prep_openssl:
 #	$(MAKE) -C $(B_OPENSSL_BUILD_DIR)
 
@@ -143,30 +199,41 @@ do_prep:
 	$(MAKE) prep_bpiff
 
 prep_drmrootfs:
-	@echo [Compiling drmrootfs dependency ....] && \
-	$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install
+	@echo [Compiling drmrootfs dependency ....];
+	@$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install > $(LOG_REDIRECT_FILE);
+	@echo [Installing drmrootfs lib ....];
+	install -c -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR}/libdrmrootfs.so $(NEXUS_BIN_DIR)
 
 prep_bcrypt:
-	@echo [Compiling Bcrypt dependency ....] && \
-	$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install > /dev/null
+	@echo [Compiling Bcrypt dependency ....];
+	@$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install > $(LOG_REDIRECT_FILE);
+	@$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt copy > $(LOG_REDIRECT_FILE);
 
 prep_cmndrmprdy:
-	@echo [..... Common DRM Playready target] && \
-	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm playready && \
-	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm install > /dev/null
+	@echo [..... Common DRM Playready target];
+	@$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm playready > $(LOG_REDIRECT_FILE);
+	@$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm copy > $(LOG_REDIRECT_FILE);
 
 prep_bpiff:
-	@echo [Compiling bpiff dependency ....] && \
-	$(MAKE) -C $(BSEAV_TOP)/lib/bpiff all > /dev/null
+	@echo [Compiling bpiff dependency ....];
+	@$(MAKE) -C $(BSEAV_TOP)/lib/bpiff install > $(LOG_REDIRECT_FILE);
 
-.c.o:
+$(APP_BINS): $(END_OBJS) $(END_UTILS_OBJS)
+	$(CC) -o $@ $@.o $(END_UTILS_OBJS) $(LDFLAGS)
+
+$(DIF_APP_BINS): $(END_OBJS)
+	$(CXX) -o $@ $@.o $(LDFLAGS) $(DIF_LDFLAGS)
+
+${BPIFF_OBJ_ROOT}/%.o: %.c
 	@echo [Compile... $<]
-	$(CC) $(CFLAGS) -c -o $<
-#	${Q_}$(CC) -c $< $(CFLAGS)
+	$(CC) -c $< $(CFLAGS) -o $@
+
+${BPIFF_OBJ_ROOT}/%.o: %.cpp
+	@echo [Compile... $<]
+	$(CXX) -c $< $(CXXFLAGS) -o $@
 
 copy:
 	@echo [Copying proper lib version...]
-	cp -f $(BSEAV_TOP)/lib/bpiff/libbpiff.so $(NEXUS_BIN_DIR)/
 	cp -f -P $(B_OPENSSL_LIB_INSTALL_DIR)/libcrypto.* $(NEXUS_BIN_DIR)/
 	cp -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR)/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT), y)
@@ -175,4 +242,4 @@ else
 	cp -f $(PRDY_LIB_PATH)/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif
 	@echo [Copying executables...]
-	cp $(APPS) $(NEXUS_BIN_DIR)/
+	cp $(APP_BINS) $(NEXUS_BIN_DIR)/

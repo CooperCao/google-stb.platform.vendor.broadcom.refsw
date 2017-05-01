@@ -49,26 +49,30 @@ typedef struct ScenarioPlayer * ScenarioPlayerHandle;
 
 typedef struct Scenario
 {
-    unsigned streamIndex;
-    unsigned imageIndex;
-    unsigned bgIndex;
+    char * scenarioPath;
+    char * streamPaths[MAX_MOSAICS];
+    unsigned streamCount;
+    char * imagePath;
+    char * bgPath;
     bool pig;
     bool osd;
     bool details;
     bool guide;
+    bool forceRestart;
     struct
     {
         unsigned vidIndex;
         unsigned gfxIndex;
     } plm;
     PlatformColorimetry gamut;
-    PlatformDynamicRange eotf;
+    PlatformDynamicRange dynrng;
+    unsigned layout;
 } Scenario;
 
 typedef void (*ScenarioChangedCallback)(void * context, const Scenario * pScenario);
 
 ScenarioPlayerHandle scenario_player_create(const char * path, ScenarioChangedCallback scenarioChanged, void * scenarioChangedContext);
 void scenario_player_destroy(ScenarioPlayerHandle player);
-void scenario_player_play_scenario(ScenarioPlayerHandle player, int scenarioIndex);
+void scenario_player_play_scenario(ScenarioPlayerHandle player, int scenarioNumber);
 
 #endif /* SCENARIO_PLAYER_H__ */

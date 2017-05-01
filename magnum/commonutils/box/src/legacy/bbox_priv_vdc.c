@@ -80,7 +80,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   1 /* number of MEMC */
+   1, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif (BCHP_CHIP == 7405)
 static const BBOX_MemConfig stBoxMemConfig =
@@ -98,7 +99,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   1 /* number of MEMC */
+   1, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif (BCHP_CHIP == 7422)
 static const BBOX_MemConfig stBoxMemConfig =
@@ -116,7 +118,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   2 /* number of MEMC */
+   2, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif (BCHP_CHIP == 7425)
 static const BBOX_MemConfig stBoxMemConfig =
@@ -134,7 +137,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   2 /* number of MEMC */
+   2, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif (BCHP_CHIP == 7435)
 static const BBOX_MemConfig stBoxMemConfig =
@@ -152,7 +156,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   2 /* number of MEMC */
+   2, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif (BCHP_CHIP == 7445)
 static const BBOX_MemConfig stBoxMemConfig =
@@ -170,7 +175,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 0,       Invalid, 2), /* disp 6 */
       }
    },
-   3 /* number of MEMC */
+   3, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif (((BCHP_CHIP == 7439) && (BCHP_VER == BCHP_VER_A0))  || \
        ((BCHP_CHIP == 7366) && (BCHP_VER == BCHP_VER_A0))  || \
@@ -191,7 +197,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   1 /* number of MEMC */
+   1, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif ((BCHP_CHIP==7439) && (BCHP_VER >= BCHP_VER_B0))
 static const BBOX_MemConfig stBoxMemConfig =
@@ -209,7 +216,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   2 /* number of MEMC */
+   2, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif ((BCHP_CHIP == 7366) && (BCHP_VER >= BCHP_VER_B0))
 static const BBOX_MemConfig stBoxMemConfig =
@@ -227,7 +235,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   2 /* number of MEMC */
+   2, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #elif ((BCHP_CHIP==7552)  || (BCHP_CHIP==7358)  || (BCHP_CHIP==7360)  || \
        (BCHP_CHIP==7346)  || (BCHP_CHIP==7344)  || (BCHP_CHIP==7231)  || \
@@ -252,7 +261,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   1 /* number of MEMC */
+   1, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #else
 static const BBOX_MemConfig stBoxMemConfig =
@@ -270,7 +280,8 @@ static const BBOX_MemConfig stBoxMemConfig =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 6 */
       }
    },
-   BBOX_INVALID_NUM_MEMC /* number of MEMC */
+   BBOX_INVALID_NUM_MEMC, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 #endif
 
@@ -380,6 +391,10 @@ BERR_Code BBOX_P_GetMemConfig
                 = stDefVdcMemConfig.astDisplay[i].aulGfdWinMemcIndex[j];
         }
     }
+
+    pBoxMemConfig->ulNumMemc = stDefMemConfig.ulNumMemc;
+    pBoxMemConfig->eRefreshRate = stDefMemConfig.eRefreshRate;
+
     BDBG_MSG(("Default (box 0) settings are used."));
     return eStatus;
 }

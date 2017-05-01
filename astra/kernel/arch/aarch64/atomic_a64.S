@@ -48,6 +48,7 @@ atomic_incr:
 	cmp   w3, #0
 	bne   atomic_incr
 
+	subs  w2, w2, #1
 	mov   w0, w2
 	ret
 
@@ -62,5 +63,6 @@ atomic_decr:
 	cmp   w3, #0
 	bne   atomic_decr
 
+	add	  w2, w2, #1
 	mov   w0, w2
 	ret

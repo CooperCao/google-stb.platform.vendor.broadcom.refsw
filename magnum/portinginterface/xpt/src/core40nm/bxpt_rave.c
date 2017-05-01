@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,6 @@
 #include "bxpt_priv.h"
 #include "bxpt.h"
 #include "bkni.h"
-#include "bmem.h"
 #include "blst_slist.h"
 #include "bxpt_rave.h"
 #include "bxpt_rave_ihex.h"
@@ -252,6 +251,9 @@
 #define DEFAULT_THRESHOLD_GRANULARITY       (256)
 
 #define BXPT_ITB_SIZE 16
+
+/* Address delta (in bytes) between consecutive registers in a context. */
+#define REG_STEP  (BCHP_XPT_RAVE_CX0_AV_ITB_DEPTH - BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL)
 
 typedef enum ScdIdent
 {
@@ -479,6 +481,8 @@ static BXPT_P_ContextHandle * allocContextHandle(
     ThisCtx->hChp = hRave->hChip;
     ThisCtx->hReg = hRave->hReg;
     ThisCtx->hInt = hRave->hInt;
+    ThisCtx->mmaHeap = hRave->mmaHeap;
+    ThisCtx->mmaRHeap = hRave->mmaRHeap;
     ThisCtx->Allocated = true;
     ThisCtx->Index = Index;     /* Absolute context index, not type dependent. */
     ThisCtx->vhRave = ( void * ) hRave;
@@ -492,34 +496,32 @@ static BXPT_P_ContextHandle * allocContextHandle(
     return ThisCtx;
 }
 
-static void clearContextRegs(BXPT_Rave_Handle hRave, unsigned index)
+static void clearContextRegs(BREG_Handle hRegister, unsigned index)
 {
    unsigned reg;
    unsigned BaseAddr = BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR + ( index * RAVE_CONTEXT_REG_STEP );
 
-   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_WRITE_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_READ_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_BASE_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_END_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_VALID_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
-   BREG_Write32( hRave->hReg, BaseAddr + AV_CDB_THRESHOLD_OFFSET, 0 );
-   BREG_Write32( hRave->hReg, BaseAddr + CDB_DEPTH_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_WRITE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_READ_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_BASE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_END_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_VALID_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
+   BREG_Write32( hRegister, BaseAddr + AV_CDB_THRESHOLD_OFFSET, 0 );
+   BREG_Write32( hRegister, BaseAddr + CDB_DEPTH_OFFSET, 0 );
 
-   BREG_Write32( hRave->hReg, BaseAddr + AV_THRESHOLDS_OFFSET, 0 );
+   BREG_Write32( hRegister, BaseAddr + AV_THRESHOLDS_OFFSET, 0 );
 
-   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_WRITE_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_READ_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_BASE_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_END_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_VALID_PTR_OFFSET, 0 );
-   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
-   BREG_Write32( hRave->hReg, BaseAddr + AV_ITB_THRESHOLD_OFFSET, 0 );
-   BREG_Write32( hRave->hReg, BaseAddr + ITB_DEPTH_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_WRITE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_READ_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_BASE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_END_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_VALID_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
 
-   for (reg = BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL; reg < BCHP_XPT_RAVE_CX1_AV_CDB_WRITE_PTR; reg +=4 )
+   for (reg = BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL; reg < BCHP_XPT_RAVE_CX1_AV_CDB_WRITE_PTR; reg += REG_STEP )
    {
-      BREG_Write32(hRave->hReg, BaseAddr + reg - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR, 0);
+      BREG_Write32(hRegister, BaseAddr + reg - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR, 0);
    }
 }
 
@@ -592,7 +594,8 @@ BERR_Code BXPT_Rave_OpenChannel(
 
     lhRave->hChip = hXpt->hChip;
     lhRave->hReg = hXpt->hRegister;
-    lhRave->hMem = hXpt->hMemory;
+    lhRave->mmaHeap = hXpt->mmaHeap;
+    lhRave->mmaRHeap = hXpt->mmaRHeap;
     lhRave->hInt = hXpt->hInt;
     lhRave->ChannelNo = ChannelNo;
     lhRave->lvXpt = hXpt;
@@ -632,7 +635,7 @@ BERR_Code BXPT_Rave_OpenChannel(
     for( Index = 0; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
     {
         *(lhRave->ContextTbl + Index) = NULL;
-        clearContextRegs(lhRave, Index);
+        clearContextRegs(lhRave->hReg, Index);
     }
 
     for( Index = 0; Index < BXPT_P_NUM_SPLICING_QUEUES; Index++ )
@@ -645,7 +648,6 @@ BERR_Code BXPT_Rave_OpenChannel(
         StartCodeIndexer *lhScd = lhRave->ScdTable + Index;
 
         lhScd->hReg = lhRave->hReg;
-        lhScd->hMem = lhRave->hMem;
         lhScd->hInt = lhRave->hInt;
         lhScd->ChannelNo = Index;
         lhScd->BaseAddr = BCHP_XPT_RAVE_SCD0_SCD_MISC_CONFIG + ( Index * SCD_REG_STEP );
@@ -658,7 +660,6 @@ BERR_Code BXPT_Rave_OpenChannel(
         TpitIndexer *lhTpit = lhRave->TpitTable + Index;
 
         lhTpit->hReg = lhRave->hReg;
-        lhTpit->hMem = lhRave->hMem;
         lhTpit->hInt = lhRave->hInt;
         lhTpit->ChannelNo = Index;
         lhTpit->BaseAddr = BCHP_XPT_RAVE_TPIT0_CTRL1 + ( Index * TPIT_CTRL_REG_STEP );
@@ -862,7 +863,6 @@ BERR_Code BXPT_Rave_AllocCx(
             BDBG_ERR(( "Can't allocate a context handle!" ));
             return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
         }
-        ThisCtx->hMem = hRave->hMem;
 
         /* this triggers AllocSoftContext_Priv() not to allocate the ITB */
         ThisCtx->ItbBufferAddr = pSettings->ItbBlock ? BMMA_Lock(pSettings->ItbBlock) : NULL;
@@ -883,11 +883,27 @@ BERR_Code BXPT_Rave_AllocCx(
             BDBG_ERR(( "Can't allocate a context handle!" ));
             return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
         }
-        ThisCtx->hMem = hRave->hMem;
 
+#if 0
         /* this triggers InitContext() not to allocate the CDB/ITB */
         ThisCtx->CdbBufferAddr = pSettings->CdbBlock ? BMMA_Lock(pSettings->CdbBlock) : NULL;
         ThisCtx->ItbBufferAddr = pSettings->ItbBlock ? BMMA_Lock(pSettings->ItbBlock) : NULL;
+#else
+
+        ThisCtx->externalCdbAlloc = pSettings->CdbBlock!=NULL;
+        ThisCtx->externalItbAlloc = pSettings->ItbBlock!=NULL;
+
+        /* TODO: remove the feature. warning only for now */
+        if (!ThisCtx->externalCdbAlloc || (!ThisCtx->externalItbAlloc && pSettings->BufferCfg.Itb.Length) ) {
+            BDBG_WRN(("internal RAVE memory allocation is deprecated"));
+            (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+
+        ThisCtx->mma.cdbBlock = pSettings->CdbBlock;
+        ThisCtx->mma.itbBlock = pSettings->ItbBlock;
+        ThisCtx->mma.cdbBlockOffset = pSettings->CdbBlock ? pSettings->CdbBlockOffset : 0;
+        ThisCtx->mma.itbBlockOffset = pSettings->ItbBlock ? pSettings->ItbBlockOffset : 0;
+#endif
 
         return AllocContext_Priv( hRave, pSettings->RequestedType, &(pSettings->BufferCfg), Index, Context );
     }
@@ -1040,11 +1056,9 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     hRave->ScdTable[ referenceScdNum ].Allocated = true;
     hRave->ScdTable[ decodeScdNum ].Allocated = true;
 
-    ThisRefCtx->hMem = hRave->hMem;
     ThisRefCtx->CdbBufferAddr = pReferenceCxSettings->CdbBlock ? BMMA_Lock(pReferenceCxSettings->CdbBlock) : NULL;
     ThisRefCtx->ItbBufferAddr = pReferenceCxSettings->ItbBlock ? BMMA_Lock(pReferenceCxSettings->ItbBlock) : NULL;
 
-    ThisDecCtx->hMem = hRave->hMem;
     ThisDecCtx->CdbBufferAddr = pDecodeCxSettings->CdbBlock ? BMMA_Lock(pDecodeCxSettings->CdbBlock) : NULL;
     ThisDecCtx->ItbBufferAddr = pDecodeCxSettings->ItbBlock ? BMMA_Lock(pDecodeCxSettings->ItbBlock) : NULL;
 
@@ -1074,45 +1088,6 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
 #endif
 }
 
-BERR_Code BXPT_Rave_AllocContextFromHeap(
-    BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
-    BXPT_RaveCx RequestedType,      /* [in] The type of context to allcoate */
-    const BAVC_CdbItbConfig *BufferCfg,   /* [in] Size and alignment for ITB and CDB */
-    BMEM_Handle ContextHeap,         /* [in] This context's memory heap handle */
-    BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
-    )
-{
-    unsigned Index;
-
-    BXPT_RaveCx_Handle ThisCtx = NULL;
-
-    BDBG_ASSERT( hRave );
-    BDBG_ASSERT( BufferCfg );
-    BDBG_ASSERT( Context );
-    BDBG_ASSERT( ContextHeap );
-
-    if( GetNextRaveContext( hRave, RequestedType, &Index ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(( "No free contexts!" ));
-        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-    }
-
-    /* Same as the normal context alloc, except the we substitute the caller's heap
-    for the general handle that was installed when the RAVE channel was openned. */
-    if( !(ThisCtx = allocContextHandle(hRave, Index)) )
-    {
-        BDBG_ERR(( "Can't allocate a context handle!" ));
-        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-    }
-    ThisCtx->hMem = ContextHeap;
-
-    /* InitContext() will do the alloc */
-    ThisCtx->CdbBufferAddr = NULL;
-    ThisCtx->ItbBufferAddr = NULL;
-
-    return AllocContext_Priv( hRave, RequestedType, BufferCfg, Index, Context );
-}
-
 BERR_Code BXPT_Rave_AllocContext(
     BXPT_Rave_Handle hRave,             /* [in] Handle for this RAVE channel */
     BXPT_RaveCx RequestedType,          /* [in] The type of context to allcoate */
@@ -1120,34 +1095,12 @@ BERR_Code BXPT_Rave_AllocContext(
     BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
     )
 {
-    unsigned Index;
-
-    BXPT_RaveCx_Handle ThisCtx = NULL;
-
-    BDBG_ASSERT( hRave );
-    BDBG_ASSERT( BufferCfg );
-    BDBG_ASSERT( Context );
-
-    if( GetNextRaveContext( hRave, RequestedType, &Index ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(( "No free contexts!" ));
-        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-    }
-
-    /* Set the local heap handle to the one given at RAVE channel open, as the local handle
-    may have been hijacked by BXPT_Rave_AllocContextFromHeap() */
-    if( !(ThisCtx = allocContextHandle(hRave, Index)) )
-    {
-        BDBG_ERR(( "Can't allocate a context handle!" ));
-        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-    }
-    ThisCtx->hMem = hRave->hMem;
-
-    /* InitContext() will do the alloc */
-    ThisCtx->CdbBufferAddr = NULL;
-    ThisCtx->ItbBufferAddr = NULL;
-
-    return AllocContext_Priv( hRave, RequestedType, BufferCfg, Index, Context );
+   /* deprecated due to MMA conversion */
+   BSTD_UNUSED(hRave);
+   BSTD_UNUSED(RequestedType);
+   BSTD_UNUSED(BufferCfg);
+   BSTD_UNUSED(Context);
+   return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 BERR_Code AllocContext_Priv(
@@ -1435,7 +1388,7 @@ BERR_Code BXPT_Rave_AllocIndexer(
     )
 {
     uint32_t Reg;
-    uint32_t ItbBase;
+    uint64_t ItbBase;
 
     unsigned ChannelNum;
     unsigned Index;
@@ -1448,7 +1401,7 @@ BERR_Code BXPT_Rave_AllocIndexer(
     BDBG_ASSERT( Indexer );
 
     /* Make sure this context has an ITB allocated. In some cases, it won't */
-    ItbBase = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
+    ItbBase = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
     if( !ItbBase )
     {
         BDBG_ERR(( "No ITB allocated for this context." ));
@@ -1560,93 +1513,67 @@ BERR_Code BXPT_Rave_FreeContext(
     BXPT_RaveCx_Handle Context      /* [in] The context to free. */
     )
 {
-    uint32_t BufferOffset;
-    void *BufferAddr;
-    BMEM_Handle hMem;
+   unsigned Index;
+   BERR_Code ExitCode = BERR_SUCCESS;
+   BXPT_Rave_Handle hRave;
 
-    unsigned Index;
-    BERR_Code ExitCode = BERR_SUCCESS;
-    BXPT_Rave_Handle hRave;
+   BDBG_ASSERT( Context );
 
-    BDBG_ASSERT( Context );
+   Index = Context->Index;
+   hRave = (BXPT_Rave_Handle) Context->vhRave;
+   if( Context->IsSoftContext )
+   {
+       /* BXPT_RaveSoftMode_ePointersOnly does not allocate any buffers. All other modes do. */
+       if( Context->SoftRave.mode != BXPT_RaveSoftMode_ePointersOnly )
+       {
+           BMMA_Unlock(Context->mma.itbBlock, Context->mma.itbPtr);
+           BMMA_UnlockOffset(Context->mma.itbBlock, Context->mma.itbOffset);
+           if (!Context->externalItbAlloc) {
+               BMMA_Free(Context->mma.itbBlock);
+           }
+       }
+   }
+   else
+   {
+       /* Make sure it's off before we release the buffers */
+       BXPT_Rave_DisableContext( Context );
 
-    Index = Context->Index;
-    hRave = (BXPT_Rave_Handle) Context->vhRave;
-    if( Context->IsSoftContext )
-    {
-        /* BXPT_RaveSoftMode_ePointersOnly does not allocate any buffers. All other modes do. */
-        if( Context->SoftRave.mode != BXPT_RaveSoftMode_ePointersOnly )
-        {
-            BufferOffset = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
-            BMEM_ConvertOffsetToAddress( Context->hMem, BufferOffset, &BufferAddr );
-            if( !Context->externalItbAlloc ) {
-                BMEM_Free( Context->hMem, BufferAddr );
-            }
-            Context->ItbBufferAddr = 0;
-        }
-    }
-    else
-    {
-        /* Make sure it's off before we release the buffers */
-        BXPT_Rave_DisableContext( Context );
+       BMMA_Unlock(Context->mma.cdbBlock, Context->mma.cdbPtr);
+       BMMA_UnlockOffset(Context->mma.cdbBlock, Context->mma.cdbOffset);
+       if (!Context->externalCdbAlloc) {
+           BMMA_Free(Context->mma.cdbBlock);
+       }
 
-        /* The CDB may have been allocated from the secure heap. */
-        if( Context->Type == BXPT_RaveCx_eAvR && Context->hRHeap )
-            hMem = Context->hRHeap;
-        else
-            hMem = Context->hMem;
+       if (Context->mma.itbBlock) { /* ITB is optional */
+           if (Context->mma.itbOffset) {
+               BMMA_Unlock(Context->mma.itbBlock, Context->mma.itbPtr);
+               BMMA_UnlockOffset(Context->mma.itbBlock, Context->mma.itbOffset);
+           }
+           if (!Context->externalItbAlloc) {
+               BMMA_Free(Context->mma.itbBlock);
+           }
+       }
 
-        /* Free the CDB */
-        BufferOffset = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_BASE_PTR_OFFSET );
-        BMEM_ConvertOffsetToAddress( hMem, BufferOffset, &BufferAddr );
-        BMEM_ConvertAddressToCached( hMem, BufferAddr, &BufferAddr );
-        if(Context->CdbBufferAddr != BufferAddr)
-        {
-            BDBG_WRN(("Allocated cdb addr %p,actual cdb addr %p", (void *) Context->CdbBufferAddr, (void *) BufferAddr));
-        }
-        if( !Context->externalCdbAlloc )
-        {
-        BMEM_Free( hMem, Context->CdbBufferAddr );
-        }
-        Context->CdbBufferAddr=0;
+       /* free SCD channel */
+       if(Context->hAvScd)
+       {
+           Context->hAvScd->Allocated = false;
+       }
 
-        /* Free the ITB, if there was one. The ITB is always allocated from the general heap. */
-        BufferOffset = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
-        if( BufferOffset )
-        {
-            BMEM_ConvertOffsetToAddress( Context->hMem, BufferOffset, &BufferAddr );
-            BMEM_ConvertAddressToCached( hMem, BufferAddr, &BufferAddr );
-            if(Context->ItbBufferAddr != BufferAddr)
-            {
-                BDBG_WRN(("Allocated itb addr %p,actual itb addr %p", (void *) Context->ItbBufferAddr, (void *) BufferAddr));
-            }
-            if( !Context->externalItbAlloc )
-            {
-            BMEM_Free( Context->hMem, Context->ItbBufferAddr );
-            }
-            Context->ItbBufferAddr =0;
-        }
+       if(Context->hVctScd)
+       {
+           Context->hVctScd->Allocated = false;
+       }
 
-        /* free SCD channel */
-        if(Context->hAvScd)
-        {
-            Context->hAvScd->Allocated = false;
-        }
+       if( Context->VctNeighbor )
+       {
+           BXPT_RaveCx_Handle VctNeighbor = ( BXPT_RaveCx_Handle ) Context->VctNeighbor;
+           InitContext( VctNeighbor, NULL );
+           VctNeighbor->Allocated = false;
+       }
 
-        if(Context->hVctScd)
-        {
-            Context->hVctScd->Allocated = false;
-        }
-
-        if( Context->VctNeighbor )
-        {
-            BXPT_RaveCx_Handle VctNeighbor = ( BXPT_RaveCx_Handle ) Context->VctNeighbor;
-            InitContext( VctNeighbor, NULL );
-            VctNeighbor->Allocated = false;
-        }
-
-        FreePicCounter( Context );
-    }
+       FreePicCounter( Context );
+   }
 
     /* Zero out the registers */
     InitContext( Context, NULL );
@@ -2892,6 +2819,7 @@ BERR_Code BXPT_Rave_SetRecordConfig(
 {
     uint32_t Reg;
     bool BandHoldEn;
+    BMMA_DeviceOffset offset;
 
     unsigned PesSyncMode = 1;
     unsigned OutputFormat = 2;
@@ -3072,7 +3000,7 @@ BERR_Code BXPT_Rave_SetRecordConfig(
     );
     BREG_Write32( Ctx->hReg, Ctx->BaseAddr + AV_MISC_CFG3_OFFSET, Reg );
 
-    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + CDB_BASE_PTR_OFFSET );
+    offset = BREG_ReadAddr( Ctx->hReg, Ctx->BaseAddr + CDB_BASE_PTR_OFFSET );
     if(Cfg->UseCdbSize)
     {
         BDBG_MSG(("check %p: UseCdbSize %#x, allocatedCdbBufferSize %#x", (void *) Ctx, Cfg->UseCdbSize, Ctx->allocatedCdbBufferSize));
@@ -3085,7 +3013,7 @@ BERR_Code BXPT_Rave_SetRecordConfig(
         {
             /* adjust the end pointer to the new value */
             Ctx->usedCdbBufferSize = Cfg->UseCdbSize;
-            BREG_Write32( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, Reg + Ctx->usedCdbBufferSize - 1 );
+            BREG_WriteAddr( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, offset + Ctx->usedCdbBufferSize - 1 );
         }
 
     }
@@ -3093,7 +3021,7 @@ BERR_Code BXPT_Rave_SetRecordConfig(
     {
         /* adjust the cdb end pointer to allocated size */
         Ctx->usedCdbBufferSize = Ctx->allocatedCdbBufferSize;
-        BREG_Write32( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, Reg + Ctx->usedCdbBufferSize - 1 );
+        BREG_WriteAddr( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, offset + Ctx->usedCdbBufferSize - 1 );
     }
 
     if(Cfg->EmmModeEn)
@@ -3586,6 +3514,7 @@ BERR_Code BXPT_Rave_SetAvConfig(
             BandHoldEn = Config->BandHoldEn;
     }
 #else
+    BSTD_UNUSED(lhRave);
     BandHoldEn = Config->BandHoldEn;
 #endif
 
@@ -3748,137 +3677,128 @@ BERR_Code BXPT_Rave_CheckBuffer(
     BXPT_Rave_ContextPtrs *Ptrs         /* [out] Pointers to the buffer data */
     )
 {
-    uint32_t Read, Valid, Wrap, Base;
+   uint64_t Read, Valid, Wrap, Base;
+   BERR_Code ExitCode = BERR_SUCCESS;
 
-    BERR_Code ExitCode = BERR_SUCCESS;
+   BDBG_ASSERT( Context );
+   BDBG_ASSERT( Ptrs );
 
-    BDBG_ASSERT( Context );
-    BDBG_ASSERT( Ptrs );
+   Read = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET );
+   Valid = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_VALID_PTR_OFFSET );
+   Wrap = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_WRAP_PTR_OFFSET );
+   Base = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_BASE_PTR_OFFSET );
 
-    Read = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET );
-    Valid = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_VALID_PTR_OFFSET );
-    Wrap = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_WRAP_PTR_OFFSET );
-    Base = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_BASE_PTR_OFFSET );
+   if( Read < Valid )
+   {
+       if( Context->CdbReset == true )
+       {
+           /*
+           ** Checks after a context reset, but before the first update of the READ, are a special case.
+           ** We need to do account for the fact that first burst of data written into the buffer
+           ** started AT the BASE pointer, not VALID+1.
+           */
+           Ptrs->Cdb.DataPtr = (uint8_t*)Context->mma.cdbPtr + (Read - Context->mma.cdbOffset); /* convert Read -> cached ptr */
+           Ptrs->Cdb.ByteCount = Valid - Read + 1;
+       }
+       else
+       {
+           Ptrs->Cdb.DataPtr = (uint8_t*)Context->mma.cdbPtr + (Read+1 - Context->mma.cdbOffset); /* convert (Read+1) -> cached ptr */
+           Ptrs->Cdb.ByteCount = Valid - Read;
+       }
 
-    if( Read < Valid )
-    {
-        if( Context->CdbReset == true )
-        {
-            /*
-            ** Checks after a context reset, but before the first update of the READ, are a special case.
-            ** We need to do account for the fact that first burst of data written into the buffer
-            ** started AT the BASE pointer, not VALID+1.
-            */
-            BMEM_ConvertOffsetToAddress( Context->hMem, Read, (void *) &(Ptrs->Cdb.DataPtr) );
-            Ptrs->Cdb.ByteCount = Valid - Read + 1;
-        }
-        else
-        {
-            BMEM_ConvertOffsetToAddress( Context->hMem, Read + 1, (void *) &(Ptrs->Cdb.DataPtr) );
-            Ptrs->Cdb.ByteCount = Valid - Read;
-        }
-        BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Cdb.DataPtr, (void *) &(Ptrs->Cdb.DataPtr) );
+       Ptrs->Cdb.WrapDataPtr = NULL;
+       Ptrs->Cdb.WrapByteCount = 0;
+   }
+   else if( Read > Valid )
+   {
+       /* It did wrap */
+       if( Read == Wrap )
+       {
+           /* They read up to the wraparound point. New data starts at the base */
+           Ptrs->Cdb.DataPtr = (uint8_t*)Context->mma.cdbPtr + (Base - Context->mma.cdbOffset); /* convert Base -> cached ptr */
+           Ptrs->Cdb.ByteCount = Valid - Base + 1;
 
-        Ptrs->Cdb.WrapDataPtr = NULL;
-        Ptrs->Cdb.WrapByteCount = 0;
-    }
-    else if( Read > Valid )
-    {
-        /* It did wrap */
-        if( Read == Wrap )
-        {
-            /* They read up to the wraparound point. New data starts at the base */
-            BMEM_ConvertOffsetToAddress( Context->hMem, Base, (void *) &(Ptrs->Cdb.DataPtr) );
-            BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Cdb.DataPtr, (void *) &(Ptrs->Cdb.DataPtr) );
-            Ptrs->Cdb.ByteCount = Valid - Base + 1;
+           Ptrs->Cdb.WrapDataPtr = NULL;
+           Ptrs->Cdb.WrapByteCount = 0;
+       }
+       else
+       {
+           Ptrs->Cdb.DataPtr = (uint8_t*)Context->mma.cdbPtr + (Read+1 - Context->mma.cdbOffset); /* convert (Read+1) -> cached ptr */
+           Ptrs->Cdb.ByteCount = Wrap - Read;
 
-            Ptrs->Cdb.WrapDataPtr = NULL;
-            Ptrs->Cdb.WrapByteCount = 0;
-        }
-        else
-        {
-            BMEM_ConvertOffsetToAddress( Context->hMem, Read + 1, (void *) &(Ptrs->Cdb.DataPtr) );
-            BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Cdb.DataPtr, (void *) &(Ptrs->Cdb.DataPtr) );
-            Ptrs->Cdb.ByteCount = Wrap - Read;
+           Ptrs->Cdb.WrapDataPtr = (uint8_t*)Context->mma.cdbPtr + (Base - Context->mma.cdbOffset); /* convert Base -> cached ptr */
+           Ptrs->Cdb.WrapByteCount = Valid - Base + 1;
+       }
+   }
+   else
+   {
+       /* No new data */
+       Ptrs->Cdb.DataPtr = NULL;
+       Ptrs->Cdb.ByteCount = 0;
 
-            BMEM_ConvertOffsetToAddress( Context->hMem, Base, (void *) &(Ptrs->Cdb.WrapDataPtr) );
-            BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Cdb.WrapDataPtr, (void *) &(Ptrs->Cdb.WrapDataPtr) );
-            Ptrs->Cdb.WrapByteCount = Valid - Base + 1;
-        }
-    }
-    else
-    {
-        /* No new data */
-        Ptrs->Cdb.DataPtr = NULL;
-        Ptrs->Cdb.ByteCount = 0;
+       Ptrs->Cdb.WrapDataPtr = NULL;
+       Ptrs->Cdb.WrapByteCount = 0;
+   }
 
-        Ptrs->Cdb.WrapDataPtr = NULL;
-        Ptrs->Cdb.WrapByteCount = 0;
-    }
+   Read = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET );
+   Valid = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_VALID_PTR_OFFSET );
+   Wrap = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_WRAP_PTR_OFFSET );
+   Base = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
 
-    Read = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET );
-    Valid = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_VALID_PTR_OFFSET );
-    Wrap = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_WRAP_PTR_OFFSET );
-    Base = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
+   /* Some users don't allocate an ITB, in which case the Base register addr will be 0 */
+   if( Base && ( Read < Valid ) )
+   {
+       if( Context->ItbReset == true )
+       {
+           /*
+           ** Checks after a context reset, but before the first update of the READ, are a special case.
+           ** We need to do account for the fact that first burst of data written into the buffer
+           ** started AT the BASE pointer, not VALID+1.
+           */
+           Ptrs->Itb.DataPtr = (uint8_t*)Context->mma.itbPtr + (Read - Context->mma.itbOffset); /* convert Read -> cached ptr */
+           Ptrs->Itb.ByteCount = Valid - Read + 1;
+       }
+       else
+       {
+           Ptrs->Itb.DataPtr = (uint8_t*)Context->mma.itbPtr + (Read+1 - Context->mma.itbOffset); /* convert Read+1 -> cached ptr */
+           Ptrs->Itb.ByteCount = Valid - Read;
+       }
 
-    /* Some users don't allocate an ITB, in which case the Base register addr will be 0 */
-    if( Base && ( Read < Valid ) )
-    {
-        if( Context->ItbReset == true )
-        {
-            /*
-            ** Checks after a context reset, but before the first update of the READ, are a special case.
-            ** We need to do account for the fact that first burst of data written into the buffer
-            ** started AT the BASE pointer, not VALID+1.
-            */
-            BMEM_ConvertOffsetToAddress( Context->hMem, Read, (void *) &(Ptrs->Itb.DataPtr) );
-            Ptrs->Itb.ByteCount = Valid - Read + 1;
-        }
-        else
-        {
-            BMEM_ConvertOffsetToAddress( Context->hMem, Read + 1, (void *) &(Ptrs->Itb.DataPtr) );
-            Ptrs->Itb.ByteCount = Valid - Read;
-        }
-        BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Itb.DataPtr, (void *) &(Ptrs->Itb.DataPtr) );
+       Ptrs->Itb.WrapDataPtr = NULL;
+       Ptrs->Itb.WrapByteCount = 0;
+   }
+   else if( Base && ( Read > Valid ) )
+   {
+       /* It did wrap */
+       if( Read == Wrap )
+       {
+           /* They read up to the wraparound point. New data starts at the base */
+           Ptrs->Itb.DataPtr = (uint8_t*)Context->mma.itbPtr + (Base - Context->mma.itbOffset); /* convert Base -> cached ptr */
+           Ptrs->Itb.ByteCount = Valid - Base + 1;
 
-        Ptrs->Itb.WrapDataPtr = NULL;
-        Ptrs->Itb.WrapByteCount = 0;
-    }
-    else if( Base && ( Read > Valid ) )
-    {
-        /* It did wrap */
-        if( Read == Wrap )
-        {
-            /* They read up to the wraparound point. New data starts at the base */
-            BMEM_ConvertOffsetToAddress( Context->hMem, Base, (void *) &(Ptrs->Itb.DataPtr) );
-            BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Itb.DataPtr, (void *) &(Ptrs->Itb.DataPtr) );
-            Ptrs->Itb.ByteCount = Valid - Base + 1;
+           Ptrs->Itb.WrapDataPtr = NULL;
+           Ptrs->Itb.WrapByteCount = 0;
+       }
+       else
+       {
+           Ptrs->Itb.DataPtr = (uint8_t*)Context->mma.itbPtr + (Read+1 - Context->mma.itbOffset); /* convert Read+1 -> cached ptr */
+           Ptrs->Itb.ByteCount = Wrap - Read;
 
-            Ptrs->Itb.WrapDataPtr = NULL;
-            Ptrs->Itb.WrapByteCount = 0;
-        }
-        else
-        {
-            BMEM_ConvertOffsetToAddress( Context->hMem, Read + 1, (void *) &(Ptrs->Itb.DataPtr) );
-            BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Itb.DataPtr, (void *) &(Ptrs->Itb.DataPtr) );
-            Ptrs->Itb.ByteCount = Wrap - Read;
+           Ptrs->Itb.WrapDataPtr = (uint8_t*)Context->mma.itbPtr + (Base - Context->mma.itbOffset); /* convert Base -> cached ptr */
+           Ptrs->Itb.WrapByteCount = Valid - Base + 1;
+       }
+   }
+   else
+   {
+       /* No new data */
+       Ptrs->Itb.DataPtr = NULL;
+       Ptrs->Itb.ByteCount = 0;
 
-            BMEM_ConvertOffsetToAddress( Context->hMem, Base, (void *) &(Ptrs->Itb.WrapDataPtr) );
-            BMEM_ConvertAddressToCached( Context->hMem, Ptrs->Itb.WrapDataPtr, (void *) &(Ptrs->Itb.WrapDataPtr) );
-            Ptrs->Itb.WrapByteCount = Valid - Base + 1;
-        }
-    }
-    else
-    {
-        /* No new data */
-        Ptrs->Itb.DataPtr = NULL;
-        Ptrs->Itb.ByteCount = 0;
+       Ptrs->Itb.WrapDataPtr = NULL;
+       Ptrs->Itb.WrapByteCount = 0;
+   }
 
-        Ptrs->Itb.WrapDataPtr = NULL;
-        Ptrs->Itb.WrapByteCount = 0;
-    }
-
-    return( ExitCode );
+   return( ExitCode );
 }
 
 BERR_Code BXPT_Rave_UpdateReadOffset(
@@ -3887,111 +3807,111 @@ BERR_Code BXPT_Rave_UpdateReadOffset(
     size_t ItbByteCount             /* [in] Number of bytes read. */
     )
 {
-    uint32_t Read, Valid, Wrap, Base;
+   uint64_t Read, Valid, Wrap, Base;
 
-    BERR_Code ExitCode = BERR_SUCCESS;
+     BERR_Code ExitCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( Context );
+     BDBG_ASSERT( Context );
 
-    if( CdbByteCount )
-    {
-        uint32_t NewRead = 0;
-        Read = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET );
-        Valid = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_VALID_PTR_OFFSET );
-        Wrap = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_WRAP_PTR_OFFSET );
-        Base = BREG_Read32( Context->hReg, Context->BaseAddr + CDB_BASE_PTR_OFFSET );
+     if( CdbByteCount )
+     {
+         uint64_t NewRead = 0;
+         Read = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET );
+         Valid = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_VALID_PTR_OFFSET );
+         Wrap = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_WRAP_PTR_OFFSET );
+         Base = BREG_ReadAddr( Context->hReg, Context->BaseAddr + CDB_BASE_PTR_OFFSET );
 
-        /*
-        ** If this is the first update since the context was reset, we need to do account
-        ** for the fact that the first burst of data written into the buffer started at the
-        ** BASE pointer, not VALID+1. Thus, the number of bytes we set to the READ pointer
-        ** must be one less than the value the user passed in.
-        */
-        if( Context->CdbReset == true )
-        {
-            Context->CdbReset = false;
-            NewRead = Base + CdbByteCount - 1;
-            BREG_Write32( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, NewRead );
-        }
+         /*
+         ** If this is the first update since the context was reset, we need to do account
+         ** for the fact that the first burst of data written into the buffer started at the
+         ** BASE pointer, not VALID+1. Thus, the number of bytes we set to the READ pointer
+         ** must be one less than the value the user passed in.
+         */
+         if( Context->CdbReset == true )
+         {
+             Context->CdbReset = false;
+             NewRead = Base + CdbByteCount - 1;
+             BREG_WriteAddr( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, NewRead );
+         }
 
-        /* Check for a wrap-around. Use of Valid is the reccomended way to determine if the buffer has wrapped. */
-        else if( Read > Valid )
-        {
-            /* It did wrap. Will this update move the READ pointer past the wrap point? */
-            if( Read + CdbByteCount > Wrap )
-            {
-                /* Yes, so the READ pointer must 'wrap' too. */
-                NewRead = CdbByteCount - ( Wrap - Read ) - 1;
-                BREG_Write32( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, Base+NewRead );
-            }
-            else
-            {
-                /* No, this update only concerns data that didn't wrap. */
-                NewRead = Read + CdbByteCount;
-                BREG_Write32( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, NewRead );
-            }
-        }
+         /* Check for a wrap-around. Use of Valid is the reccomended way to determine if the buffer has wrapped. */
+         else if( Read > Valid )
+         {
+             /* It did wrap. Will this update move the READ pointer past the wrap point? */
+             if( Read + CdbByteCount > Wrap )
+             {
+                 /* Yes, so the READ pointer must 'wrap' too. */
+                 NewRead = CdbByteCount - ( Wrap - Read ) - 1;
+                 BREG_WriteAddr( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, Base+NewRead );
+             }
+             else
+             {
+                 /* No, this update only concerns data that didn't wrap. */
+                 NewRead = Read + CdbByteCount;
+                 BREG_WriteAddr( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, NewRead );
+             }
+         }
 
-        /* Data didn't wrap. */
-        else
-        {
-            NewRead = Read + CdbByteCount;
-            BREG_Write32( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, NewRead );
-        }
-    }
+         /* Data didn't wrap. */
+         else
+         {
+             NewRead = Read + CdbByteCount;
+             BREG_WriteAddr( Context->hReg, Context->BaseAddr + CDB_READ_PTR_OFFSET, NewRead );
+         }
+     }
 
-    if( ItbByteCount )
-    {
-        uint32_t NewRead = 0;
-        Read = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET );
-        Valid = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_VALID_PTR_OFFSET );
-        Wrap = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_WRAP_PTR_OFFSET );
-        Base = BREG_Read32( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
+     if( ItbByteCount )
+     {
+         uint32_t NewRead = 0;
+         Read = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET );
+         Valid = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_VALID_PTR_OFFSET );
+         Wrap = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_WRAP_PTR_OFFSET );
+         Base = BREG_ReadAddr( Context->hReg, Context->BaseAddr + ITB_BASE_PTR_OFFSET );
 
-        /* Some users don't allocate an ITB, so check for a non-zero Base address. */
-        if( Base )
-        {
-            /*
-            ** If this is the first update since the context was reset, we need to do account
-            ** for the fact that the first burst of data written into the buffer started AT the
-            ** BASE pointer, not VALID+1. Thus, the number of bytes we add to the READ pointer
-            ** must be one less than the value the user passed in.
-            */
-            if( Context->ItbReset == true )
-            {
-                Context->ItbReset = false;
-                NewRead = Base + ItbByteCount - 1;
-                BREG_Write32( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, NewRead );
-            }
+         /* Some users don't allocate an ITB, so check for a non-zero Base address. */
+         if( Base )
+         {
+             /*
+             ** If this is the first update since the context was reset, we need to do account
+             ** for the fact that the first burst of data written into the buffer started AT the
+             ** BASE pointer, not VALID+1. Thus, the number of bytes we add to the READ pointer
+             ** must be one less than the value the user passed in.
+             */
+             if( Context->ItbReset == true )
+             {
+                 Context->ItbReset = false;
+                 NewRead = Base + ItbByteCount - 1;
+                 BREG_WriteAddr( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, NewRead );
+             }
 
-            /* Check for a wrap-around. Use of Valid is the reccomended way to determine if the buffer has wrapped. */
-            else if( Read > Valid )
-            {
-                /* It did wrap. Will this update move the READ pointer past the wrap point? */
-                if( Read + ItbByteCount > Wrap )
-                {
-                    /* Yes, so the READ pointer must 'wrap' too. */
-                    NewRead = ItbByteCount - ( Wrap - Read ) - 1;
-                    BREG_Write32( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, Base + NewRead );
-                }
-                else
-                {
-                    /* No, this update only concerns data that didn't wrap. */
-                    NewRead = Read + ItbByteCount;
-                    BREG_Write32( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, NewRead );
-                }
-            }
+             /* Check for a wrap-around. Use of Valid is the reccomended way to determine if the buffer has wrapped. */
+             else if( Read > Valid )
+             {
+                 /* It did wrap. Will this update move the READ pointer past the wrap point? */
+                 if( Read + ItbByteCount > Wrap )
+                 {
+                     /* Yes, so the READ pointer must 'wrap' too. */
+                     NewRead = ItbByteCount - ( Wrap - Read ) - 1;
+                     BREG_WriteAddr( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, Base + NewRead );
+                 }
+                 else
+                 {
+                     /* No, this update only concerns data that didn't wrap. */
+                     NewRead = Read + ItbByteCount;
+                     BREG_WriteAddr( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, NewRead );
+                 }
+             }
 
-            /* Data didn't wrap. */
-            else
-            {
-                NewRead = Read + ItbByteCount;
-                BREG_Write32( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, NewRead );
-            }
-        }
-    }
+             /* Data didn't wrap. */
+             else
+             {
+                 NewRead = Read + ItbByteCount;
+                 BREG_WriteAddr( Context->hReg, Context->BaseAddr + ITB_READ_PTR_OFFSET, NewRead );
+             }
+         }
+     }
 
-    return( ExitCode );
+     return( ExitCode );
 }
 
 static BERR_Code AddPidChannelToContext(
@@ -4912,13 +4832,9 @@ BERR_Code InitContext(
     const BAVC_CdbItbConfig *BufferCfg
     )
 {
-    void *BufferAddr, *Cdb;
     uint32_t BufferOffset, Reg;
-    uint32_t Offset;
 
-    BMEM_Handle hMem = ThisCtx->hMem;
     BERR_Code ExitCode = BERR_SUCCESS;
-    uint32_t BlockSize = RAVE_CONTEXT_REG_STEP;
     unsigned ItbSize = 0;
     unsigned ItbAlignment = 7;
     unsigned CdbAlignment = 8;
@@ -4930,8 +4846,7 @@ BERR_Code InitContext(
     }
 
     /* Clear registers / pointer memory */
-    for( Offset = 0; Offset < BlockSize; Offset += 4 )
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + Offset, 0 );
+    clearContextRegs(ThisCtx->hReg, ThisCtx->Index);
 
 #if BXPT_HAS_STARTCODE_BUFFER_WORKAROUND
     /*
@@ -4992,177 +4907,156 @@ BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + (BCHP_XPT_RAVE_CX0_AV_INTERRUPT
         /* Config the ITB - this is not a swap setting. It simply sets the endianness. */
         ItbEndian = BufferCfg->Itb.LittleEndian;
 
-        if( ThisCtx->CdbBufferAddr==NULL ) /* XPT does the alloc */
+        if (!ThisCtx->externalCdbAlloc) /* XPT does the alloc */
         {
-            ThisCtx->externalCdbAlloc = false;
+            BDBG_ASSERT(!ThisCtx->mma.cdbBlock);
 
-        /* Special alignment requirements for the decoders. */
-        if( ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR )
-        {
-            ItbAlignment = 7;   /* 128-byte alignment */
-            CdbAlignment = 8;   /* 256-byte alignment */
-        }
-
-        /* Create the CDB. The CDB might be allocated in the R area. */
-        switch( ThisCtx->Type )
-        {
-            case BXPT_RaveCx_eAvR:
-            case BXPT_RaveCx_eRecordR:
-            /* Decode or record from secure memory. Must use the secure heap */
-            if( !ThisCtx->hRHeap )
-            {
-                BDBG_ERR(( "Decode or record from secure memory is requested, but no secure heap is available." ));
-                ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-                goto done;
-            }
-            Cdb = BufferAddr = BMEM_AllocAligned( ThisCtx->hRHeap, BufferCfg->Cdb.Length, CdbAlignment, 0 );
-            break;
-
-            case BXPT_RaveCx_eAv:
-            /* Decode from non-secure memory. Use the general heap, but warn them if a secure heap is defined. */
-            Cdb = BufferAddr = BMEM_AllocAligned( hMem, BufferCfg->Cdb.Length, CdbAlignment, 0 );
-            break;
-
-            case BXPT_RaveCx_eRecord:
-            default:
-            /* Plain old records, and everything else, comes from the general heap. */
-            Cdb = BufferAddr = BMEM_AllocAligned( hMem, BufferCfg->Cdb.Length, CdbAlignment, 0 );
-            break;
-        }
-
-        if( BufferAddr == NULL )
-        {
-            ThisCtx->allocatedCdbBufferSize = 0;
-            ThisCtx->usedCdbBufferSize = 0;
-            BDBG_ERR(( "CDB alloc failed!" ));
-            ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
-            goto done;
-        }
-        else
-        {
-            /* save the initial buffer allocated */
-            ThisCtx->allocatedCdbBufferSize = BufferCfg->Cdb.Length;
-            ThisCtx->usedCdbBufferSize = BufferCfg->Cdb.Length;
-            ThisCtx->CdbBufferAddr=BufferAddr;    /* save the cdb allocated bufffer adddress */
-        }
-        }
-        else /* the app has already done the alloc */
-        {
-            ThisCtx->externalCdbAlloc = true;
-
-            /* check alignment of buffer pointer */
+            /* Special alignment requirements for the decoders. */
             if( ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR )
             {
-                if( ((uint32_t)ThisCtx->CdbBufferAddr)%256!=0 )
+                ItbAlignment = 7;   /* 128-byte alignment */
+                CdbAlignment = 8;   /* 256-byte alignment */
+            }
+
+            /* Create the CDB. The CDB might be allocated in the R area. */
+            switch( ThisCtx->Type )
+            {
+                case BXPT_RaveCx_eAvR:
+                case BXPT_RaveCx_eRecordR:
+                /* Decode or record from secure memory. Must use the secure heap */
+                if( !ThisCtx->mmaRHeap )
                 {
-                    BDBG_ERR(( "CDB buffer pointer is not 256-Byte aligned "));
-                    ThisCtx->CdbBufferAddr = NULL;
+                    BDBG_ERR(( "Decode or record from secure memory is requested, but no secure heap is available." ));
                     ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
                     goto done;
                 }
+                ThisCtx->mma.cdbBlock = BMMA_Alloc(ThisCtx->mmaRHeap, BufferCfg->Cdb.Length, 1 << CdbAlignment, NULL);
+                break;
+
+                case BXPT_RaveCx_eAv:
+                case BXPT_RaveCx_eRecord:
+                default:
+                ThisCtx->mma.cdbBlock = BMMA_Alloc(ThisCtx->mmaHeap, BufferCfg->Cdb.Length, 1 << CdbAlignment, NULL);
+                break;
             }
 
-            ThisCtx->allocatedCdbBufferSize = BufferCfg->Cdb.Length;
-            ThisCtx->usedCdbBufferSize = BufferCfg->Cdb.Length;
-            Cdb = NULL;
-            BufferAddr = ThisCtx->CdbBufferAddr;
-            /*BDBG_MSG(( "InitContext: using pre-allocated CDB %#lx", ThisCtx->CdbBufferAddr ));*/
+            if (!ThisCtx->mma.cdbBlock)
+            {
+                ThisCtx->allocatedCdbBufferSize = 0;
+                ThisCtx->usedCdbBufferSize = 0;
+                BDBG_ERR(( "CDB alloc failed!" ));
+                ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
+                goto done;
+            }
+        }
+        else /* the app has already done the alloc */
+        {
+            BDBG_ASSERT(ThisCtx->mma.cdbBlock);
         }
 
-        if( ThisCtx->Type == BXPT_RaveCx_eAvR && ThisCtx->hRHeap )
-            BMEM_ConvertAddressToOffset( ThisCtx->hRHeap, BufferAddr, &BufferOffset );
-        else
-            BMEM_ConvertAddressToOffset( hMem, BufferAddr, &BufferOffset );
+        ThisCtx->allocatedCdbBufferSize = BufferCfg->Cdb.Length;
+        ThisCtx->usedCdbBufferSize = BufferCfg->Cdb.Length;
+        ThisCtx->mma.cdbPtr = (uint8_t*)BMMA_Lock(ThisCtx->mma.cdbBlock) + ThisCtx->mma.cdbBlockOffset;
+        ThisCtx->mma.cdbOffset = BufferOffset = BMMA_LockOffset(ThisCtx->mma.cdbBlock) + ThisCtx->mma.cdbBlockOffset;
 
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, BufferOffset );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_READ_PTR_OFFSET, BufferOffset );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_BASE_PTR_OFFSET, BufferOffset );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_END_PTR_OFFSET, BufferOffset + BufferCfg->Cdb.Length - 1 );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_VALID_PTR_OFFSET, BufferOffset );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
+        /* check alignment of buffer pointer */
+        if( ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR )
+        {
+            if (ThisCtx->mma.cdbOffset % 256)
+            {
+                BDBG_ERR(("CDB buffer pointer is not 256-Byte aligned"));
+                ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+                goto error;
+            }
+        }
+
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_BASE_PTR_OFFSET, BufferOffset );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, BufferOffset );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_VALID_PTR_OFFSET, BufferOffset );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_READ_PTR_OFFSET, BufferOffset );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_END_PTR_OFFSET, BufferOffset + BufferCfg->Cdb.Length - 1 );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 
         /* In some cases, the user does not want an ITB. */
         if( BufferCfg->Itb.Length )
         {
-            if( ThisCtx->ItbBufferAddr==NULL ) /* XPT does the alloc */
+            if (!ThisCtx->externalItbAlloc) /* XPT does the alloc */
             {
-                ThisCtx->externalItbAlloc = false;
 
-            /* SW7420-1459: Insure that the ITB size is a multiple of 16 for AV contexts. */
-            if( (ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR) && BufferCfg->Itb.Length % BXPT_ITB_SIZE )
-            {
-                ItbSize = BufferCfg->Itb.Length - (BufferCfg->Itb.Length % BXPT_ITB_SIZE);
-                BDBG_WRN(( "Invalid ITB size, must be a multiple of %u. Truncating to %u", BXPT_ITB_SIZE, ItbSize ));
-            }
-            else
-            {
-                ItbSize = BufferCfg->Itb.Length;
-            }
+                /* SW7420-1459: Insure that the ITB size is a multiple of 16 for AV contexts. */
+                if( (ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR) && BufferCfg->Itb.Length % BXPT_ITB_SIZE )
+                {
+                    ItbSize = BufferCfg->Itb.Length - (BufferCfg->Itb.Length % BXPT_ITB_SIZE);
+                    BDBG_WRN(( "Invalid ITB size, must be a multiple of %u. Truncating to %u", BXPT_ITB_SIZE, ItbSize ));
+                }
+                else
+                {
+                    ItbSize = BufferCfg->Itb.Length;
+                }
 
-            /* Create the ITB. ITB is always allocated from the G area. */
-            BufferAddr = BMEM_AllocAligned( hMem, ItbSize, ItbAlignment, 0 );
-            if( BufferAddr == NULL )
-            {
-                BDBG_ERR(( "ITB alloc failed!" ));
-                    if ( Cdb )
-                    {
-                BMEM_Free( hMem, Cdb );     /* Give back the CDB, since we're bailing out. */
-                        ThisCtx->CdbBufferAddr = 0;
-                    }
-                ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
-                goto done;
-            }
-            else
-            {
-                ThisCtx->ItbBufferAddr = BufferAddr; /* save the itb allocated buffer address allocated */
+                ThisCtx->mma.itbBlock = BMMA_Alloc(ThisCtx->mmaHeap, ItbSize, 1 << ItbAlignment, NULL);
+                if (!ThisCtx->mma.itbBlock) {
+                    BDBG_ERR(("ITB alloc failed!"));
+                    goto error;
                 }
             }
             else /* the app has already done the alloc */
             {
-                ThisCtx->externalItbAlloc = true;
-
-                /* check alignment of buffer pointer */
-                if( ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR )
-                {
-                    if( ((uint32_t)ThisCtx->ItbBufferAddr)%128!=0 )
-                    {
-                        BDBG_ERR(( "ITB buffer pointer is not 128-Byte aligned "));
-                        ThisCtx->ItbBufferAddr = NULL;
-                        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-                        goto done;
-                    }
-                }
                 if( (ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR) && BufferCfg->Itb.Length % BXPT_ITB_SIZE )
                 {
                     BDBG_ERR(( "Invalid ITB size, must be a multiple of %u", BXPT_ITB_SIZE ));
                     ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-                    goto done;
+                    goto error;
                 }
 
-                BufferAddr = ThisCtx->ItbBufferAddr;
                 ItbSize = BufferCfg->Itb.Length;
-                /* BDBG_MSG(( "InitContext: using pre-allocated ITB %#lx", ThisCtx->ItbBufferAddr )); */
             }
 
-            BMEM_ConvertAddressToOffset( hMem, BufferAddr, &BufferOffset );
-            BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_WRITE_PTR_OFFSET, BufferOffset );
-            BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_READ_PTR_OFFSET, BufferOffset );
-            BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET, BufferOffset );
-            BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_END_PTR_OFFSET, BufferOffset + ItbSize - 1 );
-            BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_VALID_PTR_OFFSET, BufferOffset );
-            BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
-        }
+            ThisCtx->mma.itbPtr = (uint8_t*)BMMA_Lock(ThisCtx->mma.itbBlock) + ThisCtx->mma.itbBlockOffset;
+            ThisCtx->mma.itbOffset = BufferOffset = BMMA_LockOffset(ThisCtx->mma.itbBlock) + ThisCtx->mma.itbBlockOffset;
 
-        Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
-        Reg &= ~(
-            BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD ) |
-            BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD )
-        );
-        Reg |= (
-            BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD, BXPT_RAVE_OVERFLOW_THRESH ) |
-            BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD, BXPT_RAVE_WRAP_THRESH )
-        );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET, Reg );
+            /* check alignment of buffer pointer */
+            if( ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR )
+            {
+                if (ThisCtx->mma.itbOffset % 128)
+                {
+                    BDBG_ERR(("ITB buffer pointer is not 128-Byte aligned"));
+                    ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+                    goto error;
+                }
+            }
+
+            BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_WRITE_PTR_OFFSET, BufferOffset );
+            BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_READ_PTR_OFFSET, BufferOffset );
+            BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET, BufferOffset );
+            BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_END_PTR_OFFSET, BufferOffset + ItbSize - 1 );
+            BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_VALID_PTR_OFFSET, BufferOffset );
+            BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
+
+           Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
+           Reg &= ~(
+               BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD ) |
+               BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD )
+           );
+           Reg |= (
+               BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD, BXPT_RAVE_OVERFLOW_THRESH ) |
+               BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD, BXPT_RAVE_WRAP_THRESH )
+           );
+           BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET, Reg );
+        }
+        else
+        {
+            Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
+            Reg &= ~(
+                BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD ) |
+                BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD )
+            );
+            Reg |= (
+                BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD, 0 ) |
+                BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD, BXPT_RAVE_WRAP_THRESH )
+            );
+            BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET, Reg );
+        }
 
         Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_MISC_CFG2_OFFSET );
         Reg &= ~(
@@ -5204,6 +5098,25 @@ BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + (BCHP_XPT_RAVE_CX0_AV_INTERRUPT
 
     done:
     return( ExitCode );
+
+    error:
+    if (ThisCtx->mma.cdbBlock) {
+        BMMA_UnlockOffset(ThisCtx->mma.cdbBlock, ThisCtx->mma.cdbOffset);
+        BMMA_Unlock(ThisCtx->mma.cdbBlock, ThisCtx->mma.cdbPtr);
+        if (!ThisCtx->externalCdbAlloc) {
+            BMMA_Free(ThisCtx->mma.cdbBlock);
+        }
+    }
+    if (ThisCtx->mma.itbBlock) {
+        if (ThisCtx->mma.itbOffset) {
+            BMMA_UnlockOffset(ThisCtx->mma.itbBlock, ThisCtx->mma.itbOffset);
+            BMMA_Unlock(ThisCtx->mma.itbBlock, ThisCtx->mma.itbPtr);
+        }
+        if (!ThisCtx->externalItbAlloc) {
+            BMMA_Free(ThisCtx->mma.itbBlock);
+        }
+    }
+    return ExitCode;
 }
 
 BERR_Code ClearMem(
@@ -5438,10 +5351,6 @@ BERR_Code ConfigureComparators(
     unsigned Comp1En = 0;
     unsigned Comp1ExtractStartByte = 0;
     unsigned Comp1ExtractStartBit = 0;
-    unsigned Comp1ExclVal = 0;
-    unsigned Comp1ExclMask = 0;
-    unsigned Comp2ExclVal = 0;
-    unsigned Comp2ExclMask = 0;
     unsigned Comp1ExtractNumBits = 0;
     unsigned Comp2ExtractNumBits = 0;
     unsigned Comp2ExtractStartBit = 0;
@@ -5463,32 +5372,6 @@ BERR_Code ConfigureComparators(
     unsigned Comp1MaskVal2 = 0xFF;
     unsigned Comp1MaskVal3 = 0xFF;
 
-    unsigned Comp1FiltFuncD = 0;
-    unsigned Comp1FiltOffsetD = 0;
-    unsigned Comp1FiltFuncC = 0;
-    unsigned Comp1FiltOffsetC = 0;
-    unsigned Comp1FiltFuncB = 0;
-    unsigned Comp1FiltOffsetB = 0;
-    unsigned Comp1FiltFuncA = 0;
-    unsigned Comp1FiltOffsetA = 0;
-
-    unsigned Comp2CompareVal0 = 0xFF;
-    unsigned Comp2CompareVal1 = 0xFF;
-    unsigned Comp2CompareVal2 = 0xFF;
-    unsigned Comp2CompareVal3 = 0xFF;
-    unsigned Comp2MaskVal0 = 0xFF;
-    unsigned Comp2MaskVal1 = 0xFF;
-    unsigned Comp2MaskVal2 = 0xFF;
-    unsigned Comp2MaskVal3 = 0xFF;
-
-    unsigned Comp2FiltFuncD = 0;
-    unsigned Comp2FiltOffsetD = 0;
-    unsigned Comp2FiltFuncC = 0;
-    unsigned Comp2FiltOffsetC = 0;
-    unsigned Comp2FiltFuncB = 0;
-    unsigned Comp2FiltOffsetB = 0;
-    unsigned Comp2FiltFuncA = 0;
-    unsigned Comp2FiltOffsetA = 0;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -5523,15 +5406,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0xFF;
         Comp1MaskVal3 = 0;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 3;
-        Comp1FiltOffsetA = 3;
-
         Comp2ExtractNumBits = 7;
         Comp2ExtractStartBit = 0;
         Comp2ExtractStartByte = 1;
@@ -5540,20 +5414,7 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 2;
         Comp2ValidByteEn = 1;
 
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
-
         /* For video, comparator exclusion val and mask bits are 0 */
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eOTFVideo:
@@ -5573,15 +5434,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0xFF;
         Comp1MaskVal3 = 0;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         Comp2ExtractNumBits = 63;
         Comp2ExtractStartBit = 0;
         Comp2ExtractStartByte = 1;
@@ -5590,19 +5442,6 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 2;
         Comp2ValidByteEn = 1;
 
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
-
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eH263:
@@ -5622,15 +5461,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0x80;
         Comp1MaskVal3 = 0;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         Comp2ExtractNumBits = 7;
         Comp2ExtractStartBit = 0;
         Comp2ExtractStartByte = 1;
@@ -5639,20 +5469,7 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 2;
         Comp2ValidByteEn = 1;
 
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
-
         /* For video, comparator exclusion val and mask bits are 0 */
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         /* For VC1 Simple/Main, just extract PTS values. There aren't any startcodes. */
@@ -5680,15 +5497,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0xFF;
         Comp1MaskVal3 = 0xFF;
 
-        Comp1FiltFuncD = 2;
-        Comp1FiltOffsetD = 3;
-        Comp1FiltFuncC = 2;
-        Comp1FiltOffsetC = 3;
-        Comp1FiltFuncB = 2;
-        Comp1FiltOffsetB = 3;
-        Comp1FiltFuncA = 2;
-        Comp1FiltOffsetA = 3;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0xffffffff );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
@@ -5700,24 +5508,11 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 2;
         Comp2ValidByteEn = 1;
 
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_MASK_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_COMPARE_OFFSET, 0xffffffff );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_MASK_OFFSET,    0xffffffff );
 
-        Comp1ExclVal = 0xffffffff;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eAc3gAudio:
@@ -5736,15 +5531,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0;
         Comp1MaskVal3 = 0;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
@@ -5755,22 +5541,9 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 2;
         Comp2ValidByteEn = 0;
 
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
-        Comp1ExclVal = 0x00;
-        Comp1ExclMask = 0x00;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eMpegAudio:
@@ -5797,15 +5570,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0x00;
         Comp1MaskVal3 = 0;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
@@ -5816,22 +5580,9 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 2;
         Comp2ValidByteEn = 0;
 
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eAacAudio:
@@ -5850,15 +5601,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0xFF;
         Comp1MaskVal3 = 0xFF;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
@@ -5869,33 +5611,12 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 1;
         Comp2ValidByteEn = 1;
 
-        Comp2CompareVal0 = 0;
-        Comp2CompareVal1 = 0;
-        Comp2CompareVal2 = 0x01;
-        Comp2CompareVal3 = 0x39;
-        Comp2MaskVal0 = 0xFF;
-        Comp2MaskVal1 = 0xFF;
-        Comp2MaskVal2 = 0xFF;
-        Comp2MaskVal3 = 0xFF;
-
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
 
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_MASK_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_COMPARE_OFFSET, 0xFFF90000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_MASK_OFFSET,    0xFFF60000 );
 
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eAacHe:
@@ -5914,15 +5635,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0x00;
         Comp1MaskVal3 = 0;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
@@ -5933,33 +5645,12 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 1;
         Comp2ValidByteEn = 1;
 
-        Comp2CompareVal0 = 0x56;
-        Comp2CompareVal1 = 0xE0;
-        Comp2CompareVal2 = 0x00;
-        Comp2CompareVal3 = 0;
-        Comp2MaskVal0 = 0xFF;
-        Comp2MaskVal1 = 0xE0;
-        Comp2MaskVal2 = 0x00;
-        Comp2MaskVal3 = 0;
-
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
 
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_MASK_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_COMPARE_OFFSET, 0xFFF90000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_MASK_OFFSET,    0xFFF60000 );
 
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eAvsAudio:
@@ -5979,15 +5670,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0xFF;
         Comp1MaskVal3 = 0xFF;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
@@ -5998,31 +5680,10 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 1;
         Comp2ValidByteEn = 1;
 
-        Comp2CompareVal0 = 0xFF;
-        Comp2CompareVal1 = 0xF9;
-        Comp2CompareVal2 = 0x00;
-        Comp2CompareVal3 = 0x00;
-        Comp2MaskVal0 = 0xFF;
-        Comp2MaskVal1 = 0xF6;
-        Comp2MaskVal2 = 0x00;
-        Comp2MaskVal3 = 0x00;
-
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
 
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eWma:
@@ -6041,15 +5702,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0xFF;
         Comp1MaskVal3 = 0xFF;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
@@ -6060,22 +5712,9 @@ BERR_Code ConfigureComparators(
         Comp2NumCompareBytes = 3;
         Comp2ValidByteEn = 1;
 
-        Comp2FiltFuncD = 0;
-        Comp2FiltOffsetD = 0;
-        Comp2FiltFuncC = 0;
-        Comp2FiltOffsetC = 0;
-        Comp2FiltFuncB = 0;
-        Comp2FiltOffsetB = 0;
-        Comp2FiltFuncA = 0;
-        Comp2FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_MASK_OFFSET, 0x00000000 );
 
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eLpcmAudio:
@@ -6112,15 +5751,6 @@ BERR_Code ConfigureComparators(
         Comp1MaskVal2 = 0xFF;
         Comp1MaskVal3 = 0xFF;
 
-        Comp1FiltFuncD = 0;
-        Comp1FiltOffsetD = 0;
-        Comp1FiltFuncC = 0;
-        Comp1FiltOffsetC = 0;
-        Comp1FiltFuncB = 0;
-        Comp1FiltOffsetB = 0;
-        Comp1FiltFuncA = 0;
-        Comp1FiltOffsetA = 0;
-
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP1_FILTER_VAL_MASK_OFFSET, 0x00000000 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_FILTER_VAL_OFFSET, 0x00000000 );
@@ -6137,10 +5767,6 @@ BERR_Code ConfigureComparators(
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_COMPARE_OFFSET, 0 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_MASK_OFFSET, 0 );
 
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         case BAVC_ItbEsType_eDra:
@@ -6164,10 +5790,6 @@ BERR_Code ConfigureComparators(
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_COMPARE_OFFSET, 0 );
         BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_COMP2_MASK_OFFSET, 0 );
 
-        Comp1ExclVal = 0;
-        Comp1ExclMask = 0;
-        Comp2ExclVal = 0;
-        Comp2ExclMask = 0;
         break;
 
         default:
@@ -6312,37 +5934,39 @@ BERR_Code ResetContextPointers(
     BXPT_RaveCx_Handle hCtx
     )
 {
-    uint32_t Offset;
+   BMMA_DeviceOffset Offset;
 
-    BERR_Code ExitCode = BERR_SUCCESS;
+   BERR_Code ExitCode = BERR_SUCCESS;
 
-    Offset = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, Offset );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_READ_PTR_OFFSET, Offset );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET, Offset );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_DEPTH_OFFSET, 0 );
+   Offset = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
+   BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, Offset );
+   BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_READ_PTR_OFFSET, Offset );
+   BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET, Offset );
+   BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
+   BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_DEPTH_OFFSET, 0 );
 
-    Offset = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
+   Offset = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
 
-    /* Some users don't allocate an ITB, so we check the base ptr is not NULL */
-    if( Offset )
-    {
-        BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_WRITE_PTR_OFFSET, Offset );
-        BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_READ_PTR_OFFSET, Offset );
-        BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_VALID_PTR_OFFSET, Offset );
-        BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
-        BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_DEPTH_OFFSET, 0 );
-    }
+   /* Some users don't allocate an ITB, so we check the base ptr is not NULL */
+   if( Offset )
+   {
+       BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_WRITE_PTR_OFFSET, Offset );
+       BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_READ_PTR_OFFSET, Offset );
+       BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_VALID_PTR_OFFSET, Offset );
+       BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
+       BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_DEPTH_OFFSET, 0 );
+   }
 
-    return( ExitCode );
+   return( ExitCode );
 }
 
 BERR_Code BXPT_Rave_ResetContext(
     BXPT_RaveCx_Handle hCtx
     )
 {
-    uint32_t Reg, endainCtrl,cdbBasePtr,cdbEndPtr,itbBasePtr,itbEndPtr,intrEnable, tpitEnable;
+   uint32_t Reg, endainCtrl,intrEnable, tpitEnable;
+   BMMA_DeviceOffset cdbBasePtr,cdbEndPtr,itbBasePtr,itbEndPtr;
+
     unsigned WhichScdBlock;
     BXPT_Rave_ContextThresholds Thresholds;
     unsigned enableBppSearch;
@@ -6366,10 +5990,10 @@ BERR_Code BXPT_Rave_ResetContext(
     endainCtrl = Reg &(BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, ITB_ENDIAN_CTRL ) | BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, CDB_ENDIAN_CTRL ));
 
     /* save all the pointers */
-    cdbBasePtr = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
-    cdbEndPtr =  BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_END_PTR_OFFSET );
-    itbBasePtr = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
-    itbEndPtr =  BREG_Read32( hCtx->hReg, hCtx->BaseAddr + ITB_END_PTR_OFFSET );
+    cdbBasePtr = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
+    cdbEndPtr =  BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_END_PTR_OFFSET );
+    itbBasePtr = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
+    itbEndPtr =  BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + ITB_END_PTR_OFFSET );
 
     /* save interrupt enable register */
     intrEnable = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + AV_INTERRUPT_ENABLES_OFFSET );
@@ -6456,19 +6080,19 @@ BERR_Code BXPT_Rave_ResetContext(
     }
 
     /* resetore context pointers */
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, cdbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_READ_PTR_OFFSET, cdbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET, cdbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_END_PTR_OFFSET, cdbEndPtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET, cdbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, cdbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_READ_PTR_OFFSET, cdbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET, cdbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_END_PTR_OFFSET, cdbEndPtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET, cdbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_WRITE_PTR_OFFSET, itbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_READ_PTR_OFFSET, itbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET, itbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_END_PTR_OFFSET, itbEndPtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_VALID_PTR_OFFSET, itbBasePtr );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_WRITE_PTR_OFFSET, itbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_READ_PTR_OFFSET, itbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET, itbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_END_PTR_OFFSET, itbEndPtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_VALID_PTR_OFFSET, itbBasePtr );
+    BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
 
     /* restore threshold offsets */
     Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
@@ -6938,7 +6562,8 @@ BERR_Code BXPT_Rave_ComputeThresholds(
     BXPT_Rave_ContextThresholds *Thresholds
     )
 {
-    uint32_t Base, End, GranularityInBytes;
+   BMMA_DeviceOffset Base, End;
+   uint32_t GranularityInBytes;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -6948,8 +6573,8 @@ BERR_Code BXPT_Rave_ComputeThresholds(
     GranularityInBytes = GetGranularityInBytes( hCtx );
     if( !CdbLength )
     {
-        Base = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
-        End = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_END_PTR_OFFSET );
+       Base = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
+       End = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_END_PTR_OFFSET );
         CdbLength = End - Base + 1;
     }
 
@@ -6987,8 +6612,8 @@ BERR_Code BXPT_Rave_ComputeThresholds(
 
     if( !ItbLength )
     {
-        Base = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
-        End = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + ITB_END_PTR_OFFSET );
+       Base = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
+       End = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + ITB_END_PTR_OFFSET );
 
         /* Some users don't allocate an ITB. Check the base reg to be sure. */
         if( Base )
@@ -7420,20 +7045,20 @@ uint8_t *BXPT_Rave_GetCdbBasePtr(
     BXPT_RaveCx_Handle hCtx
     )
 {
-    uint32_t Base;
+   BMMA_DeviceOffset Base;
     void *Ptr;
 
     BDBG_ASSERT( hCtx );
 
-    Base = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
-    if( BMEM_ConvertOffsetToAddress( hCtx->hMem, Base, &Ptr ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(( "Offset to address conversion failed, context %lu", (unsigned long) hCtx ));
-        Ptr = NULL;
+    if (!hCtx->externalCdbAlloc) {
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        return 0;
     }
 
+    Base = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
+    Ptr = (uint8_t*)hCtx->mma.cdbPtr + (Base - hCtx->mma.cdbOffset); /* convert Base -> cached ptr */
     return Ptr;
-}
+ }
 
 void GetScEnables(
     BXPT_Rave_EsRanges *Range,
@@ -7495,47 +7120,11 @@ BERR_Code BXPT_Rave_AllocSoftContext(
     BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
     )
 {
-    return( BXPT_Rave_AllocSoftContextFromHeap( SrcContext, DestContextMode, NULL, DestContext ));
-}
-
-BERR_Code BXPT_Rave_AllocSoftContextFromHeap(
-    BXPT_RaveCx_Handle SrcContext,      /* [in] The source context */
-    BXPT_RaveSoftMode DestContextMode,  /* [in] The type of data that the destination should generate. */
-    BMEM_Handle ContextHeap,            /* [in] The soft-context's memory heap handle */
-    BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
-    )
-{
-    unsigned Index;
-
-    BXPT_RaveCx_Handle ThisCtx = NULL;
-    BXPT_Rave_Handle hRave;
-
-    BDBG_ASSERT( SrcContext );
-    BDBG_ASSERT( DestContext );
-
-    hRave = (BXPT_Rave_Handle) SrcContext->vhRave;
-
-    if( GetNextSoftRaveContext( hRave, &Index ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(( "No free contexts!" ));
-        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-    }
-
-    if( !(ThisCtx = allocContextHandle(hRave, Index)) )
-    {
-        BDBG_ERR(( "Can't allocate a context handle!" ));
-        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-    }
-
-    /* Same as the normal context alloc, except the we substitute the caller's heap
-    for the general handle that was installed when the RAVE channel was openned. */
-    ThisCtx->hMem = ContextHeap ? ContextHeap : hRave->hMem;
-
-    /* InitContext() will do the alloc */
-    ThisCtx->CdbBufferAddr = NULL;
-    ThisCtx->ItbBufferAddr = NULL;
-
-    return AllocSoftContext_Priv( SrcContext, DestContextMode, Index, DestContext );
+   /* deprecated due to MMA conversion */
+   BSTD_UNUSED(SrcContext);
+   BSTD_UNUSED(DestContextMode);
+   BSTD_UNUSED(DestContext);
+   return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 BERR_Code AllocSoftContext_Priv(
@@ -7545,7 +7134,7 @@ BERR_Code AllocSoftContext_Priv(
     BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
     )
 {
-    uint32_t Base, End;
+   BMMA_DeviceOffset Base, End;
 
     BERR_Code ExitCode = BERR_SUCCESS;
     BXPT_RaveCx_Handle ThisCtx = NULL;
@@ -7556,6 +7145,7 @@ BERR_Code AllocSoftContext_Priv(
     ThisCtx = *(hRave->ContextTbl + Index);
     ThisCtx->Allocated = true;
     ThisCtx->Type = SoftCtxMode;
+    ThisCtx->SourceContext = SrcContext;
 
     ThisCtx->SoftRave.mode = (unsigned) DestContextMode;
     ThisCtx->SoftRave.SrcBaseAddr = SrcContext->BaseAddr;
@@ -7564,71 +7154,57 @@ BERR_Code AllocSoftContext_Priv(
     ThisCtx->allocatedCdbBufferSize = SrcContext->allocatedCdbBufferSize;
 
     /* Make the dest BASE/END point to the src's CDB/ITB */
-    Base = BREG_Read32( SrcContext->hReg, SrcContext->BaseAddr + CDB_BASE_PTR_OFFSET );
-    BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_BASE_PTR_OFFSET, Base );
-    End = BREG_Read32( SrcContext->hReg, SrcContext->BaseAddr + CDB_END_PTR_OFFSET );
-    BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_END_PTR_OFFSET, End );
+    Base = BREG_ReadAddr( SrcContext->hReg, SrcContext->BaseAddr + CDB_BASE_PTR_OFFSET );
+    BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_BASE_PTR_OFFSET, Base );
+    End = BREG_ReadAddr( SrcContext->hReg, SrcContext->BaseAddr + CDB_END_PTR_OFFSET );
+    BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_END_PTR_OFFSET, End );
+    ThisCtx->mma.cdbPtr = SrcContext->mma.cdbPtr;
+    ThisCtx->mma.cdbOffset = SrcContext->mma.cdbOffset;
 
-    Base = BREG_Read32( SrcContext->hReg, SrcContext->BaseAddr + ITB_BASE_PTR_OFFSET );
-    End = BREG_Read32( SrcContext->hReg, SrcContext->BaseAddr + ITB_END_PTR_OFFSET );
+    Base = BREG_ReadAddr( SrcContext->hReg, SrcContext->BaseAddr + ITB_BASE_PTR_OFFSET );
+    End = BREG_ReadAddr( SrcContext->hReg, SrcContext->BaseAddr + ITB_END_PTR_OFFSET );
     ThisCtx->SoftRave.ItbSize = End - Base;
     if( DestContextMode == BXPT_RaveSoftMode_ePointersOnly )
     {
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET, Base );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_END_PTR_OFFSET, End );
+       BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET, Base );
+       BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_END_PTR_OFFSET, End );
+       ThisCtx->mma.itbPtr = SrcContext->mma.itbPtr;
+       ThisCtx->mma.itbOffset = SrcContext->mma.itbOffset;
     }
     else
     {
-        uint32_t BufferOffset;
+       BMMA_DeviceOffset BufferOffset;
 
-        void *BufferAddr = NULL;
+       if (!ThisCtx->externalItbAlloc) /* XPT does the alloc */
+       {
+           /* Allocate a separate ITB for the destination */
+           ThisCtx->mma.itbBlock = BMMA_Alloc(ThisCtx->mmaHeap, ThisCtx->SoftRave.ItbSize, 1 << 8, NULL);
+           if (!ThisCtx->mma.itbBlock)
+           {
+               BDBG_ERR(( "ITB alloc failed!" ));
+               ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
+               goto Done;
+           }
+       }
 
-        if( ThisCtx->ItbBufferAddr==NULL ) /* XPT does the alloc */
-        {
-            ThisCtx->externalItbAlloc = false;
-
-        /* Allocate a separate ITB for the destination */
-        BufferAddr = BMEM_AllocAligned( ThisCtx->hMem, ThisCtx->SoftRave.ItbSize, 8, 0 );
-        if( BufferAddr == NULL )
-        {
-            BDBG_ERR(( "ITB alloc failed!" ));
-            ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
-            goto Done;
-        }
-        else
-        {
-            ThisCtx->ItbBufferAddr = BufferAddr; /* save the itb allocated buffer address allocated */
-        }
-        }
-        else /* the app has already done the alloc */
-        {
-            ThisCtx->externalItbAlloc = true;
-
-            BufferAddr = ThisCtx->ItbBufferAddr;
-            /*BDBG_MSG(( "BXPT_Rave_AllocSoftContext: using pre-allocated ITB %#lx", ThisCtx->ItbBufferAddr ));*/
-        }
-
-        BMEM_ConvertAddressToOffset( ThisCtx->hMem, BufferAddr, &BufferOffset );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET, BufferOffset );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_END_PTR_OFFSET, BufferOffset + ThisCtx->SoftRave.ItbSize );
+       ThisCtx->mma.itbPtr = (uint8_t*)BMMA_Lock(ThisCtx->mma.itbBlock) + ThisCtx->mma.itbBlockOffset;
+       ThisCtx->mma.itbOffset = BufferOffset = BMMA_LockOffset(ThisCtx->mma.itbBlock) + ThisCtx->mma.itbBlockOffset;
+       BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET, BufferOffset );
+       BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_END_PTR_OFFSET, BufferOffset + ThisCtx->SoftRave.ItbSize );
     }
 
-    ThisCtx->SoftRave.src_itb_base = BREG_Read32( SrcContext->hReg, SrcContext->BaseAddr + ITB_BASE_PTR_OFFSET );
-    ThisCtx->SoftRave.dest_itb_base = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
+    ThisCtx->SoftRave.src_itb_base = BREG_ReadAddr( SrcContext->hReg, SrcContext->BaseAddr + ITB_BASE_PTR_OFFSET );
+    ThisCtx->SoftRave.dest_itb_base = BREG_ReadAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
     BXPT_Rave_ResetSoftContext( ThisCtx, DestContextMode );
     BXPT_Rave_FlushContext( SrcContext );
 
     /* get CACHED pointers to ITB memory for read/write */
     {
-        void *UncachedAddr = NULL;
+       Base = BREG_ReadAddr( SrcContext->hReg, SrcContext->BaseAddr + ITB_BASE_PTR_OFFSET );
+       ThisCtx->SoftRave.src_itb_mem = (uint8_t*)SrcContext->mma.itbPtr + (Base - SrcContext->mma.itbOffset); /* convert Base -> cached ptr */
 
-        Base = BREG_Read32( SrcContext->hReg, SrcContext->BaseAddr + ITB_BASE_PTR_OFFSET );
-        BMEM_Heap_ConvertOffsetToAddress( SrcContext->hMem, Base, &UncachedAddr );
-        BMEM_ConvertAddressToCached(SrcContext->hMem, UncachedAddr, (void **) &(ThisCtx->SoftRave.src_itb_mem));
-
-        Base = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
-        BMEM_Heap_ConvertOffsetToAddress( ThisCtx->hMem, Base, &UncachedAddr );
-        BMEM_ConvertAddressToCached(ThisCtx->hMem, UncachedAddr, (void **) &(ThisCtx->SoftRave.dest_itb_mem));
+       Base = BREG_ReadAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_BASE_PTR_OFFSET );
+       ThisCtx->SoftRave.dest_itb_mem = (uint8_t*)ThisCtx->mma.itbPtr + (Base - ThisCtx->mma.itbOffset); /* convert Base -> cached ptr */
     }
 
     *DestContext = ThisCtx;
@@ -7638,14 +7214,14 @@ BERR_Code AllocSoftContext_Priv(
 }
 
 static void check_wrap(
-    BXPT_RaveCx_Handle DestCtx,
-    uint32_t *dest_valid,
-    uint32_t *dest_wrap,
-    uint32_t **dest_itb_mem
+   BXPT_RaveCx_Handle DestCtx,
+   BMMA_DeviceOffset *dest_valid,
+   BMMA_DeviceOffset *dest_wrap,
+   uint32_t **dest_itb_mem
     )
 {
     /* use exclusive logic for END and VALID in SW */
-    uint32_t dest_end = BREG_Read32(DestCtx->hReg, DestCtx->BaseAddr + ITB_END_PTR_OFFSET ) + 1;
+    BMMA_DeviceOffset dest_end = BREG_ReadAddr(DestCtx->hReg, DestCtx->BaseAddr + ITB_END_PTR_OFFSET ) + 1;
 
     /* using BXPT_ITB_SIZE as my wraparound threshold is fine. HW RAVE uses another threshold based on its block size for mem bandwidth */
     if (*dest_valid >= dest_end - BXPT_ITB_SIZE)
@@ -7767,7 +7343,7 @@ static uint32_t * get_next_pts_entry(
             if(wrap_happened)
             {
                 cur_src_itb = DestCtx->SoftRave.src_itb_base;
-                src_valid = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET );
+                src_valid = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET );
                 wrap_happened = false;
                 continue;
             }
@@ -7796,11 +7372,10 @@ void BXPT_Rave_AdvanceSoftContext(
     BXPT_RaveCx_Handle DestCtx       /* [in] The destination (soft) context */
     )
 {
-    uint32_t src_valid,  src_wrap, src_read;
-    uint32_t dest_valid, dest_wrap, dest_read;
-    uint32_t reg, overflow;
-
-    uint32_t src_valid_copy, src_wrap_copy, dest_read_copy;
+   BMMA_DeviceOffset src_valid,  src_wrap, src_read;
+   BMMA_DeviceOffset dest_valid, dest_wrap, dest_read;
+   uint32_t reg, overflow;
+   BMMA_DeviceOffset src_valid_copy, src_wrap_copy, dest_read_copy;
 
     BDBG_ASSERT( DestCtx );
 
@@ -7822,27 +7397,27 @@ void BXPT_Rave_AdvanceSoftContext(
     BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + ITB_DEPTH_OFFSET, reg);
 
     /* CDB - always do this before ITB */
-    src_valid = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_VALID_PTR_OFFSET );
-    src_wrap = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_WRAP_PTR_OFFSET);
-    dest_read = BREG_Read32(DestCtx->hReg, DestCtx->BaseAddr + CDB_READ_PTR_OFFSET);
+    src_valid = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_VALID_PTR_OFFSET );
+    src_wrap = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_WRAP_PTR_OFFSET);
+    dest_read = BREG_ReadAddr(DestCtx->hReg, DestCtx->BaseAddr + CDB_READ_PTR_OFFSET);
 
     src_valid_copy =  src_valid;
     src_wrap_copy = src_wrap;
     dest_read_copy = dest_read;
 
     /* ITB */
-    src_valid = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET );
-    src_wrap = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_WRAP_PTR_OFFSET );
-    dest_valid = BREG_Read32(DestCtx->hReg, DestCtx->BaseAddr + ITB_VALID_PTR_OFFSET );
-    dest_read = BREG_Read32(DestCtx->hReg, DestCtx->BaseAddr + ITB_READ_PTR_OFFSET );
-    dest_wrap = BREG_Read32(DestCtx->hReg, DestCtx->BaseAddr + ITB_WRAP_PTR_OFFSET );
+    src_valid = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET );
+    src_wrap = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_WRAP_PTR_OFFSET );
+    dest_valid = BREG_ReadAddr(DestCtx->hReg, DestCtx->BaseAddr + ITB_VALID_PTR_OFFSET );
+    dest_read = BREG_ReadAddr(DestCtx->hReg, DestCtx->BaseAddr + ITB_READ_PTR_OFFSET );
+    dest_wrap = BREG_ReadAddr(DestCtx->hReg, DestCtx->BaseAddr + ITB_WRAP_PTR_OFFSET );
 
     if (DestCtx->SoftRave.mode == BXPT_RaveSoftMode_ePointersOnly)
     {
         /* do nothing - just copy pointers
         this adds host based flow control. useful for debug, peeking into ITB, possibly modifying in-place.
         no ITB entries can be added/removed. */
-        BDBG_MSG(("advance rave ITB: %x, %x, %x", src_valid, src_wrap, dest_read));
+        BDBG_MSG(("advance rave ITB: %x, %x, %x", (unsigned)src_valid, (unsigned)src_wrap, (unsigned)dest_read));
         dest_valid = src_valid;
         dest_wrap = src_wrap;
         src_read = dest_read;
@@ -7853,10 +7428,12 @@ void BXPT_Rave_AdvanceSoftContext(
         uint32_t *dest_itb, *src_itb;
         uint32_t cur_src_itb, dest_valid_actual=dest_valid;
         bool wrap_happened = false;
+        BXPT_RaveCx_Handle SrcCtx = DestCtx->SourceContext;
 
         /* Update the cached data */
-        BMEM_FlushCache(DestCtx->hMem, DestCtx->SoftRave.src_itb_mem, DestCtx->SoftRave.ItbSize );
-        BMEM_FlushCache(DestCtx->hMem, DestCtx->SoftRave.dest_itb_mem, DestCtx->SoftRave.ItbSize );
+        BDBG_ASSERT(SrcCtx);
+        BMMA_FlushCache(SrcCtx->mma.itbBlock, DestCtx->SoftRave.src_itb_mem, DestCtx->SoftRave.ItbSize);
+        BMMA_FlushCache(DestCtx->mma.itbBlock, DestCtx->SoftRave.dest_itb_mem, DestCtx->SoftRave.ItbSize);
 
         /* convert from inclusive to exclusive logic before SW processing */
         if (src_valid != DestCtx->SoftRave.src_itb_base)
@@ -7920,7 +7497,7 @@ void BXPT_Rave_AdvanceSoftContext(
         }
 
 
-        BDBG_MSG(("copy ITB: %x --> %x to %x", cur_src_itb, src_valid, dest_valid));
+        BDBG_MSG(("copy ITB: %x --> %x to %x", cur_src_itb, (unsigned)src_valid, (unsigned)dest_valid));
         BDBG_MSG(("DestCtx->SoftRave.src_itb_base %x, DestCtx->SoftRave.dest_itb_base %x",DestCtx->SoftRave.src_itb_base, DestCtx->SoftRave.dest_itb_base));
 
         while (cur_src_itb < src_valid)
@@ -8109,7 +7686,8 @@ void BXPT_Rave_AdvanceSoftContext(
             }
             else if (DestCtx->SoftRave.mode == BXPT_RaveSoftMode_eDivX)
             {
-            uint32_t itb_type, prev_frame_size;
+            uint32_t itb_type;
+            uint64_t prev_frame_size;
 
             itb_type = (src_itb[0]>>24) & 0xFF;
 
@@ -8122,9 +7700,9 @@ void BXPT_Rave_AdvanceSoftContext(
                 if(src_itb[1] >= DestCtx->SoftRave.last_base_address){
                     prev_frame_size = src_itb[1] - DestCtx->SoftRave.last_base_address;
                 } else {
-                    uint32_t cdb_wrap_ptr, cdb_base_ptr;
-                    cdb_base_ptr = BREG_Read32(DestCtx->hReg, CDB_BASE_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
-                    cdb_wrap_ptr = BREG_Read32(DestCtx->hReg, CDB_WRAP_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
+                    BMMA_DeviceOffset cdb_wrap_ptr, cdb_base_ptr;
+                    cdb_base_ptr = BREG_ReadAddr(DestCtx->hReg, CDB_BASE_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
+                    cdb_wrap_ptr = BREG_ReadAddr(DestCtx->hReg, CDB_WRAP_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
                     prev_frame_size = (cdb_wrap_ptr - DestCtx->SoftRave.last_base_address) + (src_itb[1] - cdb_base_ptr) + 1;
                 }
                 if(DestCtx->SoftRave.b_frame_found && (prev_frame_size<=8)){
@@ -8243,7 +7821,8 @@ void BXPT_Rave_AdvanceSoftContext(
             }
             }
             else if (DestCtx->SoftRave.mode == BXPT_RaveSoftMode_eDivX_noReorder) {
-                uint32_t itb_type, prev_frame_size;
+               uint32_t itb_type;
+               uint64_t prev_frame_size;
 
                 itb_type = (src_itb[0]>>24) & 0xFF;
 
@@ -8257,8 +7836,8 @@ void BXPT_Rave_AdvanceSoftContext(
                         prev_frame_size = src_itb[1] - DestCtx->SoftRave.last_base_address;
                     } else {
                         uint32_t cdb_wrap_ptr, cdb_base_ptr;
-                        cdb_base_ptr = BREG_Read32(DestCtx->hReg, CDB_BASE_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
-                        cdb_wrap_ptr = BREG_Read32(DestCtx->hReg, CDB_WRAP_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
+                        cdb_base_ptr = BREG_ReadAddr(DestCtx->hReg, CDB_BASE_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
+                        cdb_wrap_ptr = BREG_ReadAddr(DestCtx->hReg, CDB_WRAP_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
                         prev_frame_size = (cdb_wrap_ptr - DestCtx->SoftRave.last_base_address) + (src_itb[1] - cdb_base_ptr) + 1;
                     }
 
@@ -8628,7 +8207,7 @@ void BXPT_Rave_AdvanceSoftContext(
             {
                 BDBG_ASSERT(cur_src_itb == src_wrap+1);
                 cur_src_itb = DestCtx->SoftRave.src_itb_base;
-                src_valid = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET ) + 1;
+                src_valid = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET ) + 1;
             }
 
 skip_itb_and_restart:
@@ -8658,23 +8237,23 @@ skip_itb_and_restart:
     }
 
     /* Write back updates to device memory */
-    BMEM_FlushCache(DestCtx->hMem, DestCtx->SoftRave.dest_itb_mem, DestCtx->SoftRave.ItbSize );
+    BMMA_FlushCache(DestCtx->mma.itbBlock, DestCtx->SoftRave.dest_itb_mem, DestCtx->SoftRave.ItbSize);
 
     BKNI_EnterCriticalSection();
     /* produce: advance the dest VALID and WRAP pointers.
     always write WRAP before VALID, always produce on dest before consuming on src */
-    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, src_wrap_copy);
-    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + CDB_VALID_PTR_OFFSET, src_valid_copy);
+    BREG_WriteAddr(DestCtx->hReg, DestCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, src_wrap_copy);
+    BREG_WriteAddr(DestCtx->hReg, DestCtx->BaseAddr + CDB_VALID_PTR_OFFSET, src_valid_copy);
 
     /* consume: advance the src READ pointer */
-    BREG_Write32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_READ_PTR_OFFSET, dest_read_copy);
+    BREG_WriteAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_READ_PTR_OFFSET, dest_read_copy);
 
     /* produce: advance the dest VALID and WRAP pointers */
-    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, dest_wrap);
-    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + ITB_VALID_PTR_OFFSET, dest_valid);
+    BREG_WriteAddr(DestCtx->hReg, DestCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, dest_wrap);
+    BREG_WriteAddr(DestCtx->hReg, DestCtx->BaseAddr + ITB_VALID_PTR_OFFSET, dest_valid);
 
     /* consume: advance the src READ pointer */
-    BREG_Write32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_READ_PTR_OFFSET, src_read);
+    BREG_WriteAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_READ_PTR_OFFSET, src_read);
     BKNI_LeaveCriticalSection();
 }
 
@@ -8698,7 +8277,7 @@ BERR_Code BXPT_Rave_ResetSoftContext(
     hCtx->SoftRave.ItbSize = ItbSize;
     hCtx->SoftRave.SrcBaseAddr = SrcBaseAddr;
     hCtx->SoftRave.mode = Mode;
-    hCtx->SoftRave.last_base_address = BREG_Read32(hCtx->hReg, CDB_BASE_PTR_OFFSET+hCtx->SoftRave.SrcBaseAddr);
+    hCtx->SoftRave.last_base_address = BREG_ReadAddr(hCtx->hReg, CDB_BASE_PTR_OFFSET+hCtx->SoftRave.SrcBaseAddr);
 
     hCtx->SoftRave.b_frame_found = false;
     hCtx->SoftRave.last_dest_valid = DestItbBase;
@@ -8846,16 +8425,16 @@ BERR_Code BXPT_Rave_AdjustCdbLength(
     size_t CdbLength
     )
 {
-    uint32_t Base, Read, Write, Valid;
+   BMMA_DeviceOffset Base, Read, Write, Valid;
     BXPT_Rave_ContextThresholds Thresholds;
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hCtx );
 
-    Base  = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
-    Read  = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_READ_PTR_OFFSET );
-    Write = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_WRITE_PTR_OFFSET );
-    Valid = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET );
+    Base  = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
+    Read  = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_READ_PTR_OFFSET );
+    Write = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRITE_PTR_OFFSET );
+    Valid = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET );
 
     /* Sanity check; no can do unless pointers are in reset state */
     if ( Base && (Base == Read) && (Base == Write) && (Base == Valid) )

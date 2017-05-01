@@ -492,6 +492,7 @@ BVCE_Platform_P_PreReset(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+#if BVCE_P_ENABLE_UART
 /* Enable UART for Vice Arc 0/1 */
 BERR_Code
 BVCE_Platform_P_EnableUART(
@@ -541,6 +542,7 @@ BVCE_Platform_P_EnableUART(
 
    return BERR_SUCCESS;
 }
+#endif
 
 const BVCE_P_GetFeatureInfo BVCE_P_MemcLUT[BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES] =
 {

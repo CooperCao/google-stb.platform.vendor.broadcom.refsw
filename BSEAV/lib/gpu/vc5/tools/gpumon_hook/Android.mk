@@ -32,7 +32,7 @@ LOCAL_C_INCLUDES := \
         $(V3D_DRIVER_TOP)/platform/common \
 
 LOCAL_CFLAGS := \
-        -fpic -DPIC -DBCG_ABSTRACT_PLATFORM \
+        -fpic -std=c++0x -DPIC -DBCG_ABSTRACT_PLATFORM \
         -Dkhronos_EXPORTS \
         -D_POSIX_C_SOURCE=200112 \
         -D_GNU_SOURCE \
@@ -83,10 +83,15 @@ LOCAL_SRC_FILES := \
 	gpumon_hook.cpp \
 	api.cpp \
 	archive.cpp \
-	circularbuffer.cpp \
+	datasinkasyncbuffer.cpp \
+	datasinkbuffer.cpp \
+	datasourcesinkfile.cpp \
+	ringbuffer.cpp \
 	packet.cpp \
+	packetreader.cpp \
 	platform.cpp \
-	remote.cpp
+	remote.cpp \
+	debuglog_android.cpp
 
 LOCAL_PRELINK_MODULE := false
 

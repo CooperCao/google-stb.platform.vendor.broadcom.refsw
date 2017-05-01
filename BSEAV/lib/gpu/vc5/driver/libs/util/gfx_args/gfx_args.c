@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gfx_args.h"
 #include "libs/util/gfx_util/gfx_util_str.h"
 #include "libs/core/v3d/v3d_util.h"
@@ -77,6 +70,11 @@ const char *gfx_args_pop(struct gfx_args *a)
 bool gfx_args_can_pop_uint32(const struct gfx_args *a)
 {
    return gfx_args_more(a) && gfx_try_strtou32(NULL, gfx_args_peek(a), 0);
+}
+
+bool gfx_args_can_pop_uint64(const struct gfx_args *a)
+{
+   return gfx_args_more(a) && gfx_try_strtou64(NULL, gfx_args_peek(a), 0);
 }
 
 bool gfx_args_can_pop_addr(const struct gfx_args *a)

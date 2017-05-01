@@ -88,7 +88,8 @@ __attribute__((packed))
     volatile uint32_t corectrl_usr_flg0_clear;                /* 0x038 */
     uint8_t gap11[0x040 - 0x03c];
     volatile uint32_t corectrl_subsystem_revision;            /* 0x040 */
-    uint8_t gap1[0x080 - 0x044];
+    volatile uint32_t corectrl_subsystem_reset_vector;        /* 0x044 */
+    uint8_t gap1[0x080 - 0x048];
 
     volatile uint32_t corestate_sys_mbx0;                     /* 0x080 */
     volatile uint32_t corestate_sys_mbx1;                     /* 0x084 */
@@ -168,7 +169,7 @@ __attribute__((packed))
 
 
 #ifdef __FIREPATH__
-__absolute
+__absolute __align(4)
 extern Misc_Block taddr_Misc_Block;
 #endif
 
@@ -195,6 +196,7 @@ extern Misc_Block taddr_Misc_Block;
 #define MISC_BLOCK_CORECTRL_USR_FLG0_SET                 0x034
 #define MISC_BLOCK_CORECTRL_USR_FLG0_CLEAR               0x038
 #define MISC_BLOCK_CORECTRL_SUBSYSTEM_REVISION           0x040
+#define MISC_BLOCK_CORECTRL_RESET_VECTOR                 0x044
 
 #define MISC_BLOCK_CORESTATE_SYS_MBX0                    0x080
 #define MISC_BLOCK_CORESTATE_SYS_MBX1                    0x084
@@ -350,8 +352,8 @@ ASSERT(PROTI_TOP_ADDRESS_MASK == PROTD_TOP_ADDRESS_MASK, "Error: PROTI_TOP_ADDRE
  */
 extern int __begin_protected_dtcm, __end_protected_dtcm;
 extern int __begin_unprotected_dtcm, __end_unprotected_dtcm;
-extern int __system_scenario_dtcm_mask, __system_scenario_dtcm_mask_bot, __system_scenario_dtcm_mask_top;
-extern int __user_scenario_dtcm_mask, __user_scenario_dtcm_mask_bot, __user_scenario_dtcm_mask_top;
+extern int __system_scenario_dtcm_mask_bot, __system_scenario_dtcm_mask_top;
+extern int __user_scenario_dtcm_mask_bot, __user_scenario_dtcm_mask_top;
 /** @} */
 #  endif
 
@@ -365,6 +367,7 @@ extern int __user_scenario_dtcm_mask, __user_scenario_dtcm_mask_bot, __user_scen
  * They require the taddr_dtcm_prot and tsize_dtcm_prot symbols to be defined to work properly.
  * @{
  */
+#    define CEIL_TO_DTCM_PROT_RANGE(size)           ((size < 1024) ? 1024 : CEIL_TO_POWER_OF_2(size))
 #    define DTCM_PROT_REGION_SIZE                   (tsize_dtcm_prot / 32)
 #    define CEIL_TO_DTCM_PROT_REGION(addr)          CEIL_TO_MULTIPLE_OF_POW2(addr, DTCM_PROT_REGION_SIZE)
 #    define ADDR_TO_DTCM_PROT_REGION(addr)          (((addr) - taddr_dtcm_prot) / DTCM_PROT_REGION_SIZE)

@@ -125,17 +125,19 @@ F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, $(notdir ${F_PUBLIC_LIBS}
 ############################################################################
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
+.PHONY: reinstall all prep_folder clean re install
+
 all: prep_folder install
 
 prep_folder:
 	@ mkdir -p ${SRAI_OBJ_ROOT}/
 
 clean:
-	@rm -fr $(SRAI_OBJ_ROOT)
+	@rm -fr ${SRAI_OBJ_ROOT}
+	@rm -fr ${F_INSTALLED_LIBS}
 
 re: clean reinstall
 
-.PHONY: reinstall
 reinstall: install |clean
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
@@ -159,15 +161,17 @@ ${SRAI_OBJ_ROOT}/lib${LIB_BASENAME}.a: ${END_OBJS} |prep_folder
 	@ ${AR} rc $@ ${END_OBJS}
 	${STRIP_COMMAND}
 
-idirs:
-	@ [ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
+${D_FOR_LIB_INSTALL}:
+	@ mkdir -p ${D_FOR_LIB_INSTALL}
 
-install: idirs $(F_INSTALLED_LIBS)
+install: $(F_INSTALLED_LIBS) | ${D_FOR_LIB_INSTALL}
 
-${D_FOR_LIB_INSTALL}/%.a : ${SRAI_OBJ_ROOT}/%.a |idirs
+${D_FOR_LIB_INSTALL}/%.a : ${SRAI_OBJ_ROOT}/%.a | ${D_FOR_LIB_INSTALL}
+	@echo "[Installing $(notdir $@)]"
 	@install -m 0755 $< $@
 
-${D_FOR_LIB_INSTALL}/%.so : ${SRAI_OBJ_ROOT}/%.so |idirs
+${D_FOR_LIB_INSTALL}/%.so : ${SRAI_OBJ_ROOT}/%.so | ${D_FOR_LIB_INSTALL}
+	@echo "[Installing $(notdir $@)]"
 	@install -m 0755 $< $@
 
 ${SRAI_OBJ_ROOT}/%.o: %.c |prep_folder

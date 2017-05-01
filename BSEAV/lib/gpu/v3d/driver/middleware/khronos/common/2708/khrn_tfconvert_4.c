@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  3D Tools
-Module   :  Control list creation and submission for RSO to t-format using tile buffer
-
-FILE DESCRIPTION
-Builds a control list for RSO to t-format conversion using tile buffer
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/common/2708/khrn_tfconvert_4.h"
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/khrn_image.h"
@@ -19,7 +11,6 @@ Builds a control list for RSO to t-format conversion using tile buffer
 #include "middleware/khronos/common/2708/khrn_render_state_4.h"
 
 #define TLB_INVALID_FORMAT 3
-#define NULL_LIST_SIZE     27
 
 static uint32_t get_dest_format(KHRN_IMAGE_FORMAT_T format)
 {
@@ -50,24 +41,6 @@ static uint32_t get_type_flag(KHRN_IMAGE_FORMAT_T format)
    else // if (khrn_image_is_rso(format))
       return 0;
 }
-
-#ifdef TIMELINE_EVENT_LOGGING
-static void EventLog(uint32_t t, uint32_t c, uint32_t r, uint32_t d, char *desc)
-{
-   EventData ev;
-   ev.eventType = t;
-   ev.eventCode = c;
-   ev.eventRow  = r;
-   ev.eventData = d;
-   ev.desc = desc;
-   ev.eventSecs = 0;
-   ev.eventNanosecs = 0;
-   khrn_remote_event_log(&ev);
-}
-#define LogLock()   EventLog(eEVENT_WAITING, eEVENT_TFCONVERT, eEVENT_RENDERER, (uint32_t)convData->heglimage, 0);
-#else
-#define LogLock()
-#endif
 
 void khrn_tfconvert_logevents(BEGL_HWNotification *notification)
 {
@@ -153,12 +126,9 @@ bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hsrc, MEM_H
 
    uint32_t dirty_tiles = x_tiles * y_tiles;
    uint32_t bytes = 11 + (dirty_tiles * 11);
-   if (bytes < NULL_LIST_SIZE)
-      bytes = NULL_LIST_SIZE;    /* Must have at least this many bytes in case we need a NULL list */
 
    bool res = false;
-   uint8_t *p;
-   uint8_t *list = p = khrn_fmem_cle(fmem, bytes);
+   uint8_t *p = khrn_fmem_cle(fmem, bytes);
    if (p)
    {
       /* set rendering mode config */
@@ -211,11 +181,6 @@ bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hsrc, MEM_H
 
       /* Add the final store with EOF */
       ADD_BYTE(p, KHRN_HW_INSTR_STORE_SUBSAMPLE_EOF);
-
-      /* Pad end with NOP's if necessary */
-      uint32_t b;
-      for (b = 11 + (dirty_tiles * 11); b < dirty_tiles; b++)
-         ADD_BYTE(p, KHRN_HW_INSTR_NOP);
 
 #ifdef KHRN_AUTOCLIF
       GLXX_HW_RENDER_STATE_T *rs = (GLXX_HW_RENDER_STATE_T *)khrn_render_state_get_data(state->current_render_state);

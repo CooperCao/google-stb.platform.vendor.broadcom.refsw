@@ -200,8 +200,9 @@ BVCE_GetDefaultOpenSettings(
    return;
 }
 
+static
 BERR_Code
-BVCE_P_CreateTimer(
+BVCE_S_CreateTimer(
          BVCE_Handle hVce
          )
 {
@@ -228,8 +229,9 @@ BVCE_P_CreateTimer(
    return BERR_TRACE( rc );
 }
 
+static
 void
-BVCE_P_DestroyTimer(
+BVCE_S_DestroyTimer(
          BVCE_Handle hVce
          )
 {
@@ -247,8 +249,9 @@ BVCE_P_DestroyTimer(
    }
 }
 
+static
 BERR_Code
-BVCE_P_Reset(
+BVCE_S_Reset(
          BVCE_Handle hVce
          )
 {
@@ -276,8 +279,9 @@ BVCE_P_Reset(
    return BERR_TRACE( rc );
 }
 
+static
 void
-BVCE_P_DestroyAllocators(
+BVCE_S_DestroyAllocators(
    BVCE_Handle hVce
    )
 {
@@ -308,8 +312,9 @@ static const unsigned BVCE_P_FirmwareSizeLUT[BVCE_PLATFORM_P_NUM_ARC_CORES] =
    MAX_PICARC_FW_SIZE_IN_BYTES
 };
 
+static
 BERR_Code
-BVCE_P_SetupAllocators(
+BVCE_S_SetupAllocators(
    BVCE_Handle hVce
    )
 {
@@ -347,7 +352,7 @@ BVCE_P_SetupAllocators(
 
          if ( BERR_SUCCESS != rc )
          {
-            BVCE_P_DestroyAllocators( hVce );
+            BVCE_S_DestroyAllocators( hVce );
             return BERR_TRACE( rc );
          }
 
@@ -370,7 +375,7 @@ BVCE_P_SetupAllocators(
 
    if ( BERR_SUCCESS != rc )
    {
-      BVCE_P_DestroyAllocators( hVce );
+      BVCE_S_DestroyAllocators( hVce );
       return BERR_TRACE( rc );
    }
 
@@ -402,7 +407,7 @@ BVCE_P_SetupAllocators(
 
    if ( BERR_SUCCESS != rc )
    {
-      BVCE_P_DestroyAllocators( hVce );
+      BVCE_S_DestroyAllocators( hVce );
       return BERR_TRACE( rc );
    }
 
@@ -439,7 +444,7 @@ BVCE_P_SetupAllocators(
 
    if ( BERR_SUCCESS != rc )
    {
-      BVCE_P_DestroyAllocators( hVce );
+      BVCE_S_DestroyAllocators( hVce );
       return BERR_TRACE( rc );
    }
 
@@ -452,8 +457,9 @@ BVCE_P_SetupAllocators(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_AllocateDeviceMemory(
+BVCE_S_AllocateDeviceMemory(
          BVCE_Handle hVce
          )
 {
@@ -489,8 +495,9 @@ BVCE_P_AllocateDeviceMemory(
    return BERR_TRACE( rc );
 }
 
+static
 void
-BVCE_P_FreeDeviceMemory(
+BVCE_S_FreeDeviceMemory(
          BVCE_Handle hVce
          )
 {
@@ -507,8 +514,9 @@ BVCE_P_FreeDeviceMemory(
    hVce->hCabacCmdBuffer = NULL;
 }
 
+static
 void
-BVCE_P_FreeFirmwareMemory(
+BVCE_S_FreeFirmwareMemory(
          BVCE_Handle hVce
          )
 {
@@ -526,8 +534,9 @@ BVCE_P_FreeFirmwareMemory(
    }
 }
 
+static
 BERR_Code
-BVCE_P_AllocateFirmwareMemory(
+BVCE_S_AllocateFirmwareMemory(
          BVCE_Handle hVce
          )
 {
@@ -552,7 +561,7 @@ BVCE_P_AllocateFirmwareMemory(
       if ( BERR_SUCCESS != rc )
       {
          BDBG_ERR(("Error allocating FW code buffer [%d]", i));
-         BVCE_P_FreeFirmwareMemory( hVce );
+         BVCE_S_FreeFirmwareMemory( hVce );
          return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
       }
 
@@ -566,8 +575,9 @@ BVCE_P_AllocateFirmwareMemory(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_LoadFirmware(
+BVCE_S_LoadFirmware(
          BVCE_Handle hVce
          )
 {
@@ -682,7 +692,9 @@ BVCE_P_LoadFirmware(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-void BVCE_P_Mailbox_isr(
+static
+void
+BVCE_S_Mailbox_isr(
          void *pContext,
          int iParam
          )
@@ -695,7 +707,9 @@ void BVCE_P_Mailbox_isr(
    BKNI_SetEvent_isr( hVce->events.hMailbox );
 }
 
-void BVCE_P_Watchdog_isr(
+static
+void
+BVCE_S_Watchdog_isr(
          void *pContext,
          int iParam
          )
@@ -748,7 +762,9 @@ void BVCE_P_Watchdog_isr(
    }
 }
 
-void BVCE_P_Event_isr(
+static
+void
+BVCE_S_Event_isr(
          void *pContext,
          int iParam
          )
@@ -791,7 +807,9 @@ void BVCE_P_Event_isr(
    }
 }
 
-void BVCE_P_DataReady_isr(
+static
+void
+BVCE_S_DataReady_isr(
          void *pContext,
          int iParam
          )
@@ -815,8 +833,9 @@ void BVCE_P_DataReady_isr(
    }
 }
 
+static
 BERR_Code
-BVCE_P_SetupCallback(
+BVCE_S_SetupCallback(
          BVCE_Handle hVce,
          BINT_CallbackHandle *phCallback,
          BINT_Id intId,
@@ -866,8 +885,9 @@ BVCE_P_SetupCallback(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_TeardownCallback(
+BVCE_S_TeardownCallback(
          BINT_CallbackHandle hCallback
          )
 {
@@ -885,8 +905,9 @@ BVCE_P_TeardownCallback(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SetupInterrupts(
+BVCE_S_SetupInterrupts(
          BVCE_Handle hVce
          )
 {
@@ -894,11 +915,11 @@ BVCE_P_SetupInterrupts(
 
    /* Install BINT ISR Handlers */
    /* Mailbox Interrupt  */
-   rc = BVCE_P_SetupCallback(
+   rc = BVCE_S_SetupCallback(
             hVce,
             &hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_MAILBOX],
             hVce->stPlatformConfig.stInterrupt.idMailbox,
-            BVCE_P_Mailbox_isr,
+            BVCE_S_Mailbox_isr,
             hVce,
             0
             );
@@ -912,11 +933,11 @@ BVCE_P_SetupInterrupts(
       uint32_t i = 0;
       for ( i = 0; i < BVCE_PLATFORM_P_NUM_ARC_CORES; i++ )
       {
-         rc = BVCE_P_SetupCallback(
+         rc = BVCE_S_SetupCallback(
                   hVce,
                   &hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_WATCHDOG + i],
                   hVce->stPlatformConfig.stInterrupt.idWatchdog[i],
-                  BVCE_P_Watchdog_isr,
+                  BVCE_S_Watchdog_isr,
                   hVce,
                   i
                   );
@@ -928,11 +949,11 @@ BVCE_P_SetupInterrupts(
    }
 
    /* Error interrupt */
-   rc = BVCE_P_SetupCallback(
+   rc = BVCE_S_SetupCallback(
             hVce,
             &hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_EVENT],
             hVce->stPlatformConfig.stInterrupt.idEvent,
-            BVCE_P_Event_isr,
+            BVCE_S_Event_isr,
             hVce,
             0
             );
@@ -950,11 +971,11 @@ BVCE_P_SetupInterrupts(
       {
          if ( 0 != hVce->stPlatformConfig.stInterrupt.idDataReady[i] )
          {
-            rc = BVCE_P_SetupCallback(
+            rc = BVCE_S_SetupCallback(
                hVce,
                &hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_DATAREADY + i],
                hVce->stPlatformConfig.stInterrupt.idDataReady[i],
-               BVCE_P_DataReady_isr,
+               BVCE_S_DataReady_isr,
                hVce,
                i
             );
@@ -970,8 +991,9 @@ BVCE_P_SetupInterrupts(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_TeardownInterrupts(
+BVCE_S_TeardownInterrupts(
          BVCE_Handle hVce
          )
 {
@@ -979,7 +1001,7 @@ BVCE_P_TeardownInterrupts(
 
    /* Uninstall BINT ISR Handlers */
    /* Mailbox Interrupt  */
-   rc = BVCE_P_TeardownCallback(
+   rc = BVCE_S_TeardownCallback(
             hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_MAILBOX]
             );
    hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_MAILBOX] = NULL;
@@ -994,7 +1016,7 @@ BVCE_P_TeardownInterrupts(
 
       for ( i = 0; i < BVCE_PLATFORM_P_NUM_ARC_CORES; i++ )
       {
-         rc = BVCE_P_TeardownCallback(
+         rc = BVCE_S_TeardownCallback(
                   hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_WATCHDOG + i]
                   );
          hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_WATCHDOG + i] = NULL;
@@ -1006,7 +1028,7 @@ BVCE_P_TeardownInterrupts(
    }
 
    /* Error interrupt */
-   rc = BVCE_P_TeardownCallback(
+   rc = BVCE_S_TeardownCallback(
             hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_EVENT]
             );
    hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_EVENT] = NULL;
@@ -1021,7 +1043,7 @@ BVCE_P_TeardownInterrupts(
 
       for ( i = 0; i < BVCE_PLATFORM_P_NUM_OUTPUT_CHANNELS; i++ )
       {
-         rc = BVCE_P_TeardownCallback(
+         rc = BVCE_S_TeardownCallback(
             hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_DATAREADY + i]
                   );
          hVce->callbacks.ahCallbacks[BVCE_P_CALLBACK_DATAREADY + i] = NULL;
@@ -1070,8 +1092,9 @@ BVCE_P_EnableInterrupts(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_CreateEvents(
+BVCE_S_CreateEvents(
          BVCE_Handle hVce
          )
 {
@@ -1084,8 +1107,9 @@ BVCE_P_CreateEvents(
    return BERR_TRACE( rc );
 }
 
+static
 void
-BVCE_P_DestroyEvents(
+BVCE_S_DestroyEvents(
          BVCE_Handle hVce
          )
 {
@@ -1097,8 +1121,9 @@ BVCE_P_DestroyEvents(
    }
 }
 
+static
 BERR_Code
-BVCE_P_Boot(
+BVCE_S_Boot(
          BVCE_Handle hVce
          )
 {
@@ -1306,8 +1331,9 @@ BVCE_P_Boot(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_DisableWatchdog(
+BVCE_S_DisableWatchdog(
          BVCE_Handle hVce
          )
 {
@@ -1323,12 +1349,13 @@ BVCE_P_DisableWatchdog(
    return BERR_TRACE( rc );
 }
 
-void BVCE_P_ValidateStructSizes(void)
+void
+BVCE_P_ValidateStructSizes(void)
 {
 
    BDBG_CWARNING( sizeof( ViceCmdInit_t ) == 13*4 );
    BDBG_CWARNING( sizeof( ViceCmdInitResponse_t ) == 11*4 );
-   BDBG_CWARNING( sizeof( ViceCmdOpenChannel_t ) == 8*4 );
+   BDBG_CWARNING( sizeof( ViceCmdOpenChannel_t ) == 9*4 );
    BDBG_CWARNING( sizeof( ViceCmdOpenChannelResponse_t ) == 3*4 );
    BDBG_CWARNING( sizeof( ViceCmdStartChannel_t ) == 2*4 );
    BDBG_CWARNING( sizeof( ViceCmdStartChannelResponse_t ) == 2*4 );
@@ -1346,7 +1373,8 @@ void BVCE_P_ValidateStructSizes(void)
    BDBG_CWARNING( sizeof( ViceCmdGetDeviceStatusResponse_t ) == (2*4 + 2*4) );
 }
 
-void BVCE_P_ValidateFrameRateEnum(void)
+void
+BVCE_P_ValidateFrameRateEnum(void)
 {
    BDBG_CASSERT( (unsigned) ENCODING_FRAME_RATE_CODE_UNKNOWN == (unsigned) BAVC_FrameRateCode_eUnknown );
    BDBG_CASSERT( (unsigned) ENCODING_FRAME_RATE_CODE_2397 == (unsigned) BAVC_FrameRateCode_e23_976 );
@@ -1364,11 +1392,12 @@ void BVCE_P_ValidateFrameRateEnum(void)
    BDBG_CASSERT( (unsigned) ENCODING_FRAME_RATE_CODE_2000 == (unsigned) BAVC_FrameRateCode_e20 );
 }
 
-#define BVCE_P_WriteRegisters( handle, addr, buffer, size ) BVCE_P_WriteRegistersNew_isrsafe( handle, addr, buffer, size );
-#define BVCE_P_WriteRegisters_isr( handle, addr, buffer, size ) BVCE_P_WriteRegistersNew_isrsafe( handle, addr, buffer, size );
+#define BVCE_P_WriteRegisters( handle, addr, buffer, size ) BVCE_S_WriteRegistersNew_isrsafe( handle, addr, buffer, size );
+#define BVCE_P_WriteRegisters_isr( handle, addr, buffer, size ) BVCE_S_WriteRegistersNew_isrsafe( handle, addr, buffer, size );
 
+static
 BERR_Code
-BVCE_P_WriteRegistersNew_isrsafe(
+BVCE_S_WriteRegistersNew_isrsafe(
          BVCE_Handle hVce,
      unsigned uiRegStartAddress,
      const uint32_t *pBuffer,
@@ -1403,17 +1432,17 @@ BVCE_P_WriteRegistersNew_isrsafe(
 #if BDBG_DEBUG_BUILD
       if ( true == bIsCommand )
       {
-         BDBG_MODULE_MSG( BVCE_CMD, ("@%08lx <-- "BDBG_UINT64_FMT" - %s",
+         BDBG_MODULE_MSG( BVCE_CMD, ("@%08lx <-- 0x%08x - %s",
                   (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
-                  BDBG_UINT64_ARG((uint64_t) pBuffer[i]),
+                  pBuffer[i],
                   BVCE_P_CommandLUT[uiCommandIndex].szCommandParameterName[i]
                   ));
       }
       else
       {
-         BDBG_MSG(("@%08lx <-- "BDBG_UINT64_FMT,
+         BDBG_MSG(("@%08lx <-- 0x%08x",
                   (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
-                  BDBG_UINT64_ARG((uint64_t) pBuffer[i])));
+                  pBuffer[i]));
       }
 #endif
      BREG_Write32(
@@ -1426,11 +1455,12 @@ BVCE_P_WriteRegistersNew_isrsafe(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-#define BVCE_P_ReadRegisters( handle, addr, buffer, size ) BVCE_P_ReadRegistersNew_isrsafe( handle, addr, buffer, size )
-#define BVCE_P_ReadRegisters_isr( handle, addr, buffer, size ) BVCE_P_ReadRegistersNew_isrsafe( handle, addr, buffer, size )
+#define BVCE_P_ReadRegisters( handle, addr, buffer, size ) BVCE_S_ReadRegistersNew_isrsafe( handle, addr, buffer, size )
+#define BVCE_P_ReadRegisters_isr( handle, addr, buffer, size ) BVCE_S_ReadRegistersNew_isrsafe( handle, addr, buffer, size )
 
+static
 BERR_Code
-BVCE_P_ReadRegistersNew_isrsafe(
+BVCE_S_ReadRegistersNew_isrsafe(
          BVCE_Handle hVce,
      unsigned uiRegStartAddress,
      uint32_t *pBuffer,
@@ -1472,17 +1502,17 @@ BVCE_P_ReadRegistersNew_isrsafe(
 
      if ( true == bIsCommand )
      {
-        BDBG_MODULE_MSG( BVCE_RSP, ("@%08lx --> "BDBG_UINT64_FMT" - %s",
+        BDBG_MODULE_MSG( BVCE_RSP, ("@%08lx --> 0x%08x - %s",
                  (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
-                 BDBG_UINT64_ARG((uint64_t) pBuffer[i]),
+                 pBuffer[i],
                  BVCE_P_CommandLUT[uiCommandIndex].szResponseParameterName[i]
                  ));
      }
      else
      {
-        BDBG_MSG(("@%08lx --> "BDBG_UINT64_FMT,
+        BDBG_MSG(("@%08lx --> 0x%08x",
                  (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
-                  BDBG_UINT64_ARG((uint64_t) pBuffer[i])));
+                  pBuffer[i]));
      }
 #endif
    }
@@ -1490,8 +1520,9 @@ BVCE_P_ReadRegistersNew_isrsafe(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand_impl(
+BVCE_S_SendCommand_impl(
          BVCE_Handle hVce,
          const BVCE_P_Command *pstCommand,
          BVCE_P_Response *pstResponse
@@ -1694,8 +1725,9 @@ BVCE_P_SendCommand_impl(
     return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand(
+BVCE_S_SendCommand(
          BVCE_Handle hVce,
          const BVCE_P_Command *pstCommand,
          BVCE_P_Response *pstResponse
@@ -1703,7 +1735,7 @@ BVCE_P_SendCommand(
 {
    BERR_Code rc;
 
-   rc = BVCE_P_SendCommand_impl( hVce,
+   rc = BVCE_S_SendCommand_impl( hVce,
                             pstCommand,
                             pstResponse
                             );
@@ -1722,8 +1754,9 @@ typedef struct BVCE_P_FirmwareMemorySettings
    uint32_t    Grouping;                                   /* 0: Disable.  1: Enable.                                           */
 } BVCE_P_FirmwareMemorySettings;
 
+static
 BERR_Code
-BVCE_P_PopulateFirmwareMemorySettings(
+BVCE_S_PopulateFirmwareMemorySettings(
    const BCHP_MemoryInfo *pstMemoryInfo,
    BVCE_P_FirmwareMemorySettings *pstFirmwareMemorySettings
    )
@@ -1822,8 +1855,9 @@ BVCE_P_PopulateFirmwareMemorySettings(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand_Init(
+BVCE_S_SendCommand_Init(
          BVCE_Handle hVce
          )
 {
@@ -1855,7 +1889,7 @@ BVCE_P_SendCommand_Init(
       BVCE_P_FirmwareMemorySettings stFirmwareMemorySettings;
 
       BCHP_GetMemoryInfo( hVce->handles.hChp, &stMemoryInfo );
-      BVCE_P_PopulateFirmwareMemorySettings( &stMemoryInfo, &stFirmwareMemorySettings );
+      BVCE_S_PopulateFirmwareMemorySettings( &stMemoryInfo, &stFirmwareMemorySettings );
 
       hVce->fw.stCommand.type.stInit.StripeWidth = stFirmwareMemorySettings.StripeWidth;
       hVce->fw.stCommand.type.stInit.X = stFirmwareMemorySettings.X;
@@ -1880,7 +1914,7 @@ BVCE_P_SendCommand_Init(
    hVce->fw.stCommand.type.stInit.VerificationModeFlags |= hVce->stOpenSettings.bVerificationMode ? INIT_CMD_VERIFICATION_MODE_MASK : 0;
    hVce->fw.stCommand.type.stInit.VerificationModeFlags |= hVce->stOpenSettings.bA2NPictureDrop  ? INIT_CMD_A2N_MASK : 0;
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -1897,7 +1931,6 @@ BVCE_P_SendCommand_Init(
    hVce->fw.dccm.uiWatchdogErrorCodeBaseAddress[0] = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stInit.pPicArcWdogErrCodeBase;
    hVce->fw.dccm.uiWatchdogErrorCodeBaseAddress[1] = hVce->fw.dccm.uiRegisterBaseAddress[1] + (uint32_t) hVce->fw.stResponse.type.stInit.pMbArcWdogErrCodeBase;
 
-   hVce->fw.stResponse.type.stInit.Version &= ~0x80000000;
    hVce->stVersionInfo.uiFirmwareVersion = hVce->fw.stResponse.type.stInit.Version;
    hVce->stVersionInfo.uiFirmwareApiVersion = hVce->fw.stResponse.type.stInit.FwApiVersion;
    hVce->stVersionInfo.uiBvn2ViceApiVersion = hVce->fw.stResponse.type.stInit.BvnApiVersion;
@@ -1974,8 +2007,9 @@ BVCE_P_SendCommand_Init(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand_OpenChannel(
+BVCE_S_SendCommand_OpenChannel(
          BVCE_Handle hVce,
          BVCE_Channel_Handle hVceCh
          )
@@ -1998,7 +2032,7 @@ BVCE_P_SendCommand_OpenChannel(
    hVce->fw.stCommand.type.stOpenChannel.uiChannel_id = hVceCh->stOpenSettings.uiInstance;
    BVCE_P_SET_32BIT_HI_LO_FROM_64( hVce->fw.stCommand.type.stOpenChannel.pNonSecureBufferBase, BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_ePicture].hBuffer) );
    hVce->fw.stCommand.type.stOpenChannel.uiNonSecureBufferSize = BVCE_P_Buffer_GetSize(hVceCh->memory[BVCE_P_HeapId_ePicture].hBuffer);
-   hVce->fw.stCommand.type.stOpenChannel.pSecureBufferBase = (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer); /* Only used on 32-bit VICEv2, so safe to cast to 32-bit */
+   BVCE_P_SET_32BIT_HI_LO_FROM_64_OLD( hVce->fw.stCommand.type.stOpenChannel.pSecureBufferBase, BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer) );
    hVce->fw.stCommand.type.stOpenChannel.uiSecureBufferSize = BVCE_P_Buffer_GetSize(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer);
    if (  BVCE_MultiChannelMode_eCustom == hVceCh->stOpenSettings.eMultiChannelMode )
    {
@@ -2030,7 +2064,7 @@ BVCE_P_SendCommand_OpenChannel(
       }
    }
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -2364,8 +2398,9 @@ static const uint32_t BVCE_P_ErrorMaskReverseLUT[32] =
  0, /* RESERVED */
 };
 
+static
 BERR_Code
-BVCE_P_GOPStructureLUT(
+BVCE_S_GOPStructureLUT(
    const BVCE_GOPStructure *pstGOPStructure,
    unsigned *puiGOPStructure,
    unsigned *puiGOPLength
@@ -2495,8 +2530,9 @@ BVCE_P_GOPStructureLUT(
 }
 
 /* ensure that the GOP structure selected by encoder settings is supported by the encoder ... */
+static
 BERR_Code
-BVCE_P_VerifyGopStructure(
+BVCE_S_VerifyGopStructure(
          BVCE_Handle hVce
          )
 {
@@ -2574,8 +2610,9 @@ BVCE_P_VerifyGopStructure(
    return BERR_SUCCESS;
 }
 
+static
 unsigned
-BVCE_P_EncodeModeLUT(
+BVCE_S_EncodeModeLUT(
    const BVCE_Channel_StartEncodeSettings *pstStartEncodeSettings
    )
 {
@@ -2595,8 +2632,9 @@ BVCE_P_EncodeModeLUT(
 
 #define BVCE_P_DIMENSION_ALIGNMENT 16
 #define BVCE_P_ALIGN_DIMENSION(_x) ( ( ( ( _x ) + ( ( BVCE_P_DIMENSION_ALIGNMENT ) - 1 ) ) / ( BVCE_P_DIMENSION_ALIGNMENT ) ) * ( BVCE_P_DIMENSION_ALIGNMENT ) )
+static
 void
-BVCE_P_GetMaxDimension(
+BVCE_S_GetMaxDimension(
    const BVCE_Channel_StartEncodeSettings *pstStartEncodeSettings,
    unsigned *puiWidth,
    unsigned *puiHeight
@@ -2691,8 +2729,9 @@ static const uint32_t BVCE_P_PI2FW_FrameRateLUT[BAVC_FrameRateCode_eMax] =
 #endif
 };
 
+static
 BERR_Code
-BVCE_P_SendCommand_ConfigChannel(
+BVCE_S_SendCommand_ConfigChannel(
          BVCE_Handle hVce,
          BVCE_Channel_Handle hVceCh,
          BVCE_P_SendCommand_ConfigChannel_Settings *pstConfigChannelSettings
@@ -2942,7 +2981,7 @@ BVCE_P_SendCommand_ConfigChannel(
       unsigned uiGOPStructure = 0;
       unsigned uiGOPLength = 0;
 
-      rc = BVCE_P_GOPStructureLUT(
+      rc = BVCE_S_GOPStructureLUT(
          &pstEncodeSettings->stGOPStructure,
          &uiGOPStructure,
          &uiGOPLength
@@ -2973,7 +3012,7 @@ BVCE_P_SendCommand_ConfigChannel(
       }
 
       /* ensure the selected GOP structure is supported by the encoder ... */
-      rc = BVCE_P_VerifyGopStructure(hVce);
+      rc = BVCE_S_VerifyGopStructure(hVce);
       if (BERR_SUCCESS != rc)
          return rc;
    }
@@ -2984,7 +3023,7 @@ BVCE_P_SendCommand_ConfigChannel(
       unsigned uiGOPStructure = 0;
       unsigned uiGOPLength = 0;
 
-      rc = BVCE_P_GOPStructureLUT(
+      rc = BVCE_S_GOPStructureLUT(
          &hVceCh->stStartEncodeSettings.stBounds.stGOPStructure,
          &uiGOPStructure,
          &uiGOPLength
@@ -3032,7 +3071,7 @@ BVCE_P_SendCommand_ConfigChannel(
          break;
    };
 
-   hVce->fw.stCommand.type.stConfigChannel.Mode = BVCE_P_EncodeModeLUT( &hVceCh->stStartEncodeSettings );
+   hVce->fw.stCommand.type.stConfigChannel.Mode = BVCE_S_EncodeModeLUT( &hVceCh->stStartEncodeSettings );
 
    /* SW7445-2252: Prevent interlaced encoding if AVC baseline profile or level less than 2.1 */
    if ( ( BAVC_VideoCompressionStd_eH264 == hVceCh->stStartEncodeSettings.stProtocolInfo.eProtocol )
@@ -3141,6 +3180,21 @@ BVCE_P_SendCommand_ConfigChannel(
       hVce->fw.stCommand.type.stConfigChannel.Flags |= (1 << CONFIG_FLAG_ITFP_DISABLED_POS);
    }
 
+   /* SWSTB-4896: Disable ITFP for Core v2 when running on DDR4 boards to workaround FWVICE2-921 */
+#if ( BVCE_P_CORE_MAJOR == 2 )
+   {
+      BCHP_MemoryInfo stMemoryInfo;
+
+      BCHP_GetMemoryInfo( hVce->handles.hChp, &stMemoryInfo );
+
+      if ( BCHP_DramType_eDDR4 == stMemoryInfo.memc[0].type )
+      {
+         BDBG_WRN(("Disabling ITFP on DDR4 board"));
+         hVce->fw.stCommand.type.stConfigChannel.Flags |= (1 << CONFIG_FLAG_ITFP_DISABLED_POS);
+      }
+   }
+#endif
+
    /* Set STC Select */
    hVce->fw.stCommand.type.stConfigChannel.StcID = hVceCh->stStartEncodeSettings.uiStcIndex;
 
@@ -3174,7 +3228,7 @@ BVCE_P_SendCommand_ConfigChannel(
    {
       unsigned uiWidth = 0, uiHeight = 0;
 
-      BVCE_P_GetMaxDimension( &hVceCh->stStartEncodeSettings, &uiWidth, &uiHeight );
+      BVCE_S_GetMaxDimension( &hVceCh->stStartEncodeSettings, &uiWidth, &uiHeight );
 
       hVce->fw.stCommand.type.stConfigChannel.MaxPictureSizeInPels = ( ( (uint32_t)uiWidth) << CONFIG_MAX_PICTURE_SIZE_IN_PELS_WIDTH_SHIFT ) & CONFIG_MAX_PICTURE_SIZE_IN_PELS_WIDTH_MASK;
       hVce->fw.stCommand.type.stConfigChannel.MaxPictureSizeInPels |= ( ( (uint32_t)uiHeight) << CONFIG_MAX_PICTURE_SIZE_IN_PELS_HEIGHT_SHIFT ) & CONFIG_MAX_PICTURE_SIZE_IN_PELS_HEIGHT_MASK;;
@@ -3294,7 +3348,7 @@ BVCE_P_SendCommand_ConfigChannel(
       hVce->fw.stCommand.type.stConfigChannel.Flags |= (1 << CONFIG_FLAG_DISABLE_HRD_DROP_PICTURE);
    }
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -3308,8 +3362,9 @@ BVCE_P_SendCommand_ConfigChannel(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand_StartChannel(
+BVCE_S_SendCommand_StartChannel(
          BVCE_Handle hVce,
          BVCE_Channel_Handle hVceCh
          )
@@ -3331,7 +3386,7 @@ BVCE_P_SendCommand_StartChannel(
    hVce->fw.stCommand.type.stStartChannel.Command = VICE_CMD_START_CHANNEL;
    hVce->fw.stCommand.type.stStartChannel.uiChannel_id = hVceCh->stOpenSettings.uiInstance;
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -3345,8 +3400,9 @@ BVCE_P_SendCommand_StartChannel(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand_StopChannel(
+BVCE_S_SendCommand_StopChannel(
          BVCE_Handle hVce,
          BVCE_Channel_Handle hVceCh
          )
@@ -3381,7 +3437,7 @@ BVCE_P_SendCommand_StopChannel(
          break;
    }
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -3395,8 +3451,9 @@ BVCE_P_SendCommand_StopChannel(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand_GetChannelStatus(
+BVCE_S_SendCommand_GetChannelStatus(
          BVCE_Handle hVce,
          BVCE_Channel_Handle hVceCh
          )
@@ -3418,7 +3475,7 @@ BVCE_P_SendCommand_GetChannelStatus(
    hVce->fw.stCommand.type.stGetChannelStatus.Command = VICE_CMD_GET_CHANNEL_STATUS;
    hVce->fw.stCommand.type.stGetChannelStatus.uiChannel_id = hVceCh->stOpenSettings.uiInstance;
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -3432,8 +3489,9 @@ BVCE_P_SendCommand_GetChannelStatus(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_P_SendCommand_CloseChannel(
+BVCE_S_SendCommand_CloseChannel(
          BVCE_Handle hVce,
          BVCE_Channel_Handle hVceCh
          )
@@ -3455,7 +3513,7 @@ BVCE_P_SendCommand_CloseChannel(
    hVce->fw.stCommand.type.stCloseChannel.Command = VICE_CMD_CLOSE_CHANNEL;
    hVce->fw.stCommand.type.stCloseChannel.uiChannel_id = hVceCh->stOpenSettings.uiInstance;
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -3475,8 +3533,9 @@ static const uint32_t BVCE_P_ArcInstanceLUT[BVCE_ArcInstance_eMax] =
    PROC_ID_MBARC,  /* BVCE_ArcInstance_eMBArc */
 };
 
+static
 BERR_Code
-BVCE_P_SendCommand_DebugCommand(
+BVCE_S_SendCommand_DebugCommand(
          BVCE_Handle hVce,
          BVCE_ArcInstance eARCInstance,
          char *szCommand,
@@ -3505,7 +3564,7 @@ BVCE_P_SendCommand_DebugCommand(
    BDBG_ASSERT( uiLength <= ( COMMAND_BUFFER_SIZE_BYTES - 1 ) );
    BKNI_Memcpy( hVce->fw.stCommand.type.stDebugChannel.aCommands, szCommand, uiLength );
 
-   rc = BVCE_P_SendCommand(
+   rc = BVCE_S_SendCommand(
             hVce,
             &hVce->fw.stCommand,
             &hVce->fw.stResponse
@@ -3525,8 +3584,9 @@ static const uint32_t BVCE_P_DebugBufferModeLUT[BVCE_Debug_BufferingMode_eMax] =
  VICE_DEBUG_BUFFER_MODE_STANDARD,   /* BVCE_Debug_BufferingMode_eDiscardNewData */
 };
 
+static
 void
-BVCE_P_FreeDebugLog(
+BVCE_S_FreeDebugLog(
          BVCE_Handle hVce
          )
 {
@@ -3562,8 +3622,9 @@ BVCE_P_FreeDebugLog(
    }
 }
 
+static
 BERR_Code
-BVCE_P_AllocateDebugLog(
+BVCE_S_AllocateDebugLog(
    BVCE_Handle hVce
    )
 {
@@ -3590,7 +3651,7 @@ BVCE_P_AllocateDebugLog(
           if ( BERR_SUCCESS != rc )
           {
              BDBG_ERR(("Error allocating debug buffer[%d]",i));
-             BVCE_P_FreeDebugLog( hVce );
+             BVCE_S_FreeDebugLog( hVce );
              return BERR_TRACE( rc );
           }
       }
@@ -3603,7 +3664,7 @@ BVCE_P_AllocateDebugLog(
          rc = BVCE_Telem_Create( &hVce->fw.debug[i].hVceTelem, &stTelemSettings );
          if ( BERR_SUCCESS != rc )
          {
-            BVCE_P_FreeDebugLog( hVce );
+            BVCE_S_FreeDebugLog( hVce );
             return BERR_TRACE( rc );
          }
       }
@@ -3648,8 +3709,9 @@ BVCE_P_AllocateDebugLog(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+static
 BERR_Code
-BVCE_P_SetupDebugLog(
+BVCE_S_SetupDebugLog(
          BVCE_Handle hVce
          )
 {
@@ -3782,7 +3844,7 @@ BVCE_Open(
    }
 
    /* Setup Allocators */
-   rc = BVCE_P_SetupAllocators( hVce );
+   rc = BVCE_S_SetupAllocators( hVce );
    if ( BERR_SUCCESS != rc )
    {
       BVCE_Close( hVce );
@@ -3790,7 +3852,7 @@ BVCE_Open(
    }
 
    /* Create timer */
-   rc = BVCE_P_CreateTimer(
+   rc = BVCE_S_CreateTimer(
             hVce
             );
    if (BERR_SUCCESS != rc)
@@ -3836,7 +3898,7 @@ BVCE_Open(
    }
 #endif
 
-   rc = BVCE_P_AllocateDeviceMemory(
+   rc = BVCE_S_AllocateDeviceMemory(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -3845,7 +3907,7 @@ BVCE_Open(
       return BERR_TRACE( rc );
    }
 
-   rc = BVCE_P_AllocateFirmwareMemory(
+   rc = BVCE_S_AllocateFirmwareMemory(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -3854,7 +3916,7 @@ BVCE_Open(
       return BERR_TRACE( rc );
    }
 
-   rc = BVCE_P_AllocateDebugLog(
+   rc = BVCE_S_AllocateDebugLog(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -3864,7 +3926,7 @@ BVCE_Open(
    }
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
-   rc = BVCE_P_CreateEvents(
+   rc = BVCE_S_CreateEvents(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -3914,18 +3976,18 @@ BVCE_Close(
       );
    BERR_TRACE( rc );
 
-   BVCE_P_DestroyEvents( hVce );
+   BVCE_S_DestroyEvents( hVce );
 
    BVCE_P_FUNCTION_TRACE_LEAVE(0, hVce, 0);
-   BVCE_P_FreeDebugLog( hVce );
+   BVCE_S_FreeDebugLog( hVce );
 
-   BVCE_P_FreeFirmwareMemory( hVce );
+   BVCE_S_FreeFirmwareMemory( hVce );
 
-   BVCE_P_FreeDeviceMemory( hVce );
+   BVCE_S_FreeDeviceMemory( hVce );
 
-   BVCE_P_DestroyTimer( hVce );
+   BVCE_S_DestroyTimer( hVce );
 
-   BVCE_P_DestroyAllocators( hVce );
+   BVCE_S_DestroyAllocators( hVce );
 
 #if BVCE_P_DUMP_ARC_DEBUG_LOG
    {
@@ -4002,8 +4064,9 @@ BVCE_GetVersionInfo(
 /*********/
 /* Debug */
 /*********/
+static
 BERR_Code
-BVCE_Debug_P_ReadBuffer_impl(
+BVCE_Debug_S_ReadBuffer_impl(
          BVCE_Handle hVce,
          BVCE_ArcInstance eARCInstance,
          char *szBuffer,   /* [in] pointer to buffer where log is copied to */
@@ -4178,7 +4241,7 @@ BVCE_Debug_ReadBuffer(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Debug_P_ReadBuffer_impl(
+   rc = BVCE_Debug_S_ReadBuffer_impl(
       hVce,
       eARCInstance,
       szBuffer,
@@ -4196,8 +4259,9 @@ BVCE_Debug_ReadBuffer(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_Debug_P_SendCommand_impl(
+BVCE_Debug_S_SendCommand_impl(
          BVCE_Handle hVce,
          BVCE_ArcInstance eARCInstance,
          char        *szCommand  /* [in] pointer to a double null terminated command string of debug uart commands */
@@ -4231,7 +4295,7 @@ BVCE_Debug_P_SendCommand_impl(
          if ( uiCommandLength < ( COMMAND_BUFFER_SIZE_BYTES - 1) )
          {
             BDBG_MSG(("Sending Debug Command: %s", &szCommand[uiCommandStartIndex] ));
-            rc = BVCE_P_SendCommand_DebugCommand(
+            rc = BVCE_S_SendCommand_DebugCommand(
                      hVce,
                      eARCInstance,
                      &szCommand[uiCommandStartIndex],
@@ -4271,7 +4335,7 @@ BVCE_Debug_SendCommand(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Debug_P_SendCommand_impl(
+   rc = BVCE_Debug_S_SendCommand_impl(
       hVce,
       eARCInstance,
       szCommand
@@ -4287,8 +4351,9 @@ BVCE_Debug_SendCommand(
    return BERR_TRACE( rc );
 }
 
+static
 void
-BVCE_Debug_P_DumpRegisters_impl(
+BVCE_Debug_S_DumpRegisters_impl(
         BVCE_Handle hVce
         )
 {
@@ -4315,7 +4380,7 @@ BVCE_Debug_DumpRegisters(
          BVCE_Power_Type_eClock
          );
 
-   BVCE_Debug_P_DumpRegisters_impl( hVce );
+   BVCE_Debug_S_DumpRegisters_impl( hVce );
 
    BVCE_Power_P_ReleaseResource(
          hVce,
@@ -4363,8 +4428,9 @@ typedef enum BVCE_P_BufferType
    BVCE_P_BufferType_eMax
 } BVCE_P_BufferType;
 
+static
 void
-BVCE_Channel_Debug_P_DumpState_impl(
+BVCE_Channel_Debug_S_DumpState_impl(
    BVCE_Channel_Handle hVceCh,
    const BVCE_Channel_Debug_DumpStateSettings *pstDumpStateSettings
    )
@@ -4523,7 +4589,7 @@ BVCE_Channel_Debug_DumpState(
           BVCE_Power_Type_eClock
           );
 
-   BVCE_Channel_Debug_P_DumpState_impl(
+   BVCE_Channel_Debug_S_DumpState_impl(
       hVceCh,
       pstDumpStateSettings
       );
@@ -4810,8 +4876,9 @@ BVCE_Channel_GetDefaultOpenSettings(
    return;
 }
 
+static
 void
-BVCE_Channel_Output_P_Free(
+BVCE_Channel_Output_S_Free(
    BVCE_Channel_Handle hVceCh
    )
 {
@@ -4821,8 +4888,9 @@ BVCE_Channel_Output_P_Free(
    BVCE_Output_FreeBuffers( hVceCh->stOutput.hVceOutputBuffers );
 }
 
+static
 BERR_Code
-BVCE_Channel_Output_P_Allocate(
+BVCE_Channel_Output_S_Allocate(
    BVCE_Channel_Handle hVceCh
    )
 {
@@ -4850,7 +4918,7 @@ BVCE_Channel_Output_P_Allocate(
 
       if ( BERR_SUCCESS != rc )
       {
-         BVCE_Channel_Output_P_Free( hVceCh );
+         BVCE_Channel_Output_S_Free( hVceCh );
          return BERR_TRACE( rc );
       }
    }
@@ -4873,7 +4941,7 @@ BVCE_Channel_Output_P_Allocate(
             );
       if ( BERR_SUCCESS != rc )
       {
-         BVCE_Channel_Output_P_Free( hVceCh );
+         BVCE_Channel_Output_S_Free( hVceCh );
          return BERR_TRACE( rc );
       }
    }
@@ -4885,7 +4953,7 @@ BVCE_Channel_Output_P_Allocate(
 
    if ( BERR_SUCCESS != rc )
    {
-      BVCE_Channel_Output_P_Free( hVceCh );
+      BVCE_Channel_Output_S_Free( hVceCh );
       return BERR_TRACE( rc );
    }
 
@@ -4895,8 +4963,9 @@ BVCE_Channel_Output_P_Allocate(
 #define BVCE_UserData_P_PacketDescriptor_MAX_PER_FIELD BVCE_FW_P_UserData_PacketType_eMax
 #define BVCE_USERDATA_P_QUEUE_SIZE (BVCE_FW_P_USERDATA_QUEUE_LENGTH * BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH * BVCE_UserData_P_PacketDescriptor_MAX_PER_FIELD);
 
+static
 BERR_Code
-BVCE_Channel_P_Open_impl(
+BVCE_Channel_S_Open_impl(
          BVCE_Handle hVce,
          BVCE_Channel_Handle *phVceCh,
          const BVCE_Channel_OpenSettings *pstChOpenSettings /* [in] VCE Channel settings */
@@ -5070,7 +5139,7 @@ BVCE_Channel_P_Open_impl(
    }
 
    /* Send Open Channel Command */
-   rc = BVCE_P_SendCommand_OpenChannel(
+   rc = BVCE_S_SendCommand_OpenChannel(
             hVce,
             hVceCh
             );
@@ -5110,7 +5179,7 @@ BVCE_Channel_P_Open_impl(
 
    if ( true == hVceCh->stOpenSettings.stOutput.bAllocateOutput )
    {
-      rc = BVCE_Channel_Output_P_Allocate( hVceCh );
+      rc = BVCE_Channel_Output_S_Allocate( hVceCh );
       if ( BERR_SUCCESS != rc )
       {
          BVCE_Channel_Close( hVceCh );
@@ -5140,7 +5209,7 @@ BVCE_Channel_Open(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_Open_impl(
+   rc = BVCE_Channel_S_Open_impl(
             hVce,
             phVceCh,
             pstChOpenSettings
@@ -5156,8 +5225,9 @@ BVCE_Channel_Open(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_Channel_P_Close_impl(
+BVCE_Channel_S_Close_impl(
          BVCE_Channel_Handle hVceCh
          )
 {
@@ -5209,15 +5279,21 @@ BVCE_Channel_P_Close_impl(
    hVceCh->hStatusLog = NULL;
 #endif
 
+   if ( NULL != hVceCh->stStartEncodeSettings.hOutputHandle )
+   {
+      hVceCh->stStartEncodeSettings.hOutputHandle->state.hVceCh = NULL;
+      hVceCh->stStartEncodeSettings.hOutputHandle = NULL;
+   }
+
    if ( true == hVceCh->stOpenSettings.stOutput.bAllocateOutput )
    {
-      BVCE_Channel_Output_P_Free( hVceCh );
+      BVCE_Channel_Output_S_Free( hVceCh );
    }
 
    if ( false == hVceCh->hVce->bWatchdogOccurred )
    {
       /* Send Close Channel Command */
-      rc = BVCE_P_SendCommand_CloseChannel(
+      rc = BVCE_S_SendCommand_CloseChannel(
                hVceCh->hVce,
                hVceCh
                );
@@ -5253,7 +5329,7 @@ BVCE_Channel_Close(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_Close_impl( hVceCh );
+   rc = BVCE_Channel_S_Close_impl( hVceCh );
 
    BVCE_Power_P_ReleaseResource(
          hVceCh->hVce,
@@ -5292,8 +5368,9 @@ BVCE_Channel_GetDefaultCallbackSettings(
    return;
 }
 
+static
 BERR_Code
-BVCE_Channel_P_SetCallbackSettings_impl(
+BVCE_Channel_S_SetCallbackSettings_impl(
          BVCE_Channel_Handle hVceCh,
          const BVCE_Channel_CallbackSettings* pstCallbackSettings
          )
@@ -5347,7 +5424,7 @@ BVCE_Channel_P_SetCallbackSettings_impl(
    if ( true == bConfigNow )
    {
       /* Send Config Channel Command */
-      rc = BVCE_P_SendCommand_ConfigChannel(
+      rc = BVCE_S_SendCommand_ConfigChannel(
                hVceCh->hVce,
                hVceCh,
                NULL
@@ -5378,7 +5455,7 @@ BVCE_Channel_SetCallbackSettings(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_SetCallbackSettings_impl(
+   rc = BVCE_Channel_S_SetCallbackSettings_impl(
             hVceCh,
             pstCallbackSettings
             );
@@ -5516,8 +5593,9 @@ BVCE_Channel_GetDefaultStartEncodeSettings(
    return;
 }
 
+static
 void
-BVCE_Channel_P_ValidateSettings(
+BVCE_Channel_S_ValidateSettings(
    BVCE_Channel_StartEncodeSettings *pstChStartEncodeSettings,
    BVCE_Channel_EncodeSettings *pstChEncodeSettings
    )
@@ -5538,8 +5616,9 @@ BVCE_Channel_P_ValidateSettings(
  *
  * Note: BVCE_Channel_SetEncodeSettings() should be called before this to set up the initial encode parameters
  */
+static
 BERR_Code
-BVCE_Channel_P_StartEncode_impl(
+BVCE_Channel_S_StartEncode_impl(
          BVCE_Channel_Handle hVceCh,
          const BVCE_Channel_StartEncodeSettings *pstChStartEncodeSettings
          )
@@ -5605,7 +5684,7 @@ BVCE_Channel_P_StartEncode_impl(
       BDBG_ASSERT( 0 );
    }
 
-   BVCE_Channel_P_ValidateSettings( &hVceCh->stStartEncodeSettings, &hVceCh->stEncodeSettings );
+   BVCE_Channel_S_ValidateSettings( &hVceCh->stStartEncodeSettings, &hVceCh->stEncodeSettings );
 
 #if BVCE_P_TEST_MODE
    BVCE_Debug_P_CloseLog( hVceCh->hStatusLog );
@@ -5617,7 +5696,7 @@ BVCE_Channel_P_StartEncode_impl(
    stConfigChannelSettings.bFastChannelChange = hVceCh->stStartEncodeSettings.bAdaptiveLowDelayMode;
 
    /* Send Config Channel Command */
-   rc = BVCE_P_SendCommand_ConfigChannel(
+   rc = BVCE_S_SendCommand_ConfigChannel(
             hVceCh->hVce,
             hVceCh,
             &stConfigChannelSettings
@@ -5640,7 +5719,7 @@ BVCE_Channel_P_StartEncode_impl(
    }
 
    /* Send Start Channel Command */
-   rc = BVCE_P_SendCommand_StartChannel(
+   rc = BVCE_S_SendCommand_StartChannel(
             hVceCh->hVce,
             hVceCh
             );
@@ -5676,7 +5755,7 @@ BVCE_Channel_StartEncode(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_StartEncode_impl(
+   rc = BVCE_Channel_S_StartEncode_impl(
          hVceCh,
          pstChStartEncodeSettings
          );
@@ -5717,8 +5796,9 @@ BVCE_Channel_GetDefaultStopEncodeSettings(
 
 /* BVCE_Channel_StopEncode - Stops the encode process.
  */
+static
 BERR_Code
-BVCE_Channel_P_StopEncode_impl(
+BVCE_Channel_S_StopEncode_impl(
          BVCE_Channel_Handle hVceCh,
          const BVCE_Channel_StopEncodeSettings *pstChStopEncodeSettings
          )
@@ -5783,7 +5863,7 @@ BVCE_Channel_P_StopEncode_impl(
 #endif
 
    /* Send Stop Channel Command */
-   rc = BVCE_P_SendCommand_StopChannel(
+   rc = BVCE_S_SendCommand_StopChannel(
             hVceCh->hVce,
             hVceCh
             );
@@ -5825,7 +5905,7 @@ BVCE_Channel_StopEncode(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_StopEncode_impl(
+   rc = BVCE_Channel_S_StopEncode_impl(
       hVceCh,
       pstChStopEncodeSettings
       );
@@ -5839,19 +5919,23 @@ BVCE_Channel_StopEncode(
    BDBG_LEAVE( BVCE_Channel_StopEncode );
    return BERR_TRACE( rc );
 }
+
+static
 void
-BVCE_Channel_P_FlushEncode(
+BVCE_Channel_S_FlushEncode(
          BVCE_Channel_Handle hVceCh
          )
 {
-   if ( NULL != hVceCh->stStartEncodeSettings.hOutputHandle )
+   if ( ( NULL != hVceCh->stStartEncodeSettings.hOutputHandle )
+        && ( BVCE_P_Status_eOpened != hVceCh->eStatus ) )
    {
       BVCE_Output_Flush( hVceCh->stStartEncodeSettings.hOutputHandle );
    }
 }
 
+static
 BERR_Code
-BVCE_Channel_P_FlushEncode_impl(
+BVCE_Channel_S_FlushEncode_impl(
    BVCE_Channel_Handle hVceCh
    )
 {
@@ -5869,7 +5953,7 @@ BVCE_Channel_P_FlushEncode_impl(
               && ( BERR_SUCCESS == rc )
             )
       {
-         BVCE_Channel_P_FlushEncode( hVceCh );
+         BVCE_Channel_S_FlushEncode( hVceCh );
          BKNI_Delay(BVCE_P_STOP_RECOVERY_DELAY);
          rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
          uiNumIterations--;
@@ -5896,7 +5980,7 @@ BVCE_Channel_P_FlushEncode_impl(
    }
    else
    {
-      BVCE_Channel_P_FlushEncode( hVceCh );
+      BVCE_Channel_S_FlushEncode( hVceCh );
    }
 
    return BERR_TRACE( rc );
@@ -5917,7 +6001,7 @@ BVCE_Channel_FlushEncode(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_FlushEncode_impl( hVceCh );
+   rc = BVCE_Channel_S_FlushEncode_impl( hVceCh );
 
    BVCE_Power_P_ReleaseResource(
          hVceCh->hVce,
@@ -5981,8 +6065,9 @@ BVCE_Channel_GetDefaultEncodeSettings(
    return;
 }
 
+static
 BERR_Code
-BVCE_Channel_P_SetEncodeSettings_impl(
+BVCE_Channel_S_SetEncodeSettings_impl(
          BVCE_Channel_Handle hVceCh,
          const BVCE_Channel_EncodeSettings *pstChEncodeSettings
          )
@@ -6065,7 +6150,7 @@ BVCE_Channel_P_SetEncodeSettings_impl(
       }
 
       /* Send Config Channel Command */
-      rc = BVCE_P_SendCommand_ConfigChannel(
+      rc = BVCE_S_SendCommand_ConfigChannel(
                hVceCh->hVce,
                hVceCh,
                &stConfigChannelSettings
@@ -6102,7 +6187,7 @@ BVCE_Channel_SetEncodeSettings(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_SetEncodeSettings_impl( hVceCh, pstChEncodeSettings );
+   rc = BVCE_Channel_S_SetEncodeSettings_impl( hVceCh, pstChEncodeSettings );
 
    BVCE_Power_P_ReleaseResource(
          hVceCh->hVce,
@@ -6114,8 +6199,9 @@ BVCE_Channel_SetEncodeSettings(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_Channel_P_GetEncodeSettings_impl(
+BVCE_Channel_S_GetEncodeSettings_impl(
          BVCE_Channel_Handle hVceCh,
          BVCE_Channel_EncodeSettings *pstChEncodeSettings
          )
@@ -6149,7 +6235,7 @@ BVCE_Channel_GetEncodeSettings(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_GetEncodeSettings_impl( hVceCh, pstChEncodeSettings );
+   rc = BVCE_Channel_S_GetEncodeSettings_impl( hVceCh, pstChEncodeSettings );
 
    BVCE_Power_P_ReleaseResource(
          hVceCh->hVce,
@@ -6161,8 +6247,9 @@ BVCE_Channel_GetEncodeSettings(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_Channel_P_GetDefaultEncodeSettings_OnInputChange(
+BVCE_Channel_S_GetDefaultEncodeSettings_OnInputChange(
          BVCE_Channel_Handle hVceCh,
          BVCE_Channel_EncodeSettings_OnInputChange *pstChEncodeSettings
          )
@@ -6186,8 +6273,9 @@ BVCE_Channel_P_GetDefaultEncodeSettings_OnInputChange(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_Channel_P_BeginNewRAP_impl(
+BVCE_Channel_S_BeginNewRAP_impl(
          BVCE_Channel_Handle hVceCh
          )
 {
@@ -6205,7 +6293,7 @@ BVCE_Channel_P_BeginNewRAP_impl(
    stConfigChannelSettings.bBeginNewRAP = true;
 
    /* Send Config Channel Command */
-   rc = BVCE_P_SendCommand_ConfigChannel(
+   rc = BVCE_S_SendCommand_ConfigChannel(
             hVceCh->hVce,
             hVceCh,
             &stConfigChannelSettings
@@ -6233,7 +6321,7 @@ BVCE_Channel_BeginNewRAP(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_BeginNewRAP_impl( hVceCh );
+   rc = BVCE_Channel_S_BeginNewRAP_impl( hVceCh );
 
    BVCE_Power_P_ReleaseResource(
          hVceCh->hVce,
@@ -6245,8 +6333,9 @@ BVCE_Channel_BeginNewRAP(
    return BERR_TRACE( rc );
 }
 
+static
 BERR_Code
-BVCE_Channel_P_SetEncodeSettings_OnInputChange_impl(
+BVCE_Channel_S_SetEncodeSettings_OnInputChange_impl(
          BVCE_Channel_Handle hVceCh,
          const BVCE_Channel_EncodeSettings_OnInputChange *pstChEncodeSettings
          )
@@ -6309,7 +6398,7 @@ BVCE_Channel_P_SetEncodeSettings_OnInputChange_impl(
       stConfigChannelSettings.bOnInputChange = true;
 
       /* Send Config Channel Command */
-      rc = BVCE_P_SendCommand_ConfigChannel(
+      rc = BVCE_S_SendCommand_ConfigChannel(
                hVceCh->hVce,
                hVceCh,
                &stConfigChannelSettings
@@ -6341,7 +6430,7 @@ BVCE_Channel_SetEncodeSettings_OnInputChange(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_SetEncodeSettings_OnInputChange_impl( hVceCh, pstChEncodeSettings );
+   rc = BVCE_Channel_S_SetEncodeSettings_OnInputChange_impl( hVceCh, pstChEncodeSettings );
 
    BVCE_Power_P_ReleaseResource(
          hVceCh->hVce,
@@ -6365,7 +6454,7 @@ BVCE_Channel_GetEncodeSettings_OnInputChange(
    BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstChEncodeSettings );
 
-   rc = BVCE_Channel_P_GetDefaultEncodeSettings_OnInputChange( hVceCh, pstChEncodeSettings );
+   rc = BVCE_Channel_S_GetDefaultEncodeSettings_OnInputChange( hVceCh, pstChEncodeSettings );
 
    if ( true == hVceCh->bPendingEncodeSettings )
    {
@@ -6381,9 +6470,9 @@ BVCE_Channel_GetEncodeSettings_OnInputChange(
 /******************/
 /* Channel Status */
 /******************/
-
+static
 BERR_Code
-BVCE_Channel_P_GetStatus_impl(
+BVCE_Channel_S_GetStatus_impl(
          BVCE_Channel_Handle hVceCh,
          BVCE_Channel_Status *pChannelStatus
          )
@@ -6393,7 +6482,7 @@ BVCE_Channel_P_GetStatus_impl(
    BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
 
    /* Get Updated Channel Status from FW */
-   rc = BVCE_P_SendCommand_GetChannelStatus(
+   rc = BVCE_S_SendCommand_GetChannelStatus(
             hVceCh->hVce,
             hVceCh
             );
@@ -6448,6 +6537,12 @@ BVCE_Channel_P_GetStatus_impl(
 
             uiFlags >>= 1;
             uiIndex++;
+         }
+
+         /* Mask CDB Full "error" when in NRT mode */
+         if ( true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+         {
+            hVceCh->stStatus.uiErrorFlags &= ~BVCE_CHANNEL_STATUS_FLAGS_ERROR_CDB_FULL;
          }
       }
 
@@ -6563,7 +6658,7 @@ BVCE_Channel_GetStatus(
          BVCE_Power_Type_eClock
          );
 
-   rc = BVCE_Channel_P_GetStatus_impl( hVceCh, pChannelStatus );
+   rc = BVCE_Channel_S_GetStatus_impl( hVceCh, pChannelStatus );
 
    BVCE_Power_P_ReleaseResource(
          hVceCh->hVce,
@@ -7176,7 +7271,7 @@ BVCE_GetA2PDelayInfo(
          {
             unsigned uiGOPLength = 0;
 
-            BVCE_P_GOPStructureLUT(
+            BVCE_S_GOPStructureLUT(
                &pstChStartEncodeSettings->stBounds.stGOPStructure,
                &uiGOPStructure,
                &uiGOPLength
@@ -7193,7 +7288,7 @@ BVCE_GetA2PDelayInfo(
          {
             unsigned uiWidth = 0, uiHeight = 0;
 
-            BVCE_P_GetMaxDimension( pstChStartEncodeSettings, &uiWidth, &uiHeight );
+            BVCE_S_GetMaxDimension( pstChStartEncodeSettings, &uiWidth, &uiHeight );
 
             uiA2PDelayMin = BVCE_FW_P_CalcVideoA2Pdelay(
                &uiA2PDelayMax,
@@ -7202,7 +7297,7 @@ BVCE_GetA2PDelayInfo(
                      uiLevel,
                      BVCE_P_PI2FW_FrameRateLUT[pstChEncodeSettings->stFrameRate.eFrameRate],
                      (0 != pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax) ? pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax : pstChEncodeSettings->stBitRate.uiMax,
-               BVCE_P_EncodeModeLUT( pstChStartEncodeSettings ),
+               BVCE_S_EncodeModeLUT( pstChStartEncodeSettings ),
                pstChStartEncodeSettings->uiRateBufferDelay,
                BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stFrameRate.eMin],
                BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stInputFrameRate.eMin],
@@ -7405,7 +7500,7 @@ BVCE_Channel_GetMemoryConfig(
             BERR_Code rc;
             BVCE_P_FirmwareMemorySettings stFirmwareMemorySettings;
 
-            rc = BVCE_P_PopulateFirmwareMemorySettings( pstChMemorySettings->pstMemoryInfo, &stFirmwareMemorySettings );
+            rc = BVCE_S_PopulateFirmwareMemorySettings( pstChMemorySettings->pstMemoryInfo, &stFirmwareMemorySettings );
 
             if ( BERR_SUCCESS == rc )
             {
@@ -7531,17 +7626,17 @@ BVCE_Power_Standby(
    }
 
    /* Shutdown the encoder gracefully */
-   rc = BVCE_P_DisableWatchdog(
+   rc = BVCE_S_DisableWatchdog(
             hVce
             );
    BERR_TRACE( rc );
 
-   rc = BVCE_P_Reset(
+   rc = BVCE_S_Reset(
             hVce
             );
    BERR_TRACE( rc );
 
-   rc = BVCE_P_TeardownInterrupts(
+   rc = BVCE_S_TeardownInterrupts(
                hVce
                );
    BERR_TRACE( rc );
@@ -7588,7 +7683,7 @@ BVCE_Power_Resume(
          );
 
    /* Startup the encoder */
-   rc = BVCE_P_Reset(
+   rc = BVCE_S_Reset(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -7596,7 +7691,7 @@ BVCE_Power_Resume(
       return BERR_TRACE( rc );
    }
 
-   rc = BVCE_P_LoadFirmware(
+   rc = BVCE_S_LoadFirmware(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -7604,7 +7699,7 @@ BVCE_Power_Resume(
       return BERR_TRACE( rc );
    }
 
-   rc = BVCE_P_SetupInterrupts(
+   rc = BVCE_S_SetupInterrupts(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -7612,7 +7707,7 @@ BVCE_Power_Resume(
       return BERR_TRACE( rc );
    }
 
-   rc = BVCE_P_Boot(
+   rc = BVCE_S_Boot(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -7621,7 +7716,7 @@ BVCE_Power_Resume(
    }
 
    /* Send Init Command */
-   rc = BVCE_P_SendCommand_Init(
+   rc = BVCE_S_SendCommand_Init(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -7629,7 +7724,7 @@ BVCE_Power_Resume(
       return BERR_TRACE( rc );
    }
 
-   rc = BVCE_P_SetupDebugLog(
+   rc = BVCE_S_SetupDebugLog(
             hVce
             );
    if ( BERR_SUCCESS != rc )
@@ -7738,7 +7833,4 @@ BVCE_Channel_P_HandleEOSEvent(
 
       hVceCh->eStatus = BVCE_P_Status_eOpened;
    }
-
-   /* Detach from output */
-   hVceCh->stStartEncodeSettings.hOutputHandle = NULL;
 }

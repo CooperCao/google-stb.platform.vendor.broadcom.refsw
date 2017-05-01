@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -89,6 +89,7 @@ typedef enum BXPT_RemuxClock
     BXPT_RemuxClock_e40_5Mhz        = 2,    /* 40.5 MHz */
     BXPT_RemuxClock_e20_25Mhz       = 3,    /* 20.25 MHz */
     BXPT_RemuxClock_e27Mhz_VCXO_A   = 4,    /* 27 MHz, from VCXO A */
+    BXPT_RemuxClock_e108Mhz         = 6,
     BXPT_RemuxClock_eIb0            = 8,    /* Input band 0 clock. */
     BXPT_RemuxClock_eIb1            = 9,    /* Input band 1 clock. */
     BXPT_RemuxClock_eIb2            = 10,   /* Input band 2 clock. */

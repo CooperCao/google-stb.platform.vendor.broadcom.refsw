@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_exception.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_registers.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow.h"
@@ -358,8 +350,6 @@ void QPUResource_Unreference(QPUResource *self)
 
 void QPUResource_FullyUnreference(QPUResource *self)
 {
-   int32_t cnt = self->m_refCount;
-
    if (Register_IsRefCounted(self->m_name))
    {
       self->m_refCount = 0;

@@ -74,8 +74,7 @@ ${BINDIR}/exists:
 
 else # B_REFSW_REAL_MAKE
 NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
-
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 APPS = $(THEAPPS)
 APPS ?= $(APP)
@@ -95,9 +94,9 @@ CLKGEN_PATH = ${NEXUS_TOP}/../magnum/basemodules/chp/src/common
 clean: clean_apps clean_boa clean_bpower_regs
 
 boa:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa
 clean_boa:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa clean
 
 #
 bpower_regs.h:
@@ -138,6 +137,7 @@ endif
 CFLAGS += -g
 CFLAGS += -D_LINUX_TYPES_H
 CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
+CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 
 # Implicit rule for building local apps
 bpower.cgi: boa bpower_regs.h $(MAIN_OBJS) $(EXTRA_OBJS)

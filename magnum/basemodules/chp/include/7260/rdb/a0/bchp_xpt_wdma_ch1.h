@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,46 +70,46 @@
 /***************************************************************************
  *XPT_WDMA_CH1 - WDMA Channel 1 Configuration
  ***************************************************************************/
-#define BCHP_XPT_WDMA_CH1_FIRST_DESC_ADDR        0x20a6a100 /* [RW] First Descriptor Address */
-#define BCHP_XPT_WDMA_CH1_NEXT_DESC_ADDR         0x20a6a104 /* [RW] Next Descriptor Address */
-#define BCHP_XPT_WDMA_CH1_COMPLETED_DESC_ADDRESS 0x20a6a108 /* [RW] Completed Descriptor Address */
-#define BCHP_XPT_WDMA_CH1_BTP_PACKET_GROUP_ID    0x20a6a10c /* [RW] Packet Group ID reported per BTP command */
-#define BCHP_XPT_WDMA_CH1_RUN_VERSION_CONFIG     0x20a6a110 /* [RW] RUN_VERSION configuration */
-#define BCHP_XPT_WDMA_CH1_OVERFLOW_REASONS       0x20a6a114 /* [RW] Overflow Reason */
-#define BCHP_XPT_WDMA_CH1_DMQ_CONTROL_STRUCT     0x20a6a118 /* [RO] Descriptor Memory Queue Control Structure */
-#define BCHP_XPT_WDMA_CH1_DATA_CONTROL           0x20a6a11c /* [RW] Data Control */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_BASE_PTR_HI  0x20a6a180 /* [RW] DRAM Buffer Base Pointer - Upper bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_BASE_PTR     0x20a6a184 /* [RW] DRAM Buffer Base Pointer - Lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_END_PTR_HI   0x20a6a188 /* [RW] DRAM Buffer End Pointer - Upper bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_END_PTR      0x20a6a18c /* [RW] DRAM Buffer End Pointer - Lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_RD_PTR_HI    0x20a6a190 /* [RW] DRAM Buffer Read Pointer - Upper bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_RD_PTR       0x20a6a194 /* [RW] DRAM Buffer Read Pointer - Lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_WR_PTR_HI    0x20a6a198 /* [RW] DRAM Buffer Write Pointer - Upper bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_WR_PTR       0x20a6a19c /* [RW] DRAM Buffer Write Pointer - Lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_VALID_PTR_HI 0x20a6a1a0 /* [RW] DRAM Buffer Valid Pointer - Upper bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_VALID_PTR    0x20a6a1a4 /* [RW] DRAM Buffer Valid Pointer - Lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_LOWER_THRESHOLD_HI 0x20a6a1a8 /* [RW] DRAM Buffer Lower Threshold - Upper bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_LOWER_THRESHOLD 0x20a6a1ac /* [RW] DRAM Buffer Lower Threshold - Lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_UPPER_THRESHOLD_HI 0x20a6a1b0 /* [RW] DRAM Buffer Upper Threshold - Upper bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_UPPER_THRESHOLD 0x20a6a1b4 /* [RW] DRAM Buffer Upper Threshold - Lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_STATUS       0x20a6a1b8 /* [RW] DRAM Buffer Status */
-#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_CONTROL      0x20a6a1bc /* [RW] DRAM Buffer Control */
-#define BCHP_XPT_WDMA_CH1_DMQ_0_0                0x20a6a1c0 /* [RW] DMQ descriptor 0 - Write Address, Upper bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_0_1                0x20a6a1c4 /* [RW] DMQ descriptor 0 - Write Address, lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_0_2                0x20a6a1c8 /* [RW] DMQ descriptor 0 - Transfer Size */
-#define BCHP_XPT_WDMA_CH1_DMQ_0_3                0x20a6a1cc /* [RW] DMQ descriptor 0 - Current Descriptor Address and Control */
-#define BCHP_XPT_WDMA_CH1_DMQ_1_0                0x20a6a1d0 /* [RW] DMQ descriptor 1 - Write Address, Upper bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_1_1                0x20a6a1d4 /* [RW] DMQ descriptor 1 - Write Address, lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_1_2                0x20a6a1d8 /* [RW] DMQ descriptor 1 - Transfer Size */
-#define BCHP_XPT_WDMA_CH1_DMQ_1_3                0x20a6a1dc /* [RW] DMQ descriptor 1 - Current Descriptor Address and Control */
-#define BCHP_XPT_WDMA_CH1_DMQ_2_0                0x20a6a1e0 /* [RW] DMQ descriptor 2 - Write Address, Upper bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_2_1                0x20a6a1e4 /* [RW] DMQ descriptor 2 - Write Address, lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_2_2                0x20a6a1e8 /* [RW] DMQ descriptor 2 - Transfer Size */
-#define BCHP_XPT_WDMA_CH1_DMQ_2_3                0x20a6a1ec /* [RW] DMQ descriptor 2 - Current Descriptor Address and Control */
-#define BCHP_XPT_WDMA_CH1_DMQ_3_0                0x20a6a1f0 /* [RW] DMQ descriptor 3 - Write Address, Upper bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_3_1                0x20a6a1f4 /* [RW] DMQ descriptor 3 - Write Address, lower 32 bits */
-#define BCHP_XPT_WDMA_CH1_DMQ_3_2                0x20a6a1f8 /* [RW] DMQ descriptor 3 - Transfer Size */
-#define BCHP_XPT_WDMA_CH1_DMQ_3_3                0x20a6a1fc /* [RW] DMQ descriptor 3 - Current Descriptor Address and Control */
+#define BCHP_XPT_WDMA_CH1_FIRST_DESC_ADDR        0x20a6a100 /* [RW][32] First Descriptor Address */
+#define BCHP_XPT_WDMA_CH1_NEXT_DESC_ADDR         0x20a6a104 /* [RW][32] Next Descriptor Address */
+#define BCHP_XPT_WDMA_CH1_COMPLETED_DESC_ADDRESS 0x20a6a108 /* [RW][32] Completed Descriptor Address */
+#define BCHP_XPT_WDMA_CH1_BTP_PACKET_GROUP_ID    0x20a6a10c /* [RW][32] Packet Group ID reported per BTP command */
+#define BCHP_XPT_WDMA_CH1_RUN_VERSION_CONFIG     0x20a6a110 /* [RW][32] RUN_VERSION configuration */
+#define BCHP_XPT_WDMA_CH1_OVERFLOW_REASONS       0x20a6a114 /* [RW][32] Overflow Reason */
+#define BCHP_XPT_WDMA_CH1_DMQ_CONTROL_STRUCT     0x20a6a118 /* [RO][32] Descriptor Memory Queue Control Structure */
+#define BCHP_XPT_WDMA_CH1_DATA_CONTROL           0x20a6a11c /* [RW][32] Data Control */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_BASE_PTR_HI  0x20a6a180 /* [RW][32] DRAM Buffer Base Pointer - Upper bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_BASE_PTR     0x20a6a184 /* [RW][32] DRAM Buffer Base Pointer - Lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_END_PTR_HI   0x20a6a188 /* [RW][32] DRAM Buffer End Pointer - Upper bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_END_PTR      0x20a6a18c /* [RW][32] DRAM Buffer End Pointer - Lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_RD_PTR_HI    0x20a6a190 /* [RW][32] DRAM Buffer Read Pointer - Upper bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_RD_PTR       0x20a6a194 /* [RW][32] DRAM Buffer Read Pointer - Lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_WR_PTR_HI    0x20a6a198 /* [RW][32] DRAM Buffer Write Pointer - Upper bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_WR_PTR       0x20a6a19c /* [RW][32] DRAM Buffer Write Pointer - Lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_VALID_PTR_HI 0x20a6a1a0 /* [RW][32] DRAM Buffer Valid Pointer - Upper bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_VALID_PTR    0x20a6a1a4 /* [RW][32] DRAM Buffer Valid Pointer - Lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_LOWER_THRESHOLD_HI 0x20a6a1a8 /* [RW][32] DRAM Buffer Lower Threshold - Upper bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_LOWER_THRESHOLD 0x20a6a1ac /* [RW][32] DRAM Buffer Lower Threshold - Lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_UPPER_THRESHOLD_HI 0x20a6a1b0 /* [RW][32] DRAM Buffer Upper Threshold - Upper bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_UPPER_THRESHOLD 0x20a6a1b4 /* [RW][32] DRAM Buffer Upper Threshold - Lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_STATUS       0x20a6a1b8 /* [RW][32] DRAM Buffer Status */
+#define BCHP_XPT_WDMA_CH1_DRAM_BUFF_CONTROL      0x20a6a1bc /* [RW][32] DRAM Buffer Control */
+#define BCHP_XPT_WDMA_CH1_DMQ_0_0                0x20a6a1c0 /* [RW][32] DMQ descriptor 0 - Write Address, Upper bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_0_1                0x20a6a1c4 /* [RW][32] DMQ descriptor 0 - Write Address, lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_0_2                0x20a6a1c8 /* [RW][32] DMQ descriptor 0 - Transfer Size */
+#define BCHP_XPT_WDMA_CH1_DMQ_0_3                0x20a6a1cc /* [RW][32] DMQ descriptor 0 - Current Descriptor Address and Control */
+#define BCHP_XPT_WDMA_CH1_DMQ_1_0                0x20a6a1d0 /* [RW][32] DMQ descriptor 1 - Write Address, Upper bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_1_1                0x20a6a1d4 /* [RW][32] DMQ descriptor 1 - Write Address, lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_1_2                0x20a6a1d8 /* [RW][32] DMQ descriptor 1 - Transfer Size */
+#define BCHP_XPT_WDMA_CH1_DMQ_1_3                0x20a6a1dc /* [RW][32] DMQ descriptor 1 - Current Descriptor Address and Control */
+#define BCHP_XPT_WDMA_CH1_DMQ_2_0                0x20a6a1e0 /* [RW][32] DMQ descriptor 2 - Write Address, Upper bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_2_1                0x20a6a1e4 /* [RW][32] DMQ descriptor 2 - Write Address, lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_2_2                0x20a6a1e8 /* [RW][32] DMQ descriptor 2 - Transfer Size */
+#define BCHP_XPT_WDMA_CH1_DMQ_2_3                0x20a6a1ec /* [RW][32] DMQ descriptor 2 - Current Descriptor Address and Control */
+#define BCHP_XPT_WDMA_CH1_DMQ_3_0                0x20a6a1f0 /* [RW][32] DMQ descriptor 3 - Write Address, Upper bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_3_1                0x20a6a1f4 /* [RW][32] DMQ descriptor 3 - Write Address, lower 32 bits */
+#define BCHP_XPT_WDMA_CH1_DMQ_3_2                0x20a6a1f8 /* [RW][32] DMQ descriptor 3 - Transfer Size */
+#define BCHP_XPT_WDMA_CH1_DMQ_3_3                0x20a6a1fc /* [RW][32] DMQ descriptor 3 - Current Descriptor Address and Control */
 
 #endif /* #ifndef BCHP_XPT_WDMA_CH1_H__ */
 

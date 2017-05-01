@@ -315,14 +315,6 @@ BERR_Code BAPE_SetInterruptHandlers(
 Summary:
 Process a watchdog interrupt stop
 ***************************************************************************/
-BERR_Code BAPE_ProcessWatchdogInterrupt(
-    BAPE_Handle handle
-    );
-
-/***************************************************************************
-Summary:
-Process a watchdog interrupt stop
-***************************************************************************/
 BERR_Code BAPE_ProcessWatchdogInterruptStop(
     BAPE_Handle handle
     );
@@ -333,16 +325,6 @@ Process a watchdog interrupt resume
 ***************************************************************************/
 BERR_Code BAPE_ProcessWatchdogInterruptResume(
     BAPE_Handle handle
-    );
-
-/***************************************************************************
-Summary:
-Returns single null terminated line from the debug log
-***************************************************************************/
-BERR_Code BAPE_GetDebugLog(
-    BAPE_Handle handle,
-    char *buf,
-    size_t buf_len
     );
 
 /***************************************************************************
@@ -425,6 +407,7 @@ typedef struct BAPE_Capabilities
         bool dolbyDigitalReencode;      /* True if Dolby MS11 is supported */
         bool dolbyVolume;               /* True if DolbyVolume processing is supported */
         bool karaoke;                   /* True if Karaoke post processing is supported */
+        bool dapv2;                     /* True if MS12 DAPv2 processing is supported */
 
         struct
         {

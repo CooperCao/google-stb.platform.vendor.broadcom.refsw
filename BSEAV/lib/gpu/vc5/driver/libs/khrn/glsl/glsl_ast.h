@@ -179,9 +179,6 @@ struct _Expr {
    } u;
 };
 
-bool glsl_is_lvalue(Expr *expr);
-MemoryQualifier glsl_get_mem_flags(Expr *expr, ShaderFlavour flavour);
-
 // On failure, these functions call glsl_compile_error() and do not return
 Expr *glsl_expr_construct_const_value     (int line_num, PrimitiveTypeIndex type_index, const_value v);
 Expr *glsl_expr_construct_instance        (int line_num, Symbol *symbol);
@@ -375,3 +372,5 @@ Statement *glsl_statement_construct_qualifier_default(int line_num, QualList *qu
 Statement *glsl_statement_construct_qualifier_augment(int line_num, QualList *quals, SymbolList *vars);
 
 void glsl_ast_validate(Statement *ast, ShaderFlavour flavour, int version);
+
+void glsl_ast_validate_function_call(const Expr *e, ShaderFlavour flavour);

@@ -1,13 +1,6 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES texture structure.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "libs/util/gfx_util/gfx_util_conv.h"
@@ -24,7 +17,6 @@ Implementation of OpenGL ES texture structure.
 #include "glxx_inner.h"
 #include "../common/khrn_blob.h"
 #include "../common/khrn_image.h"
-#include "../common/khrn_event_monitor.h"
 #include "../egl/egl_display.h"
 #include "../egl/egl_image.h"
 #include "glxx_image_unit.h"
@@ -41,19 +33,19 @@ static bool requires_mipmaps(enum glxx_min_filter min_filter);
 static unsigned num_faces(enum glxx_tex_target target);
 
 static void texture_get_main_blob(const GLXX_TEXTURE_T *texture,
-      KHRN_BLOB_T **main_blob, unsigned *at_level);
+      khrn_blob **main_blob, unsigned *at_level);
 
 static bool texture_has_any_blobs(struct glxx_texture *texture);
 static unsigned num_faces(enum glxx_tex_target target);
 
-static bool upload_data(KHRN_IMAGE_T *img,
+static bool upload_data(khrn_image *img,
       unsigned dst_x, unsigned dst_y, unsigned dst_z, unsigned dst_start_elem,
       unsigned num_array_elems,
       const GFX_BUFFER_DESC_T *src_desc, size_t src_offset, size_t src_array_pitch,
       GLXX_BUFFER_T *pixel_buffer, const void *pixels,
       glxx_context_fences *fences, GLenum *error);
 
-static KHRN_BLOB_T* create_blob(enum glxx_tex_target target, unsigned width,
+static khrn_blob* create_blob(enum glxx_tex_target target, unsigned width,
       unsigned height, unsigned depth, unsigned num_array_elems, unsigned
       num_mip_levels, const GFX_LFMT_T *fmts, unsigned num_planes,
       bool secure_texture);
@@ -253,7 +245,7 @@ static bool texture_has_any_blobs(struct glxx_texture *texture)
    return false;
 }
 
-static KHRN_BLOB_T* create_blob(enum glxx_tex_target target, unsigned width,
+static khrn_blob* create_blob(enum glxx_tex_target target, unsigned width,
       unsigned height, unsigned depth, unsigned num_array_elems, unsigned
       num_mip_levels, const GFX_LFMT_T *fmts, unsigned num_planes,
       bool secure)
@@ -296,10 +288,10 @@ static KHRN_BLOB_T* create_blob(enum glxx_tex_target target, unsigned width,
  *    at_level:  what mip level in the texture corresponds to mip level 0 in the blob
  */
 static void texture_get_main_blob(const GLXX_TEXTURE_T *texture,
-      KHRN_BLOB_T **main_blob, unsigned *at_level)
+      khrn_blob **main_blob, unsigned *at_level)
 {
    unsigned face, level, faces;
-   KHRN_IMAGE_T *img;
+   khrn_image *img;
 
    *main_blob = NULL;
    *at_level = 0;
@@ -377,7 +369,7 @@ static void init_default_texture_sampler(enum glxx_tex_target target,
 }
 
 static void assign_new_images(GLXX_TEXTURE_T *texture,
-         KHRN_IMAGE_T* img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
+         khrn_image* img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
          unsigned base_level, unsigned num_levels)
 {
    unsigned face, level;
@@ -390,7 +382,7 @@ static void assign_new_images(GLXX_TEXTURE_T *texture,
    }
 }
 
-static void release_images(KHRN_IMAGE_T* img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
+static void release_images(khrn_image* img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
       unsigned faces, unsigned  base_level, unsigned num_levels)
 {
    unsigned face, level;
@@ -481,7 +473,7 @@ GLXX_TEXTURE_T* glxx_texture_create(GLenum target, int32_t name)
 static bool orphan_tex_eglimage(GLXX_TEXTURE_T *texture,
       glxx_context_fences *fences)
 {
-   KHRN_IMAGE_T* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
+   khrn_image* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
    GFX_LFMT_T fmts[GFX_BUFFER_MAX_PLANES];
    unsigned level, face, faces;
    unsigned width, height, depth, num_elems, num_planes;
@@ -494,8 +486,8 @@ static bool orphan_tex_eglimage(GLXX_TEXTURE_T *texture,
 
    /* copy the texel arrays pointers from the texture to a temporary array and
     * set the the one from the texture to NULL */
-   memcpy(new_img, texture->img, faces * KHRN_MAX_MIP_LEVELS * sizeof(KHRN_IMAGE_T*));
-   memset(texture->img, 0, faces * KHRN_MAX_MIP_LEVELS * sizeof(KHRN_IMAGE_T*));
+   memcpy(new_img, texture->img, faces * KHRN_MAX_MIP_LEVELS * sizeof(khrn_image*));
+   memset(texture->img, 0, faces * KHRN_MAX_MIP_LEVELS * sizeof(khrn_image*));
    saved_binding = texture->binding;
    texture->binding = TEX_BOUND_NONE;
 
@@ -503,7 +495,7 @@ static bool orphan_tex_eglimage(GLXX_TEXTURE_T *texture,
    {
       for (level = 0; level < KHRN_MAX_MIP_LEVELS; level++)
       {
-         KHRN_IMAGE_T *temp = new_img[face][level];
+         khrn_image *temp = new_img[face][level];
          if (temp)
          {
             khrn_image_get_fmts(temp, fmts, &num_planes);
@@ -534,17 +526,17 @@ end:
        * (release any newly created texel arrays in the texture and set back
        * the copied  temporary texel array pointers */
       release_images(texture->img, faces, 0, KHRN_MAX_MIP_LEVELS);
-      memcpy(texture->img, new_img, faces * KHRN_MAX_MIP_LEVELS * sizeof(KHRN_IMAGE_T*));
+      memcpy(texture->img, new_img, faces * KHRN_MAX_MIP_LEVELS * sizeof(khrn_image*));
 
       texture->binding = saved_binding;
    }
    return ok;
 }
 
-static KHRN_IMAGE_T* get_image_for_texturing(EGL_IMAGE_T *egl_image,
+static khrn_image* get_image_for_texturing(EGL_IMAGE_T *egl_image,
       glxx_context_fences *fences)
 {
-   KHRN_IMAGE_T *image = egl_image_get_image(egl_image);
+   khrn_image *image = egl_image_get_image(egl_image);
    const GFX_BUFFER_DESC_T *desc = &image->blob->desc[image->level];
 
    bool is_rso = gfx_lfmt_is_rso(desc->planes[0].lfmt);
@@ -589,11 +581,11 @@ static KHRN_IMAGE_T* get_image_for_texturing(EGL_IMAGE_T *egl_image,
    /* we only make a 2D blob */
    glxx_lfmt_add_dim(dst_fmts, dst_num_planes, 2);
 
-   KHRN_BLOB_T* dst_blob = khrn_blob_create(desc->width, desc->height, 1, 1, 1,
+   khrn_blob* dst_blob = khrn_blob_create(desc->width, desc->height, 1, 1, 1,
          dst_fmts, dst_num_planes, GFX_BUFFER_USAGE_V3D_TEXTURE |
          GFX_BUFFER_USAGE_V3D_RENDER_TARGET, image->blob->secure);
 
-   KHRN_IMAGE_T *dst_image = NULL;
+   khrn_image *dst_image = NULL;
    if (dst_blob)
    {
       dst_image = khrn_image_create(dst_blob, 0, 1, 0, api_fmt);
@@ -605,9 +597,9 @@ static KHRN_IMAGE_T* get_image_for_texturing(EGL_IMAGE_T *egl_image,
 
       if (v3d_platform_explicit_sync())
       {
-         KHRN_RES_INTERLOCK_T *res_i = khrn_image_get_res_interlock(dst_image);
-         khrn_interlock_flush_writer(&res_i->interlock);
-         v3d_scheduler_wait_jobs(&res_i->interlock.pre_write, V3D_SCHED_DEPS_FINALISED);
+         khrn_resource *res = khrn_image_get_resource(dst_image);
+         khrn_resource_flush_writer(res);
+         v3d_scheduler_wait_jobs(&res->pre_write, V3D_SCHED_DEPS_FINALISED);
       }
    }
    return dst_image;
@@ -680,7 +672,7 @@ static bool texture_create_image(GLXX_TEXTURE_T *texture, unsigned face, unsigne
       bool secure_texture)
 {
    unsigned levels, blob_array_elems;
-   KHRN_BLOB_T *frag, *main_blob;
+   khrn_blob *frag, *main_blob;
    unsigned at_level;
 
    assert(texture->immutable_format == GFX_LFMT_NONE);
@@ -691,7 +683,7 @@ static bool texture_create_image(GLXX_TEXTURE_T *texture, unsigned face, unsigne
    if (!texture_has_any_blobs(texture) &&
        texture->base_level == level)
    {
-      KHRN_BLOB_T *blob;
+      khrn_blob *blob;
       /* allocate the main blob based on this level and the min filter */
       if (requires_mipmaps(texture->sampler.filter.min))
       {
@@ -918,7 +910,7 @@ static bool texture_create_immutable_images(GLXX_TEXTURE_T *texture, unsigned
 {
    unsigned max_levels, face, level, blob_array_elems, blob_level;
    unsigned faces = num_faces(texture->target);
-   KHRN_BLOB_T *blob;
+   khrn_blob *blob;
 
    assert(texture->immutable_format == GFX_LFMT_NONE);
    assert(width > 0 && height > 0 &&  depth > 0 && levels > 0);
@@ -1061,7 +1053,7 @@ static bool try_get_num_levels(const GLXX_TEXTURE_T *texture,
    }
    else
    {
-      KHRN_IMAGE_T *img0 = texture->img[0][*base_level];
+      khrn_image *img0 = texture->img[0][*base_level];
       /* we need image at base level to calculate values for mipmapping */
       if (!img0)
          return false;
@@ -1125,7 +1117,7 @@ bool glxx_texture_check_completeness(const GLXX_TEXTURE_T *texture,
       return true;
 
    unsigned face = 0;
-   KHRN_IMAGE_T *img0 = texture->img[face][*base_level];
+   khrn_image *img0 = texture->img[face][*base_level];
    if (!img0)
       return false;
 
@@ -1133,7 +1125,7 @@ bool glxx_texture_check_completeness(const GLXX_TEXTURE_T *texture,
    for (face = 1 ; face < faces; face++)
    {
       /* check d) and e) */
-      KHRN_IMAGE_T *img = texture->img[face][*base_level];
+      khrn_image *img = texture->img[face][*base_level];
       if (!img || !khrn_image_match_fmt_and_dim(img, img0))
          return false;
    }
@@ -1150,7 +1142,7 @@ bool glxx_texture_check_completeness(const GLXX_TEXTURE_T *texture,
    {
       for (unsigned i = 1; i < *num_levels; i++)
       {
-         KHRN_IMAGE_T *img = texture->img[face][*base_level + i];
+         khrn_image *img = texture->img[face][*base_level + i];
          if (!img)
             return false;
 
@@ -1167,12 +1159,12 @@ bool glxx_texture_check_completeness(const GLXX_TEXTURE_T *texture,
  * images that point new blob, between (base_level, base_level + num_levels);
  * texture target is needed just to set flags for the storage  */
 static bool create_blob_and_images(enum glxx_tex_target tex_target,
-      const KHRN_IMAGE_T* img0,
+      const khrn_image* img0,
       unsigned faces, unsigned base_level, unsigned num_levels,
-      KHRN_IMAGE_T* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS])
+      khrn_image* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS])
 {
    unsigned face, level, num_array_elems, blob_array_elems;
-   KHRN_BLOB_T *new_blob;
+   khrn_blob *new_blob;
    GFX_LFMT_T fmts[GFX_BUFFER_MAX_PLANES];
    unsigned width, height, depth, num_planes;
 
@@ -1223,12 +1215,12 @@ fail:
 /* creates an image with storage for one face and one level,
  * where the dimensions and storage format are taken from img0;
  * texture target is needed just to set flags for the storage  */
-static KHRN_IMAGE_T* create_image_with_storage(const KHRN_IMAGE_T* img0,
+static khrn_image* create_image_with_storage(const khrn_image* img0,
       enum glxx_tex_target tex_target)
 {
    GFX_LFMT_T fmts[GFX_BUFFER_MAX_PLANES];
    unsigned width, height, depth, num_planes, num_array_elems;
-   KHRN_BLOB_T *frag;
+   khrn_blob *frag;
 
    khrn_image_get_dimensions(img0, &width, &height, &depth, &num_array_elems);
    khrn_image_get_fmts(img0, fmts, &num_planes);
@@ -1240,15 +1232,15 @@ static KHRN_IMAGE_T* create_image_with_storage(const KHRN_IMAGE_T* img0,
    {
       return NULL;
    }
-   KHRN_IMAGE_T *img = khrn_image_create(frag, 0, num_array_elems, 0,
+   khrn_image *img = khrn_image_create(frag, 0, num_array_elems, 0,
                img0->api_fmt);
 
    KHRN_MEM_ASSIGN(frag, NULL);
    return img;
 }
 
-static bool copy_images_content(KHRN_IMAGE_T* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
-   KHRN_IMAGE_T* img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
+static bool copy_images_content(khrn_image* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
+   khrn_image* img[MAX_FACES][KHRN_MAX_MIP_LEVELS],
    unsigned faces, unsigned base_level, unsigned num_levels,
    glxx_context_fences *fences)
 {
@@ -1320,9 +1312,9 @@ static bool move_existing_to_fragmented_blobs(GLXX_TEXTURE_T *texture,
 {
    unsigned faces, face, level, k;
    struct range blob_range, exclude;
-   KHRN_BLOB_T *blob;
+   khrn_blob *blob;
    unsigned at_level;
-   KHRN_IMAGE_T *src_img, **dst_img;
+   khrn_image *src_img, **dst_img;
 
    texture_get_main_blob(texture, &blob, &at_level);
    if (!blob)
@@ -1356,7 +1348,7 @@ static bool move_existing_to_fragmented_blobs(GLXX_TEXTURE_T *texture,
       return true;
    }
 
-   KHRN_IMAGE_T* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
+   khrn_image* new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
    memset(new_img, 0, MAX_FACES * KHRN_MAX_MIP_LEVELS * sizeof(uintptr_t));
 
    /* we just need to create fragmented blobs for all the images in
@@ -1426,7 +1418,7 @@ bool make_contiguous_blob_and_copy_levels(GLXX_TEXTURE_T *texture,
       unsigned copy_start_level, unsigned copy_num_levels,
       glxx_context_fences *fences)
 {
-   KHRN_IMAGE_T *new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
+   khrn_image *new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
    bool ok = false;
 
    assert(copy_start_level >= base_level);
@@ -1460,11 +1452,11 @@ fail:
    return ok;
 }
 
-static bool are_images_in_same_blob(KHRN_IMAGE_T *imgs[MAX_FACES][KHRN_MAX_MIP_LEVELS],
+static bool are_images_in_same_blob(khrn_image *imgs[MAX_FACES][KHRN_MAX_MIP_LEVELS],
       unsigned faces, unsigned base_level, unsigned num_levels)
 {
 
-   KHRN_IMAGE_T *img0 = imgs[0][base_level];
+   khrn_image *img0 = imgs[0][base_level];
 
    for (unsigned face = 0; face < faces; face++)
    {
@@ -1557,7 +1549,7 @@ glxx_texture_ensure_contiguous_blob_if_complete(GLXX_TEXTURE_T *texture,
 /* Iff COMPLETE is returned, *image will have been set and the image's reference
  * count incremented. The image must be released by calling khrn_mem_release. */
 static enum glxx_tex_completeness get_base_level_image_and_num_levels(
-   KHRN_IMAGE_T **image, uint32_t *num_levels,
+   khrn_image **image, uint32_t *num_levels,
    GLXX_TEXTURE_T *texture, const glxx_calc_image_unit *image_unit,
    const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
    glxx_context_fences *fences)
@@ -1618,7 +1610,7 @@ static GLenum filter_disable_mipmapping(GLenum filter)
 }
 
 /* stride to get to the nth face/layer data*/
-static uint32_t get_hw_stride(const KHRN_BLOB_T *blob, unsigned plane_i)
+static uint32_t get_hw_stride(const khrn_blob *blob, unsigned plane_i)
 {
    const GFX_BUFFER_DESC_T *l0_desc = &blob->desc[0];
    const GFX_BUFFER_DESC_PLANE_T *l0_p = &l0_desc->planes[plane_i];
@@ -1631,70 +1623,76 @@ static uint32_t get_hw_stride(const KHRN_BLOB_T *blob, unsigned plane_i)
    return 0; /* arr_str unused */
 }
 
-/* Converts the min filter from the GLenum representation to the internal one
- * used in the HW. */
-static v3d_tmu_min_filt_t convert_min_filter(GLenum filter)
+#if V3D_HAS_SEP_ANISO_CFG
+static void clamp_to_base_level(V3D_TMU_SAMPLER_T *s)
 {
-   switch (filter)
+   s->mipfilt = V3D_TMU_MIPFILT_NEAREST;
+   s->min_lod = gfx_umin(s->min_lod, 1);
+   s->max_lod = gfx_umin(s->max_lod, 1);
+}
+
+static void set_tmu_filters(V3D_TMU_SAMPLER_T *s, GLenum mag_filter, GLenum min_filter, float anisotropy)
+{
+   switch (mag_filter)
+   {
+   case GL_NEAREST:  s->magfilt = V3D_TMU_FILTER_NEAREST; break;
+   case GL_LINEAR:   s->magfilt = V3D_TMU_FILTER_LINEAR; break;
+   default:          unreachable();
+   }
+
+   switch (min_filter)
    {
    case GL_NEAREST:
-      return V3D_TMU_MIN_FILT_NEAREST;
+      s->minfilt = V3D_TMU_FILTER_NEAREST;
+      clamp_to_base_level(s);
+      break;
    case GL_LINEAR:
-      return V3D_TMU_MIN_FILT_LINEAR;
+      s->minfilt = V3D_TMU_FILTER_LINEAR;
+      clamp_to_base_level(s);
+      break;
    case GL_NEAREST_MIPMAP_NEAREST:
-      return V3D_TMU_MIN_FILT_NEAR_MIP_NEAR;
+      s->minfilt = V3D_TMU_FILTER_NEAREST;
+      s->mipfilt = V3D_TMU_MIPFILT_NEAREST;
+      break;
    case GL_NEAREST_MIPMAP_LINEAR:
-      return V3D_TMU_MIN_FILT_NEAR_MIP_LIN;
+      s->minfilt = V3D_TMU_FILTER_NEAREST;
+      s->mipfilt = V3D_TMU_MIPFILT_LINEAR;
+      break;
    case GL_LINEAR_MIPMAP_NEAREST:
-      return V3D_TMU_MIN_FILT_LIN_MIP_NEAR;
+      s->minfilt = V3D_TMU_FILTER_LINEAR;
+      s->mipfilt = V3D_TMU_MIPFILT_NEAREST;
+      break;
    case GL_LINEAR_MIPMAP_LINEAR:
-      return V3D_TMU_MIN_FILT_LIN_MIP_LIN;
+      s->minfilt = V3D_TMU_FILTER_LINEAR;
+      s->mipfilt = V3D_TMU_MIPFILT_LINEAR;
+      break;
    default:
       unreachable();
-      return V3D_TMU_MIN_FILT_INVALID;
    }
+
+   s->aniso_en = anisotropy > 1.0f;
+   s->max_aniso = s->aniso_en ? v3d_tmu_translate_max_aniso(anisotropy) : V3D_MAX_ANISO_2;
 }
-
-static v3d_tmu_mag_filt_t convert_mag_filter(GLenum filter)
+#else
+static v3d_tmu_filters_t get_tmu_filters(GLenum mag_filter, GLenum min_filter, float anisotropy)
 {
-   switch (filter)
-   {
-   case GL_NEAREST:
-      return V3D_TMU_MAG_FILT_NEAREST;
-   case GL_LINEAR:
-      return V3D_TMU_MAG_FILT_LINEAR;
-   default:
-      unreachable();
-      return V3D_TMU_MAG_FILT_INVALID;
-   }
-}
-
-static v3d_tmu_filter_t get_tmu_filter(
-   GLenum mag_filter, GLenum min_filter, float anisotropy,
-   bool unnormalised_coords)
-{
-   /* disable mipmapping if using unnormalised coords */
-   if (unnormalised_coords)
-   {
-      min_filter = filter_disable_mipmapping(min_filter);
-      anisotropy = 0.0f;
-   }
-
    if (anisotropy > 1.0f)
-   {
-      /* Override filter with anisotropic. */
-      if (anisotropy > 8.0f)
-         return V3D_TMU_FILTER_ANISOTROPIC16;
-      if (anisotropy > 4.0f)
-         return V3D_TMU_FILTER_ANISOTROPIC8;
-      if (anisotropy > 2.0f)
-         return V3D_TMU_FILTER_ANISOTROPIC4;
-      return V3D_TMU_FILTER_ANISOTROPIC2;
-   }
+      return v3d_tmu_filters_anisotropic(anisotropy);
 
-   return convert_mag_filter(mag_filter) |
-      convert_min_filter(min_filter) << 1;
+   assert((mag_filter == GL_NEAREST) || (mag_filter == GL_LINEAR));
+   bool mag_near = mag_filter == GL_NEAREST;
+   switch (min_filter)
+   {
+   case GL_NEAREST:                 return mag_near ? V3D_TMU_FILTERS_MIN_NEAR_MAG_NEAR : V3D_TMU_FILTERS_MIN_NEAR_MAG_LIN;
+   case GL_LINEAR:                  return mag_near ? V3D_TMU_FILTERS_MIN_LIN_MAG_NEAR : V3D_TMU_FILTERS_MIN_LIN_MAG_LIN;
+   case GL_NEAREST_MIPMAP_NEAREST:  return mag_near ? V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_NEAR : V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_LIN;
+   case GL_NEAREST_MIPMAP_LINEAR:   return mag_near ? V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_NEAR : V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_LIN;
+   case GL_LINEAR_MIPMAP_NEAREST:   return mag_near ? V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_NEAR : V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_LIN;
+   case GL_LINEAR_MIPMAP_LINEAR:    return mag_near ? V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_NEAR : V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_LIN;
+   default:                         unreachable(); return V3D_TMU_FILTERS_INVALID;
+   }
 }
+#endif
 
 static bool uses_border_color(const GLXX_TEXTURE_SAMPLER_STATE_T *sampler)
 {
@@ -1971,7 +1969,7 @@ static v3d_tmu_wrap_t get_hw_wrap(GLenum wrap)
  *    this matters -- the same amount of data will be returned by the TMU.
  * 4. Same as (1). */
 
-static void get_plane_and_lfmt_for_texturing(const KHRN_IMAGE_T *img_base,
+static void get_plane_and_lfmt_for_texturing(const khrn_image *img_base,
       glxx_ds_texture_mode ds_texture_mode,
       unsigned *plane , GFX_LFMT_T *lfmt)
 {
@@ -2044,33 +2042,23 @@ struct hw_tex_params
 static bool record_tex_usage_and_get_hw_params(
    struct hw_tex_params *tp, glxx_render_state *rs,
    const GLXX_TEXTURE_T *texture, const glxx_calc_image_unit *image_unit,
-   const KHRN_IMAGE_T *img_base, uint32_t num_levels,
+   const khrn_image *img_base, uint32_t num_levels,
    bool used_in_bin)
 {
    bool write = false;
    if (image_unit && image_unit->write)
       write = true;
 
-   const KHRN_BLOB_T *blob_base = img_base->blob;
+   const khrn_blob *blob_base = img_base->blob;
    /* we need to describe everything relative to the beginning of the blob; */
    const GFX_BUFFER_DESC_T *desc_base = &blob_base->desc[0];
 
    assert(blob_base->usage & GFX_BUFFER_USAGE_V3D_TEXTURE);
 
-   khrn_interlock_stages_t stages = KHRN_INTERLOCK_STAGE_RENDER
-                                  | (used_in_bin ? KHRN_INTERLOCK_STAGE_BIN : 0);
-   if (write)
-   {
-      if (!khrn_fmem_record_res_interlock_write(&rs->fmem, blob_base->res_i, stages,
-            /* Could figure out tighter parts here but probably not worth it... */
-            KHRN_INTERLOCK_PARTS_ALL, NULL))
-         return false;
-   }
-   else
-   {
-      if (!khrn_fmem_record_res_interlock_read(&rs->fmem, blob_base->res_i, stages))
-         return false;
-   }
+   v3d_barrier_flags tmu_flag = V3D_BARRIER_TMU_DATA_READ;
+   if (write) tmu_flag |= V3D_BARRIER_TMU_DATA_WRITE;
+   if (!khrn_fmem_sync_res(&rs->fmem, blob_base->res, used_in_bin ? tmu_flag : 0, tmu_flag))
+      return false;
    if (write)
       rs->has_buffer_writes = true;
 
@@ -2086,14 +2074,8 @@ static bool record_tex_usage_and_get_hw_params(
 
    const GFX_BUFFER_DESC_PLANE_T *img_base_plane = &blob_base->desc[img_base->level].planes[plane];
 
-   v3d_barrier_flags tmu_flag = V3D_BARRIER_TMU_DATA_READ;
-   /* the shader might also do an imageLoad, so mark the handle accordingly */
-   if (write)  tmu_flag |= V3D_BARRIER_TMU_DATA_WRITE;
-   v3d_addr_t base_addr = khrn_fmem_lock_and_sync(&rs->fmem, blob_base->res_i->handle,
-         used_in_bin ? tmu_flag : 0, tmu_flag);
-   if (!base_addr)
-      return false;
-   base_addr += img_base->start_elem * blob_base->array_pitch;
+   v3d_addr_t base_addr = gmem_get_addr(blob_base->res->handle) +
+      (img_base->start_elem * blob_base->array_pitch);
 
    tp->w = desc_base->width;
    tp->h = desc_base->height;
@@ -2128,7 +2110,7 @@ static bool record_tex_usage_and_get_hw_params(
 
       GFX_BUFFER_DESC_T desc_2d[KHRN_MAX_MIP_LEVELS];
       v3d_tmu_calc_mip_levels(desc_2d,
-            V3D_TMU_LTYPE_2D, tp->tmu_trans.srgb, tp->tmu_trans.type,
+            /*dims=*/2, tp->tmu_trans.srgb, tp->tmu_trans.type,
             &tp->uif_cfg, /*arr_str=*/0,
             desc_base->width, desc_base->height, /*depth=*/1, blob_base->num_mip_levels);
 
@@ -2224,7 +2206,6 @@ static bool std_bcol_0001_works(bool *reverse_std_bcol, GFX_LFMT_T hw_border_fmt
 static bool pack_tex_state(
    uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE],
    bool *std_bcol_0001_ok,
-   const GLXX_TEXTURE_T *texture,
    const struct hw_tex_params *tp, uint32_t num_levels,
    GFX_LFMT_T hw_border_fmt)
 {
@@ -2318,13 +2299,22 @@ static bool pack_sampler(
    GFX_LFMT_T hw_border_fmt, bool std_bcol_0001_ok)
 {
    V3D_TMU_SAMPLER_T s;
-   s.filter = get_tmu_filter(
-      sampler->filter.mag, sampler->filter.min,
-      sampler->anisotropy, sampler->unnormalised_coords);
    s.compare_func = glxx_hw_convert_test_function(sampler->compare_func);
    s.srgb_override = sampler->skip_srgb_decode;
    s.max_lod = gfx_umin(gfx_float_to_uint32(sampler->max_lod * 256.0f), (V3D_MAX_MIP_COUNT - 1) << 8);
    s.min_lod = gfx_umin(gfx_float_to_uint32(sampler->min_lod * 256.0f), s.max_lod);
+   GLenum min_filter = sampler->filter.min;
+   float anisotropy = sampler->anisotropy;
+   if (sampler->unnormalised_coords)
+   {
+      min_filter = filter_disable_mipmapping(min_filter);
+      anisotropy = 0.0f;
+   }
+#if V3D_HAS_SEP_ANISO_CFG
+   set_tmu_filters(&s, sampler->filter.mag, min_filter, anisotropy); // Must call after min_lod/max_lod set
+#else
+   s.filters = get_tmu_filters(sampler->filter.mag, min_filter, anisotropy);
+#endif
    s.fixed_bias = 0;
    s.wrap_s = get_hw_wrap(sampler->wrap.s);
    s.wrap_t = get_hw_wrap(sampler->wrap.t);
@@ -2356,47 +2346,12 @@ static bool pack_sampler(
 
 #else
 
-/* This function calculates min_lod & max_lod, as passed to the HW for
- * non-fetch lookups. There is one case where we also adjust the filtering:
- * the case when base_level=max_level, choose a filter similar with the input
- * filter but without mipmaps */
-static void get_min_max_lod_adjust_filter(
-   uint32_t *min_lod, uint32_t *max_lod,
-   GLenum *min_filter, float *anisotropy,
-   const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
-   const glxx_calc_image_unit *image_unit,
-   unsigned base_level, unsigned num_levels)
-{
-   if (image_unit)
-   {
-      *max_lod = *min_lod = gfx_float_to_uint32(base_level * 256.0f);
-      return;
-   }
-
-   *max_lod = gfx_umin(gfx_float_to_uint32((base_level + sampler->max_lod) * 256.0f), (V3D_MAX_MIP_COUNT - 1) << 8);
-   *min_lod = gfx_umin(gfx_float_to_uint32((base_level + sampler->min_lod) * 256.0f), *max_lod);
-
-   unsigned max_level = base_level + num_levels - 1;
-   if (max_level == base_level)
-   {
-      /* see GFXS-732 : adjust filtering so that we remove use of mipmaps */
-      *min_filter = filter_disable_mipmapping(*min_filter);
-      *anisotropy = 0.0f;
-   }
-   else
-   {
-      *min_lod = gfx_umin(*min_lod, max_level << 8);
-      *max_lod = gfx_umin(*max_lod, max_level << 8);
-   }
-}
-
-static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, KHRN_FMEM_T *fmem,
-   const GLXX_TEXTURE_T *texture, const glxx_calc_image_unit *image_unit,
-   const struct hw_tex_params *tp, unsigned num_levels,
+static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
+   enum glxx_tex_target tex_target, const struct hw_tex_params *tp, unsigned num_levels,
    const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, GFX_LFMT_T hw_border_fmt,
    bool is_32bit)
 {
-   bool is_cube_map = texture->target == GL_TEXTURE_CUBE_MAP;
+   bool is_cube_map = tex_target == GL_TEXTURE_CUBE_MAP;
    bool unnormalised_coords = sampler->unnormalised_coords && !is_cube_map;
 #if !V3D_VER_AT_LEAST(3,3,1,0)
    // 3.2 and early 3.3 h/w needs to work around GFXH-1371
@@ -2412,37 +2367,64 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, KHRN_FMEM_T *fmem
       /* ltype, fetch, gather, bias, bslod, shadow in extra_bits from shader compiler */
       p0.coefficient = false;
       p0.wrap_s = get_hw_wrap(sampler->wrap.s);
-      p0.wrap_t = glxx_tex_target_is_1d(texture->target) ? V3D_TMU_WRAP_CLAMP : get_hw_wrap(sampler->wrap.t);
+      p0.wrap_t = glxx_tex_target_is_1d(tex_target) ? V3D_TMU_WRAP_CLAMP : get_hw_wrap(sampler->wrap.t);
       p0.wrap_r = get_hw_wrap(sampler->wrap.r);
 
       /* tex_off_s/t/r, pix_mask in extra_bits from shader compiler */
       texture_unif->hw_param[0] = v3d_pack_tmu_param0_cfg1(&p0);
    }
 
-   uint32_t min_lod, max_lod;
-   v3d_tmu_filter_t filter;
+   uint32_t max_lod = gfx_umin(gfx_float_to_uint32((tp->base_level + sampler->max_lod) * V3D_TMU_F_ONE), (V3D_MAX_MIP_COUNT - 1) << V3D_TMU_F_BITS);
+   uint32_t min_lod = gfx_umin(gfx_float_to_uint32((tp->base_level + sampler->min_lod) * V3D_TMU_F_ONE), max_lod);
+
+   v3d_tmu_filters_t filters;
    {
+      GLenum mag_filter = sampler->filter.mag;
       GLenum min_filter = sampler->filter.min;
       float anisotropy = sampler->anisotropy;
 
-      get_min_max_lod_adjust_filter(
-         &min_lod, &max_lod,
-         &min_filter, &anisotropy,
-         sampler, image_unit, tp->base_level, num_levels);
-
-      filter = get_tmu_filter(
-         sampler->filter.mag, min_filter, anisotropy,
-         unnormalised_coords);
+      unsigned max_level = tp->base_level + num_levels - 1;
+      if ((max_level == tp->base_level) || unnormalised_coords)
+      {
+         min_filter = filter_disable_mipmapping(min_filter);
+         anisotropy = 0.0f;
+      }
+      else
+      {
+         min_lod = gfx_umin(min_lod, max_level << V3D_TMU_F_BITS);
+         max_lod = gfx_umin(max_lod, max_level << V3D_TMU_F_BITS);
+      }
 
 #if !V3D_VER_AT_LEAST(3,3,1,0)
       // Workaround GFXH-1371 - ASTC cube-maps must do nearest filtering
       if (is_astc && is_cube_map)
-         filter = V3D_TMU_FILTER_MIN_NEAR_MAG_NEAR;
+      {
+         mag_filter = GL_NEAREST;
+         switch (min_filter)
+         {
+         case GL_NEAREST:
+         case GL_LINEAR:
+            min_filter = GL_NEAREST;
+            break;
+         case GL_NEAREST_MIPMAP_NEAREST:
+         case GL_LINEAR_MIPMAP_NEAREST:
+            min_filter = GL_NEAREST_MIPMAP_NEAREST;
+            break;
+         case GL_NEAREST_MIPMAP_LINEAR:
+         case GL_LINEAR_MIPMAP_LINEAR:
+            min_filter = GL_NEAREST_MIPMAP_LINEAR;
+            break;
+         default:
+            unreachable();
+         }
+      }
 #endif
+
+      filters = get_tmu_filters(mag_filter, min_filter, anisotropy);
    }
 
    V3D_TMU_INDIRECT_T ind;
-   ind.filter = filter;
+   ind.filters = filters;
    ind.border_rrra = false;
    ind.base    = tp->l0_addr;
    ind.arr_str = tp->arr_str;
@@ -2493,7 +2475,7 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, KHRN_FMEM_T *fmem
    texture_unif->hw_param[1] = v3d_pack_tmu_param1_cfg1(&p1);
 
    v3d_tmu_swizzle_t swizzle_0 = ind.swizzles[0];
-   ind.filter = (num_levels == 1) ? V3D_TMU_FILTER_MIN_LIN_MAG_LIN : V3D_TMU_FILTER_MIN_LIN_MIP_NEAR_MAG_LIN;
+   ind.filters = (num_levels == 1) ? V3D_TMU_FILTERS_MIN_LIN_MAG_LIN : V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_LIN;
    for (int i=0; i<4; i++) {
       ind.swizzles[0] = ind.swizzles[i];
       v3d_pack_tmu_indirect_not_child_image(hw_indirect, &ind);
@@ -2504,6 +2486,7 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, KHRN_FMEM_T *fmem
    }
 
    ind.swizzles[0] = swizzle_0;
+   ind.srgb = tp->tmu_trans.srgb;      // Ignore the sampler state for fetch
    // See GFXH-1363: must not use min/max LoD from sampler for fetch lookups...
    ind.u.not_child_image.min_lod = tp->base_level << 8;
    ind.u.not_child_image.max_lod = (tp->base_level + num_levels - 1) << 8;
@@ -2535,7 +2518,7 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
          return OUT_OF_MEMORY;
    }
 
-   KHRN_IMAGE_T *img_base = NULL;
+   khrn_image *img_base = NULL;
    uint32_t num_levels;
    enum glxx_tex_completeness complete = get_base_level_image_and_num_levels(
       &img_base, &num_levels, texture, image_unit, sampler, fences);
@@ -2587,7 +2570,7 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
    uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE];
    bool std_bcol_0001_ok;
    bool tex_state_extended = pack_tex_state(hw_tex_state, &std_bcol_0001_ok,
-         texture, &tp, num_levels, hw_border_fmt);
+         &tp, num_levels, hw_border_fmt);
    /* Everything else in param 0 comes from the shader */
    texture_unif->hw_param[0] = khrn_fmem_add_tmu_tex_state(&rs->fmem, hw_tex_state, tex_state_extended);
    if (!texture_unif->hw_param[0])
@@ -2613,7 +2596,7 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
 # endif
 
    if (!pack_tmu_config(texture_unif, &rs->fmem,
-      texture, image_unit, &tp, num_levels, sampler, hw_border_fmt, is_32bit))
+      texture->target, &tp, num_levels, sampler, hw_border_fmt, is_32bit))
       return OUT_OF_MEMORY;
 #endif
 
@@ -2623,7 +2606,7 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
 bool glxx_texture_es1_has_color_alpha(const GLXX_TEXTURE_T *texture, bool
       *has_color, bool *has_alpha)
 {
-   KHRN_IMAGE_T *img;
+   khrn_image *img;
    GFX_LFMT_T lfmt;
 
    assert(glxx_tex_target_valid_in_es1(texture->target));
@@ -2637,7 +2620,7 @@ bool glxx_texture_es1_has_color_alpha(const GLXX_TEXTURE_T *texture, bool
    return true;
 }
 
-static bool upload_data(KHRN_IMAGE_T *img,
+static bool upload_data(khrn_image *img,
       unsigned dst_x, unsigned dst_y, unsigned dst_z,
       unsigned start_elem, unsigned num_array_elems,
       const GFX_BUFFER_DESC_T *src_desc, size_t src_offset, size_t src_array_pitch,
@@ -2706,7 +2689,7 @@ bool glxx_texture_subimage(GLXX_TEXTURE_T *texture, unsigned face, unsigned leve
       unsigned width, unsigned height, unsigned depth,
       glxx_context_fences *fences, GLenum *error)
 {
-   KHRN_IMAGE_T *img;
+   khrn_image *img;
    GFX_BUFFER_DESC_T src_desc;
    unsigned dim, num_array_elems, start_elem;
    bool ok;
@@ -2851,7 +2834,7 @@ bool glxx_texture_compressed_subimage(GLXX_TEXTURE_T *texture, unsigned face,
       GLenum fmt, unsigned image_size, GLXX_BUFFER_T *pixel_buffer, const
       void *pixels, glxx_context_fences *fences, GLenum *error)
 {
-   KHRN_IMAGE_T *img;
+   khrn_image *img;
    GFX_LFMT_T src_lfmt;
    unsigned dim, num_array_elems, start_elem;
    unsigned src_array_pitch, size_plane;
@@ -2927,7 +2910,7 @@ bool check_or_create_images(GLXX_TEXTURE_T *texture,
       /* img0 should is not be visible outside this scope, because
        * texture->check_or_create_image might orphan the texture and as a
        * result img0 would point to released image */
-      KHRN_IMAGE_T* img0 = texture->img[0][based_on_level];
+      khrn_image* img0 = texture->img[0][based_on_level];
       khrn_image_get_dimensions(img0, &width, &height, &depth, &num_elems);
       khrn_image_get_fmts(img0, fmts, &num_planes);
       api_fmt = img0->api_fmt;
@@ -2975,7 +2958,7 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
       *error = GL_INVALID_OPERATION;
       return false;
    }
-   KHRN_IMAGE_T *img_base = texture->img[0][base_level];
+   khrn_image *img_base = texture->img[0][base_level];
    GFX_LFMT_T lfmt = khrn_image_get_lfmt(texture->img[0][base_level], 0);
 
    /* if lfmt is not luminance, alpha or luminance alpha the format must be
@@ -2997,18 +2980,15 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
 
    unsigned faces = num_faces(texture->target);
 
-   uint32_t id = khrn_driver_track_next_id(KHRN_DRIVER_TRACK_DRIVER);
-   khrn_driver_add_event(KHRN_DRIVER_TRACK_DRIVER, id, KHRN_DRIVER_EVENT_GENERATE_MIPMAPS, BCM_EVENT_BEGIN);
-
    /* generate_mipmap replaces texels arrays levels base_level+1 through q (base_level+num_levels-1) */;
 
    /* immutable textures always have images for all the required levels */
-   KHRN_IMAGE_T *new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
+   khrn_image *new_img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
    bool is_new = false;
 
    if (texture->immutable_format == GFX_LFMT_NONE)
    {
-      KHRN_BLOB_T *main_blob;
+      khrn_blob *main_blob;
       unsigned at_level;
 
       texture_get_main_blob(texture, &main_blob, &at_level);
@@ -3034,7 +3014,7 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
       }
    }
 
-   KHRN_IMAGE_T* (*p_imgs)[KHRN_MAX_MIP_LEVELS];
+   khrn_image* (*p_imgs)[KHRN_MAX_MIP_LEVELS];
 
    if (!is_new)
       p_imgs = texture->img;
@@ -3053,7 +3033,7 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
          if (is_new || are_images_in_same_blob(p_imgs, faces, base_level, num_levels))
          {
             /* base_level needs to correspond to level 0 in the blob */
-            KHRN_IMAGE_T *img = p_imgs[0][base_level];
+            khrn_image *img = p_imgs[0][base_level];
             if (img->level == 0)
                use_tfu = true;
          }
@@ -3108,8 +3088,6 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
       release_images(new_img, faces, base_level, num_levels);
    }
 
-   khrn_driver_add_event(KHRN_DRIVER_TRACK_DRIVER, id, KHRN_DRIVER_EVENT_GENERATE_MIPMAPS, BCM_EVENT_END);
-
    return true;
 
 fail:
@@ -3117,11 +3095,10 @@ fail:
       release_images(new_img, faces, base_level, num_levels);
 
    *error = GL_OUT_OF_MEMORY;
-   khrn_driver_add_event(KHRN_DRIVER_TRACK_DRIVER, id, KHRN_DRIVER_EVENT_GENERATE_MIPMAPS, BCM_EVENT_END);
    return false;
 }
 
-static bool usage_ok(const KHRN_IMAGE_T *image)
+static bool usage_ok(const khrn_image *image)
 {
    const GFX_BUFFER_DESC_T *desc = &image->blob->desc[image->level];
    bool                    ok = true;
@@ -3136,7 +3113,7 @@ static bool usage_ok(const KHRN_IMAGE_T *image)
 }
 
 static bool texture_bind_images(GLXX_TEXTURE_T *texture, enum glxx_tex_binding binding,
-      KHRN_IMAGE_T **images,  unsigned num_images)
+      khrn_image **images,  unsigned num_images)
 {
    unsigned level;
 
@@ -3154,7 +3131,7 @@ static bool texture_bind_images(GLXX_TEXTURE_T *texture, enum glxx_tex_binding b
    return true;
 }
 
-bool glxx_texture_bind_teximage(GLXX_TEXTURE_T *texture, KHRN_IMAGE_T **images,
+bool glxx_texture_bind_teximage(GLXX_TEXTURE_T *texture, khrn_image **images,
       unsigned num_images, unsigned mip_level, glxx_context_fences *fences)
 {
    bool ok;
@@ -3211,9 +3188,9 @@ void glxx_texture_set_crop_rect(GLXX_TEXTURE_T *texture, const GLint * params)
 }
 
 bool glxx_texture_acquire_one_elem_slice(GLXX_TEXTURE_T *texture,
-      unsigned face, unsigned level, unsigned layer, KHRN_IMAGE_T **p_img)
+      unsigned face, unsigned level, unsigned layer, khrn_image **p_img)
 {
-   KHRN_IMAGE_T *img = NULL;
+   khrn_image *img = NULL;
    unsigned xoffset, yoffset, zoffset, start_elem, faces;
    bool res = true;
 
@@ -3259,7 +3236,7 @@ end:
 }
 
 bool glxx_texture_acquire_from_eglimage(GLXX_TEXTURE_T *texture, unsigned face,
-      unsigned level, unsigned layer, KHRN_IMAGE_T **img)
+      unsigned level, unsigned layer, khrn_image **img)
 {
    assert(texture->binding == TEX_BOUND_NONE || texture->binding == TEX_BOUND_EGLIMAGE_SOURCE);
 
@@ -3303,7 +3280,7 @@ GL_API void GL_APIENTRY glEGLImageTargetTexture2DOES(GLenum target,
    EGL_IMAGE_T *egl_image = NULL;
    GLenum error = GL_NO_ERROR;
    GLXX_TEXTURE_T *texture = NULL;
-   KHRN_IMAGE_T *khr_image = NULL;
+   khrn_image *khr_image = NULL;
    bool locked = false;
 
    if (!egl_context_gl_lock())
@@ -3370,7 +3347,7 @@ end:
 }
 
 bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, unsigned face,
-      unsigned level, GFX_LFMT_T dst_fmt, KHRN_IMAGE_T *src,
+      unsigned level, GFX_LFMT_T dst_fmt, khrn_image *src,
       int src_x, int src_y, int width, int height,
       glxx_context_fences *fences)
 {
@@ -3421,7 +3398,7 @@ bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, unsigned face,
 
 bool glxx_texture_copy_sub_image(GLXX_TEXTURE_T *texture, unsigned face,
       unsigned level, int dst_x,int dst_y, int dst_z,
-      KHRN_IMAGE_T *src, int src_x, int src_y, int width, int height,
+      khrn_image *src, int src_x, int src_y, int width, int height,
       glxx_context_fences *fences)
 {
    unsigned depth, num_array_elems;
@@ -3528,7 +3505,7 @@ static bool texture_buffer_create_images(GLXX_TEXTURE_T *texture)
 
    /* if the buffer storage didn't change, keep this image */
    if (texture->img[0][0] != NULL &&
-         texture->img[0][0]->blob->res_i == tex_buffer->buffer->resource)
+         texture->img[0][0]->blob->res == tex_buffer->buffer->resource)
       return true;
 
    KHRN_MEM_ASSIGN(texture->img[0][0], NULL);
@@ -3550,7 +3527,7 @@ static bool texture_buffer_create_images(GLXX_TEXTURE_T *texture)
    assert(bd.block_w == 1 && bd.block_h ==1 && bd.block_d == 1);
    size_t clamped_size = desc.width * bd.bytes_per_block;
 
-   KHRN_BLOB_T *blob = khrn_blob_create_from_res_interlock(tex_buffer->buffer->resource, &desc, 1, 1,
+   khrn_blob *blob = khrn_blob_create_from_resource(tex_buffer->buffer->resource, &desc, 1, 1,
          tex_buffer->offset + clamped_size, GFX_BUFFER_USAGE_V3D_TEXTURE, texture->create_secure);
    if (!blob)
       return false;

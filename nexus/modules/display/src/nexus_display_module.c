@@ -531,20 +531,22 @@ static void NEXUS_DisplayModule_Print(void)
     for (input=BLST_S_FIRST(&g_NEXUS_DisplayModule_State.inputs);input;input=BLST_S_NEXT(input, link)) {
         char buf[32];
         if (input->id <= BAVC_SourceId_eMpegMax) {
-            BKNI_Snprintf(buf, 32, "eMpeg%d", input->id);
+            BKNI_Snprintf(buf, 32, "MFD%d", input->id);
         }
         else if (input->id <= BAVC_SourceId_eGfxMax) {
-            BKNI_Snprintf(buf, 32, "eGfx%d", input->id-BAVC_SourceId_eMpegMax);
+            BKNI_Snprintf(buf, 32, "GFD%d", input->id-BAVC_SourceId_eMpegMax);
         }
         else if (input->id <= BAVC_SourceId_eVfdMax) {
-            BKNI_Snprintf(buf, 32, "eVfd%d", input->id-BAVC_SourceId_eGfxMax);
+            BKNI_Snprintf(buf, 32, "VFD%d", input->id-BAVC_SourceId_eGfxMax);
         }
         else {
             BKNI_Snprintf(buf, 32, "BAVC_SourceId %d", input->id);
         }
-		BVDC_Dbg_Source_GetDebugStatus(input->sourceVdc, &srcDbgInfo);
-        BDBG_MODULE_LOG(display_proc, ("NEXUS_VideoInput %p: link=%p, %s, %s, ref_cnt=%d, errors=%d",
-            (void *)input->input, (void *)input, g_videoInputStr[input->input->type], buf, input->ref_cnt, srcDbgInfo.ulNumErr));
+        BVDC_Dbg_Source_GetDebugStatus(input->sourceVdc, &srcDbgInfo);
+        BDBG_MODULE_LOG(display_proc, ("NEXUS_VideoInput %p: link=%p, %s, %s%s, ref_cnt=%d, errors=%d",
+            (void *)input->input, (void *)input, g_videoInputStr[input->input->type],
+            buf, nexus_p_input_is_mtg(input)?" MTG":"",
+            input->ref_cnt, srcDbgInfo.ulNumErr));
     }
 #endif
 
@@ -576,6 +578,7 @@ NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSett
     BKNI_Memset(state, 0, sizeof(*state));
     state->moduleSettings = *pSettings;
     state->pqDisabled = NEXUS_GetEnv("pq_disabled")!=NULL;
+    state->verifyTimebase = NEXUS_GetEnv("verify_timebase")!=NULL;
 
     if (pModuleSettings->modules.surface == NULL) {
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -1005,6 +1008,8 @@ static void NEXUS_P_SetDisplayCapabilities(void)
                 for (i=0;i<NEXUS_MAX_VIDEO_WINDOWS;i++) {
                     if (pSettings->videoWindowHeapIndex[j][i] >= NEXUS_MAX_HEAPS) break;
                     pCapabilities->display[j].numVideoWindows++;
+                    pCapabilities->display[j].window[i].maxWidthPercentage = 100;
+                    pCapabilities->display[j].window[i].maxHeightPercentage = 100;
                 }
                 if (i > 0) pCapabilities->numDisplays++;
             }
@@ -1034,6 +1039,14 @@ static void NEXUS_P_SetDisplayCapabilities(void)
             for (i=0;i<NEXUS_NUM_VIDEO_WINDOWS;i++) {
                 if (!g_pCoreHandles->boxConfig->stVdc.astDisplay[j].astWindow[i].bAvailable) break;
                 pCapabilities->display[j].numVideoWindows++;
+                if (g_pCoreHandles->boxConfig->stVdc.astDisplay[j].astWindow[i].stSizeLimits.ulWidthFraction == BBOX_VDC_DISREGARD) {
+                    pCapabilities->display[j].window[i].maxWidthPercentage = 100;
+                    pCapabilities->display[j].window[i].maxHeightPercentage = 100;
+                }
+                else if (g_pCoreHandles->boxConfig->stVdc.astDisplay[j].astWindow[i].stSizeLimits.ulWidthFraction) {
+                    pCapabilities->display[j].window[i].maxWidthPercentage = 100 / g_pCoreHandles->boxConfig->stVdc.astDisplay[j].astWindow[i].stSizeLimits.ulWidthFraction;
+                    pCapabilities->display[j].window[i].maxHeightPercentage = 100 / g_pCoreHandles->boxConfig->stVdc.astDisplay[j].astWindow[i].stSizeLimits.ulHeightFraction;
+                }
             }
             if (i > 0) pCapabilities->numDisplays++;
             sourceCap = &g_pCoreHandles->boxConfig->stVdc.astSource[BAVC_SourceId_eGfx0 + j];

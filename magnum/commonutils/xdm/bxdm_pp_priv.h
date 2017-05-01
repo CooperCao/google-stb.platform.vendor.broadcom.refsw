@@ -789,8 +789,8 @@ typedef struct BXDM_PictureProvider_P_ClipInfo
 
 typedef enum BXDM_PictureProvider_P_DecodeState
 {
+      BXDM_PictureProvider_P_DecodeState_eStopped=0,
       BXDM_PictureProvider_P_DecodeState_eStarted,
-      BXDM_PictureProvider_P_DecodeState_eStopped,
 
       BXDM_PictureProvider_P_DecodeState_eMax
 } BXDM_PictureProvider_P_DecodeState;

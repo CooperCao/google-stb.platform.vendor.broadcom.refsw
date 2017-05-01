@@ -1,14 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2007 Broadcom.  All rights reserved.
-
-Project  :  C6357
-Module   :  Simulator floating point routines (fpu)
-
-FILE DESCRIPTION
-Bit-exact floating point operations for VC07.
-=============================================================================*/
-
+/******************************************************************************
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
+
+/* constant folding as per the GLSL spec can be done at a higher precision to the device. */
+#define NATIVE_FLOATS
 
 #include <limits.h>
 #ifdef NATIVE_FLOATS
@@ -431,7 +427,7 @@ extern int glsl_fpu_recip (unsigned *r, unsigned b)
 #ifdef NATIVE_FLOATS
    float fb = *(float *)&b;
 
-   *(float *)r = 1.0 / fb;
+   *(float *)r = (float) (1.0 / fb);
    return 0;
 #else
    if ((b & ~(1 << 31)) > (0xFF << 23)) {
@@ -563,7 +559,7 @@ extern int glsl_fpu_ceil (unsigned *r, unsigned b)
 #ifdef NATIVE_FLOATS
    float fb = *(float *)&b;
 
-   *(float *)r = ceil (fb);
+   *(float *)r = (float) (ceil (fb));
    return 0;
 #else
    int s;
@@ -622,7 +618,7 @@ extern int glsl_fpu_floor (unsigned *r, unsigned b)
 #ifdef NATIVE_FLOATS
    float fb = *(float *)&b;
 
-   *(float *)r = floor (fb);
+   *(float *)r = (float) (floor (fb));
    return 0;
 #else
    int s;
@@ -681,7 +677,7 @@ extern int glsl_fpu_log2 (unsigned *r, unsigned b)
 #ifdef NATIVE_FLOATS
    float fb = *(float *)&b;
 
-   *(float *)r = log (fb / log (2.0));
+   *(float *)r = (float) (log (fb) / log (2.0));
    return 0;
 #else
    if ((b & ~(1 << 31)) > (0xFF << 23)
@@ -700,7 +696,7 @@ extern int glsl_fpu_exp2 (unsigned *r, unsigned b)
 #ifdef NATIVE_FLOATS
    float fb = *(float *)&b;
 
-   *(float *)r = exp (fb * log (2.0));
+   *(float *)r = (float) (exp (fb * log (2.0)));
    return 0;
 #else
    if (IS_NAN (b)) {
@@ -942,7 +938,7 @@ extern void glsl_fpu_floattouintn (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_inttofloat (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   *(float *)r = ((int) a) / pow (2.0f, (double) (int) b);
+   *(float *)r = (float) (((int) a) / pow (2.0f, (double) (int) b));
    return 0;
 #else
    int sb = b;
@@ -969,7 +965,7 @@ extern int glsl_fpu_inttofloat (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_uinttofloat (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   *(float *)r = ((unsigned int) a) / pow (2.0f, (double) (int) b);
+   *(float *)r = (float) (((unsigned int) a) / pow (2.0f, (double) (int) b));
    return 0;
 #else
    int sb = b;
@@ -1202,89 +1198,81 @@ static int fn_log2 (unsigned *r, unsigned f)
       return 0;
    }
 
-      static int fn_exp2 (unsigned *r, unsigned f)
-      {
-      unsigned s;
-      unsigned e;
-      unsigned tmpshift;
-      unsigned overflow;
-      unsigned tmpden;
-      unsigned denorm;
+static int fn_exp2 (unsigned *r, unsigned f)
+{
+   unsigned s;
+   unsigned e;
+   unsigned tmpshift;
+   unsigned overflow;
+   unsigned tmpden;
+   unsigned denorm;
 
-      /* All denormals are silently changed to +0.0 on input.  This is so
-      that e.g. +-0.0 will return the same value.  */
-      if (((f >> 23) & 0xFF) == 0)
+   /* All denormals are silently changed to +0.0 on input.  This is so
+   that e.g. +-0.0 will return the same value.  */
+   if (((f >> 23) & 0xFF) == 0)
       f = 0;
 
-      /* Infinity?  */
-      if ((f & (0xFF << 23)) == (0xFF << 23)) {
+   /* Infinity?  */
+   if ((f & (0xFF << 23)) == (0xFF << 23)) {
       if (f & (1 << 31))
-      *r = 0;
+         *r = 0;
       else
-      *r = (0xFF << 23);
+         *r = (0xFF << 23);
       return 0;
-      }
+   }
 
-      s = f & (1 << 31);
-      e = (f >> 23) & 0xFF;
+   s = f & (1 << 31);
+   e = (f >> 23) & 0xFF;
 
-      if (e & (1 << 7)) {
+   if (e & (1 << 7))
       tmpshift = (~e) & ((1 << 3) - 1);
-   } else {
+   else
       tmpshift = (~e) & ((1 << 4) - 1);
-   }
-      tmpden = (1 << 23) | (f & ((1 << 23) - 1));
-      tmpden >>= tmpshift;
+   tmpden = (1 << 23) | (f & ((1 << 23) - 1));
+   tmpden >>= tmpshift;
 
-      overflow = 0;
-      if (e & (1 << 7)) {
+   overflow = 0;
+   if (e & (1 << 7)) {
       denorm = tmpden & ((1 << 22) - 1);
-      if (((e >> 3) & ((1 << 4) - 1))
-      || ((tmpden >> 22) & 0x3)) {
-      overflow = 1;
-   }
+      if (((e >> 3) & ((1 << 4) - 1)) || ((tmpden >> 22) & 0x3))
+         overflow = 1;
    } else {
       if ((e & 0x70) == 0x70) {
-      denorm = tmpden >> 8;
-      denorm &= ((1 << 16) - 1);
-   } else {
-      denorm = 0;
-   }
+         denorm = tmpden >> 8;
+         denorm &= ((1 << 16) - 1);
+      } else
+         denorm = 0;
    }
 
-      if (s) {
+   if (s)
       denorm = (~denorm) & ((1 << 22) - 1);
-   }
 
-      f = fn_interp (c0_exp2, c1_exp2, c2_exp2, denorm & ((1 << 15) - 1));
+   f = fn_interp (c0_exp2, c1_exp2, c2_exp2, denorm & ((1 << 15) - 1));
 
-      if (s) {
-      unsigned d;
-      d = (denorm >> 15);
+   if (s) {
+      unsigned d = (denorm >> 15);
       d &= ((1 << 7) - 1);
 
       if (overflow || d < 2) {
-      *r = 0;
-      return FPE_UF;
-   } else {
-      f |= (d - 1) << 23;
-   }
+         *r = 0;
+         return FPE_UF;
+      } else
+         f |= (d - 1) << 23;
    } else {
       if (overflow) {
-      *r = (0xFF << 23);
-      return FPE_OF;
-   } else {
-      unsigned d;
-      d = (denorm >> 15);
-      d &= ((1 << 7) - 1);
+         *r = (0xFF << 23);
+         return FPE_OF;
+      } else {
+         unsigned d = (denorm >> 15);
+         d &= ((1 << 7) - 1);
 
-      d += 127;
-      d &= ((1 << 8) - 1);
+         d += 127;
+         d &= ((1 << 8) - 1);
 
-      f |= (d << 23);
-   }
+         f |= (d << 23);
+      }
    }
 
-      *r = f;
-      return 0;
-   }
+   *r = f;
+   return 0;
+}

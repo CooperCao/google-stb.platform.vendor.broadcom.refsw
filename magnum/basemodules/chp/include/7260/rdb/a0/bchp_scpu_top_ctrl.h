@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,9 +70,9 @@
 /***************************************************************************
  *SCPU_TOP_CTRL - SCPU Top Control Registers
  ***************************************************************************/
-#define BCHP_SCPU_TOP_CTRL_ALT_BOOT_VECTOR       0x20312000 /* [RW] SCPU MIPS RESET VECTOR Register */
-#define BCHP_SCPU_TOP_CTRL_SCPU_HOST_IRDY        0x20312004 /* [RW] SCPU to Host Irdy Register */
-#define BCHP_SCPU_TOP_CTRL_SCPU_BSP_DDONE        0x20312008 /* [WO] SCPU to BSP DDONE Register */
+#define BCHP_SCPU_TOP_CTRL_ALT_BOOT_VECTOR       0x20312000 /* [RW][32] SCPU MIPS RESET VECTOR Register */
+#define BCHP_SCPU_TOP_CTRL_SCPU_HOST_IRDY        0x20312004 /* [RW][32] SCPU to Host Irdy Register */
+#define BCHP_SCPU_TOP_CTRL_SCPU_BSP_DDONE        0x20312008 /* [WO][32] SCPU to BSP DDONE Register */
 
 /***************************************************************************
  *ALT_BOOT_VECTOR - SCPU MIPS RESET VECTOR Register

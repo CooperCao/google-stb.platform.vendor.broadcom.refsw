@@ -695,7 +695,7 @@ static const CIR_Param necParam = {
     22,             /* edge time-out */
     6,              /* minimum dead-time after fault = 1.5 ms */
     {0, 0},         /* stop symbol pulse or cycle period */
-    256,              /* data symbol timeout */
+    600,            /* data symbol timeout */
     280,
     0,
     0,
@@ -1778,18 +1778,12 @@ BERR_Code BKIR_GetChannelDefaultSettings(
 }
 
 BERR_Code BKIR_GetDefaultCirParam (
-    BKIR_ChannelHandle  hChn,            /* Device channel handle */
     BKIR_KirDevice      device,          /* device type to enable */
     CIR_Param           *pCustomCirParam /* [output] Returns default setting */
 )
 {
     BERR_Code retCode = BERR_SUCCESS;
     const CIR_Param *pCirParam = NULL;
-
-#if !BDBG_DEBUG_BUILD
-    BSTD_UNUSED(hChn);
-#endif
-    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     switch (device)
     {
@@ -1825,9 +1819,6 @@ BERR_Code BKIR_GetDefaultCirParam (
             break;
         case BKIR_KirDevice_eCirGISat:
             pCirParam = &giSatParam;
-            break;
-        case BKIR_KirDevice_eCirCustom:
-            pCirParam = &(hChn->customCirParam);
             break;
         case BKIR_KirDevice_eCirRC6:
             pCirParam = &rC6Mode6AParam;
@@ -1870,6 +1861,26 @@ BERR_Code BKIR_GetDefaultCirParam (
     {
         BKNI_Memcpy ((void *)pCustomCirParam, (void *)pCirParam, sizeof(CIR_Param));
     }
+
+    return( retCode );
+}
+
+BERR_Code BKIR_GetCurrentCirParam (
+    BKIR_ChannelHandle  hChn,            /* Device channel handle */
+    BKIR_KirDevice      device,          /* device type to enable */
+    CIR_Param           *pCustomCirParam /* [output] Returns current setting */
+)
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    const CIR_Param *pCirParam = NULL;
+
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
+
+    if (device == BKIR_KirDevice_eCirCustom) {
+        pCirParam = &(hChn->customCirParam);
+        BKNI_Memcpy ((void *)pCustomCirParam, (void *)pCirParam, sizeof(CIR_Param));
+    } else
+        retCode = BKIR_GetDefaultCirParam(device, pCustomCirParam);
 
     return( retCode );
 }
@@ -2582,7 +2593,6 @@ void BKIR_SetCustomCir (
     CIR_Param           *pCirParam
 )
 {
-    BSTD_UNUSED(hChn);
     BKNI_Memcpy ((void *)&(hChn->customCirParam), (void *)pCirParam, sizeof(CIR_Param));
 }
 

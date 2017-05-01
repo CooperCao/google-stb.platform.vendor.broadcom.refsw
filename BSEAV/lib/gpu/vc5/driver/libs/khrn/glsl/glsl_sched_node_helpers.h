@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -117,6 +117,11 @@ static inline Backflow *glsl_backflow_thrsw(void) { return tr_nullary(BACKFLOW_T
 static inline Backflow *glsl_backflow_tmuwt(void) { return tr_nullary(BACKFLOW_TMUWT); }
 static inline Backflow *glsl_backflow_dummy(void) { return tr_nullary(BACKFLOW_DUMMY); }
 
+
+static inline bool is_plain_unif(const Backflow *b) {
+   return (b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF &&
+           b->unif_type == BACKEND_UNIFORM_PLAIN         );
+}
 
 static inline bool is_const(const Backflow *b) {
    return (b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF &&

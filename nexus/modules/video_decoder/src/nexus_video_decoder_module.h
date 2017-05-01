@@ -493,6 +493,9 @@ struct NEXUS_VideoDecoder {
         NEXUS_VideoDecoderPrivateSettings settings;
         NEXUS_IsrCallbackHandle streamChangedCallback;
     } private;
+
+    NEXUS_Timebase timebase; /* Required for storing the timebase at start time so that it can be retrieved later at isr time */
+    bool crcMode;
 };
 
 /* The NEXUS_VideoDecoderDevice corresponds to an AVD HW block. */
@@ -677,7 +680,7 @@ void NEXUS_VideoDecoder_P_Stop_Priv_Generic_Prologue(NEXUS_VideoDecoderHandle vi
 void NEXUS_VideoDecoder_P_Stop_Priv_Generic_Epilogue(NEXUS_VideoDecoderHandle videoDecoder);
 void NEXUS_VideoDecoder_P_Stop_Generic_Epilogue(NEXUS_VideoDecoderHandle videoDecoder);
 void NEXUS_VideoDecoder_P_GetStatus_Generic(NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoDecoderStatus *pStatus);
-const BAVC_MFD_Picture * NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(NEXUS_VideoDecoderHandle videoDecoder, const BAVC_MFD_Picture *pFieldData, BAVC_MFD_Picture *pModifiedFieldData);
+const BAVC_MFD_Picture * NEXUS_VideoDecoder_P_DataReady_PreprocessFieldData_isr(NEXUS_VideoDecoderHandle videoDecoder, const BAVC_MFD_Picture *pFieldData);
 void NEXUS_VideoDecoder_P_DataReady_Generic_Prologue_isr(NEXUS_VideoDecoderHandle videoDecoder, const BAVC_MFD_Picture *pFieldData);
 void NEXUS_VideoDecoder_P_DataReady_Generic_Epilogue_isr(NEXUS_VideoDecoderHandle videoDecoder, const BAVC_MFD_Picture *pFieldData, unsigned pictureDeliveryCount);
 void NEXUS_VideoDecoder_P_IsCodecSupported_Generic( NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoCodec codec, bool *pSupported);

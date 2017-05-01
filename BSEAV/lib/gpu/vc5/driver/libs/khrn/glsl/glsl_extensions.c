@@ -45,6 +45,8 @@ static struct {
    {{"GL_OES_geometry_shader",         "GL_EXT_geometry_shader"},         false, GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_GEOMETRY_SHADER, tng_implies },
    {{"GL_OES_geometry_point_size",     "GL_EXT_geometry_point_size"},     false, GLSL_DISABLED, 0, NULL },
 
+   {{"GL_BRCM_no_perspective",},     V3D_HAS_VARY_NO_PERSP, GLSL_DISABLED, 0, NULL },
+
    {{"GL_ANDROID_extension_pack_es31a", },     V3D_VER_AT_LEAST(4,0,2,0) && false, GLSL_DISABLED, 0, aep_implies },
 };
 

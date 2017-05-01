@@ -121,7 +121,7 @@ eRet initializeNexus()
         }
 
         nerror = NxClient_Join(&joinSettings);
-        CHECK_NEXUS_ERROR_ASSERT("error calling NxClientJoin()", nerror);
+        CHECK_NEXUS_ERROR_GOTO("error calling NxClientJoin()", ret, nerror, error);
 
         /* enable audio decoder output delay for SPDIF/HDMI/DAC */
         {
@@ -229,6 +229,12 @@ eRet initializeNexus()
 #endif
             }
         }
+#ifdef B_HAS_DTCP_IP
+    /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
+       It could be any small size heap.
+       Configure export heap since it's not allocated by nexus by default */
+    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
+#endif
         /* coverity[stack_use_overflow] */
         nerror = NEXUS_Platform_Init(&platformSettings);
         CHECK_NEXUS_ERROR_GOTO("unable to initialize nexus", ret, nerror, error);
@@ -462,6 +468,11 @@ int main(
         )
 {
     eRet ret = eRet_Ok;
+
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024*2);
+#endif
+
 
     if (SIG_ERR == signal(SIGINT, cleanExit))
     {

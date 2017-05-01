@@ -474,7 +474,7 @@ static void build_statement(builder_context_t *ctx, const NStmt *stmt)
    }
 
    case NSTMT_DISCARD: {
-      Symbol *discard = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__OUT__BOOL____DISCARD);
+      const Symbol *discard = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__OUT__BOOL____DISCARD);
       glsl_basic_block_set_scalar_value(ctx->current_basic_block, discard, 0, glsl_dataflow_construct_const_bool(true));
       break;
    }

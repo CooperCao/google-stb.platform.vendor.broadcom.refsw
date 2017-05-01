@@ -32,14 +32,22 @@ const char *glsl_storage_qual_string(StorageQualifier sq) {
    }
 }
 
-const char *glsl_type_qual_string(TypeQualifier tq) {
-   switch (tq) {
-      case TYPE_QUAL_NONE:     return "";
-      case TYPE_QUAL_CENTROID: return "centroid";
-      case TYPE_QUAL_PATCH:    return "patch";
-      case TYPE_QUAL_FLAT:     return "flat";
-      case TYPE_QUAL_SAMPLE:   return "sample";
-      default: unreachable();  return NULL;
+const char *glsl_interp_qual_string(InterpolationQualifier iq) {
+   switch (iq) {
+      case INTERP_SMOOTH:        return "smooth";
+      case INTERP_NOPERSPECTIVE: return "noperspective";
+      case INTERP_FLAT:          return "flat";
+      default: unreachable();    return NULL;
+   }
+}
+
+const char *glsl_aux_qual_string(AuxiliaryQualifier aq) {
+   switch (aq) {
+      case AUXILIARY_NONE:          return "";
+      case AUXILIARY_CENTROID:      return "centroid";
+      case AUXILIARY_PATCH:         return "patch";
+      case AUXILIARY_SAMPLE:        return "sample";
+      default: unreachable();       return NULL;
    }
 }
 
@@ -71,7 +79,8 @@ void glsl_print_qualifiers(FILE* f, Symbol* symbol)
          return;
       case SYMBOL_VAR_INSTANCE:
          fprintf(f, "%s ", glsl_storage_qual_string(symbol->u.var_instance.storage_qual));
-         fprintf(f, "%s ", glsl_type_qual_string(symbol->u.var_instance.type_qual));
+         fprintf(f, "%s ", glsl_interp_qual_string(symbol->u.var_instance.interp_qual));
+         fprintf(f, "%s ", glsl_aux_qual_string(symbol->u.var_instance.aux_qual));
          return;
       default:
          unreachable();

@@ -212,18 +212,9 @@ static const char * const * const ErrorStrings[] =
    Warnings // WARNING
 };
 
-void glsl_compiler_exit()
-{
+void glsl_compiler_exit() {
    longjmp(g_ErrorHandlerEnv, 1);
 }
-
-/*
-   glsl_compile_error
-
-   Prints out a suitable message to the console. Exits compilation if it is an error (rather than a warning).
-
-   (clarification, ...) must form a valid printf sequence
-*/
 
 
 #define MAX_ERROR_LENGTH 1024
@@ -241,9 +232,8 @@ const char *glsl_compile_error_get(void)
    return error_buffer;
 }
 
-void glsl_compile_error(ErrorType e, int code, int line_num, const char *clarification, ...)
+void glsl_compile_verror(ErrorType e, int code, int line_num, const char *clarification, va_list ap)
 {
-   va_list argp;
    const char *kind = e == WARNING ? "WARNING" : "ERROR";
 
    error_offset = VCOS_SAFE_SPRINTF(error_buffer, error_offset,
@@ -257,12 +247,19 @@ void glsl_compile_error(ErrorType e, int code, int line_num, const char *clarifi
 
       error_offset = VCOS_SAFE_SPRINTF(error_buffer, error_offset, "%s", sep);
 
-      va_start(argp, clarification);
-      error_offset = VCOS_SAFE_VSPRINTF(error_buffer, error_offset, clarification, argp);
-      va_end(argp);
+      error_offset = VCOS_SAFE_VSPRINTF(error_buffer, error_offset, clarification, ap);
    }
 
    error_offset = VCOS_SAFE_SPRINTF(error_buffer, error_offset, "\n");
+}
+
+void glsl_compile_error(ErrorType e, int code, int line_num, const char *clarification, ...)
+{
+   va_list argp;
+
+   va_start(argp, clarification);
+   glsl_compile_verror(e, code, line_num, clarification, argp);
+   va_end(argp);
 
    if (e != WARNING) {
       glsl_compiler_exit();

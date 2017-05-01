@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,12 +70,12 @@
 /***************************************************************************
  *SECAM_0 - Secam Signal Processor SECAM_0
  ***************************************************************************/
-#define BCHP_SECAM_0_SECAM_REV_ID                0x206e3200 /* [RO] REVISION ID REGISTER */
-#define BCHP_SECAM_0_FM_CONTROL                  0x206e3204 /* [RW] FM Control Register */
-#define BCHP_SECAM_0_FM_FMAMP                    0x206e3208 /* [RW] FM AMP Register */
-#define BCHP_SECAM_0_FM_SHAPER                   0x206e320c /* [RW] FM Shaper Register */
-#define BCHP_SECAM_0_FM_SC_FREQ0                 0x206e3210 /* [RW] FM Base Sub-carrier Max and Min Frequency */
-#define BCHP_SECAM_0_FM_SC_FREQ1                 0x206e3214 /* [RW] FM Base Sub-carrier Frequency Diff */
+#define BCHP_SECAM_0_SECAM_REV_ID                0x206e3200 /* [RO][32] REVISION ID REGISTER */
+#define BCHP_SECAM_0_FM_CONTROL                  0x206e3204 /* [RW][32] FM Control Register */
+#define BCHP_SECAM_0_FM_FMAMP                    0x206e3208 /* [RW][32] FM AMP Register */
+#define BCHP_SECAM_0_FM_SHAPER                   0x206e320c /* [RW][32] FM Shaper Register */
+#define BCHP_SECAM_0_FM_SC_FREQ0                 0x206e3210 /* [RW][32] FM Base Sub-carrier Max and Min Frequency */
+#define BCHP_SECAM_0_FM_SC_FREQ1                 0x206e3214 /* [RW][32] FM Base Sub-carrier Frequency Diff */
 
 /***************************************************************************
  *SECAM_REV_ID - REVISION ID REGISTER

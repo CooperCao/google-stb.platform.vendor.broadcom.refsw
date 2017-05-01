@@ -1,9 +1,11 @@
-# HLG stream A, EOTF HDR10, PLM on, full screen VID with GFX thumbnail
-stream=4
-eotf=hdr10
-plm.vid=1
+stream[0]=World_HDR_HD_VP9.webm
+stream[1]=Geostorm_SDR_AVC.mp4
+stream[2]=Guardians_SDR_HD_AVC.mp4
+stream[3]=Underdog_HDR_HD_VP9.webm
+dynrng=hdr10
+plm.vid=2
 plm.gfx=2
-image=0
-bg=0
-gamut=2020
+image=Avatar.bmp
+bg=desktop_background.brcmLTD.png
 pig=off
+layout=1

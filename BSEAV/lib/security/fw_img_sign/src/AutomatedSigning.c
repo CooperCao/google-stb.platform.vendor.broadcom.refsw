@@ -206,9 +206,10 @@ int SignData(unsigned char *Data, int DataSize, unsigned char *Signature)
 
 int SignDataFile(unsigned char *FileName, unsigned char *Signature)
 {
-        u_int8_t ShaDigest[SHA256_DIGEST_LENGTH];
-    u_int8_t Data[FILE_DATA_SIZE];
+    u_int8_t ShaDigest[SHA256_DIGEST_LENGTH];
+    u_int8_t *Data = NULL;
     int DataSize = 0;
+    int i = 0;
     u_int8_t Temp;
 
     FILE *fp = fopen(FileName,"rb");
@@ -229,18 +230,28 @@ int SignDataFile(unsigned char *FileName, unsigned char *Signature)
     {
         while (1 == fread(&Temp, 1, 1, fp))
         {
-            if (DataSize > FILE_DATA_SIZE)
-            {
-                printf("ERROR: Binary File too large to sign. Maximum Allowed Size = %d Bytes.\n",FILE_DATA_SIZE);
-                exit(1);
-            }
-            Data[DataSize++] = Temp;
+            DataSize++;
+        }
+        rewind(fp);
+        //Allocate enough memory for binary Data. Plus 10 bytes as extra buffer.
+        Data = malloc(DataSize + 10);
+        if (!Data)
+        {
+            printf("ERROR Allocating %d Bytes for Binary File.\n", DataSize+10);
+            exit (1);
+        }
+        //printf("Allocating %d Bytes for Binary File.\n", DataSize);
+        i = 0;
+        while (1 == fread(&Temp, 1, 1, fp))
+        {
+            Data[i++] = Temp;
         }
     }
     fclose(fp);
     printf("INFO: %d Bytes Read from file %s.\n", DataSize, FileName);
     Sha256Digest(Data, DataSize, ShaDigest);
-        return RSA_Sign(ShaDigest, SHA256_DIGEST_LENGTH, PrivateKey, Signature);
+    free(Data);
+    return RSA_Sign(ShaDigest, SHA256_DIGEST_LENGTH, PrivateKey, Signature);
 }
 
 int WriteCSignatureAndParameter(unsigned char *DataFileName, unsigned char *OutFileName, unsigned int RegionId, unsigned int Append)
@@ -278,7 +289,7 @@ int WriteAudioCSignature(unsigned char *DataFileName, unsigned char *OutFileName
         fread(&Signature.Words, sizeof(Sig_u), 1, fp);
     }
     fclose(fp);
-    Generate_Audio_C_file(&Signature.Words, sizeof(Sig_u), OutFileName);
+    Generate_Audio_C_file((unsigned char *)&Signature.Words, sizeof(Sig_u), OutFileName);
 
         return 1;
 }
@@ -299,7 +310,7 @@ int WriteSidCSignature(unsigned char *DataFileName, unsigned char *OutFileName)
         fread(&Signature.Words, sizeof(Sig_u), 1, fp);
     }
     fclose(fp);
-    Generate_SID_C_file(&Signature.Words, sizeof(Sig_u), OutFileName);
+    Generate_SID_C_file((unsigned char *)&Signature.Words, sizeof(Sig_u), OutFileName);
 
         return 1;
 }
@@ -320,7 +331,7 @@ int WriteRaveCSignature(unsigned char *DataFileName, unsigned char *OutFileName)
         fread(&Signature.Words, sizeof(Sig_u), 1, fp);
     }
     fclose(fp);
-    Generate_RAVE_C_file(&Signature.Words, sizeof(Sig_u), OutFileName);
+    Generate_RAVE_C_file((unsigned char *)&Signature.Words, sizeof(Sig_u), OutFileName);
 
         return 1;
 }
@@ -422,10 +433,10 @@ void WriteKeyAndParamsToFile(char *FileName)
 
 void WriteBinAndParamsToFile(FwParam_u FwParams, char * DataFileName, char *FileName, unsigned int LittleEndianInput)
 {
-  int i;
+  int i = 0;
   unsigned char * BytePtr;
   BytePtr = (unsigned char *)FwParams.Words;
-  u_int8_t Data[FILE_DATA_SIZE];
+  u_int8_t *Data = NULL;
   unsigned int *pData32 = (unsigned int *)Data;
   int DataSize = 0;
   u_int8_t Temp;
@@ -446,17 +457,25 @@ void WriteBinAndParamsToFile(FwParam_u FwParams, char * DataFileName, char *File
   {
     while (1 == fread(&Temp, 1, 1, fp))
     {
-        if (DataSize > (FILE_DATA_SIZE - sizeof (Param_u)))
-        {
-            printf("ERROR: Binary File too large. Signing Parameters cannot be added. Maximum Allowed Size = %d Bytes.\n",FILE_DATA_SIZE - sizeof (Param_u));
-            exit(1);
-        }
-        Data[DataSize++] = Temp;
+        DataSize++;
+    }
+    rewind(fp);
+    //Allocate enough memory for binary Data + Parameters. Plus 10 bytes as extra buffer.
+    Data = malloc(DataSize + sizeof(Param_u) + 10);
+    if (!Data)
+    {
+        printf("ERROR Allocating %d Bytes for Binary File.\n", (int)(DataSize + sizeof(Param_u) + 10));
+        exit (1);
+    }
+    //printf("Allocating %d Bytes for Binary File.\n", DataSize);
+    i = 0;
+    while (1 == fread(&Temp, 1, 1, fp))
+    {
+        Data[i++] = Temp;
     }
   }
   fclose(fp);
   printf("INFO: %d Bytes Read from file %s.\n", DataSize, DataFileName);
-
   if (1 == LittleEndianInput)
   {
 
@@ -476,6 +495,7 @@ void WriteBinAndParamsToFile(FwParam_u FwParams, char * DataFileName, char *File
   //save data buffer into output binary file
   Generate_BIN_file(Data, DataSize+sizeof(Param_u), FileName, 0);
 
+  free(Data);
   //for (i = 0; i < sizeof(KeyWithParams_u) ; i++)
   //{
   //    if (i%16 == 0)
@@ -1344,7 +1364,7 @@ int i;
         {
             printf("INFO: Signature File %s created by signing %s.\n", pOutFileName, pDataFileName);
             //Generate_BIN_file(SignatureSwapped.Key.Data, SignatureSize, pOutFileName);
-            Generate_AVD_C_file(SignatureSwapped.Key.Data, SignatureSize, pOutFileName);
+            Generate_AVD_C_file(SignatureSwapped.Key.Data, pOutFileName);
         }
         else if (eBinary == OutType)
         {
@@ -1828,7 +1848,7 @@ char OutFileName[FILENAME_LEN];
 char *pOutFileName = NULL;
 char DataFileName[FILENAME_LEN];
 char *pDataFileName = NULL;
-char *VariableName[FILENAME_LEN];
+char VariableName[FILENAME_LEN];
 unsigned int Value;
 int ParamCount = 0;
 Key_u Signature;

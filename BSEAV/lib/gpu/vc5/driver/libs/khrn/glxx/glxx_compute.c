@@ -15,6 +15,7 @@
 
 LOG_DEFAULT_CAT("glxx_compute")
 
+// Backend key GLXX_COMPUTE_PADDING assumes use of 16-bit TLB format now.
 typedef uint16_t tlb_uint_t;
 #define TLB_UINT_BITS (sizeof(tlb_uint_t)*8u)
 static_assrt(TLB_UINT_BITS == 8 || TLB_UINT_BITS == 16);
@@ -52,16 +53,29 @@ typedef struct compute_dispatch_volume
 typedef struct compute_dispatch_config
 {
    unsigned items_per_group;
-   unsigned max_groups_per_row;
    unsigned groups_per_instance;
+   unsigned groups_per_whole_row;
+   unsigned groups_per_partial_row;
    unsigned whole_rows_per_instance;
+   unsigned rows_per_instance;
 
    unsigned group_size[3];    // 3D num items in group.
    unsigned instance_size[3]; // 3D num groups in instance.
    unsigned shared_block_size;
 
-   bool workaround_gfxh_1193;
+   uint32_t quorum;
+   unsigned shader_index;
+   bool has_barrier;
 } compute_dispatch_config;
+
+typedef struct dispatch_state
+{
+   bool image_like_uniforms_valid;
+   glxx_hw_image_like_uniforms image_like_uniforms;
+   GLSL_BACKEND_CFG_T key; // gadgettypes valid iff image_like_uniforms_valid
+
+   GLXX_LINK_RESULT_DATA_T* link_data[2]; // without/with GLSL_COMPUTE_PADDING
+} dispatch_state;
 
 static unsigned get_shared_buf_size(void)
 {
@@ -77,48 +91,48 @@ static unsigned compute_num_instances(compute_dispatch_config const* cfg, comput
    return num_groups / cfg->groups_per_instance;
 }
 
+static unsigned max_items_per_row_for_hw(unsigned num_threads)
+{
+   V3D_IDENT_T const* ident = v3d_scheduler_get_identity();
+   return (ident->num_slices * ident->num_qpus_per_slice * V3D_VPAR) * num_threads;
+}
+
 static bool init_dispatch_config(
    compute_dispatch_config* cfg,
-   v3d_threading_t threading,
-   unsigned const wg_size[3],
-   unsigned const shared_block_size,
+   GLSL_PROGRAM_T const* program,
    unsigned const num_groups[3])
 {
    unsigned items_per_group = 1;
    for (unsigned i = 0; i != 3; ++i)
    {
-      cfg->group_size[i] = wg_size[i];
-      items_per_group *= wg_size[i];
+      cfg->group_size[i] = program->ir->cs_wg_size[i];
+      items_per_group *= program->ir->cs_wg_size[i];
    }
    cfg->items_per_group = items_per_group;
-   cfg->shared_block_size = shared_block_size;
+   cfg->shared_block_size = program->cs_shared_block_size;
+   cfg->has_barrier = program->cs_has_barrier;
 
-   V3D_IDENT_T const* ident = v3d_scheduler_get_identity();
-
-   // Compute maximum number of work-items that can run concurrently in one core.
+   // Compute maximum number of work-items that can run concurrently in one core with minimum threading.
    static_assrt(TLB_WIDTH * 2u >= GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS);
-   unsigned max_items_per_group = TLB_WIDTH * 2u;
+   unsigned max_items_per_row = gfx_umin(TLB_WIDTH * 2u, max_items_per_row_for_hw(V3D_HAS_RELAXED_THRSW ? 2 : 1));
    unsigned max_concurrent_groups = TLB_WIDTH * TLB_HEIGHT;
-   if (shared_block_size > 0)
-   {
-      static_assrt(V3D_THREADING_T1 == 0 && V3D_THREADING_T2 == 1 && V3D_THREADING_T4 == 2);
-      max_items_per_group = gfx_umin(max_items_per_group, (ident->num_slices * ident->num_qpus_per_slice * V3D_VPAR) << threading);
-      if (items_per_group > max_items_per_group)
-         return false;
 
+   // But allow at least the minimum for this work group. If the shader linking doesn't thread enough then
+   // we might fail when we check this later.
+   assert(items_per_group <= GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS);
+   max_items_per_row = gfx_umax(items_per_group, max_items_per_row);
+
+   if (cfg->shared_block_size > 0)
+   {
       // It is possible for the compiler to allocate more than the allowable memory due to padding.
-      max_concurrent_groups = get_shared_buf_size() / shared_block_size;
+      max_concurrent_groups = get_shared_buf_size() / cfg->shared_block_size;
       if (max_concurrent_groups == 0)
          return false;
    }
 
    // Compute maximum number of groups per row.
    // Limit to 1/4 of the shared memory size if possible.
-   // Limit to powers of 2 to hopefully improve mapping of compute volumes into TLB.
-   // timh-todo: set barrier quorum for partial rows to remove this limitation
-   unsigned max_groups_per_row = gfx_umin(max_items_per_group / items_per_group, (max_concurrent_groups + 3u) / 4u);
-   max_groups_per_row = gfx_next_power_of_2(max_groups_per_row + 1) / 2;
-
+   unsigned max_groups_per_row = gfx_umin(max_items_per_row / items_per_group, (max_concurrent_groups + 3u) / 4u);
    unsigned max_groups_per_instance = gfx_umin(max_groups_per_row * (TLB_HEIGHT / 2), max_concurrent_groups);
 
    // Need to try and factor the 3D array of groups into a per-instance volume. Try and keep this simple for now.
@@ -147,13 +161,12 @@ static bool init_dispatch_config(
       if (new_instance_size > instance_size[dim])
       {
          // Check the global ID along this dimension doesn't overflow the TLB lookup table.
-         if (TLB_UINT_MAX < 0xffff || new_instance_size * wg_size[dim] <= (TLB_UINT_MAX + 1))
+         if (TLB_UINT_MAX < 0xffff || new_instance_size * cfg->group_size[dim] <= (TLB_UINT_MAX + 1))
          {
             // Check we can fit the additional work-groups into this instance.
             assert((groups_per_instance % instance_size[dim]) == 0);
             unsigned new_groups_per_instance = (groups_per_instance / instance_size[dim]) * new_instance_size;
-            if (  new_groups_per_instance <= max_groups_per_instance
-               && (new_groups_per_instance < max_groups_per_row || (new_groups_per_instance % max_groups_per_row) == 0)) // timh-todo: remove this limitation
+            if (new_groups_per_instance <= max_groups_per_instance)
             {
                // OK to expand this dimension.
                instance_size[dim] = new_instance_size;
@@ -171,21 +184,29 @@ static bool init_dispatch_config(
       }
       num_dims -= 1;
    }
+   max_groups_per_row = gfx_umin(groups_per_instance, max_groups_per_row);
 
    cfg->groups_per_instance = groups_per_instance;
-   cfg->max_groups_per_row = gfx_umin(groups_per_instance, max_groups_per_row);
-   cfg->whole_rows_per_instance = groups_per_instance / cfg->max_groups_per_row;
-   assert((groups_per_instance % cfg->max_groups_per_row) == 0); // timh-todo: remove this limitation
+   cfg->groups_per_whole_row = max_groups_per_row;
+   cfg->groups_per_partial_row = groups_per_instance % max_groups_per_row;
+   cfg->whole_rows_per_instance = groups_per_instance / max_groups_per_row;
+   cfg->rows_per_instance = cfg->whole_rows_per_instance + (cfg->groups_per_partial_row ? 1 : 0);
+
+   // If our workgroups don't exactly map onto QPU batches, then the shader will
+   // need to perform the disabled element test.
+   unsigned items_per_whole_row = cfg->groups_per_whole_row * items_per_group;
+   unsigned items_per_partial_row = cfg->groups_per_partial_row * items_per_group;
+   cfg->shader_index = ((items_per_whole_row | items_per_partial_row) % V3D_VPAR) != 0;
+
    cfg->instance_size[0] = instance_size[0];
    cfg->instance_size[1] = instance_size[1];
    cfg->instance_size[2] = instance_size[2];
 
-   // Workaround GFXH-1193, need to prevent vertex shaders running when more than 96 2-threaded
-   // work-items are in flight at the same time. todo: only required if barriers are used.
-   cfg->workaround_gfxh_1193 =
-         ident->num_slices == 1
-      && threading == V3D_THREADING_T2
-      && (max_groups_per_row*items_per_group) > 96;
+   unsigned quorum = (cfg->groups_per_whole_row * cfg->items_per_group + 15) / 16;
+   unsigned quorum0 = (cfg->groups_per_partial_row * cfg->items_per_group + 15) / 16;
+   if (!quorum0)
+      quorum0 = quorum;
+   cfg->quorum = (quorum << 16) | quorum0;
 
    return true;
 }
@@ -222,35 +243,32 @@ static v3d_addr_t build_tlb_lookup(khrn_fmem* fmem, compute_dispatch_config cons
 
    unsigned items_per_group = cfg->items_per_group;
    unsigned groups_per_instance = cfg->groups_per_instance;
-   unsigned max_groups_per_row = cfg->max_groups_per_row;
+   unsigned groups_per_whole_row = cfg->groups_per_whole_row;
+   unsigned num_rows = cfg->rows_per_instance;
 
-   unsigned items_per_row = max_groups_per_row * items_per_group;
+   unsigned items_per_row = groups_per_whole_row * items_per_group;
    unsigned lanes_per_row = gfx_uround_up_p2(items_per_row, V3D_VPAR);
 
-   uint32_t row_index_shift = gfx_msb(items_per_group);
-   row_index_shift += items_per_group > (1u << row_index_shift);
+   uint32_t group_index_shift = gfx_log2(gfx_next_power_of_2(items_per_group));
 
-   unsigned num_whole_rows = cfg->whole_rows_per_instance;
-   unsigned num_groups_partial_row = cfg->groups_per_instance - num_whole_rows*max_groups_per_row;
-   for (unsigned row_index = 0; row_index <= num_whole_rows; ++row_index)
+   for (unsigned row_index = 0; row_index != num_rows; ++row_index)
    {
-      if (row_index == num_whole_rows && num_groups_partial_row == 0)
-         break;
+      // Arrange so that the (last) partial row is at 0 for easy detection in the shader.
+      unsigned y0 = (num_rows - row_index - 1) * 2;
 
       for (unsigned item_index = 0; item_index != lanes_per_row; ++item_index)
       {
-         uint32_t row_local_index = TLB_UINT_MAX;
+         uint32_t gindex_lindex = TLB_UINT_MAX;
          uint32_t global_id[3] = { 0, };
 
          // If lane is valid (not padding).
-         unsigned group_index = row_index*max_groups_per_row + item_index/items_per_group;
+         unsigned group_index = row_index*groups_per_whole_row + item_index/items_per_group;
          if (item_index < items_per_row && group_index < groups_per_instance)
          {
             uint32_t local_index = item_index % items_per_group;
-            uint32_t row_index = item_index / items_per_group;
 
-            row_local_index = (row_index << row_index_shift) | local_index;
-            assert(row_local_index < TLB_UINT_MAX);
+            gindex_lindex = (group_index << group_index_shift) | local_index;
+            assert(gindex_lindex <= TLB_UINT_MAX/2); // top bit means invalid
 
             uint32_t local_id[3];
             uint32_t group_id[3];
@@ -265,9 +283,9 @@ static v3d_addr_t build_tlb_lookup(khrn_fmem* fmem, compute_dispatch_config cons
          }
 
          unsigned x = item_index / 2;
-         unsigned y = row_index * 2 + item_index % 2;
+         unsigned y = y0 + item_index % 2;
          unsigned offset = gfx_buffer_block_offset(&plane, &bd, x, y, 0, TLB_HEIGHT) / sizeof(tlb_uint_t);
-         lookup[offset+0] = (tlb_uint_t)row_local_index;
+         lookup[offset+0] = (tlb_uint_t)gindex_lindex;
          lookup[offset+1] = (tlb_uint_t)global_id[0];
          lookup[offset+2] = (tlb_uint_t)global_id[1];
          lookup[offset+3] = (tlb_uint_t)global_id[2];
@@ -281,17 +299,13 @@ static unsigned const NUM_PER_VERTEX_ATTRIBUTES = 2;
 static bool build_per_vertex_data(uint8_t* packed_attrs, khrn_fmem* fmem, compute_dispatch_config const* cfg)
 {
    unsigned num_whole_rows = cfg->whole_rows_per_instance;
-   unsigned num_groups_partial_row = cfg->groups_per_instance - num_whole_rows * cfg->max_groups_per_row;
+   unsigned num_rows = cfg->rows_per_instance;
 
-   unsigned max_items_per_row = cfg->max_groups_per_row * cfg->items_per_group;
-   unsigned num_items_partial_row = num_groups_partial_row * cfg->items_per_group;
+   unsigned items_per_whole_row = cfg->groups_per_whole_row * cfg->items_per_group;
+   unsigned items_per_partial_row = cfg->groups_per_partial_row* cfg->items_per_group;
 
-   // Need two lines if row has odd number of item.
-   unsigned num_lines = (num_whole_rows << (max_items_per_row & 1))
-                      + ((num_items_partial_row ? 1 : 0) << (num_items_partial_row & 1));
-
-   unsigned sizeof_attr_data0 = sizeof(uint16_t) * 2 * 2 * num_lines;
-   unsigned sizeof_attr_data1 = sizeof(float) * 2;
+   unsigned sizeof_attr_data0 = sizeof(uint16_t) * 2 * 2 * num_rows;
+   unsigned sizeof_attr_data1 = sizeof(uint32_t) * (2 + cfg->has_barrier);
 
    uint8_t* const attr_data = (uint8_t*)khrn_fmem_data(fmem, sizeof_attr_data0 + sizeof_attr_data1, 4);
    if (!attr_data)
@@ -303,48 +317,31 @@ static bool build_per_vertex_data(uint8_t* packed_attrs, khrn_fmem* fmem, comput
       uint16_t* attr_data0 = (uint16_t*)attr_data;
 
       // Offset line along x by half a pixel (for diamond exit rasterisation).
-      uint32_t const x0 = 128u + 0u;
+      uint32_t x0 = 128u + 0u;
+      uint32_t x1 = 128u + gfx_uround_up(items_per_whole_row, V3D_VPAR) * (256u / 2u);
 
-      // timh-todo: use this line if using setmsf
-      //uint32_t const x1 = 128u + gfx_uround_up(items_per_row, V3D_VPAR) * (256u / 2u);
-      uint32_t x1 = 128u + (max_items_per_row / 2u) * 256u;
-      bool is_odd = (max_items_per_row & 1) != 0;
-
-      for (unsigned d = 0; d <= num_whole_rows; ++d)
+      for (unsigned d = 0; d != num_rows; ++d)
       {
          if (d == num_whole_rows)
-         {
-            if (!num_items_partial_row)
-               break;
-            x1 = 128u + (num_items_partial_row / 2u) * 256u;
-            is_odd = (num_items_partial_row & 1) != 0;
-         }
+            x1 = 128u + gfx_uround_up(items_per_partial_row, V3D_VPAR) * (256u / 2u);
 
-         uint32_t const y = (d*2u + 1u) * 256u;
+         // Arrange so that the (last) partial row is at 0 for easy detection in the shader.
+         uint32_t const y = ((num_rows - d)*2u - 1u) * 256u;
          attr_data0[0] = x0;
          attr_data0[1] = y;
          attr_data0[2] = x1;
          attr_data0[3] = y;
          attr_data0 += 4;
-
-         // timh-todo: remove this if using setmsf
-         // Odd fragment, made by rotating line and clipping the last pixel.
-         if (is_odd)
-         {
-            attr_data0[0] = x1 + 128u;
-            attr_data0[1] = y - 128u;
-            attr_data0[2] = x1 + 128u;
-            attr_data0[3] = y + 128u;
-            attr_data0 += 4;
-         }
       }
    }
 
-   // Write constant Zs,1/Wc data
+   // Write constant Zs,1/Wc data, quorum.
    {
-      float* attr_data1 = (float*)(attr_data + sizeof_attr_data0);
-      attr_data1[0] = 0.0f;
-      attr_data1[1] = 1.0f;
+      uint32_t* attr_data1 = (uint32_t*)(attr_data + sizeof_attr_data0);
+      attr_data1[0] = 0;
+      attr_data1[1] = 0x3f800000;
+      if (cfg->has_barrier)
+         attr_data1[2] = cfg->quorum;
    }
 
    // Pack per-vertex Xs,Ys attribute record.
@@ -356,6 +353,9 @@ static bool build_per_vertex_data(uint8_t* packed_attrs, khrn_fmem* fmem, comput
       attr0.read_as_int = true;
       attr0.vs_num_reads = 2;
       attr0.stride = sizeof(uint16_t) * 2;
+#if V3D_HAS_ATTR_MAX_INDEX
+      attr0.max_index = sizeof_attr_data0/(sizeof(uint16_t) * 2) - 1;
+#endif
       v3d_pack_shadrec_gl_attr((uint32_t*)packed_attrs, &attr0);
    }
 
@@ -363,9 +363,13 @@ static bool build_per_vertex_data(uint8_t* packed_attrs, khrn_fmem* fmem, comput
    {
       V3D_SHADREC_GL_ATTR_T attr1 = { 0, };
       attr1.addr = attr_addr + sizeof_attr_data0;
-      attr1.size = 2;
-      attr1.type = V3D_ATTR_TYPE_FLOAT;
-      attr1.vs_num_reads = 2;
+      attr1.size = 2 + cfg->has_barrier;
+      attr1.type = V3D_ATTR_TYPE_INT;
+      attr1.read_as_int = true;
+      attr1.vs_num_reads = attr1.size;
+#if V3D_HAS_ATTR_MAX_INDEX
+      attr1.max_index = 0;
+#endif
       v3d_pack_shadrec_gl_attr((uint32_t*)(packed_attrs + V3D_SHADREC_GL_ATTR_PACKED_SIZE), &attr1);
    }
 
@@ -397,7 +401,10 @@ static unsigned build_per_instance_data(
       .read_as_int = true,
       .vs_num_reads = 1u,
       .divisor = 1,
-      .stride = sizeof(uint32_t) * num_varys
+      .stride = sizeof(uint32_t) * num_varys,
+#if V3D_HAS_ATTR_MAX_INDEX
+      .max_index = num_instances - 1,
+#endif
    };
 
    unsigned attr_index[3] = { num_varys, num_varys, num_varys };
@@ -489,81 +496,43 @@ static inline void cl_next_indices(uint8_t** prim_cl)
 static bool write_compressed_instanced_prim_list(
    khrn_fmem* fmem,
    compute_dispatch_config const* cfg,
-   unsigned num_instances,
-   V3D_CL_GL_SHADER_T const* shader)
+   unsigned num_instances)
 {
-   unsigned num_whole_rows = cfg->whole_rows_per_instance;
-   unsigned odd_whole_rows = (cfg->max_groups_per_row * cfg->items_per_group) & 1;
+   unsigned num_rows = cfg->rows_per_instance;
 
-   unsigned num_partial_groups = cfg->groups_per_instance - num_whole_rows * cfg->max_groups_per_row;
-   unsigned num_partial_rows = (unsigned)(num_partial_groups != 0);
-   unsigned odd_partial_rows = (num_partial_groups * cfg->items_per_group) & 1;
+   size_t const fixed_cl_size = cl_begin_prims_size + cl_end_prims_size;
+
+   size_t const instance_cl_size = 0
+      + cl_instance_id_size
+      + cl_first_indices_size
+      + cl_next_indices_size * (num_rows - 1);
 
    for (unsigned i = 0; i != num_instances; )
    {
-      // This is messy with the odd row handling, over-estimate for now.
-      size_t const prim_cl_size = 0
-         + (V3D_CL_GL_SHADER_SIZE
-         + cl_begin_prims_size
-         + cl_instance_id_size
-         + cl_end_prims_size
-         + cl_first_indices_size
-         + cl_next_indices_size * (1 + (odd_whole_rows|odd_partial_rows))) * (num_whole_rows + num_partial_rows)
-         + V3D_CL_CLIP_SIZE * 2 * odd_partial_rows;
-
       // Try and fit some instanced prims into the end of this CLE buffer or a new one.
       unsigned buffer_remaining = khrn_fmem_cle_buffer_remaining(fmem);
-      unsigned max_instances_this_iteration = buffer_remaining / prim_cl_size;
+      unsigned max_instances_this_iteration = (buffer_remaining - fixed_cl_size) / instance_cl_size;
       if (!max_instances_this_iteration)
-         max_instances_this_iteration = KHRN_FMEM_USABLE_BUFFER_SIZE / prim_cl_size;
+         max_instances_this_iteration = (KHRN_FMEM_USABLE_BUFFER_SIZE - fixed_cl_size) / instance_cl_size;
       assert(max_instances_this_iteration > 0);
 
       unsigned num_instances_this_iteration = gfx_umin(max_instances_this_iteration, num_instances - i);
-      uint8_t* prim_cl = khrn_fmem_begin_cle(fmem, prim_cl_size * num_instances_this_iteration);
+      uint8_t* prim_cl = khrn_fmem_begin_cle(fmem, fixed_cl_size + instance_cl_size * num_instances_this_iteration);
       if (!prim_cl)
          return false;
 
-      uint32_t clip_whole = (cfg->max_groups_per_row*cfg->items_per_group + 1u) / 2u;
-      uint32_t clip_partial = (num_partial_groups*cfg->items_per_group + 1u) / 2u;
-
+      cl_begin_prims(&prim_cl);
       for (unsigned end_instance = i + num_instances_this_iteration; i != end_instance; ++i)
       {
          assert(i < num_instances);
-         unsigned is_odd = odd_whole_rows;
-         for (unsigned d = 0; d <= num_whole_rows; ++d)
-         {
-            if (d == num_whole_rows)
-            {
-               if (!num_partial_rows)
-                  break;
-               is_odd = odd_partial_rows;
+         assert(num_rows != 0);
 
-               if (odd_partial_rows)
-                  v3d_cl_clip(&prim_cl, 0, 0, clip_partial, TLB_HEIGHT);
-            }
-
-            // timh-todo: using lots of shader records to control batching
-            // refactor this if using setmsf.
-            v3d_cl_nv_shader_indirect(&prim_cl, shader);
-
-            cl_begin_prims(&prim_cl);
-            cl_instance_id(&prim_cl, i);
-            if (d == 0)
-            {
-               cl_first_indices(&prim_cl);
-            }
-            else
-            {
-               cl_next_indices(&prim_cl);
-            }
-            if (is_odd)
-               cl_next_indices(&prim_cl); // timh-todo: remove if using setmsf
-            cl_end_prims(&prim_cl);
-         }
-
-         if (odd_partial_rows)
-            v3d_cl_clip(&prim_cl, 0, 0, clip_whole, TLB_HEIGHT);
+         cl_instance_id(&prim_cl, i);
+         cl_first_indices(&prim_cl);
+         for (unsigned d = 1; d != num_rows; ++d)
+            cl_next_indices(&prim_cl);
       }
+      cl_end_prims(&prim_cl);
 
       khrn_fmem_end_cle(fmem, prim_cl);
    }
@@ -574,7 +543,7 @@ static bool write_compressed_instanced_prim_list(
 static v3d_addr_t build_shader_uniforms(
    glxx_compute_render_state* rs,
    GLXX_SERVER_STATE_T const* state,
-   GLXX_LINK_RESULT_DATA_T const* link_data,
+   dispatch_state const* dispatch,
    compute_dispatch_config const* cfg,
    unsigned const num_work_groups[3])
 {
@@ -582,7 +551,6 @@ static v3d_addr_t build_shader_uniforms(
    {
       .num_work_groups = num_work_groups,
       .shared_ptr = 0,
-      .quorum = (cfg->max_groups_per_row * cfg->items_per_group + 15) / 16
    };
 
    // Allocate shared memory block on demand.
@@ -595,16 +563,19 @@ static v3d_addr_t build_shader_uniforms(
          unsigned num_cores = v3d_scheduler_get_hub_identity()->num_cores;
          cs->shared_buf = gmem_alloc(get_shared_buf_size() * num_cores, 256u, GMEM_USAGE_V3D_RW, "glxx_compute shared");
          if (!cs->shared_buf)
-            return false;
+            return 0;
       }
 
-      cu.shared_ptr = khrn_fmem_lock_and_sync(&rs->fmem, cs->shared_buf, 0, V3D_BARRIER_TMU_DATA_READ | V3D_BARRIER_TMU_DATA_WRITE);
+      cu.shared_ptr = khrn_fmem_sync_and_get_addr(&rs->fmem, cs->shared_buf, 0, V3D_BARRIER_TMU_DATA_READ | V3D_BARRIER_TMU_DATA_WRITE);
       if (!cu.shared_ptr)
-         return false;
+         return 0;
    }
 
+   assert(dispatch->image_like_uniforms_valid);
    GL20_HW_INDEXED_UNIFORM_T iu = { .valid = false };
-   return glxx_hw_install_uniforms(&rs->base, state, MODE_RENDER, link_data->fs.uniform_map, &iu, &cu);
+   return glxx_hw_install_uniforms(&rs->base, state, MODE_RENDER,
+      dispatch->link_data[cfg->shader_index]->fs.uniform_map, &iu,
+      &dispatch->image_like_uniforms, &cu);
 }
 
 static unsigned build_shader_record(
@@ -638,18 +609,18 @@ static unsigned build_shader_record(
    if (!num_instances)
       return 0;
 
-   if (!khrn_fmem_record_res_interlock_read(fmem, link_data->res_i, KHRN_INTERLOCK_STAGE_RENDER))
+   if (!khrn_fmem_sync_res(fmem, link_data->res, 0, V3D_BARRIER_QPU_INSTR_READ))
       return 0;
-   v3d_addr_t code_addr = khrn_fmem_lock_and_sync(fmem, link_data->res_i->handle, 0, V3D_BARRIER_QPU_INSTR_READ);
+   v3d_addr_t code_addr = gmem_get_addr(link_data->res->handle);
 
    V3D_SHADREC_GL_MAIN_T shader_record = { 0, };
    shader_record.no_ez = true;
    shader_record.scb_wait_on_first_thrsw = (link_data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW) != 0;
-   shader_record.num_varys = link_data->num_varys;
+   shader_record.num_varys = link_data->num_varys + cfg->has_barrier;
 #if V3D_VER_AT_LEAST(4,0,2,0)
    shader_record.disable_implicit_varys = true;
    shader_record.vs_output_size = (V3D_OUT_SEG_ARGS_T){
-      .sectors = v3d_vs_output_size(false, link_data->num_varys),
+      .sectors = v3d_vs_output_size(false, shader_record.num_varys),
       .min_extra_req = 0 };
    shader_record.cs_output_size = (V3D_OUT_SEG_ARGS_T){
       .sectors = 1,
@@ -657,7 +628,7 @@ static unsigned build_shader_record(
    shader_record.cs_input_size.min_req = 1;
    shader_record.vs_input_size.min_req = 1;
 #else
-   shader_record.vs_output_size = v3d_vs_output_size(false, link_data->num_varys);
+   shader_record.vs_output_size = v3d_vs_output_size(false, shader_record.num_varys);
 # if !V3D_VER_AT_LEAST(3,3,0,0)
    shader_record.num_varys = gfx_umax(shader_record.num_varys, 1); // workaround GFXH-1276
 # endif
@@ -686,9 +657,9 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
       );
    rs->server_state = server_state;
 
-   khrn_render_state_disallow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
-   if (!khrn_fmem_init(&rs->fmem, (KHRN_RENDER_STATE_T*)rs))
+   if (!khrn_fmem_init(&rs->fmem, (khrn_render_state*)rs))
       goto error;
 
    // Initial state setup for all compute jobs.
@@ -704,7 +675,7 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
       + V3D_CL_VCM_CACHE_SIZE_SIZE
       + V3D_CL_ZERO_ALL_CENTROID_FLAGS_SIZE
       + V3D_CL_ZERO_ALL_FLATSHADE_FLAGS_SIZE
-      + V3D_CL_SAMPLE_COVERAGE_SIZE
+      + V3D_CL_SAMPLE_STATE_SIZE
       + V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE_SIZE
       + V3D_CL_LINE_WIDTH_SIZE
       + V3D_CL_VIEWPORT_OFFSET_SIZE
@@ -743,8 +714,11 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
 #if V3D_VER_AT_LEAST(4,0,2,0)
       for (unsigned i = 0; i != V3D_MAX_RENDER_TARGETS; ++i)
       {
-         cfg.u.color.rts[0].internal_bpp = internal_bpp;
-         cfg.u.color.rts[0].internal_type = internal_type;
+         cfg.u.color.rt_formats[0].bpp = internal_bpp;
+         cfg.u.color.rt_formats[0].type = internal_type;
+#if V3D_HAS_RT_CLAMP
+         cfg.u.color.rt_formats[0].clamp = V3D_RT_CLAMP_NONE;
+#endif
       }
 #else
       cfg.u.color.internal_bpp = internal_bpp;
@@ -780,11 +754,22 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
    v3d_cl_clear_vcd_cache(&cl);
    v3d_cl_vcm_cache_size(&cl, 1, 1);
    v3d_cl_zero_all_centroid_flags(&cl);
+#if V3D_HAS_VARY_NOPERSP
+   v3d_cl_zero_all_noperspective(&cl);
+#endif
    v3d_cl_zero_all_flatshade_flags(&cl);
-   v3d_cl_sample_coverage(&cl, 1.0f);
+#if V3D_HAS_FEP_SAMPLE_MASK
+   v3d_cl_sample_state(&cl, 0xf, 1.0f);
+#else
+   v3d_cl_sample_state(&cl, 1.0f);
+#endif
    v3d_cl_occlusion_query_counter_enable(&cl, 0);
    v3d_cl_line_width(&cl, 2.0f);
+#if V3D_HAS_UNCONSTR_VP_CLIP
+   v3d_cl_viewport_offset(&cl, 0, 0, 0, 0);
+#else
    v3d_cl_viewport_offset(&cl, 0, 0);
+#endif
    v3d_cl_clipz(&cl, 0.0f, 1.0f);
    v3d_cl_color_wmasks(&cl, -1);
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -793,7 +778,7 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
 
    khrn_fmem_end_cle_exact(&rs->fmem, cl);
 
-   khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_allow_flush((khrn_render_state*)rs);
 
    /* Record security status */
    rs->fmem.br_info.secure = egl_context_gl_secure(rs->server_state->context);
@@ -801,32 +786,33 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
    return rs;
 
 error:
-   khrn_render_state_delete((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_delete((khrn_render_state*)rs);
    return NULL;
 }
 
 static bool dispatch_compute_volume(
    glxx_compute_render_state* rs,
    GLXX_SERVER_STATE_T const* state,
-   GLXX_LINK_RESULT_DATA_T const* link_data,
+   dispatch_state const* dispatch,
    compute_dispatch_config const* cfg,
    compute_dispatch_volume const* vol,
    unsigned const num_work_groups[3])
 {
    bool ok = false;
-   khrn_render_state_disallow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
    // timh-todo: Cache recently used TLB lookup tables?
    v3d_addr_t tlb_lookup_addr = build_tlb_lookup(&rs->fmem, cfg);
    if (!tlb_lookup_addr)
       goto end;
 
-   v3d_addr_t unifs_addr = build_shader_uniforms(rs, state, link_data, cfg, num_work_groups);
+   v3d_addr_t unifs_addr = build_shader_uniforms(rs, state, dispatch, cfg, num_work_groups);
    if (!unifs_addr)
       goto end;
 
    V3D_CL_GL_SHADER_T shader;
-   unsigned num_instances = build_shader_record(&shader, &rs->fmem, link_data, unifs_addr, cfg, vol);
+   unsigned num_instances = build_shader_record(&shader, &rs->fmem,
+      dispatch->link_data[cfg->shader_index], unifs_addr, cfg, vol);
    if (!num_instances)
       goto end;
 
@@ -841,12 +827,13 @@ static bool dispatch_compute_volume(
       + V3D_CL_LOAD_GENERAL_SIZE
       + V3D_CL_TILE_COORDS_SIZE
 #endif
-      + V3D_CL_PRIM_LIST_FORMAT_SIZE;
+      + V3D_CL_PRIM_LIST_FORMAT_SIZE
+      + V3D_CL_GL_SHADER_SIZE;
    uint8_t* cl = khrn_fmem_begin_cle(&rs->fmem, head_cl_size);
    if (!cl)
       goto end;
 
-   v3d_cl_clip(&cl, 0, 0, (cfg->max_groups_per_row*cfg->items_per_group + 1u)/2u, TLB_HEIGHT);
+   v3d_cl_clip(&cl, 0, 0, TLB_WIDTH, TLB_HEIGHT);
 
    V3D_CL_CFG_BITS_T cfg_bits = {
       .front_prims = true,
@@ -882,9 +869,11 @@ static bool dispatch_compute_volume(
 #endif
    v3d_cl_prim_list_format(&cl, 2, false, false);
 
+   v3d_cl_nv_shader_indirect(&cl, &shader);
+
    khrn_fmem_end_cle_exact(&rs->fmem, cl);
 
-   if (!write_compressed_instanced_prim_list(&rs->fmem, cfg, num_instances, &shader))
+   if (!write_compressed_instanced_prim_list(&rs->fmem, cfg, num_instances))
       goto end;
 
    size_t const tail_cl_size = 0
@@ -921,13 +910,13 @@ static bool dispatch_compute_volume(
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    /* If using flow control, then driver needs to work around GFXH-1181. */
-   rs->fmem.br_info.render_workaround_gfxh_1181 |= link_data->render_uses_control_flow;
+   rs->fmem.br_info.render_workaround_gfxh_1181 |=
+      dispatch->link_data[cfg->shader_index]->render_uses_control_flow;
 #endif
-   rs->fmem.br_info.render_no_bin_overlap |= cfg->workaround_gfxh_1193;
 
    ok = true;
 end:
-   khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_allow_flush((khrn_render_state*)rs);
    return ok;
 }
 
@@ -936,10 +925,14 @@ static inline bool should_flush(glxx_compute_render_state* rs)
    return rs->fmem.persist->pool.n_buffers >= COMPUTE_MAX_BLOCKS;
 }
 
-static bool begin_dispatch(GLXX_LINK_RESULT_DATA_T** link_data, GLXX_SERVER_STATE_T* state)
+static void init_dispatch_state(dispatch_state* dispatch)
 {
-   *link_data = NULL;
+   dispatch->image_like_uniforms_valid = false;
+   memset(dispatch->link_data, 0, sizeof(dispatch->link_data));
+}
 
+static bool begin_dispatch(dispatch_state* dispatch, GLXX_SERVER_STATE_T* state, compute_dispatch_config const* cfg)
+{
    // Flush render-state if using too many blocks.
    glxx_compute_render_state* rs = state->compute_render_state;
    if (rs != NULL && should_flush(rs))
@@ -951,60 +944,83 @@ static bool begin_dispatch(GLXX_LINK_RESULT_DATA_T** link_data, GLXX_SERVER_STAT
    // Create new render state.
    if (rs == NULL)
    {
+      // For a new render-state, discard previous dispatch state.
+      init_dispatch_state(dispatch);
+
       rs = create_compute_render_state(state);
       if (!rs)
          return false;
       state->compute_render_state = rs;
    }
 
-   khrn_render_state_disallow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
    bool ok = false;
    if (  !khrn_fmem_record_fence_to_signal(&rs->fmem, state->fences.fence)
       || !khrn_fmem_record_fence_to_depend_on(&rs->fmem, state->fences.fence_to_depend_on) )
       goto end;
 
-   state->shaderkey_common.backend = 0
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-      | GLSL_PRIM_LINE
-#endif
-      | (GLSL_FB_I32 | (V3D_VER_AT_LEAST(4,0,2,0) ? 0 : GLSL_FB_ALPHA_16_WORKAROUND)) << GLSL_FB_GADGET_S;
-
-   if (!glxx_compute_image_like_uniforms(state, &rs->base))
-      goto end;
-
-   *link_data = glxx_get_shaders(state);
-   if (!*link_data)
+   if (!dispatch->image_like_uniforms_valid)
    {
-      log_warn("[%s] shader compilation failed for %p", VCOS_FUNCTION, state);
+      if (!glxx_compute_image_like_uniforms(state, &rs->base, &dispatch->image_like_uniforms, &dispatch->key))
+         goto end;
+      dispatch->image_like_uniforms_valid = true;
+   }
+
+   dispatch->key.backend = 0
+      | (cfg->shader_index ? GLSL_COMPUTE_PADDING : 0)
+      | (!V3D_VER_AT_LEAST(4,0,2,0) && !cfg->has_barrier ? GLSL_PRIM_LINE : 0)   // barrier code pre 4.0.2 consume line coord varying
+      | (((!V3D_VER_AT_LEAST(4,0,2,0) ? GLSL_FB_ALPHA_16_WORKAROUND : 0) | GLSL_FB_I32) << GLSL_FB_GADGET_S);
+
+   GLXX_LINK_RESULT_DATA_T* link_data = glxx_get_shaders(state, &dispatch->key);
+   if (!link_data)
       goto end;
+   dispatch->link_data[cfg->shader_index] = link_data;
+
+   if (cfg->has_barrier)
+   {
+      // Check that threading is sufficient for number of items in work-group.
+   #if V3D_HAS_RELAXED_THRSW
+      unsigned num_threads = link_data->fs.four_thread ? 4 : 2;
+   #else
+      unsigned num_threads = v3d_get_threadability(link_data->fs.threading);
+   #endif
+      if (cfg->items_per_group > max_items_per_row_for_hw(num_threads))
+         goto end;
+
+      // Workaround GFXH-1193, need to prevent vertex shaders running that could lock out reserved QPU
+      // if this could result in deadlock.
+      if (num_threads != 1)
+      {
+         V3D_IDENT_T const* ident = v3d_scheduler_get_identity();
+         unsigned num_qpus = ident->num_slices * ident->num_qpus_per_slice;
+         unsigned num_qpus_to_progress = gfx_udiv_round_up_p2(cfg->items_per_group * cfg->groups_per_whole_row, V3D_VPAR * num_threads);
+         assert(num_qpus_to_progress <= num_qpus);
+         if (num_qpus_to_progress > num_qpus-1)
+            rs->fmem.br_info.render_no_bin_overlap = true;
+      }
    }
 
    ok = true;
 end:
-   khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_allow_flush((khrn_render_state*)rs);
    return ok;
 }
 
 static bool dispatch_compute_recursive(
    GLXX_SERVER_STATE_T* state,
-   GLXX_LINK_RESULT_DATA_T* link_data,
+   dispatch_state* dispatch,
    compute_dispatch_volume const* vol,
    unsigned const num_work_groups[3],
    unsigned depth)
 {
-   if (!link_data && !begin_dispatch(&link_data, state))
-      return false;
-
    // Compute config should remain valid even if we rebuild the link data
    compute_dispatch_config cfg = { 0, }; // Pointless initialisation to keep gcc happy.
    GLSL_PROGRAM_T* program = gl20_program_common_get(state)->linked_glsl_program;
-#if V3D_HAS_RELAXED_THRSW
-   v3d_threading_t threading = link_data->fs.four_thread ? 4 : 2;
-#else
-   v3d_threading_t threading = link_data->fs.threading;
-#endif
-   if (!init_dispatch_config(&cfg, threading, program->wg_size, program->shared_block_size, vol->size))
+   if (!init_dispatch_config(&cfg, program, vol->size))
+      return false;
+
+   if (!dispatch->link_data[cfg.shader_index] && !begin_dispatch(dispatch, state, &cfg))
       return false;
 
    // Compute number of groups we can do with this config.
@@ -1052,7 +1068,7 @@ static bool dispatch_compute_recursive(
          }
       }
 
-      if (dispatch_compute_volume(state->compute_render_state, state, link_data, &cfg, &centre_vol, num_work_groups))
+      if (dispatch_compute_volume(state->compute_render_state, state, dispatch, &cfg, &centre_vol, num_work_groups))
          break;
 
       // If we ran out of memory then attempt a flush.
@@ -1060,7 +1076,7 @@ static bool dispatch_compute_recursive(
          return false;
 
       // Begin dispatch creates a new compute render state.
-      if (!begin_dispatch(&link_data, state))
+      if (!begin_dispatch(dispatch, state, &cfg))
          return false;
    }
 
@@ -1074,7 +1090,7 @@ static bool dispatch_compute_recursive(
       edge_vol.origin[i] += edge_vol.size[i] - remainders[i];
       edge_vol.size[i] = remainders[i];
 
-      if (!dispatch_compute_recursive(state, link_data, &edge_vol, num_work_groups, depth + 1))
+      if (!dispatch_compute_recursive(state, dispatch, &edge_vol, num_work_groups, depth + 1))
          return false;
 
       edge_vol.origin[i] = vol->origin[i];
@@ -1146,7 +1162,7 @@ static bool check_state(
    if (!num_groups_x || !num_groups_y || !num_groups_z)
       return false;
 
-   unsigned const* wg_size = linked_program->wg_size;
+   unsigned const* wg_size = linked_program->ir->cs_wg_size;
    if (wg_size[0] == 0 || wg_size[1] == 0 || wg_size[2] == 0)
       return false;
 
@@ -1169,7 +1185,9 @@ GL_APICALL void GL_APIENTRY glDispatchCompute(GLuint num_groups_x, GLuint num_gr
       .size = { num_groups_x, num_groups_y, num_groups_z }
    };
 
-   if (!dispatch_compute_recursive(state, NULL, &vol, vol.size, 0))
+   dispatch_state dispatch;
+   init_dispatch_state(&dispatch);
+   if (!dispatch_compute_recursive(state, &dispatch, &vol, vol.size, 0))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
    post_dispatch(state->compute_render_state);
@@ -1216,7 +1234,9 @@ GL_APICALL void GL_APIENTRY glDispatchComputeIndirect(GLintptr indirect)
    if (!check_state(state, vol.size[0], vol.size[1], vol.size[2], true))
       goto end;
 
-   if (!dispatch_compute_recursive(state, NULL, &vol, vol.size, 0))
+   dispatch_state dispatch;
+   init_dispatch_state(&dispatch);
+   if (!dispatch_compute_recursive(state, &dispatch, &vol, vol.size, 0))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
    post_dispatch(state->compute_render_state);
@@ -1239,7 +1259,7 @@ void glxx_compute_shared_term(glxx_compute_shared* cs)
 
 bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
 {
-   khrn_render_state_begin_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_begin_flush((khrn_render_state*)rs);
 
    khrn_fmem* fmem = &rs->fmem;
    khrn_fmem_end_clist(fmem);
@@ -1264,6 +1284,6 @@ bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
    assert(rs == rs->server_state->compute_render_state);
    rs->server_state->compute_render_state = NULL;
 
-   khrn_render_state_delete((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_delete((khrn_render_state*)rs);
    return do_flush;
 }

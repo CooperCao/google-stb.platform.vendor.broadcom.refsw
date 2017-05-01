@@ -1,0 +1,950 @@
+diff -ruN gcc-5.3.0/config.sub gcc-5.3.0-aarch64-tzos/config.sub
+--- gcc-5.3.0/config.sub	2015-01-02 15:00:21.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/config.sub	2016-11-21 16:22:21.723348077 +0530
+@@ -127,6 +127,10 @@
+     os=-linux-android
+     basic_machine=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\1/'`-unknown
+     ;;
++  tzos-newlib* | tzos-musl* | tzos-uclibc* | tzos*)
++    os=-tzos
++    basic_machine=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\1/'`
++    ;;
+   *)
+     basic_machine=`echo $1 | sed 's/-[^-]*$//'`
+     if [ $basic_machine != $1 ]
+@@ -1386,6 +1390,7 @@
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+ 	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
++	      | -tzos-newlib* | -tzos-musl* | -tzos-uclibc* | -tzos* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* | -moxiebox* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+ 	      | -openstep* | -oskit* | -conix* | -pw32* | -nonstopux* \
+diff -ruN gcc-5.3.0/fixincludes/mkfixinc.sh gcc-5.3.0-aarch64-tzos/fixincludes/mkfixinc.sh
+--- gcc-5.3.0/fixincludes/mkfixinc.sh	2012-10-29 03:12:48.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/fixincludes/mkfixinc.sh	2016-11-21 16:22:21.727348035 +0530
+@@ -19,7 +19,8 @@
+     powerpc-*-eabi*    | \
+     powerpc-*-rtems*   | \
+     powerpcle-*-eabisim* | \
+-    powerpcle-*-eabi* )
++    powerpcle-*-eabi* | \
++    *-musl* )
+ 	#  IF there is no include fixing,
+ 	#  THEN create a no-op fixer and exit
+ 	(echo "#! /bin/sh" ; echo "exit 0" ) > ${target}
+diff -ruN gcc-5.3.0/gcc/config.gcc gcc-5.3.0-aarch64-tzos/gcc/config.gcc
+--- gcc-5.3.0/gcc/config.gcc	2015-09-10 19:47:53.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/config.gcc	2016-11-21 16:22:21.731347994 +0530
+@@ -575,7 +575,7 @@
+ esac
+ 
+ # Common C libraries.
+-tm_defines="$tm_defines LIBC_GLIBC=1 LIBC_UCLIBC=2 LIBC_BIONIC=3"
++tm_defines="$tm_defines LIBC_GLIBC=1 LIBC_UCLIBC=2 LIBC_BIONIC=3 LIBC_MUSL=4"
+ 
+ # 32-bit x86 processors supported by --with-arch=.  Each processor
+ # MUST be separated by exactly one space.
+@@ -598,6 +598,42 @@
+ 
+ # Common parts for widely ported systems.
+ case ${target} in
++*-tzos*)
++	gas=yes
++	gnu_ld=yes
++	tmake_file="t-slibgcc"	
++	
++	tm_p_file="${tm_p_file} tzos-protos.h"
++    tmake_file="${tmake_file} t-tzos"
++    extra_objs="${extra_objs} tzos.o"
++    extra_options="${extra_options} tzos.opt"
++      
++    case $target in
++    *-*-*uclibc*)
++      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_UCLIBC"
++      ;;
++    *-*-*musl*)
++      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_MUSL"
++      ;;
++    *)
++      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_GLIBC"
++      ;;
++  	esac
++  
++  	tm_defines="$tm_defines ANDROID_DEFAULT=0"
++  	
++	default_use_cxa_atexit=yes
++	case ${enable_threads} in
++    "" | yes | posix) thread_file='posix' ;;
++  	esac
++	use_gcc_tgmath=no
++	use_gcc_stdint=wrap
++	
++	c_target_objs="${c_target_objs} glibc-c.o"
++  	cxx_target_objs="${cxx_target_objs} glibc-c.o"
++  	tmake_file="${tmake_file} t-glibc"
++  	target_has_targetcm=yes
++	;;
+ *-*-darwin*)
+   tmake_file="t-darwin ${cpu_type}/t-darwin"
+   tm_file="${tm_file} darwin.h"
+@@ -720,6 +756,9 @@
+     *-*-*uclibc*)
+       tm_defines="$tm_defines DEFAULT_LIBC=LIBC_UCLIBC"
+       ;;
++    *-*-*musl*)
++      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_MUSL"
++      ;;
+     *)
+       tm_defines="$tm_defines DEFAULT_LIBC=LIBC_GLIBC"
+       ;;
+@@ -937,6 +976,34 @@
+ 	done
+ 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
+ 	;;
++aarch64*-*-tzos*)
++	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h tzos.h glibc-stdint.h"
++	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-tzos.h"
++	tmake_file="${tmake_file} aarch64/t-aarch64 aarch64/t-aarch64-tzos"
++	case $target in
++	aarch64_be-*)
++		tm_defines="${tm_defines} TARGET_BIG_ENDIAN_DEFAULT=1"
++		;;
++	esac
++	aarch64_multilibs="${with_multilib_list}"
++	if test "$aarch64_multilibs" = "default"; then
++		# TODO: turn on ILP32 multilib build after its support is mature.
++		# aarch64_multilibs="lp64,ilp32"
++		aarch64_multilibs="lp64"
++	fi
++	aarch64_multilibs=`echo $aarch64_multilibs | sed -e 's/,/ /g'`
++	for aarch64_multilib in ${aarch64_multilibs}; do
++		case ${aarch64_multilib} in
++		ilp32 | lp64 )
++			TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},${aarch64_multilib}"
++			;;
++		*)
++			echo "--with-multilib-list=${aarch64_multilib} not supported."
++			exit 1
++		esac
++	done
++	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
++	;;
+ alpha*-*-linux*)
+ 	tm_file="elfos.h ${tm_file} alpha/elf.h alpha/linux.h alpha/linux-elf.h glibc-stdint.h"
+ 	tmake_file="${tmake_file} alpha/t-linux"
+diff -ruN gcc-5.3.0/gcc/config/t-tzos gcc-5.3.0-aarch64-tzos/gcc/config/t-tzos
+--- gcc-5.3.0/gcc/config/t-tzos	1970-01-01 05:30:00.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/config/t-tzos	2016-11-21 16:22:21.727348035 +0530
+@@ -0,0 +1,21 @@
++# Copyright (C) 2002-2015 Free Software Foundation, Inc.
++#
++# This file is part of GCC.
++#
++# GCC is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GCC is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++
++tzos.o: $(srcdir)/config/tzos.c
++	  $(COMPILE) $<
++	  $(POSTCOMPILE)
+diff -ruN gcc-5.3.0/gcc/config/tzos.opt gcc-5.3.0-aarch64-tzos/gcc/config/tzos.opt
+--- gcc-5.3.0/gcc/config/tzos.opt	1970-01-01 05:30:00.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/config/tzos.opt	2016-11-21 16:22:21.731347994 +0530
+@@ -0,0 +1,36 @@
++; Processor-independent options for GNU/TZOS.
++;
++; Copyright (C) 2006-2015 Free Software Foundation, Inc.
++; Contributed by CodeSourcery.
++;
++; This file is part of GCC.
++;
++; GCC is free software; you can redistribute it and/or modify it under
++; the terms of the GNU General Public License as published by the Free
++; Software Foundation; either version 3, or (at your option) any later
++; version.
++;
++; GCC is distributed in the hope that it will be useful, but WITHOUT ANY
++; WARRANTY; without even the implied warranty of MERCHANTABILITY or
++; FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++; for more details.
++;
++; You should have received a copy of the GNU General Public License
++; along with GCC; see the file COPYING3.  If not see
++; <http://www.gnu.org/licenses/>.
++
++mbionic
++Target Report RejectNegative Var(tzos_libc,LIBC_BIONIC) Init(DEFAULT_LIBC) Negative(mglibc)
++Use Bionic C library
++
++mglibc
++Target Report RejectNegative Var(tzos_libc,LIBC_GLIBC) Negative(muclibc)
++Use GNU C library
++
++muclibc
++Target Report RejectNegative Var(tzos_libc,LIBC_UCLIBC) Negative(mbionic)
++Use uClibc C library
++
++mmusl
++Target Report RejectNegative Var(tzos_libc,LIBC_MUSL) Negative(mglibc)
++Use musl C library
+diff -ruN gcc-5.3.0/gcc/config/tzos.h gcc-5.3.0-aarch64-tzos/gcc/config/tzos.h
+--- gcc-5.3.0/gcc/config/tzos.h	1970-01-01 05:30:00.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/config/tzos.h	2016-11-21 16:22:21.731347994 +0530
+@@ -0,0 +1,199 @@
++/* Definitions for systems using the TZOS kernel, with or without
++   MMU, using ELF at the compiler level but possibly FLT for final
++   linked executables and shared libraries in some no-MMU cases, and
++   possibly with a choice of libc implementations.
++   Copyright (C) 1995-2015 Free Software Foundation, Inc.
++   Contributed by Eric Youngdale.
++   Modified for stabs-in-ELF by H.J. Lu (hjl@lucon.org).
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++GCC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++/* C libraries supported on tzos.  */
++#ifdef SINGLE_LIBC
++#define OPTION_GLIBC  (DEFAULT_LIBC == LIBC_GLIBC)
++#define OPTION_UCLIBC (DEFAULT_LIBC == LIBC_UCLIBC)
++#define OPTION_BIONIC (DEFAULT_LIBC == LIBC_BIONIC)
++#define OPTION_MUSL   (DEFAULT_LIBC == LIBC_MUSL)
++#else
++#define OPTION_GLIBC  (tzos_libc == LIBC_GLIBC)
++#define OPTION_UCLIBC (tzos_libc == LIBC_UCLIBC)
++#define OPTION_BIONIC (tzos_libc == LIBC_BIONIC)
++#define OPTION_MUSL   (tzos_libc == LIBC_MUSL)
++#endif
++
++#define GNU_USER_TARGET_OS_CPP_BUILTINS()			\
++    do {							\
++	builtin_define_std ("unix");				\
++	builtin_define_std ("tzos");				\
++	builtin_assert ("system=tzos");				\
++	builtin_assert ("system=unix");				\
++	builtin_assert ("system=posix");			\
++    } while (0)
++
++/* Determine which dynamic linker to use depending on whether GLIBC or
++   uClibc or Bionic is the default C library and whether
++   -muclibc or -mglibc or -mbionic has been passed to change the default.  */
++
++#define CHOOSE_DYNAMIC_LINKER1(LIBC1, LIBC2, LIBC3, LIBC4, LD1, LD2, LD3, LD4)	\
++  "%{" LIBC2 ":" LD2 ";:%{" LIBC3 ":" LD3 ";:%{" LIBC4 ":" LD4 ";:" LD1 "}}}"
++
++#if DEFAULT_LIBC == LIBC_GLIBC
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
++  CHOOSE_DYNAMIC_LINKER1 ("mglibc", "muclibc", "mbionic", "mmusl", G, U, B, M)
++#elif DEFAULT_LIBC == LIBC_UCLIBC
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
++  CHOOSE_DYNAMIC_LINKER1 ("muclibc", "mglibc", "mbionic", "mmusl", U, G, B, M)
++#elif DEFAULT_LIBC == LIBC_BIONIC
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
++  CHOOSE_DYNAMIC_LINKER1 ("mbionic", "mglibc", "muclibc", "mmusl", B, G, U, M)
++#elif DEFAULT_LIBC == LIBC_MUSL
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
++  CHOOSE_DYNAMIC_LINKER1 ("mmusl", "mglibc", "muclibc", "mbionic", M, G, U, B)
++#else
++#error "Unsupported DEFAULT_LIBC"
++#endif /* DEFAULT_LIBC */
++
++/* For most targets the following definitions suffice;
++   GLIBC_DYNAMIC_LINKER must be defined for each target using them, or
++   GLIBC_DYNAMIC_LINKER32 and GLIBC_DYNAMIC_LINKER64 for targets
++   supporting both 32-bit and 64-bit compilation.  */
++#define UCLIBC_DYNAMIC_LINKER "/lib/ld-uClibc.so.0"
++#define UCLIBC_DYNAMIC_LINKER32 "/lib/ld-uClibc.so.0"
++#define UCLIBC_DYNAMIC_LINKER64 "/lib/ld64-uClibc.so.0"
++#define UCLIBC_DYNAMIC_LINKERX32 "/lib/ldx32-uClibc.so.0"
++#define BIONIC_DYNAMIC_LINKER "/system/bin/linker"
++#define BIONIC_DYNAMIC_LINKER32 "/system/bin/linker"
++#define BIONIC_DYNAMIC_LINKER64 "/system/bin/linker64"
++#define BIONIC_DYNAMIC_LINKERX32 "/system/bin/linkerx32"
++
++#define GNU_USER_DYNAMIC_LINKER						\
++  CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER, UCLIBC_DYNAMIC_LINKER,	\
++			 BIONIC_DYNAMIC_LINKER, MUSL_DYNAMIC_LINKER)
++#define GNU_USER_DYNAMIC_LINKER32					\
++  CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER32, UCLIBC_DYNAMIC_LINKER32, \
++			 BIONIC_DYNAMIC_LINKER32, MUSL_DYNAMIC_LINKER32)
++#define GNU_USER_DYNAMIC_LINKER64					\
++  CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER64, UCLIBC_DYNAMIC_LINKER64, \
++			 BIONIC_DYNAMIC_LINKER64, MUSL_DYNAMIC_LINKER64)
++#define GNU_USER_DYNAMIC_LINKERX32					\
++  CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKERX32, UCLIBC_DYNAMIC_LINKERX32, \
++			 BIONIC_DYNAMIC_LINKERX32, MUSL_DYNAMIC_LINKERX32)
++
++/* Whether we have Bionic libc runtime */
++#undef TARGET_HAS_BIONIC
++#define TARGET_HAS_BIONIC (OPTION_BIONIC)
++
++/* musl avoids problematic includes by rearranging the include directories.
++ * Unfortunately, this is mostly duplicated from cppdefault.c */
++#if DEFAULT_LIBC == LIBC_MUSL
++#define INCLUDE_DEFAULTS_MUSL_GPP			\
++    { GPLUSPLUS_INCLUDE_DIR, "G++", 1, 1,		\
++      GPLUSPLUS_INCLUDE_DIR_ADD_SYSROOT, 0 },		\
++    { GPLUSPLUS_TOOL_INCLUDE_DIR, "G++", 1, 1,		\
++      GPLUSPLUS_INCLUDE_DIR_ADD_SYSROOT, 1 },		\
++    { GPLUSPLUS_BACKWARD_INCLUDE_DIR, "G++", 1, 1,	\
++      GPLUSPLUS_INCLUDE_DIR_ADD_SYSROOT, 0 },
++
++#ifdef LOCAL_INCLUDE_DIR
++#define INCLUDE_DEFAULTS_MUSL_LOCAL			\
++    { LOCAL_INCLUDE_DIR, 0, 0, 1, 1, 2 },		\
++    { LOCAL_INCLUDE_DIR, 0, 0, 1, 1, 0 },
++#else
++#define INCLUDE_DEFAULTS_MUSL_LOCAL
++#endif
++
++#ifdef PREFIX_INCLUDE_DIR
++#define INCLUDE_DEFAULTS_MUSL_PREFIX			\
++    { PREFIX_INCLUDE_DIR, 0, 0, 1, 0, 0},
++#else
++#define INCLUDE_DEFAULTS_MUSL_PREFIX
++#endif
++
++#ifdef CROSS_INCLUDE_DIR
++#define INCLUDE_DEFAULTS_MUSL_CROSS			\
++    { CROSS_INCLUDE_DIR, "GCC", 0, 0, 0, 0},
++#else
++#define INCLUDE_DEFAULTS_MUSL_CROSS
++#endif
++
++#ifdef TOOL_INCLUDE_DIR
++#define INCLUDE_DEFAULTS_MUSL_TOOL			\
++    { TOOL_INCLUDE_DIR, "BINUTILS", 0, 1, 0, 0},
++#else
++#define INCLUDE_DEFAULTS_MUSL_TOOL
++#endif
++
++#ifdef NATIVE_SYSTEM_HEADER_DIR
++#define INCLUDE_DEFAULTS_MUSL_NATIVE			\
++    { NATIVE_SYSTEM_HEADER_DIR, 0, 0, 0, 1, 2 },	\
++    { NATIVE_SYSTEM_HEADER_DIR, 0, 0, 0, 1, 0 },
++#else
++#define INCLUDE_DEFAULTS_MUSL_NATIVE
++#endif
++
++#if defined (CROSS_DIRECTORY_STRUCTURE) && !defined (TARGET_SYSTEM_ROOT)
++# undef INCLUDE_DEFAULTS_MUSL_LOCAL
++# define INCLUDE_DEFAULTS_MUSL_LOCAL
++# undef INCLUDE_DEFAULTS_MUSL_NATIVE
++# define INCLUDE_DEFAULTS_MUSL_NATIVE
++#else
++# undef INCLUDE_DEFAULTS_MUSL_CROSS
++# define INCLUDE_DEFAULTS_MUSL_CROSS
++#endif
++
++#undef INCLUDE_DEFAULTS
++#define INCLUDE_DEFAULTS				\
++  {							\
++    INCLUDE_DEFAULTS_MUSL_GPP				\
++    INCLUDE_DEFAULTS_MUSL_PREFIX			\
++    INCLUDE_DEFAULTS_MUSL_CROSS				\
++    INCLUDE_DEFAULTS_MUSL_TOOL				\
++    INCLUDE_DEFAULTS_MUSL_NATIVE			\
++    { GCC_INCLUDE_DIR, "GCC", 0, 1, 0, 0 },		\
++    { 0, 0, 0, 0, 0, 0 }				\
++  }
++#endif
++
++#if (DEFAULT_LIBC == LIBC_UCLIBC) && defined (SINGLE_LIBC) /* uClinux */
++/* This is a *uclinux* target.  We don't define below macros to normal linux
++   versions, because doing so would require *uclinux* targets to include
++   linux.c, linux-protos.h, linux.opt, etc.  We could, alternatively, add
++   these files to *uclinux* targets, but that would only pollute option list
++   (add -mglibc, etc.) without adding any useful support.  */
++
++/* Define TARGET_LIBC_HAS_FUNCTION for *uclinux* targets to
++   no_c99_libc_has_function, because uclibc does not, normally, have
++   c99 runtime.  If, in special cases, uclibc does have c99 runtime,
++   this should be defined to a new hook.  Also please note that for targets
++   like *-linux-uclibc that similar check will also need to be added to
++   linux_libc_has_function.  */
++# undef TARGET_LIBC_HAS_FUNCTION
++# define TARGET_LIBC_HAS_FUNCTION no_c99_libc_has_function
++
++#else /* !uClinux, i.e., normal Linux */
++
++/* Determine what functions are present at the runtime;
++   this includes full c99 runtime and sincos.  */
++# undef TARGET_LIBC_HAS_FUNCTION
++# define TARGET_LIBC_HAS_FUNCTION tzos_libc_has_function
++
++#endif
+diff -ruN gcc-5.3.0/gcc/config/tzos.c gcc-5.3.0-aarch64-tzos/gcc/config/tzos.c
+--- gcc-5.3.0/gcc/config/tzos.c	1970-01-01 05:30:00.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/config/tzos.c	2016-11-21 16:22:21.727348035 +0530
+@@ -0,0 +1,30 @@
++/* Functions for TZOS Android as target machine for GNU C compiler.
++   Copyright (C) 2013-2015 Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++GCC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING3.  If not see
++<http://www.gnu.org/licenses/>.  */
++
++#include "config.h"
++#include "system.h"
++#include "coretypes.h"
++#include "tm.h"
++#include "tzos-protos.h"
++
++bool
++tzos_libc_has_function (enum function_class fn_class)
++{
++  return true;
++}
+diff -ruN gcc-5.3.0/gcc/config/tzos-protos.h gcc-5.3.0-aarch64-tzos/gcc/config/tzos-protos.h
+--- gcc-5.3.0/gcc/config/tzos-protos.h	1970-01-01 05:30:00.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/config/tzos-protos.h	2016-11-21 16:22:21.731347994 +0530
+@@ -0,0 +1,22 @@
++/* Prototypes.
++   Copyright (C) 2013-2015 Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++GCC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING3.  If not see
++<http://www.gnu.org/licenses/>.  */
++
++extern bool tzos_has_ifunc_p (void);
++
++extern bool tzos_libc_has_function (enum function_class fn_class);
+diff -ruN gcc-5.3.0/gcc/config/aarch64/t-aarch64-tzos gcc-5.3.0-aarch64-tzos/gcc/config/aarch64/t-aarch64-tzos
+--- gcc-5.3.0/gcc/config/aarch64/t-aarch64-tzos	1969-12-31 19:00:00.000000000 -0500
++++ gcc-5.3.0-aarch64-tzos/gcc/config/aarch64/t-aarch64-tzos	2016-12-29 19:34:45.225838688 -0500
+@@ -0,0 +1,28 @@
++# Machine description for AArch64 architecture.
++#  Copyright (C) 2009-2015 Free Software Foundation, Inc.
++#  Contributed by ARM Ltd.
++#
++#  This file is part of GCC.
++#
++#  GCC is free software; you can redistribute it and/or modify it
++#  under the terms of the GNU General Public License as published by
++#  the Free Software Foundation; either version 3, or (at your option)
++#  any later version.
++#
++#  GCC is distributed in the hope that it will be useful, but
++#  WITHOUT ANY WARRANTY; without even the implied warranty of
++#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++#  General Public License for more details.
++#
++#  You should have received a copy of the GNU General Public License
++#  along with GCC; see the file COPYING3.  If not see
++#  <http://www.gnu.org/licenses/>.
++
++LIB1ASMSRC   = aarch64/lib1funcs.asm
++LIB1ASMFUNCS = _aarch64_sync_cache_range
++
++AARCH_BE = $(if $(findstring TARGET_BIG_ENDIAN_DEFAULT=1, $(tm_defines)),_be)
++MULTILIB_OSDIRNAMES = mabi.lp64=../lib64$(call if_multiarch,:aarch64$(AARCH_BE)-tzos-gnu)
++MULTIARCH_DIRNAME = $(call if_multiarch,aarch64$(AARCH_BE)-tzos-gnu)
++
++MULTILIB_OSDIRNAMES += mabi.ilp32=../libilp32
+diff -ruN gcc-5.3.0/gcc/config/aarch64/aarch64-tzos.h gcc-5.3.0-aarch64-tzos/gcc/config/aarch64/aarch64-tzos.h
+--- gcc-5.3.0/gcc/config/aarch64/aarch64-tzos.h	1969-12-31 19:00:00.000000000 -0500
++++ gcc-5.3.0-aarch64-tzos/gcc/config/aarch64/aarch64-tzos.h	2016-12-29 19:33:40.981520118 -0500
+@@ -0,0 +1,105 @@
++/* Machine description for AArch64 architecture.
++   Copyright (C) 2009-2015 Free Software Foundation, Inc.
++   Contributed by ARM Ltd.
++
++   This file is part of GCC.
++
++   GCC is free software; you can redistribute it and/or modify it
++   under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3, or (at your option)
++   any later version.
++
++   GCC is distributed in the hope that it will be useful, but
++   WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with GCC; see the file COPYING3.  If not see
++   <http://www.gnu.org/licenses/>.  */
++
++#ifndef GCC_AARCH64_TZOS_H
++#define GCC_AARCH64_TZOS_H
++
++#define GLIBC_DYNAMIC_LINKER "/lib/ld-tzos-aarch64%{mbig-endian:_be}%{mabi=ilp32:_ilp32}.so.1"
++
++/* For AARCH64 musl currently supports four dynamic linkers:
++   - ld-musl-aarch64.so.1 - for the EABI-derived soft-float ABI
++   - ld-musl-aarch64hf.so.1 - for the EABI-derived hard-float ABI
++   - ld-musl-aarch64eb.so.1 - for the EABI-derived soft-float ABI, EB
++   - ld-musl-aarch64ebhf.so.1 - for the EABI-derived hard-float ABI, EB
++   musl does not support the legacy OABI mode.
++   All the dynamic linkers live in /lib.
++   We default to soft-float, EL. */
++#undef  MUSL_DYNAMIC_LINKER
++#if TARGET_BIG_ENDIAN_DEFAULT
++#define MUSL_DYNAMIC_LINKER_E "%{mlittle-endian:;:eb}"
++#else
++#define MUSL_DYNAMIC_LINKER_E "%{mbig-endian:eb}"
++#endif
++#define MUSL_DYNAMIC_LINKER \
++  "/lib/ld-musl-aarch64" MUSL_DYNAMIC_LINKER_E "%{mfloat-abi=hard:hf}.so.1"
++
++#undef  ASAN_CC1_SPEC
++#define ASAN_CC1_SPEC "%{%:sanitize(address):-funwind-tables}"
++
++#undef  CC1_SPEC
++#define CC1_SPEC GNU_USER_TARGET_CC1_SPEC ASAN_CC1_SPEC
++
++#define CPP_SPEC "%{pthread:-D_REENTRANT}"
++
++#define TZOS_TARGET_LINK_SPEC  "%{h*}		\
++   %{static:-Bstatic}				\
++   %{shared:-shared}				\
++   %{symbolic:-Bsymbolic}			\
++   %{!static:					\
++     %{rdynamic:-export-dynamic}		\
++     %{!shared:-dynamic-linker " GNU_USER_DYNAMIC_LINKER "}} \
++   -X						\
++   %{mbig-endian:-EB} %{mlittle-endian:-EL}     \
++   -maarch64tzos%{mabi=ilp32:32}%{mbig-endian:b}"
++
++#ifdef TARGET_FIX_ERR_A53_835769_DEFAULT
++#define CA53_ERR_835769_SPEC \
++  " %{!mno-fix-cortex-a53-835769:--fix-cortex-a53-835769}"
++#else
++#define CA53_ERR_835769_SPEC \
++  " %{mfix-cortex-a53-835769:--fix-cortex-a53-835769}"
++#endif
++
++#ifdef TARGET_FIX_ERR_A53_843419_DEFAULT
++#define CA53_ERR_843419_SPEC \
++  " %{!mno-fix-cortex-a53-843419:--fix-cortex-a53-843419}"
++#else
++#define CA53_ERR_843419_SPEC \
++  " %{mfix-cortex-a53-843419:--fix-cortex-a53-843419}"
++#endif
++
++#define LINK_SPEC TZOS_TARGET_LINK_SPEC \
++                  CA53_ERR_835769_SPEC \
++                  CA53_ERR_843419_SPEC
++
++#define GNU_USER_TARGET_MATHFILE_SPEC \
++  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
++
++#undef ENDFILE_SPEC
++#define ENDFILE_SPEC   \
++  GNU_USER_TARGET_MATHFILE_SPEC " " \
++  GNU_USER_TARGET_ENDFILE_SPEC
++
++#define TARGET_OS_CPP_BUILTINS()		\
++  do						\
++    {						\
++	GNU_USER_TARGET_OS_CPP_BUILTINS();	\
++    }						\
++  while (0)
++
++#define TARGET_ASM_FILE_END file_end_indicate_exec_stack
++
++/* Uninitialized common symbols in non-PIE executables, even with
++   strong definitions in dependent shared libraries, will resolve
++   to COPY relocated symbol in the executable.  See PR65780.  */
++#undef TARGET_BINDS_LOCAL_P
++#define TARGET_BINDS_LOCAL_P default_binds_local_p_2
++
++#endif  /* GCC_AARCH64_TZOS_H */
+diff -ruN gcc-5.3.0/gcc/configure gcc-5.3.0-aarch64-tzos/gcc/configure
+--- gcc-5.3.0/gcc/configure	2015-11-19 19:02:10.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/configure	2016-11-21 16:22:21.735347952 +0530
+@@ -27802,6 +27802,9 @@
+ else
+   gcc_cv_libc_provides_ssp=no
+     case "$target" in
++       *-*-musl*)
++         # All versions of musl provide stack protector
++         gcc_cv_libc_provides_ssp=yes;;
+        *-*-linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
+       # glibc 2.4 and later provides __stack_chk_fail and
+       # either __stack_chk_guard, or TLS access to stack guard canary.
+@@ -27930,6 +27933,9 @@
+       gcc_cv_target_dl_iterate_phdr=no
+     fi
+     ;;
++  *-*-musl*)
++    gcc_cv_target_dl_iterate_phdr=yes
++    ;;
+ esac
+ 
+ if test x$gcc_cv_target_dl_iterate_phdr = xyes; then
+diff -ruN gcc-5.3.0/gcc/configure.ac gcc-5.3.0-aarch64-tzos/gcc/configure.ac
+--- gcc-5.3.0/gcc/configure.ac	2015-11-19 19:02:10.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/configure.ac	2016-11-21 16:22:21.735347952 +0530
+@@ -5282,6 +5282,9 @@
+       gcc_cv_libc_provides_ssp,
+       [gcc_cv_libc_provides_ssp=no
+     case "$target" in
++       *-*-musl*)
++         # All versions of musl provide stack protector
++         gcc_cv_libc_provides_ssp=yes;;
+        *-*-linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
+       # glibc 2.4 and later provides __stack_chk_fail and
+       # either __stack_chk_guard, or TLS access to stack guard canary.
+@@ -5381,6 +5384,9 @@
+       gcc_cv_target_dl_iterate_phdr=no
+     fi
+     ;;
++  *-*-musl*)
++    gcc_cv_target_dl_iterate_phdr=yes
++    ;;
+ esac
+ GCC_TARGET_TEMPLATE([TARGET_DL_ITERATE_PHDR])
+ if test x$gcc_cv_target_dl_iterate_phdr = xyes; then
+diff -ruN gcc-5.3.0/gcc/gcc.c gcc-5.3.0-aarch64-tzos/gcc/gcc.c
+--- gcc-5.3.0/gcc/gcc.c	2015-03-10 15:07:41.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/gcc.c	2016-11-21 16:22:21.735347952 +0530
+@@ -729,7 +729,7 @@
+ #ifndef LINK_SSP_SPEC
+ #ifdef TARGET_LIBC_PROVIDES_SSP
+ #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \
+-		       "|fstack-protector-strong|fstack-protector-explicit:}"
++		       "|fstack-protector-strong|fstack-protector-explicit:-lssp_nonshared}"
+ #else
+ #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \
+ 		       "|fstack-protector-strong|fstack-protector-explicit" \
+diff -ruN gcc-5.3.0/gcc/ginclude/stddef.h gcc-5.3.0-aarch64-tzos/gcc/ginclude/stddef.h
+--- gcc-5.3.0/gcc/ginclude/stddef.h	2015-01-05 18:03:28.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/gcc/ginclude/stddef.h	2016-11-21 16:22:21.735347952 +0530
+@@ -184,6 +184,7 @@
+ #ifndef _GCC_SIZE_T
+ #ifndef _SIZET_
+ #ifndef __size_t
++#ifndef __DEFINED_size_t /* musl */
+ #define __size_t__	/* BeOS */
+ #define __SIZE_T__	/* Cray Unicos/Mk */
+ #define _SIZE_T
+@@ -200,6 +201,7 @@
+ #define ___int_size_t_h
+ #define _GCC_SIZE_T
+ #define _SIZET_
++#define __DEFINED_size_t /* musl */
+ #if (defined (__FreeBSD__) && (__FreeBSD__ >= 5)) \
+   || defined(__DragonFly__) \
+   || defined(__FreeBSD_kernel__)
+@@ -218,6 +220,7 @@
+ typedef long ssize_t;
+ #endif /* __BEOS__ */
+ #endif /* !(defined (__GNUG__) && defined (size_t)) */
++#endif /* __DEFINED_size_t */
+ #endif /* __size_t */
+ #endif /* _SIZET_ */
+ #endif /* _GCC_SIZE_T */
+diff -ruN gcc-5.3.0/libgcc/config.host gcc-5.3.0-aarch64-tzos/libgcc/config.host
+--- gcc-5.3.0/libgcc/config.host	2015-10-01 17:31:18.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/libgcc/config.host	2016-11-21 16:22:21.735347952 +0530
+@@ -228,7 +228,7 @@
+       ;;
+   esac
+   ;;
+-*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
++*-*-linux* | *-*-tzos* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
+   tmake_file="$tmake_file t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver t-linux"
+   extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
+   if test x$enable_vtable_verify = xyes; then
+@@ -328,7 +328,7 @@
+ 	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
+ 	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
+ 	;;
+-aarch64*-*-linux*)
++aarch64*-*-linux* | aarch64*-*-tzos*)
+ 	extra_parts="$extra_parts crtfastmath.o"
+ 	md_unwind_header=aarch64/linux-unwind.h
+	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
+diff -ruN gcc-5.3.0/libstdc++-v3/configure gcc-5.3.0-aarch64-tzos/libstdc++-v3/configure
+--- gcc-5.3.0/libstdc++-v3/configure	2015-11-26 19:21:04.000000000 +0530
++++ gcc-5.3.0-aarch64-tzos/libstdc++-v3/configure	2016-11-21 16:22:21.747347827 +0530
+@@ -6404,7 +6404,7 @@
+   ;;
+ 
+ # This must be Linux ELF.
+-linux* | k*bsd*-gnu | kopensolaris*-gnu)
++linux* | tzos* | k*bsd*-gnu | kopensolaris*-gnu)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+@@ -8756,7 +8756,7 @@
+       lt_prog_compiler_static='-non_shared'
+       ;;
+ 
+-    linux* | k*bsd*-gnu | kopensolaris*-gnu)
++    linux* | tzos* | k*bsd*-gnu | kopensolaris*-gnu)
+       case $cc_basename in
+       # old Intel for x86_64 which still supported -KPIC.
+       ecc*)
+@@ -9351,7 +9351,7 @@
+       archive_expsym_cmds='sed "s,^,_," $export_symbols >$output_objdir/$soname.expsym~$CC -shared $pic_flag $libobjs $deplibs $compiler_flags ${wl}-h,$soname ${wl}--retain-symbols-file,$output_objdir/$soname.expsym ${wl}--image-base,`expr ${RANDOM-$$} % 4096 / 2 \* 262144 + 1342177280` -o $lib'
+       ;;
+ 
+-    gnu* | linux* | tpf* | k*bsd*-gnu | kopensolaris*-gnu)
++    gnu* | linux* | tzos* | tpf* | k*bsd*-gnu | kopensolaris*-gnu)
+       tmp_diet=no
+       if test "$host_os" = linux-dietlibc; then
+ 	case $cc_basename in
+@@ -10891,7 +10891,7 @@
+   ;;
+ 
+ # This must be Linux ELF.
+-linux* | k*bsd*-gnu | kopensolaris*-gnu)
++linux* | tzos* | k*bsd*-gnu | kopensolaris*-gnu)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+@@ -12816,7 +12816,7 @@
+         inherit_rpath_CXX=yes
+         ;;
+ 
+-      linux* | k*bsd*-gnu | kopensolaris*-gnu)
++      linux* | tzos* | k*bsd*-gnu | kopensolaris*-gnu)
+         case $cc_basename in
+           KCC*)
+ 	    # Kuck and Associates, Inc. (KAI) C++ Compiler
+@@ -13403,7 +13403,7 @@
+   postdeps_CXX=
+   ;;
+ 
+-linux*)
++linux* | tzos*)
+   case `$CC -V 2>&1 | sed 5q` in
+   *Sun\ C*)
+     # Sun C++ 5.9
+@@ -13654,7 +13654,7 @@
+ 	    ;;
+ 	esac
+ 	;;
+-      linux* | k*bsd*-gnu | kopensolaris*-gnu)
++      linux* | tzos* | k*bsd*-gnu | kopensolaris*-gnu)
+ 	case $cc_basename in
+ 	  KCC*)
+ 	    # KAI C++ Compiler
+@@ -14575,7 +14575,7 @@
+   ;;
+ 
+ # This must be Linux ELF.
+-linux* | k*bsd*-gnu | kopensolaris*-gnu)
++linux* | tzos* | k*bsd*-gnu | kopensolaris*-gnu)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+@@ -15286,7 +15286,7 @@
+   if test x$gcc_no_link != xyes; then
+     # Can do link tests. Limit to some tested platforms
+     case "$host" in
+-      *-*-linux* | *-*-uclinux* | *-*-kfreebsd*-gnu | *-*-gnu*)
++      *-*-linux* | *-*-tzos* | *-*-uclinux* | *-*-kfreebsd*-gnu | *-*-gnu*)
+ 	atomic_builtins_link_tests=yes
+ 	;;
+     esac
+@@ -15918,7 +15918,7 @@
+   # Default to "generic".
+   if test $enable_clocale_flag = auto; then
+     case ${target_os} in
+-      linux* | gnu* | kfreebsd*-gnu | knetbsd*-gnu)
++      linux* | tzos* | gnu* | kfreebsd*-gnu | knetbsd*-gnu)
+ 	enable_clocale_flag=gnu
+ 	;;
+       darwin* | freebsd*)
+@@ -16335,7 +16335,7 @@
+   # Default to "new".
+   if test $enable_libstdcxx_allocator_flag = auto; then
+     case ${target_os} in
+-      linux* | gnu* | kfreebsd*-gnu | knetbsd*-gnu)
++      linux* | tzos* | gnu* | kfreebsd*-gnu | knetbsd*-gnu)
+ 	enable_libstdcxx_allocator_flag=new
+ 	;;
+       *)
+@@ -19638,7 +19638,7 @@
+         ac_has_nanosleep=yes
+         ac_has_sched_yield=yes
+         ;;
+-      gnu* | linux* | kfreebsd*-gnu | knetbsd*-gnu)
++      gnu* | linux* | tzos* | kfreebsd*-gnu | knetbsd*-gnu)
+         { $as_echo "$as_me:${as_lineno-$LINENO}: checking for at least GNU libc 2.17" >&5
+ $as_echo_n "checking for at least GNU libc 2.17... " >&6; }
+         cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+@@ -20138,7 +20138,7 @@
+ 
+   if test x"$ac_has_clock_monotonic" != x"yes"; then
+     case ${target_os} in
+-      linux*)
++      linux* | tzos*)
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for clock_gettime syscall" >&5
+ $as_echo_n "checking for clock_gettime syscall... " >&6; }
+ 	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+@@ -27013,7 +27013,7 @@
+ if ac_fn_c_try_link "$LINENO"; then :
+   chktls_save_LDFLAGS="$LDFLAGS"
+ 	  	  	  case $host in
+-	    *-*-linux*)
++	    *-*-linux* | *-*-tzos*)
+ 	      LDFLAGS="-shared -Wl,--no-undefined $LDFLAGS"
+ 	      ;;
+ 	  esac
+@@ -27576,7 +27576,7 @@
+                 if test "X$additional_includedir" = "X/usr/local/include"; then
+                   if test -n "$GCC"; then
+                     case $host_os in
+-                      linux*) haveit=yes;;
++                      linux*|tzos*) haveit=yes;;
+                     esac
+                   fi
+                 fi
+@@ -27620,7 +27620,7 @@
+                       if test "X$additional_libdir" = "X/usr/local/lib"; then
+                         if test -n "$GCC"; then
+                           case $host_os in
+-                            linux*) haveit=yes;;
++                            linux*|tzos*) haveit=yes;;
+                           esac
+                         fi
+                       fi
+@@ -52450,7 +52450,7 @@
+ if ac_fn_c_try_link "$LINENO"; then :
+   chktls_save_LDFLAGS="$LDFLAGS"
+ 	  	  	  case $host in
+-	    *-*-linux*)
++	    *-*-linux*|*-*-tzos*)
+ 	      LDFLAGS="-shared -Wl,--no-undefined $LDFLAGS"
+ 	      ;;
+ 	  esac
+@@ -52641,7 +52641,7 @@
+ 	;;
+     esac
+     ;;
+-  *-linux* | *-uclinux* | *-gnu* | *-kfreebsd*-gnu | *-knetbsd*-gnu | *-cygwin*)
++  *-linux* | *-tzos* | *-uclinux* | *-gnu* | *-kfreebsd*-gnu | *-knetbsd*-gnu | *-cygwin*)
+ 
+   # All these tests are for C++; save the language and the compiler flags.
+   # The CXXFLAGS thing is suspicious, but based on similar bits previously
+@@ -58651,7 +58651,7 @@
+ if ac_fn_c_try_link "$LINENO"; then :
+   chktls_save_LDFLAGS="$LDFLAGS"
+ 	  	  	  case $host in
+-	    *-*-linux*)
++	    *-*-linux* | *-*-tzos*)
+ 	      LDFLAGS="-shared -Wl,--no-undefined $LDFLAGS"
+ 	      ;;
+ 	  esac
+@@ -77344,7 +77344,7 @@
+ 
+ 
+ case "$target" in
+-  *-linux*)
++  *-linux*| *-tzos*)
+     case "$enable_linux_futex" in
+       default)
+ 	# If headers don't have gettid/futex syscalls definition, then
+@@ -78974,7 +78974,7 @@
+       freebsd*|netbsd*|openbsd*|dragonfly*|darwin*)
+         enable_libstdcxx_filesystem_ts=yes
+         ;;
+-      gnu* | linux* | kfreebsd*-gnu | knetbsd*-gnu)
++      gnu* | linux* | tzos* | kfreebsd*-gnu | knetbsd*-gnu)
+         enable_libstdcxx_filesystem_ts=yes
+         ;;
+       solaris*)
+@@ -79392,7 +79392,7 @@
+   $as_echo_n "(cached) " >&6
+ else
+       case "${target_os}" in
+-      gnu* | linux* | solaris*)
++      gnu* | linux* | tzos* | solaris*)
+         if test x$gcc_no_link = xyes; then
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+diff -ruN gcc-5.3.0/libstdc++-v3/configure.host gcc-5.3.0-arm-tzos/libstdc++-v3/configure.host
+--- gcc-5.3.0/libstdc++-v3/configure.host	2015-06-24 05:59:28.000000000 -0400
++++ gcc-5.3.0-arm-tzos/libstdc++-v3/configure.host	2016-12-15 15:05:29.163642605 -0500
+@@ -274,6 +274,13 @@
+     os_include_dir="os/bsd/freebsd"
+     ;;
+   gnu* | linux* | kfreebsd*-gnu | knetbsd*-gnu)
++    # check for musl by target
++    case "${host_os}" in
++      *-musl*)
++        os_include_dir="os/generic"
++        ;;
++      *)
++
+     if [ "$uclibc" = "yes" ]; then
+       os_include_dir="os/uclibc"
+     elif [ "$bionic" = "yes" ]; then
+@@ -282,6 +289,9 @@
+       os_include_dir="os/gnu-linux"
+     fi
+     ;;
++
++    esac
++    ;;
+   hpux*)
+     os_include_dir="os/hpux"
+     ;;
+diff -ruN gcc-5.3.0/libstdc++-v3/crossconfig.m4 gcc-5.3.0-arm-tzos/libstdc++-v3/crossconfig.m4
+--- gcc-5.3.0/libstdc++-v3/crossconfig.m4	2014-04-22 08:30:59.000000000 -0400
++++ gcc-5.3.0-arm-tzos/libstdc++-v3/crossconfig.m4	2016-12-15 15:05:29.163642605 -0500
+@@ -149,7 +149,7 @@
+ 	;;
+     esac
+     ;;
+-  *-linux* | *-uclinux* | *-gnu* | *-kfreebsd*-gnu | *-knetbsd*-gnu | *-cygwin*)
++  *-linux* | *-tzos* | *-uclinux* | *-gnu* | *-kfreebsd*-gnu | *-knetbsd*-gnu | *-cygwin*)
+     GLIBCXX_CHECK_COMPILER_FEATURES
+     GLIBCXX_CHECK_LINKER_FEATURES
+     GLIBCXX_CHECK_MATH_SUPPORT

@@ -1711,13 +1711,13 @@ BERR_Code BSCD_Channel_SetParameters(
 
         ulValue = ulValue | (BSCD_P_MapScClkDivToMaskValue(in_channelHandle->currentChannelSettings.ucScClkDiv))  |
                 ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  |
-                ((in_channelHandle->currentChannelSettings.ucBaudDiv == 31) ? 0 : 1);
+                ((in_channelHandle->currentChannelSettings.ucBaudDiv == 32||in_channelHandle->currentChannelSettings.ucBaudDiv == 20) ? 1 : 0);
 
         BREG_Write32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD),
             ulValue);
-        if(in_channelHandle->currentChannelSettings.ucBaudDiv == 25){
+        if(in_channelHandle->currentChannelSettings.ucBaudDiv == 25||in_channelHandle->currentChannelSettings.ucBaudDiv == 20){
                 ulValue = BREG_Read32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD));
@@ -1726,7 +1726,43 @@ BERR_Code BSCD_Channel_SetParameters(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD),
                     ulValue);
-        }
+        }else{
+		ulValue = BREG_Read32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD));
+                ulValue = ~0x80 &ulValue;
+                BREG_Write32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD),
+                    ulValue);
+	}
+	if(in_channelHandle->currentChannelSettings.ucBaudDiv == 10){
+                ulValue = BREG_Read32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
+                #ifndef SMARTCARD_32_BIT_REGISTER
+                ulValue = 0x80 |ulValue;
+                #else
+                ulValue =0x8000|ulValue;
+                #endif
+                BREG_Write32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
+                    ulValue);
+			}else{
+				 ulValue = BREG_Read32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
+                #ifndef SMARTCARD_32_BIT_REGISTER
+                ulValue = ~0x80 &ulValue;
+                #else
+                ulValue =~0x8000&ulValue;
+                #endif
+                BREG_Write32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
+                    ulValue);
+			}
         BDBG_MSG(("New SC_CLK_CMD = 0x%x", ulValue));
     }
 #endif

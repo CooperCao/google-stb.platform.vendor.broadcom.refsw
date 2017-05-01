@@ -43,6 +43,7 @@ typedef enum _StorageQualifier
 
 typedef enum _AuxiliaryQualifier
 {
+   AUXILIARY_NONE,   /* TODO: Not sure if this should really exist */
    AUXILIARY_CENTROID,
    AUXILIARY_PATCH,
    AUXILIARY_SAMPLE
@@ -136,6 +137,7 @@ typedef enum _PrecisionQualifier {
 typedef enum _InterpolationQualifier
 {
    INTERP_SMOOTH,
+   INTERP_NOPERSPECTIVE,
    INTERP_FLAT
 } InterpolationQualifier;
 
@@ -161,17 +163,6 @@ typedef struct {
    QualListNode *head;
    QualListNode *tail;
 } QualList;
-
-/* A composite qualifier type that the lists get compressed down to */
-/* TODO: Remove. This is an anachronism */
-typedef enum _TypeQualifier
-{
-   TYPE_QUAL_NONE,
-   TYPE_QUAL_CENTROID,
-   TYPE_QUAL_FLAT,
-   TYPE_QUAL_PATCH,
-   TYPE_QUAL_SAMPLE
-} TypeQualifier;
 
 typedef enum _ParamQualifier
 {
@@ -292,11 +283,12 @@ typedef struct _StatementChainNode StatementChainNode;
 typedef struct _Qualifiers
 {
    bool invariant;
-   StorageQualifier   sq;
-   TypeQualifier      tq;
-   LayoutQualifier   *lq;
-   PrecisionQualifier pq;
-   MemoryQualifier    mq;
+   StorageQualifier       sq;
+   InterpolationQualifier iq;
+   AuxiliaryQualifier     aq;
+   LayoutQualifier       *lq;
+   PrecisionQualifier     pq;
+   MemoryQualifier        mq;
 } Qualifiers;
 
 

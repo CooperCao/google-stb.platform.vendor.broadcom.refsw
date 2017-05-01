@@ -82,9 +82,9 @@ The two following are the only standard ones present in all systems.
 #define BSAGE_PLATFORM_ID_RESERVED6      (0x118)
 #define BSAGE_PLATFORM_ID_RESERVED7      (0x119)
 #define BSAGE_PLATFORM_ID_RESERVED8      (0x11A)
-#define BSAGE_PLATFORM_ID_RESERVED9      (0x11B)
-#define BSAGE_PLATFORM_ID_RESERVED10     (0x11C)
-#define BSAGE_PLATFORM_ID_RESERVED11     (0x11D)
+#define BSAGE_PLATFORM_ID_BP3            (0x11B)
+#define BSAGE_PLATFORM_ID_SECURE_RSA     (0x11C)
+#define BSAGE_PLATFORM_ID_HDCP14         (0x11D)
 #define BSAGE_PLATFORM_ID_RESERVED12     (0x11E)
 #define BSAGE_PLATFORM_ID_RESERVED13     (0x11F)
 #define BSAGE_PLATFORM_ID_RESERVED14     (0x120)
@@ -349,7 +349,8 @@ enum AntiRollback_ModuleId_e {
 
 enum {
     AntiRollbackModule_CommandId_eHeartbeat  = 0x1,
-    AntiRollbackModule_CommandId_eRegisterTa = 0x2
+    AntiRollbackModule_CommandId_eRegisterTa = 0x2,
+    AntiRollbackModule_CommandId_eDumpDatabase = 0x3
 };
 
 

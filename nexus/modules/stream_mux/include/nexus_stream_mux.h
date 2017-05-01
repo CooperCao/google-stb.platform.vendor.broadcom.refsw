@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -140,7 +140,7 @@ typedef struct NEXUS_StreamMuxAudioPid {
 typedef struct NEXUS_StreamMuxPcrPid {
     unsigned pid; /* PID in which it to insert the PCR */
     int pidChannelIndex; /* pidChannelIndex used in NEXUS_Playpump_OpenPidChannel */
-    NEXUS_PlaypumpHandle playpump;
+    NEXUS_PlaypumpHandle playpump; /* required for PCR and for UserData */
     unsigned interval; /* periodic milliseconds */
 } NEXUS_StreamMuxPcrPid;
 
@@ -148,6 +148,7 @@ typedef struct NEXUS_StreamMuxUserDataPid {
     NEXUS_MessageHandle message; /* The userdata is expected to arrive as PES packets encapsulated
         in TS packets. Application is responsible for calling NEXUS_Message_Start prior to calling
         NEXUS_StreamMux_Start and call NEXUS_Message_Stop after mux session was completed */
+    /* requires NEXUS_StreamMuxPcrPid.playpump be set */
 } NEXUS_StreamMuxUserDataPid;
 
 typedef enum NEXUS_StreamMuxInterleaveMode
@@ -297,10 +298,10 @@ typedef struct NEXUS_StreamMuxSystemData
                               relative to the start of the previous system data buffer.
                               "0" indicates to send the packet out ASAP. */
     size_t size; /* size of pData in bytes. Must be multiple of TS Packet size (188 bytes) */
-    const void *pData; /* attr{memory=cached} address of data to be muxed. Must be allocated using
-                          NEXUS_Memory_Allocation. memory pointed to by pData must remain intact
-                          until NEXUS_StreamMux_GetCompletedSystemDataBuffers indicates that is is
-                          completed. */
+    const void *pData; /* attr{memory=cached} address of data to be muxed. Must be allocated from Nexus heap with driver-side
+                          memory mapping and XPT accessible (that is, on MEMC0).
+                          Memory pointed to by pData must remain intact until NEXUS_StreamMux_GetCompletedSystemDataBuffers
+                          indicates it is completed. */
 } NEXUS_StreamMuxSystemData;
 
 /**
@@ -321,10 +322,11 @@ NEXUS_Error NEXUS_StreamMux_AddSystemDataBuffer(
 
 /**
 Summary:
-Learn what system data has been sent into the outgoing stream
+Learn the number of NEXUS_StreamMuxSystemData entries consumed since the last call to NEXUS_StreamMux_GetCompletedSystemDataBuffers.
 
 Description:
-Data is completed in FIFO order. Caller must keep track of submitted and completed entries.
+Data is completed in FIFO order. Caller must keep track of added and completed entries to safely
+free or reuse memory pointed to by NEXUS_StreamMuxSystemData.pData.
 **/
 void NEXUS_StreamMux_GetCompletedSystemDataBuffers(
     NEXUS_StreamMuxHandle handle,

@@ -119,6 +119,8 @@ public:
     virtual eRet                         addOutput(COutput * pOutput);
     virtual eRet                         removeOutput(COutput * pOutput);
     virtual COutput *                    getOutput(eBoardResource outputType);
+    virtual eDynamicRange                getOutputDynamicRange(void);
+    virtual eRet                         setOutputDynamicRange(eDynamicRange dynamicRange);
     virtual void                         dump();
 
     CVideoWindow *         checkoutVideoWindow(void);
@@ -143,6 +145,7 @@ public:
     void                   setModel(CModel * pModel)       { _pModel = pModel; }
     bool                   isMacrovisionCompatible(NEXUS_VideoFormat format = NEXUS_VideoFormat_eUnknown);
     void                   validateMacrovision(NEXUS_VideoFormat format);
+    void                   waitForDisplaySettingsApply(void) { BKNI_Sleep(125); /* 3 VSYNCs at 24Hz worst case */ }
 
 protected:
     NEXUS_DisplayHandle      _display;

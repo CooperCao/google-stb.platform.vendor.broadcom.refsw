@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "v3d_ver.h"
@@ -18,41 +17,14 @@ VCOS_EXTERN_C_BEGIN
 
 typedef struct v3d_vpm_cfg_v
 {
-   V3D_IN_SEG_ARGS_T input_size[2];
-   V3D_OUT_SEG_ARGS_T output_size[2];
-   uint8_t vcm_cache_size[2];
+   V3D_IN_SEG_ARGS_T input_size;
+   V3D_OUT_SEG_ARGS_T output_size;
+   uint8_t vcm_cache_size;
 } v3d_vpm_cfg_v;
 
-typedef struct v3d_vpm_cfg_t
-{
-   uint8_t per_patch_depth[2];
-   uint8_t min_per_patch_segs[2];
-   V3D_SEG_ARGS_T tcs_output[2];
-   uint8_t max_extra_vert_segs_per_tcs_batch[2];
-   uint8_t max_patches_per_tcs_batch;
-   v3d_cl_tcs_batch_flush_mode_t tcs_batch_flush;
-   uint8_t min_tcs_segs[2];
-   V3D_SEG_ARGS_T tes_output[2];
-   uint8_t max_extra_vert_segs_per_tes_batch[2];
-   uint8_t max_tcs_segs_per_tes_batch[2];
-   uint8_t max_patches_per_tes_batch;
-   uint8_t min_tes_segs[2];
-} v3d_vpm_cfg_t;
-
-typedef struct v3d_vpm_cfg_g
-{
-   V3D_GEOM_SEG_ARGS_T geom_output[2];
-   uint8_t max_extra_vert_segs_per_gs_batch[2];
-   uint8_t min_gs_segs[2];
-} v3d_vpm_cfg_g;
-
-void v3d_vpm_default_cfg_t(v3d_vpm_cfg_t* cfg_t);
-void v3d_vpm_default_cfg_g(v3d_vpm_cfg_g* cfg_g);
-
 bool v3d_vpm_compute_cfg_tg(
-   v3d_vpm_cfg_v* v,
-   v3d_vpm_cfg_t* t,
-   v3d_vpm_cfg_g* g,
+   v3d_vpm_cfg_v v[2],
+   V3D_VPM_CFG_TG_T tg[2], bool t, bool g,
    unsigned vpm_size_in_sectors,
    uint8_t const vs_input_words[2],
    uint8_t const vs_output_words[2],
@@ -67,9 +39,9 @@ bool v3d_vpm_compute_cfg_tg(
    uint16_t const gs_output_words[2]);
 
 void v3d_vpm_cfg_validate(
-   v3d_vpm_cfg_v const* v,
-   v3d_vpm_cfg_t const* t,
-   v3d_vpm_cfg_g const* g,
+   v3d_vpm_cfg_v const v[2],
+   // tg may be NULL if !t && !g
+   V3D_VPM_CFG_TG_T const tg[2], bool t, bool g,
    unsigned vpm_size_in_sectors,
    unsigned max_input_vertices,
    unsigned tes_patch_vertices);
@@ -78,15 +50,15 @@ void v3d_vpm_cfg_validate(
 
 typedef struct v3d_vpm_cfg_v
 {
-   uint8_t input_size[2];
-   uint8_t output_size[2];
-   uint8_t vcm_cache_size[2];
+   uint8_t input_size;
+   uint8_t output_size;
+   uint8_t vcm_cache_size;
 } v3d_vpm_cfg_v;
 
 #endif
 
 void v3d_vpm_compute_cfg(
-   v3d_vpm_cfg_v* cfg,
+   v3d_vpm_cfg_v cfg[2],
    unsigned vpm_size_in_sectors,
    uint8_t const vs_input_words[2],
    uint8_t const vs_output_words[2],

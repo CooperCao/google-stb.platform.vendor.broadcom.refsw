@@ -53,6 +53,8 @@
 
 #define BDSP_ARM_MAX_MAP_TABLE_ENTRY    (BDSP_ARM_MAX_ALLOC_DEVICE+(BDSP_ARM_MAX_ALLOC_TASK*BDSP_ARM_MAX_FW_TASK_PER_DSP)+(BDSP_ARM_MAX_ALLOC_STAGE*BDSP_ARM_MAX_STAGES_PER_TASK))
 
+#define BDSP_ARM_MAX_FILE_NAME_SIZE 40
+
 /**************************************************************************
         Inter Task Feed back buffer path
 ***************************************************************************/
@@ -78,21 +80,8 @@ See Also:
 typedef enum BDSP_Arm_SystemImgId
 {
     BDSP_ARM_SystemImgId_eSystemCode,
+	BDSP_ARM_SystemImgId_eLibDmaCode,
 	BDSP_ARM_SystemImgId_eHbcMonitorCode,
-#if 0
-    /*BDSP_ARM_SystemImgId_eSystemRdbvars,        */
-    BDSP_ARM_SystemImgId_eSyslibCode,
-    BDSP_ARM_SystemImgId_eAlgolibCode,
-    BDSP_ARM_SystemImgId_eCommonIdsCode,
-
-    BDSP_ARM_SystemImgId_eCommonVideoEncodeIdsCode,
-    BDSP_ARM_SystemImgId_eCommonVideoEncodeIdsInterframe,
-    BDSP_ARM_SystemImgId_eScm_Task_Code,
-    BDSP_ARM_SystemImgId_eVideo_Decode_Task_Code,
-    BDSP_ARM_SystemImgId_eVideo_Encode_Task_Code,
-    BDSP_ARM_SystemImgId_eScm1_Digest,
-    BDSP_ARM_SystemImgId_eScm2_Digest,
-#endif
     BDSP_ARM_SystemImgId_eMax
 } BDSP_Arm_SystemImgId;
 
@@ -126,12 +115,12 @@ See Also:
 ****************************************************************************/
 typedef enum BDSP_ARM_AF_P_MemoryMapType
 {
-    BDSP_ARM_AF_P_Map_eDram            = 0x0,
-    BDSP_ARM_AF_P_Map_eDevice,
-    BDSP_ARM_AF_P_Map_eRdOnly,
-    BDSP_ARM_AF_P_Map_eNoExec,
-    BDSP_ARM_AF_P_Map_eInvalid,
-    BDSP_ARM_AF_P_Map_eMax             = 0x7FFFFFFF
+	BDSP_ARM_AF_P_Map_eDram 		   = 0x00000000,
+	BDSP_ARM_AF_P_Map_eDevice		   = 0x00000001,
+	BDSP_ARM_AF_P_Map_eRdOnly		   = 0x00000002,
+	BDSP_ARM_AF_P_Map_eNoExec		   = 0x00000004,
+	BDSP_ARM_AF_P_Map_eInvalid		   = 0x7FFFFFF8,
+	BDSP_ARM_AF_P_Map_eMax			   = 0x7FFFFFFF
 }BDSP_ARM_AF_P_MemoryMapType;
 
 /*********************************************************************
@@ -180,7 +169,7 @@ typedef struct BDSP_ARM_AF_P_sNODE_CONFIG
     BDSP_AF_P_sDRAM_BUFFER          sDramAlgoCodeBuffer;
     BDSP_AF_P_sDRAM_BUFFER          sDramLookupTablesBuffer;
     BDSP_AF_P_sDRAM_BUFFER          sDramStatusBuffer;
-    uint32_t                        ui32VomAlgoAddr;
+    uint32_t                        ui32AlgoAddrFile[(BDSP_ARM_MAX_FILE_NAME_SIZE>>2)];
 
     uint32_t                        ui32NumSrc;
     uint32_t                        ui32NumDst;

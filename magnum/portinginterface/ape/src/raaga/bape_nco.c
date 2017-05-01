@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -736,8 +736,53 @@ BERR_Code BAPE_Nco_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 ***************************************************************************/
 #else /* BAPE_CHIP_MAX_NCOS > 0 */
     /* No NCOs, just use stubbed out functions. */
-
 /**************************************************************************/
+
+void BAPE_P_AttachMixerToNco(BAPE_MixerHandle mixer, BAPE_Nco nco)
+{
+    BSTD_UNUSED(mixer);
+    BSTD_UNUSED(nco);
+}
+
+void BAPE_P_DetachMixerFromNco(BAPE_MixerHandle mixer, BAPE_Nco nco)
+{
+    BSTD_UNUSED(mixer);
+    BSTD_UNUSED(nco);
+}
+
+void BAPE_P_AttachInputPortToNco(BAPE_InputPort input, BAPE_Nco nco)
+{
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(nco);
+}
+
+void BAPE_P_AttachInputPortToNco_isrsafe(BAPE_InputPort input, BAPE_Nco nco)
+{
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(nco);
+}
+
+
+void BAPE_P_DetachInputPortFromNco_isrsafe(BAPE_InputPort input, BAPE_Nco nco)
+{
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(nco);
+}
+
+BERR_Code BAPE_P_GetNcoConfiguration_isrsafe(BAPE_Handle handle, BAPE_Nco nco, BAPE_NcoConfiguration * pConfig)
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(nco);
+    BSTD_UNUSED(pConfig);
+    return BERR_SUCCESS;
+}
+
+BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(nco);
+    return BERR_SUCCESS;
+}
 
 BERR_Code BAPE_Nco_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 {

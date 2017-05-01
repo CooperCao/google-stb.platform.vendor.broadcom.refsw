@@ -218,6 +218,11 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
         savedRegs[i] = parentTask.savedRegs[i];
     }
+
+    for (int i=0; i<NUM_SAVED_NEON_REGS; i++) {
+        savedNeonRegs[i] = parentTask.savedNeonRegs[i];
+    }
+
     savedRegs[SAVED_REG_R0] = 0;
     savedRegs[SAVED_REG_SP] = (unsigned long)stackKernel;
 
@@ -225,6 +230,7 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
         savedRegs[SAVED_REG_SP_USR] = (unsigned long)stack;
 
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
+    savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
 
     spinLockInit(&lock);
 

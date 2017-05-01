@@ -68,6 +68,8 @@ NEXUS_Error NEXUS_Smartcard_Translate_Error_Code_priv(BERR_Code rc){
 		return NEXUS_TIMEOUT;
 	else if(rc == BSCD_STATUS_DEACTIVATE)
 		return NEXUS_SMARTCARD_DEACTIVATED;
+	else if(rc == BSCD_STATUS_NO_SC_RESPONSE)
+		return NEXUS_SMARTCARD_NO_SC_RESPONSE;
 	else if(rc)
 		return NEXUS_UNKNOWN;
 	else
@@ -659,8 +661,11 @@ NEXUS_Error NEXUS_Smartcard_ResetCard(NEXUS_SmartcardHandle smartcard, void *pDa
 
     if (pData) {
         rc = BSCD_Channel_Receive(smartcard->channelHandle, pData, &readCount, numBytes);
-        if(rc) {
-            rc = NEXUS_Smartcard_Translate_Error_Code_priv(rc);
+        rc = NEXUS_Smartcard_Translate_Error_Code_priv(rc);
+        if(rc == NEXUS_TIMEOUT) {
+            BDBG_WRN(("Timeout occured while reading %d bytes of ATR data. Number of bytes read is %d. Continuing Smartcard reset.", (unsigned)numBytes, (unsigned)readCount));
+        }
+        else if (rc != NEXUS_SUCCESS) {
             return BERR_TRACE(rc);
         }
 

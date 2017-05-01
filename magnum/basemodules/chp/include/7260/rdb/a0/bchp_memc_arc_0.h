@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:26:14 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:43:25 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,228 +70,228 @@
 /***************************************************************************
  *MEMC_ARC_0 - SCB Address Range CHeckers (ARCH) Registers
  ***************************************************************************/
-#define BCHP_MEMC_ARC_0_ARC_0_CNTRL              0x21100c00 /* [CFG] Mode/Control register for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_LOW     0x21100c04 /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-0. */
-#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_LOW_MSB 0x21100c08 /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_HIGH    0x21100c0c /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_HIGH_MSB 0x21100c10 /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_0      0x21100c14 /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_1      0x21100c18 /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_2      0x21100c1c /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_3      0x21100c20 /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_4      0x21100c24 /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_5      0x21100c28 /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_6      0x21100c2c /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_7      0x21100c30 /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_0     0x21100c34 /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_1     0x21100c38 /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_2     0x21100c3c /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_3     0x21100c40 /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_4     0x21100c44 /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_5     0x21100c48 /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_6     0x21100c4c /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_7     0x21100c50 /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_START_ADDR 0x21100c54 /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_START_ADDR_MSB 0x21100c58 /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_END_ADDR 0x21100c5c /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_END_ADDR_MSB 0x21100c60 /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_CMD 0x21100c64 /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-0 */
-#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_CLEAR 0x21100c68 /* [CFG] ARC_0 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ARC_1_CNTRL              0x21100c6c /* [CFG] Mode/Control register for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_LOW     0x21100c70 /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_LOW_MSB 0x21100c74 /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_HIGH    0x21100c78 /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_HIGH_MSB 0x21100c7c /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_0      0x21100c80 /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_1      0x21100c84 /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_2      0x21100c88 /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_3      0x21100c8c /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_4      0x21100c90 /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_5      0x21100c94 /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_6      0x21100c98 /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_7      0x21100c9c /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_0     0x21100ca0 /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_1     0x21100ca4 /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_2     0x21100ca8 /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_3     0x21100cac /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_4     0x21100cb0 /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_5     0x21100cb4 /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_6     0x21100cb8 /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_7     0x21100cbc /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_START_ADDR 0x21100cc0 /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_START_ADDR_MSB 0x21100cc4 /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_END_ADDR 0x21100cc8 /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_END_ADDR_MSB 0x21100ccc /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_CMD 0x21100cd0 /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-1 */
-#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_CLEAR 0x21100cd4 /* [CFG] ARC_1 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ARC_2_CNTRL              0x21100cd8 /* [CFG] Mode/Control register for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_LOW     0x21100cdc /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_LOW_MSB 0x21100ce0 /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_HIGH    0x21100ce4 /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_HIGH_MSB 0x21100ce8 /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_0      0x21100cec /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_1      0x21100cf0 /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_2      0x21100cf4 /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_3      0x21100cf8 /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_4      0x21100cfc /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_5      0x21100d00 /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_6      0x21100d04 /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_7      0x21100d08 /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_0     0x21100d0c /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_1     0x21100d10 /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_2     0x21100d14 /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_3     0x21100d18 /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_4     0x21100d1c /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_5     0x21100d20 /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_6     0x21100d24 /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_7     0x21100d28 /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_START_ADDR 0x21100d2c /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_START_ADDR_MSB 0x21100d30 /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_END_ADDR 0x21100d34 /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_END_ADDR_MSB 0x21100d38 /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_CMD 0x21100d3c /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-2 */
-#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_CLEAR 0x21100d40 /* [CFG] ARC_2 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ARC_3_CNTRL              0x21100d44 /* [CFG] Mode/Control register for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_LOW     0x21100d48 /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_LOW_MSB 0x21100d4c /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_HIGH    0x21100d50 /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_HIGH_MSB 0x21100d54 /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_0      0x21100d58 /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_1      0x21100d5c /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_2      0x21100d60 /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_3      0x21100d64 /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_4      0x21100d68 /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_5      0x21100d6c /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_6      0x21100d70 /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_7      0x21100d74 /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_0     0x21100d78 /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_1     0x21100d7c /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_2     0x21100d80 /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_3     0x21100d84 /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_4     0x21100d88 /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_5     0x21100d8c /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_6     0x21100d90 /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_7     0x21100d94 /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_START_ADDR 0x21100d98 /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_START_ADDR_MSB 0x21100d9c /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_END_ADDR 0x21100da0 /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_END_ADDR_MSB 0x21100da4 /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_CMD 0x21100da8 /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-3 */
-#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_CLEAR 0x21100dac /* [CFG] ARC_3 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ARC_4_CNTRL              0x21100db0 /* [CFG] Mode/Control register for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_LOW     0x21100db4 /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_LOW_MSB 0x21100db8 /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_HIGH    0x21100dbc /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_HIGH_MSB 0x21100dc0 /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_0      0x21100dc4 /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_1      0x21100dc8 /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_2      0x21100dcc /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_3      0x21100dd0 /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_4      0x21100dd4 /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_5      0x21100dd8 /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_6      0x21100ddc /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_7      0x21100de0 /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_0     0x21100de4 /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_1     0x21100de8 /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_2     0x21100dec /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_3     0x21100df0 /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_4     0x21100df4 /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_5     0x21100df8 /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_6     0x21100dfc /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_7     0x21100e00 /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_START_ADDR 0x21100e04 /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_START_ADDR_MSB 0x21100e08 /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_END_ADDR 0x21100e0c /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_END_ADDR_MSB 0x21100e10 /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_CMD 0x21100e14 /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-4 */
-#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_CLEAR 0x21100e18 /* [CFG] ARC_4 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ARC_5_CNTRL              0x21100e1c /* [CFG] Mode/Control register for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_LOW     0x21100e20 /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_LOW_MSB 0x21100e24 /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_HIGH    0x21100e28 /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_HIGH_MSB 0x21100e2c /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_0      0x21100e30 /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_1      0x21100e34 /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_2      0x21100e38 /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_3      0x21100e3c /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_4      0x21100e40 /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_5      0x21100e44 /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_6      0x21100e48 /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_7      0x21100e4c /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_0     0x21100e50 /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_1     0x21100e54 /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_2     0x21100e58 /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_3     0x21100e5c /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_4     0x21100e60 /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_5     0x21100e64 /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_6     0x21100e68 /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_7     0x21100e6c /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_START_ADDR 0x21100e70 /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_START_ADDR_MSB 0x21100e74 /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_END_ADDR 0x21100e78 /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_END_ADDR_MSB 0x21100e7c /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_CMD 0x21100e80 /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-5 */
-#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_CLEAR 0x21100e84 /* [CFG] ARC_5 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ARC_6_CNTRL              0x21100e88 /* [CFG] Mode/Control register for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_LOW     0x21100e8c /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_LOW_MSB 0x21100e90 /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_HIGH    0x21100e94 /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_HIGH_MSB 0x21100e98 /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_0      0x21100e9c /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_1      0x21100ea0 /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_2      0x21100ea4 /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_3      0x21100ea8 /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_4      0x21100eac /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_5      0x21100eb0 /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_6      0x21100eb4 /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_7      0x21100eb8 /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_0     0x21100ebc /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_1     0x21100ec0 /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_2     0x21100ec4 /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_3     0x21100ec8 /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_4     0x21100ecc /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_5     0x21100ed0 /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_6     0x21100ed4 /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_7     0x21100ed8 /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_START_ADDR 0x21100edc /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_START_ADDR_MSB 0x21100ee0 /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_END_ADDR 0x21100ee4 /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_END_ADDR_MSB 0x21100ee8 /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_CMD 0x21100eec /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-6 */
-#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_CLEAR 0x21100ef0 /* [CFG] ARC_6 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ARC_7_CNTRL              0x21100ef4 /* [CFG] Mode/Control register for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_LOW     0x21100ef8 /* [CFG] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_LOW_MSB 0x21100efc /* [CFG] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_HIGH    0x21100f00 /* [CFG] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_HIGH_MSB 0x21100f04 /* [CFG] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_0      0x21100f08 /* [CFG] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_1      0x21100f0c /* [CFG] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_2      0x21100f10 /* [CFG] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_3      0x21100f14 /* [CFG] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_4      0x21100f18 /* [CFG] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_5      0x21100f1c /* [CFG] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_6      0x21100f20 /* [CFG] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_7      0x21100f24 /* [CFG] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_0     0x21100f28 /* [CFG] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_1     0x21100f2c /* [CFG] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_2     0x21100f30 /* [CFG] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_3     0x21100f34 /* [CFG] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_4     0x21100f38 /* [CFG] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_5     0x21100f3c /* [CFG] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_6     0x21100f40 /* [CFG] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_7     0x21100f44 /* [CFG] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_START_ADDR 0x21100f48 /* [RO] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_START_ADDR_MSB 0x21100f4c /* [RO] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_END_ADDR 0x21100f50 /* [RO] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_END_ADDR_MSB 0x21100f54 /* [RO] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_CMD 0x21100f58 /* [RO] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-7 */
-#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_CLEAR 0x21100f5c /* [CFG] ARC_7 violation info write clear register */
-#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_START_ADDR 0x21100f60 /* [RO] Least significant 32 bits of Violating Command Start Address for Address Aliasing Checker */
-#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_START_ADDR_MSB 0x21100f64 /* [RO] Most significant 5 bits of Violating Command Start Address for Address Aliasing Checker */
-#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_END_ADDR 0x21100f68 /* [RO] Least significant 32 bits of Violating Command End Address for Address Aliasing Checker */
-#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_END_ADDR_MSB 0x21100f6c /* [RO] Most significant 5 bits of Violating Command End Address for Address Aliasing Checker */
-#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_CMD 0x21100f70 /* [RO] Violating SCB client-ID & Command Type for Address Aliasing Checker */
-#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_CLEAR 0x21100f74 /* [WO] ALIAS violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_0_CNTRL              0x21100c00 /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_LOW     0x21100c04 /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-0. */
+#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_LOW_MSB 0x21100c08 /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_HIGH    0x21100c0c /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_HIGH_MSB 0x21100c10 /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_0      0x21100c14 /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_1      0x21100c18 /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_2      0x21100c1c /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_3      0x21100c20 /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_4      0x21100c24 /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_5      0x21100c28 /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_6      0x21100c2c /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_READ_RIGHTS_7      0x21100c30 /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_0     0x21100c34 /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_1     0x21100c38 /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_2     0x21100c3c /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_3     0x21100c40 /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_4     0x21100c44 /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_5     0x21100c48 /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_6     0x21100c4c /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_WRITE_RIGHTS_7     0x21100c50 /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_START_ADDR 0x21100c54 /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_START_ADDR_MSB 0x21100c58 /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_END_ADDR 0x21100c5c /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_END_ADDR_MSB 0x21100c60 /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_CMD 0x21100c64 /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-0 */
+#define BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_CLEAR 0x21100c68 /* [CFG][32] ARC_0 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_1_CNTRL              0x21100c6c /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_LOW     0x21100c70 /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_LOW_MSB 0x21100c74 /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_HIGH    0x21100c78 /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_ADRS_RANGE_HIGH_MSB 0x21100c7c /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_0      0x21100c80 /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_1      0x21100c84 /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_2      0x21100c88 /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_3      0x21100c8c /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_4      0x21100c90 /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_5      0x21100c94 /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_6      0x21100c98 /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_READ_RIGHTS_7      0x21100c9c /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_0     0x21100ca0 /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_1     0x21100ca4 /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_2     0x21100ca8 /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_3     0x21100cac /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_4     0x21100cb0 /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_5     0x21100cb4 /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_6     0x21100cb8 /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_WRITE_RIGHTS_7     0x21100cbc /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_START_ADDR 0x21100cc0 /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_START_ADDR_MSB 0x21100cc4 /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_END_ADDR 0x21100cc8 /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_END_ADDR_MSB 0x21100ccc /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_CMD 0x21100cd0 /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-1 */
+#define BCHP_MEMC_ARC_0_ARC_1_VIOLATION_INFO_CLEAR 0x21100cd4 /* [CFG][32] ARC_1 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_2_CNTRL              0x21100cd8 /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_LOW     0x21100cdc /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_LOW_MSB 0x21100ce0 /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_HIGH    0x21100ce4 /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_ADRS_RANGE_HIGH_MSB 0x21100ce8 /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_0      0x21100cec /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_1      0x21100cf0 /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_2      0x21100cf4 /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_3      0x21100cf8 /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_4      0x21100cfc /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_5      0x21100d00 /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_6      0x21100d04 /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_READ_RIGHTS_7      0x21100d08 /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_0     0x21100d0c /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_1     0x21100d10 /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_2     0x21100d14 /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_3     0x21100d18 /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_4     0x21100d1c /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_5     0x21100d20 /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_6     0x21100d24 /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_WRITE_RIGHTS_7     0x21100d28 /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_START_ADDR 0x21100d2c /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_START_ADDR_MSB 0x21100d30 /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_END_ADDR 0x21100d34 /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_END_ADDR_MSB 0x21100d38 /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_CMD 0x21100d3c /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-2 */
+#define BCHP_MEMC_ARC_0_ARC_2_VIOLATION_INFO_CLEAR 0x21100d40 /* [CFG][32] ARC_2 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_3_CNTRL              0x21100d44 /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_LOW     0x21100d48 /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_LOW_MSB 0x21100d4c /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_HIGH    0x21100d50 /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_ADRS_RANGE_HIGH_MSB 0x21100d54 /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_0      0x21100d58 /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_1      0x21100d5c /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_2      0x21100d60 /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_3      0x21100d64 /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_4      0x21100d68 /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_5      0x21100d6c /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_6      0x21100d70 /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_READ_RIGHTS_7      0x21100d74 /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_0     0x21100d78 /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_1     0x21100d7c /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_2     0x21100d80 /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_3     0x21100d84 /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_4     0x21100d88 /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_5     0x21100d8c /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_6     0x21100d90 /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_WRITE_RIGHTS_7     0x21100d94 /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_START_ADDR 0x21100d98 /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_START_ADDR_MSB 0x21100d9c /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_END_ADDR 0x21100da0 /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_END_ADDR_MSB 0x21100da4 /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_CMD 0x21100da8 /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-3 */
+#define BCHP_MEMC_ARC_0_ARC_3_VIOLATION_INFO_CLEAR 0x21100dac /* [CFG][32] ARC_3 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_4_CNTRL              0x21100db0 /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_LOW     0x21100db4 /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_LOW_MSB 0x21100db8 /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_HIGH    0x21100dbc /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_ADRS_RANGE_HIGH_MSB 0x21100dc0 /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_0      0x21100dc4 /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_1      0x21100dc8 /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_2      0x21100dcc /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_3      0x21100dd0 /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_4      0x21100dd4 /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_5      0x21100dd8 /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_6      0x21100ddc /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_READ_RIGHTS_7      0x21100de0 /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_0     0x21100de4 /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_1     0x21100de8 /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_2     0x21100dec /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_3     0x21100df0 /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_4     0x21100df4 /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_5     0x21100df8 /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_6     0x21100dfc /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_WRITE_RIGHTS_7     0x21100e00 /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_START_ADDR 0x21100e04 /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_START_ADDR_MSB 0x21100e08 /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_END_ADDR 0x21100e0c /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_END_ADDR_MSB 0x21100e10 /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_CMD 0x21100e14 /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-4 */
+#define BCHP_MEMC_ARC_0_ARC_4_VIOLATION_INFO_CLEAR 0x21100e18 /* [CFG][32] ARC_4 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_5_CNTRL              0x21100e1c /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_LOW     0x21100e20 /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_LOW_MSB 0x21100e24 /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_HIGH    0x21100e28 /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_ADRS_RANGE_HIGH_MSB 0x21100e2c /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_0      0x21100e30 /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_1      0x21100e34 /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_2      0x21100e38 /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_3      0x21100e3c /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_4      0x21100e40 /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_5      0x21100e44 /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_6      0x21100e48 /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_READ_RIGHTS_7      0x21100e4c /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_0     0x21100e50 /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_1     0x21100e54 /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_2     0x21100e58 /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_3     0x21100e5c /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_4     0x21100e60 /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_5     0x21100e64 /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_6     0x21100e68 /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_WRITE_RIGHTS_7     0x21100e6c /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_START_ADDR 0x21100e70 /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_START_ADDR_MSB 0x21100e74 /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_END_ADDR 0x21100e78 /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_END_ADDR_MSB 0x21100e7c /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_CMD 0x21100e80 /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-5 */
+#define BCHP_MEMC_ARC_0_ARC_5_VIOLATION_INFO_CLEAR 0x21100e84 /* [CFG][32] ARC_5 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_6_CNTRL              0x21100e88 /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_LOW     0x21100e8c /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_LOW_MSB 0x21100e90 /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_HIGH    0x21100e94 /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_ADRS_RANGE_HIGH_MSB 0x21100e98 /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_0      0x21100e9c /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_1      0x21100ea0 /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_2      0x21100ea4 /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_3      0x21100ea8 /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_4      0x21100eac /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_5      0x21100eb0 /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_6      0x21100eb4 /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_READ_RIGHTS_7      0x21100eb8 /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_0     0x21100ebc /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_1     0x21100ec0 /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_2     0x21100ec4 /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_3     0x21100ec8 /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_4     0x21100ecc /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_5     0x21100ed0 /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_6     0x21100ed4 /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_WRITE_RIGHTS_7     0x21100ed8 /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_START_ADDR 0x21100edc /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_START_ADDR_MSB 0x21100ee0 /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_END_ADDR 0x21100ee4 /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_END_ADDR_MSB 0x21100ee8 /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_CMD 0x21100eec /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-6 */
+#define BCHP_MEMC_ARC_0_ARC_6_VIOLATION_INFO_CLEAR 0x21100ef0 /* [CFG][32] ARC_6 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ARC_7_CNTRL              0x21100ef4 /* [CFG][32] Mode/Control register for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_LOW     0x21100ef8 /* [CFG][32] Least significant 32 bits of Lower Address of the memory range for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_LOW_MSB 0x21100efc /* [CFG][32] Most significant 5 bits of Lower Address of the memory range for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_HIGH    0x21100f00 /* [CFG][32] Least significant 32 bits of Higher Address of the memory range for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_ADRS_RANGE_HIGH_MSB 0x21100f04 /* [CFG][32] Most significant 5 bits of Higher Address of the memory range for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_0      0x21100f08 /* [CFG][32] Read access right of SCB clients 0 to 31 on Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_1      0x21100f0c /* [CFG][32] Read access right of SCB clients 32 to 63 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_2      0x21100f10 /* [CFG][32] Read access right of SCB clients 64 to 95 on Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_3      0x21100f14 /* [CFG][32] Read access right of SCB clients 96 to 127 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_4      0x21100f18 /* [CFG][32] Read access right of SCB clients 128 to 159 on Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_5      0x21100f1c /* [CFG][32] Read access right of SCB clients 160 to 191 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_6      0x21100f20 /* [CFG][32] Read access right of SCB clients 192 to 223 on Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_READ_RIGHTS_7      0x21100f24 /* [CFG][32] Read access right of SCB clients 224 to 255 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_0     0x21100f28 /* [CFG][32] Write access right of SCB clients 0 to 31 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_1     0x21100f2c /* [CFG][32] Write access right of SCB clients 32 to 63 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_2     0x21100f30 /* [CFG][32] Write access right of SCB clients 64 to 95 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_3     0x21100f34 /* [CFG][32] Write access right of SCB clients 96 to 127 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_4     0x21100f38 /* [CFG][32] Write access right of SCB clients 128 to 159 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_5     0x21100f3c /* [CFG][32] Write access right of SCB clients 160 to 191 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_6     0x21100f40 /* [CFG][32] Write access right of SCB clients 192 to 223 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_WRITE_RIGHTS_7     0x21100f44 /* [CFG][32] Write access right of SCB clients 224 to 255 on Address Range Checker(ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_START_ADDR 0x21100f48 /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_START_ADDR_MSB 0x21100f4c /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_END_ADDR 0x21100f50 /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_END_ADDR_MSB 0x21100f54 /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_CMD 0x21100f58 /* [RO][32] Violating SCB client-ID & Command Type for Address Range Checker (ARC)-7 */
+#define BCHP_MEMC_ARC_0_ARC_7_VIOLATION_INFO_CLEAR 0x21100f5c /* [CFG][32] ARC_7 violation info write clear register */
+#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_START_ADDR 0x21100f60 /* [RO][32] Least significant 32 bits of Violating Command Start Address for Address Aliasing Checker */
+#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_START_ADDR_MSB 0x21100f64 /* [RO][32] Most significant 5 bits of Violating Command Start Address for Address Aliasing Checker */
+#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_END_ADDR 0x21100f68 /* [RO][32] Least significant 32 bits of Violating Command End Address for Address Aliasing Checker */
+#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_END_ADDR_MSB 0x21100f6c /* [RO][32] Most significant 5 bits of Violating Command End Address for Address Aliasing Checker */
+#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_CMD 0x21100f70 /* [RO][32] Violating SCB client-ID & Command Type for Address Aliasing Checker */
+#define BCHP_MEMC_ARC_0_ALIAS_VIOLATION_INFO_CLEAR 0x21100f74 /* [WO][32] ALIAS violation info write clear register */
 
 /***************************************************************************
  *ARC_0_CNTRL - Mode/Control register for Address Range Checker (ARC)-0

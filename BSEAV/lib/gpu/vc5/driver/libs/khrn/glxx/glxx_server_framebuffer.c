@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "glxx_shared.h"
@@ -20,7 +12,7 @@ Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
 #include "glxx_texture.h"
 #include "glxx_buffer.h"
 #include "../common/khrn_int_util.h"
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 #include "../common/khrn_image.h"
 
 #include "../egl/egl_image.h"
@@ -601,7 +593,7 @@ GL_API void GL_APIENTRY glGetRenderbufferParameteriv(GLenum target,
       goto out;
    }
 
-   const KHRN_IMAGE_T *image = rb->image;
+   const khrn_image *image = rb->image;
 
    switch (pname)
    {

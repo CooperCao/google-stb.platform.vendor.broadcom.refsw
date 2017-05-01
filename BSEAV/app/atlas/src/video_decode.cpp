@@ -43,8 +43,10 @@
 #include "video_window.h"
 #include "output.h"
 #include "atlas_os.h"
+#include "channel.h"
 
 #define CALLBACK_VDECODE_SOURCE_CHANGED  "callbackVDecodeSourceChanged"
+#define CALLBACK_VDECODE_STREAM_CHANGED  "callbackVDecodeStreamChanged"
 
 BDBG_MODULE(atlas_video_decode);
 
@@ -67,7 +69,7 @@ static void bwinVideoDecodeSourceChangedCallback(
     BSTD_UNUSED(strCallback);
     BDBG_ASSERT(NULL != pVideoDecode);
 
-    pVideoDecode->videoDecodeCallback();
+    pVideoDecode->videoDecodeSourceChangedCallback();
 } /* bwinVideoDecodeSourceChangedCallback */
 
 /* bwin io callback that is triggered when it is safe to handle callbacks */
@@ -81,16 +83,46 @@ static void bwinSimpleVideoDecodeSourceChangedCallback(
     BSTD_UNUSED(strCallback);
     BDBG_ASSERT(NULL != pSimpleVideoDecode);
 
-    pSimpleVideoDecode->videoDecodeCallback();
+    pSimpleVideoDecode->videoDecodeSourceChangedCallback();
 } /* bwinSimpleVideoDecodeSourceChangedCallback */
 
-void CVideoDecode::videoDecodeCallback()
+/* bwin io callback that is triggered when it is safe to handle callbacks */
+static void bwinVideoDecodeStreamChangedCallback(
+        void *       pObject,
+        const char * strCallback
+        )
+{
+    CVideoDecode * pVideoDecode = (CVideoDecode *)pObject;
+
+    BSTD_UNUSED(strCallback);
+    BDBG_ASSERT(NULL != pVideoDecode);
+
+    pVideoDecode->videoDecodeSourceChangedCallback();
+} /* bwinVideoDecodeStreamChangedCallback */
+
+/* bwin io callback that is triggered when it is safe to handle callbacks */
+static void bwinSimpleVideoDecodeStreamChangedCallback(
+        void *       pObject,
+        const char * strCallback
+        )
+{
+    CSimpleVideoDecode * pSimpleVideoDecode = (CSimpleVideoDecode *)pObject;
+
+    BSTD_UNUSED(strCallback);
+    BDBG_ASSERT(NULL != pSimpleVideoDecode);
+
+    pSimpleVideoDecode->videoDecodeStreamChangedCallback();
+} /* bwinSimpleVideoDecodeStreamChangedCallback */
+
+void CVideoDecode::videoDecodeSourceChangedCallback()
 {
     eRet ret = eRet_Ok;
     NEXUS_VideoDecoderStatus status;
 
     if (true == isSourceChanged())
     {
+        setSourceChanged(false);
+
         getStatus(&status);
 
         /* ignore 0 source change callback */
@@ -106,15 +138,34 @@ void CVideoDecode::videoDecodeCallback()
 
 error:
     return;
-} /* videoDecodeCallback */
+} /* videoDecodeSourceChangedCallback */
 
-void CSimpleVideoDecode::videoDecodeCallback()
+void CVideoDecode::videoDecodeStreamChangedCallback()
+{
+    eRet ret = eRet_Ok;
+
+    if (true == isStreamChanged())
+    {
+        setStreamChanged(false);
+
+        BDBG_MSG(("Notify Observers for video decoder event code: %#x", eNotify_VideoStreamChanged));
+        ret = notifyObservers(eNotify_VideoStreamChanged, this);
+        CHECK_ERROR_GOTO("error notifying observers", ret, error);
+    }
+
+error:
+    return;
+} /* videoDecodeStreamChangedCallback */
+
+void CSimpleVideoDecode::videoDecodeSourceChangedCallback()
 {
     eRet ret = eRet_Ok;
     NEXUS_VideoDecoderStatus status;
 
     if (true == isSourceChanged())
     {
+        setSourceChanged(false);
+
         getStatus(&status);
 
         /* ignore 0 source change callback */
@@ -130,7 +181,24 @@ void CSimpleVideoDecode::videoDecodeCallback()
 
 error:
     return;
-} /* videoDecodeCallback */
+} /* videoDecodeSourceChangedCallback */
+
+void CSimpleVideoDecode::videoDecodeStreamChangedCallback()
+{
+    eRet ret = eRet_Ok;
+
+    if (true == isStreamChanged())
+    {
+        setStreamChanged(false);
+
+        BDBG_MSG(("Notify Observers for video decoder event code: %#x", eNotify_VideoStreamChanged));
+        ret = notifyObservers(eNotify_VideoStreamChanged, this);
+        CHECK_ERROR_GOTO("error notifying observers", ret, error);
+    }
+
+error:
+    return;
+} /* videoDecodeStreamChangedCallback */
 
 /* nexus callback that is executed when the video source has changed */
 static void NexusVideoDecodeSourceChangedCallback(
@@ -154,6 +222,28 @@ static void NexusVideoDecodeSourceChangedCallback(
     }
 } /* NexusVideoDecodeSourceChangedCallback */
 
+/* nexus callback that is executed when the video stream has changed */
+static void NexusVideoDecodeStreamChangedCallback(
+        void * context,
+        int    param
+        )
+{
+    CVideoDecode * pVideoDecode = (CVideoDecode *)context;
+
+    BSTD_UNUSED(param);
+    BDBG_ASSERT(NULL != pVideoDecode);
+
+    CWidgetEngine * pWidgetEngine = pVideoDecode->getWidgetEngine();
+
+    pVideoDecode->setStreamChanged(true);
+
+    /* sync with bwin loop */
+    if (NULL != pWidgetEngine)
+    {
+        pWidgetEngine->syncCallback(pVideoDecode, CALLBACK_VDECODE_STREAM_CHANGED);
+    }
+} /* NexusVideoDecodeStreamChangedCallback */
+
 /* nexus callback that is executed when the video source has changed */
 static void NexusSimpleVideoDecodeSourceChangedCallback(
         void * context,
@@ -175,6 +265,28 @@ static void NexusSimpleVideoDecodeSourceChangedCallback(
         pWidgetEngine->syncCallback(pSimpleVideoDecode, CALLBACK_VDECODE_SOURCE_CHANGED);
     }
 } /* NexusSimpleVideoDecodeSourceChangedCallback */
+
+/* nexus callback that is executed when the video stream has changed */
+static void NexusSimpleVideoDecodeStreamChangedCallback(
+        void * context,
+        int    param
+        )
+{
+    CSimpleVideoDecode * pSimpleVideoDecode = (CSimpleVideoDecode *)context;
+
+    BSTD_UNUSED(param);
+    BDBG_ASSERT(NULL != pSimpleVideoDecode);
+
+    CWidgetEngine * pWidgetEngine = pSimpleVideoDecode->getWidgetEngine();
+
+    pSimpleVideoDecode->setStreamChanged(true);
+
+    /* sync with bwin loop */
+    if (NULL != pWidgetEngine)
+    {
+        pWidgetEngine->syncCallback(pSimpleVideoDecode, CALLBACK_VDECODE_STREAM_CHANGED);
+    }
+} /* NexusSimpleVideoDecodeStreamChangedCallback */
 
 CVideoDecode::CVideoDecode(
         const char *     name,
@@ -222,6 +334,7 @@ eRet CVideoDecode::open(
     if (NULL != _pWidgetEngine)
     {
         _pWidgetEngine->addCallback(this, CALLBACK_VDECODE_SOURCE_CHANGED, bwinVideoDecodeSourceChangedCallback);
+        _pWidgetEngine->addCallback(this, CALLBACK_VDECODE_STREAM_CHANGED, bwinVideoDecodeStreamChangedCallback);
     }
 
     {
@@ -273,6 +386,9 @@ eRet CVideoDecode::open(
         NEXUS_VideoDecoderSettings videoDecoderSettings;
 
         NEXUS_VideoDecoder_GetSettings(_decoder, &videoDecoderSettings);
+        videoDecoderSettings.streamChanged.callback = NexusVideoDecodeStreamChangedCallback;
+        videoDecoderSettings.streamChanged.context  = this;
+        videoDecoderSettings.streamChanged.param    = 0;
         videoDecoderSettings.sourceChanged.callback = NexusVideoDecodeSourceChangedCallback;
         videoDecoderSettings.sourceChanged.context  = this;
         videoDecoderSettings.sourceChanged.param    = 0;
@@ -304,6 +420,7 @@ CStc * CVideoDecode::close()
 
     if (NULL != _pWidgetEngine)
     {
+        _pWidgetEngine->removeCallback(this, CALLBACK_VDECODE_STREAM_CHANGED);
         _pWidgetEngine->removeCallback(this, CALLBACK_VDECODE_SOURCE_CHANGED);
         _pWidgetEngine = NULL;
     }
@@ -376,7 +493,8 @@ CSimpleVideoDecode::CSimpleVideoDecode(
     _pDecoder(NULL),
     _pVideoWindow(NULL),
     _windowType(eWindowType_Max),
-    _pModel(NULL)
+    _pModel(NULL),
+    _pChannel(NULL)
 {
     eRet ret = eRet_Ok;
 
@@ -419,6 +537,7 @@ eRet CSimpleVideoDecode::open(
     {
         _pWidgetEngine = pWidgetEngine;
         _pWidgetEngine->addCallback(this, CALLBACK_VDECODE_SOURCE_CHANGED, bwinSimpleVideoDecodeSourceChangedCallback);
+        _pWidgetEngine->addCallback(this, CALLBACK_VDECODE_STREAM_CHANGED, bwinSimpleVideoDecodeStreamChangedCallback);
     }
     else
     {
@@ -464,6 +583,9 @@ eRet CSimpleVideoDecode::open(
         NEXUS_VideoDecoderSettings videoDecoderSettings;
 
         NEXUS_SimpleVideoDecoder_GetSettings(_simpleDecoder, &videoDecoderSettings);
+        videoDecoderSettings.streamChanged.callback = NexusSimpleVideoDecodeStreamChangedCallback;
+        videoDecoderSettings.streamChanged.context  = this;
+        videoDecoderSettings.streamChanged.param    = 0;
         videoDecoderSettings.sourceChanged.callback = NexusSimpleVideoDecodeSourceChangedCallback;
         videoDecoderSettings.sourceChanged.context  = this;
         videoDecoderSettings.sourceChanged.param    = 0;
@@ -543,6 +665,7 @@ CStc * CSimpleVideoDecode::close()
 
     if (NULL != _pWidgetEngine)
     {
+        _pWidgetEngine->removeCallback(this, CALLBACK_VDECODE_STREAM_CHANGED);
         _pWidgetEngine->removeCallback(this, CALLBACK_VDECODE_SOURCE_CHANGED);
         _pWidgetEngine = NULL;
     }
@@ -1024,3 +1147,82 @@ NEXUS_VideoWindowFilterMode CSimpleVideoDecode::getAnrMode(void)
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
     return(settings.anr.anr.mode);
 }
+
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+eDynamicRange CSimpleVideoDecode::getDynamicRange(void)
+{
+    eRet                                ret          = eRet_Ok;
+    eDynamicRange                       dynamicRange = eDynamicRange_Unknown;
+    NEXUS_VideoDecoderStreamInformation streamInfo;
+
+    ret = getStreamInfo(&streamInfo);
+    CHECK_ERROR_GOTO("unable to get video decoder stream info", ret, error);
+
+    if (true == streamInfo.dolbyVision)
+    {
+        dynamicRange = eDynamicRange_DolbyVision;
+    }
+    else
+    {
+        switch(streamInfo.eotf)
+        {
+        case NEXUS_VideoEotf_eHdr10:
+            dynamicRange = eDynamicRange_HDR10;
+            break;
+
+        case NEXUS_VideoEotf_eHlg:
+            dynamicRange = eDynamicRange_HLG;
+            break;
+
+        case NEXUS_VideoEotf_eSdr:
+            dynamicRange = eDynamicRange_SDR;
+            break;
+
+        default:
+            break;
+        }
+    }
+
+error:
+    return(dynamicRange);
+}
+#endif
+
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+eRet CSimpleVideoDecode::updatePlm()
+{
+    eRet        ret         = eRet_Ok;
+    CDisplay *  pDisplay    = _pModel->getDisplay();
+    CPlatform * pPlatform   = _pCfg->getPlatformConfig();
+    CChannel *  pChannel    = getChannel();
+    eWindowType windowType  = getWindowType();
+    unsigned    indexWindow = 0;
+    bool        bPlm        = true;
+
+    if (NULL != pDisplay)
+    {
+        if ((eDynamicRange_SDR == pDisplay->getOutputDynamicRange()) ||
+            (eDynamicRange_Unknown == pDisplay->getOutputDynamicRange()))
+        {
+            /* output is not HDR so do not set PLM settings */
+            return(ret);
+        }
+    }
+
+    if ((eWindowType_Mosaic1 <= windowType) && (eWindowType_Max > windowType))
+    {
+        indexWindow = windowType - eWindowType_Mosaic1;
+    }
+
+    if (NULL != pChannel)
+    {
+        bPlm = pChannel->isPlmEnabled();
+    }
+
+    pPlatform->setPlmLumaRangeAdjVideo(0, indexWindow, bPlm);
+    BDBG_MSG(("setPlmLumaRangeAdjVideo() index:%d enabled:%s", indexWindow, bPlm ? "true" : "false"));
+
+    notifyObservers(eNotify_VideoPlmChanged, this);
+    return(ret);
+}
+#endif

@@ -39,6 +39,7 @@ typedef enum {
 typedef struct {
    bool centroid;
    bool flat;
+   bool noperspective;
 } VARYING_INFO_T;
 
 typedef struct {
@@ -101,7 +102,11 @@ typedef struct {
    AdvancedBlendQualifier abq;
    bool                   varyings_per_sample;
    VARYING_INFO_T         varying[V3D_MAX_VARYING_COMPONENTS];
+
+   unsigned               cs_wg_size[3];
 } IR_PROGRAM_T;
+
+bool glsl_wg_size_requires_barriers(const unsigned wg_size[3]);
 
 LinkMap *glsl_link_map_alloc(int num_ins, int num_outs, int num_unifs, int num_buffers);
 void glsl_link_map_free(LinkMap *l);

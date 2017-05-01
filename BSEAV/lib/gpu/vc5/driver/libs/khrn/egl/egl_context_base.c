@@ -1,23 +1,18 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "egl_context_base.h"
 #include "egl_surface_base.h"
 
 void egl_context_base_init(EGL_CONTEXT_T *context,
-      egl_api_t api, EGLConfig config,
+      egl_api_t api, EGLConfig config, bool debug,
       bool robustness, bool reset_notification,
       bool secure)
 {
    context->api = api;
    context->config = config;
+   context->debug = debug;
    context->robustness = robustness;
    context->reset_notification = reset_notification;
    context->secure = secure;

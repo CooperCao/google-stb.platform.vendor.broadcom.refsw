@@ -44,6 +44,9 @@ void phy_ac_noise_unregister_impl(phy_ac_noise_info_t *ac_info);
 /* ACI (start) */
 #define ACPHY_ACI_CHAN_LIST_SZ 3
 
+/* Lesi Off ~= Lesi 5-6 dB desense, 1 dB for margin */
+#define ACPHY_ACI_MAX_LESI_DESENSE_DB 7
+
 /* Number of channels affected by RSDB/DDR spur in 4349-Router chip */
 #define ACPHY_NUM_SPUR_CHANS_ROUTER4349 16
 
@@ -56,7 +59,7 @@ void phy_ac_noise_unregister_impl(phy_ac_noise_info_t *ac_info);
 #define ACPHY_ACI_MAX_DESENSE_BPHY_DB 24
 #define ACPHY_ACI_MAX_DESENSE_OFDM_DB 48
 #define ACPHY_ACI_COARSE_DESENSE_UP 4
-#define ACPHY_ACI_COARSE_DESENSE_DN 4
+#define ACPHY_ACI_COARSE_DESENSE_DN 2
 
 #define ACPHY_ACI_NUM_MAX_GLITCH_AVG 2
 #define ACPHY_ACI_WAIT_POST_MITIGATION 1
@@ -71,6 +74,8 @@ void phy_ac_noise_unregister_impl(phy_ac_noise_info_t *ac_info);
 
 #define ACPHY_ACI_OFDM_HI_GLITCH_THRESH_TINY 300
 #define ACPHY_ACI_OFDM_LO_GLITCH_THRESH_TINY 100
+
+#define ACPHY_JAMMER_SLEEP 90
 
 /* hw aci */
 #define ACPHY_HWACI_MAX_STATES 5       /* min 1 for default */
@@ -154,6 +159,7 @@ typedef struct acphy_desense_values
 	uint8 lna1_idx_min, lna1_idx_max;   /* in ticks */
 	uint8 lna2_idx_min, lna2_idx_max;   /* in ticks */
 	uint8 mix_idx_min, mix_idx_max;   /* in ticks */
+	uint8 ofdm_desense_extra_halfdB;
 }  acphy_desense_values_t;
 
 typedef struct desense_history {
@@ -256,6 +262,9 @@ extern void wlc_phy_hwaci_mitigate_acphy(phy_info_t *pi, bool aci_status);
 acphy_desense_values_t* phy_ac_noise_get_desense(phy_ac_noise_info_t *noisei);
 uint8 phy_ac_noise_get_desense_state(phy_ac_noise_info_t *noisei);
 int8 phy_ac_noise_get_weakest_rssi(phy_ac_noise_info_t *noisei);
+int8 phy_ac_noise_get_jammer_cnt(phy_ac_noise_info_t *noisei);
+void wlc_phy_desense_aci_upd_txop_acphy(phy_info_t *pi, chanspec_t chanspec,
+		uint8 txop);
 void phy_ac_noise_hwaci_mitigation(phy_ac_noise_info_t *ni, int8 desense_state);
 extern void phy_ac_noise_hwaci_switching_regs_tbls_list_init(phy_info_t *pi);
 extern void wlc_phy_desense_aci_reset_params_acphy(phy_info_t *pi,

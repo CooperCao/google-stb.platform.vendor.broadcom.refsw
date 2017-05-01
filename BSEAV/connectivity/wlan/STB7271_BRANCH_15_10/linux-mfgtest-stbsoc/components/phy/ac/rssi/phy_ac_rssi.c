@@ -863,34 +863,57 @@ wlc_phy_rssi_get_chan_freq_range_acphy(phy_info_t *pi, uint8 core_segment_mappin
 	} else {
 		int freq;
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 		if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID)) {
 			const void *chan_info;
 
 			freq = wlc_phy_chan2freq_acphy(pi, channel, &chan_info);
-		} else if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
+		} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
+		if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 			const chan_info_radio20693_pll_t *chan_info_20693_pll;
 			const chan_info_radio20693_rffe_t *chan_info_20693_rffe;
 			const chan_info_radio20693_pll_wave2_t *chan_info_20693_pll_wave2;
 
 			freq = wlc_phy_chan2freq_20693(pi, channel, &chan_info_20693_pll,
 				&chan_info_20693_rffe,  &chan_info_20693_pll_wave2);
-		} else if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
+		} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+		if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 			const chan_info_radio20694_rffe_t *chan_info;
 			freq = wlc_phy_chan2freq_20694(pi, channel,
 				&chan_info);
-		} else if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
+		} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+		if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 			const chan_info_radio20695_rffe_t *chan_info;
 			freq = wlc_phy_chan2freq_20695(pi, channel,
 				&chan_info);
-		} else if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
+		} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+		if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
 			const chan_info_radio20696_rffe_t *chan_info;
 			freq = wlc_phy_chan2freq_20696(pi, channel,
 				&chan_info);
-		} else {
+		} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
+		{
 			const chan_info_radio20691_t *chan_info_20691;
 
 			freq = wlc_phy_chan2freq_20691(pi, channel, &chan_info_20691);
 		}
+#else
+		{
+			ASSERT(0);
+			freq = -1;
+		}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+
 
 		if ((freq >= PHY_RSSI_SUBBAND_4BAND_BAND0) &&
 			(freq < PHY_RSSI_SUBBAND_4BAND_BAND1))

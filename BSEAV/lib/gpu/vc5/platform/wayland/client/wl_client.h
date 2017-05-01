@@ -8,6 +8,11 @@
 #include "wayland_nexus_client.h"
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef struct WaylandClient
 {
    struct wl_display *display;
@@ -19,5 +24,9 @@ typedef struct WaylandClient
 
 extern bool InitWaylandClient(WaylandClient *wlc, struct wl_display *display);
 extern void DestroyWaylandClient(WaylandClient *wlc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WL_CLIENT_H__ */

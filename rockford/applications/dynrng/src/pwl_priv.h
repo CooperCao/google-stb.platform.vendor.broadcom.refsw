@@ -57,6 +57,8 @@ typedef struct PwlCurve
     unsigned count;
     PwlPointMutator set_point;
     PwlPointAccessor get_point;
+    PwlLraMutator set_lra;
+    PwlLraAccessor get_lra;
 } PwlCurve;
 
 void pwl_p_read_curve(PwlCurveHandle hCurve, const char * pwlFilename);

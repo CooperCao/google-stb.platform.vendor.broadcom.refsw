@@ -319,23 +319,13 @@ Example: 0x75840000 becomes "7584A0" */
     /* All done. now return the new fresh context to user. */
     *phChip = (BCHP_Handle)pChip;
 
-    /* Now, if we have power management, do a second reset of the Magnum cores. This second reset is
-     * necessary to reset the cores that might have been powered down during the first reset above.
-     * Make sure the Magnum hardware is powered up before the reset, then power it down afterwards.
-     */
-#ifdef BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-        BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD0);
 #endif
-
-#if BCHP_PWR_SUPPORT
-    BCHP_P_ResetMagnumCores( pChip );
-#endif
-
     /* Clear AVD/SVD shutdown enable bit */
     BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
-
-#ifdef BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-        BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD0);
 #endif
 
     BDBG_LEAVE(BCHP_Open7584);

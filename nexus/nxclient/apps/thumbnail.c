@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,12 +51,13 @@ BDBG_MODULE(thumbnail);
 static void print_usage(void)
 {
     printf(
-    "Usage: thumbnail FILE\n"
+    "Usage: thumbnail FILE [INDEXFILE]\n"
     "  --help or -h for help\n"
     "  -rect x,y,width,height   position in default 1920x1080 coordinates\n"
     "  -zorder #\n"
     "  -gui off\n"
     "  -output FILE  file to save bmp of thumbnail when running gui off mode\n"
+    "  -pos SECONDS\n"
     );
 }
 
@@ -70,12 +71,14 @@ int main(int argc, const char **argv)
     NEXUS_Rect rect = {0,0,0,0};
     unsigned zorder = 0, timeout = 0;
     const char *filename = NULL;
+    const char *indexfilename = NULL;
     const char *outputname = NULL;
     thumbdecoder_t thumb;
     bool use_gui = true;
     NEXUS_SurfaceMemory mem;
     NEXUS_SurfaceHandle surface = NULL;
     NEXUS_SurfaceCreateSettings createSettings;
+    unsigned pos = 0;
 
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
@@ -103,8 +106,14 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-output") && argc>curarg+1) {
             outputname = argv[++curarg];
         }
+        else if (!strcmp(argv[curarg], "-pos") && argc>curarg+1) {
+            pos = atoi(argv[++curarg]);
+        }
         else if (!filename) {
             filename = argv[curarg];
+        }
+        else if (!indexfilename) {
+            indexfilename = argv[curarg];
         }
         else {
             print_usage();
@@ -147,9 +156,9 @@ int main(int argc, const char **argv)
     }
 
     thumb = thumbdecoder_open();
-    rc = thumbdecoder_open_file(thumb, filename, NULL);
+    rc = thumbdecoder_open_file(thumb, filename, indexfilename);
     if (rc) {BERR_TRACE(rc); goto done;}
-    rc = thumbdecoder_decode_still(thumb, 0, use_gui?bgui_surface(gui):surface);
+    rc = thumbdecoder_decode_still(thumb, pos * 1000, use_gui?bgui_surface(gui):surface);
     if (rc) {BERR_TRACE(rc); goto done;}
 
     if (use_gui) {

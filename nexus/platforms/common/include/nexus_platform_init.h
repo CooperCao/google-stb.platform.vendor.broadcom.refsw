@@ -43,7 +43,6 @@
 #include "nexus_memory.h"
 #include "nexus_platform_features.h"
 #include "nexus_platform_common.h"
-#include "nexus_platform_extint.h"
 #include "nexus_platform_common_version.h"
 #include "nexus_platform_version.h"
 #include "nexus_platform_standby.h"
@@ -208,10 +207,9 @@ Instead, you must call NEXUS_Platform_GetConfiguration to retrieve the handles o
 ***************************************************************************/
 typedef struct NEXUS_PlatformSettings
 {
-    bool cachedMemory;      /* If true, the data cache will be enabled for driver memory clients that wish to use it.
-                               If false, the cache will be disabled */
+    bool cachedMemory;      /* unused */
     bool openI2c;           /* If true, NEXUS_Platform_Init will open the I2C channels for this platform. */
-    bool openFpga;          /* If true, NEXUS_Platform_Init will open the FPGA. This is needed for some frontends. */
+    bool openFpga;          /* unused */
     bool openFrontend;      /* If true, NEXUS_Platform_Init will scan the reference board for frontend devices. */
     bool openOutputs;       /* If true, NEXUS_Platform_Init will open video and audio outputs and configure the DAC's. */
     bool openInputs;        /* If true, NEXUS_Platform_Init will open analog video inputs configure the ADC's. */

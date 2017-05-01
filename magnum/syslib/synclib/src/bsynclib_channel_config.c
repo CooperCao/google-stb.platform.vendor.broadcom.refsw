@@ -228,6 +228,7 @@ BERR_Code BSYNClib_Channel_P_ProcessConfig(
 
 			psSource = (BSYNClib_VideoSource *)BSYSlib_List_Next(hIterator);
 			psSource->sElement.sNotification.sResults.bGenerateCallback = true;
+			psSource->sElement.sNotification.sResults.bEnabled &= hChn->bPrecisionLipsyncEnabled;
 			BKNI_EnterCriticalSection();
 			BSYNClib_VideoSource_EstimateDelay_isr(psSource);
 			BKNI_LeaveCriticalSection();

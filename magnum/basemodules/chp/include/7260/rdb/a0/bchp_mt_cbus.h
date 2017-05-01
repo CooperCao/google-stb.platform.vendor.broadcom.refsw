@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,43 +70,43 @@
 /***************************************************************************
  *MT_CBUS - CBUS Translation Layer, Link Layer, and Interrupt Registers
  ***************************************************************************/
-#define BCHP_MT_CBUS_SCHEDULER_CFG               0x20d83a00 /* [RW] CBUS Translation Layer Scheduler Configuration Register */
-#define BCHP_MT_CBUS_SCHEDULER_STATUS_0          0x20d83a04 /* [RO] CBUS Translation Layer Scheduler Status Register 0 */
-#define BCHP_MT_CBUS_SCHEDULER_STATUS_1          0x20d83a08 /* [RO] CBUS Translation Layer Scheduler Status Register 1 */
-#define BCHP_MT_CBUS_ABORT_CTRL                  0x20d83a0c /* [WO] CBUS Abort Packet Control Register */
-#define BCHP_MT_CBUS_ABORT_CFG                   0x20d83a10 /* [RW] CBUS Abort Packet Configuration Register */
-#define BCHP_MT_CBUS_ABORT_STATUS                0x20d83a14 /* [RO] CBUS Abort Packet Status Register */
-#define BCHP_MT_CBUS_LINK_CTRL_0                 0x20d83a18 /* [WO] CBUS Link Control Register 0 */
-#define BCHP_MT_CBUS_LINK_CTRL_1                 0x20d83a1c /* [RW] CBUS Link Control Register 1 */
-#define BCHP_MT_CBUS_LINK_STATUS                 0x20d83a20 /* [RO] CBUS Link Status Register */
-#define BCHP_MT_CBUS_LINK_ERROR                  0x20d83a24 /* [RO] CBUS Link Error Register */
-#define BCHP_MT_CBUS_LINK_TEST                   0x20d83a28 /* [RW] CBUS Link Layer Test Register */
-#define BCHP_MT_CBUS_LINK_CFG_0                  0x20d83a2c /* [RW] CBUS Link Configuration Register 0 */
-#define BCHP_MT_CBUS_LINK_CFG_1                  0x20d83a30 /* [RW] CBUS Link Configuration Register 1 */
-#define BCHP_MT_CBUS_WAKE_CFG_0                  0x20d83a34 /* [RW] CBUS Wake Up Configuration Register 0 */
-#define BCHP_MT_CBUS_WAKE_CFG_1                  0x20d83a38 /* [RW] CBUS Wake Up Configuration Register 1 */
-#define BCHP_MT_CBUS_DISCOVERY_CFG               0x20d83a3c /* [RW] CBUS Discovery Configuration Register */
-#define BCHP_MT_CBUS_ARBITRATION_CFG_0           0x20d83a40 /* [RW] CBUS Link Layer Arbitration Configuration Register 0 */
-#define BCHP_MT_CBUS_ARBITRATION_CFG_1           0x20d83a44 /* [RW] CBUS Link Layer Arbitration Configuration Register 1 */
-#define BCHP_MT_CBUS_ARBITRATION_CFG_2           0x20d83a48 /* [RW] CBUS Link Layer Arbitration Configuration Register 2 */
-#define BCHP_MT_CBUS_ARBITRATION_CFG_3           0x20d83a4c /* [RW] CBUS Link Layer Arbitration Configuration Register 3 */
-#define BCHP_MT_CBUS_INITIATOR_CFG_0             0x20d83a50 /* [RW] CBUS Initiator Configuration Register 0 */
-#define BCHP_MT_CBUS_INITIATOR_CFG_1             0x20d83a54 /* [RW] CBUS Initiator Configuration Register 1 */
-#define BCHP_MT_CBUS_INITIATOR_STATUS            0x20d83a58 /* [RO] CBUS Initiator Status Register */
-#define BCHP_MT_CBUS_FOLLOWER_CFG                0x20d83a5c /* [RW] CBUS Follower Configuration Register */
-#define BCHP_MT_CBUS_FOLLOWER_STATUS_0           0x20d83a60 /* [RO] CBUS Follower Status Register 0 */
-#define BCHP_MT_CBUS_FOLLOWER_STATUS_1           0x20d83a64 /* [RO] CBUS Follower Status Register 1 */
-#define BCHP_MT_CBUS_RX_FILTER_CFG               0x20d83a68 /* [RW] Rx Filter Configuration Register */
-#define BCHP_MT_CBUS_RX_CDR_CFG_0                0x20d83a6c /* [RW] Rx Clock and Data Recovery Configuration Register 0 */
-#define BCHP_MT_CBUS_RX_CDR_CFG_1                0x20d83a70 /* [RW] Rx Clock and Data Recovery Configuration Register 1 */
-#define BCHP_MT_CBUS_RX_CDR_CFG_2                0x20d83a74 /* [RW] Rx Clock and Data Recovery Configuration Register 2 */
-#define BCHP_MT_CBUS_RX_CDR_STATUS_0             0x20d83a78 /* [RO] Rx Clock and Data Recovery Status Register 0 */
-#define BCHP_MT_CBUS_RX_CDR_STATUS_1             0x20d83a7c /* [RO] Rx Clock and Data Recovery Status Register 1 */
-#define BCHP_MT_CBUS_IMP_CHANGE_FILTER           0x20d83a80 /* [RW] CBUS Impedance Change Filter Configuration Register */
-#define BCHP_MT_CBUS_SPARE_REG_0                 0x20d83af0 /* [RW] Spare Register 0 */
-#define BCHP_MT_CBUS_SPARE_REG_1                 0x20d83af4 /* [RW] Spare Register 1 */
-#define BCHP_MT_CBUS_SPARE_REG_2                 0x20d83af8 /* [RW] Spare Register 2 */
-#define BCHP_MT_CBUS_SPARE_REG_3                 0x20d83afc /* [RW] Spare Register 3 */
+#define BCHP_MT_CBUS_SCHEDULER_CFG               0x20d83a00 /* [RW][32] CBUS Translation Layer Scheduler Configuration Register */
+#define BCHP_MT_CBUS_SCHEDULER_STATUS_0          0x20d83a04 /* [RO][32] CBUS Translation Layer Scheduler Status Register 0 */
+#define BCHP_MT_CBUS_SCHEDULER_STATUS_1          0x20d83a08 /* [RO][32] CBUS Translation Layer Scheduler Status Register 1 */
+#define BCHP_MT_CBUS_ABORT_CTRL                  0x20d83a0c /* [WO][32] CBUS Abort Packet Control Register */
+#define BCHP_MT_CBUS_ABORT_CFG                   0x20d83a10 /* [RW][32] CBUS Abort Packet Configuration Register */
+#define BCHP_MT_CBUS_ABORT_STATUS                0x20d83a14 /* [RO][32] CBUS Abort Packet Status Register */
+#define BCHP_MT_CBUS_LINK_CTRL_0                 0x20d83a18 /* [WO][32] CBUS Link Control Register 0 */
+#define BCHP_MT_CBUS_LINK_CTRL_1                 0x20d83a1c /* [RW][32] CBUS Link Control Register 1 */
+#define BCHP_MT_CBUS_LINK_STATUS                 0x20d83a20 /* [RO][32] CBUS Link Status Register */
+#define BCHP_MT_CBUS_LINK_ERROR                  0x20d83a24 /* [RO][32] CBUS Link Error Register */
+#define BCHP_MT_CBUS_LINK_TEST                   0x20d83a28 /* [RW][32] CBUS Link Layer Test Register */
+#define BCHP_MT_CBUS_LINK_CFG_0                  0x20d83a2c /* [RW][32] CBUS Link Configuration Register 0 */
+#define BCHP_MT_CBUS_LINK_CFG_1                  0x20d83a30 /* [RW][32] CBUS Link Configuration Register 1 */
+#define BCHP_MT_CBUS_WAKE_CFG_0                  0x20d83a34 /* [RW][32] CBUS Wake Up Configuration Register 0 */
+#define BCHP_MT_CBUS_WAKE_CFG_1                  0x20d83a38 /* [RW][32] CBUS Wake Up Configuration Register 1 */
+#define BCHP_MT_CBUS_DISCOVERY_CFG               0x20d83a3c /* [RW][32] CBUS Discovery Configuration Register */
+#define BCHP_MT_CBUS_ARBITRATION_CFG_0           0x20d83a40 /* [RW][32] CBUS Link Layer Arbitration Configuration Register 0 */
+#define BCHP_MT_CBUS_ARBITRATION_CFG_1           0x20d83a44 /* [RW][32] CBUS Link Layer Arbitration Configuration Register 1 */
+#define BCHP_MT_CBUS_ARBITRATION_CFG_2           0x20d83a48 /* [RW][32] CBUS Link Layer Arbitration Configuration Register 2 */
+#define BCHP_MT_CBUS_ARBITRATION_CFG_3           0x20d83a4c /* [RW][32] CBUS Link Layer Arbitration Configuration Register 3 */
+#define BCHP_MT_CBUS_INITIATOR_CFG_0             0x20d83a50 /* [RW][32] CBUS Initiator Configuration Register 0 */
+#define BCHP_MT_CBUS_INITIATOR_CFG_1             0x20d83a54 /* [RW][32] CBUS Initiator Configuration Register 1 */
+#define BCHP_MT_CBUS_INITIATOR_STATUS            0x20d83a58 /* [RO][32] CBUS Initiator Status Register */
+#define BCHP_MT_CBUS_FOLLOWER_CFG                0x20d83a5c /* [RW][32] CBUS Follower Configuration Register */
+#define BCHP_MT_CBUS_FOLLOWER_STATUS_0           0x20d83a60 /* [RO][32] CBUS Follower Status Register 0 */
+#define BCHP_MT_CBUS_FOLLOWER_STATUS_1           0x20d83a64 /* [RO][32] CBUS Follower Status Register 1 */
+#define BCHP_MT_CBUS_RX_FILTER_CFG               0x20d83a68 /* [RW][32] Rx Filter Configuration Register */
+#define BCHP_MT_CBUS_RX_CDR_CFG_0                0x20d83a6c /* [RW][32] Rx Clock and Data Recovery Configuration Register 0 */
+#define BCHP_MT_CBUS_RX_CDR_CFG_1                0x20d83a70 /* [RW][32] Rx Clock and Data Recovery Configuration Register 1 */
+#define BCHP_MT_CBUS_RX_CDR_CFG_2                0x20d83a74 /* [RW][32] Rx Clock and Data Recovery Configuration Register 2 */
+#define BCHP_MT_CBUS_RX_CDR_STATUS_0             0x20d83a78 /* [RO][32] Rx Clock and Data Recovery Status Register 0 */
+#define BCHP_MT_CBUS_RX_CDR_STATUS_1             0x20d83a7c /* [RO][32] Rx Clock and Data Recovery Status Register 1 */
+#define BCHP_MT_CBUS_IMP_CHANGE_FILTER           0x20d83a80 /* [RW][32] CBUS Impedance Change Filter Configuration Register */
+#define BCHP_MT_CBUS_SPARE_REG_0                 0x20d83af0 /* [RW][32] Spare Register 0 */
+#define BCHP_MT_CBUS_SPARE_REG_1                 0x20d83af4 /* [RW][32] Spare Register 1 */
+#define BCHP_MT_CBUS_SPARE_REG_2                 0x20d83af8 /* [RW][32] Spare Register 2 */
+#define BCHP_MT_CBUS_SPARE_REG_3                 0x20d83afc /* [RW][32] Spare Register 3 */
 
 /***************************************************************************
  *SCHEDULER_CFG - CBUS Translation Layer Scheduler Configuration Register

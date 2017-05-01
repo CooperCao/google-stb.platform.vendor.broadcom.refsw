@@ -42,11 +42,12 @@
 #define __BMEMPERF_UTILS_H__
 
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include "bmemperf.h"
 #include "bmemperf_lib.h"
 
 #define MAJOR_VERSION                  0
-#define MINOR_VERSION                  21
+#define MINOR_VERSION                  22
 #define BMEMPERF_MAX_BOXMODES          30
 /*
     0.21  Started using new algorithm to compute Intr_penalty counts.
@@ -73,6 +74,8 @@
 #define TEMP_FILE_FULL_PATH_LEN        64
 #define BMEMPERF_SATA_USB_MAX          12 /* maximum number of devices like sda1, sda2, sda3, sda4, sdb1, sdc1 */
 #define TRUE_OR_FALSE(value)           ((value)?"True":"False")
+#define POWER_PROBE_MAX                8
+#define CLIENT_STREAMER_THREAD_MAX     16
 
 #ifdef B_ANDROID_BUILD
 #define BIN_DIR "/system/bin"
@@ -140,7 +143,11 @@ typedef struct
 
 typedef struct  bmemperf_cmd_overall_stats_data
 {
-    unsigned int dummy;
+    unsigned int  dummy;
+    unsigned char PowerProbeShunts[POWER_PROBE_MAX]; /* each probe needs to be supplied with shunt value ... between 2 and 10 */
+    char          PowerProbeIpAddr[INET6_ADDRSTRLEN];
+    char          ClientStreamerIpAddr[INET6_ADDRSTRLEN];
+    char          ServerStreamerIpAddr[INET6_ADDRSTRLEN];
 } bmemperf_cmd_overall_stats_data;
 
 typedef struct bmemperf_cmd_set_client_rts
@@ -230,6 +237,9 @@ typedef struct bmemperf_overall_stats
     unsigned long int    pidCount;
     unsigned long int    ulWifiScanApCount;
     unsigned char        bssInfo[wl_bss_info_t_size*wl_bss_info_t_max_num]; /* CAD replace with real wl_bss_info_t structure */
+    float                PowerProbeVoltage[POWER_PROBE_MAX];
+    float                PowerProbeCurrent[POWER_PROBE_MAX];
+    unsigned long int    ClientStreamerThreadCount;
 } bmemperf_overall_stats;
 
 typedef struct bmemperf_per_client_stats
@@ -355,6 +365,7 @@ void PrependTempDirectory(
 bool hasNumeric(
     const char *mystring
     );
+int bmemperf_set_ddrFreq( unsigned long int memc, unsigned long int ddrFreq );
 int bmemperf_init_ddrFreq(
     void
     );

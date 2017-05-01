@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-QPU disassembler.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/glsl/2708/glsl_qdisasm_4.h"
 #include "middleware/khronos/glsl/glsl_common.h"
@@ -479,30 +470,4 @@ void glsl_qdisasm_dump(const void *shader, const void *uniforms, uint32_t count,
       debug_print("\n");
    }
    debug_print("\n");
-}
-
-#define GLSL_SHADER_FD_OUTPUT "shaders_asm\\shader"
-//under cygwin -c gives colours
-//use the external python disassembler
-static int shader_num = 0;
-void glsl_qdisasm_py_dump(uint32_t count, uint32_t *words)
-{
-#ifdef GLSL_SHADER_FD_DQASM
-   FILE * f;
-   uint32_t i;
-   char cmd[256];
-   sprintf(cmd,"%s > %s%03d.asm",GLSL_SHADER_FD_DQASM,GLSL_SHADER_FD_OUTPUT,shader_num++);
-   f = _popen(cmd, "wt");
-   if (vcos_verify(f)) {
-      for (i = 0; i < count; i ++) {
-            fprintf(f,
-               "0x%08x_%08x\n", words[i*2 + 1], words[i*2]);
-
-      }
-      _pclose(f);
-   }
-#else
-   UNUSED(count);
-   UNUSED(words);
-#endif
 }

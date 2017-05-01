@@ -141,7 +141,6 @@ BDBG_FILE_MODULE(BVDC_CFC_2); /* print CFC configure */
 #define  GFD_NUM_REGS_DISP                  1
 #define  GFD_NUM_REGS_COLOR_MATRIX          9
 
-
 /***************************************************************************
  * {private}
  * BVDC_P_GfxFeeder_Create
@@ -294,11 +293,17 @@ BERR_Code BVDC_P_GfxFeeder_Create
         pGfxFeeder->stCfc.stCapability.stBits.bLRngAdj = 1;
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+        { /* TODO: bandrews - someone from VDC team please fix the way you like it */
+        uint32_t ulHdrHwCfg = BREG_Read32(pGfxFeeder->hRegister,
+            BCHP_GFD_0_HDR_HW_CONFIGURATION + pGfxFeeder->ulRegOffset);
         pGfxFeeder->stCfc.stCapability.stBits.bRamLutScb = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bLMR = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bAlphaDiv = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bCscBlendIn = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bDbvToneMapping = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, CFC_DLBV_CVM_PRESENT);
+        }
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
@@ -446,6 +451,8 @@ void BVDC_P_GfxFeeder_Init(
                 BMMA_Lock(hGfxFeeder->stCfcLutList.hMmaBlock);
             hGfxFeeder->stCfcLutList.ullStartDeviceAddr =
                 BMMA_LockOffset(hGfxFeeder->stCfcLutList.hMmaBlock);
+            BDBG_MSG(("GFD%d locked CFC heap at:"BDBG_UINT64_FMT, hGfxFeeder->eId-BAVC_SourceId_eGfx0,
+                BDBG_UINT64_ARG(hGfxFeeder->stCfcLutList.ullStartDeviceAddr)));
         }
     }
 #else
@@ -2011,11 +2018,22 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
     /* 7271 A/B */
     if (hGfxFeeder->hWindow)
     {
-        ulEnAlphaDiv  = (BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor))? 1 : 0;
+        ulEnAlphaDiv  = (BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor)
+#if BVDC_P_DBV_SUPPORT
+            || hGfxFeeder->bDbvEnabled
+#endif
+            )? 1 : 0;
     }
 #endif
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
-    ulEnClrMtrx       = (hGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut)? ulEnAlphaDiv : stFlags.bNeedColorSpaceConv;
+    ulEnClrMtrx       = hGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut? ulEnAlphaDiv : stFlags.bNeedColorSpaceConv;
+#if BVDC_P_DBV_SUPPORT
+    if (hGfxFeeder->hWindow && hGfxFeeder->bDbvEnabled &&
+        hGfxFeeder->hWindow->hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.bBlendInIpt)
+    {
+        ulEnClrMtrx = 0; /* disable blender_in for gfx in dbv conformance test */
+    }
+#endif
 #else
     ulEnClrMtrx       = stFlags.bNeedColorSpaceConv;
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
@@ -2160,17 +2178,16 @@ static void BVDC_P_GfxFeeder_HandleIsrSurface_isr
 
 /*************************************************************************
  * {private}
- * BVDC_P_GfxFeeder_BuildRul_isr
+ * BVDC_P_GfxFeeder_UpdateState_isr
  *
- * Append GfxFeeder specific RULs into hList.
+ * Update gfd state according to user settings and isr settings.
  *
  */
-void BVDC_P_GfxFeeder_BuildRul_isr
+void BVDC_P_GfxFeeder_UpdateState_isr
     ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
       BVDC_P_Source_Info *             pCurSrcInfo,
       BVDC_P_ListInfo                 *pList,
-      BAVC_Polarity                    eFieldId,
-      BVDC_P_State                     eVnetState )
+      BAVC_Polarity                    eFieldId )
 {
     BVDC_P_SurfaceInfo  *pCurSur;
     BVDC_P_GfxFeederCfgInfo  *pCurCfg;
@@ -2179,7 +2196,7 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     BVDC_P_Csc3x4 const *pRGBToYCbCr, *pYCbCrToRGB;
 #endif
 
-    BDBG_ENTER(BVDC_P_GfxFeeder_BuildRul_isr);
+    BDBG_ENTER(BVDC_P_GfxFeeder_UpdateState_isr);
 
     /* Note: we will not be called if this src is not connected to a window */
     /* validate paramters */
@@ -2224,9 +2241,6 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     }
 #endif
 
-    /* BuildRulFor* will use pCurCfg->stDirty, so copy back after modification */
-    pCurCfg->stDirty = stCurDirty;
-
     /* SW3548-2976 workaround: reset GFD if DCX is siwtched ON->OFF */
     if(BVDC_P_GFX_INIT_CNTR == hGfxFeeder->ulInitVsyncCntr)
     {
@@ -2234,9 +2248,13 @@ void BVDC_P_GfxFeeder_BuildRul_isr
 #if (BVDC_P_SUPPORT_GFD_VER < BVDC_P_SUPPORT_GFD_VER_6)
         BVDC_P_BUILD_RESET(pList->pulCurrent,
             hGfxFeeder->ulResetRegAddr, hGfxFeeder->ulResetMask);
+        BVDC_P_GfxFeeder_SetAllDirty(&stCurDirty);
 #endif
         hGfxFeeder->ulInitVsyncCntr --;
     }
+
+    /* BuildRulFor* will use pCurCfg->stDirty, so copy back after modification */
+    pCurCfg->stDirty = stCurDirty;
 
     /* resolve color conversion state */
     if (hGfxFeeder->hWindow)
@@ -2264,6 +2282,11 @@ void BVDC_P_GfxFeeder_BuildRul_isr
                 {
                     BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(pCurSur, &hGfxFeeder->stCfc.stColorSpaceIn);
                 }
+#if BVDC_P_DBV_SUPPORT
+                if(hGfxFeeder->stCfc.stCapability.stBits.bDbvToneMapping) {
+                    BVDC_P_Dbv_UpdateGfxInputColorSpace_isr(hGfxFeeder->hWindow->hCompositor, &hGfxFeeder->stCfc.stColorSpaceIn.stAvcColorSpace);
+                }
+#endif
                 BVDC_P_Cfc_UpdateCfg_isr(&hGfxFeeder->stCfc, false, true);
                 if( hGfxFeeder->hWindow->stCurInfo.bUserCsc )
                 {
@@ -2295,6 +2318,37 @@ void BVDC_P_GfxFeeder_BuildRul_isr
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
         }
     }
+
+    BDBG_LEAVE(BVDC_P_GfxFeeder_UpdateState_isr);
+    return;
+}
+
+/*************************************************************************
+ * {private}
+ * BVDC_P_GfxFeeder_BuildRul_isr
+ *
+ * Append GfxFeeder specific RULs into hList.
+ *
+ */
+void BVDC_P_GfxFeeder_BuildRul_isr
+    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
+      BVDC_P_ListInfo                 *pList,
+      BAVC_Polarity                    eFieldId,
+      BVDC_P_State                     eVnetState )
+{
+    BVDC_P_SurfaceInfo  *pCurSur;
+    BVDC_P_GfxFeederCfgInfo  *pCurCfg;
+    BVDC_P_GfxDirtyBits  stCurDirty;
+
+    BDBG_ENTER(BVDC_P_GfxFeeder_BuildRul_isr);
+
+    /* Note: we will not be called if this src is not connected to a window */
+    /* validate paramters */
+    BDBG_OBJECT_ASSERT(hGfxFeeder, BVDC_GFX);
+
+    /* init current state ptrs */
+    pCurSur = &(hGfxFeeder->stGfxSurface.stCurSurInfo);
+    pCurCfg = &(hGfxFeeder->stCurCfgInfo);
 
     /* set RULs, gfx should be enabled at the last of config */
     BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr( hGfxFeeder, pList );
@@ -2385,7 +2439,7 @@ BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
          * adjust SrcBlendDactor to BVDC_BlendFactor_eConstantAlpha.
          * This is because the alpha output from color key stage is always
          * pre-multiplied to pixel color by HW */
-        if (BVDC_BlendFactor_eSrcAlpha == *peSrcBlendFactor )
+        if (BVDC_BlendFactor_eSrcAlpha == *peSrcBlendFactor)
         {
             *peSrcBlendFactor = BVDC_BlendFactor_eConstantAlpha;
             *pucConstantAlpha = GFX_ALPHA_FULL;
@@ -2394,7 +2448,11 @@ BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
         /* when blen-matrix is enabled, we would enable alpha-div, so the output pixel
          * from GFD has alpha removed from the YCbCr value */
-        if (hGfxFeeder->hWindow && BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor))
+        if ((hGfxFeeder->hWindow && BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor))
+#if BVDC_P_DBV_SUPPORT
+            || hGfxFeeder->bDbvEnabled
+#endif
+        )
         {
             *peSrcBlendFactor = BVDC_BlendFactor_eSrcAlpha;
         }

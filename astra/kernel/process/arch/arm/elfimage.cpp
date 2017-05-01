@@ -67,11 +67,11 @@ void ElfImage::ElfSection::operator delete(void *section) {
 	elfSectionAllocator.free((ElfSection *)section);
 }
 
-ElfImage::ElfImage(int procId,  IFile *file) : userPageTable(*PageTable::kernelPageTable(), procId), pid(procId) {
+ElfImage::ElfImage(int procId,  IFile *file) : userPageTable(procId), pid(procId) {
 	parseImage(procId, file, (const char *)NULL);
 }
 
-ElfImage::ElfImage(int procId,  IFile *file, const char *name) : userPageTable(*PageTable::kernelPageTable(), procId), pid(procId) {
+ElfImage::ElfImage(int procId,  IFile *file, const char *name) : userPageTable(procId), pid(procId) {
 	parseImage(procId, file, name);
 }
 

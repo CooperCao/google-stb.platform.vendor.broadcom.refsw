@@ -246,7 +246,7 @@ NONDIG   [_a-zA-Z]
 "mediump"                     return handle_keyword(MEDIUM_PRECISION,     yylval, KW_FLAGS(KEYWORD,  KEYWORD,  KEYWORD,  KEYWORD));
 "namespace"                   return handle_keyword(NAMESPACE,            yylval, KW_FLAGS(RESERVED, RESERVED, RESERVED, RESERVED));
 "noinline"                    return handle_keyword(NOINLINE,             yylval, KW_FLAGS(RESERVED, RESERVED, RESERVED, RESERVED));
-"noperspective"               return handle_keyword(NOPERSPECTIVE,        yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED));
+"noperspective"               return handle_keyword_w_ext(NOPERSPECTIVE,        yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED), GLSL_EXT_NOPERSPECTIVE);
 "out"                         return handle_keyword(OUT,                  yylval, KW_FLAGS(KEYWORD,  KEYWORD,  KEYWORD,  KEYWORD));
 "output"                      return handle_keyword(OUTPUT,               yylval, KW_FLAGS(RESERVED, RESERVED, RESERVED, RESERVED));
 "packed"                      return handle_keyword(PACKED,               yylval, KW_FLAGS(RESERVED, NONE,     NONE,     NONE));

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,12 +42,14 @@
 #ifndef BGRC_PACKET_H__
 #define BGRC_PACKET_H__
 
+#include "bm2mc_packet.h"
+#include "berr_ids.h"
+#include "bpxl.h"
+#include "bpxl_plane.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "bm2mc_packet.h"
-#include "berr_ids.h"
 
 /***************************************************************************/
 typedef struct BGRC_P_PacketContext *BGRC_PacketContext_Handle;

@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/util/assert_helpers.h"
@@ -14,15 +13,15 @@ typedef enum
    GLXX_BUFSTATE_MISSING, /* There is no buffer */
 
                                        /* At start       Read/written in renderstate?     At end */
-   GLXX_BUFSTATE_UNDEFINED,            /* Nothing        Possibly read undefined data     Discard, invalidate interlock */
+   GLXX_BUFSTATE_UNDEFINED,            /* Nothing        Possibly read undefined data     Discard, invalidate resource */
    GLXX_BUFSTATE_CLEAR,                /* Fast clear     Possible read undefined data     Store */
    GLXX_BUFSTATE_CLEAR_READ,           /* Fast clear     Read                             Store */
    GLXX_BUFSTATE_CLEAR_RW,             /* Fast clear     Read & written                   Store */
-   GLXX_BUFSTATE_CLEAR_RW_INVALIDATED, /* Fast clear     Read & written                   Discard, invalidate interlock */
+   GLXX_BUFSTATE_CLEAR_RW_INVALIDATED, /* Fast clear     Read & written                   Discard, invalidate resource */
    GLXX_BUFSTATE_MEM,                  /* Nothing        No                               Discard */
    GLXX_BUFSTATE_MEM_READ,             /* Load           Read                             Discard */
    GLXX_BUFSTATE_MEM_RW,               /* Load           Read & written                   Store */
-   GLXX_BUFSTATE_MEM_RW_INVALIDATED    /* Load           Read & written                   Discard, invalidate interlock */
+   GLXX_BUFSTATE_MEM_RW_INVALIDATED    /* Load           Read & written                   Discard, invalidate resource */
 } glxx_bufstate_t;
 
 static inline glxx_bufstate_t glxx_bufstate_begin(bool undefined)
@@ -103,8 +102,8 @@ static inline bool glxx_bufstate_is_undefined(glxx_bufstate_t state)
           (state == GLXX_BUFSTATE_MEM_RW_INVALIDATED);
 }
 
-/* Can we discard the bin CL without impacting the final contents of *this* buffer? */
-static inline bool glxx_bufstate_can_discard_cl(glxx_bufstate_t state)
+/* Can we discard the render-state without impacting the final contents of *this* buffer? */
+static inline bool glxx_bufstate_can_discard_rs(glxx_bufstate_t state)
 {
    if (state == GLXX_BUFSTATE_MISSING)
       return true;
@@ -112,50 +111,19 @@ static inline bool glxx_bufstate_can_discard_cl(glxx_bufstate_t state)
    switch (state)
    {
    case GLXX_BUFSTATE_UNDEFINED:
-   case GLXX_BUFSTATE_CLEAR: /* Fast clear is not part of bin CL */
-   case GLXX_BUFSTATE_CLEAR_READ:
    case GLXX_BUFSTATE_CLEAR_RW_INVALIDATED:
    case GLXX_BUFSTATE_MEM:
    case GLXX_BUFSTATE_MEM_READ:
    case GLXX_BUFSTATE_MEM_RW_INVALIDATED:
       return true;
-   case GLXX_BUFSTATE_CLEAR_RW:
-   case GLXX_BUFSTATE_MEM_RW:
-      return false;
-   default:
-      unreachable();
-      return false;
-   }
-}
-
-static inline void glxx_bufstate_discard_cl(glxx_bufstate_t *state)
-{
-   if (*state == GLXX_BUFSTATE_MISSING)
-      return;
-
-   /* We're throwing the bin CL away, which means we're confident that any
-    * rendering it was going to do is irrelevant. This essentially means that
-    * we can ignore reads and turn writes into invalidates... */
-   switch (*state)
-   {
-   case GLXX_BUFSTATE_UNDEFINED:
-   case GLXX_BUFSTATE_CLEAR_RW:
-   case GLXX_BUFSTATE_CLEAR_RW_INVALIDATED:
-   case GLXX_BUFSTATE_MEM_RW:
-   case GLXX_BUFSTATE_MEM_RW_INVALIDATED:
-      *state = GLXX_BUFSTATE_UNDEFINED;
-      break;
    case GLXX_BUFSTATE_CLEAR:
    case GLXX_BUFSTATE_CLEAR_READ:
-      /* Fast clear is not part of bin CL, so won't get discarded. */
-      *state = GLXX_BUFSTATE_CLEAR;
-      break;
-   case GLXX_BUFSTATE_MEM:
-   case GLXX_BUFSTATE_MEM_READ:
-      *state = GLXX_BUFSTATE_MEM;
-      break;
+   case GLXX_BUFSTATE_CLEAR_RW:
+   case GLXX_BUFSTATE_MEM_RW:
+      return false;
    default:
       unreachable();
+      return false;
    }
 }
 
@@ -204,11 +172,6 @@ static inline bool glxx_bufstate_need_load(glxx_bufstate_t state)
    return (state == GLXX_BUFSTATE_MEM_READ) ||
           (state == GLXX_BUFSTATE_MEM_RW) ||
           (state == GLXX_BUFSTATE_MEM_RW_INVALIDATED);
-}
-
-static inline bool glxx_bufstate_might_need_load(glxx_bufstate_t state)
-{
-   return (state == GLXX_BUFSTATE_MEM) || glxx_bufstate_need_load(state);
 }
 
 static inline bool glxx_bufstate_need_store(glxx_bufstate_t state)

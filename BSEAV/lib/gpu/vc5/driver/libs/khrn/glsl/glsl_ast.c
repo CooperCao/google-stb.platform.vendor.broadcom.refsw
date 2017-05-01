@@ -24,15 +24,13 @@
 // Utilities.
 //
 
-static bool swizzle_valid_as_lvalue(unsigned char *swizzle_slots)
+static bool swizzle_valid_as_lvalue(const unsigned char *swizzle_slots)
 {
    // Swizzles that contain repeats are not allowed as lvalues (eg. a.xx)
    SWIZZLE_FIELD_FLAGS_T swizzle_fields_in_use = 0;
 
-   for (int i = 0; i < MAX_SWIZZLE_FIELD_COUNT; i++)
-   {
-      if (swizzle_slots[i] != SWIZZLE_SLOT_UNUSED)
-      {
+   for (int i = 0; i < MAX_SWIZZLE_FIELD_COUNT; i++) {
+      if (swizzle_slots[i] != SWIZZLE_SLOT_UNUSED) {
          SWIZZLE_FIELD_FLAGS_T swizzle_field_flag = 1 << swizzle_slots[i];
          if (swizzle_fields_in_use & swizzle_field_flag)
             return false;
@@ -43,7 +41,7 @@ static bool swizzle_valid_as_lvalue(unsigned char *swizzle_slots)
    return true;
 }
 
-MemoryQualifier glsl_get_mem_flags(Expr *expr, ShaderFlavour flavour) {
+static MemoryQualifier glsl_get_mem_flags(const Expr *expr, ShaderFlavour flavour) {
    switch (expr->flavour) {
       case EXPR_INSTANCE:
       {
@@ -63,16 +61,16 @@ MemoryQualifier glsl_get_mem_flags(Expr *expr, ShaderFlavour flavour) {
 
       case EXPR_SUBSCRIPT:
       {
-         Expr *a = expr->u.subscript.aggregate;
+         const Expr *a = expr->u.subscript.aggregate;
 
          MemoryQualifier mq = MEMORY_NONE;
          if (flavour == SHADER_TESS_CONTROL && a->flavour == EXPR_INSTANCE) {
             const Symbol *sym = a->u.instance.symbol;
             bool is_vtx_output = ( sym->flavour == SYMBOL_VAR_INSTANCE              &&
                                    sym->u.var_instance.storage_qual == STORAGE_OUT  &&
-                                   sym->u.var_instance.type_qual    != TYPE_QUAL_PATCH );
+                                   sym->u.var_instance.aux_qual     != AUXILIARY_PATCH );
 
-            Expr *s = expr->u.subscript.subscript;
+            const Expr *s = expr->u.subscript.subscript;
             bool sub_is_inv_id = (s->flavour == EXPR_INSTANCE &&
                                   s->u.instance.symbol == glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__HIGHP__INT__GL_INVOCATIONID));
 
@@ -85,10 +83,10 @@ MemoryQualifier glsl_get_mem_flags(Expr *expr, ShaderFlavour flavour) {
 
       case EXPR_FIELD_SELECTOR:
       {
-         Expr *aggregate = expr->u.field_selector.aggregate;
+         const Expr *aggregate = expr->u.field_selector.aggregate;
          MemoryQualifier mq = glsl_get_mem_flags(aggregate, flavour);
          MemoryQualifier field_mq;
-         SymbolType *t = aggregate->type;
+         const SymbolType *t = aggregate->type;
          assert(t->flavour == SYMBOL_STRUCT_TYPE || t->flavour == SYMBOL_BLOCK_TYPE);
          if (t->flavour == SYMBOL_STRUCT_TYPE)
             field_mq = t->u.struct_type.member[expr->u.field_selector.field_no].memq;
@@ -106,13 +104,13 @@ MemoryQualifier glsl_get_mem_flags(Expr *expr, ShaderFlavour flavour) {
    }
 }
 
-bool glsl_is_lvalue(Expr *expr)
+static bool glsl_is_lvalue(const Expr *expr)
 {
    switch (expr->flavour)
    {
       case EXPR_INSTANCE:
       {
-         Symbol *symbol = expr->u.instance.symbol;
+         const Symbol *symbol = expr->u.instance.symbol;
 
          assert(symbol->flavour == SYMBOL_VAR_INSTANCE ||
                 symbol->flavour == SYMBOL_PARAM_INSTANCE);
@@ -154,7 +152,7 @@ bool glsl_is_lvalue(Expr *expr)
 
       case EXPR_FIELD_SELECTOR:
       {
-         SymbolType *t = expr->u.field_selector.aggregate->type;
+         const SymbolType *t = expr->u.field_selector.aggregate->type;
          assert(t->flavour == SYMBOL_STRUCT_TYPE || t->flavour == SYMBOL_BLOCK_TYPE);
          if (t->flavour == SYMBOL_STRUCT_TYPE) {
             if (t->u.struct_type.member[expr->u.field_selector.field_no].memq & MEMORY_READONLY)
@@ -177,13 +175,13 @@ bool glsl_is_lvalue(Expr *expr)
    }
 }
 
-static bool valid_for_atomic(Expr *expr)
+static bool valid_for_atomic(const Expr *expr)
 {
    switch (expr->flavour)
    {
       case EXPR_INSTANCE:
       {
-         Symbol *symbol = expr->u.instance.symbol;
+         const Symbol *symbol = expr->u.instance.symbol;
 
          assert(symbol->flavour == SYMBOL_VAR_INSTANCE ||
                 symbol->flavour == SYMBOL_PARAM_INSTANCE);
@@ -208,6 +206,51 @@ static bool valid_for_atomic(Expr *expr)
    }
 }
 
+static bool is_arrays_of_image_type(SymbolType *type) {
+   while (type->flavour == SYMBOL_ARRAY_TYPE) type = type->u.array_type.member_type;
+   return glsl_prim_is_prim_image_type(type);
+}
+
+static void check_args_valid_for_overload(SymbolType *overload, ExprChain *args, bool relaxed_memq, ShaderFlavour flavour)
+{
+   ExprChainNode *arg = args->first;
+   assert(overload->u.function_type.param_count == args->count);
+
+   for (unsigned i=0; i<args->count; i++, arg = arg->next)
+   {
+      Symbol *param = overload->u.function_type.params[i];
+      ParamQualifier pq = param->u.param_instance.param_qual;
+
+      if (pq == PARAM_QUAL_INOUT || pq == PARAM_QUAL_OUT) {
+         // Check that the argument can be passed to an out/inout parameter.
+         if (!glsl_is_lvalue(arg->expr))
+            glsl_compile_error(ERROR_CUSTOM, 16, arg->expr->line_num, "out parameters must be lvalues");
+      }
+
+      if (is_arrays_of_image_type(param->type)) {
+         /* Any qualifiers from v may not be present on the arg but not the param */
+         MemoryQualifier v = MEMORY_READONLY | MEMORY_WRITEONLY |
+                             MEMORY_COHERENT | MEMORY_VOLATILE;
+         if (relaxed_memq) v &= ~(MEMORY_COHERENT | MEMORY_VOLATILE);
+         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr, flavour);
+         MemoryQualifier arg_only = arg_mq & ~param->u.param_instance.mem_qual;
+         if (arg_only & v)
+            glsl_compile_error(ERROR_CUSTOM, 16, arg->expr->line_num, "invalid memory qualifiers");
+      } else {
+         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr, g_ShaderFlavour);
+         if ( (pq == PARAM_QUAL_IN || pq == PARAM_QUAL_INOUT) && (arg_mq & MEMORY_WRITEONLY) )
+            glsl_compile_error(ERROR_SEMANTIC, 5, arg->expr->line_num, NULL);
+      }
+   }
+}
+
+void glsl_ast_validate_function_call(const Expr *e, ShaderFlavour flavour) {
+   const Symbol *f = e->u.function_call.function;
+   bool memq_template = glsl_stdlib_is_stdlib_symbol(f) &&
+                        (glsl_stdlib_function_properties[glsl_stdlib_function_index(f)] & GLSL_STDLIB_PROPERTY_MEMQ_TEMPLATE);
+   check_args_valid_for_overload(f->type, e->u.function_call.args, memq_template, flavour);
+}
+
 
 /*
    void check_returns(SymbolType* return_type, Statement* statement)
@@ -218,12 +261,12 @@ static bool valid_for_atomic(Expr *expr)
    - non-void function value return statement type mismatch.
 */
 static void spostv_check_returns(Statement *s, void *data) {
-   SymbolType *function_type = data;
+   const SymbolType *function_type = data;
 
    if (s->flavour == STATEMENT_RETURN ||
        s->flavour == STATEMENT_RETURN_EXPR)
    {
-      SymbolType *returned_type = &primitiveTypes[PRIM_VOID];
+      const SymbolType *returned_type = &primitiveTypes[PRIM_VOID];
 
       if (s->flavour == STATEMENT_RETURN_EXPR)
          returned_type = s->u.return_expr.expr->type;
@@ -379,7 +422,7 @@ static void validate_qualifier_default(const Statement *s, ShaderFlavour flavour
 /* Determine whether the given variable may be declared invariant. Outputs can
    always be invariant. Additionally fragment shader inputs may be invariant in
    language version 100.  */
-bool invariant_decl_valid(Symbol *var, ShaderFlavour flavour, int version) {
+bool invariant_decl_valid(const Symbol *var, ShaderFlavour flavour, int version) {
    if (var->flavour != SYMBOL_VAR_INSTANCE) return false;
 
    StorageQualifier sq = var->u.var_instance.storage_qual;
@@ -486,17 +529,15 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
    }
 }
 
-static Expr *expr_chain_get_expr(ExprChain *c, int n) {
-   ExprChainNode *cn = c->first;
+static const Expr *expr_chain_get_expr(const ExprChain *c, int n) {
+   const ExprChainNode *cn = c->first;
    for (int i=0; i<n; i++) cn = cn->next;
    return cn->expr;
 }
 
-static void ensure_arg_n_const(Symbol *called, ExprChain *args, int n) {
-   /* Functions arguments are 1 based, so get the n-1-th expression */
-   Expr *arg = expr_chain_get_expr(args, n-1);
-   if (!arg->compile_time_value)
-      glsl_compile_error(ERROR_SEMANTIC, 10, arg->line_num, "in argument to function %s", called->name);
+static bool arg_n_const(const ExprChain *args, int n) {
+   const Expr *arg = expr_chain_get_expr(args, n-1);
+   return (arg->compile_time_value != NULL);
 }
 
 static void epostv_validate(Expr *e, void *data) {
@@ -558,7 +599,7 @@ static void epostv_validate(Expr *e, void *data) {
       }
 
       case EXPR_PRIM_CONSTRUCTOR_CALL:
-         for (ExprChainNode *node = e->u.prim_constructor_call.args->first; node; node=node->next) {
+         for (const ExprChainNode *node = e->u.prim_constructor_call.args->first; node; node=node->next) {
             MemoryQualifier mq = glsl_get_mem_flags(node->expr, d->flavour);
             if (mq & MEMORY_WRITEONLY)
                glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
@@ -566,7 +607,7 @@ static void epostv_validate(Expr *e, void *data) {
          break;
 
       case EXPR_COMPOUND_CONSTRUCTOR_CALL:
-         for (ExprChainNode *node = e->u.compound_constructor_call.args->first; node; node=node->next) {
+         for (const ExprChainNode *node = e->u.compound_constructor_call.args->first; node; node=node->next) {
             MemoryQualifier mq = glsl_get_mem_flags(node->expr, d->flavour);
             if (mq & MEMORY_WRITEONLY)
                glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
@@ -606,7 +647,7 @@ static void epostv_validate(Expr *e, void *data) {
    }
 
    if (e->flavour == EXPR_FUNCTION_CALL) {
-      Symbol *called = e->u.function_call.function;
+      const Symbol *called = e->u.function_call.function;
       if (called->u.function_instance.function_def == NULL)
          glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", called->name);
 
@@ -618,12 +659,16 @@ static void epostv_validate(Expr *e, void *data) {
          }
 
          bool gath_off_const = d->version < GLSL_SHADER_VERSION(3,20,1) && glsl_ext_status(GLSL_EXT_GPU_SHADER5) == GLSL_DISABLED;
+         bool const_correct = true;
          if (fn_props & (GLSL_STDLIB_PROPERTY_ARG3_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG3_GATHER_OFFSET : 0)))
-            ensure_arg_n_const(called, e->u.function_call.args, 3);
+            const_correct = const_correct && arg_n_const(e->u.function_call.args, 3);
          if (fn_props & (GLSL_STDLIB_PROPERTY_ARG4_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG4_GATHER_OFFSET : 0)))
-            ensure_arg_n_const(called, e->u.function_call.args, 4);
+            const_correct = const_correct && arg_n_const(e->u.function_call.args, 4);
          if (fn_props & (GLSL_STDLIB_PROPERTY_ARG5_CONST))
-            ensure_arg_n_const(called, e->u.function_call.args, 5);
+            const_correct = const_correct && arg_n_const(e->u.function_call.args, 5);
+
+         if (!const_correct)
+            glsl_compile_error(ERROR_SEMANTIC, 10, e->line_num, "in argument to function %s", called->name);
       }
    }
 
@@ -656,20 +701,21 @@ static void epostv_validate(Expr *e, void *data) {
    if (e->flavour == EXPR_SUBSCRIPT) {
       bool shader5 = d->version >= GLSL_SHADER_VERSION(3,20,1) || glsl_ext_status(GLSL_EXT_GPU_SHADER5) != GLSL_DISABLED;
 
-      Expr *a = e->u.subscript.aggregate;
-      Expr *s = e->u.subscript.subscript;
-      SymbolType *aggregate_type = a->type;
+      const Expr *a = e->u.subscript.aggregate;
+      const Expr *s = e->u.subscript.subscript;
+      const SymbolType *aggregate_type = a->type;
       while (aggregate_type->flavour == SYMBOL_ARRAY_TYPE)
          aggregate_type = aggregate_type->u.array_type.member_type;
 
-      bool requires_constant = false;
+      PRIMITIVE_TYPE_FLAGS_T const_req_opaque = PRIM_IMAGE_TYPE | PRIM_SAMPLER_TYPE;
+      bool requires_constant = glsl_type_contains(e->type, const_req_opaque);
 
       if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE) {
          assert(a->flavour == EXPR_INSTANCE);
          switch(a->u.instance.symbol->u.var_instance.storage_qual) {
-            case STORAGE_UNIFORM: requires_constant = !shader5; break;
-            case STORAGE_BUFFER:  requires_constant = true;     break;
-            default:              requires_constant = false;    break;
+            case STORAGE_UNIFORM: requires_constant = requires_constant || !shader5; break;
+            case STORAGE_BUFFER:  requires_constant = true;                          break;
+            default:              /* Do nothing */;                                  break;
          }
       }
 
@@ -846,9 +892,6 @@ Expr *glsl_expr_construct_subscript(int line_num, Expr *aggregate, Expr *subscri
       return NULL;
    }
 
-   if (glsl_type_contains(expr->type, PRIM_SAMPLER_TYPE | PRIM_IMAGE_TYPE) && subscript->compile_time_value == NULL)
-      glsl_compile_error(ERROR_CUSTOM, 3, line_num, "Indexing type %s requires constant expression", expr->type->name);
-
    if (subscript->compile_time_value) {
       if (subscript->type == &primitiveTypes[PRIM_INT]) {
          int v = const_signed_from_value(subscript->compile_time_value[0]);
@@ -916,6 +959,8 @@ Expr *glsl_expr_construct_function_call(int line_num, Symbol *function, ExprChai
    expr->u.function_call.function = function;
    expr->u.function_call.args     = args;
    expr->compile_time_value       = NULL;
+
+   glsl_ast_validate_function_call(expr, g_ShaderFlavour);
 
    /* Fold any function call with constant arguments when there is a folding function. */
    if(function->u.function_instance.folding_function && expr_chain_all_compile_time_value(args)) {

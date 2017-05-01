@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -279,6 +279,7 @@ typedef struct BXPT_Dma_Context
     unsigned pp; /* updated when descriptor completes */
     unsigned lpp; /* updated when HW is started */
 
+    unsigned numPidChannels;
     BXPT_Dma_ContextSettings settings;
 
     BLST_S_ENTRY(BXPT_Dma_Context) ctxNode;
@@ -479,18 +480,20 @@ static void BXPT_Dma_P_AssertWdmaDescMem(BXPT_Dma_ContextHandle ctx, bool checkL
 #include "bxpt_dma_sage_priv.h"
 #endif
 
+BERR_Code BXPT_Dma_P_OpenChannel(BXPT_Handle hXpt, BCHP_Handle hChp, BREG_Handle hReg, BMMA_Heap_Handle hMmaHeap, BINT_Handle hInt, BXPT_Dma_Handle *phDma, unsigned channelNum, const BXPT_Dma_Settings *pSettings);
 void BXPT_Dma_Context_P_BlockSettingsDump(BXPT_Dma_ContextHandle ctx, const BXPT_Dma_ContextBlockSettings *pSettings);
 void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, bool print_warnings);
 void BXPT_Dma_P_RegDumpAll(BXPT_Dma_Handle dma);
+static void BXPT_Dma_Context_P_SetPidChannelMode(BXPT_Dma_ContextHandle hCtx);
 
-unsigned BXPT_Dma_P_GetWdmaRun_isrsafe(BXPT_Dma_Handle dma)
+static unsigned BXPT_Dma_P_GetWdmaRun_isrsafe(BXPT_Dma_Handle dma)
 {
     uint32_t reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_RUN_BITS_0_31);
     reg = BCHP_GET_FIELD_DATA(reg, XPT_WDMA_REGS_RUN_BITS_0_31, RUN_BITS);
     return ((reg >> dma->channelNum) & 1);
 }
 
-void BXPT_Dma_P_SetWdmaRun_isrsafe(BXPT_Dma_Handle dma, unsigned run)
+static void BXPT_Dma_P_SetWdmaRun_isrsafe(BXPT_Dma_Handle dma, unsigned run)
 {
     uint32_t reg = 0;
     BCHP_SET_FIELD_DATA(reg, XPT_WDMA_REGS_RUN_SET_CLEAR, CHANNEL_NUM, dma->channelNum);
@@ -508,7 +511,7 @@ unsigned BXPT_Dma_P_GetWdmaWake_isrsafe(BXPT_Dma_Handle dma)
 }
 #endif
 
-void BXPT_Dma_P_SetWdmaWake_isrsafe(BXPT_Dma_Handle dma, unsigned wake)
+static void BXPT_Dma_P_SetWdmaWake_isrsafe(BXPT_Dma_Handle dma, unsigned wake)
 {
     uint32_t reg = 0;
     BCHP_SET_FIELD_DATA(reg, XPT_WDMA_REGS_WAKE_SET, CHANNEL_NUM, dma->channelNum);
@@ -516,7 +519,7 @@ void BXPT_Dma_P_SetWdmaWake_isrsafe(BXPT_Dma_Handle dma, unsigned wake)
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_REGS_WAKE_SET, reg);
 }
 
-unsigned BXPT_Dma_P_GetWdmaSleep_isrsafe(BXPT_Dma_Handle dma)
+static unsigned BXPT_Dma_P_GetWdmaSleep_isrsafe(BXPT_Dma_Handle dma)
 {
     /* WDMA sleep should be used with care: do not assume that a WAKE immediately clears SLEEP */
     uint32_t reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_SLEEP_STATUS_0_31);
@@ -524,14 +527,14 @@ unsigned BXPT_Dma_P_GetWdmaSleep_isrsafe(BXPT_Dma_Handle dma)
     return ((reg >> dma->channelNum) & 1);
 }
 
-unsigned BXPT_Dma_P_GetMcpbRun_isrsafe(BXPT_Dma_Handle dma)
+static unsigned BXPT_Dma_P_GetMcpbRun_isrsafe(BXPT_Dma_Handle dma)
 {
     uint32_t reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_RUN_STATUS_0_31);
     reg = BCHP_GET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_RUN_STATUS_0_31, RUN_STATUS);
     return ((reg >> dma->channelNum) & 1);
 }
 
-void BXPT_Dma_P_SetMcpbRun_isrsafe(BXPT_Dma_Handle dma, unsigned run)
+static void BXPT_Dma_P_SetMcpbRun_isrsafe(BXPT_Dma_Handle dma, unsigned run)
 {
     uint32_t reg = 0;
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_RUN_SET_CLEAR, MCPB_CHANNEL_NUM, dma->channelNum);
@@ -548,7 +551,7 @@ unsigned BXPT_Dma_P_GetMcpbWake_isrsafe(BXPT_Dma_Handle dma)
 }
 #endif
 
-void BXPT_Dma_P_SetMcpbWake_isrsafe(BXPT_Dma_Handle dma, unsigned wake)
+static void BXPT_Dma_P_SetMcpbWake_isrsafe(BXPT_Dma_Handle dma, unsigned wake)
 {
     uint32_t reg = 0;
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_WAKE_SET, MCPB_CHANNEL_NUM, dma->channelNum);
@@ -556,7 +559,7 @@ void BXPT_Dma_P_SetMcpbWake_isrsafe(BXPT_Dma_Handle dma, unsigned wake)
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_WAKE_SET, reg);
 }
 
-unsigned BXPT_Dma_P_IncrementRunVersion_isrsafe(BXPT_Dma_Handle dma)
+static unsigned BXPT_Dma_P_IncrementRunVersion_isrsafe(BXPT_Dma_Handle dma)
 {
     unsigned runVersion;
     uint32_t reg;
@@ -635,7 +638,7 @@ void BXPT_Dma_P_McpbFalseWakeCallback_isr(void *pParam1, int parm2)
 }
 #endif
 
-void BXPT_Dma_P_OverflowCallback_isr(void *pParam1, int parm2)
+static void BXPT_Dma_P_OverflowCallback_isr(void *pParam1, int parm2)
 {
     BXPT_Dma_Handle dma = (BXPT_Dma_Handle)pParam1;
     void *vdma = dma;
@@ -691,7 +694,7 @@ void BXPT_Dma_P_OverflowCallback_isr(void *pParam1, int parm2)
     return;
 }
 
-void BXPT_Dma_P_BtpCallback_isr(void *pParam1, int parm2)
+static void BXPT_Dma_P_BtpCallback_isr(void *pParam1, int parm2)
 {
     BSTD_UNUSED(pParam1);
     BSTD_UNUSED(parm2);
@@ -706,7 +709,7 @@ void BXPT_Dma_GetDefaultSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
-BERR_Code BXPT_Dma_P_SetSettings(BXPT_Dma_Handle dma, const BXPT_Dma_Settings *pSettings)
+static BERR_Code BXPT_Dma_P_SetSettings_isr(BXPT_Dma_Handle dma, const BXPT_Dma_Settings *pSettings)
 {
     unsigned spPacketLength, spStreamType, spFeedSize;
     uint32_t reg;
@@ -860,22 +863,6 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 #if BXPT_DMA_AVOID_WAKE
     dma->wakeDisabled = true;
 #endif
-#if BXPT_DMA_SEPARATE_MEMC_FOR_DESC && 0 /* deprecated */
-{
-    if (pSettings->memExtra) {
-        BMEM_HeapInfo heapInfo0, heapInfo1;
-        BMEM_Heap_GetInfo(dma->mem0, &heapInfo0);
-        BMEM_Heap_GetInfo(pSettings->memExtra, &heapInfo1);
-        if ((heapInfo0.ulOffset >= 0x40000000 && heapInfo1.ulOffset >= 0x40000000) ||
-            (heapInfo0.ulOffset < 0x40000000 && heapInfo1.ulOffset < 0x40000000))
-        {
-            BDBG_WRN(("BXPT_Dma_OpenChannel: %u: mem offsets in same SCB: %#x %#x", dma->channelNum, heapInfo0.ulOffset, heapInfo1.ulOffset));
-        }
-        dma->mem1 = pSettings->memExtra;
-    }
-}
-#endif
-
     dma->mcpbRegOffset = (BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL) * channelNum;
 #if BXPT_DMA_HAS_WDMA_CHX
     dma->wdmaRamOffset = (BCHP_XPT_WDMA_CH1_FIRST_DESC_ADDR - BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR) * channelNum;
@@ -946,7 +933,7 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 #endif
 
     /* set channel settings */
-    rc = BXPT_Dma_P_SetSettings(dma, pSettings);
+    rc = BXPT_Dma_SetSettings(dma, pSettings);
     if (rc!=BERR_SUCCESS) {
         goto error;
     }
@@ -1182,9 +1169,19 @@ BERR_Code BXPT_Dma_SetSettings(
     const BXPT_Dma_Settings *pSettings
     )
 {
+    BERR_Code rc;
     BDBG_OBJECT_ASSERT(hDma, BXPT_Dma_Handle_Tag);
     BDBG_ASSERT(pSettings);
-    return BXPT_Dma_P_SetSettings(hDma, pSettings);
+    BKNI_EnterCriticalSection();
+    if (BLST_SQ_FIRST(&hDma->activeCtxList)) {
+        BDBG_ERR(("%u: Cannot change channel settings while contexts are active", hDma->channelNum));
+        rc = BERR_NOT_SUPPORTED;
+    }
+    else {
+        rc = BXPT_Dma_P_SetSettings_isr(hDma, pSettings);
+    }
+    BKNI_LeaveCriticalSection();
+    return rc;
 }
 
 void BXPT_Dma_Context_GetDefaultSettings(
@@ -1317,6 +1314,7 @@ static BERR_Code BXPT_Dma_Context_P_SetSettings(BXPT_Dma_ContextHandle ctx, cons
     reg = 0;
     BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * pSettings->pidChannelNum, reg);
 
+    reg = 0;
     BCHP_SET_FIELD_DATA(reg, XPT_FE_SPID_EXT_TABLE_i, PID_DESTINATION_EXT, 1 << (!pSettings->useRPipe ? 0 : 1));
     BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + 4 * pSettings->pidChannelNum, reg);
 
@@ -2128,6 +2126,8 @@ BERR_Code BXPT_Dma_Context_Enqueue(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    BXPT_Dma_Context_P_SetPidChannelMode(hCtx);
+
     rc = BXPT_Dma_Context_P_PrepareBlocks(hCtx, pSettings, numBlocks);
     if (rc!=BERR_SUCCESS) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -2194,7 +2194,7 @@ BERR_Code BXPT_Dma_Context_GetStatus(
     return BERR_SUCCESS;
 }
 
-void BXPT_Dma_Context_P_Destroy(BXPT_Dma_ContextHandle ctx)
+static void BXPT_Dma_Context_P_Destroy(BXPT_Dma_ContextHandle ctx)
 {
     unsigned i;
     if (ctx->parent->lastQueuedCtx == ctx) { /* P_Start_isr() cannot use this context to wake any more */
@@ -2318,6 +2318,142 @@ postint:
     BKNI_Free(hDma);
 }
 
+static BERR_Code BXPT_Dma_Context_P_ConfigurePidChannel(BXPT_Dma_ContextHandle hCtx, unsigned pidChannelNum, unsigned pid, bool enable)
+{
+    uint32_t reg;
+    BXPT_Dma_Handle dma;
+    BXPT_Handle xpt;
+    void *currentCtx;
+    unsigned idx;
+    BDBG_ASSERT(hCtx);
+    BDBG_ASSERT(pidChannelNum > BXPT_DMA_NUM_PID_CHANNELS);
+
+    dma = hCtx->parent;
+    xpt = dma->xpt;
+    idx = pidChannelNum-BXPT_P_MEMDMA_PID_CHANNEL_START;
+    currentCtx = xpt->dmaPidChannels[idx];
+
+    if (!enable) {
+        if (currentCtx != hCtx) {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * pidChannelNum, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * pidChannelNum, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + 4 * pidChannelNum, 0);
+        BDBG_MSG(("%u:" BDBG_UINT64_FMT ": disable pidChannel %u", dma->channelNum, BDBG_UINT64_ARG(CTX_ID(hCtx)), pidChannelNum));
+
+        BDBG_ASSERT(hCtx->numPidChannels>0);
+        xpt->dmaPidChannels[idx] = 0;
+        hCtx->numPidChannels--;
+        return 0;
+    }
+
+    if (currentCtx != NULL) {
+        BDBG_ERR(("%u:" BDBG_UINT64_FMT ": pidChannel %u already configured", dma->channelNum, BDBG_UINT64_ARG(CTX_ID(hCtx)), pidChannelNum));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    reg = 0;
+    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
+    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, dma->channelNum + BXPT_DMA_BAND_ID_OFFSET);
+    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_FE_SEL, 1); /* PB parser */
+    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, 1); /* direct to XPT security */
+    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, HD_FILT_DIS_PID_CHANNEL_PID, pid);
+    BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * pidChannelNum, reg);
+    BDBG_MSG(("%u:" BDBG_UINT64_FMT ": enable pidChannel %u, pid %#x", dma->channelNum, BDBG_UINT64_ARG(CTX_ID(hCtx)), pidChannelNum, pid));
+
+    reg = 0;
+    BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * pidChannelNum, reg);
+
+    reg = 0;
+    BCHP_SET_FIELD_DATA(reg, XPT_FE_SPID_EXT_TABLE_i, PID_DESTINATION_EXT, 1 << (!hCtx->settings.useRPipe ? 0 : 1));
+    BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + 4 * pidChannelNum, reg);
+
+    xpt->dmaPidChannels[idx] = hCtx;
+    hCtx->numPidChannels++;
+
+    return 0;
+}
+
+BERR_Code BXPT_Dma_Context_ConfigurePidChannel(BXPT_Dma_ContextHandle hCtx, unsigned pidChannelNum, unsigned pid, bool enable)
+{
+    if (hCtx==NULL) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if ( (pidChannelNum < BXPT_P_MEMDMA_PID_CHANNEL_START+BXPT_DMA_NUM_CHANNELS) || /* reserve one pidChannel for each dmaChannel for allpass */
+         (pidChannelNum >= BXPT_P_MEMDMA_PID_CHANNEL_START+BXPT_NUM_MEMDMA_PID_CHANNELS) )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if (pid >= 0x2000) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    return BXPT_Dma_Context_P_ConfigurePidChannel(hCtx, pidChannelNum, pid, enable);
+}
+
+static void BXPT_Dma_Context_P_SetPidChannelMode(BXPT_Dma_ContextHandle hCtx)
+{
+    BXPT_Dma_Handle dma;
+    uint32_t reg;
+    unsigned chnum;
+    BDBG_ASSERT(hCtx);
+
+    dma = hCtx->parent;
+    chnum = BXPT_P_MEMDMA_PID_CHANNEL_START + dma->channelNum;
+
+    if (hCtx->numPidChannels) {
+        reg = 0;
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, dma->channelNum + BXPT_DMA_BAND_ID_OFFSET);
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_FE_SEL, 1); /* PB parser */
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, 1); /* direct to XPT security */
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, HD_FILT_DIS_PID_CHANNEL_PID, 0x1fff);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * chnum, reg);
+
+        reg = 0;
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * chnum, reg);
+
+        reg = 0;
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_SPID_EXT_TABLE_i, PID_DESTINATION_EXT, 1 << (!hCtx->settings.useRPipe ? 0 : 1));
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + 4 * chnum, reg);
+
+#ifdef BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1
+        reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1 + dma->mcpbRegOffset);
+        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1, PIDP_DEBUG_MODE, 1);
+        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1, ALL_PASS_PID_CH_NUM, chnum);
+        BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1 + dma->mcpbRegOffset, reg);
+        BDBG_MSG(("%u:" BDBG_UINT64_FMT ": pid-mapping mode (allpass pidchannel %u)", dma->channelNum, BDBG_UINT64_ARG(CTX_ID(hCtx)), chnum));
+#endif
+
+        /* override default configuration in Context_P_SetSettings */
+        hCtx->mcpbDescW5 &= ~(MCPB_DW5_PID_CHANNEL_VALID);
+
+        reg = BREG_Read32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum);
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum, reg);
+    }
+    else {
+        reg = BREG_Read32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * chnum);
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * chnum, reg);
+
+#ifdef BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1
+        reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1 + dma->mcpbRegOffset);
+        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1, PIDP_DEBUG_MODE, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1 + dma->mcpbRegOffset, reg);
+        BDBG_MSG(("%u:" BDBG_UINT64_FMT ": regular mode    (regular pidchannel %u)", dma->channelNum, BDBG_UINT64_ARG(CTX_ID(hCtx)), hCtx->settings.pidChannelNum));
+#endif
+
+        /* re-configure default configuration in Context_P_SetSettings */
+        hCtx->mcpbDescW5 |= MCPB_DW5_PID_CHANNEL_VALID;
+
+        reg = BREG_Read32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum);
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum, reg);
+    }
+}
+
 BERR_Code BXPT_P_Dma_Standby(BXPT_Handle hXpt)
 {
     BERR_Code rc = BERR_SUCCESS;
@@ -2371,7 +2507,7 @@ void BXPT_P_Dma_Resume(BXPT_Handle hXpt)
         dma = hXpt->dmaChannels[i];
         if (!dma) { continue; }
 
-        (void) BXPT_Dma_P_SetSettings(dma, &dma->settings);
+        (void) BXPT_Dma_SetSettings(dma, &dma->settings);
 
 #if BXPT_DMA_USE_RUN_VERSION
         reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_MATCH_RUN_VERSION_CONFIG);
@@ -2397,7 +2533,7 @@ void BXPT_P_Dma_Resume(BXPT_Handle hXpt)
     return;
 }
 
-void BXPT_Dma_Context_P_DescCheckMcpb(BXPT_Dma_ContextHandle ctx, unsigned idx, bool link_only, uint32_t *desc)
+static void BXPT_Dma_Context_P_DescCheckMcpb(BXPT_Dma_ContextHandle ctx, unsigned idx, bool link_only, uint32_t *desc)
 {
     unsigned numBlocks = ctx->numBlocks;
     if (desc[0] & 0xFFFFFF00) { /* [31:8] RESERVED */
@@ -2446,7 +2582,7 @@ void BXPT_Dma_Context_P_DescCheckMcpb(BXPT_Dma_ContextHandle ctx, unsigned idx, 
 
 }
 
-void BXPT_Dma_Context_P_DescCheckWdma(BXPT_Dma_ContextHandle ctx, unsigned idx, bool link_only, uint32_t *desc)
+static void BXPT_Dma_Context_P_DescCheckWdma(BXPT_Dma_ContextHandle ctx, unsigned idx, bool link_only, uint32_t *desc)
 {
     unsigned numBlocks = ctx->numBlocks;
 

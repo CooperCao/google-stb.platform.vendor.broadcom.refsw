@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Creates GLES1.1 shaders as dataflow graphs and passes them to the compiler
-backend.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../glxx/glxx_int_attrib.h"
 #include "../glsl/glsl_dataflow.h"
 #include "../glsl/glsl_ir_program.h"

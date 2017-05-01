@@ -1,42 +1,39 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 #include "nexus_security_module.h"
 #include "nexus_security_datatypes.h"
@@ -186,7 +183,7 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
 Description:
     Function will itterate over all ARCHes of each available MEM Controller and print any detected violations.
 */
-void NEXUS_Security_PrintArchViolation_priv( void )
+void NEXUS_Security_PrintArchViolation_priv( BMRC_Monitor_HwBlock excludeBlock )
 {
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
     BERR_Code  magnumRc;
@@ -217,7 +214,7 @@ void NEXUS_Security_PrintArchViolation_priv( void )
 
     for( memcIndex = 0; memcIndex < maxMemc; memcIndex++ )  /* iterate over mem controllers. */
     {
-        if( memInfo.memc[memcIndex].size > 0 )              /* if the MEMC is in use. */
+        if( memInfo.memc[memcIndex].valid)              /* if the MEMC is in use. */
         {
             request.u.memArch.memcIndex = memcIndex;
 
@@ -236,6 +233,10 @@ void NEXUS_Security_PrintArchViolation_priv( void )
 
                 if( status.u.memArch.endAddress ) /* if there has been a violation */
                 {
+                    if (excludeBlock != BMRC_Monitor_HwBlock_eInvalid &&
+                        BMRC_Monitor_GetHwBlock(g_pCoreHandles->memc[memcIndex].rmm, status.u.memArch.scbClientId) == excludeBlock) {
+                        continue;
+                    }
                     BDBG_ERR(("MEMC ARCH Violation. MEMC[%u]ARCH[%u] Addr start [" BDBG_UINT64_FMT  \
                               "] end[" BDBG_UINT64_FMT "] numBlocks[%u] scbClientId[%u:%s] requestType[%#x:%s]",
                               memcIndex,
@@ -325,6 +326,12 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     #endif
   #endif /* NEXUS_HAS_NSK2HDI */
 
+    #if NEXUS_ENFORCE_REGION_VERIFICATION
+    pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eTransport]      = false;
+    pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder]   = true;
+    pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eAudioDecoder]   = true;
+    pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_ePictureDecoder] = true;
+    #endif
     return;
 }
 
@@ -418,15 +425,6 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
     rc = NEXUS_RegionVerify_Init( );                     /* region verification public interface. */
     if (rc) { rc = BERR_TRACE(rc); goto err_init; }
 
-    if (pModuleSettings->callTransportPostInit) {
-
-        NEXUS_Module_Lock( g_security.moduleSettings.transport );
-        rc = NEXUS_TransportModule_PostInit_priv( secureFirmwareRave );
-        NEXUS_Module_Unlock( g_security.moduleSettings.transport );
-
-        if (rc) { rc = BERR_TRACE(rc); goto err_transport_postinit; }
-    }
-
     /* IP licensing is supported for Zeus1.0 and newer. */
     if( pSettings->ipLicense.valid )
     {
@@ -457,7 +455,6 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
 
     return NEXUS_P_SecurityModule;
 
-err_transport_postinit:
 err_init:
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(NEXUS_P_SecurityModule);
@@ -465,6 +462,16 @@ err_init:
 
     BDBG_LEAVE(NEXUS_SecurityModule_Init);
     return NULL;
+}
+
+NEXUS_Error NEXUS_SecurityModule_InitTransport_priv(void)
+{
+    NEXUS_Error rc;
+    NEXUS_Module_Lock( g_security.moduleSettings.transport );
+    rc = NEXUS_TransportModule_PostInit_priv( secureFirmwareRave );
+    NEXUS_Module_Unlock( g_security.moduleSettings.transport );
+    if (rc) return BERR_TRACE(rc);
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_SecurityModule_GetCurrentSettings(NEXUS_ModuleHandle module, NEXUS_SecurityModuleSettings *pSettings)
@@ -1995,7 +2002,7 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
     {
         /* XPT-based DMA requires an internal pid channel. */
         NEXUS_Module_Lock( g_security.moduleSettings.transport );
-        pKeySlotData->dmaPidChannelHandle = NEXUS_PidChannel_OpenDma_Priv();
+        pKeySlotData->dmaPidChannelHandle = NEXUS_PidChannel_OpenDma_Priv(0, NULL);
         NEXUS_Module_Unlock( g_security.moduleSettings.transport );
         if ( pKeySlotData->dmaPidChannelHandle == NULL ) {
             BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -2081,9 +2088,7 @@ static void NEXUS_Security_P_FreeKeySlot(NEXUS_KeySlotHandle keyHandle)
     if( keyHandle->settings.keySlotEngine==NEXUS_SecurityEngine_eM2m && pKeySlotData->dmaPidChannelHandle != NULL )
     {
         NEXUS_Security_RemovePidChannelFromKeySlot( keyHandle, keyHandle->dma.pidChannelIndex );
-        NEXUS_Module_Lock(g_security.moduleSettings.transport);
-        NEXUS_PidChannel_CloseDma_Priv( pKeySlotData->dmaPidChannelHandle );
-        NEXUS_Module_Unlock(g_security.moduleSettings.transport);
+        NEXUS_PidChannel_CloseDma_Priv(pKeySlotData->dmaPidChannelHandle);
         pKeySlotData->dmaPidChannelHandle = NULL;
     }
 #endif

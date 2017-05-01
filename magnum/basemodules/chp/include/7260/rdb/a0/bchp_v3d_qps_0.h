@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:29 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,13 +70,13 @@
 /***************************************************************************
  *V3D_QPS_0 - V3D QPU Scheduler Registers
  ***************************************************************************/
-#define BCHP_V3D_QPS_0_SQRSV0                    0x21308410 /* [RW] Reserve QPUs 0-7 */
-#define BCHP_V3D_QPS_0_SQRSV1                    0x21308414 /* [RW] Reserve QPUs 8-15 */
-#define BCHP_V3D_QPS_0_SQCNTL                    0x21308418 /* [RW] QPU Scheduler Control */
-#define BCHP_V3D_QPS_0_SRQPC                     0x21308430 /* [WO] QPU User Program Request Program Address */
-#define BCHP_V3D_QPS_0_SRQUA                     0x21308434 /* [RW] QPU User Program Request Uniforms Address */
-#define BCHP_V3D_QPS_0_SRQUL                     0x21308438 /* [RW] QPU User Program Request Uniforms Length */
-#define BCHP_V3D_QPS_0_SRQCS                     0x2130843c /* [RW] QPU User Program Request Control and Status */
+#define BCHP_V3D_QPS_0_SQRSV0                    0x21308410 /* [RW][32] Reserve QPUs 0-7 */
+#define BCHP_V3D_QPS_0_SQRSV1                    0x21308414 /* [RW][32] Reserve QPUs 8-15 */
+#define BCHP_V3D_QPS_0_SQCNTL                    0x21308418 /* [RW][32] QPU Scheduler Control */
+#define BCHP_V3D_QPS_0_SRQPC                     0x21308430 /* [WO][32] QPU User Program Request Program Address */
+#define BCHP_V3D_QPS_0_SRQUA                     0x21308434 /* [RW][32] QPU User Program Request Uniforms Address */
+#define BCHP_V3D_QPS_0_SRQUL                     0x21308438 /* [RW][32] QPU User Program Request Uniforms Length */
+#define BCHP_V3D_QPS_0_SRQCS                     0x2130843c /* [RW][32] QPU User Program Request Control and Status */
 
 /***************************************************************************
  *SQRSV0 - Reserve QPUs 0-7

@@ -67,11 +67,29 @@ SAGE_TOP ?= ${URSR_TOP}/sage
 include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_public.inc
 include ${BSEAV_TOP}/lib/security/sage/utility/utility.inc
 
-APP = heartbeat_tool
+ifeq ($(B_REFSW_OBJ_ROOT),)
+HEARTBEAT_OBJDIR:= obj
+else
+HEARTBEAT_OBJDIR:=${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/utility
+endif
+export HEARTBEAT_OBJDIR
+
+APPNAME = heartbeat_tool
+APP = ${HEARTBEAT_OBJDIR}/${APPNAME}
+INSTALL_APP = ${NEXUS_BIN_DIR}/${APPNAME}
+
+# nxclient build
+ifeq (${NXCLIENT_SUPPORT},y)
+include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
+CFLAGS += -DNXCLIENT_SUPPORT=1
+CFLAGS += $(addprefix -I,${NXCLIENT_INCLUDES})
+CFLAGS += $(NXCLIENT_CFLAGS)
+LDFLAGS += $(NXCLIENT_LDFLAGS)
+endif
 
 # add example sources
 SRCS = heartbeat_test.c
-OBJS = ${SRCS:.c=.o}
+OBJS = $(addprefix ${HEARTBEAT_OBJDIR}/, ${SRCS:.c=.o})
 
 APP_INCLUDES  = ${BSAGELIB_INCLUDES} \
                 ${SRAI_TOP}/include \
@@ -103,52 +121,44 @@ CFLAGS += ${NEXUS_CFLAGS} $(addprefix -I,${NEXUS_APP_INCLUDE_PATHS})  $(addprefi
 #allow c++ style comments
 CFLAGS += -std=c99
 
-ifeq ($(B_REFSW_OBJ_ROOT),)
-HEARTBEAT_OBJDIR:= obj
-else
-HEARTBEAT_OBJDIR:=${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/utility
-endif
-export HEARTBEAT_OBJDIR
-
-.PHONY: all clean uninstall install re
+.PHONY: all clean install re utility srai distclean
 
 
-all: srai prep_utility ${APP}
+install: ${INSTALL_APP}
 
-# Implicit rule for building local apps
-${APP}: ${OBJS}
-	@echo [Link... $@]
-	${Q_} ${CC} ${HEARTBEAT_OBJDIR}/${OBJS} -o ${APP} ${LDFLAGS}
+${INSTALL_APP} : ${APP}
+	@echo "[Installing $(notdir $<)... in $(dir ${INSTALL_APP})]"
+	${Q_} install -m 0755 $< $(dir ${INSTALL_APP})
 
-%.o: %.c
-	@echo [Compile... $<]
-	@if ! [ -e "${HEARTBEAT_OBJDIR}" ]; then \
-		mkdir -p ${HEARTBEAT_OBJDIR}; \
-	fi;
-	${Q_} ${CC} ${CFLAGS} -c $< -o ${HEARTBEAT_OBJDIR}/$@
-
-clean:
-	@echo [Clean... ${APP}]
-	${Q_} rm -f ${OBJS}
-	${Q_} rm -f ${APP}
+utility:
+	@make -C ${SAGE_PUBLIC_TOP}/utility install
 
 srai:
-	make -C ${SRAI_TOP} install
+	@make -C ${SRAI_TOP} install
 
-prep_utility:
-	@echo [Building Utility lib ...]
-	make -C ${SAGE_PUBLIC_TOP}/utility re
+# Implicit rule for building local apps
+${APP}: ${OBJS} | utility srai
+	@echo "[Link... $(notdir $@)]"
+	${Q_} ${CC} ${OBJS} -o $@ ${LDFLAGS}
 
-uninstall:
-	@echo [Uninstall... ${APP}]
-	${Q_} rm -f ${NEXUS_BIN_DIR}/${APP}
-	@echo [Uninstall... SRAI]
-	${Q_} rm -f ${NEXUS_BIN_DIR}/libsrai.*
+${HEARTBEAT_OBJDIR}:
+	mkdir -p $@
 
-install:
-	@echo [Installing ${APP}... in ${NEXUS_BIN_DIR}]
-	${Q_} install -m 0755 ${APP} ${NEXUS_BIN_DIR}
-	@echo [Installing SRAI... in ${NEXUS_BIN_DIR}]
-	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai/* ${NEXUS_BIN_DIR}
+${HEARTBEAT_OBJDIR}/%.o: %.c | ${HEARTBEAT_OBJDIR}
+	@echo "[Compile... $<]"
+	${Q_} ${CC} ${CFLAGS} -c $< -o $@
 
-re: srai prep_utility uninstall clean all install
+clean:
+	@echo "[Clean... $(notdir ${APP})]"
+	${Q_} rm -f ${OBJS}
+	${Q_} rm -f ${APP}
+	@echo "[Uninstall... $(notdir ${APP})]"
+	${Q_} rm -f ${NEXUS_BIN_DIR}/${APPNAME}
+
+distclean: clean
+	make -C ${SAGE_PUBLIC_TOP}/utility clean
+	make -C ${SRAI_TOP} clean
+
+re:
+	@ make --no-print-directory distclean
+	@ make --no-print-directory install

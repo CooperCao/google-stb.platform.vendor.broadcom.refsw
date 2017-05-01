@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-
-FILE DESCRIPTION
-API re-entrancy protection (for multi-threading) and logging over
-a remote interface.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #if defined(REMOTE_API_LOGGING) || defined(BCG_MULTI_THREADED)
 
 #include "interface/khronos/common/khrn_client_mangle.h" /* Mangle the names when we include the headers */
@@ -39,7 +30,7 @@ static EventData    s_queue[QUEUE_LEN];
 #define REMOTE_API_MAJOR_VER 1
 #define REMOTE_API_MINOR_VER 10
 
-#define FOURCC(a,b,c,d)		(((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
+#define FOURCC(a,b,c,d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
 
 #if defined(ANDROID)
 #include <cutils/properties.h>
@@ -348,10 +339,6 @@ typedef struct {
    bool (*remote_glInsertEventMarkerEXT)(GLsizei length, const GLchar *marker);
    bool (*remote_glPushGroupMarkerEXT)(GLsizei length, const GLchar *marker);
    bool (*remote_glPopGroupMarkerEXT)(void);
-   bool (*remote_glCurrentPaletteMatrixOES)(GLuint matrixpaletteindex);
-   bool (*remote_glLoadPaletteFromModelViewMatrixOES)(void);
-   bool (*remote_glMatrixIndexPointerOES)(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-   bool (*remote_glWeightPointerOES)(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
 
    bool (*remote_glRenderbufferStorageMultisampleEXT)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
    bool (*remote_glFramebufferTexture2DMultisampleEXT)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples);
@@ -1924,11 +1911,6 @@ GL_API void GL_APIENTRY glInsertEventMarkerEXT(GLsizei length, const GLchar *mar
 GL_API void GL_APIENTRY glPushGroupMarkerEXT(GLsizei length, const GLchar *marker) voidFunc(glPushGroupMarkerEXT, (length, marker))
 GL_API void GL_APIENTRY glPopGroupMarkerEXT(void) voidFunc(glPopGroupMarkerEXT, ())
 
-GL_API void GL_APIENTRY glCurrentPaletteMatrixOES(GLuint matrixpaletteindex) voidFunc(glCurrentPaletteMatrixOES, (matrixpaletteindex))
-GL_API void GL_APIENTRY glLoadPaletteFromModelViewMatrixOES(void) voidFunc(glLoadPaletteFromModelViewMatrixOES, ())
-GL_API void GL_APIENTRY glMatrixIndexPointerOES (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) voidFunc(glMatrixIndexPointerOES, (size, type, stride, pointer))
-GL_API void GL_APIENTRY glWeightPointerOES (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) voidFunc(glWeightPointerOES, (size, type, stride, pointer))
-
 /* EGL */
 EGLAPI EGLint EGLAPIENTRY eglGetError(void)
 {
@@ -2235,13 +2217,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameteriBRCM(EGLDisplay dpy, EGLIm
 
 EGLAPI __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *procname)
 {
-   __eglMustCastToProperFunctionPointerType ret;
-   /* Bypass */
-   API_LOCK
-   ret = Real(eglGetProcAddress)(procname);
-   LogEGLError();
-   API_UNLOCK
-   return ret;
+   return Real(eglGetProcAddress)(procname);
 }
 
 #ifndef NO_OPENVG
@@ -2388,12 +2364,6 @@ static FuncPtr GetFunc(LibHandle h, const char *symbol)
    return NULL;
 }
 
-static void CloseDll(LibHandle h)
-{
-   if (h != NULL)
-      FreeLibrary(h);
-}
-
 #else
 
 #include <dlfcn.h>
@@ -2412,12 +2382,6 @@ static FuncPtr GetFunc(LibHandle h, const char *symbol)
       return dlsym(h, symbol);
 
     return NULL;
-}
-
-static void CloseDll(LibHandle h)
-{
-   if (h != NULL)
-      dlclose(h);
 }
 
 #endif

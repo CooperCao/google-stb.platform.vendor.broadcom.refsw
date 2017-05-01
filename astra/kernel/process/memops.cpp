@@ -113,7 +113,7 @@ void *TzTask::brk(void *newBrk) {
     if (page != desired) {
         // Physical page allocation failed. Release all
         // allocated paged and fail
-        uint8_t *allocPage = page;
+        uint8_t *allocPage = curr;
         while (allocPage < page) {
             TzMem::PhysAddr pa = pageTable->lookUp(allocPage);
             pageTable->unmapPage(allocPage);

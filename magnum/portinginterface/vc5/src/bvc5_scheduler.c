@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -78,7 +77,7 @@ static void BVC5_P_ProcessInterrupt(
             pJob = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
             if (pJob != NULL)
             {
-#if INCLUDE_LEGACY_EVENT_TRACKS
+#if !V3D_VER_AT_LEAST(3,3,0,0)
                BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK,
                                       BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventEnd,
                                       pJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
@@ -108,7 +107,7 @@ static void BVC5_P_ProcessInterrupt(
       pJob = pState->psJob;
       if (pJob != NULL)
       {
-#if INCLUDE_LEGACY_EVENT_TRACKS
+#if !V3D_VER_AT_LEAST(3,3,0,0)
          BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,
                                  BVC5_EventEnd, pJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
 #endif
@@ -145,7 +144,7 @@ static void BVC5_P_ProcessInterrupt(
 
          /* TODO -- bin only jobs won't currently work as they require somewhere to store memory           */
          /* One way to work around this would be to issue a dummy associated render job with no work in it */
-#if INCLUDE_LEGACY_EVENT_TRACKS
+#if !V3D_VER_AT_LEAST(3,3,0,0)
          BVC5_P_AddCoreEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, pJob->uiJobId,
                              BVC5_P_EVENT_MONITOR_BOOM, BVC5_EventOneshot,
                              BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
@@ -630,19 +629,17 @@ static void BVC5_P_ScheduleUsermodeJobs(
 )
 {
    uint32_t uiClient;
-   bool     bUsermodeAvailable = BVC5_P_UsermodeIsAvailable(hVC5);
 
    /* Handle usermode jobs */
-   for (uiClient = 0; bUsermodeAvailable && uiClient < uiNumClients; ++uiClient)
+   for (uiClient = 0; uiClient < uiNumClients; ++uiClient)
    {
       BVC5_ClientHandle     hClient     = phClients[uiClient];
       BVC5_P_InternalJob   *usermodeJob = BVC5_P_JobQTop(hClient->hRunnableUsermodeQ);
 
-      if (usermodeJob)
+      if (usermodeJob && BVC5_P_UsermodeIsAvailable(hClient))
       {
          BVC5_P_IssueUsermodeJob(hVC5, hClient, usermodeJob);
          BVC5_P_JobQPop(hClient->hRunnableUsermodeQ);
-         bUsermodeAvailable = false;
       }
    }
 }
@@ -975,7 +972,7 @@ static void BVC5_P_ProcessWaitingJobs(
    }
 }
 
-void BVC5_P_ProcessCompletedJobs(
+static void BVC5_P_ProcessCompletedJobs(
    BVC5_Handle        hVC5,
    uint32_t           uiNumClients,
    BVC5_ClientHandle *phClients
@@ -1024,7 +1021,7 @@ void BVC5_P_ProcessCompletedJobs(
    }
 }
 
-void BVC5_P_PumpAllClients(
+static void BVC5_P_PumpAllClients(
    BVC5_Handle       hVC5
 )
 {

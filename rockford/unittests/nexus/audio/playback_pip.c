@@ -65,7 +65,7 @@
 BDBG_MODULE(playback_pip);
 
 #define FILENAME_MAIN    "videos/spider_cc.mpg"
-#define MAIN_TS_TYPE     NEXUS_TransportType_eTs 
+#define MAIN_TS_TYPE     NEXUS_TransportType_eTs
 #define MAIN_VIDEO_PID   0x11
 #define MAIN_VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define MAIN_AUDIO_PID   0x14
@@ -167,7 +167,7 @@ static int start_decode(struct context *context, bool usePrimer)
     context->audioProgram.codec = context->audioCodec;
     context->audioProgram.pidChannel = context->audioPidChannel;
     context->audioProgram.stcChannel = context->stcChannel;
-    
+
     if (usePrimer) {
         context->primer = NEXUS_AudioDecoderPrimer_Open(context->audioDecoder);
         rc = NEXUS_AudioDecoderPrimer_Start( context->primer, &context->audioProgram);
@@ -184,7 +184,7 @@ static int start_decode(struct context *context, bool usePrimer)
     return 0;
 }
 
-static int stop_decode(struct context *context) 
+static int stop_decode(struct context *context)
 {
     NEXUS_Playback_Stop(context->playback);
     NEXUS_VideoDecoder_Stop(context->videoDecoder);
@@ -204,7 +204,7 @@ static int stop_decode(struct context *context)
     NEXUS_FilePlay_Close( context->file );
 
     NEXUS_VideoDecoder_Close( context->videoDecoder );
-    
+
     return 0;
 }
 
@@ -221,6 +221,7 @@ int main(int argc, char **argv)
     NEXUS_DisplaySettings displaySettings;
 #endif
     NEXUS_AudioDecoderHandle audioDecoder;
+    NEXUS_AudioCapabilities audioCapabilities;
     int rc,curarg=1;
     unsigned index;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
@@ -283,16 +284,20 @@ int main(int argc, char **argv)
     window[1] = NEXUS_VideoWindow_Open(display, 1);
 
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                               NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-        
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numOutputs.dac > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
+    if (audioCapabilities.numOutputs.hdmi > 0) {
+        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+                                   NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
     BKNI_Memset(&context, 0, sizeof(context));
 
     context[0].index = 0;
@@ -321,7 +326,7 @@ int main(int argc, char **argv)
 
     /* start audio */
     index = 0;
-        
+
     if (!context[index].primer) {
         rc = NEXUS_AudioDecoder_Start(audioDecoder, &context[index].audioProgram);
         BDBG_ASSERT(!rc);
@@ -347,7 +352,7 @@ int main(int argc, char **argv)
             BKNI_Sleep(500);
         }
         BDBG_WRN(("toggle t=%d" , audioTime*2));
-        
+
         if (!context[index].primer) {
             NEXUS_AudioDecoder_Stop(audioDecoder);
         }
@@ -357,7 +362,7 @@ int main(int argc, char **argv)
             NEXUS_Playback_GetPidChannelSettings(context[index].playback, context[index].audioPidChannel, &playbackPidSettings);
             playbackPidSettings.pidTypeSettings.audio.primary = NULL;
             NEXUS_Playback_SetPidChannelSettings(context[index].playback, context[index].audioPidChannel, &playbackPidSettings);
-        } 
+        }
 
         if (++index == 2) index = 0;
 

@@ -39,6 +39,9 @@
 #include "wlu.h"
 
 static cmd_func_t wl_tpc_lm;
+#ifdef BCMINTDBG
+static cmd_func_t wl_tpc_rpt_override;
+#endif /* BCMINTDBG */
 
 static cmd_t wl_tpc_cmds[] = {
 	{ "tpc_mode", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
@@ -50,6 +53,11 @@ static cmd_t wl_tpc_cmds[] = {
 	"Usage: wl tpc_period <secs> "},
 	{ "tpc_lm", wl_tpc_lm, WLC_GET_VAR, -1,
 	"Get current link margins."},
+#if defined(BCMINTDBG)
+	{ "tpc_rpt_override", wl_tpc_rpt_override, WLC_GET_VAR, WLC_SET_VAR,
+	"set/get tpc report txpwr and linkmargin values\n"
+	"\tUsage: wl tpc_rpt_override [<txpwr> <link_margin>]"},
+#endif /* BCMINTDBG */
 	{ NULL, NULL, 0, 0, NULL }
 };
 
@@ -87,3 +95,53 @@ wl_tpc_lm(void *wl, cmd_t *cmd, char **argv)
 
 	return 0;
 }
+
+#if defined(BCMINTDBG)
+static int
+wl_tpc_rpt_override(void *wl, cmd_t *cmd, char **argv)
+{
+	char *endptr;
+	int err = 0;
+	uint32 txpwr_linkm = 0;
+
+	/* toss the command name */
+	argv++;
+
+	if (*argv == NULL) {
+		/* get */
+		err = wlu_iovar_getint(wl, cmd->name, (int*)&txpwr_linkm);
+		if (err)
+			return err;
+		printf("TxPwr:%d Link Margin:%d\n", ((txpwr_linkm>> 8) & 0xff),
+			(txpwr_linkm & 0xff));
+	} else {
+		int8 txpwr, linkm;
+		/* set */
+		if (argv[1] == NULL)
+			return BCME_USAGE_ERROR;
+
+		txpwr = (uint8)strtoul(*argv, &endptr, 0);
+		if (*endptr != '\0') {
+			fprintf(stderr, "%s: %s: error parsing \"%s\" as an integer\n",
+			        wlu_av0, cmd->name, *argv);
+			return BCME_USAGE_ERROR;
+		}
+
+		argv++;
+		linkm = (uint8)strtoul(*argv, &endptr, 0);
+		if (*endptr != '\0') {
+			fprintf(stderr, "%s: %s: error parsing \"%s\" as an integer\n",
+			        wlu_av0, cmd->name, *argv);
+			return BCME_USAGE_ERROR;
+		}
+
+		txpwr_linkm = (txpwr << 8) | linkm;
+
+		err = wlu_iovar_setint(wl, cmd->name, (int)txpwr_linkm);
+		if (err)
+			return err;
+	}
+
+	return err;
+}
+#endif /* BCMINTDBG */

@@ -181,6 +181,10 @@ public:
     eConnectedState getConnectedState(void);
     eRet            dhcpStart(void);
     eRet            dhcpStop(void);
+    eRet            staticIpStart(void);
+    eRet            staticIpStop(void);
+    eRet            ipAddressAcquisitionStart(void);
+    eRet            ipAddressAcquisitionStop(void);
     void            setModel(CModel * pModel)    { _pModel = pModel;  }
     CModel *        getModel(void)               { return(_pModel); }
     bool            getStartState(void)          { return(_bThreadRun); }

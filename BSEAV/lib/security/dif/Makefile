@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 URSR_TOP ?= ../../../..
 NEXUS_TOP := $(URSR_TOP)/nexus
@@ -74,7 +73,7 @@ WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21
 
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
-include $(BSEAV_TOP)/lib/playready/3.0/prdy30_libdir.inc
+include $(BSEAV_TOP)/thirdparty/playready/3.0/prdy30_libdir.inc
 
 WIDEVINE_SUPPORT ?= y
 ifneq ($(shell ls "$(WIDEVINE_CENC_DIR)" 2>/dev/null|grep -m1 -o Makefile), Makefile)
@@ -163,7 +162,7 @@ prep_security: prep_nexus
 	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/common_drm/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT),y)
 	$(Q_)echo [DIF..... building prdyhttp];
-	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/playready/http install > $(LOG_REDIRECT_FILE)
+	$(Q_)$(MAKE) -C $(BSEAV_TOP)/thirdparty/playready/http install > $(LOG_REDIRECT_FILE)
 	$(Q_)echo [DIF..... copying playreadypk 2.5 and 3.0 lib...];
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(CMNDRM_PRDY_LIBDIR)/libplayreadypk$(PREBLT_LIB_SUFFIX)_host.so $(NEXUS_BIN_DIR)
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(PRDY30_LIBDIR)/libplayready30pk.so $(NEXUS_BIN_DIR)

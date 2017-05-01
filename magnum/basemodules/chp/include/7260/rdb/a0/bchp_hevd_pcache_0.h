@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,21 +70,21 @@
 /***************************************************************************
  *HEVD_PCACHE_0
  ***************************************************************************/
-#define BCHP_HEVD_PCACHE_0_MODE0                 0x20026800 /* [RW] REG_PCACHE_MODE0 */
-#define BCHP_HEVD_PCACHE_0_MODE1                 0x20026804 /* [RW] REG_PCACHE_MODE1 */
-#define BCHP_HEVD_PCACHE_0_CTRL                  0x20026808 /* [RW] REG_PCACHE_CTRL */
-#define BCHP_HEVD_PCACHE_0_HIT_COUNT             0x2002680c /* [RO] REG_PCACHE_HIT_COUNT */
-#define BCHP_HEVD_PCACHE_0_MISS_COUNT            0x20026810 /* [RO] REG_PCACHE_MISS_COUNT */
-#define BCHP_HEVD_PCACHE_0_MISS1_COUNT           0x20026814 /* [RO] REG_PCACHE_MISS1_COUNT */
-#define BCHP_HEVD_PCACHE_0_BLOCK_FLAGS           0x20026818 /* [RO] REG_PCACHE_BLOCK_FLAGS */
-#define BCHP_HEVD_PCACHE_0_DATA                  0x2002681c /* [RO] REG_PCACHE_DATA */
-#define BCHP_HEVD_PCACHE_0_TAG_CONTENTS          0x20026820 /* [RO] REG_PCACHE_TAG_CONTENTS */
-#define BCHP_HEVD_PCACHE_0_FLAG_SELECT           0x20026824 /* [RW] REG_PCACHE_FLAG_SELECT */
-#define BCHP_HEVD_PCACHE_0_DEBUG_CTRL            0x20026828 /* [RW] REG_PCACHE_DEBUG_CTRL */
-#define BCHP_HEVD_PCACHE_0_LFSR_DATA             0x2002682c /* [RW] REG_PCACHE_LFSR_DATA */
-#define BCHP_HEVD_PCACHE_0_PFRI_CTRL             0x20026830 /* [RW] REG_PCACHE_PFRI_CTRL */
-#define BCHP_HEVD_PCACHE_0_PFRI_DEBUG            0x20026834 /* [RO] REG_PCACHE_PFRI_DEBUG */
-#define BCHP_HEVD_PCACHE_0_GROUP_COUNT           0x20026838 /* [RO] REG_PCACHE_GROUP_COUNT */
+#define BCHP_HEVD_PCACHE_0_MODE0                 0x20026800 /* [RW][32] REG_PCACHE_MODE0 */
+#define BCHP_HEVD_PCACHE_0_MODE1                 0x20026804 /* [RW][32] REG_PCACHE_MODE1 */
+#define BCHP_HEVD_PCACHE_0_CTRL                  0x20026808 /* [RW][32] REG_PCACHE_CTRL */
+#define BCHP_HEVD_PCACHE_0_HIT_COUNT             0x2002680c /* [RO][32] REG_PCACHE_HIT_COUNT */
+#define BCHP_HEVD_PCACHE_0_MISS_COUNT            0x20026810 /* [RO][32] REG_PCACHE_MISS_COUNT */
+#define BCHP_HEVD_PCACHE_0_MISS1_COUNT           0x20026814 /* [RO][32] REG_PCACHE_MISS1_COUNT */
+#define BCHP_HEVD_PCACHE_0_BLOCK_FLAGS           0x20026818 /* [RO][32] REG_PCACHE_BLOCK_FLAGS */
+#define BCHP_HEVD_PCACHE_0_DATA                  0x2002681c /* [RO][32] REG_PCACHE_DATA */
+#define BCHP_HEVD_PCACHE_0_TAG_CONTENTS          0x20026820 /* [RO][32] REG_PCACHE_TAG_CONTENTS */
+#define BCHP_HEVD_PCACHE_0_FLAG_SELECT           0x20026824 /* [RW][32] REG_PCACHE_FLAG_SELECT */
+#define BCHP_HEVD_PCACHE_0_DEBUG_CTRL            0x20026828 /* [RW][32] REG_PCACHE_DEBUG_CTRL */
+#define BCHP_HEVD_PCACHE_0_LFSR_DATA             0x2002682c /* [RW][32] REG_PCACHE_LFSR_DATA */
+#define BCHP_HEVD_PCACHE_0_PFRI_CTRL             0x20026830 /* [RW][32] REG_PCACHE_PFRI_CTRL */
+#define BCHP_HEVD_PCACHE_0_PFRI_DEBUG            0x20026834 /* [RO][32] REG_PCACHE_PFRI_DEBUG */
+#define BCHP_HEVD_PCACHE_0_GROUP_COUNT           0x20026838 /* [RO][32] REG_PCACHE_GROUP_COUNT */
 
 /***************************************************************************
  *MODE0 - REG_PCACHE_MODE0

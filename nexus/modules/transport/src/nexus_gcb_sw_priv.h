@@ -57,6 +57,14 @@
 
 #define SUPPORT_40BIT_OFFSETS 1
 
+#define UNBONDED_DEBUG_MODE    0 /* don't resequentialize and just read from recpump and feed to playpump */
+#define BAND_RECORD_DEBUG_MODE 0 /* record the bands (can be used with UNBONDED_DEBUG_MODE) */
+#define RECORD_ALLPASS         0 /* record in allpass mode, so RAVE receives the entire chunk, not the pid-filtered one */
+
+#if BAND_RECORD_DEBUG_MODE
+#include <stdio.h>
+#endif
+
 #if (!SUPPORT_40BIT_OFFSETS)
 typedef uint32_t uintoff_t;
 #else
@@ -95,14 +103,18 @@ struct NEXUS_GcbSw
         size_t bufferSize;
         uintoff_t offsetAccum;
 
+        const void *data_buffer, *data_buffer_wrap;
+        size_t data_buffer_size, data_buffer_size_wrap;
+        uint32_t last_write_offset;
+
         int seqNum; /* the first seqNum available */
 
         #define CHUNK_FIFO_SIZE 128
         GcbChunk chunks[CHUNK_FIFO_SIZE];
         BFIFO_HEAD(ChunkFifo, GcbChunk) chunkFifo;
         unsigned submitSize; /* number of bytes last submitted */
-#if 0 /* for debug */
-        FILE* file;
+#if BAND_RECORD_DEBUG_MODE
+        FILE* recFile;
 #endif
     } parsers[MAX_PARSERS]; /* this represents a single unit of virtualized HW */
     unsigned numParsers;
@@ -123,6 +135,7 @@ struct NEXUS_GcbSw
         NEXUS_PlaypumpScatterGatherDescriptor desc[MAX_DESC_LEN+MAX_PARSERS]; /* +MAX_PARSERS since at wraparound, each band needs one extra descriptor */
         unsigned numDesc;
         size_t totalBytes;
+        unsigned minDescAvail;
     } state;
 
     struct {

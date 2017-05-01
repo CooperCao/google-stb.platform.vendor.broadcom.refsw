@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -314,6 +314,7 @@ static void video_decoder_stream_changed(void * context, int param)
         BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel, &streamInfo.contentLightLevel, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel));
         BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume, &streamInfo.masteringDisplayColorVolume, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume));
         session->hdmi.drm.inputValid = true;
+        session->hdmi.drm.dolbyVision.dbvInput = streamInfo.dolbyVision;
         nxserverlib_p_apply_hdmi_drm(session, NULL, false);
     }
 
@@ -486,28 +487,21 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         return NULL;
     }
 
+    if((connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo
 #if NEXUS_HAS_SAGE
-    if(connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo) {
         /* Use CRR for video CDB if secure decoder/heaps AND sage toggle on (URR=on) */
         /* Otherwise use GLR for video CDB (CRR will NOT work) */
         /* All secure picture buffer heaps are toggled at once, just need to check one */
-        if (nxserver_p_urr_on(server)) {
-            cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
-            if (!cdbHeap) {
-                rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-                goto error;
-            }
-        }
-    }
-#else
-    if(connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo) {
+        && nxserver_p_urr_on(server)
+#endif
+        ) || (server->settings.svp == nxserverlib_svp_type_cdb)) {
         cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
         if (!cdbHeap) {
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
             goto error;
         }
     }
-#endif
+
     BDBG_MSG(("VideoDecoder CDB in %s", cdbHeap ? "CRR" : "GLR"));
 
     if (g_decoders[index].r) {
@@ -581,6 +575,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         openSettings.avc51Enabled = connect->settings.simpleVideoDecoder[0].decoderCapabilities.avc51Enabled;
         openSettings.enhancementPidChannelSupported = connect->settings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc];
         openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
+        openSettings.userDataBufferSize = connect->settings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize;
         openSettings.cdbHeap = cdbHeap;
 
         r->handle[0] = NEXUS_VideoDecoder_Open(index, &openSettings);
@@ -1141,7 +1136,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         if (has_window(connect)) {
             unsigned j;
             for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
-                if (j>0 && nxserverlib_p_native_3d_active(session)) {
+                if (j>0 && (nxserverlib_p_native_3d_active(session) || nxserverlib_p_dolby_vision_active(session))) {
                     continue;
                 }
                 settings.window[j] = session->display[j].window[connect->windowIndex][i];
@@ -1264,10 +1259,6 @@ void release_video_decoders(struct b_connect *connect)
 
 int video_init(nxserver_t server)
 {
-    unsigned index = 0;
-    NEXUS_VideoDecoderHandle videoDecoder;
-    int rc = NEXUS_SUCCESS;
-
 #if BCHP_CHIP == 7445
     if (server->platformStatus.boxMode == 15) {
         server->videoDecoder.special_mode = b_special_mode_linked_decoder2;
@@ -1279,21 +1270,7 @@ int video_init(nxserver_t server)
     NEXUS_GetVideoEncoderCapabilities(&server->videoEncoder.cap);
 #endif
 
-    if (server->settings.externalApp.enableAllocIndex[nxserverlib_index_type_video_decoder]) {
-        rc = server->settings.externalApp.allocIndex(server->settings.externalApp.callback_context, nxserverlib_index_type_video_decoder, &index);
-        if (rc) return BERR_TRACE(rc);
-    }
-
-    videoDecoder = NEXUS_VideoDecoder_Open(index, NULL);
-    if (!videoDecoder) {rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); goto done;}
-    NEXUS_SimpleVideoDecoderModule_LoadDefaultSettings(videoDecoder);
-    NEXUS_VideoDecoder_Close(videoDecoder);
-
-done:
-    if (server->settings.externalApp.enableAllocIndex[nxserverlib_index_type_video_decoder]) {
-        server->settings.externalApp.freeIndex(server->settings.externalApp.callback_context, nxserverlib_index_type_video_decoder, index);
-    }
-    return rc;
+    return NEXUS_SUCCESS;
 }
 
 void video_uninit(void)

@@ -56,6 +56,7 @@
 #include "playback.h"
 #include "power.h"
 #include "videolist.h"
+#include "video_decode.h"
 #ifdef PLAYBACK_IP_SUPPORT
 #include "b_playback_ip_lib.h"
 #endif
@@ -153,6 +154,8 @@ ENUM_TO_MSTRING_DECLARE(dtcpKeyFormatToString, B_DTCP_KeyFormat_T)
 #endif
 STRING_TO_ENUM_DECLARE(stringToServerIndexState, eServerIndexState)
 ENUM_TO_MSTRING_DECLARE(serverIndexStateToString, eServerIndexState)
+STRING_TO_ENUM_DECLARE(stringToVideoDynamicRange, eDynamicRange)
+ENUM_TO_MSTRING_DECLARE(videoDynamicRangeToString, eDynamicRange)
 
 #ifdef __cplusplus
 }

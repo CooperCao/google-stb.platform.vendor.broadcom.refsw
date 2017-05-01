@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 /* this file shall be included only from nexus_display_module.h */
 #ifndef NEXUS_VIDEO_WINDOW_IMPL_H__
@@ -53,6 +52,7 @@ const BAVC_MFD_Picture *NEXUS_VideoWindow_P_CutBackendMosaic_isr(NEXUS_VideoWind
 
 NEXUS_Error NEXUS_VideoWindow_P_ConfigMasterFrameRate(NEXUS_VideoWindowHandle window, const NEXUS_DisplaySettings *pDisplaySettings, const NEXUS_VideoWindowSettings *pWindowsettings);
 void NEXUS_VideoWindow_P_UpdatePhaseDelay_isr(NEXUS_VideoWindowHandle window, unsigned refreshRate);
+BVDC_Mode nexus_p_window_alloc_mtg(NEXUS_VideoWindowHandle window);
 
 struct NEXUS_VideoWindow {
     NEXUS_OBJECT(NEXUS_VideoWindow);

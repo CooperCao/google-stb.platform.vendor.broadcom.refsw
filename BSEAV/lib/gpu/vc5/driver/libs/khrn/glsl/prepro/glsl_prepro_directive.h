@@ -8,5 +8,5 @@
 
 extern MacroList *directive_macros;
 
-extern void      glsl_directive_reset_macros(void);
-extern TokenSeq *glsl_directive_next_token  (void);
+extern void   glsl_directive_reset_macros(void);
+extern Token *glsl_directive_next_token  (void);

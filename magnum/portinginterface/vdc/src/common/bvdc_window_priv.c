@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1034,6 +1034,7 @@ BERR_Code BVDC_P_Window_Create
     BVDC_P_WindowId      eWindowId;
     uint32_t ulBoxWinId;
     const BBOX_Vdc_Capabilities *pBoxVdc;
+    const BBOX_Vdc_ResourceFeature *pBoxVdcResource;
 
     BDBG_ENTER(BVDC_P_Window_Create);
     BDBG_ASSERT(phWindow);
@@ -1093,7 +1094,7 @@ BERR_Code BVDC_P_Window_Create
     pWindow->eId          = eWindowId;
     pWindow->ulRegOffset  = BVDC_P_WIN_GET_REG_OFFSET(eWindowId);
     pWindow->hCompositor  = hCompositor;
-    pWindow->pResource    = &s_aResourceRequireTable[eWindowId];
+    pWindow->stResourceRequire  = s_aResourceRequireTable[eWindowId];
     pWindow->stResourceFeature  = s_aResourceFeatureTable[eWindowId];
 
     /* Check if BOX has specific deinterlacer allocation */
@@ -1101,26 +1102,34 @@ BERR_Code BVDC_P_Window_Create
     ulBoxWinId = BVDC_P_GetBoxWindowId_isrsafe(eWindowId);
     BDBG_ASSERT(ulBoxWinId < BBOX_VDC_WINDOW_COUNT_PER_DISPLAY);
 
+    pBoxVdcResource = &pBoxVdc->astDisplay[hCompositor->eId].astWindow[ulBoxWinId].stResource;
+
     /* Change default MAD allocation to BOX's deinterlacer allocation */
-    if (pBoxVdc->astDisplay[hCompositor->hDisplay->eId].astWindow[ulBoxWinId].stResource.ulMad != BBOX_VDC_DISREGARD)
+    if (pBoxVdcResource->ulMad != BBOX_VDC_DISREGARD)
     {
-        pWindow->stResourceFeature.ulMad =
-            pBoxVdc->astDisplay[hCompositor->hDisplay->eId].astWindow[ulBoxWinId].stResource.ulMad;
+        pWindow->stResourceFeature.ulMad = pBoxVdcResource->ulMad;
 
         BDBG_MSG(("Win[%d]: BOX is overriding default deinterlacer resource with deinterlacer 0x%x", pWindow->eId, pWindow->stResourceFeature.ulMad));
     }
 
     /* (2) Alloc capture & capture memory for this window. */
-    if(pWindow->pResource->bRequireCapture)
+    if(pWindow->stResourceRequire.bRequireCapture)
     {
+        if ((pBoxVdcResource->eCap != BBOX_VDC_DISREGARD) && (pBoxVdcResource->eCap != BBOX_Vdc_Resource_Capture_eUnknown))
+        {
+            pWindow->stResourceRequire.eCapture = pBoxVdcResource->eCap;
+            BDBG_MSG(("Win[%d]: BOX is overriding default capture resource with capture 0x%x", pWindow->eId, pWindow->stResourceRequire.eCapture));
+        }
+
         /* Get the register handle this will be needed capture to setup the
          * trigger with host write.  Memory handle is for conveting address. */
         BVDC_P_Capture_Create(&pWindow->stNewResource.hCapture, hCompositor->hVdc->hRdc,
-            hCompositor->hVdc->hRegister, pWindow->pResource->eCapture,
+            hCompositor->hVdc->hRegister, pWindow->stResourceRequire.eCapture,
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
             hCompositor->hVdc->hTimer,
 #endif
             hCompositor->hVdc->hResource);
+
         pWindow->stNewResource.hCapture->hWindow = pWindow;
 
 #if (!BVDC_P_USE_RDC_TIMESTAMP) /** { **/
@@ -1134,24 +1143,32 @@ BERR_Code BVDC_P_Window_Create
         {
             pWindow->stNewResource.hCapture->ulTimestampRegAddr = BRDC_AllocScratchReg(hCompositor->hVdc->hRdc);
             BDBG_MSG(("AllocScratchReg 0x%x for window[%d] capture %d",
-                pWindow->stNewResource.hCapture->ulTimestampRegAddr, pWindow->eId, pWindow->pResource->eCapture));
+                pWindow->stNewResource.hCapture->ulTimestampRegAddr, pWindow->eId, pWindow->stResourceRequire.eCapture));
         }
 #endif /** } !BVDC_P_USE_RDC_TIMESTAMP **/
 
         /* Create buffer list for managing multi-buffering.  And create device
          * memory for capture engine. */
         BVDC_P_Buffer_Create(pWindow, &pWindow->hBuffer);
+
     }
 
     /* (3) Alloc playback block */
-    if(pWindow->pResource->bRequirePlayback)
+    if(pWindow->stResourceRequire.bRequirePlayback)
     {
+        if ((pBoxVdcResource->eVfd != BBOX_VDC_DISREGARD) && (pBoxVdcResource->eVfd != BBOX_Vdc_Resource_Feeder_eUnknown))
+        {
+            pWindow->stResourceRequire.ePlayback = (BVDC_P_FeederId)pBoxVdcResource->eVfd;
+            BDBG_MSG(("Win[%d]: BOX is overriding default feeder resource with feeder 0x%x", pWindow->eId, pWindow->stResourceRequire.ePlayback));
+        }
+
         BVDC_P_Feeder_Create(&pWindow->stNewResource.hPlayback, hCompositor->hVdc->hRdc,
-            hCompositor->hVdc->hRegister, pWindow->pResource->ePlayback,
+            hCompositor->hVdc->hRegister, pWindow->stResourceRequire.ePlayback,
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
             hCompositor->hVdc->hTimer,
 #endif
             NULL, hCompositor->hVdc->hResource, false);
+
         pWindow->stNewResource.hPlayback->hWindow = pWindow;
 
 #if (!BVDC_P_USE_RDC_TIMESTAMP) /** { **/
@@ -1165,23 +1182,29 @@ BERR_Code BVDC_P_Window_Create
         {
             pWindow->stNewResource.hPlayback->ulTimestampRegAddr = BRDC_AllocScratchReg(hCompositor->hVdc->hRdc);
             BDBG_MSG(("AllocScratchReg 0x%x for window[%d] playback %d",
-                pWindow->stNewResource.hPlayback->ulTimestampRegAddr, pWindow->eId, pWindow->pResource->ePlayback));
+                pWindow->stNewResource.hPlayback->ulTimestampRegAddr, pWindow->eId, pWindow->stResourceRequire.ePlayback));
         }
 #endif /** } !BVDC_P_USE_RDC_TIMESTAMP **/
 
     }
 
     /* (4) Alloc scaler block */
-    if(pWindow->pResource->bRequireScaler)
+    if(pWindow->stResourceRequire.bRequireScaler)
     {
-        BVDC_P_Scaler_Create(&pWindow->stNewResource.hScaler, pWindow->pResource->eScaler,
+        if ((pBoxVdcResource->eScl != BBOX_VDC_DISREGARD) && (pBoxVdcResource->eScl != BBOX_Vdc_Resource_Scaler_eUnknown))
+        {
+            pWindow->stResourceRequire.eScaler = (BVDC_P_ScalerId)pBoxVdcResource->eScl;
+            BDBG_MSG(("Win[%d]: BOX is overriding default scaler resource with feeder 0x%x", pWindow->eId, pWindow->stResourceRequire.eScaler));
+        }
+
+        BVDC_P_Scaler_Create(&pWindow->stNewResource.hScaler, pWindow->stResourceRequire.eScaler,
             hCompositor->hVdc->hResource, hCompositor->hVdc->hRegister);
     }
 
     /* (5) Alloc PEP block */
-    if(pWindow->pResource->bRequirePep)
+    if(pWindow->stResourceRequire.bRequirePep)
     {
-        BVDC_P_Pep_Create(&pWindow->stNewResource.hPep, pWindow->pResource->eWinId, hCompositor->hVdc->hRegister);
+        BVDC_P_Pep_Create(&pWindow->stNewResource.hPep, pWindow->stResourceRequire.eWinId, hCompositor->hVdc->hRegister);
     }
 
     /* (6) create a DestroyDone event. */
@@ -1253,7 +1276,7 @@ void BVDC_P_Window_Destroy
     BKNI_DestroyEvent(hWindow->hDestroyDoneEvent);
 
     /* [5] Free PEP block */
-    if(hWindow->pResource->bRequirePep)
+    if(hWindow->stResourceRequire.bRequirePep)
     {
         BVDC_P_Pep_Destroy(hWindow->stCurResource.hPep);
         BKNI_Free((void *)hWindow->stNewInfo.pulCabTable);
@@ -1267,7 +1290,7 @@ void BVDC_P_Window_Destroy
     }
 
     /* [4] Free scaler block */
-    if(hWindow->pResource->bRequireScaler)
+    if(hWindow->stResourceRequire.bRequireScaler)
     {
         BVDC_P_Scaler_Destroy(hWindow->stCurResource.hScaler);
     }
@@ -1276,16 +1299,16 @@ void BVDC_P_Window_Destroy
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
     eSrcId =
         BAVC_SourceId_eVfd0 +
-            (hWindow->pResource->ePlayback - BVDC_P_FeederId_eVfd0);
+            (hWindow->stResourceRequire.ePlayback - BVDC_P_FeederId_eVfd0);
 #endif
-    if(hWindow->pResource->bRequirePlayback)
+    if(hWindow->stResourceRequire.bRequirePlayback)
     {
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
         if (NULL == hWindow->hCompositor->hVdc->ahSource[eSrcId])
         {
             BDBG_MSG(("FreeScratchReg 0x%x for window[%d] playback %d",
                 hWindow->stNewResource.hPlayback->ulTimestampRegAddr,
-                hWindow->eId, hWindow->pResource->ePlayback));
+                hWindow->eId, hWindow->stResourceRequire.ePlayback));
 
             BRDC_FreeScratchReg(hWindow->hCompositor->hVdc->hRdc,
                 hWindow->stNewResource.hPlayback->ulTimestampRegAddr);
@@ -1296,14 +1319,14 @@ void BVDC_P_Window_Destroy
     }
 
     /* [2] Free capture & capture memory for this window. */
-    if(hWindow->pResource->bRequireCapture)
+    if(hWindow->stResourceRequire.bRequireCapture)
     {
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
         if (NULL == hWindow->hCompositor->hVdc->ahSource[eSrcId])
         {
             BDBG_MSG(("FreeScratchReg 0x%x for window[%d] capture %d",
                 hWindow->stNewResource.hCapture->ulTimestampRegAddr,
-                hWindow->eId, hWindow->pResource->eCapture));
+                hWindow->eId, hWindow->stResourceRequire.eCapture));
             BRDC_FreeScratchReg(hWindow->hCompositor->hVdc->hRdc,
                 hWindow->stNewResource.hCapture->ulTimestampRegAddr);
         }
@@ -1811,17 +1834,17 @@ void BVDC_P_Window_Init
         &pNewInfo->bForceCapture, &hWindow->bSclCapSymmetric,
         &pNewInfo->eSclCapBias, &pNewInfo->ulBandwidthDelta);
 
-    if(hWindow->pResource->bRequireScaler)
+    if(hWindow->stResourceRequire.bRequireScaler)
     {
         BVDC_P_Scaler_Init_isr(hWindow->stCurResource.hScaler, hWindow);
     }
 
-    if(hWindow->pResource->bRequirePlayback)
+    if(hWindow->stResourceRequire.bRequirePlayback)
     {
         BVDC_P_Feeder_Init(hWindow->stCurResource.hPlayback, hWindow, false, false);
     }
 
-    if(hWindow->pResource->bRequireCapture)
+    if(hWindow->stResourceRequire.bRequireCapture)
     {
         BVDC_P_Buffer_Init(hWindow->hBuffer);
         BVDC_P_Capture_Init(hWindow->stCurResource.hCapture, hWindow);
@@ -1831,7 +1854,7 @@ void BVDC_P_Window_Init
             BVDC_P_Buffer_GetCurReaderNode_isr(hWindow->hBuffer);
     }
 
-    if(hWindow->pResource->bRequirePep)
+    if(hWindow->stResourceRequire.bRequirePep)
     {
         BVDC_P_Pep_Init(hWindow->stCurResource.hPep);
     }
@@ -1844,7 +1867,7 @@ void BVDC_P_Window_Init
     /* Clear out user's states. */
     BKNI_Memcpy(pCurInfo, pNewInfo, sizeof(BVDC_P_Window_Info));
 
-    if(hWindow->pResource->bRequirePep)
+    if(hWindow->stResourceRequire.bRequirePep)
     {
         if(pulCurCabTable)
         {
@@ -3313,6 +3336,7 @@ static void BVDC_P_Window_SetClearRect_isr
 }
 #endif
 
+
 #if BVDC_P_CMP_0_MOSAIC_CFCS
 /***************************************************************************
  * {private}
@@ -3503,7 +3527,7 @@ static void BVDC_P_Window_SetMiscellaneous_isr
  *
  * Configure a blender.
  */
-static void BVDC_P_Window_SetBlender_isr
+void BVDC_P_Window_SetBlender_isr
     ( BVDC_Window_Handle               hWindow,
       uint8_t                          ucZOrder,
       uint8_t                          ucConstantAlpha,
@@ -4408,6 +4432,14 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
         pPicture->bEndofChunk          = pReader->bEndofChunk;
         pPicture->ulChunkId            = pReader->ulChunkId;
         pPicture->eDispOrientation     = pReader->eDispOrientation;
+#if BVDC_P_DBV_SUPPORT /* DBV would bypass mad delay as no interlaced DVS exists */
+        pReader->stMosaicColorSpace.stMetaData.stDbvInput.stHdrMetadata.pData =
+            pPicture->astMosaicColorSpace[ulPictureIdx].stMetaData.stDbvInput.stHdrMetadata.pData;
+#endif
+#if BVDC_P_TCH_SUPPORT /* TCH would bypass mad delay as no interlaced TCH exists */
+        pReader->stMosaicColorSpace.stMetaData.stTchInput.stHdrMetadata.pData =
+            pPicture->astMosaicColorSpace[ulPictureIdx].stMetaData.stTchInput.stHdrMetadata.pData;
+#endif
         pPicture->astMosaicColorSpace[ulPictureIdx] = pReader->stMosaicColorSpace;
 
         /* If Mpeg Src and no capture, reduce the MAD delay by 1 to achieve */
@@ -6745,7 +6777,7 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
 
             if(hWindow->ulBufCntNeeded != hWindow->ulBufCntAllocated)
             {
-                BDBG_MSG(("ulBufCntAllocated (%d) != ulBufCntNeeded (%d), stVnetMode = 0x%x",
+                BDBG_MSG(("apply: lBufCntAllocated (%d) != ulBufCntNeeded (%d), stVnetMode = 0x%x",
                     hWindow->ulBufCntAllocated,
                     hWindow->ulBufCntNeeded, *(unsigned int *)&hWindow->stVnetMode));
                 pNewDirty->stBits.bReallocBuffers = BVDC_P_DIRTY;
@@ -6871,7 +6903,7 @@ BERR_Code BVDC_P_Window_AbortChanges
     /* copy stCurInfo to stNewInfo here !!! */
     hWindow->stNewInfo = hWindow->stCurInfo;
 
-    if(hWindow->pResource->bRequirePep)
+    if(hWindow->stResourceRequire.bRequirePep)
     {
         if(pulNewCabTable)
         {
@@ -6977,7 +7009,7 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         BDBG_OBJECT_ASSERT(pCurInfo->hSource, BVDC_SRC);
 
         /* release shared scaler for SD PIP or Bypass window */
-        if((hWindow->stCurResource.hScaler) && (!hWindow->pResource->bRequireScaler) &&
+        if((hWindow->stCurResource.hScaler) && (!hWindow->stResourceRequire.bRequireScaler) &&
             /* win destroyed by user, or */
             (pCurDirty->stBits.bDestroy ||
              /* bypass win that does not need scl */
@@ -7355,7 +7387,7 @@ void BVDC_P_Window_UpdateUserState_isr
         }
 
         /* save old PEP tables in Current */
-        if(hWindow->pResource->bRequirePep)
+        if(hWindow->stResourceRequire.bRequirePep)
         {
             pulCurCabTable   = hWindow->stCurInfo.pulCabTable;
             pulCurLabCbTbl   = hWindow->stCurInfo.pulLabCbTbl;
@@ -7375,7 +7407,7 @@ void BVDC_P_Window_UpdateUserState_isr
         sizeof(uint32_t) * hWindow->stCurInfo.ulMosaicCount);
     }
 #endif
-        if(hWindow->pResource->bRequirePep)
+        if(hWindow->stResourceRequire.bRequirePep)
         {
             /* restore PEP table pointers to Current */
             /* Note: if making changes here, make sure to keep it's */
@@ -9602,9 +9634,9 @@ void BVDC_P_Window_AdjustRectangles_isr
 
         BDBG_MSG(("--------------------------"));
         BVDC_P_PRINT_RECT("New stSrcCnt", &hWindow->stSrcCnt, false, 0, 0);
-        BDBG_MSG(("Window[%d] usr change = %d, src change = %d",
+        BDBG_MSG(("Window[%d] usr change = %d, src change = %d, srcPol=%d",
             hWindow->eId, hWindow->bAdjRectsDirty,
-            !BVDC_P_RECT_CMP_EQ(&hWindow->stPrevSrcCnt, &stSrcCnt)));
+            !BVDC_P_RECT_CMP_EQ(&hWindow->stPrevSrcCnt, &stSrcCnt), pMvdFieldData->eSourcePolarity));
 
         /* for optimization in future vsync */
         hWindow->stPrevSrcCnt = stSrcCnt;
@@ -10610,6 +10642,205 @@ static void BVDC_P_Window_GetBufAllocMode_isr
     }
 }
 
+/* This function changes buffer count given a new src-disp rate relationship. */
+static void BVDC_P_Window_ChangeBufferCountAndDelay_isr
+    ( BVDC_Window_Handle hWindow,
+      BVDC_P_BufferCountState eState )
+{
+
+    switch (eState)
+    {
+        case BVDC_P_BufferCount_eIncremented:
+            hWindow->ulBufCntNeeded --;
+            hWindow->ulBufDelay--;
+            hWindow->hBuffer->ulVsyncDelay--;
+            hWindow->bBufferCntIncremented = false;
+            break;
+
+        case BVDC_P_BufferCount_eToIncrement:
+            hWindow->ulBufCntNeeded++;
+            hWindow->ulBufDelay++;
+            hWindow->hBuffer->ulVsyncDelay++;
+            hWindow->bBufferCntIncremented = true;
+            break;
+
+        case BVDC_P_BufferCount_eDecremented:
+            hWindow->ulBufCntNeeded++;
+            if (!hWindow->bBufferCntDecrementedForPullDown)
+            {
+                hWindow->ulBufDelay++;
+                hWindow->hBuffer->ulVsyncDelay++;
+            }
+            else
+            {
+                hWindow->bBufferCntDecrementedForPullDown = false;
+            }
+            hWindow->bBufferCntDecremented = false;
+            break;
+
+        case BVDC_P_BufferCount_eToDecrement:
+            hWindow->ulBufCntNeeded--;
+            if (hWindow->hBuffer->eWriterVsReaderRateCode == hWindow->hBuffer->eReaderVsWriterRateCode)
+            {
+                hWindow->ulBufDelay--;
+                hWindow->hBuffer->ulVsyncDelay--;
+            }
+            else /* Progressive pull down */
+            {
+                hWindow->bBufferCntDecrementedForPullDown = true;
+            }
+
+            hWindow->bBufferCntDecremented = true;
+            break;
+    }
+}
+
+
+static void BVDC_P_Window_DetermineBufferCount_isr
+    ( BVDC_Window_Handle hWindow )
+{
+    bool bDoPulldown = false, bProgressivePullDown = false, bBuf50to60Hz = false;
+    BVDC_P_WrRateCode eWriterVsReaderRateCode;
+    BVDC_P_WrRateCode eReaderVsWriterRateCode;
+    uint32_t ulSrcVertRate, ulDstVertRate;
+    uint32_t ulPrevBufCntNeeded;
+
+    /* Get previous count */
+    ulPrevBufCntNeeded = hWindow->ulBufCntNeeded;
+
+    if (BVDC_P_VNET_USED_CAPTURE(hWindow->stVnetMode))
+    {
+        /* if source dynamic format change results in possible buffer count change,
+           do it as soon as possible to avoid unnecessary big allocation in the 1st
+           place;
+           Note, ulBufCntNeeded computed at ApplyChanges time might not reflect
+           the current situation since the source format might have changed! */
+        BVDC_P_Buffer_CalculateRateGap_isr(hWindow->stCurInfo.hSource->ulVertFreq,
+            hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq,
+            &eWriterVsReaderRateCode, &eReaderVsWriterRateCode);
+
+        bDoPulldown =
+            (!hWindow->bSyncLockSrc && !hWindow->stSettings.bForceSyncLock && !BVDC_P_SRC_IS_VFD(hWindow->stNewInfo.hSource->eId) &&
+            ((VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt)
+            && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) ||
+               (hWindow->bDoPulldown && eReaderVsWriterRateCode > BVDC_P_WrRate_Faster /* not for 50i-to-60i */)));
+
+        /* This doesn't apply to 50i-to-60i. */
+        if(bDoPulldown && !hWindow->bBufferCntDecremented)
+        {
+            if (hWindow->bBufferCntIncremented)
+            {
+                /* From N+1 buffers to the N buffers first */
+                BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eIncremented);
+            }
+
+            /* From N buffers to N-1 buffers */
+            BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eToDecrement);
+            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Decrementing buffer count to %d", hWindow->eId, hWindow->ulBufCntNeeded));
+        }
+        else if(!bDoPulldown && hWindow->bBufferCntDecremented)
+        {
+            /* From N-1 buffers to N buffers */
+            BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eDecremented);
+            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Change buffer count back to %d", hWindow->eId, hWindow->ulBufCntNeeded));
+        }
+
+    }
+
+    if (!hWindow->hBuffer->bSyncLock && !hWindow->stSettings.bForceSyncLock)
+    {
+
+        /* When displaying 1080p24/25/30 source as 1080p48/50/60, we cut the number
+         * of buffer to 3 to save memory. The algorithm allows writer to catch up
+         * reader and both of them point to the same buffer node.
+         *
+         * Note: This may cause video tearing if reader somehow misses interrupts.
+         */
+        bProgressivePullDown =  VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->eVideoFmt) &&
+                                (hWindow->hBuffer->eWriterVsReaderRateCode == BVDC_P_WrRate_NotFaster) &&
+                                (hWindow->hBuffer->eReaderVsWriterRateCode == BVDC_P_WrRate_2TimesFaster);
+
+        /* Check to see if buffer count was reduced due to progressive display format. If so and
+         * the reader or writer rate gaps is 1, increment the buffer cnt. */
+        if ((!hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced || bProgressivePullDown) &&
+            !hWindow->hBuffer->bMtgMadDisplay1To1RateRelationship &&
+            !(hWindow->stCurInfo.hSource->bMtgSrc && !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode)))
+        {
+            if ((hWindow->hBuffer->eWriterVsReaderRateCode == hWindow->hBuffer->eReaderVsWriterRateCode) || bProgressivePullDown)
+            {
+                if (!hWindow->bBufferCntDecremented)
+                {
+                    if (hWindow->bBufferCntIncremented)
+                    {
+                        /* From N+1 buffers to the N buffers first */
+                        BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eIncremented);
+                    }
+
+                    /* From N buffers to N-1 buffers */
+                    BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eToDecrement);
+                    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Decrementing buffer count from %d to %d due progressive display format",
+                        hWindow->eId, ulPrevBufCntNeeded, hWindow->ulBufCntNeeded));
+                }
+            }
+            else if (hWindow->bBufferCntDecremented)
+            {
+                BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eDecremented);
+                BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Incrementing buffer count from %d to %d due to rate gap",
+                    hWindow->eId, ulPrevBufCntNeeded, hWindow->ulBufCntNeeded));
+            }
+        }
+
+        /* If source/dest relationship requires a writer gap, capture as interlaced and interlaced display,
+         * increment the number of buffers. */
+        ulSrcVertRate = BVDC_P_ROUND_OFF(hWindow->stCurInfo.hSource->ulVertFreq,
+            (BFMT_FREQ_FACTOR/2), BFMT_FREQ_FACTOR);
+        ulDstVertRate = BVDC_P_ROUND_OFF(hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq,
+            (BFMT_FREQ_FACTOR/2), BFMT_FREQ_FACTOR);
+
+        /* SW7425-4703: roll back version 255 for SW7425-3748 */
+        bBuf50to60Hz = (ulSrcVertRate == 50 && ulDstVertRate == 60) ? true : false;
+
+        if ((!hWindow->bFrameCapture) && (!VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt))
+            && ((hWindow->hBuffer->eWriterVsReaderRateCode > BVDC_P_WrRate_NotFaster) ||
+                (bBuf50to60Hz && (!BVDC_P_VNET_USED_SCALER_AT_READER(hWindow->stVnetMode)))))
+        {
+            if (!hWindow->bBufferCntIncremented)
+            {
+                if (hWindow->bBufferCntDecremented)
+                {
+                    /* From N-1 buffers to N buffers first */
+                    BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eDecremented);
+                }
+
+                /* From N buffers to N+1 buffers */
+                BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eToIncrement);
+                BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Incrementing buffer count from %d to %d ",
+                        hWindow->eId, ulPrevBufCntNeeded, hWindow->ulBufCntNeeded));
+            }
+        }
+        else
+        {
+            if (hWindow->bBufferCntIncremented)
+            {
+                BVDC_P_Window_ChangeBufferCountAndDelay_isr(hWindow, BVDC_P_BufferCount_eIncremented);
+                BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Decrementing buffer count from %d to %d ",
+                    hWindow->eId, ulPrevBufCntNeeded, hWindow->ulBufCntNeeded));
+            }
+        }
+    }
+
+    /* set dirty bit */
+   if((hWindow->ulBufCntNeeded != hWindow->ulBufCntAllocated) ||
+      (hWindow->ulBufCntNeeded != ulPrevBufCntNeeded))
+    {
+        BDBG_MSG(("ulBufCntAllocated (%d) or ulPrevBufCntNeeded (%d) != ulBufCntNeeded (%d), stVnetMode = 0x%x",
+            hWindow->ulBufCntAllocated, ulPrevBufCntNeeded,
+            hWindow->ulBufCntNeeded, *(unsigned int *)&hWindow->stVnetMode));
+        hWindow->stCurInfo.stDirty.stBits.bReallocBuffers = BVDC_P_DIRTY;
+    }
+
+}
+
 static bool BVDC_P_Window_DecideCapBufsCfgs_isr
     ( BVDC_Window_Handle               hWindow,
       bool                             bApplyNewCfg,
@@ -10681,9 +10912,6 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
 
     if(bCapture)
     {
-        BVDC_P_WrRateCode eWriterVsReaderRateCode;
-        BVDC_P_WrRateCode eReaderVsWriterRateCode;
-
         if(BVDC_P_VNET_USED_SCALER_AT_READER(hWindow->stVnetMode))
         {
             BVDC_P_Window_GetBufSize_isr(hWindow->eId, pCapBufRect,
@@ -10898,69 +11126,8 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
 
             /* (4) force frame capture*/
             (hWindow->stCurInfo.hSource->stCurInfo.bForceFrameCapture));
-
-        /* if source dynamic format change results in possible buffer count change,
-           do it as soon as possible to avoid unnecessary big allocation in the 1st
-           place;
-           Note, ulBufCntNeeded computed at ApplyChanges time might not reflect
-           the current situation since the source format might have changed! */
-        BVDC_P_Buffer_CalculateRateGap_isr(hWindow->stCurInfo.hSource->ulVertFreq,
-            hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq,
-            &eWriterVsReaderRateCode, &eReaderVsWriterRateCode);
-
-        bDoPulldown =
-            (!hWindow->bSyncLockSrc && !hWindow->stSettings.bForceSyncLock && !BVDC_P_SRC_IS_VFD(hWindow->stNewInfo.hSource->eId) &&
-            ((VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt)
-            && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) ||
-               (bDoPulldown && eReaderVsWriterRateCode > BVDC_P_WrRate_Faster /* not for 50i-to-60i */)));
-
-        /* This doesn't apply to 50i-to-60i. */
-        if(bDoPulldown && !hWindow->bBufferCntDecremented)
-        {
-            if (hWindow->bBufferCntIncremented)
-            {
-                /* From N+1 buffers to the N buffers first */
-                hWindow->ulBufCntNeeded --;
-                hWindow->ulBufDelay--;
-
-                hWindow->bBufferCntIncremented = false;
-            }
-
-            /* From N buffers to N-1 buffers */
-            hWindow->ulBufCntNeeded --;
-
-            hWindow->bBufferCntDecrementedForPullDown = true;
-            hWindow->bBufferCntDecremented = true;
-            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Decrementing buffer count to %d in BVDC_P_Window_DecideBufsCfgs_isr",
-                hWindow->eId, hWindow->ulBufCntNeeded));
-        }
-        else if(!bDoPulldown && hWindow->bBufferCntDecremented)
-        {
-            /* From N-1 buffers to N buffers first */
-            hWindow->ulBufCntNeeded ++;
-            if (!hWindow->bBufferCntDecrementedForPullDown)
-            {
-                hWindow->ulBufDelay++;
-                hWindow->hBuffer->ulVsyncDelay++;
-            }
-            else
-            {
-                hWindow->bBufferCntDecrementedForPullDown = false;
-            }
-            hWindow->bBufferCntDecremented = false;
-
-            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Change buffer count back to %d in BVDC_P_Window_DecideBufsCfgs_isr",
-                hWindow->eId, hWindow->ulBufCntNeeded));
-        }
-
-        if(hWindow->ulBufCntNeeded != hWindow->ulBufCntAllocated)
-        {
-            BDBG_MSG(("ulBufCntAllocated (%d) != ulBufCntNeeded (%d), stVnetMode = 0x%x",
-                hWindow->ulBufCntAllocated,
-                hWindow->ulBufCntNeeded, *(unsigned int *)&hWindow->stVnetMode));
-            hWindow->stCurInfo.stDirty.stBits.bReallocBuffers = BVDC_P_DIRTY;
-        }
     }
+
     return (bRecfgVnet);
 }
 
@@ -11010,6 +11177,7 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
     {
         if(hWindow->stSettings.bDeinterlacerAllocFull)
         {
+            bBufIsContinuous = false;
             usStdPixBufCnt = BVDC_P_Mcdi_GetPixBufCnt_isr(hWindow->stCurResource.hMcvp->hMcdi->bMadr, BVDC_MadGameMode_eOff);
             usStdQmBufCnt = hWindow->stCurResource.hMcvp->hMcdi->bMadr ?
                     BVDC_P_MAD_QM_BUFFER_COUNT : BVDC_P_MCDI_QM_BUFFER_COUNT;
@@ -11036,9 +11204,9 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
                 usStdQmBufCnt = BVDC_P_MAD_SPATIAL(pCurInfo->stMadSettings.eGameMode)?
                     0:usStdQmBufCnt;
             }
+            bBufIsContinuous =
+                (bAnr || pWinCompression->bEnable) && usStdPixBufCnt;
         }
-        bBufIsContinuous =
-            (bAnr || pWinCompression->bEnable) && usStdPixBufCnt;
 
         /* (2) decide mcvp buf heap id
          * changing MCVP buffer heapId causes VNET reconfiguration */
@@ -13215,11 +13383,11 @@ void BVDC_P_Window_Writer_isr
     else if((0 == ulPictureIdx) && (pSrcInfo->eMuteMode != BVDC_MuteMode_eRepeat))
     {
         BVDC_P_Buffer_MtgMode eMtgMode = BVDC_P_Buffer_MtgMode_eNonMtg;
+
 #if BVDC_P_SUPPORT_MTG
         /* we read after RUL-done, and hWindow->pCurWriterNode is pointing to the buffer MAD is writing */
         if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
         {
-
             if(BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
             {
                 BVDC_P_Mcdi_ReadOutPhase_isr(hWindow->stCurResource.hMcvp->hMcdi, hWindow->pCurWriterNode);
@@ -13237,19 +13405,35 @@ void BVDC_P_Window_Writer_isr
             If only items 1 and 2 above are true and the deinterlacer is not active, the bPictureRepeat flag from
             the DM will be used to select which pictures will be dropped by the multi-buffer mechanism. */
 
-       if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode && BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
+        if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
         {
-            eMtgMode = BVDC_P_Buffer_MtgMode_eMadPhase;
+            eMtgMode = BVDC_P_MVP_USED_MAD(hWindow->stMvpMode) ? BVDC_P_Buffer_MtgMode_eMadPhase : BVDC_P_Buffer_MtgMode_eXdmRepeat;
+
+            if (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat)
+            {
+                hWindow->hBuffer->bMtgXdmDisplay1to1RateRelationship = hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq ==
+                    BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hWindow->stCurInfo.hSource->eFrameRateCode);
+
+                /* Determine XDM cadence */
+                if ((hWindow->stCurInfo.hSource->eFrameRateCode == BAVC_FrameRateCode_e23_976) ||
+                    (hWindow->stCurInfo.hSource->eFrameRateCode == BAVC_FrameRateCode_e24))
+                {
+                    hWindow->pCurWriterNode->stFlags.bRev32Locked = true;
+                }
+                else
+                {
+                    hWindow->pCurWriterNode->stFlags.bRev32Locked = false;
+                }
+            }
         }
-        else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-                 (hWindow->hBuffer->pCurWriterBuf->bChannelChange ||
-                  hWindow->hBuffer->pCurWriterBuf->stFlags.bPictureRepeatFlag) &&
-                 !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
+        else
         {
-                eMtgMode = BVDC_P_Buffer_MtgMode_eXdmRepeat;
+            eMtgMode = BVDC_P_Buffer_MtgMode_eNonMtg;
         }
 
         pPicture = BVDC_P_Buffer_GetNextWriterNode_isr(hWindow, eFieldId, eMtgMode);
+
+        BVDC_P_Window_DetermineBufferCount_isr(hWindow);
 
         if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
         {
@@ -13258,12 +13442,13 @@ void BVDC_P_Window_Writer_isr
             pPicture->ulMadOutPhase = (hWindow->pCurWriterNode->ulMadOutPhase + 1) % 5;
 
 #if (BDBG_DEBUG_BUILD)
-            if (pPicture->stFlags.bRev32Locked)
+            if (pPicture->stFlags.bRev32Locked && eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
             {
                 BDBG_MODULE_MSG(BVDC_MTGW,("w win%d (n%d p%d)", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
             else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
+                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode) &&
+                     eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
             {
                 BDBG_MODULE_MSG(BVDC_MTGW,("w win%d (n%d p%d), no lock", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
@@ -13271,7 +13456,10 @@ void BVDC_P_Window_Writer_isr
         }
 #else
         pPicture = BVDC_P_Buffer_GetNextWriterNode_isr(hWindow, eFieldId, eMtgMode);
-#endif
+
+        BVDC_P_Window_DetermineBufferCount_isr(hWindow);
+#endif /* BVDC_P_SUPPORT_MTG */
+
         hWindow->pCurWriterNode = pPicture;
 
 #if BVDC_P_SUPPORT_MOSAIC_MODE
@@ -13495,6 +13683,8 @@ void BVDC_P_Window_Reader_isr
     if(BVDC_P_WIN_IS_GFX_WINDOW(hWindow->eId) &&
       (BVDC_P_CLEAN == pCurDirty->stBits.bDestroy))
     {
+        BVDC_P_GfxFeeder_UpdateState_isr(hWindow->stCurInfo.hSource->hGfxFeeder,
+            &(hWindow->stCurInfo.hSource->stCurInfo), pList, eFieldId);
         /* Gfx does not need to use these dirty bits. */
         BVDC_P_CLEAN_ALL_DIRTY(pCurDirty);
         return;
@@ -13515,7 +13705,7 @@ void BVDC_P_Window_Reader_isr
      * To initiate the shutdown put both into BVDC_P_State_eShutDownPending. */
     if(BVDC_P_IS_DIRTY(pCurDirty))
     {
-        hWindow->bCfcAdjust |= pCurDirty->stBits.bCscAdjust;
+        hWindow->bCfcDirty |= pCurDirty->stBits.bCscAdjust;
         pCurDirty->stBits.bCscAdjust = BVDC_P_CLEAN;
 
         /* Set new luma key */
@@ -13698,10 +13888,21 @@ void BVDC_P_Window_Reader_isr
         }
         else
         {
-            pPicture = BVDC_P_Buffer_GetNextReaderNode_isr(hWindow, eFieldId, BVDC_P_Buffer_MtgMode_eNonMtg);
+            BVDC_P_Buffer_MtgMode eMtgMode;
+
+            if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
+            {
+                eMtgMode = BVDC_P_MVP_USED_MAD(hWindow->stMvpMode) ? BVDC_P_Buffer_MtgMode_eMadPhase : BVDC_P_Buffer_MtgMode_eXdmRepeat;
+            }
+            else
+            {
+                eMtgMode = BVDC_P_Buffer_MtgMode_eNonMtg;
+            }
+
+            pPicture = BVDC_P_Buffer_GetNextReaderNode_isr(hWindow, eFieldId, eMtgMode);
 
 #if (BDBG_DEBUG_BUILD && BVDC_P_SUPPORT_MTG)
-            if (pPicture->stFlags.bRev32Locked)
+            if (pPicture->stFlags.bRev32Locked && eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
             {
                 hWindow->iLockCntr ++;
                 BDBG_MODULE_MSG(BVDC_MTGR,("read win%d (n%d phase %s)", hWindow->eId, pPicture->ulBufferId, (pPicture->ulMadOutPhase==1 || pPicture->ulMadOutPhase==2)? "12" : "  340"));
@@ -13760,12 +13961,13 @@ void BVDC_P_Window_Reader_isr
                 hWindow->iLockCntr = 0;
             }
 
-            if (pPicture->stFlags.bRev32Locked)
+            if (pPicture->stFlags.bRev32Locked && eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
             {
                 BDBG_MODULE_MSG(BVDC_MTGR__,("read win%d (n%d p%d)", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
             else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
+                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode) &&
+                     eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase )
             {
                 BDBG_MODULE_MSG(BVDC_MTGR__,("read win%d (n%d p%d), no lock", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
@@ -13961,7 +14163,7 @@ void BVDC_P_Window_Reader_isr
     }
 
     /* maybe used by VFC first or CMP CFC */
-    hWindow->bCfcAdjust |= hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace;
+    hWindow->bCfcDirty |= hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace;
 
     /* Note: the reader side setting should start from upstream then to the downstream. */
     /* Setup video feeder that playback from captured buffer */
@@ -14050,18 +14252,18 @@ void BVDC_P_Window_Reader_isr
     }
 
     /* Update the compositor's surface color space conversion matrix. Note this must be after possible VFC update. */
-    hWindow->bCfcAdjust |= BVDC_P_Window_AssignMosaicCfcToRect_isr(
+    hWindow->bCfcDirty |= BVDC_P_Window_AssignMosaicCfcToRect_isr(
         hWindow, pPicture, hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace);
-    if (hWindow->bCfcAdjust || pCurDirty->stBits.bMosaicMode)
+    if (hWindow->bCfcDirty || pCurDirty->stBits.bMosaicMode)
     {
 #if (BDBG_DEBUG_BUILD)
         BVDC_P_WindowId eV0Id = BVDC_P_CMP_GET_V0ID(hCompositor);
 #endif
         BDBG_MODULE_MSG(BVDC_CFC_5,("Cmp%d_V%d invokes setBypassColor_isr by %s due to (%d || %d)",
-            hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__, hWindow->bCfcAdjust, pCurDirty->stBits.bMosaicMode));
+            hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__, hWindow->bCfcDirty, pCurDirty->stBits.bMosaicMode));
         BVDC_P_Window_SetBypassColor_isr(hWindow, bFixedColor);
     }
-    if(!hCompositor->bIsBypass && hWindow->bCfcAdjust)
+    if(!hCompositor->bIsBypass && hWindow->bCfcDirty)
     {
         /* Select the color space conversion. */
 #if BVDC_P_CMP_0_MOSAIC_CFCS
@@ -14081,6 +14283,8 @@ void BVDC_P_Window_Reader_isr
         else
 #endif
         {
+            /* pass bForceDirty as true because hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace could be cleared by VFC
+             * and also because cfc cfg needs to be updated if win Hue/Contrast/Attenuation/... changes */
             BVDC_P_Cfc_UpdateCfg_isr(hWindow->pMainCfc, false, true);
             if(pCurInfo->bUserCsc)
             {
@@ -14093,7 +14297,7 @@ void BVDC_P_Window_Reader_isr
         hCompositor->bCscCompute[hWindow->eId] = true;
         hCompositor->bCscDemoCompute[hWindow->eId] = true;
     }
-    hWindow->bCfcAdjust = BVDC_P_CLEAN;
+    hWindow->bCfcDirty = BVDC_P_CLEAN;
     pCurDirty->stBits.bMosaicMode = BVDC_P_CLEAN;
 
     if(!hCompositor->bIsBypass)
@@ -14285,6 +14489,7 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if((BVDC_P_State_eActive == eReaderState) &&
            ((hCompositor->hDisplay->bAlignAdjusting && !hCompositor->hDisplay->stCurInfo.stAlignCfg.bKeepBvnConnected)||
 
+            (hCompositor->hDisplay->stCurInfo.stDirty.stBits.bTiming) ||
             (0==hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ullAddress) || /* no valid sur */
 
             (!hWindow->stCurInfo.bVisible)))  /* muted by user */
@@ -14308,7 +14513,7 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if (hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ullAddress)
         {
             BVDC_P_GfxFeeder_BuildRul_isr(hWindow->stCurInfo.hSource->hGfxFeeder,
-                &(hWindow->stCurInfo.hSource->stCurInfo), pList, eNextFieldId, eReaderState);
+                pList, eNextFieldId, eReaderState);
         }
     }
     else /* video window */
@@ -14735,11 +14940,11 @@ BERR_Code BVDC_P_Window_CapturePicture_isr
 
         pHeapNode = pCapturedPic->pPicture->pHeapNode;
 
-        while (pHeapNode->ulParentNodeBufIndex != 0xffffffff)
+        while (pHeapNode->uiParentNodeBufIndex != BVDC_P_HEAP_INVAID_BUF_INDEX)
         {
             ulBlockOffset += pHeapNode->ulBlockOffset;
             pHeapInfo = pHeapNode->pHeapInfo->pParentHeapInfo;
-            pHeapNode = &pHeapInfo->pBufList[pHeapNode->ulParentNodeBufIndex];
+            pHeapNode = &pHeapInfo->pBufList[pHeapNode->uiParentNodeBufIndex];
         }
 
         /* Give the MMA block handle to convert a picture to a surface. */
@@ -14750,11 +14955,11 @@ BERR_Code BVDC_P_Window_CapturePicture_isr
         {
             pHeapNode_R = pCapturedPic->pPicture->pHeapNode_R;
 
-            while (pHeapNode_R->ulParentNodeBufIndex != 0xffffffff)
+            while (pHeapNode_R->uiParentNodeBufIndex != BVDC_P_HEAP_INVAID_BUF_INDEX)
             {
                 ulBlockOffset_R += pHeapNode_R->ulBlockOffset;
                 pHeapInfo_R = pHeapNode_R->pHeapInfo->pParentHeapInfo;
-                pHeapNode_R = &pHeapInfo_R->pBufList[pHeapNode_R->ulParentNodeBufIndex];
+                pHeapNode_R = &pHeapInfo_R->pBufList[pHeapNode_R->uiParentNodeBufIndex];
             }
 
             /* Give the MMA block handle to convert a picture to a surface. */
@@ -14902,7 +15107,7 @@ void BVDC_P_Window_CalculateCsc_isr
 
     BDBG_OBJECT_ASSERT(hWindow->hCompositor, BVDC_CMP);
 
-    BDBG_MSG(("Window %d: Calculate CSC", hWindow->eId));
+    /*BDBG_MSG(("Window %d: Calculate CSC", hWindow->eId));*/
 
     pCsc = &hWindow->pMainCfc->stMc;
     pDemoCsc = &hWindow->pDemoCfc->stMc;

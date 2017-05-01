@@ -45,7 +45,9 @@
 #include "platform_picture_priv.h"
 #include "picdecoder.h"
 #include "nexus_types.h"
+#if NEXUS_HAS_PICTURE_DECODER
 #include "nexus_picture_decoder.h"
+#endif
 #include "bkni.h"
 #include "bdbg.h"
 #include <string.h>
@@ -58,7 +60,9 @@ PlatformPictureHandle platform_picture_create(PlatformHandle platform, const cha
     PlatformPictureHandle pic;
     NEXUS_SurfaceHandle nxSurface = NULL;
     picdecoder_t picdec;
+#if NEXUS_HAS_PICTURE_DECODER
     NEXUS_PictureDecoderStatus status;
+#endif
 
     BDBG_ASSERT(platform);
     BDBG_ASSERT(picturePath);
@@ -67,7 +71,9 @@ PlatformPictureHandle platform_picture_create(PlatformHandle platform, const cha
     if (picdec)
     {
         nxSurface = picdecoder_decode(picdec, picturePath);
+#if NEXUS_HAS_PICTURE_DECODER
         picdecoder_get_status(picdec, &status);
+#endif
         picdecoder_close(picdec);
     }
     if (!nxSurface) goto out_no_surface;
@@ -79,7 +85,12 @@ PlatformPictureHandle platform_picture_create(PlatformHandle platform, const cha
     pic->path = BKNI_Malloc(strlen(picturePath) + 1);
     BDBG_ASSERT(pic->path);
     strcpy(pic->path, picturePath);
+#if NEXUS_HAS_PICTURE_DECODER
     platform_picture_p_info_from_nexus(&pic->info, &status);
+#else
+    pic->info.dynrng = PlatformDynamicRange_eSdr;
+    pic->info.gamut = PlatformColorimetry_e709;
+#endif
     if (!pic->info.format.width)
     {
         NEXUS_SurfaceCreateSettings picCreateSettings;
@@ -334,6 +345,7 @@ PlatformColorSpace platform_picture_p_color_space_from_pixel_format(NEXUS_PixelF
     return space;
 }
 
+#if NEXUS_HAS_PICTURE_DECODER
 void platform_picture_p_info_from_nexus(PlatformPictureInfo * pInfo, NEXUS_PictureDecoderStatus * pStatus)
 {
     BDBG_ASSERT(pInfo);
@@ -350,3 +362,4 @@ void platform_picture_p_info_from_nexus(PlatformPictureInfo * pInfo, NEXUS_Pictu
         pInfo->space = platform_picture_p_color_space_from_pixel_format(pStatus->header.format);
     }
 }
+#endif

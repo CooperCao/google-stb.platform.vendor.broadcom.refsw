@@ -167,7 +167,12 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetStripedSurfaceCreateSettings( NEXUS_VideoDec
     bFieldPair = (BAVC_DecodedPictureBuffer_eFieldsPair==pPicture->eBufferFormat && NULL!=pPicture->hLuminanceBotFieldBufferBlock /*&& pPicture->bStreamProgressive*/);
 
     pCreateSettings->imageWidth = pPicture->ulSourceHorizontalSize;
-    pCreateSettings->imageHeight = (bFieldPair)? pPicture->ulSourceVerticalSize * 2 : pPicture->ulSourceVerticalSize;
+    if (bFieldPair && videoDecoder->startSettings.codec != NEXUS_VideoCodec_eH265) {
+        pCreateSettings->imageHeight = pPicture->ulSourceVerticalSize * 2;
+    }
+    else {
+        pCreateSettings->imageHeight = pPicture->ulSourceVerticalSize;
+    }
 
     pCreateSettings->lumaBuffer = NEXUS_VideoDecoder_P_MemoryBlockFromMma(videoDecoder, pPicture->hLuminanceFrameBufferBlock);
     pCreateSettings->chromaBuffer = NEXUS_VideoDecoder_P_MemoryBlockFromMma(videoDecoder, pPicture->hChrominanceFrameBufferBlock);

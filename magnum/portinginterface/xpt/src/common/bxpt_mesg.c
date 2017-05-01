@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,7 +40,6 @@
 #include "bxpt_priv.h"
 #include "bxpt.h"
 #include "bkni.h"
-#include "bmem.h"
 
 #include "bchp_xpt_msg.h"
 #include "bchp_xpt_fe.h"
@@ -2112,62 +2111,6 @@ int GetPidChannelFlag_isrsafe(
     Reg >>= BitShift;
     return Reg;
 }
-
-#if 0
-void CopyDmaDataToUser_isr(
-    BXPT_Handle hXpt,
-    unsigned int PidChannelNum,
-    uint32_t ReadPtr,
-    uint8_t *UserBufferAddr,
-    size_t NumBytesToCopy,
-    size_t DmaBufferSize
-    )
-{
-    uint32_t Reg, DmaBaseOffset;
-    void *DmaBaseAddr, *CachedPtr;
-    size_t SpaceUntilEndOfBuffer, ByteCount;
-
-    /* Just in case... */
-    if( NumBytesToCopy > DmaBufferSize )
-    {
-        BDBG_ERR(( "CopyDmaDataToUser_isr(): NumBytesToCopy out of range!" ));
-        NumBytesToCopy = DmaBufferSize;
-    }
-
-    Reg = BREG_Read32( hXpt->hRegister, GetRegArrayAddr_isrsafe( hXpt, PidChannelNum, BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE ) );
-    DmaBaseOffset = BCHP_GET_FIELD_DATA( Reg, XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_BASE_ADDR );
-    DmaBaseOffset *= BXPT_P_MESSAGE_BUFFER_BLOCK_SIZE;
-
-    /* Number of bytes between ReadPtr and the end of the DMA buffer. */
-    SpaceUntilEndOfBuffer = DmaBufferSize - ReadPtr;
-
-    /* The number of bytes we are asked to copy may be less than the ByteCount above. */
-    ByteCount = NumBytesToCopy < SpaceUntilEndOfBuffer ? NumBytesToCopy : SpaceUntilEndOfBuffer;
-
-    BMEM_ConvertOffsetToAddress( hXpt->hMemory, ( DmaBaseOffset + ReadPtr ), ( void ** ) &DmaBaseAddr );
-
-    /* SW7425-3617: Operate on cached data. */
-    BMEM_ConvertAddressToCached(hXpt->hMemory, DmaBaseAddr, &CachedPtr);
-    BMEM_FlushCache_isr(hXpt->hMemory, CachedPtr, ByteCount);
-
-    BKNI_Memcpy( ( void * ) UserBufferAddr, ( void * ) CachedPtr, ByteCount );
-
-    NumBytesToCopy -= ByteCount;
-    UserBufferAddr += ByteCount;
-
-    /* If there's still bytes left to copy, the data must have wrapped around the end of the buffer. */
-    if( NumBytesToCopy )
-    {
-        BMEM_ConvertOffsetToAddress( hXpt->hMemory, ( DmaBaseOffset ), ( void ** ) &DmaBaseAddr );
-
-        /* SW7425-3617: Operate on cached data. */
-        BMEM_ConvertAddressToCached(hXpt->hMemory, DmaBaseAddr, &CachedPtr);
-        BMEM_FlushCache_isr(hXpt->hMemory, CachedPtr, NumBytesToCopy);
-
-        BKNI_Memcpy( ( void * ) UserBufferAddr, ( void * ) CachedPtr, NumBytesToCopy );
-    }
-}
-#endif
 
 #ifndef BXPT_FOR_BOOTUPDATER
 BERR_Code BXPT_P_PauseFilters(

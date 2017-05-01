@@ -397,11 +397,23 @@ static const uint32_t sRemapPullDownLUT[ BXDM_Picture_PullDown_eMax ] =
  *
  ******************************************************************************/
 
-static BXDM_PictureProvider_TSMResult BXDM_PPTSM_S_CompareStcAndPts_isr(
+static BXDM_PictureProvider_TSMResult BXDM_P_PPTSM_S_CompareStcAndPts_isr(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_LocalState* pLocalState,
    BXDM_PictureProvider_P_Picture_Context* pstPicture,
    bool bEvaluateActualPts
+   );
+
+static void BXDM_P_PPTSM_S_ActualTSMResultHandler_isr(
+   BXDM_PictureProvider_Handle hXdmPP,
+   BXDM_PictureProvider_P_LocalState* pLocalState,
+   BXDM_PictureProvider_P_Picture_Context* pstPicture
+   );
+
+void BXDM_P_PPTSM_S_FinalTSMResultHandler_isr(
+   BXDM_PictureProvider_Handle hXdmPP,
+   BXDM_PictureProvider_P_LocalState* pLocalState,
+   BXDM_PictureProvider_P_Picture_Context* pstPicture
    );
 
 /*******************************************************************************
@@ -1419,7 +1431,7 @@ void BXDM_PPTSM_P_PtsInterpolate_isr(
 
 } /* BXDM_PPTSM_P_PtsInterpolate_isr() */
 
-void BXDM_PPTSM_S_ActualTSMResultHandler_isr(
+static void BXDM_P_PPTSM_S_ActualTSMResultHandler_isr(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_LocalState* pLocalState,
    BXDM_PictureProvider_P_Picture_Context* pstPicture
@@ -1641,7 +1653,7 @@ void BXDM_PPTSM_S_ActualTSMResultHandler_isr(
    }
 }
 
-void BXDM_PPTSM_S_FinalTSMResultHandler_isr(
+void BXDM_P_PPTSM_S_FinalTSMResultHandler_isr(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_LocalState* pLocalState,
    BXDM_PictureProvider_P_Picture_Context* pstPicture
@@ -1849,20 +1861,22 @@ void BXDM_PPTSM_P_EvaluateTsmState_isr(
    /*
     * Always perform the TSM evaluation for the real STC and PTS.
     */
-   BXDM_PPTSM_S_CompareStcAndPts_isr( hXdmPP,  pLocalState,  pstPicture, true );
+   BXDM_P_PPTSM_S_CompareStcAndPts_isr(
+       hXdmPP,  pLocalState,  pstPicture, true );
 
-   BXDM_PPTSM_S_ActualTSMResultHandler_isr( hXdmPP, pLocalState, pstPicture );
+   BXDM_P_PPTSM_S_ActualTSMResultHandler_isr( hXdmPP, pLocalState, pstPicture );
 
    /*
     * Conditionally perform the TSM evaluation for the "virtual" STC and PTS.
     */
    if ( BXDM_PictureProvider_DisplayMode_eVirtualTSM == pstPicture->stPicParms.stTSM.stDynamic.eSelectionMode )
    {
-      BXDM_PPTSM_S_CompareStcAndPts_isr( hXdmPP,  pLocalState,  pstPicture, false );
+      BXDM_P_PPTSM_S_CompareStcAndPts_isr(
+          hXdmPP,  pLocalState,  pstPicture, false );
 
       /* SW7445-491: add support for the TSM result callback when in vsync mode.
-       * This logic can either be here or in BXDM_PPTSM_S_FinalTSMResultHandler_isr. It just
-       * needs to be executed after the preceding call to BXDM_PPTSM_S_CompareStcAndPts_isr.
+       * This logic can either be here or in BXDM_P_PPTSM_S_FinalTSMResultHandler_isr. It just
+       * needs to be executed after the preceding call to BXDM_P_PPTSM_S_CompareStcAndPts_isr.
        * Since we are only supporting the "eDefault" and "eDrop" modes, we don't need to
        * worry about how this logic might interact with the FIC logic.
        */
@@ -1895,7 +1909,7 @@ void BXDM_PPTSM_P_EvaluateTsmState_isr(
 
    }
 
-   BXDM_PPTSM_S_FinalTSMResultHandler_isr( hXdmPP, pLocalState, pstPicture );
+   BXDM_P_PPTSM_S_FinalTSMResultHandler_isr( hXdmPP, pLocalState, pstPicture );
 
    BXDM_PPTMR_P_SnapshotFunctionEndTime_isr( hXdmPP, BXDM_PPTIMER_P_Function_eEvaluateTsmState );
 
@@ -1904,7 +1918,7 @@ void BXDM_PPTSM_P_EvaluateTsmState_isr(
    return;
 } /* BXDM_PPTSM_P_EvaluateTsmState_isr() */
 
-static BXDM_PictureProvider_TSMResult BXDM_PPTSM_S_CompareStcAndPts_isr(
+static BXDM_PictureProvider_TSMResult BXDM_P_PPTSM_S_CompareStcAndPts_isr(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_LocalState* pLocalState,
    BXDM_PictureProvider_P_Picture_Context* pstPicture,
@@ -1920,7 +1934,7 @@ static BXDM_PictureProvider_TSMResult BXDM_PPTSM_S_CompareStcAndPts_isr(
    uint32_t       i;
    BXDM_PictureProvider_PTSType ePtsType = BXDM_PictureProvider_PTSType_eInterpolatedFromValidPTS;
 
-   BDBG_ENTER(BXDM_PPTSM_S_CompareStcAndPts_isr);
+   BDBG_ENTER(BXDM_P_PPTSM_S_CompareStcAndPts_isr);
 
    BDBG_ASSERT( pstPicture );
 
@@ -2304,8 +2318,8 @@ static BXDM_PictureProvider_TSMResult BXDM_PPTSM_S_CompareStcAndPts_isr(
 
 
   AllDone:
-   BDBG_LEAVE(BXDM_PPTSM_S_CompareStcAndPts_isr);
+   BDBG_LEAVE(BXDM_P_PPTSM_S_CompareStcAndPts_isr);
 
    return pstPicture->stPicParms.stTSM.stDynamic.eTsmResult;
 
-} /* end of BXDM_PPTSM_S_CompareStcAndPts_isr() */
+} /* end of BXDM_P_PPTSM_S_CompareStcAndPts_isr() */

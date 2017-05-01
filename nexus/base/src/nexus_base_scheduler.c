@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -775,9 +775,10 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
                 scheduler->current_callback = &callback->common;
                 NEXUS_UnlockModule();
                 
+                /* It's possible that NEXUS_StartCallbacks is run here, so test scheduler->current_callback. */
                 /* It's possible that NEXUS_StopCallbacks or NEXUS_IsrCallback_Destroy is run here, so retest the common flags. */
                 BKNI_AcquireMutex(scheduler->callback_lock); /* this expected to always succeed, the only exception if NEXUS_StopCallbacks is running */
-                if (!callback->common.stopped && !callback->common.deleted && desc.callback) {
+                if (scheduler->current_callback && !callback->common.stopped && !callback->common.deleted && desc.callback) {
                     BDBG_MSG_TRACE(("NEXUS_P_Scheduler_IsrCallbacks: %#lx callback: %#lx (%#lx, %u)", (unsigned long)scheduler,
                         (unsigned long)desc.callback, (unsigned long)desc.context, (unsigned)desc.param));
                     desc.callback(desc.context, desc.param);
@@ -879,10 +880,11 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
         scheduler->current_callback = &callback->common;
         NEXUS_UnlockModule(); /* we release our mutex, before grabbing other */
 
+        /* It's possible that NEXUS_StartCallbacks is run here, so test scheduler->current_callback. */
         /* It's possible that NEXUS_StopCallbacks or NEXUS_TaskCallback_Destroy is run here, so test the common flags. */
         NEXUS_P_CALLBACK_STATS_START();  
         BKNI_AcquireMutex(scheduler->callback_lock); /* this expected to always succeed, the only exception if NEXUS_StopCallbacks is running */
-        if(callback->common.armed && !callback->common.stopped && !callback->common.deleted) {
+        if(scheduler->current_callback && callback->common.armed && !callback->common.stopped && !callback->common.deleted) {
             i++;
             callback->common.armed = false;
             if (desc.callback) {
@@ -1378,6 +1380,10 @@ NEXUS_Base_P_StartCallbacks(void *interfaceHandle)
         }
         if(!callback->stopped) {
             continue;
+        }
+        /* if a callback is current, this will skip it */
+        if (callback->scheduler->current_callback == callback) {
+            callback->scheduler->current_callback = NULL;
         }
         callback->stopped = false;
         scheduler = callback->scheduler;

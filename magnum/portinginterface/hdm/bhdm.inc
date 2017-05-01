@@ -134,7 +134,3 @@ endif
 ifeq ($(B_REFSW_GFX_PERSIST),y)
 BHDM_DEFINES += BHDM_GFX_PERSIST
 endif
-
-ifeq ($(filter $(BCHP_CHIP), 7250 7268 7271 7260 7364 7586), $(BCHP_CHIP))
-include	$(MAGNUM)/portinginterface/hdm/bhdm_mhl.inc
-endif

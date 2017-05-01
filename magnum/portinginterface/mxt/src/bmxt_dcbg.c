@@ -67,14 +67,6 @@ BDBG_OBJECT_ID(BMXT_Dcbg_Handle);
 TODO: consider printing an error when PARSER_PKT_LENGTH is not what's expected
 */
 
-unsigned BMXT_P_GetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, unsigned parserNum);
-void BMXT_P_SetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, unsigned parserNum, unsigned virtualParserNum);
-void BMXT_P_SetParserEnable(BMXT_Handle handle, unsigned parserNum, bool enable);
-void BMXT_P_ParserVersion(BMXT_Handle handle, unsigned parserNum);
-void BMXT_P_SetParserAcceptNull(BMXT_Handle handle, unsigned parserNum, bool enable);
-unsigned BMXT_P_GetParserInputBand(BMXT_Handle handle, unsigned parserNum);
-void BMXT_P_RegDump(BMXT_Handle hMxt);
-
 typedef struct BMXT_P_DcbgHandle
 {
     BDBG_OBJECT(BMXT_Dcbg_Handle)
@@ -129,7 +121,7 @@ void BMXT_Dcbg_GetDefaultOpenSettings(BMXT_Dcbg_OpenSettings *pSettings)
 }
 
 /* reset any registers that are touched by BMXT_Dcbg_Start */
-void BMXT_Dcbg_Reset(BMXT_Handle hMxt)
+static void BMXT_Dcbg_Reset(BMXT_Handle hMxt)
 {
     uint32_t addr, val;
     unsigned i;
@@ -690,7 +682,7 @@ BERR_Code BMXT_Dcbg_GetStatus(BMXT_Dcbg_Handle hDcbg, BMXT_Dcbg_Status *pStatus)
     return BERR_SUCCESS;
 }
 
-void BMXT_Dcbg_AtsIssySnapshot(BMXT_Dcbg_Handle hDcbg)
+static void BMXT_Dcbg_AtsIssySnapshot(BMXT_Dcbg_Handle hDcbg)
 {
     uint32_t addr;
     BMXT_Handle hMxt = hDcbg->hMxt;
@@ -705,7 +697,7 @@ void BMXT_Dcbg_AtsIssySnapshot(BMXT_Dcbg_Handle hDcbg)
 }
 
 /* arm snapshot for first DCBG and dump registers */
-void BMXT_Dcbg_DumpAtsIssySnapshot(BMXT_Handle hMxt)
+static void BMXT_Dcbg_DumpAtsIssySnapshot(BMXT_Handle hMxt)
 {
     unsigned i;
     uint32_t addr, val;
@@ -739,7 +731,7 @@ void BMXT_Dcbg_DumpAtsIssySnapshot(BMXT_Handle hMxt)
     BMXT_P_RegDump(hMxt);
 }
 
-void BMXT_P_BlockoutToggle(BMXT_Handle hMxt)
+static void BMXT_P_BlockoutToggle(BMXT_Handle hMxt)
 {
     unsigned i;
     uint32_t addr, val;

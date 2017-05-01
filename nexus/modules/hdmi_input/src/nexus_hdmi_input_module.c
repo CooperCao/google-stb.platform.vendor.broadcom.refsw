@@ -202,11 +202,28 @@ NEXUS_Error NEXUS_HdmiInputModule_Standby_priv(bool enabled, const NEXUS_Standby
 
     if(!g_NEXUS_hdmiInput.handle[0]) {return NEXUS_SUCCESS;}
 
-    if(enabled) {
-	BHDR_GetDefaultStandbySettings(&standbySettings);
-	rc = BHDR_Standby(g_NEXUS_hdmiInput.fe, &standbySettings);
-    } else {
-	rc = BHDR_Resume(g_NEXUS_hdmiInput.fe);
+    if(enabled)
+    {
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+        /* Do not uninit Hdcp22 during the hdmiInput module initialization process */
+        if (!g_NEXUS_hdmiInput.initInProgress) {
+            NEXUS_HdmiInput_P_UninitHdcp2x(g_NEXUS_hdmiInput.handle[0]);
+        }
+#endif
+        BHDR_GetDefaultStandbySettings(&standbySettings);
+        rc = BHDR_Standby(g_NEXUS_hdmiInput.fe, &standbySettings);
+    }
+    else
+    {
+        rc = BHDR_Resume(g_NEXUS_hdmiInput.fe);
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+        /* Only Initialize HDCP2.2 once the module has been initialized */
+        if (!g_NEXUS_hdmiInput.initInProgress) {
+            NEXUS_HdmiInput_P_InitHdcp2x(g_NEXUS_hdmiInput.handle[0]);
+        }
+#endif
+
     }
     if (rc) return BERR_TRACE(rc);
 

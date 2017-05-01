@@ -357,6 +357,8 @@
 #define WLC_TXFID_GET_QUEUE(frameID)  ((frameID) & TXFID_QUEUE_MASK)
 #define WLC_TXFID_SET_QUEUE(fifo)	((fifo) & TXFID_QUEUE_MASK)
 
+#define WLC_TXFID_GET_SEQ(frameID)  (((frameID) & TXFID_SEQ_MASK) >> TXFID_SEQ_SHIFT)
+
 /* promote boardrev */
 #define BOARDREV_PROMOTABLE	0xFF	/* from */
 #define BOARDREV_PROMOTED	1	/* to */
@@ -1074,6 +1076,10 @@ struct wlc_info {
 	uint		qvalid;			/**< DirFrmQValid and BcMcFrmQValid */
 	bool            in_send_q;	/**< flag to prevent concurent calls to wlc_send_q */
 
+#if defined(BCMINTDBG)
+	bool        is_bmac_suspend_timer_active;
+	struct      wl_timer* bmac_suspend_timer;
+#endif
 
 
 	/* sub-module handler */
@@ -1747,6 +1753,8 @@ struct wlc_info {
 	wlc_vasip_info_t *vasip;	/* VASIP module handler */
 	wlc_slotted_bss_info_t *sbi;    /* Slotted bss info */
 	uint32 phy_cap;		/* capabilities used for bmac attach */
+	bool mac_pay_decode_war;
+	wlc_sup_info_t	*gtkref;		/**< gtk refresh module */
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG
@@ -2604,7 +2612,7 @@ extern void wlc_pdu_push_txparams(wlc_info_t *wlc, void *p,
 	uint32 flags, wlc_key_t *key, ratespec_t rate_override, uint fifo);
 
 /* To inform the ucode of the last mcast frame posted so that it can clear moredata bit */
-#define BCMCFID(wlc, fid) wlc_bmac_write_shm((wlc)->hw, M_BCMC_FID, (fid))
+#define BCMCFID(wlc, fid) wlc_bmac_write_shm((wlc)->hw, M_BCMC_FID(wlc), (fid))
 
 #ifdef STA
 #ifdef WL_PWRSTATS

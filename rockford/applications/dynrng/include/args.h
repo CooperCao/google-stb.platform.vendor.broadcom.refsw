@@ -44,6 +44,13 @@
 
 #include "platform_types.h"
 
+typedef enum ARGS_RunMode
+{
+    ARGS_RunMode_eDemo,
+    ARGS_RunMode_eTest,
+    ARGS_RunMode_eMax
+} ARGS_RunMode;
+
 typedef struct Args
 {
     PlatformInputMethod method;
@@ -57,6 +64,7 @@ typedef struct Args
     char * hdrStreamPath;
     char * hlgStreamPath;
     char * mixStreamPath;
+    char * dvsStreamPath;
     char * sdrThumbnailPath;
     char * sdrBackgroundPath;
     char * configRoot;
@@ -77,7 +85,8 @@ typedef struct Args
             unsigned detailsPanelBg;
         } colors;
     } osd;
-    bool demo;
+    bool advanced;
+    ARGS_RunMode runMode;
 } Args, * ArgsHandle;
 
 ArgsHandle args_create(int argc, char **argv);

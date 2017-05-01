@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008-2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Memory management
-
-FILE DESCRIPTION
-
-Khronos memory management API. Reference-counted objects on the normal malloc
-heap.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_MEM_H
 #define KHRN_MEM_H
 
@@ -20,97 +11,97 @@ heap.
 #define khrn_memcpy memcpy
 #define khrn_memset memset
 
-typedef void (*KHRN_MEM_TERM_T)(void *, size_t);
+typedef void (*khrn_mem_term_t)(void *, size_t);
 
-typedef void *KHRN_MEM_HANDLE_T;
+typedef void *khrn_mem_handle_t;
 #define KHRN_MEM_HANDLE_INVALID NULL
-#define KHRN_MEM_HANDLE_UNUSED_VALUE ((KHRN_MEM_HANDLE_T)~0)
+#define KHRN_MEM_HANDLE_UNUSED_VALUE ((khrn_mem_handle_t)~0)
 
 #define KHRN_MEM_HEADER_MAGIC 0xBA5EBA11
 
-typedef enum
+typedef enum khrn_mem_flag_t
 {
    KHRN_MEM_FLAG_NONE = 0,
    KHRN_MEM_FLAG_USER = 1
-} KHRN_MEM_FLAG_T;
+} khrn_mem_flag_t;
 
-/* Actual data is put at malloc() + sizeof(KHRN_MEM_HEADER_T). We need to
- * ensure that the + sizeof(KHRN_MEM_HEADER_T) doesn't destroy alignment, so
- * force alignof(KHRN_MEM_HEADER_T) to maximum. */
-typedef VCOS_ATTR_ALIGNED(VCOS_MAX_ALIGN) struct
+/* Actual data is put at malloc() + sizeof(khrn_mem_header). We need to
+ * ensure that the + sizeof(khrn_mem_header) doesn't destroy alignment, so
+ * force alignof(khrn_mem_header) to maximum. */
+typedef VCOS_ATTR_ALIGNED(VCOS_MAX_ALIGN) struct khrn_mem_header
 {
    uint32_t magic;
    volatile int ref_count;
-   KHRN_MEM_TERM_T term;
+   khrn_mem_term_t term;
    size_t size;
-   KHRN_MEM_FLAG_T flags;
-} KHRN_MEM_HEADER_T;
+   khrn_mem_flag_t flags;
+} khrn_mem_header;
 
-static inline KHRN_MEM_HEADER_T *khrn_mem_header(KHRN_MEM_HANDLE_T handle)
+static inline khrn_mem_header *khrn_mem_get_header(khrn_mem_handle_t handle)
 {
    assert(handle != KHRN_MEM_HANDLE_INVALID);
-   KHRN_MEM_HEADER_T *hdr = (KHRN_MEM_HEADER_T *)((uint8_t *)handle - sizeof(KHRN_MEM_HEADER_T));
+   khrn_mem_header *hdr = (khrn_mem_header *)((uint8_t *)handle - sizeof(khrn_mem_header));
    assert(hdr->magic == KHRN_MEM_HEADER_MAGIC);
    return hdr;
 }
 
-extern KHRN_MEM_HANDLE_T khrn_mem_alloc_ex(size_t size, const char *desc, bool init, bool resizeable, bool discardable);
-static inline void khrn_mem_set_term(KHRN_MEM_HANDLE_T handle, KHRN_MEM_TERM_T term)
+extern khrn_mem_handle_t khrn_mem_alloc_ex(size_t size, const char *desc, bool init, bool resizeable, bool discardable);
+static inline void khrn_mem_set_term(khrn_mem_handle_t handle, khrn_mem_term_t term)
 {
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    header->term = term;
 }
-static inline void khrn_mem_acquire(KHRN_MEM_HANDLE_T handle)
+static inline void khrn_mem_acquire(khrn_mem_handle_t handle)
 {
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    int before_inc = vcos_atomic_inc(&header->ref_count);
    vcos_unused_in_release(before_inc);
    assert(before_inc < INT_MAX);
 }
-extern void khrn_mem_release(KHRN_MEM_HANDLE_T handle);
-static inline void *khrn_mem_lock(KHRN_MEM_HANDLE_T handle)
+extern void khrn_mem_release(khrn_mem_handle_t handle);
+static inline void *khrn_mem_lock(khrn_mem_handle_t handle)
 {
    return handle;
 }
-static inline void khrn_mem_unlock(KHRN_MEM_HANDLE_T handle)
+static inline void khrn_mem_unlock(khrn_mem_handle_t handle)
 {
    /* Nothing to do */
    vcos_unused(handle);
 }
-static inline size_t khrn_mem_get_size(KHRN_MEM_HANDLE_T handle)
+static inline size_t khrn_mem_get_size(khrn_mem_handle_t handle)
 {
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    return header->size;
 }
-static inline void khrn_mem_set_desc(KHRN_MEM_HANDLE_T handle, const char *desc) { /*ignored*/ vcos_unused(handle); vcos_unused(desc); }
-static inline KHRN_MEM_TERM_T khrn_mem_get_term(KHRN_MEM_HANDLE_T handle)
+static inline void khrn_mem_set_desc(khrn_mem_handle_t handle, const char *desc) { /*ignored*/ vcos_unused(handle); vcos_unused(desc); }
+static inline khrn_mem_term_t khrn_mem_get_term(khrn_mem_handle_t handle)
 {
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    return header->term;
 }
-extern bool khrn_mem_resize(KHRN_MEM_HANDLE_T *handle, size_t size);
+extern bool khrn_mem_resize(khrn_mem_handle_t *handle, size_t size);
 
-static inline KHRN_MEM_FLAG_T khrn_mem_get_flags(KHRN_MEM_HANDLE_T handle)
+static inline khrn_mem_flag_t khrn_mem_get_flags(khrn_mem_handle_t handle)
 {
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    return header->flags;
 }
-static inline void khrn_mem_set_user_flag(KHRN_MEM_HANDLE_T handle, KHRN_MEM_FLAG_T flag)
+static inline void khrn_mem_set_user_flag(khrn_mem_handle_t handle, khrn_mem_flag_t flag)
 {
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    header->flags = flag;
 }
-static inline unsigned khrn_mem_get_ref_count(KHRN_MEM_HANDLE_T handle)
+static inline unsigned khrn_mem_get_ref_count(khrn_mem_handle_t handle)
 {
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    return header->ref_count;
 }
-extern bool khrn_mem_try_release(KHRN_MEM_HANDLE_T handle);
-static inline bool khrn_mem_retain(KHRN_MEM_HANDLE_T handle) { return khrn_mem_get_size(handle) != 0; }
-static inline void khrn_mem_unretain(KHRN_MEM_HANDLE_T handle) { /* ignore */ vcos_unused(handle); }
+extern bool khrn_mem_try_release(khrn_mem_handle_t handle);
+static inline bool khrn_mem_retain(khrn_mem_handle_t handle) { return khrn_mem_get_size(handle) != 0; }
+static inline void khrn_mem_unretain(khrn_mem_handle_t handle) { /* ignore */ vcos_unused(handle); }
 
 #define KHRN_MEM_HANDLE_EMPTY_STRING khrn_mem_handle_empty_string
-extern KHRN_MEM_HANDLE_T khrn_mem_handle_empty_string;
+extern khrn_mem_handle_t khrn_mem_handle_empty_string;
 
 /* The lhs of KHRN_MEM_ASSIGN(lhs, rhs) may be evaluated multiple times. The
  * rhs will only be evaluated once though. */
@@ -135,25 +126,25 @@ static inline void *khrn_mem_assign_acquire_release(void *x, void *y)
 
 #define KHRN_MEM_ALLOC_STRUCT(STRUCT) khrn_mem_alloc(sizeof(STRUCT), #STRUCT)
 
-static inline KHRN_MEM_HANDLE_T khrn_mem_alloc(size_t size, const char *desc)
+static inline khrn_mem_handle_t khrn_mem_alloc(size_t size, const char *desc)
 {
    return khrn_mem_alloc_ex(size, desc, true, false, false);
 }
 
-static inline void *khrn_mem_maybe_lock(KHRN_MEM_HANDLE_T handle)
+static inline void *khrn_mem_maybe_lock(khrn_mem_handle_t handle)
 {
    if (handle == KHRN_MEM_HANDLE_INVALID)
       return NULL;
    else
       return khrn_mem_lock(handle);
 }
-static inline void khrn_mem_maybe_unlock(KHRN_MEM_HANDLE_T handle)
+static inline void khrn_mem_maybe_unlock(khrn_mem_handle_t handle)
 {
    if (handle != KHRN_MEM_HANDLE_INVALID)
       khrn_mem_unlock(handle);
 }
 
-extern KHRN_MEM_HANDLE_T khrn_mem_strdup(const char *str);
+extern khrn_mem_handle_t khrn_mem_strdup(const char *str);
 
 extern bool khrn_mem_init(void);
 extern void khrn_mem_term(void);

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,41 +70,41 @@
 /***************************************************************************
  *MT_MSC_RESP - CBUS Translation Layer MSC Responder Registers
  ***************************************************************************/
-#define BCHP_MT_MSC_RESP_CTRL                    0x20d83c00 /* [WO] MSC Responder Control Register */
-#define BCHP_MT_MSC_RESP_CFG_0                   0x20d83c04 /* [RW] MSC Responder Configuration Register 0 */
-#define BCHP_MT_MSC_RESP_CFG_1                   0x20d83c08 /* [RW] MSC Responder Configuration Register 1 */
-#define BCHP_MT_MSC_RESP_STATUS                  0x20d83c0c /* [RO] MSC Responder Status Register */
-#define BCHP_MT_MSC_RESP_LOOKUP_0A               0x20d83c10 /* [RW] MSC Responder: 0-databyte lookup table A */
-#define BCHP_MT_MSC_RESP_LOOKUP_0B               0x20d83c14 /* [RW] MSC Responder: 0-databyte lookup table B */
-#define BCHP_MT_MSC_RESP_LOOKUP_0C               0x20d83c18 /* [RW] MSC Responder: 0-databyte lookup table C */
-#define BCHP_MT_MSC_RESP_LOOKUP_1                0x20d83c1c /* [RW] MSC Responder: 1-databyte lookup table */
-#define BCHP_MT_MSC_RESP_LOOKUP_2                0x20d83c20 /* [RW] MSC Responder: 2-databyte lookup table */
-#define BCHP_MT_MSC_RESP_LOOKUP_X                0x20d83c24 /* [RW] MSC Responder: X-databyte lookup table */
-#define BCHP_MT_MSC_RESP_LOOKUP_MASK             0x20d83c28 /* [RW] MSC Responder: lookup table masks */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_00_01    0x20d83c40 /* [RO] Inbound Packet 00 and 01 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_02_03    0x20d83c44 /* [RO] Inbound Packet 02 and 03 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_04_05    0x20d83c48 /* [RO] Inbound Packet 04 and 05 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_06_07    0x20d83c4c /* [RO] Inbound Packet 06 and 07 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_08_09    0x20d83c50 /* [RO] Inbound Packet 08 and 09 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_10_11    0x20d83c54 /* [RO] Inbound Packet 10 and 11 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_12_13    0x20d83c58 /* [RO] Inbound Packet 12 and 13 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_14_15    0x20d83c5c /* [RO] Inbound Packet 14 and 15 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_16_17    0x20d83c60 /* [RO] Inbound Packet 16 and 17 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_18_19    0x20d83c64 /* [RO] Inbound Packet 18 and 19 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_20_21    0x20d83c68 /* [RO] Inbound Packet 20 and 21 */
-#define BCHP_MT_MSC_RESP_INBOUND_PACKET_22_23    0x20d83c6c /* [RO] Inbound Packet 22 and 23 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_00_01   0x20d83c80 /* [RW] Outbound Packet 00 and 01 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_02_03   0x20d83c84 /* [RW] Outbound Packet 02 and 03 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_04_05   0x20d83c88 /* [RW] Outbound Packet 04 and 05 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_06_07   0x20d83c8c /* [RW] Outbound Packet 06 and 07 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_08_09   0x20d83c90 /* [RW] Outbound Packet 08 and 09 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_10_11   0x20d83c94 /* [RW] Outbound Packet 10 and 11 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_12_13   0x20d83c98 /* [RW] Outbound Packet 12 and 13 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_14_15   0x20d83c9c /* [RW] Outbound Packet 14 and 15 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_16_17   0x20d83ca0 /* [RW] Outbound Packet 16 and 17 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_18_19   0x20d83ca4 /* [RW] Outbound Packet 18 and 19 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_20_21   0x20d83ca8 /* [RW] Outbound Packet 20 and 21 */
-#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_22_23   0x20d83cac /* [RW] Outbound Packet 22 and 23 */
+#define BCHP_MT_MSC_RESP_CTRL                    0x20d83c00 /* [WO][32] MSC Responder Control Register */
+#define BCHP_MT_MSC_RESP_CFG_0                   0x20d83c04 /* [RW][32] MSC Responder Configuration Register 0 */
+#define BCHP_MT_MSC_RESP_CFG_1                   0x20d83c08 /* [RW][32] MSC Responder Configuration Register 1 */
+#define BCHP_MT_MSC_RESP_STATUS                  0x20d83c0c /* [RO][32] MSC Responder Status Register */
+#define BCHP_MT_MSC_RESP_LOOKUP_0A               0x20d83c10 /* [RW][32] MSC Responder: 0-databyte lookup table A */
+#define BCHP_MT_MSC_RESP_LOOKUP_0B               0x20d83c14 /* [RW][32] MSC Responder: 0-databyte lookup table B */
+#define BCHP_MT_MSC_RESP_LOOKUP_0C               0x20d83c18 /* [RW][32] MSC Responder: 0-databyte lookup table C */
+#define BCHP_MT_MSC_RESP_LOOKUP_1                0x20d83c1c /* [RW][32] MSC Responder: 1-databyte lookup table */
+#define BCHP_MT_MSC_RESP_LOOKUP_2                0x20d83c20 /* [RW][32] MSC Responder: 2-databyte lookup table */
+#define BCHP_MT_MSC_RESP_LOOKUP_X                0x20d83c24 /* [RW][32] MSC Responder: X-databyte lookup table */
+#define BCHP_MT_MSC_RESP_LOOKUP_MASK             0x20d83c28 /* [RW][32] MSC Responder: lookup table masks */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_00_01    0x20d83c40 /* [RO][32] Inbound Packet 00 and 01 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_02_03    0x20d83c44 /* [RO][32] Inbound Packet 02 and 03 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_04_05    0x20d83c48 /* [RO][32] Inbound Packet 04 and 05 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_06_07    0x20d83c4c /* [RO][32] Inbound Packet 06 and 07 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_08_09    0x20d83c50 /* [RO][32] Inbound Packet 08 and 09 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_10_11    0x20d83c54 /* [RO][32] Inbound Packet 10 and 11 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_12_13    0x20d83c58 /* [RO][32] Inbound Packet 12 and 13 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_14_15    0x20d83c5c /* [RO][32] Inbound Packet 14 and 15 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_16_17    0x20d83c60 /* [RO][32] Inbound Packet 16 and 17 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_18_19    0x20d83c64 /* [RO][32] Inbound Packet 18 and 19 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_20_21    0x20d83c68 /* [RO][32] Inbound Packet 20 and 21 */
+#define BCHP_MT_MSC_RESP_INBOUND_PACKET_22_23    0x20d83c6c /* [RO][32] Inbound Packet 22 and 23 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_00_01   0x20d83c80 /* [RW][32] Outbound Packet 00 and 01 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_02_03   0x20d83c84 /* [RW][32] Outbound Packet 02 and 03 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_04_05   0x20d83c88 /* [RW][32] Outbound Packet 04 and 05 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_06_07   0x20d83c8c /* [RW][32] Outbound Packet 06 and 07 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_08_09   0x20d83c90 /* [RW][32] Outbound Packet 08 and 09 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_10_11   0x20d83c94 /* [RW][32] Outbound Packet 10 and 11 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_12_13   0x20d83c98 /* [RW][32] Outbound Packet 12 and 13 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_14_15   0x20d83c9c /* [RW][32] Outbound Packet 14 and 15 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_16_17   0x20d83ca0 /* [RW][32] Outbound Packet 16 and 17 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_18_19   0x20d83ca4 /* [RW][32] Outbound Packet 18 and 19 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_20_21   0x20d83ca8 /* [RW][32] Outbound Packet 20 and 21 */
+#define BCHP_MT_MSC_RESP_OUTBOUND_PACKET_22_23   0x20d83cac /* [RW][32] Outbound Packet 22 and 23 */
 
 /***************************************************************************
  *CTRL - MSC Responder Control Register

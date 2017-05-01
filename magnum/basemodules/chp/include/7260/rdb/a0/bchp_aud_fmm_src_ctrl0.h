@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,14 +70,14 @@
 /***************************************************************************
  *AUD_FMM_SRC_CTRL0 - Audio SRC Control
  ***************************************************************************/
-#define BCHP_AUD_FMM_SRC_CTRL0_RAMP_STEP         0x20ca2000 /* [RW] Ramp Step Size */
-#define BCHP_AUD_FMM_SRC_CTRL0_RD_BANK_SEL       0x20ca2004 /* [RO] Read Bank Select */
-#define BCHP_AUD_FMM_SRC_CTRL0_FLT_STAT          0x20ca2008 /* [RO] Filter Status */
-#define BCHP_AUD_FMM_SRC_CTRL0_ALT_ENABLE        0x20ca200c /* [RW] Alternate Enable */
-#define BCHP_AUD_FMM_SRC_CTRL0_MISC_CFG          0x20ca2010 /* [RW] Miscellaneous Configuration */
-#define BCHP_AUD_FMM_SRC_CTRL0_STRM_RESET        0x20ca2014 /* [RW] Stream Reset */
-#define BCHP_AUD_FMM_SRC_CTRL0_GROUP_ENABLE      0x20ca2018 /* [RO] Group Enable */
-#define BCHP_AUD_FMM_SRC_CTRL0_DIAG              0x20ca201c /* [RO] Diagnostic */
+#define BCHP_AUD_FMM_SRC_CTRL0_RAMP_STEP         0x20ca2000 /* [RW][32] Ramp Step Size */
+#define BCHP_AUD_FMM_SRC_CTRL0_RD_BANK_SEL       0x20ca2004 /* [RO][32] Read Bank Select */
+#define BCHP_AUD_FMM_SRC_CTRL0_FLT_STAT          0x20ca2008 /* [RO][32] Filter Status */
+#define BCHP_AUD_FMM_SRC_CTRL0_ALT_ENABLE        0x20ca200c /* [RW][32] Alternate Enable */
+#define BCHP_AUD_FMM_SRC_CTRL0_MISC_CFG          0x20ca2010 /* [RW][32] Miscellaneous Configuration */
+#define BCHP_AUD_FMM_SRC_CTRL0_STRM_RESET        0x20ca2014 /* [RW][32] Stream Reset */
+#define BCHP_AUD_FMM_SRC_CTRL0_GROUP_ENABLE      0x20ca2018 /* [RO][32] Group Enable */
+#define BCHP_AUD_FMM_SRC_CTRL0_DIAG              0x20ca201c /* [RO][32] Diagnostic */
 
 /***************************************************************************
  *RAMP_STEP - Ramp Step Size

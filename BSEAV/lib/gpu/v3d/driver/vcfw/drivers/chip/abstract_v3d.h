@@ -1,20 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef _ABSTRACT_V3D_H_
-#define _ABSTRACT_V3D_H_
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 EGLAPI BEGL_DriverInterfaces* EGLAPIENTRY BEGL_GetDriverInterfaces(void);
 
 #define v3d_read(REG) (0)
-#define v3d_write(REG, X)
+#define v3d_write(REG, X) (void)(X)
 
 #define _di()
 #define _ei()
@@ -155,6 +147,3 @@ EGLAPI BEGL_DriverInterfaces* EGLAPIENTRY BEGL_GetDriverInterfaces(void);
 #define INTDONE            BEGL_HW_INTDONE
 
 #define v3d_full_memory_barrier khrn_hw_full_memory_barrier
-
-
-#endif // _ABSTRACT_V3D_H_

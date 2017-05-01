@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,156 +70,156 @@
 /***************************************************************************
  *HDMI - HDMI Tx Control Registers
  ***************************************************************************/
-#define BCHP_HDMI_BKSV0                          0x206f8800 /* [RW] HDCP BKSV (Lower Order Bits) Register */
-#define BCHP_HDMI_BKSV1                          0x206f8804 /* [RW] HDCP BKSV (Higher Order Bits) and Repeater Control Register */
-#define BCHP_HDMI_AN0                            0x206f8808 /* [RO] HDCP Random Number AN (Lower Order Bits) Register */
-#define BCHP_HDMI_AN1                            0x206f880c /* [RO] HDCP Random Number AN (Higher Order Bits) Register */
-#define BCHP_HDMI_KSV_FIFO_0                     0x206f8810 /* [RW] HDCP KSV FIFO (Lower Order Bits) */
-#define BCHP_HDMI_KSV_FIFO_1                     0x206f8814 /* [RW] HDCP KSV FIFO (Higher Order Bits) */
-#define BCHP_HDMI_V                              0x206f8818 /* [RW] HDCP Validation Value register */
-#define BCHP_HDMI_HDCP_KEY_1                     0x206f881c /* [RW] HDCP Key Register (Lower Order Bits) */
-#define BCHP_HDMI_HDCP_KEY_2                     0x206f8820 /* [RW] HDCP Key Register (Higher Order Bits) */
-#define BCHP_HDMI_HDCP_CTL                       0x206f8824 /* [RW] HDCP Control register */
-#define BCHP_HDMI_CP_STATUS                      0x206f8828 /* [RO] HDCP Status Register */
-#define BCHP_HDMI_CP_INTEGRITY                   0x206f882c /* [RO] HDCP Integrity Register */
-#define BCHP_HDMI_CP_INTEGRITY_CFG               0x206f8830 /* [RW] HDCP Integrity Config Register */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1         0x206f8834 /* [RW] HDCP Integrity Checker Config Register 1 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_2         0x206f8838 /* [RW] HDCP Integrity Checker Config Register 2 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_3         0x206f883c /* [RW] HDCP Integrity Checker Config Register 3 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_4         0x206f8840 /* [RW] HDCP Integrity Checker Config Register 4 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_5         0x206f8844 /* [RW] HDCP Integrity Checker Config Register 5 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_6         0x206f8848 /* [RW] HDCP Integrity Checker Config Register 6 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_7         0x206f884c /* [RW] HDCP Integrity Checker Config Register 7 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_8         0x206f8850 /* [RW] HDCP Integrity Checker Config Register 8 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_9         0x206f8854 /* [RW] HDCP Integrity Checker Config Register 9 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_10        0x206f8858 /* [RW] HDCP Integrity Checker Config Register 10 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_STATUS_1      0x206f885c /* [RO] HDCP Integrity Checker Status Register 1 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_STATUS_2      0x206f8860 /* [RO] HDCP Integrity Checker Status Register 2 */
-#define BCHP_HDMI_CP_INTEGRITY_CHK_STATUS_3      0x206f8864 /* [RO] HDCP Integrity Checker Status Register 3 */
-#define BCHP_HDMI_CP_CONFIG                      0x206f8868 /* [RW] HDCP Configuration Register */
-#define BCHP_HDMI_CP_TST                         0x206f886c /* [RW] HDCP Test Control Register */
-#define BCHP_HDMI_CP_CONSTRAIN                   0x206f8870 /* [RW] HDCP Constrain Video Register */
-#define BCHP_HDMI_FIFO_CTL                       0x206f8874 /* [RW] HDMI FIFO Control Register */
-#define BCHP_HDMI_READ_POINTERS                  0x206f8878 /* [RO] HDMI Read Pointers Register */
-#define BCHP_HDMI_ENCODER_CTL                    0x206f887c /* [RW] TMDS Encoder Control Register */
-#define BCHP_HDMI_PERT_CONFIG                    0x206f8880 /* [RW] PERT Configuration Register */
-#define BCHP_HDMI_PERT_LFSR_PRELOAD              0x206f8884 /* [RW] PERT LFSR Preload Register */
-#define BCHP_HDMI_PERT_LFSR_FEEDBACK_MASK        0x206f8888 /* [RW] PERT LFSR Feedback Mask Register */
-#define BCHP_HDMI_PERT_INSERT_ERR                0x206f888c /* [RW] PERT Error Insertion Register */
-#define BCHP_HDMI_PERT_INSERT_ERR_SEPARATION     0x206f8890 /* [RW] PERT Insert Error Separation Register */
-#define BCHP_HDMI_PERT_TEST_LENGTH               0x206f8894 /* [RW] PERT Test Length Register */
-#define BCHP_HDMI_PERT_DATA                      0x206f8898 /* [RW] PERT DATA Register */
-#define BCHP_HDMI_MAI_CHANNEL_MAP                0x206f889c /* [RW] HDMI MAI Channel Map Register */
-#define BCHP_HDMI_MAI_CONFIG                     0x206f88a0 /* [RW] HDMI MAI Configuration Register */
-#define BCHP_HDMI_MAI_FORMAT                     0x206f88a4 /* [RO] Received HDMI MAI format word */
-#define BCHP_HDMI_HDMI_HBR_AUDIO_PACKET_HEADER   0x206f88a8 /* [RW] HDMI HBR Audio Packet Header */
-#define BCHP_HDMI_MAI_BUS_MONITOR_1              0x206f88ac /* [RW] MAI Bus Monitor Register 1 */
-#define BCHP_HDMI_MAI_BUS_MONITOR_2              0x206f88b0 /* [RW] MAI Bus Monitor Register 2 */
-#define BCHP_HDMI_MAI_BUS_MONITOR_3              0x206f88b4 /* [RO] MAI Bus Monitor Register 3 */
-#define BCHP_HDMI_AUDIO_PACKET_CONFIG            0x206f88b8 /* [RW] Audio Packet Configuration Register */
-#define BCHP_HDMI_RAM_PACKET_CONFIG              0x206f88bc /* [RW] RAM Packet Configuration Register 1 */
-#define BCHP_HDMI_RAM_PACKET_CONFIG_2            0x206f88c0 /* [RW] RAM Packet Configuration Register 2 */
-#define BCHP_HDMI_RAM_PACKET_STATUS              0x206f88c4 /* [RO] RAM Packet Status Register */
-#define BCHP_HDMI_CRP_CFG                        0x206f88c8 /* [RW] HDMI_CRP_CFG Register */
-#define BCHP_HDMI_CTS_0                          0x206f88cc /* [RW] HDMI CTS_0 Register */
-#define BCHP_HDMI_CTS_1                          0x206f88d0 /* [RW] HDMI CTS_1 Register */
-#define BCHP_HDMI_CTS_PERIOD_0                   0x206f88d4 /* [RW] HDMI CTS_PERIOD_0 Register */
-#define BCHP_HDMI_CTS_PERIOD_1                   0x206f88d8 /* [RW] HDMI CTS_PERIOD_1 Register */
-#define BCHP_HDMI_BCH_CONFIGURATION              0x206f88dc /* [RW] ECC_0_FB_0 Register */
-#define BCHP_HDMI_SCHEDULER_CONTROL              0x206f88e0 /* [RW] HDMI Scheduler Control Register */
-#define BCHP_HDMI_HORZA                          0x206f88e4 /* [RW] HDMI Scheduler Horizontal Control */
-#define BCHP_HDMI_HORZB                          0x206f88e8 /* [RW] HDMI Scheduler Horizontal Control */
-#define BCHP_HDMI_VERTA0                         0x206f88ec /* [RW] HDMI Scheduler Vertical Field 0 Control */
-#define BCHP_HDMI_VERTB0                         0x206f88f0 /* [RW] HDMI Scheduler Vertical Field 0 Control */
-#define BCHP_HDMI_VERTA1                         0x206f88f4 /* [RW] HDMI Scheduler Vertical Field 1 Control */
-#define BCHP_HDMI_VERTB1                         0x206f88f8 /* [RW] HDMI Scheduler Vertical Field 1 Control */
-#define BCHP_HDMI_TEST                           0x206f88fc /* [RW] HDMI Scheduler Test Register */
-#define BCHP_HDMI_MISC_CONTROL                   0x206f8900 /* [RW] Miscellaneous Control Register  : DVO and Pixel Repeat Control */
-#define BCHP_HDMI_MISC_CONTROL_1                 0x206f8904 /* [RW] Miscellaneous Control Register 1: DVO Control */
-#define BCHP_HDMI_PACKET_FIFO_CTL                0x206f8908 /* [RW] Packet FIFO Control Register */
-#define BCHP_HDMI_PACKET_FIFO_CFG                0x206f890c /* [RW] Packet FIFO Configuration Register */
-#define BCHP_HDMI_PACKET_FIFO_STATUS             0x206f8910 /* [RO] Packet FIFO Status Register */
-#define BCHP_HDMI_HDMI_13_AUDIO_CFG_1            0x206f8914 /* [RW] HDMI 1.3 Audio Features configuration */
-#define BCHP_HDMI_HDMI_13_AUDIO_STATUS_1         0x206f8918 /* [RO] HDMI 1.3 Audio Features configuration */
-#define BCHP_HDMI_HDMI_POSTING_MASTER            0x206f891c /* [RW] HDMI Posting Master count control */
-#define BCHP_HDMI_FORMAT_DET_CFG                 0x206f8920 /* [RW] Video Format Detection Circuit Configuration Register */
-#define BCHP_HDMI_FORMAT_DET_UPDATE_STATUS       0x206f8924 /* [RO] Video Format Detection Circuit Update Register */
-#define BCHP_HDMI_FORMAT_DET_UPDATE_STATUS_1     0x206f8928 /* [RO] Video Format Detection Circuit Update Register */
-#define BCHP_HDMI_FORMAT_DET_UPDATE_CLEAR        0x206f892c /* [RW] Video Format Detection Circuit Clear Update Register */
-#define BCHP_HDMI_FORMAT_DET_UPDATE_CLEAR_1      0x206f8930 /* [RW] Video Format Detection Circuit Clear Update Register */
-#define BCHP_HDMI_FORMAT_DET_1                   0x206f8934 /* [RO] VID_FORMAT_1  Register */
-#define BCHP_HDMI_FORMAT_DET_2                   0x206f8938 /* [RO] VID_FORMAT_2  Register */
-#define BCHP_HDMI_FORMAT_DET_3                   0x206f893c /* [RO] VID_FORMAT_3  Register */
-#define BCHP_HDMI_FORMAT_DET_4                   0x206f8940 /* [RO] VID_FORMAT_4  Register */
-#define BCHP_HDMI_FORMAT_DET_5                   0x206f8944 /* [RO] VID_FORMAT_5  Register */
-#define BCHP_HDMI_FORMAT_DET_6                   0x206f8948 /* [RO] VID_FORMAT_6  Register */
-#define BCHP_HDMI_FORMAT_DET_7                   0x206f894c /* [RO] VID_FORMAT_7  Register */
-#define BCHP_HDMI_FORMAT_DET_8                   0x206f8950 /* [RO] VID_FORMAT_8  Register */
-#define BCHP_HDMI_FORMAT_DET_9                   0x206f8954 /* [RO] VID_FORMAT_9  Register */
-#define BCHP_HDMI_FORMAT_DET_10                  0x206f8958 /* [RO] VID_FORMAT_10 Register */
-#define BCHP_HDMI_HSYNC_CNT                      0x206f895c /* [RO] HSYNC  Register */
-#define BCHP_HDMI_VSYNC_CNT_FIELD0               0x206f8960 /* [RO] VSYNC_CNT_FIELD0 Register */
-#define BCHP_HDMI_VSYNC_CNT_FIELD1               0x206f8964 /* [RO] VSYNC_CNT_FIELD1 Register */
-#define BCHP_HDMI_VSYNC_PIX_FIELD0               0x206f8968 /* [RO] VSYNC_PIX_CNT_FIELD0 Register */
-#define BCHP_HDMI_VSYNC_PIX_FIELD1               0x206f896c /* [RO] VSYNC_PIX_CNT_FIELD1 Register */
-#define BCHP_HDMI_DEEP_COLOR_CONFIG_1            0x206f8970 /* [RW] HDMI Deep Color Configuration Register 1 */
-#define BCHP_HDMI_DEEP_COLOR_CONFIG_2            0x206f8974 /* [RO] HDMI Deep Color Configuration Register 2 */
-#define BCHP_HDMI_GCP_CONFIG                     0x206f8978 /* [RW] General Control Packet Configuration Register */
-#define BCHP_HDMI_GCP_WORD_1                     0x206f897c /* [RW] Word 1 of General Control Packet */
-#define BCHP_HDMI_GCP_WORD_2                     0x206f8980 /* [RW] Word 2 of General Control Packet */
-#define BCHP_HDMI_RGB_MONITOR_CFG_1              0x206f8984 /* [RW] RGB Pixel Monitor Configuration Register 1 */
-#define BCHP_HDMI_RGB_MONITOR_CFG_2              0x206f8988 /* [RW] RGB Pixel Monitor Configuration Register 2 */
-#define BCHP_HDMI_RGB_MONITOR_CFG_3              0x206f898c /* [RW] RGB Pixel Monitor Configuration Register 3 */
-#define BCHP_HDMI_RGB_MONITOR_CFG_4              0x206f8990 /* [RW] RGB Pixel Monitor Configuration Register 4 */
-#define BCHP_HDMI_RGB_MONITOR_STATUS_1           0x206f8994 /* [RO] RGB Pixel Monitor Status Register 1 */
-#define BCHP_HDMI_RGB_MONITOR_STATUS_2           0x206f8998 /* [RO] RGB Pixel Monitor Status Register 2 */
-#define BCHP_HDMI_RGB_MONITOR_STATUS_3           0x206f899c /* [RO] RGB Pixel Monitor Status Register 3 */
-#define BCHP_HDMI_RGB_MONITOR_STATUS_4           0x206f89a0 /* [RO] RGB Pixel Monitor Status Register 4 */
-#define BCHP_HDMI_RGB_MONITOR_STATUS_5           0x206f89a4 /* [RO] RGB Pixel Monitor Status Register 5 */
-#define BCHP_HDMI_HOTPLUG_STATUS                 0x206f89a8 /* [RO] Hotplug Status Register */
-#define BCHP_HDMI_VMS_CFG_0                      0x206f89ac /* [RW] VMS Loopback Test Configuration Register 0 */
-#define BCHP_HDMI_VMS_CFG_1                      0x206f89b0 /* [RW] VMS Loopback Test Configuration Register 1 */
-#define BCHP_HDMI_SCRAMBLER_LFSR_0_INIT          0x206f89b4 /* [RW] Scrambler LFSR 0 Initial Value Register */
-#define BCHP_HDMI_SCRAMBLER_LFSR_1_INIT          0x206f89b8 /* [RW] Scrambler LFSR 1 Initial Value Register */
-#define BCHP_HDMI_SCRAMBLER_LFSR_2_INIT          0x206f89bc /* [RW] Scrambler LFSR 2 Initial Value Register */
-#define BCHP_HDMI_SCRAMBLER_LFSR_REVERSE         0x206f89c0 /* [RW] Scrambler LFSR Value Reverse Register */
-#define BCHP_HDMI_SCRAMBLER_CTL                  0x206f89c4 /* [RW] Scrambler Control Register */
-#define BCHP_HDMI_CTL_UNSCRAMBLED_CFG_0          0x206f89c8 /* [RW] TMDS Unscrambled Output for Control 0, 1, 2 */
-#define BCHP_HDMI_CTL_UNSCRAMBLED_CFG_1          0x206f89cc /* [RW] TMDS Unscrambled Output for Control 3 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_0            0x206f89d0 /* [RW] TMDS Scrambled Output for SCV 0, 1, 2 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_1            0x206f89d4 /* [RW] TMDS Scrambled Output for SCV 3, 4, 5 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_2            0x206f89d8 /* [RW] TMDS Scrambled Output for SCV 6, 7, 8 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_3            0x206f89dc /* [RW] TMDS Scrambled Output for SCV 9, 10, 11 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_4            0x206f89e0 /* [RW] TMDS Scrambled Output for SCV 12, 13, 14 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_5            0x206f89e4 /* [RW] TMDS Scrambled Output for SCV 15, 16, 17 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_6            0x206f89e8 /* [RW] TMDS Scrambled Output for SCV 18, 19, 20 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_7            0x206f89ec /* [RW] TMDS Scrambled Output for SCV 21, 22, 23 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_8            0x206f89f0 /* [RW] TMDS Scrambled Output for SCV 24, 25, 26 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_9            0x206f89f4 /* [RW] TMDS Scrambled Output for SCV 27, 28, 29 */
-#define BCHP_HDMI_CTL_SCRAMBLED_CFG_10           0x206f89f8 /* [RW] TMDS Scrambled Output for SCV 30, 31 */
-#define BCHP_HDMI_MHL_CTL                        0x206f89fc /* [RW] MHL control register */
-#define BCHP_HDMI_HDCP2TX_CFG0                   0x206f8a00 /* [RW] HDCP2 Configuration 0 Register */
-#define BCHP_HDMI_HDCP2TX_MBOX_0                 0x206f8a04 /* [RW] HDCP2 HAE to CPU Mailbox Register */
-#define BCHP_HDMI_HDCP2TX_MBOX_1                 0x206f8a08 /* [RW] HDCP2 CPU to HAE Mailbox Register */
-#define BCHP_HDMI_HDCP2TX_STATUS                 0x206f8a0c /* [RO] HDCP2TX_STATUS */
-#define BCHP_HDMI_HDCP2TX_AUTH_CTL               0x206f8a10 /* [RW] HDCP2TX_AUTH_CTL */
-#define BCHP_HDMI_HDCP2TX_CTRL0                  0x206f8a14 /* [RW] HDCP2TX CTRL0 Register */
-#define BCHP_HDMI_ERR_INSERT_CTRL                0x206f8a18 /* [RW] Error Insertion Control Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_0               0x206f8a1c /* [RW] Error Insertion Configuration 0 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_1               0x206f8a20 /* [RW] Error Insertion Configuration 1 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_2               0x206f8a24 /* [RW] Error Insertion Configuration 2 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_3               0x206f8a28 /* [RW] Error Insertion Configuration 3 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_4               0x206f8a2c /* [RW] Error Insertion Configuration 4 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_5               0x206f8a30 /* [RW] Error Insertion Configuration 5 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_6               0x206f8a34 /* [RW] Error Insertion Configuration 6 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_7               0x206f8a38 /* [RW] Error Insertion Configuration 7 Register */
-#define BCHP_HDMI_ERR_INSERT_CFG_8               0x206f8a3c /* [RW] Error Insertion Configuration 8 Register */
-#define BCHP_HDMI_ERR_CNT_0                      0x206f8a40 /* [RO] Error Count Register 0 */
-#define BCHP_HDMI_ERR_CNT_1                      0x206f8a44 /* [RO] Error Count Register 1 */
-#define BCHP_HDMI_ERR_CNT_2                      0x206f8a48 /* [RO] Error Count Register 2 */
-#define BCHP_HDMI_PIXEL_CNT_L                    0x206f8a4c /* [RO] Pixel Count Register Low */
-#define BCHP_HDMI_PIXEL_CNT_H                    0x206f8a50 /* [RO] Pixel Count Register High */
-#define BCHP_HDMI_SPARE_REG2                     0x206f8afc /* [RW] SPARE_REG2   Register */
+#define BCHP_HDMI_BKSV0                          0x206f8800 /* [RW][32] HDCP BKSV (Lower Order Bits) Register */
+#define BCHP_HDMI_BKSV1                          0x206f8804 /* [RW][32] HDCP BKSV (Higher Order Bits) and Repeater Control Register */
+#define BCHP_HDMI_AN0                            0x206f8808 /* [RO][32] HDCP Random Number AN (Lower Order Bits) Register */
+#define BCHP_HDMI_AN1                            0x206f880c /* [RO][32] HDCP Random Number AN (Higher Order Bits) Register */
+#define BCHP_HDMI_KSV_FIFO_0                     0x206f8810 /* [RW][32] HDCP KSV FIFO (Lower Order Bits) */
+#define BCHP_HDMI_KSV_FIFO_1                     0x206f8814 /* [RW][32] HDCP KSV FIFO (Higher Order Bits) */
+#define BCHP_HDMI_V                              0x206f8818 /* [RW][32] HDCP Validation Value register */
+#define BCHP_HDMI_HDCP_KEY_1                     0x206f881c /* [RW][32] HDCP Key Register (Lower Order Bits) */
+#define BCHP_HDMI_HDCP_KEY_2                     0x206f8820 /* [RW][32] HDCP Key Register (Higher Order Bits) */
+#define BCHP_HDMI_HDCP_CTL                       0x206f8824 /* [RW][32] HDCP Control register */
+#define BCHP_HDMI_CP_STATUS                      0x206f8828 /* [RO][32] HDCP Status Register */
+#define BCHP_HDMI_CP_INTEGRITY                   0x206f882c /* [RO][32] HDCP Integrity Register */
+#define BCHP_HDMI_CP_INTEGRITY_CFG               0x206f8830 /* [RW][32] HDCP Integrity Config Register */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1         0x206f8834 /* [RW][32] HDCP Integrity Checker Config Register 1 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_2         0x206f8838 /* [RW][32] HDCP Integrity Checker Config Register 2 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_3         0x206f883c /* [RW][32] HDCP Integrity Checker Config Register 3 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_4         0x206f8840 /* [RW][32] HDCP Integrity Checker Config Register 4 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_5         0x206f8844 /* [RW][32] HDCP Integrity Checker Config Register 5 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_6         0x206f8848 /* [RW][32] HDCP Integrity Checker Config Register 6 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_7         0x206f884c /* [RW][32] HDCP Integrity Checker Config Register 7 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_8         0x206f8850 /* [RW][32] HDCP Integrity Checker Config Register 8 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_9         0x206f8854 /* [RW][32] HDCP Integrity Checker Config Register 9 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_CFG_10        0x206f8858 /* [RW][32] HDCP Integrity Checker Config Register 10 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_STATUS_1      0x206f885c /* [RO][32] HDCP Integrity Checker Status Register 1 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_STATUS_2      0x206f8860 /* [RO][32] HDCP Integrity Checker Status Register 2 */
+#define BCHP_HDMI_CP_INTEGRITY_CHK_STATUS_3      0x206f8864 /* [RO][32] HDCP Integrity Checker Status Register 3 */
+#define BCHP_HDMI_CP_CONFIG                      0x206f8868 /* [RW][32] HDCP Configuration Register */
+#define BCHP_HDMI_CP_TST                         0x206f886c /* [RW][32] HDCP Test Control Register */
+#define BCHP_HDMI_CP_CONSTRAIN                   0x206f8870 /* [RW][32] HDCP Constrain Video Register */
+#define BCHP_HDMI_FIFO_CTL                       0x206f8874 /* [RW][32] HDMI FIFO Control Register */
+#define BCHP_HDMI_READ_POINTERS                  0x206f8878 /* [RO][32] HDMI Read Pointers Register */
+#define BCHP_HDMI_ENCODER_CTL                    0x206f887c /* [RW][32] TMDS Encoder Control Register */
+#define BCHP_HDMI_PERT_CONFIG                    0x206f8880 /* [RW][32] PERT Configuration Register */
+#define BCHP_HDMI_PERT_LFSR_PRELOAD              0x206f8884 /* [RW][32] PERT LFSR Preload Register */
+#define BCHP_HDMI_PERT_LFSR_FEEDBACK_MASK        0x206f8888 /* [RW][32] PERT LFSR Feedback Mask Register */
+#define BCHP_HDMI_PERT_INSERT_ERR                0x206f888c /* [RW][32] PERT Error Insertion Register */
+#define BCHP_HDMI_PERT_INSERT_ERR_SEPARATION     0x206f8890 /* [RW][32] PERT Insert Error Separation Register */
+#define BCHP_HDMI_PERT_TEST_LENGTH               0x206f8894 /* [RW][32] PERT Test Length Register */
+#define BCHP_HDMI_PERT_DATA                      0x206f8898 /* [RW][32] PERT DATA Register */
+#define BCHP_HDMI_MAI_CHANNEL_MAP                0x206f889c /* [RW][32] HDMI MAI Channel Map Register */
+#define BCHP_HDMI_MAI_CONFIG                     0x206f88a0 /* [RW][32] HDMI MAI Configuration Register */
+#define BCHP_HDMI_MAI_FORMAT                     0x206f88a4 /* [RO][32] Received HDMI MAI format word */
+#define BCHP_HDMI_HDMI_HBR_AUDIO_PACKET_HEADER   0x206f88a8 /* [RW][32] HDMI HBR Audio Packet Header */
+#define BCHP_HDMI_MAI_BUS_MONITOR_1              0x206f88ac /* [RW][32] MAI Bus Monitor Register 1 */
+#define BCHP_HDMI_MAI_BUS_MONITOR_2              0x206f88b0 /* [RW][32] MAI Bus Monitor Register 2 */
+#define BCHP_HDMI_MAI_BUS_MONITOR_3              0x206f88b4 /* [RO][32] MAI Bus Monitor Register 3 */
+#define BCHP_HDMI_AUDIO_PACKET_CONFIG            0x206f88b8 /* [RW][32] Audio Packet Configuration Register */
+#define BCHP_HDMI_RAM_PACKET_CONFIG              0x206f88bc /* [RW][32] RAM Packet Configuration Register 1 */
+#define BCHP_HDMI_RAM_PACKET_CONFIG_2            0x206f88c0 /* [RW][32] RAM Packet Configuration Register 2 */
+#define BCHP_HDMI_RAM_PACKET_STATUS              0x206f88c4 /* [RO][32] RAM Packet Status Register */
+#define BCHP_HDMI_CRP_CFG                        0x206f88c8 /* [RW][32] HDMI_CRP_CFG Register */
+#define BCHP_HDMI_CTS_0                          0x206f88cc /* [RW][32] HDMI CTS_0 Register */
+#define BCHP_HDMI_CTS_1                          0x206f88d0 /* [RW][32] HDMI CTS_1 Register */
+#define BCHP_HDMI_CTS_PERIOD_0                   0x206f88d4 /* [RW][32] HDMI CTS_PERIOD_0 Register */
+#define BCHP_HDMI_CTS_PERIOD_1                   0x206f88d8 /* [RW][32] HDMI CTS_PERIOD_1 Register */
+#define BCHP_HDMI_BCH_CONFIGURATION              0x206f88dc /* [RW][32] ECC_0_FB_0 Register */
+#define BCHP_HDMI_SCHEDULER_CONTROL              0x206f88e0 /* [RW][32] HDMI Scheduler Control Register */
+#define BCHP_HDMI_HORZA                          0x206f88e4 /* [RW][32] HDMI Scheduler Horizontal Control */
+#define BCHP_HDMI_HORZB                          0x206f88e8 /* [RW][32] HDMI Scheduler Horizontal Control */
+#define BCHP_HDMI_VERTA0                         0x206f88ec /* [RW][32] HDMI Scheduler Vertical Field 0 Control */
+#define BCHP_HDMI_VERTB0                         0x206f88f0 /* [RW][32] HDMI Scheduler Vertical Field 0 Control */
+#define BCHP_HDMI_VERTA1                         0x206f88f4 /* [RW][32] HDMI Scheduler Vertical Field 1 Control */
+#define BCHP_HDMI_VERTB1                         0x206f88f8 /* [RW][32] HDMI Scheduler Vertical Field 1 Control */
+#define BCHP_HDMI_TEST                           0x206f88fc /* [RW][32] HDMI Scheduler Test Register */
+#define BCHP_HDMI_MISC_CONTROL                   0x206f8900 /* [RW][32] Miscellaneous Control Register  : DVO and Pixel Repeat Control */
+#define BCHP_HDMI_MISC_CONTROL_1                 0x206f8904 /* [RW][32] Miscellaneous Control Register 1: DVO Control */
+#define BCHP_HDMI_PACKET_FIFO_CTL                0x206f8908 /* [RW][32] Packet FIFO Control Register */
+#define BCHP_HDMI_PACKET_FIFO_CFG                0x206f890c /* [RW][32] Packet FIFO Configuration Register */
+#define BCHP_HDMI_PACKET_FIFO_STATUS             0x206f8910 /* [RO][32] Packet FIFO Status Register */
+#define BCHP_HDMI_HDMI_13_AUDIO_CFG_1            0x206f8914 /* [RW][32] HDMI 1.3 Audio Features configuration */
+#define BCHP_HDMI_HDMI_13_AUDIO_STATUS_1         0x206f8918 /* [RO][32] HDMI 1.3 Audio Features configuration */
+#define BCHP_HDMI_HDMI_POSTING_MASTER            0x206f891c /* [RW][32] HDMI Posting Master count control */
+#define BCHP_HDMI_FORMAT_DET_CFG                 0x206f8920 /* [RW][32] Video Format Detection Circuit Configuration Register */
+#define BCHP_HDMI_FORMAT_DET_UPDATE_STATUS       0x206f8924 /* [RO][32] Video Format Detection Circuit Update Register */
+#define BCHP_HDMI_FORMAT_DET_UPDATE_STATUS_1     0x206f8928 /* [RO][32] Video Format Detection Circuit Update Register */
+#define BCHP_HDMI_FORMAT_DET_UPDATE_CLEAR        0x206f892c /* [RW][32] Video Format Detection Circuit Clear Update Register */
+#define BCHP_HDMI_FORMAT_DET_UPDATE_CLEAR_1      0x206f8930 /* [RW][32] Video Format Detection Circuit Clear Update Register */
+#define BCHP_HDMI_FORMAT_DET_1                   0x206f8934 /* [RO][32] VID_FORMAT_1  Register */
+#define BCHP_HDMI_FORMAT_DET_2                   0x206f8938 /* [RO][32] VID_FORMAT_2  Register */
+#define BCHP_HDMI_FORMAT_DET_3                   0x206f893c /* [RO][32] VID_FORMAT_3  Register */
+#define BCHP_HDMI_FORMAT_DET_4                   0x206f8940 /* [RO][32] VID_FORMAT_4  Register */
+#define BCHP_HDMI_FORMAT_DET_5                   0x206f8944 /* [RO][32] VID_FORMAT_5  Register */
+#define BCHP_HDMI_FORMAT_DET_6                   0x206f8948 /* [RO][32] VID_FORMAT_6  Register */
+#define BCHP_HDMI_FORMAT_DET_7                   0x206f894c /* [RO][32] VID_FORMAT_7  Register */
+#define BCHP_HDMI_FORMAT_DET_8                   0x206f8950 /* [RO][32] VID_FORMAT_8  Register */
+#define BCHP_HDMI_FORMAT_DET_9                   0x206f8954 /* [RO][32] VID_FORMAT_9  Register */
+#define BCHP_HDMI_FORMAT_DET_10                  0x206f8958 /* [RO][32] VID_FORMAT_10 Register */
+#define BCHP_HDMI_HSYNC_CNT                      0x206f895c /* [RO][32] HSYNC  Register */
+#define BCHP_HDMI_VSYNC_CNT_FIELD0               0x206f8960 /* [RO][32] VSYNC_CNT_FIELD0 Register */
+#define BCHP_HDMI_VSYNC_CNT_FIELD1               0x206f8964 /* [RO][32] VSYNC_CNT_FIELD1 Register */
+#define BCHP_HDMI_VSYNC_PIX_FIELD0               0x206f8968 /* [RO][32] VSYNC_PIX_CNT_FIELD0 Register */
+#define BCHP_HDMI_VSYNC_PIX_FIELD1               0x206f896c /* [RO][32] VSYNC_PIX_CNT_FIELD1 Register */
+#define BCHP_HDMI_DEEP_COLOR_CONFIG_1            0x206f8970 /* [RW][32] HDMI Deep Color Configuration Register 1 */
+#define BCHP_HDMI_DEEP_COLOR_CONFIG_2            0x206f8974 /* [RO][32] HDMI Deep Color Configuration Register 2 */
+#define BCHP_HDMI_GCP_CONFIG                     0x206f8978 /* [RW][32] General Control Packet Configuration Register */
+#define BCHP_HDMI_GCP_WORD_1                     0x206f897c /* [RW][32] Word 1 of General Control Packet */
+#define BCHP_HDMI_GCP_WORD_2                     0x206f8980 /* [RW][32] Word 2 of General Control Packet */
+#define BCHP_HDMI_RGB_MONITOR_CFG_1              0x206f8984 /* [RW][32] RGB Pixel Monitor Configuration Register 1 */
+#define BCHP_HDMI_RGB_MONITOR_CFG_2              0x206f8988 /* [RW][32] RGB Pixel Monitor Configuration Register 2 */
+#define BCHP_HDMI_RGB_MONITOR_CFG_3              0x206f898c /* [RW][32] RGB Pixel Monitor Configuration Register 3 */
+#define BCHP_HDMI_RGB_MONITOR_CFG_4              0x206f8990 /* [RW][32] RGB Pixel Monitor Configuration Register 4 */
+#define BCHP_HDMI_RGB_MONITOR_STATUS_1           0x206f8994 /* [RO][32] RGB Pixel Monitor Status Register 1 */
+#define BCHP_HDMI_RGB_MONITOR_STATUS_2           0x206f8998 /* [RO][32] RGB Pixel Monitor Status Register 2 */
+#define BCHP_HDMI_RGB_MONITOR_STATUS_3           0x206f899c /* [RO][32] RGB Pixel Monitor Status Register 3 */
+#define BCHP_HDMI_RGB_MONITOR_STATUS_4           0x206f89a0 /* [RO][32] RGB Pixel Monitor Status Register 4 */
+#define BCHP_HDMI_RGB_MONITOR_STATUS_5           0x206f89a4 /* [RO][32] RGB Pixel Monitor Status Register 5 */
+#define BCHP_HDMI_HOTPLUG_STATUS                 0x206f89a8 /* [RO][32] Hotplug Status Register */
+#define BCHP_HDMI_VMS_CFG_0                      0x206f89ac /* [RW][32] VMS Loopback Test Configuration Register 0 */
+#define BCHP_HDMI_VMS_CFG_1                      0x206f89b0 /* [RW][32] VMS Loopback Test Configuration Register 1 */
+#define BCHP_HDMI_SCRAMBLER_LFSR_0_INIT          0x206f89b4 /* [RW][32] Scrambler LFSR 0 Initial Value Register */
+#define BCHP_HDMI_SCRAMBLER_LFSR_1_INIT          0x206f89b8 /* [RW][32] Scrambler LFSR 1 Initial Value Register */
+#define BCHP_HDMI_SCRAMBLER_LFSR_2_INIT          0x206f89bc /* [RW][32] Scrambler LFSR 2 Initial Value Register */
+#define BCHP_HDMI_SCRAMBLER_LFSR_REVERSE         0x206f89c0 /* [RW][32] Scrambler LFSR Value Reverse Register */
+#define BCHP_HDMI_SCRAMBLER_CTL                  0x206f89c4 /* [RW][32] Scrambler Control Register */
+#define BCHP_HDMI_CTL_UNSCRAMBLED_CFG_0          0x206f89c8 /* [RW][32] TMDS Unscrambled Output for Control 0, 1, 2 */
+#define BCHP_HDMI_CTL_UNSCRAMBLED_CFG_1          0x206f89cc /* [RW][32] TMDS Unscrambled Output for Control 3 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_0            0x206f89d0 /* [RW][32] TMDS Scrambled Output for SCV 0, 1, 2 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_1            0x206f89d4 /* [RW][32] TMDS Scrambled Output for SCV 3, 4, 5 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_2            0x206f89d8 /* [RW][32] TMDS Scrambled Output for SCV 6, 7, 8 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_3            0x206f89dc /* [RW][32] TMDS Scrambled Output for SCV 9, 10, 11 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_4            0x206f89e0 /* [RW][32] TMDS Scrambled Output for SCV 12, 13, 14 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_5            0x206f89e4 /* [RW][32] TMDS Scrambled Output for SCV 15, 16, 17 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_6            0x206f89e8 /* [RW][32] TMDS Scrambled Output for SCV 18, 19, 20 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_7            0x206f89ec /* [RW][32] TMDS Scrambled Output for SCV 21, 22, 23 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_8            0x206f89f0 /* [RW][32] TMDS Scrambled Output for SCV 24, 25, 26 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_9            0x206f89f4 /* [RW][32] TMDS Scrambled Output for SCV 27, 28, 29 */
+#define BCHP_HDMI_CTL_SCRAMBLED_CFG_10           0x206f89f8 /* [RW][32] TMDS Scrambled Output for SCV 30, 31 */
+#define BCHP_HDMI_MHL_CTL                        0x206f89fc /* [RW][32] MHL control register */
+#define BCHP_HDMI_HDCP2TX_CFG0                   0x206f8a00 /* [RW][32] HDCP2 Configuration 0 Register */
+#define BCHP_HDMI_HDCP2TX_MBOX_0                 0x206f8a04 /* [RW][32] HDCP2 HAE to CPU Mailbox Register */
+#define BCHP_HDMI_HDCP2TX_MBOX_1                 0x206f8a08 /* [RW][32] HDCP2 CPU to HAE Mailbox Register */
+#define BCHP_HDMI_HDCP2TX_STATUS                 0x206f8a0c /* [RO][32] HDCP2TX_STATUS */
+#define BCHP_HDMI_HDCP2TX_AUTH_CTL               0x206f8a10 /* [RW][32] HDCP2TX_AUTH_CTL */
+#define BCHP_HDMI_HDCP2TX_CTRL0                  0x206f8a14 /* [RW][32] HDCP2TX CTRL0 Register */
+#define BCHP_HDMI_ERR_INSERT_CTRL                0x206f8a18 /* [RW][32] Error Insertion Control Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_0               0x206f8a1c /* [RW][32] Error Insertion Configuration 0 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_1               0x206f8a20 /* [RW][32] Error Insertion Configuration 1 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_2               0x206f8a24 /* [RW][32] Error Insertion Configuration 2 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_3               0x206f8a28 /* [RW][32] Error Insertion Configuration 3 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_4               0x206f8a2c /* [RW][32] Error Insertion Configuration 4 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_5               0x206f8a30 /* [RW][32] Error Insertion Configuration 5 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_6               0x206f8a34 /* [RW][32] Error Insertion Configuration 6 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_7               0x206f8a38 /* [RW][32] Error Insertion Configuration 7 Register */
+#define BCHP_HDMI_ERR_INSERT_CFG_8               0x206f8a3c /* [RW][32] Error Insertion Configuration 8 Register */
+#define BCHP_HDMI_ERR_CNT_0                      0x206f8a40 /* [RO][32] Error Count Register 0 */
+#define BCHP_HDMI_ERR_CNT_1                      0x206f8a44 /* [RO][32] Error Count Register 1 */
+#define BCHP_HDMI_ERR_CNT_2                      0x206f8a48 /* [RO][32] Error Count Register 2 */
+#define BCHP_HDMI_PIXEL_CNT_L                    0x206f8a4c /* [RO][32] Pixel Count Register Low */
+#define BCHP_HDMI_PIXEL_CNT_H                    0x206f8a50 /* [RO][32] Pixel Count Register High */
+#define BCHP_HDMI_SPARE_REG2                     0x206f8afc /* [RW][32] SPARE_REG2   Register */
 
 /***************************************************************************
  *BKSV0 - HDCP BKSV (Lower Order Bits) Register

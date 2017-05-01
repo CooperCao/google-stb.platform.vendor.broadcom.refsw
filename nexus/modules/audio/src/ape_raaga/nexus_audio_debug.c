@@ -42,6 +42,7 @@ BDBG_MODULE(nexus_audio_debug);
 
 NEXUS_ModuleHandle g_NEXUS_audioDebug;
 NEXUS_ModuleHandle g_NEXUS_audioGraphDebug;
+NEXUS_ModuleHandle g_NEXUS_audioVolumeDebug;
 
 /* required for the debug output */
 extern NEXUS_AudioDecoderHandle g_decoders[NEXUS_NUM_AUDIO_DECODERS];
@@ -50,6 +51,7 @@ extern NEXUS_AudioDecoderHandle g_decoders[NEXUS_NUM_AUDIO_DECODERS];
 
 void NEXUS_AudioDebug_GetOutputStatus(void);
 void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *status);
+
 
 void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *status)
 {
@@ -351,7 +353,7 @@ static void NEXUS_AudioDebug_OutputPrint(void)
     NEXUS_AudioDebug_GetOutputStatus();
 }
 
-void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int level)
+static void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int level)
 {
     NEXUS_AudioInputHandle downstreamObject;
     NEXUS_AudioOutputHandle audioOutput;
@@ -415,7 +417,7 @@ void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int level)
     }
 }
 
-uint32_t NEXUS_AudioDebug_BAPE_ChannelModeToInt(
+static uint32_t NEXUS_AudioDebug_BAPE_ChannelModeToInt(
     BAPE_ChannelMode mode
     )
 {
@@ -441,7 +443,7 @@ uint32_t NEXUS_AudioDebug_BAPE_ChannelModeToInt(
     }
 }
 
-uint32_t NEXUS_AudioDebug_NumChannels(
+static uint32_t NEXUS_AudioDebug_NumChannels(
     const BAPE_DecoderStatus *status
     )
 {
@@ -532,7 +534,7 @@ uint32_t NEXUS_AudioDebug_NumChannels(
     return count;
 }
 
-uint32_t NEXUS_AudioDebug_InputSampleRate(
+static uint32_t NEXUS_AudioDebug_InputSampleRate(
     const BAPE_DecoderStatus *status
     )
 {
@@ -570,7 +572,7 @@ uint32_t NEXUS_AudioDebug_InputSampleRate(
 
 }
 
-const char * NEXUS_AudioDebug_ChannelModeToString(
+static const char * NEXUS_AudioDebug_ChannelModeToString(
         const BAPE_DecoderStatus *status
     )
 {
@@ -685,36 +687,293 @@ static void NEXUS_AudioDebug_PrintGraph(void)
     }
 }
 
+#define PRINT_FORMAT_COEFF(base, ptr, val) val>0?(ptr += BKNI_Snprintf(ptr, sizeof(base)-(ptr-base),"%06x ", val)):(ptr += BKNI_Snprintf(ptr, sizeof(base)-(ptr-base),"   *   "))
+
+
+
+static void NEXUS_AudioDebug_P_PrintOutputVolume(BAPE_DebugOutputVolume *debugVolume)
+{
+    char volumePrint[60];
+    char * pVolumePrint = volumePrint;
+    switch (debugVolume->type)
+    {
+    case BAPE_DataType_eIec61937:
+        BDBG_LOG(("%s Compressed Volume %sMUTED", debugVolume->pName, debugVolume->outputVolume.muted ? "" : "UN"));
+        break;
+    case BAPE_DataType_eIec61937x4:
+        BDBG_LOG(("%s Compressedx4 Volume %sMUTED", debugVolume->pName, debugVolume->outputVolume.muted ? "" : "UN"));
+        break;
+    case BAPE_DataType_eIec61937x16:
+        BDBG_LOG(("%s Compressedx16 Volume %sMUTED", debugVolume->pName, debugVolume->outputVolume.muted ? "" : "UN"));
+        break;
+    case BAPE_DataType_ePcmMono:
+    case BAPE_DataType_ePcmStereo:
+        BDBG_LOG(("%s PCM %s Volume %sMUTED", debugVolume->pName, (debugVolume->type == BAPE_DataType_ePcmMono ? "Mono" : "Stereo"), debugVolume->outputVolume.muted ? "" : "UN"));
+        BDBG_LOG(("   L      R"));
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLeft]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eRight]);
+        BDBG_LOG(("%s", volumePrint));
+        break;
+    case BAPE_DataType_ePcm5_1:
+        BDBG_LOG(("%s PCM 5.1 Volume %sMUTED", debugVolume->pName, debugVolume->outputVolume.muted ? "" : "UN"));
+        BDBG_LOG(("   L      R      Ls     Rs     C     Lfe"));
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLeft]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eRight]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLeftSurround]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eRightSurround]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eCenter]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLfe]);
+        BDBG_LOG(("%s", volumePrint));
+        break;
+    case BAPE_DataType_ePcm7_1:
+        BDBG_LOG(("%s PCM 7.1 Volume %sMUTED", debugVolume->pName, debugVolume->outputVolume.muted ? "" : "UN"));
+        BDBG_LOG(("   L      R      Ls     Rs     C     Lfe    Lr     Rr"));
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLeft]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eRight]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLeftSurround]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eRightSurround]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eCenter]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLfe]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eLeftRear]);
+        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, debugVolume->outputVolume.volume[BAPE_Channel_eRightRear]);
+        BDBG_LOG(("%s", volumePrint));
+        break;
+    default:
+        BDBG_LOG(("%s Unknown Type ", debugVolume->pName));
+        break;
+
+    }
+    BDBG_LOG((" "));
+}
+
+static void NEXUS_AudioDebug_PrintVolume(void)
+{
+    unsigned i,j;
+    bool mixerFound = false;
+    BAPE_DebugStatus debugStatus;
+    NEXUS_AudioCapabilities audioCapabilities;
+    BERR_Code errCode;
+
+    BDBG_LOG(("Audio Volume Matrices (all values in hex, * means 0):"));
+    BDBG_LOG((" "));
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    #if 0 /* TBD add support for printing the mixer inputs */
+    for (i=0; i < audioCapabilities.numMixers; i++) {
+        NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioMixer_P_GetMixerByIndex(i);
+        NEXUS_AudioMixerSettings mixerSettings;
+        if (mixerHandle)
+        {
+            mixerFound = true;
+        }
+    }
+    #endif
+
+    if (!mixerFound) {
+        for (i=0; i < audioCapabilities.numDecoders; i++)
+        {
+            NEXUS_AudioDecoderHandle handle = g_decoders[i];
+            if (handle && handle->running)
+            {
+                #if NEXUS_HAS_SYNC_CHANNEL
+                BDBG_LOG(("Decoder%d: Mute:%s Trick Mute:%s Sync Mute:%s", i,
+                          handle->settings.muted ? "Y" : "N",
+                          handle->trickMute ? "Y" : "N",
+                          handle->sync.mute ? "Y" : "N"));
+                #else
+                BDBG_LOG(("Decoder%d: Mute:%s Trick Mute:%s", i,
+                          handle->settings.muted ? "Y" : "N",
+                          handle->trickMute ? "Y" : "N"));
+                #endif
+
+                if(handle->outputLists[NEXUS_AudioConnectorType_eMono].outputs[0] ||
+                   handle->outputLists[NEXUS_AudioConnectorType_eStereo].outputs[0] ||
+                   handle->outputLists[NEXUS_AudioConnectorType_eMultichannel].outputs[0])
+                {
+                    BDBG_LOG(("       L      R      Ls     Rs     C     Lfe    Lr     Rr"));
+                    for (j = 0; j < NEXUS_AudioChannel_eMax; j++) {
+                        char volumePrint[70];
+                        char * pVolumePrint = volumePrint;
+                        switch (j) {
+                        default:
+                        case NEXUS_AudioChannel_eLeft:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "L   ");
+                            break;
+                        case NEXUS_AudioChannel_eRight:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "R   ");
+                            break;
+                        case NEXUS_AudioChannel_eCenter:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "C   ");
+                            break;
+                        case NEXUS_AudioChannel_eLfe:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Lfe ");
+                            break;
+                        case NEXUS_AudioChannel_eLeftSurround:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Ls  ");
+                            break;
+                        case NEXUS_AudioChannel_eRightSurround:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Rs  ");
+                            break;
+                        case NEXUS_AudioChannel_eLeftRear:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Lr  ");
+                            break;
+                        case NEXUS_AudioChannel_eRightRear:
+                            pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Rr  ");
+                            break;
+                        }
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eLeft]);
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eRight]);
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eLeftSurround]);
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eRightSurround]);
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eCenter]);
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eLfe]);
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eLeftRear]);
+                        PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, handle->settings.volumeMatrix[j][BAPE_Channel_eRightRear]);
+                        BDBG_LOG(("%s", volumePrint));
+                    }
+                }
+                else
+                {
+                    BDBG_LOG(("Compressed Decoder"));
+                }
+                BDBG_LOG((" "));
+            }
+        }
+
+        for (i=0; i < audioCapabilities.numPlaybacks; i++)
+        {
+            NEXUS_AudioPlaybackHandle playbackHandle = NEXUS_AudioPlayback_P_GetPlaybackByIndex(i);
+            if (playbackHandle)
+            {
+                if (NEXUS_AudioPlayback_P_IsRunning(playbackHandle))
+                {
+                    NEXUS_AudioPlaybackSettings playbackSettings;
+                    char volumePrint[20];
+                    char * pVolumePrint = volumePrint;
+
+                    NEXUS_AudioPlayback_GetSettings(playbackHandle, &playbackSettings);
+                    BDBG_LOG(("Audio Playback%d: Mute:%s Content Reference -%u", i, playbackSettings.muted ? "Y":"N", playbackSettings.contentReferenceLevel));
+                    BDBG_LOG(("   L      R"));
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, playbackSettings.leftVolume);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, playbackSettings.rightVolume);
+                    BDBG_LOG(("%s", volumePrint));
+                    BDBG_LOG((" "));
+
+                }
+            }
+        }
+
+        for (i=0; i < audioCapabilities.numInputCaptures; i++)
+        {
+            NEXUS_AudioInputCaptureHandle inputCaptureHandle = NEXUS_AudioInputCapture_P_GetInputCaptureByIndex(i);
+            if (inputCaptureHandle)
+            {
+                NEXUS_AudioInputCaptureSettings captureSettings;
+                NEXUS_AudioInputCapture_GetSettings(inputCaptureHandle, &captureSettings);
+                BDBG_LOG(("Audio Input Capture%d: Mute:%s", i, captureSettings.muted ? "Y":"N"));
+                BDBG_LOG(("       L      R      Ls     Rs     C     Lfe    Lr     Rr"));
+                for (j = 0; j < NEXUS_AudioChannel_eMax; j++) {
+                    char volumePrint[70];
+                    char * pVolumePrint = volumePrint;
+                    switch (j) {
+                    default:
+                    case NEXUS_AudioChannel_eLeft:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "L   ");
+                        break;
+                    case NEXUS_AudioChannel_eRight:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "R   ");
+                        break;
+                    case NEXUS_AudioChannel_eCenter:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "C   ");
+                        break;
+                    case NEXUS_AudioChannel_eLfe:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Lfe ");
+                        break;
+                    case NEXUS_AudioChannel_eLeftSurround:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Ls  ");
+                        break;
+                    case NEXUS_AudioChannel_eRightSurround:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Rs  ");
+                        break;
+                    case NEXUS_AudioChannel_eLeftRear:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Lr  ");
+                        break;
+                    case NEXUS_AudioChannel_eRightRear:
+                        pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "Rr  ");
+                        break;
+                    }
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eLeft]);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eRight]);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eLeftSurround]);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eRightSurround]);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eCenter]);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eLfe]);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eLeftRear]);
+                    PRINT_FORMAT_COEFF(volumePrint, pVolumePrint, captureSettings.volumeMatrix[j][BAPE_Channel_eRightRear]);
+                    BDBG_LOG(("%s", volumePrint));
+                }
+                BDBG_LOG((" "));
+            }
+        }
+    }
+
+    /* Outputs - HDMI, Spdif, DAC, I2S */
+
+    errCode = BAPE_Debug_GetStatus( g_NEXUS_audioModuleData.debugHandle,
+                                    BAPE_DebugSourceType_eVolume,
+                                    &debugStatus);
+
+    if ( errCode == BERR_SUCCESS)
+    {
+        #if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
+        for (i=0; i < audioCapabilities.numOutputs.spdif; i++)
+        {
+            if (debugStatus.status.volumeStatus.spdif[i].enabled)
+            {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.spdif[i]);
+            }
+        }
+        #endif
+
+        #if BAPE_CHIP_MAX_MAI_OUTPUTS > 0
+        for (i=0; i < audioCapabilities.numOutputs.hdmi; i++)
+        {
+            if (debugStatus.status.volumeStatus.hdmi[i].enabled)
+            {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.hdmi[i]);
+            }
+        }
+        #endif
+        #if BAPE_CHIP_MAX_DACS > 0
+        for (i=0; i < audioCapabilities.numOutputs.dac; i++)
+        {
+            if (debugStatus.status.volumeStatus.dac[i].enabled)
+            {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.dac[i]);
+            }
+        }
+        #endif
+        #if BAPE_CHIP_MAX_I2S_OUTPUTS > 0
+        for (i=0; i < audioCapabilities.numOutputs.i2s; i++)
+        {
+            if (debugStatus.status.volumeStatus.i2s[i].enabled)
+            {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.i2s[i]);
+            }
+        }
+        #endif
+    }
+
+}
+
 BERR_Code NEXUS_AudioDebug_Init(void)
 {
     BERR_Code errCode;
-    NEXUS_ModuleSettings moduleSettings;
 
-    NEXUS_Module_GetDefaultSettings(&moduleSettings);
-    moduleSettings.priority = NEXUS_ModulePriority_eLow; /* decoder interface is slow */
-    moduleSettings.dbgPrint = NEXUS_AudioDebug_OutputPrint;
-    moduleSettings.dbgModules = "nexus_audio_debug";
-    g_NEXUS_audioDebug = NEXUS_Module_Create("audio_output", &moduleSettings);
-
-    if ( NULL == g_NEXUS_audioDebug )
-    {
-        errCode=BERR_TRACE(BERR_OS_ERROR);
-        return errCode;
-    }
-
-    NEXUS_Module_GetDefaultSettings(&moduleSettings);
-    moduleSettings.priority = NEXUS_ModulePriority_eLow; /* decoder interface is slow */
-    moduleSettings.dbgPrint = NEXUS_AudioDebug_PrintGraph;
-    moduleSettings.dbgModules = "nexus_audio_debug";
-    g_NEXUS_audioGraphDebug = NEXUS_Module_Create("audio_graph", &moduleSettings);
-
-    if ( NULL == g_NEXUS_audioGraphDebug )
-    {
-        NEXUS_Module_Destroy(g_NEXUS_audioDebug);
-        errCode=BERR_TRACE(BERR_OS_ERROR);
-        return errCode;
-    }
-
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "audio_output", "nexus_audio_debug", NEXUS_AudioDebug_OutputPrint);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "audio_graph", "nexus_audio_debug", NEXUS_AudioDebug_PrintGraph);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "audio_volume", "nexus_audio_debug", NEXUS_AudioDebug_PrintVolume);
 
     errCode = BAPE_Debug_Open(
         NEXUS_AUDIO_DEVICE_HANDLE,
@@ -722,8 +981,9 @@ BERR_Code NEXUS_AudioDebug_Init(void)
         &g_NEXUS_audioModuleData.debugHandle);
     if ( errCode )
     {
-        NEXUS_Module_Destroy(g_NEXUS_audioDebug);
-        NEXUS_Module_Destroy(g_NEXUS_audioGraphDebug);
+        NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "audio_output");
+        NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "audio_graph");
+        NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "audio_volume");
         (void)BERR_TRACE(errCode);
     }
 
@@ -733,8 +993,9 @@ BERR_Code NEXUS_AudioDebug_Init(void)
 void NEXUS_AudioDebug_Uninit(void)
 {
     BAPE_Debug_Close(g_NEXUS_audioModuleData.debugHandle);
-    NEXUS_Module_Destroy(g_NEXUS_audioDebug);
-    NEXUS_Module_Destroy(g_NEXUS_audioGraphDebug);
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "audio_output");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "audio_graph");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "audio_volume");
 }
 
 void NEXUS_AudioDebug_AddOutput(void *outputPort )

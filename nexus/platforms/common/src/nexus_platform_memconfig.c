@@ -347,7 +347,18 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
 #endif
                 }
                 if (!pSettings->display[i].window[j].used) continue;
-                pSettings->display[i].window[j].deinterlacer = structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eDeinterlacerMode;
+                if (preInitState->boxMode) {
+                    if(preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stResource.ulMad == BBOX_FTR_DISREGARD)
+                        pSettings->display[i].window[j].deinterlacer = structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eDeinterlacerMode;
+                    else if(preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stResource.ulMad == BBOX_FTR_INVALID)
+                        pSettings->display[i].window[j].deinterlacer = BVDC_DeinterlacerMode_eNone;
+                    else
+                        pSettings->display[i].window[j].deinterlacer = BVDC_DeinterlacerMode_eBestQuality;
+                }
+                else
+                {
+                    pSettings->display[i].window[j].deinterlacer = structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eDeinterlacerMode;
+                }
                 pSettings->display[i].window[j].smoothScaling = structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSmoothScaling;
                 pSettings->display[i].window[j].capture =
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSmoothScaling ||
@@ -904,7 +915,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         if(BBOX_MemcIndex_Invalid != preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex) {
             nexus_p_get_driver_heap(pPlatformSettings, preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex, true, &pConfig->display.cfc.cmpHeapIndex[i]);
         }
-        if(BBOX_MemcIndex_Invalid != preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex) {
+        if(BBOX_MemcIndex_Invalid != preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex) {
             nexus_p_get_driver_heap(pPlatformSettings, preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex, true, &pConfig->display.cfc.gfdHeapIndex[i]);
         }
     }
@@ -1012,6 +1023,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
            pConfig->videoEncoder.heapSize[vceIndex].data += structs->vce.memConfig.uiDataMemSize;
            g_NEXUS_platformHandles.estimatedMemory.memc[mainMemcIndex].videoEncoder.secure += structs->vce.memConfig.uiSecureMemSize;
 
+           /* coverity[CONSTANT_EXPRESSION_RESULT: FALSE] */
            BDBG_MSG(("VCE MEMC%d VCE%u idx%u %ux%u%c, picture "BDBG_UINT64_FMT", cabac "BDBG_UINT64_FMT, mainMemcIndex, vceIndex, i,
             structs->vce.channelSettings.stDimensions.stMax.uiWidth, structs->vce.channelSettings.stDimensions.stMax.uiHeight, pSettings->videoEncoder[i].interlaced? 'i' : 'p',
             BDBG_UINT64_ARG((uint64_t)structs->vce.memConfig.uiPictureMemSize), BDBG_UINT64_ARG((uint64_t)structs->vce.memConfig.uiSecureMemSize)));
@@ -1111,7 +1123,6 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
     NEXUS_Error rc;
     NEXUS_MemoryConfiguration *pConfig;
 
-
     pConfig = BKNI_Malloc(sizeof(*pConfig));
     if (!pConfig) return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
 
@@ -1125,6 +1136,9 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
         for (sec=0;sec<nexus_memconfig_picbuftype_max;sec++) {
             unsigned heapIndex = pConfig->pictureBuffer[i][sec].heapIndex;
             if (heapIndex != NEXUS_MAX_HEAPS) {
+                if (pSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_DTU) {
+                    continue;
+                }
                 /* only check when called from NEXUS_Platform_GetDefaultSettings */
                 if (pSettings != &g_NEXUS_platformSettings && pSettings->heap[heapIndex].size) {
                     BDBG_ERR(("Overwriting heap[%d].size %d with memconfig value", heapIndex, pSettings->heap[heapIndex].size));

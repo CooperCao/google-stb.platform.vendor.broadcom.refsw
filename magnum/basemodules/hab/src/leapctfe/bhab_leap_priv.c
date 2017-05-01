@@ -2698,8 +2698,8 @@ BERR_Code BHAB_Leap_GetLnaStatus(
     pLeap = (BHAB_Leap_P_Handle *)(handle->pImpl);
     BDBG_ASSERT(pLeap);
 
-    BHAB_CHK_RETCODE(BHAB_SendHabCommand(handle, buf, 17, pLeap->inBuf, 121, false, true, 121));
-    pStatus->externalFixedGainLnaState = pLeap->inBuf[0xc] >> 7;
+    BHAB_CHK_RETCODE(BHAB_SendHabCommand(handle, buf, 17, buf, sizeof(buf), false, true, sizeof(buf)));
+    pStatus->externalFixedGainLnaState = buf[0xc] >> 7;
 
 done:
     return retCode;

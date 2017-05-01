@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)20014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  async queries
-
-FILE DESCRIPTION
-fence sync implementation.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_fencesync.h"
 #include "../common/khrn_mem.h"
 #include "libs/core/v3d/v3d_gen.h"
@@ -15,7 +8,7 @@ fence sync implementation.
 #include "libs/platform/v3d_platform.h"
 
 static bool fencesync_init(GLXX_FENCESYNC_T* fsync, unsigned name,
-      const KHRN_FENCE_T *fence)
+      const khrn_fence *fence)
 {
    memset(fsync, 0, sizeof(GLXX_FENCESYNC_T));
    fsync->name = name;
@@ -38,7 +31,7 @@ static void fencesync_term(void *v, size_t size)
 }
 
 GLXX_FENCESYNC_T* glxx_fencesync_create(unsigned name,
-      const KHRN_FENCE_T *fence)
+      const khrn_fence *fence)
 {
    GLXX_FENCESYNC_T *fsync = KHRN_MEM_ALLOC_STRUCT(GLXX_FENCESYNC_T);
 

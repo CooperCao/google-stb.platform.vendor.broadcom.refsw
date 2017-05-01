@@ -83,6 +83,7 @@ static void print_usage(void)
     printf(
     "  -ignore_edid   \tdon't consider HDMI EDID for audio/video output\n"
     "  -ignore_video_edid \tdon't consider HDMI EDID for video output\n"
+    "  -dolby_vision_conform force dolby vision gfx blend in IPT for conformance test\n"
     );
     printf(
 #if NEXUS_HAS_IR_INPUT
@@ -108,7 +109,7 @@ static void print_usage(void)
     "  -standby_timeout X \tnumber of seconds to wait for clients to acknowledge standby\n"
     "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure|export}. Use M or K suffix for units.\n"
     "  -audio_description \tenable audio description\n"
-    "  -persistent_sad \tenable support for persistent simple audio decoders\n"
+    "  -persistent_audio \tenable support for persistent simple audio decoders\n"
     "  -loudness [atsc|ebu]\tenable ATSC A/85 or EBU-R128 loudness equivalence.\n"
     "  -spdif4xCompressed \tenable support for spdif to output DDP compressed\n"
     );
@@ -137,16 +138,10 @@ static void print_usage(void)
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
     );
     printf(
-    "  -hdcp_version {auto|follow|hdcp1x} - if hdcp is optional or mandatory, then\n"
-    "          \tauto   - (default) Always authenticate using the highest version supported by HDMI receiver\n"
-    "          \tfollow - If HDMI receiver is a Repeater, the HDCP_version depends on the Repeater downstream topology\n"
-    "          \t         If Repeater downstream topology contains one or more HDCP 1.x device, then authenticate with Repeater using the HDCP 1.x.\n"
-    );
-    printf(
-    "          \t         If Repeater downstream topology contains only HDCP 2.2 devices, then authenticate with Repeater using HDCP 2.2\n"
-    "          \t         If HDMI Receiver is not a Repeater, then default to 'auto' selection\n"
+    "  -hdcp_version {auto|hdcp1x|hdcp22} - if hdcp is optional or mandatory, then\n"
+    "          \tauto   - (default) Always authenticate using the highest version supported by HDMI receiver (Content Stream Type 0)\n"
     "          \thdcp1x - Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
-    "          \thdcp22 - Always authenticate using HDCP 2.2 mode (regardless of HDMI Receiver capabilities)\n"
+    "          \thdcp22 - Always authenticate using HDCP 2.2 mode, Content Stream Type 1\n"
     );
     printf(
     "  -spd VENDOR,DESCRIPTION \tSPD vendorName and description to transmit in HDMI SpdInfoFrame.\n"
@@ -176,6 +171,7 @@ static void print_usage(void)
     printf(
     "  -videoDacBandGapAdjust VALUE\n"
     "  -videoDacDetection\n"
+    "  -cgmsB\n"
     );
     printf(
     "  -enablePassthroughAudioPlayback\n"
@@ -257,11 +253,6 @@ static void set_dynamic_picture_buffers(NEXUS_PlatformSettings *pPlatformSetting
     for (i=0;i<NEXUS_MAX_STILL_DECODERS;i++) {
         pMemConfigSettings->stillDecoder[i].dynamicPictureBuffers = true;
     }
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        if (pPlatformSettings->heap[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) {
-            pPlatformSettings->heap[i].memoryType = NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
-        }
-    }
 }
 
 static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings, const char * const *memconfig_str, unsigned memconfig_str_total)
@@ -286,7 +277,12 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
             }
         }
         else if (sscanf(memconfig_str[i], "videoDecoder,%u,%u,%u", &index, &maxWidth, &maxHeight) == 3 && index < NEXUS_MAX_VIDEO_DECODERS) {
-            pMemConfigSettings->videoDecoder[index].maxFormat = lookup_format(maxWidth, maxHeight, false /* don't care */);
+            if (!maxWidth || !maxHeight) {
+                pMemConfigSettings->videoDecoder[index].used = false;
+            }
+            else {
+                pMemConfigSettings->videoDecoder[index].maxFormat = lookup_format(maxWidth, maxHeight, false /* don't care */);
+            }
         }
         else if (sscanf(memconfig_str[i], "videoDecoder,%u,mosaic,%u,%u,%u", &index, &numMosaics, &maxWidth, &maxHeight) == 4 && index < NEXUS_MAX_VIDEO_DECODERS) {
             pMemConfigSettings->videoDecoder[index].mosaic.maxNumber = numMosaics;
@@ -648,6 +644,10 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             /* keep followPreferredFormat true for audio. preventUnsupportedFormat will be ignored. */
             settings->hdmi.ignoreVideoEdid = true;
         }
+        else if (!strcmp(argv[curarg], "-dolby_vision_conform")) {
+            /* gfx blended in IPT color space for dolby vision conformance test. */
+            settings->hdmi.dolbyVision.blendInIpt = true;
+        }
 #endif
         else if (!strcmp(argv[curarg], "-frontend")) {
             /* for backward compat, allow just -frontend, but check for "-frontend off" */
@@ -914,6 +914,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
         else if (!strcmp(argv[curarg], "-ms12")) {
             settings->session[0].dolbyMs = nxserverlib_dolby_ms_type_ms12;
+            settings->session[0].persistentDecoderSupport = true;
         }
         else if (!strcmp(argv[curarg], "-loudness") && curarg+1 < argc) {
             ++curarg;
@@ -931,7 +932,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         else if (!strcmp(argv[curarg], "-karaoke")) {
             settings->session[0].karaoke = true;
         }
-        else if (!strcmp(argv[curarg], "-persistent_sad")) {
+        else if (!strcmp(argv[curarg], "-persistent_audio") || !strcmp(argv[curarg], "-persistent_sad")) {
             settings->session[0].persistentDecoderSupport = true;
         }
         else if (!strcmp(argv[curarg], "-spdif4xCompressed")) {
@@ -979,7 +980,6 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         else if (!strcmp(argv[curarg], "-hdcp_version") && argc>curarg+1) {
             curarg++;
             if      (!strcmp(argv[curarg],"auto"  ))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eAuto;
-            else if (!strcmp(argv[curarg],"follow"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eFollow;
             else if (!strcmp(argv[curarg],"hdcp1x"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp1x;
             else if (!strcmp(argv[curarg],"hdcp22"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp22;
             else {
@@ -1014,6 +1014,9 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
         else if (!strcmp(argv[curarg], "-videoDacDetection")) {
             cmdline_settings->video.dacDetection = true;
+        }
+        else if (!strcmp(argv[curarg], "-cgmsB")) {
+            cmdline_settings->video.allowCgmsB = true;
         }
         else if (!strcmp(argv[curarg], "-enablePassthroughAudioPlayback")) {
             settings->audioDecoder.enablePassthroughBuffer = true;
@@ -1191,12 +1194,18 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     if (cmdline_settings->video.dacDetection) {
         pPlatformSettings->displayModuleSettings.dacDetection = NEXUS_VideoDacDetection_eOn;
     }
+    if (cmdline_settings->video.allowCgmsB) {
+        pPlatformSettings->displayModuleSettings.vbi.allowCgmsB = true;
+    }
     pPlatformSettings->permissions.userId = cmdline_settings->permissions.userId;
     pPlatformSettings->permissions.groupId = cmdline_settings->permissions.groupId;
 
     if (cmdline_settings->dtu) {
+        unsigned index;
+
         pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
         pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].offset = (uint64_t)2*1024*1024*1024; /* BA space above DRAM */
+        pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].size = 500*1024*1024;
         pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
         pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
         pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
@@ -1204,6 +1213,29 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
         pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
         pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
         pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
+
+        pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
+        pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].offset = pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].offset + (500*1024*1024); /* BA space above DRAM */
+        pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].size = 500*1024*1024;
+        pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
+        pPlatformSettings->heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
+        pPlatformSettings->heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
+        pPlatformSettings->heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
+        pPlatformSettings->heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
+        pPlatformSettings->heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
+        pPlatformSettings->heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
+
+        /* if using the DTU, we can configure all heaps as NEXUS_SecureVideo_eBoth because actual allocation will be on demand */
+        for (index=0;index<NEXUS_MAX_VIDEO_DECODERS;index++) {
+            pMemConfigSettings->videoDecoder[index].secure = NEXUS_SecureVideo_eBoth;
+        }
+        for (index=0;index<NEXUS_MAX_DISPLAYS;index++) {
+            unsigned j;
+            for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
+                pMemConfigSettings->display[index].window[j].secure = NEXUS_SecureVideo_eBoth;
+            }
+        }
+
         set_dynamic_picture_buffers(pPlatformSettings, pMemConfigSettings);
     }
 

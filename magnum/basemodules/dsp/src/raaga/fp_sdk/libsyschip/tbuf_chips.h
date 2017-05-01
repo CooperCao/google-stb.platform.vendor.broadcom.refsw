@@ -95,6 +95,15 @@
 #endif
 
 /**
+ * TB_SHARED_BETWEEN_CORES: accessing a target buffer requires taking a core mutex.
+ *                      This may be needed if the same target buffer is shared
+ *                      between multiple cores.
+ */
+#if defined(SHARED_MEMORY_MULTICORE) && defined(__PIC__)
+#  define TB_SHARED_BETWEEN_CORES
+#endif
+
+/**
  * TB_KNOWS_TRANSFERS_DEST is defined if, upon transferring toward the
  * Host, the destination buffers are known to the DSP.
  */
@@ -195,6 +204,12 @@
 #  define IF_TB_SYNC_TRANSFERS(...)
 #endif
 
+#ifdef TB_SHARED_BETWEEN_CORES
+#  define IF_TB_SHARED_BETWEEN_CORES(...)   __VA_ARGS__
+#else
+#  define IF_TB_SHARED_BETWEEN_CORES(...)
+#endif
+
 #ifdef TB_KNOWS_TRANSFERS_DEST
 #  define IF_TB_KNOWS_TRANSFERS_DEST(...)   __VA_ARGS__
 #  define IF_TB_IGNORES_TRANSFERS_DEST(...)
@@ -262,6 +277,15 @@ TB_SHARED_BUFF_ATTRS extern char BufSize_TB_Common;
 #else
 #  define TB_SHARED_ATTRS
 #endif  /* DUNA */
+
+#ifdef TB_SHARED_BETWEEN_CORES
+#include "libsyschip/core_mutex.h"
+/**
+ * If the target buffer is shared between multiple cores and locking is
+ * required, this is the mutex that protects access to the buffer.
+ */
+extern __shared_volatile core_mutex TB_mutex;
+#endif
 
 
 

@@ -1,0 +1,6 @@
+stream=Fire_HDR_UHD_HEVC.mp4
+plm.vid=0
+plm.gfx=0
+image=Avatar.bmp
+bg=epg1080p.png
+pig=on

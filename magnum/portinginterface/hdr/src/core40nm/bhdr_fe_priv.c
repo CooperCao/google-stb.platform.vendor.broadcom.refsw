@@ -1,23 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "bhdr.h"
 #include "bhdr_priv.h"
 
@@ -83,13 +101,11 @@ void BHDR_FE_P_Initialize(BHDR_FE_Handle hFrontEnd)
 
 	BREG_Handle hRegister ;
 	uint32_t Register ;
-	uint32_t ulOffset ;
 
 	BDBG_ENTER(BHDR_FE_P_Initialize) ;
 	BDBG_OBJECT_ASSERT(hFrontEnd, BHDR_FE_P_Handle) ;
 
 	hRegister = hFrontEnd->hRegister ;
-	ulOffset = hFrontEnd->ulOffset ;
 
 	Register = BREG_Read32(hRegister, BCHP_DVP_HR_TOP_SW_INIT) ;
 	Register &= ~BCHP_MASK(DVP_HR_TOP_SW_INIT, RX_0) ;
@@ -206,14 +222,8 @@ void BHDR_FE_P_OpenChannel(
 
 void BHDR_FE_P_CloseChannel(BHDR_FE_ChannelHandle hFeChannel)
 {
-	BREG_Handle hRegister ;
-	uint32_t ulOffset ;
-
 	BDBG_ENTER(BHDR_FE_P_CloseChannel) ;
 	BDBG_OBJECT_ASSERT(hFeChannel, BHDR_FE_P_ChannelHandle) ;
-
-	hRegister = hFeChannel->hRegister;
-	ulOffset = hFeChannel->ulOffset;
 
 	BDBG_LEAVE(BHDR_FE_P_CloseChannel) ;
 }
@@ -225,13 +235,11 @@ void BHDR_FE_P_CreateInterrupts(
 {
 	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t i ;
-	uint8_t  uiChannel ;
 	const BHDR_FE_P_InterruptCbTable *pInterrupts ;
 
 	BDBG_ENTER(BHDR_FE_P_CreateInterrupts) ;
 	/* Register/enable interrupt callbacks for channel */
 
-	uiChannel = hFeChannel->eChannel ;
 
 	pInterrupts = BHDR_FE_P_ChannelIntr0 ;
 
@@ -266,7 +274,6 @@ Summary: Enable/Disable Frontend Interrupts
 void BHDR_FE_P_EnableInterrupts_isr(BHDR_FE_ChannelHandle hFeChannel, bool enable)
 {
 	BERR_Code rc  ;
-	uint32_t ulOffset  ;
 	uint8_t i ;
 	const BHDR_FE_P_InterruptCbTable *pInterrupts ;
 
@@ -277,13 +284,16 @@ void BHDR_FE_P_EnableInterrupts_isr(BHDR_FE_ChannelHandle hFeChannel, bool enabl
 		return ;
 
 	/* get offset for Front End */
-	ulOffset = hFeChannel->ulOffset ;
 	pInterrupts = BHDR_FE_P_ChannelIntr0 ;
 
 	for (i = 0; i < MAKE_INTR_FE_CHN_ENUM(LAST) ; i++)
 	{
 		/* clear interrupt callback */
 		rc =  BINT_ClearCallback_isr( hFeChannel->hCallback[i]) ;
+		if (rc)
+		{
+			rc = BERR_TRACE(rc) ;
+		}
 
 		/* skip interrupt if not enabled in table...  */
 		if (!pInterrupts[i].enable)
@@ -373,11 +383,11 @@ void BHDR_FE_P_Channel_isr(
 )
 {
 	BHDR_FE_ChannelHandle hFeChannel  ;
-	BREG_Handle hRegister ;
 #if ! BHDR_CONFIG_DUAL_HPD_SUPPORT
 	uint32_t Register ;
+	uint32_t ulOffset ;
+	BREG_Handle hRegister ;
 #endif
-	uint32_t ulOffset   ;
 	bool bPllLocked;
 
 	BDBG_ENTER(BHDR_FE_P_Channel_isr) ;
@@ -391,11 +401,6 @@ void BHDR_FE_P_Channel_isr(
 #endif
 		return ;
 	}
-
-	hRegister = hFeChannel->hRegister ;
-
-	/* get offset for Front End */
-	ulOffset = hFeChannel->ulOffset ;
 
 	switch (parm2)
 	{
@@ -415,7 +420,12 @@ void BHDR_FE_P_Channel_isr(
 		break ;
 
 #else
+
 	case MAKE_INTR_FE_CHN_ENUM(RX_HOTPLUG_UPDATE) :
+		hRegister = hFeChannel->hRegister ;
+		/* get offset for Front End */
+		ulOffset = hFeChannel->ulOffset ;
+
 		Register = BREG_Read32( hRegister, BCHP_HDMI_RX_FE_0_HOTPLUG_STATUS + ulOffset) ;
 		hFeChannel->bTxDeviceAttached = BCHP_GET_FIELD_DATA(Register,
 			HDMI_RX_FE_0_HOTPLUG_STATUS, RX_HOTPLUG_IN) ;
@@ -480,13 +490,11 @@ void BHDR_FE_P_ResetPixelClockEstimation_isr(BHDR_FE_ChannelHandle hFeChannel)
 {
 	BREG_Handle hRegister ;
 	uint32_t Register ;
-	uint32_t ulOffset ;
 
 	BDBG_ENTER(BHDR_FE_P_ResetPixelClockEstimation_isr) ;
 	BDBG_OBJECT_ASSERT(hFeChannel, BHDR_FE_P_ChannelHandle) ;
 
 	hRegister = hFeChannel->hRegister;
-	ulOffset = hFeChannel->ulOffset;
 
 	Register = BREG_Read32(hRegister, BCHP_DVP_HR_HDMI_FE_0_SW_INIT ) ;
 	Register &= ~ (BCHP_MASK(DVP_HR_HDMI_FE_0_SW_INIT, FREQ_EST)) ;

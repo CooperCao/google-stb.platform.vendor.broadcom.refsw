@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,51 +34,31 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
-# Nexus examples
 
-PHONY := all nexus api clean clean_apps install
-.PHONY: ${PHONY}
+.PHONY: all nexus api clean clean_apps install
 
-THEAPPS = \
+APPS = \
+	message
+
+DECODE_APPS = \
 	playback \
-	message \
 	record \
 	decode \
 	audio_decode \
 	audio_playback \
 	video
 
+DECODE_SRCS += cmdline_args.c namevalue.c fileio_custom.c frontend.c decoder_bitrate.c
+
+APPS += $(DECODE_APPS)
+
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
 
-ifeq ($(NEXUS_USE_97445_DBS),y)
-NEXUS_FRONTEND_4538=y
-endif
-
-ifeq ($(B_REFSW_REAL_MAKE),)
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP := $(shell cd .. && cd)
-else
-NEXUS_TOP := $(shell cd ../; pwd)
-endif
-
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/utils
-
-${PHONY} ${THEAPPS}: ${BINDIR}/exists
-	@${MAKE} -C ${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
-
-${BINDIR}/exists:
-	@mkdir -p $@
-
-else # B_REFSW_REAL_MAKE
-NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
+NEXUS_TOP := $(shell cd ..;pwd)
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 # do "make api" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
@@ -88,25 +68,9 @@ else
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
+BINDIR := $(B_REFSW_OBJ_ROOT)/nexus/utils/$(B_REFSW_ARCH)
 
-ifeq ($(B_REFSW_OS),linuxkernel)
-APPSUFFIX = .ko
-APPS = $(addsuffix ${APPSUFFIX}, $(THEAPPS))
-else
-APPS = $(THEAPPS)
-endif
-
-OBJDIR=./obj
-vpath %.c ${NEXUS_TOP}/utils
 all: $(APPS)
-
-$(OBJDIR)/exists:
-	mkdir -p $(OBJDIR)
-	@touch $@
-
-ifneq ($(NEXUS_PREBUILT_BINARY),y)
-$(APPS): $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
-endif
 
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 
@@ -124,7 +88,7 @@ clean: clean_apps
 	$(MAKE) -C $(NEXUS_TOP)/build clean
 
 clean_apps:
-	-$(RM) -r $(APPS) $(OBJDIR)
+	-$(RM) -r $(addprefix $(BINDIR)/,$(APPS)) $(BINDIR)/obj
 
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -135,55 +99,31 @@ CFLAGS += -g
 
 # media probe (only needed for playback and record)
 BSEAV = $(NEXUS_TOP)/../BSEAV
-include $(BSEAV)/lib/bfile/bfile.inc
-ifeq ($(MEDIA_AVI_SUPPORT),y)
-include $(BSEAV)/lib/avi/bavi.inc
-endif
-ifeq ($(MEDIA_ASF_SUPPORT),y)
-include $(BSEAV)/lib/asf/basf.inc
-endif
-ifeq ($(MEDIA_RMFF_SUPPORT),y)
-include $(BSEAV)/lib/media/rmff/brmff.inc
-endif
 include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
-CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES)) -I$(BSEAV)/lib/mpeg2_ts_parse -I$(BSEAV)/lib/tspsi
+CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES))
 CFLAGS += $(addprefix -D,$(BMEDIA_PROBE_DEFINES))
 
-DECODE_SRCS += ./cmdline_args.c ./namevalue.c ./fileio_custom.c ./frontend.c ./decoder_bitrate.c
+# DECODE_APPS need DECODE_SRCS
+DECODE_OBJS = $(foreach file, $(DECODE_SRCS), $(BINDIR)/obj/$(patsubst %.c,%.o,$(file)))
+$(addprefix $(BINDIR)/,$(DECODE_APPS)): $(DECODE_OBJS)
 
-DECODE_OBJS = $(foreach file, $(DECODE_SRCS), $(OBJDIR)/$(notdir $(patsubst %.c, %.o, $(file))))
+$(BINDIR)/obj/%.o: %.c
+	@echo [Compile... $<]
+	@mkdir -p $(dir $@)
+	$(Q_)$(CC) -c -o $@ $^ $(CFLAGS)
 
-vpath %.c $(foreach file, $(DECODE_SRCS) $(MESSAGE_SRCS), $(dir $(patsubst %.c, %.o, $(file))))
+define example_app_rule
+$$(BINDIR)/$1: $1.c $$(if $${B_NEXUS_API_BUILD_COMPLETED}, , api)
+	@echo [Compile... $$<]
+	@mkdir -p $$(dir $$@)
+	$$(Q_)$$(CC) -o $$@ $$(filter %.c %.s %.o, $$^) $$(CFLAGS) $$(LDFLAGS)
+	cp -f $$@ $${NEXUS_BIN_DIR}
 
-$(OBJDIR)/%.o: %.c ${OBJDIR}/exists
-	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -c -o $@ $< $(CFLAGS) ${CDEP_FLAG}
+$1: $$(BINDIR)/$1
+	@test 1
+endef
 
-# this is not implicit because we don't link in $(DECODE_OBJS)
-message: $(OBJDIR)/message.o $(VXOBJS)
-	@echo [Link...... $@]
-ifeq ($(B_REFSW_OS),linuxkernel)
-	${Q_}$(LD) ${LDFLAGS} --strip-debug -r $(filter %.o, $^) ${NEXUS_BIN_DIR}/libnexus.a -o $@
-else
-	$(Q_)$(CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
-endif
-	cp $@ ${NEXUS_BIN_DIR}
-
-# cancel this implicit rule so we can do separate compile & link w/ implicit rules
-%: %.c
-
-%: $(OBJDIR)/%.o $(DECODE_OBJS) $(VXOBJS)
-	@echo [Link...... $@]
-ifeq ($(B_REFSW_OS),linuxkernel)
-	${Q_}$(LD) ${LDFLAGS} --strip-debug -r $(filter %.o, $^) ${NEXUS_BIN_DIR}/libnexus.a -o $@
-else
-	$(Q_)$(CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
-endif
-	cp $@ ${NEXUS_BIN_DIR}
+$(foreach app, $(APPS), $(eval $(call example_app_rule,$(strip $(app)))))
 
 install: all
-
--include ${OBJDIR}/*.d
-
-endif # B_REFSW_REAL_MAKE

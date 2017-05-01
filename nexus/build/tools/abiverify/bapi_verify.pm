@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -636,9 +636,24 @@ sub process_arguments {
     my @trace_format;
     my @trace_names;
     my @trace_args;
+    my $func_callback_kind='_UNKNOWN';
+    if(scalar @{$func->{PARAMS}} >= 1) {
+        if (is_handle($func->{RETTYPE}, $class_handles)) {
+            $func_callback_kind='_CONSTRUCTOR';
+        } elsif (is_handle($func->{PARAMS}[0]{TYPE}, $class_handles)) {
+            $func_callback_kind= '';
+        } elsif(is_special_handle($func->{PARAMS}[0]{TYPE})) {
+            $func_callback_kind = '_ENUM';
+        } elsif ($func->{PARAMS}[0]{ISREF} && (scalar @{$func->{PARAMS}} == 1)) {
+            $func_callback_kind = '_INIT';
+        }
+    }
     for my $param (@{$func->{PARAMS}} ) {
+        my $callback_kind = $func_callback_kind;
+        if(exists $param->{ATTR}{pragma} && $param->{ATTR}{pragma} eq 'ClearCallbacks') {
+            $callback_kind='_CLEAR';
+        }
         $arg_no++;
-        my $callback_kind='_UNKNOWN';
         push @trace_names,$param->{NAME};
         if($param->{ISREF} || is_handle($param->{TYPE}, $class_handles) || $param->{TYPE} eq 'NEXUS_AnyObject' ) {
             push @trace_format, "%p";
@@ -649,19 +664,6 @@ sub process_arguments {
         } else {
             push @trace_format, "%u";
             push @trace_args, "(unsigned)$param->{NAME}";
-        }
-        if (is_handle($func->{RETTYPE}, $class_handles)) {
-            $callback_kind='_CONSTRUCTOR';
-        } elsif (is_handle($func->{PARAMS}[0]{TYPE}, $class_handles)) {
-            $callback_kind= '';
-        } elsif ($func->{PARAMS}[0]{ISREF}) {
-            if($arg_no == 1 && (scalar @{$func->{PARAMS}} == 1)) {
-                $callback_kind = '_INIT';
-            } else {
-                $callback_kind = '_UNKNOWN';
-            }
-        } else {
-            $callback_kind = '_ENUM';
         }
         if ($param->{INPARAM}) {
             if(is_handle($param->{TYPE}, $class_handles)) {
@@ -794,8 +796,23 @@ sub process_arguments {
             if(exists $structs->{$param->{BASETYPE}}) {
                 my $field_no = 0;
                 foreach (@{$structs->{$param->{BASETYPE}}}) {
-                    next if index($_->{NAME},'[') != -1 ;  # For now skip arrays, callacks in array are not handled
                     $field_no++;
+                    if(index($_->{NAME},'[') != -1)  {
+                        if( $_->{TYPE} eq 'NEXUS_CallbackDesc') {
+                            my $cmnt_in='';
+                            my $cmnt_out='';
+                            if(exists $param->{ATTR}{pragma} && $param->{ATTR}{pragma} eq 'IgnoreArrayCallbacks') {
+                                $cmnt_in='/*';
+                                $cmnt_out='*/';
+                            }
+                            push @{$code->{SERVER}{CALLBACK_PRE}}, "$cmnt_in B_IPC_NOT_SUPPORTED(\"NEXUS_CallbackDesc in $funcname $param->{NAME} $_->{NAME} in array is not supported\") $cmnt_out";
+                            next;
+                        }
+                        if(exists $_->{ATTR}{memory} && $_->{ATTR}{memory} eq 'cached') {
+                            push @{$code->{SERVER}{CALLBACK_PRE}}, "B_IPC_NOT_SUPPORTED(\"device address in $funcname $param->{NAME} $_->{NAME} in array is not supported\")";
+                            next;
+                        }
+                    }
                     if( $_->{TYPE} eq 'NEXUS_CallbackDesc') {
                         my $id = sprintf("0x%04x", ((bapi_util::struct_id $structs, $param->{BASETYPE})*256 + $field_no));
                         if ($param->{INPARAM}) {
@@ -931,6 +948,11 @@ sub generate_driver_process_ioctls {
         if(scalar @{$func->{PARAMS}}) {
             print $fout "    B_IPC_DRIVER_RECV_IOCTL($module,  _${funcname})\n";
         }
+        print $fout "    /* disable verification of arguments, they will get verified by nexus_p_api_call_verify */\n";
+        print $fout "    /* coverity[ tainted_data : FALSE ] */\n";
+        print $fout "    /* coverity[ tainted_data_transitive : FALSE ] */\n";
+        print $fout "    /* coverity[ FORWARD_NULL : FALSE ] */\n";
+
         bapi_util::print_code($fout, $code->{DRIVER}{ASSIGN}, $tab);
         bapi_util::print_code($fout, $code->{DRIVER}{RECV}, $tab);
         bapi_util::print_code($fout, $code->{DRIVER}{COPY_IN}, $tab);

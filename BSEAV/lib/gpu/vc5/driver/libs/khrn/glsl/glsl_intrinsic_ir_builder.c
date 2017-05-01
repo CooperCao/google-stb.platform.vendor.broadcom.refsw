@@ -220,7 +220,7 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
 
    const DataflowType component_type_index = glsl_prim_index_to_df_type(primitiveScalarTypeIndices[sampler_info->return_type]);
    const bool         scalar_result        = expr->type == &primitiveTypes[PRIM_FLOAT];
-   glsl_dataflow_construct_texture_gadget(
+   glsl_dataflow_construct_texture_lookup(
           &scalar_values[0],
           scalar_result ? NULL : &scalar_values[1],
           scalar_result ? NULL : &scalar_values[2],

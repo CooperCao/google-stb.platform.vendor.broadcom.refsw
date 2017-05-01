@@ -498,7 +498,11 @@ static void BCHP_PWR_P_HW_AUD_PLL2_Control(BCHP_Handle handle, bool activate)
 
 static void BCHP_PWR_P_HW_AUD_DAC_Control(BCHP_Handle handle, bool activate)
 {
+#if defined(BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2_STB_pu_MASK) || defined(BCHP_STB_power_rail_OK_MASK) || defined(BCHP_STB_ready4sample_MASK)
     uint32_t mask, reg;
+#else
+    BSTD_UNUSED(handle);
+#endif
 
     BDBG_MSG(("HW_AUD_DAC: %s", activate?"on":"off"));
 

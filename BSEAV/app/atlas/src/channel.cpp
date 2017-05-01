@@ -113,9 +113,19 @@ CChannel::CChannel(
     _numSubChannels(0),
     _pParent(NULL),
     _pModel(NULL),
-    _pWidgetEngine(NULL)
+    _pWidgetEngine(NULL),
+    _pVideoDecode(NULL),
+    _pAudioDecode(NULL),
+    _dynamicRange(eDynamicRange_Unknown)
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    ,_bPlm(true)
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    ,_bPlmGfx(true)
+#endif
 {
     _pidMgr.initialize(_pCfg);
+    _geomVideoWindowPercent = MRect(0, 0, 0, 0);
 }
 
 CChannel::CChannel(const CChannel & ch) :
@@ -159,8 +169,18 @@ CChannel::CChannel(const CChannel & ch) :
     _numSubChannels(0),
     _pParent(NULL),
     _pModel(ch._pModel),
-    _pWidgetEngine(ch._pWidgetEngine)
+    _pWidgetEngine(ch._pWidgetEngine),
+    _pVideoDecode(NULL),
+    _pAudioDecode(NULL),
+    _dynamicRange(eDynamicRange_Unknown)
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    ,_bPlm(true)
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    ,_bPlmGfx(true)
+#endif
 {
+    _geomVideoWindowPercent = MRect(0, 0, 0, 0);
 }
 
 CChannel::~CChannel()
@@ -319,11 +339,42 @@ void CChannel::dump(bool bForce)
     }
 } /* dump */
 
+/* rectGeometryPercent range: 0-1000 = 0-100.0% */
+eRet CChannel::addImageLabel(MString strImagePath, MRect rectGeometryPercent, unsigned zOrder, MString strText)
+{
+    eRet ret = eRet_Ok;
+
+    CLabelData * pLabelData = new CLabelData();
+    CHECK_PTR_ERROR_GOTO("unable to allocate label data", pLabelData, ret, eRet_OutOfMemory, error);
+
+    if (false == strImagePath.isEmpty())
+    {
+        BDBG_MSG(("CChannel::addImageLabel() - %s", strImagePath.s()));
+        pLabelData->_strImagePath = MString("images/") + strImagePath;
+    }
+
+    /* geometry range is in percent */
+    pLabelData->_rectGeometryPercent = rectGeometryPercent;
+    pLabelData->_zorder              = zOrder;
+    pLabelData->_strText             = strText;
+
+    /* add to list of label tag data */
+    _labelList.add(pLabelData);
+error:
+    return(ret);
+}
+
 eRet CChannel::readXML(MXmlElement * xmlElemChannel)
 {
     eRet    ret = eRet_Ok;
     MString strMajor;
     MString strMinor;
+    MString strText;
+    MString strX;
+    MString strY;
+    MString strWidth;
+    MString strHeight;
+    MString strZOrder;
 
     BDBG_ASSERT(NULL != xmlElemChannel);
 
@@ -339,15 +390,163 @@ eRet CChannel::readXML(MXmlElement * xmlElemChannel)
         setMinor(strMinor.toInt());
     }
 
+    /* channels can specify the geometry of their associated video window */
+    strX      = xmlElemChannel->attrValue(XML_ATT_X);
+    strY      = xmlElemChannel->attrValue(XML_ATT_Y);
+    strWidth  = xmlElemChannel->attrValue(XML_ATT_WIDTH);
+    strHeight = xmlElemChannel->attrValue(XML_ATT_HEIGHT);
+    if ((false == strX.isEmpty()) && (false == strY.isEmpty()))
+    {
+        CLabelData * pLabelData = new CLabelData();
+        CHECK_PTR_ERROR_GOTO("unable to allocate label data", pLabelData, ret, eRet_OutOfMemory, error);
+
+        setVideoWindowGeometryPercent((unsigned)(10 * strX.toFloat()), (unsigned)(10 * strY.toFloat()), (unsigned)(10 * strWidth.toFloat()), (unsigned)(10 * strHeight.toFloat()));
+
+        /* add label behind video window to punch thru any background graphics */
+        pLabelData->_rectGeometryPercent = MRect(0, 0, 1000, 1000);
+        pLabelData->_zorder              = 0;
+
+        /* keep list of label tag data */
+        _labelList.add(pLabelData);
+    }
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    _bPlmGfx = ("false" == MString(xmlElemChannel->attrValue(XML_ATT_PLM_GFX))) ? false : true;
+#endif
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    _bPlm    = ("false" == MString(xmlElemChannel->attrValue(XML_ATT_PLM))) ? false : true;
+#endif
+    /* handle any <label> tags and attributes */
+    {
+        MXmlElement * xmlElemImage = NULL;
+        for (xmlElemImage = xmlElemChannel->firstChild(); xmlElemImage; xmlElemImage = xmlElemChannel->nextChild())
+        {
+            MString strImagePath;
+
+            if (xmlElemImage->tag() != XML_TAG_LABEL)
+            {
+                continue;
+            }
+
+            /* found <label> tag */
+            strImagePath = xmlElemImage->attrValue(XML_ATT_FILENAME);
+            strText      = xmlElemImage->attrValue(XML_ATT_TEXT);
+            strX         = xmlElemImage->attrValue(XML_ATT_X);
+            strY         = xmlElemImage->attrValue(XML_ATT_Y);
+            strWidth     = xmlElemImage->attrValue(XML_ATT_WIDTH);
+            strHeight    = xmlElemImage->attrValue(XML_ATT_HEIGHT);
+            strZOrder    = xmlElemImage->attrValue(XML_ATT_ZORDER);
+
+            if ((false == strImagePath.isEmpty()) || (false == strText.isEmpty()))
+            {
+                MRect rectPercent = MRect((unsigned)(10 * strX.toFloat()), (unsigned)(10 * strY.toFloat()), (unsigned)(10 * strWidth.toFloat()), (unsigned)(10 * strHeight.toFloat()));
+
+                addImageLabel(strImagePath, rectPercent, strZOrder.toInt(), strText);
+            }
+        }
+    }
+
+error:
     return(ret);
 } /* readXML */
 
 void CChannel::writeXML(MXmlElement * xmlElemChannel)
 {
+    eRet ret = eRet_Ok;
+    MRect rectGeomPercent = getVideoWindowGeometryPercent();
+    float f = 0.0;
+    char strFloat[8];
+
     BDBG_ASSERT(NULL != xmlElemChannel);
 
     xmlElemChannel->addAttr(XML_ATT_MAJOR, MString(getMajor()));
     xmlElemChannel->addAttr(XML_ATT_MINOR, MString(getMinor()));
+
+    if (false == rectGeomPercent.isNull())
+    {
+        /* convert geometry values from 0-1000 to 0-100.0 */
+        snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(rectGeomPercent.x()) / 10.0);
+        xmlElemChannel->addAttr(XML_ATT_X, strFloat);
+
+        snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(rectGeomPercent.y()) / 10.0);
+        xmlElemChannel->addAttr(XML_ATT_Y, strFloat);
+
+        snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(rectGeomPercent.width()) / 10.0);
+        xmlElemChannel->addAttr(XML_ATT_WIDTH, strFloat);
+
+        snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(rectGeomPercent.height()) / 10.0);
+        xmlElemChannel->addAttr(XML_ATT_HEIGHT, strFloat);
+    }
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    xmlElemChannel->addAttr(XML_ATT_PLM_GFX, (true == _bPlmGfx) ? "true" : "false");
+#endif
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    xmlElemChannel->addAttr(XML_ATT_PLM,     (true == _bPlm) ? "true" : "false");
+#endif
+
+    /* add channel labels */
+    {
+        CLabelData * pLabelData         = NULL;
+        MRect        rectGeomPercent;
+
+        /* first channel label may be a blank label behind video window used to
+           punch through the background image.  if so we will skip it and not
+           save it since it will be auto recreated in readXml() */
+        if (NULL != (pLabelData = _labelList.first()))
+        {
+            if ((pLabelData->_rectGeometryPercent == MRect(0, 0, 1000, 1000)) &&
+                (pLabelData->_zorder              == 0) &&
+                (pLabelData->_strImagePath.isEmpty()))
+            {
+                /* found video window blank label - skip */
+                pLabelData = _labelList.next();
+            }
+        }
+
+        for (; pLabelData; pLabelData = _labelList.next())
+        {
+            MXmlElement * pXmlLabel = new MXmlElement(xmlElemChannel, "label", strlen("label"));
+            CHECK_PTR_ERROR_GOTO("unable to allocate MXmlElement", pXmlLabel, ret, eRet_OutOfMemory, error);
+
+            if (false == pLabelData->_strImagePath.isEmpty())
+            {
+                MString strFilename     = pLabelData->_strImagePath;
+                int     indexFoundDelim = 0;
+
+                /* remove path if it exists */
+                indexFoundDelim = pLabelData->_strImagePath.findRev('/');
+                if (-1 < indexFoundDelim)
+                {
+                    indexFoundDelim++;
+                    strFilename = pLabelData->_strImagePath.mid(indexFoundDelim);
+                }
+
+                pXmlLabel->addAttr(XML_ATT_FILENAME, strFilename);
+            }
+
+            if (false == pLabelData->_strText.isEmpty())
+            {
+                pXmlLabel->addAttr(XML_ATT_TEXT, pLabelData->_strText);
+            }
+
+            /* convert geometry values from 0-1000 to 0-100.0 */
+            snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(pLabelData->_rectGeometryPercent.x()) / 10.0);
+            pXmlLabel->addAttr(XML_ATT_X, strFloat);
+
+            snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(pLabelData->_rectGeometryPercent.y()) / 10.0);
+            pXmlLabel->addAttr(XML_ATT_Y, strFloat);
+
+            snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(pLabelData->_rectGeometryPercent.width()) / 10.0);
+            pXmlLabel->addAttr(XML_ATT_WIDTH, strFloat);
+
+            snprintf(strFloat, sizeof(strFloat) - 1, "%.1f", (float)(pLabelData->_rectGeometryPercent.height()) / 10.0);
+            pXmlLabel->addAttr(XML_ATT_HEIGHT, strFloat);
+
+            pXmlLabel->addAttr(XML_ATT_ZORDER, MString(pLabelData->_zorder));
+        }
+    }
+
+error:
+    return;
 }
 
 bool CChannel::isRecording(void)
@@ -583,37 +782,36 @@ eRet CChannel::openPids(
     pPcrPid   = getPid(0, ePidType_Pcr);
 
     /* open pids */
-    if (pVideoPid)
+    if (pVideoPid && false == pVideoPid->isOpen())
     {
         CHECK_PTR_ERROR_GOTO("missing parser band - tune failed", pParserBand, ret, eRet_InvalidState, error);
         ret = pVideoPid->open(pParserBand);
         CHECK_ERROR_GOTO("open video pid channel failed", ret, error);
     }
 
-    if (pAudioPid)
+    if (pAudioPid && false == pAudioPid->isOpen())
     {
         CHECK_PTR_ERROR_GOTO("missing parser band - tune failed", pParserBand, ret, eRet_InvalidState, error);
         ret = pAudioPid->open(pParserBand);
         CHECK_ERROR_GOTO("open audio pid channel failed", ret, error);
     }
 
-    if (pPcrPid)
+    /* only open pcr pid channel if it is different from audio/video pids */
+    if(pPcrPid == NULL)
     {
-        /* only open pcr pid channel if it is different from audio/video pids */
-        if (false == pPcrPid->isOpen())
-        {
-            CHECK_PTR_ERROR_GOTO("missing parser band - tune failed", pParserBand, ret, eRet_InvalidState, error);
-            ret = pPcrPid->open(pParserBand);
-            CHECK_ERROR_GOTO("open Pcr pid channel failed", ret, error);
-        }
+        BDBG_ERR(("PCR IS NULL"));
+        ret = eRet_ExternalError;
+        goto error;
+    }
+
+    if (pPcrPid && pPcrPid->isUniquePcrPid() && (false == pPcrPid->isOpen()) )
+    {
+        CHECK_PTR_ERROR_GOTO("missing parser band - tune failed", pParserBand, ret, eRet_InvalidState, error);
+        ret = pPcrPid->open(pParserBand);
+        CHECK_ERROR_GOTO("open Pcr pid channel failed", ret, error);
     }
 
     _pStc->setStcType(((NULL != pVideoPid) && (NULL != pAudioPid)) ? eStcType_ParserBand : eStcType_ParserBandSyncOff);
-    if (pPcrPid == NULL)
-    {
-        BDBG_ERR((" ERROR COME out PCR IS NULL"));
-        return(eRet_ExternalError);
-    }
     ret = _pStc->configure(pPcrPid);
     CHECK_ERROR_GOTO("error configuring stc channel", ret, error);
 
@@ -658,7 +856,19 @@ eRet CChannel::start(
     BSTD_UNUSED(pAudioDecode);
     BSTD_UNUSED(pVideoDecode);
 
+    _pAudioDecode = pAudioDecode;
+    _pVideoDecode = pVideoDecode;
+
+    notifyObservers(eNotify_ChannelStart, this);
     return(eRet_Ok);
+}
+
+eRet CChannel::finish()
+{
+    eRet ret = eRet_Ok;
+
+    ret = notifyObservers(eNotify_ChannelFinish, this);
+    return(ret);
 }
 
 /* Every Channel Needs to implement Channel Stats Function in order to expose certain Stats to Users*/
@@ -703,4 +913,25 @@ bool CChannel::verify(PROGRAM_INFO_T * pProgramInfo)
     }
 
     return(bValidVideo && bValidAudio);
+}
+
+/* set the video window size and position as a percentage of the actual video size. video window
+   size is applied when decode is started (see CChannel::decodeChannel()) */
+void CChannel::setVideoWindowGeometryPercent(
+                    unsigned percentX,
+                    unsigned percentY,
+                    unsigned percentW,
+                    unsigned percentH)
+{
+    _geomVideoWindowPercent.setX(percentX);
+    _geomVideoWindowPercent.setY(percentY);
+    _geomVideoWindowPercent.setWidth(percentW);
+    _geomVideoWindowPercent.setHeight(percentH);
+}
+
+void CChannel::setVideoWindowGeometryPercent(MRect * pRectPercent)
+{
+    BDBG_ASSERT(NULL != pRectPercent);
+
+    _geomVideoWindowPercent = *pRectPercent;
 }

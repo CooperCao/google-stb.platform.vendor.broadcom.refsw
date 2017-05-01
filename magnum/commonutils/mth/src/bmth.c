@@ -1,30 +1,41 @@
-/*
- * ====================================================
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * Portions of file Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * ====================================================
- */
-/***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Except as expressly set forth in the Authorized License,
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 #include "bstd.h"
 #include "bmth.h"
 #include "bmth_fix.h"
@@ -41,13 +52,13 @@
 /* BDBG_MODULE(bmth); enable when adding debug prints */
 
 
-void BMTH_HILO_64TO64_Neg(uint32_t xhi, uint32_t xlo, uint32_t *pouthi, uint32_t *poutlo)
+void BMTH_HILO_64TO64_Neg_isrsafe(uint32_t xhi, uint32_t xlo, uint32_t *pouthi, uint32_t *poutlo)
 {
 	*poutlo = ~xlo + 1;
 	*pouthi = ~xhi + ((*poutlo == 0) ? 1 : 0);
 }
 
-void BMTH_HILO_32TO64_Mul(uint32_t x, uint32_t y, uint32_t *pouthi, uint32_t *poutlo)
+void BMTH_HILO_32TO64_Mul_isrsafe(uint32_t x, uint32_t y, uint32_t *pouthi, uint32_t *poutlo)
 {
 	uint32_t xhi, xlo, yhi, ylo, ahi, alo, bhi, blo;
 
@@ -66,13 +77,13 @@ void BMTH_HILO_32TO64_Mul(uint32_t x, uint32_t y, uint32_t *pouthi, uint32_t *po
 	*pouthi += xhi * yhi;
 }
 
-void BMTH_HILO_64TO64_Mul(uint32_t xhi, uint32_t xlo, uint32_t yhi, uint32_t ylo, uint32_t *pouthi, uint32_t *poutlo)
+void BMTH_HILO_64TO64_Mul_isrsafe(uint32_t xhi, uint32_t xlo, uint32_t yhi, uint32_t ylo, uint32_t *pouthi, uint32_t *poutlo)
 {
 	BMTH_HILO_32TO64_Mul(xlo, ylo, pouthi, poutlo);
 	*pouthi += (xhi * ylo) + (xlo * yhi);
 }
 
-void BMTH_HILO_64TO64_Add(uint32_t xhi, uint32_t xlo, uint32_t yhi, uint32_t ylo, uint32_t *pouthi, uint32_t *poutlo)
+void BMTH_HILO_64TO64_Add_isrsafe(uint32_t xhi, uint32_t xlo, uint32_t yhi, uint32_t ylo, uint32_t *pouthi, uint32_t *poutlo)
 {
 	uint32_t tempxlo = xlo;
 	uint32_t tempxhi = xhi;
@@ -129,7 +140,7 @@ void BMTH_HILO_64TO64_Div32(uint32_t xhi, uint32_t xlo, uint32_t y, uint32_t *po
 #else
 #define BMTH_PRINTF(x)
 
-void BMTH_HILO_64TO64_Div32(uint32_t xhi, uint32_t xlo, uint32_t y, uint32_t *pouthi, uint32_t *poutlo)
+void BMTH_HILO_64TO64_Div32_isrsafe(uint32_t xhi, uint32_t xlo, uint32_t y, uint32_t *pouthi, uint32_t *poutlo)
 {
     /* this algo uses 64 bit add/subtract/bitshift, but not 64 bit multiply/divide */
     uint64_t xx = (uint64_t)xhi << 32 | xlo;
@@ -168,7 +179,7 @@ void BMTH_HILO_64TO64_Div32(uint32_t xhi, uint32_t xlo, uint32_t y, uint32_t *po
 }
 #endif
 
-uint32_t BMTH_2560log10(uint32_t x)
+uint32_t BMTH_2560log10_isrsafe(uint32_t x)
 {
   int32_t  x1;
   int32_t  x2;

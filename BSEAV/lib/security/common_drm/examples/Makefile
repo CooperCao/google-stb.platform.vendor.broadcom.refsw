@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -112,9 +112,9 @@ CFLAGS += -I$(BSEAV_TOP)/lib/security/sage/srai/include
 endif
 
 ifeq ($(SAGE_VERSION), 2x)
-PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
+PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
 else
-PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
 endif
 
 PLAYREADY_LIB_PATH :=

@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_SURFACE_H
 #define EGL_SURFACE_H
 #include "../common/khrn_image.h"
@@ -53,8 +47,8 @@ extern EGL_THREAD_T *egl_surface_get_thread(const EGL_SURFACE_T *surface);
  * shared with the client api, so make sure you have the correct lock when
  * doing operations in egl with this image;
  *( e.g : see how egl_surface_get_back_buffer is used in egl_context_gl.c) */
-extern KHRN_IMAGE_T *egl_surface_get_back_buffer(const EGL_SURFACE_T *surface);
-extern KHRN_IMAGE_T *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
+extern khrn_image *egl_surface_get_back_buffer(const EGL_SURFACE_T *surface);
+extern khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
       egl_aux_buf_t which);
 
 extern EGL_SURFACE_T *egl_surface_lock(EGLSurface handle);

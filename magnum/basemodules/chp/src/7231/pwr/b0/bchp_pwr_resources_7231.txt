@@ -93,11 +93,11 @@ AUD_PLL1 -> HW_AUD_PLL1
 # BPWR_Open used to guarantee this initial power requirement, but BPWR is being phased-out.
 # The BINT_OPEN node will handle this instead, by being acquired and released around the BINT_Open call.
 
-BINT_OPEN -> {AVD, AUD_AIO, VDC, XPT, HDMI_TX, M2MC}
+BINT_OPEN -> {AVD, AUD_AIO, VDC, XPT, HDMI_TX, M2MC, GRAPHICS3D, SID}
 
 
 # MAGNUM_CONTROLLED is a special node that keeps track of resources whose power management is done in Magnum (as opposed to upper-level SW, e.g. Nexus)
 # During BCHP_PWR_Open, all HW resources that are dependants of MAGNUM_CONTROLLED will be initialized (i.e. powered down)
 # Upper-level SW is responsible for initializing all other HW resources
 
-MAGNUM_CONTROLLED -> {AVD, AUD_AIO, RAAGA, VDC, XPT, HDMI_TX, SMARTCARD}
+MAGNUM_CONTROLLED -> {AVD, AUD_AIO, RAAGA, VDC, XPT, HDMI_TX, M2MC, GRAPHICS3D, SID, SMARTCARD}

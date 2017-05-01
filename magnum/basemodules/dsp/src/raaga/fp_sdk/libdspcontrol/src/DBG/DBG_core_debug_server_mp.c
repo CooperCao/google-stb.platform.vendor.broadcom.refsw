@@ -128,6 +128,7 @@ DBG_core_debug_server_init(DBG *dbg)
     p_dbg_server->gdb_get_pid_state_cb = NULL;
     p_dbg_server->gdb_process_freeze_cb = NULL;
     p_dbg_server->gdb_process_attach_cb = NULL;
+    p_dbg_server->gdb_process_get_tid_list_cb = NULL;
 
     p_dbg_server->gdb_thread_freeze_cb = NULL;
 

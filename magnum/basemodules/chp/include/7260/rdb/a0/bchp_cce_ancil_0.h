@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,27 +70,27 @@
 /***************************************************************************
  *CCE_ANCIL_0 - CCE_ANCIL_0 registers
  ***************************************************************************/
-#define BCHP_CCE_ANCIL_0_Ancil_RevID             0x206e8a00 /* [RO] CC Encoder Revision ID Register */
-#define BCHP_CCE_ANCIL_0_Ancil_Active_Lines      0x206e8a08 /* [RW] Active Lines Register */
-#define BCHP_CCE_ANCIL_0_Ancil_Control           0x206e8a0c /* [RW] Control Register */
-#define BCHP_CCE_ANCIL_0_Ancil_Active_Lines_1    0x206e8a10 /* [RW] Active Lines 1(SCTE) Register */
-#define BCHP_CCE_ANCIL_0_Ancil_SCTE_Base_Lines   0x206e8a14 /* [RW] SCTE Base Lines Register */
-#define BCHP_CCE_ANCIL_0_Ancil_Data0             0x206e8a18 /* [RW] Data Register 0 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data1             0x206e8a1c /* [RW] Data Register 1 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data2             0x206e8a20 /* [RW] Data Register 2 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data3             0x206e8a24 /* [RW] Data Register 3 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data4             0x206e8a28 /* [RW] Data Register 4 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data5             0x206e8a2c /* [RW] Data Register 5 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data6             0x206e8a30 /* [RW] Data Register 6 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data7             0x206e8a34 /* [RW] Data Register 7 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data8             0x206e8a38 /* [RW] Data Register 8 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data9             0x206e8a3c /* [RW] Data Register 9 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data10            0x206e8a40 /* [RW] Data Register 10 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data11            0x206e8a44 /* [RW] Data Register 11 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data12            0x206e8a48 /* [RW] Data Register 12 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data13            0x206e8a4c /* [RW] Data Register 13 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data14            0x206e8a50 /* [RW] Data Register 14 */
-#define BCHP_CCE_ANCIL_0_Ancil_Data15            0x206e8a54 /* [RW] Data Register 15 */
+#define BCHP_CCE_ANCIL_0_Ancil_RevID             0x206e8a00 /* [RO][32] CC Encoder Revision ID Register */
+#define BCHP_CCE_ANCIL_0_Ancil_Active_Lines      0x206e8a08 /* [RW][32] Active Lines Register */
+#define BCHP_CCE_ANCIL_0_Ancil_Control           0x206e8a0c /* [RW][32] Control Register */
+#define BCHP_CCE_ANCIL_0_Ancil_Active_Lines_1    0x206e8a10 /* [RW][32] Active Lines 1(SCTE) Register */
+#define BCHP_CCE_ANCIL_0_Ancil_SCTE_Base_Lines   0x206e8a14 /* [RW][32] SCTE Base Lines Register */
+#define BCHP_CCE_ANCIL_0_Ancil_Data0             0x206e8a18 /* [RW][32] Data Register 0 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data1             0x206e8a1c /* [RW][32] Data Register 1 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data2             0x206e8a20 /* [RW][32] Data Register 2 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data3             0x206e8a24 /* [RW][32] Data Register 3 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data4             0x206e8a28 /* [RW][32] Data Register 4 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data5             0x206e8a2c /* [RW][32] Data Register 5 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data6             0x206e8a30 /* [RW][32] Data Register 6 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data7             0x206e8a34 /* [RW][32] Data Register 7 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data8             0x206e8a38 /* [RW][32] Data Register 8 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data9             0x206e8a3c /* [RW][32] Data Register 9 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data10            0x206e8a40 /* [RW][32] Data Register 10 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data11            0x206e8a44 /* [RW][32] Data Register 11 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data12            0x206e8a48 /* [RW][32] Data Register 12 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data13            0x206e8a4c /* [RW][32] Data Register 13 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data14            0x206e8a50 /* [RW][32] Data Register 14 */
+#define BCHP_CCE_ANCIL_0_Ancil_Data15            0x206e8a54 /* [RW][32] Data Register 15 */
 
 /***************************************************************************
  *Ancil_RevID - CC Encoder Revision ID Register

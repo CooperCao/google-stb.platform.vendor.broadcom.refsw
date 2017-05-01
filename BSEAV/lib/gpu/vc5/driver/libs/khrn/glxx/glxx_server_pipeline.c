@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Program interface API functions for ES3.1
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "libs/util/log/log.h"
 #include "../common/khrn_int_common.h"
@@ -84,7 +76,7 @@ bool glxx_pipeline_state_initialise(GLXX_SERVER_STATE_T *state)
    return true;
 }
 
-static void release_pipeline_object_callback(KHRN_MAP_T *map, uint32_t key, void *pobject, void *state)
+static void release_pipeline_object_callback(khrn_map *map, uint32_t key, void *pobject, void *state)
 {
    pipeline_object_release_programs(state, (GLXX_PIPELINE_T *)pobject);
 }
@@ -497,9 +489,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsProgramPipeline(GLuint pipeline)
 
 GL_APICALL void GL_APIENTRY glGetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
 {
-   GLenum               error  = GL_NO_ERROR;
    GLXX_SERVER_STATE_T *state  = glxx_lock_server_state(OPENGL_ES_3X);
-
    if (state == NULL)
       return;
 
@@ -508,7 +498,7 @@ GL_APICALL void GL_APIENTRY glGetProgramPipelineiv(GLuint pipeline, GLenum pname
 
    if (object == NULL)
    {
-      error = GL_INVALID_OPERATION;
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       goto end;
    }
 
@@ -530,6 +520,18 @@ GL_APICALL void GL_APIENTRY glGetProgramPipelineiv(GLuint pipeline, GLenum pname
       *params = object->stage[GRAPHICS_STAGE_VERTEX].program != NULL ? object->stage[GRAPHICS_STAGE_VERTEX].program->name : 0;
       break;
 
+#if GLXX_HAS_TNG
+   case GL_TESS_CONTROL_SHADER:
+      *params = object->stage[GRAPHICS_STAGE_TESS_CONTROL].program != NULL ? object->stage[GRAPHICS_STAGE_TESS_CONTROL].program->name : 0;
+      break;
+   case GL_TESS_EVALUATION_SHADER:
+      *params = object->stage[GRAPHICS_STAGE_TESS_EVALUATION].program != NULL ? object->stage[GRAPHICS_STAGE_TESS_EVALUATION].program->name : 0;
+      break;
+   case GL_GEOMETRY_SHADER:
+      *params = object->stage[GRAPHICS_STAGE_GEOMETRY].program != NULL ? object->stage[GRAPHICS_STAGE_GEOMETRY].program->name : 0;
+      break;
+#endif
+
    case GL_FRAGMENT_SHADER:
       *params = object->stage[GRAPHICS_STAGE_FRAGMENT].program != NULL ? object->stage[GRAPHICS_STAGE_FRAGMENT].program->name : 0;
      break;
@@ -539,14 +541,11 @@ GL_APICALL void GL_APIENTRY glGetProgramPipelineiv(GLuint pipeline, GLenum pname
       break;
 
    default:
-      error = GL_INVALID_ENUM;
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    }
 
 end:
-   if (error != GL_NO_ERROR)
-      glxx_server_state_set_error(state, error);
-
    glxx_unlock_server_state();
 }
 
@@ -704,9 +703,10 @@ void adjust_fragment_maps(IR_PROGRAM_T *ir, GLSL_PROGRAM_T *glsl_vprog, GLSL_PRO
       for (unsigned j = 0; j < sz; ++j) {
          if (inEntry >= num_ins) break;
 
-         varying[inEntry].centroid = in->centroid;
-         varying[inEntry].flat     = in->flat;
-         link_map->ins[inEntry]    = outOffset;
+         varying[inEntry].centroid      = in->centroid;
+         varying[inEntry].noperspective = in->noperspective;
+         varying[inEntry].flat          = in->flat;
+         link_map->ins[inEntry]         = outOffset;
          inEntry   += 1;
          outOffset += 1;
       }
@@ -835,45 +835,104 @@ static bool validate_in_out_interface(GLSL_INOUT_T *outs, unsigned num_outs, GLS
 
 bool glxx_pipeline_validate(const GLXX_PIPELINE_T *pipeline)
 {
-   GL20_PROGRAM_T *gl20_cprog = pipeline->stage[COMPUTE_STAGE_COMPUTE].program;
-   GL20_PROGRAM_T *gl20_vprog = pipeline->stage[GRAPHICS_STAGE_VERTEX].program;
-   GL20_PROGRAM_T *gl20_fprog = pipeline->stage[GRAPHICS_STAGE_FRAGMENT].program;
+   static const struct {
+      STAGE_T stage;
+      ShaderFlavour flavour;
+   } gfx[] = { { GRAPHICS_STAGE_VERTEX,          SHADER_VERTEX          },
+#if GLXX_HAS_TNG
+               { GRAPHICS_STAGE_TESS_CONTROL,    SHADER_TESS_CONTROL    },
+               { GRAPHICS_STAGE_TESS_EVALUATION, SHADER_TESS_EVALUATION },
+               { GRAPHICS_STAGE_GEOMETRY,        SHADER_GEOMETRY        },
+#endif
+               { GRAPHICS_STAGE_FRAGMENT,        SHADER_FRAGMENT        } };
 
-   GL20_PROGRAM_COMMON_T *gl_cprog = gl20_cprog != NULL ? &gl20_cprog->common : NULL;
-   GL20_PROGRAM_COMMON_T *gl_vprog = gl20_vprog != NULL ? &gl20_vprog->common : NULL;
-   GL20_PROGRAM_COMMON_T *gl_fprog = gl20_fprog != NULL ? &gl20_fprog->common : NULL;
+   bool haveGraphics = false;
+   for (int i=0; i<countof(gfx); i++) {
+      if (pipeline->stage[gfx[i].stage].program != NULL) haveGraphics = true;
+   }
 
-   bool haveCompute  = gl_cprog != NULL;
-   bool haveGraphics = gl_vprog != NULL || gl_fprog != NULL;
+   bool haveCompute = (pipeline->stage[COMPUTE_STAGE_COMPUTE].program != NULL);
 
    if (!haveCompute && !haveGraphics)
       return false;
 
    if (haveGraphics) {
-       // Note that not having a stage should not generate an error
-      if (gl_vprog != NULL && !gl_vprog->separable)
+      // Any stage that is attached must have a separable program bound
+      for (int i=0; i<countof(gfx); i++) {
+         GL20_PROGRAM_T *p = pipeline->stage[gfx[i].stage].program;
+         if (p && !p->separable) return false;
+      }
+
+#if GLXX_HAS_TNG
+      // If there is a TES or a TCS then both must be present
+      bool tcs = (pipeline->stage[GRAPHICS_STAGE_TESS_CONTROL].program != NULL);
+      bool tes = (pipeline->stage[GRAPHICS_STAGE_TESS_EVALUATION].program != NULL);
+      if (tcs != tes)
          return false;
 
-      if (gl_fprog != NULL && !gl_fprog->separable)
+      // If tessellation or geometry are active then a VS is required
+      bool gs = (pipeline->stage[GRAPHICS_STAGE_GEOMETRY].program != NULL);
+      bool vs = (pipeline->stage[GRAPHICS_STAGE_VERTEX].program != NULL);
+      if ( (tcs || gs) && !vs )
          return false;
+#endif
 
-      // If a stage is present then it must be linked correctly, so these are non-NULL
-      GLSL_PROGRAM_T *v = gl_vprog ? gl_vprog->linked_glsl_program : NULL;
-      GLSL_PROGRAM_T *f = gl_fprog ? gl_fprog->linked_glsl_program : NULL;
+      // Otherwise, not having a stage present isn't an error
+
+      // If a program is active for two stages no other program can be active between
+      for (int i=0; i<countof(gfx); i++) {
+         GL20_PROGRAM_T *p = pipeline->stage[gfx[i].stage].program;
+         if (p == NULL) continue;
+
+         // Find the last stage for which this program is active
+         int last = i;
+         for (int j = i+1; j < countof(gfx); j++) {
+            if (pipeline->stage[gfx[j].stage].program == p)
+               last = j;
+         }
+
+         /* We know that j < countof(gfx) but gcc gives a warning without the extra check */
+         for (int j = i+1; j <= last && j < countof(gfx); j++) {
+            GL20_PROGRAM_T *stage_p = pipeline->stage[gfx[j].stage].program;
+            if (stage_p != NULL && stage_p != p)
+               return false;
+         }
+         // Skip on to the last stage of this program
+         i = last;
+      }
 
       // If an active program contains a stage for which it is not active then fail
-      if (v && v->ir->stage[SHADER_FRAGMENT].ir != NULL && v != f) return false;
-      if (f && f->ir->stage[SHADER_VERTEX  ].ir != NULL && f != v) return false;
+      for (int i=0; i<countof(gfx); i++) {
+         GL20_PROGRAM_T *p = pipeline->stage[gfx[i].stage].program;
+         if (p == NULL) continue;
 
-      // TODO: Need a better way of only running this function on inter-program interfaces
-      if (v && f && v != f) {
-         if (!validate_in_out_interface(v->outputs, v->num_outputs, f->inputs,  f->num_inputs))
-            return false;
+         GLSL_PROGRAM_T *gp = p->common.linked_glsl_program;
+         for (int j=0; j<countof(gfx); j++) {
+            if (gp->ir->stage[gfx[j].flavour].ir != NULL && pipeline->stage[gfx[j].stage].program != p)
+               return false;
+         }
+      }
+
+      // TODO: The rest of this function doesn't work for T+G
+      if (pipeline->stage[GRAPHICS_STAGE_VERTEX].program &&
+          pipeline->stage[GRAPHICS_STAGE_FRAGMENT].program )
+      {
+         // If a stage is present then it must be linked correctly, so these are non-NULL
+         GLSL_PROGRAM_T *v = pipeline->stage[GRAPHICS_STAGE_VERTEX].program->common.linked_glsl_program;
+         GLSL_PROGRAM_T *f = pipeline->stage[GRAPHICS_STAGE_FRAGMENT].program->common.linked_glsl_program;
+
+         // TODO: Need a better way of only running this function on inter-program interfaces
+         if (v != f) {
+            if (!validate_in_out_interface(v->outputs, v->num_outputs, f->inputs,  f->num_inputs))
+               return false;
+         }
       }
    }
 
    if (haveCompute) {
-      if (gl_cprog != NULL && !gl_cprog->separable)
+      GL20_PROGRAM_COMMON_T *gl_cprog = &pipeline->stage[COMPUTE_STAGE_COMPUTE].program->common;
+
+      if (!gl_cprog->separable)
          return false;
    }
 

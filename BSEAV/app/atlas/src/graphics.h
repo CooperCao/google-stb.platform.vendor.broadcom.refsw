@@ -142,8 +142,13 @@ public:
     void                          graphicsCheckpoint(void);
     void                          flush(NEXUS_SurfaceHandle surface = NULL);
     void                          sync(bwin_framebuffer_t framebuffer);
+    void                          sync(void) { bwin_sync(_framebuffer); }
+    void                          forceDrawSync(bwidget_engine_t widgetEngine);
     eRet                          updateClientSurface(NEXUS_SurfaceClientHandle hClient, B_EventHandle hRecycleEvent, MRect * pRectUpdate = NULL);
-
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    bool                          isPlmEnabled(void);
+    void                          setPlm(bool bEnable);
+#endif
     CDisplay * getDisplay(uint8_t num = 0) { return((0 == num) ? _pDisplayPrimary : _pDisplaySecondary); }
     void       setDisplays(
             CDisplay * pDisplayPrimary,

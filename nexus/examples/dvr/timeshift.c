@@ -391,6 +391,66 @@ static void query_chunk_filenames(char *filename, unsigned filenamesize, char *i
     if (!indexname[0]) strcpy(indexname, PERMANENT_CHUNK_INDEXNAME);
 }
 
+static void export_chunkedfifo(NEXUS_ChunkedFifoRecordHandle chunkedFifofile)
+{
+    char filename[128], indexname[128], timerange[64];
+    NEXUS_ChunkedFifoRecordExportSettings settings;
+    int rc;
+    NEXUS_ChunkedFifoRecordExportHandle exportHandle;
+    char *s;
+
+    NEXUS_ChunkedFifoRecord_GetDefaultExportSettings(&settings);
+
+    query_chunk_filenames(filename, sizeof(filename), indexname, sizeof(indexname));
+    settings.filename = filename;
+    settings.indexname = indexname;
+
+    settings.first.timestamp = 0 * 1000;
+    settings.last.timestamp = 60 * 1000;
+    printf("time in seconds [%u,%u] : ", settings.first.timestamp/1000, settings.last.timestamp/1000);
+    fgets(timerange, sizeof(timerange), stdin);
+    timerange[strlen(timerange)-1] = 0;
+    s = strchr(timerange,',');
+    if (s) {
+        *s++ = 0;
+        settings.first.timestamp = atoi(timerange) * 1000;
+        settings.last.timestamp = atoi(s) * 1000;
+    }
+
+    /* deleting old chunks allows the playback_chunk autodetect of first chunk/chunk size to be reliable */
+    delete_chunked_file(filename, indexname);
+
+    /* NOTE: if chunkTemplate contains a subdir, app is responsible to mkdir first:
+        strcpy(settings.chunkTemplate, "%s/chunk.%u%03u");
+        mkdir(settings.filename);
+    */
+    strcpy(settings.chunkTemplate, "%s_%04u");
+    exportHandle = NEXUS_ChunkedFifoRecord_StartExport(chunkedFifofile, &settings);
+    if (exportHandle) {
+        NEXUS_ChunkedFifoRecordExportStatus status;
+        while (1) {
+            NEXUS_ChunkedFifoRecord_GetExportStatus(exportHandle, &status);
+            if (status.state >= NEXUS_ChunkedFifoRecordExportState_eFailed) break;
+            BKNI_Sleep(250);
+        }
+        NEXUS_ChunkedFifoRecord_StopExport(exportHandle);
+        if (status.state == NEXUS_ChunkedFifoRecordExportState_eFailed) {
+            BDBG_ERR(("export failed"));
+        }
+        else {
+            BDBG_WRN(("saved %s: timestamp %lu..%lu, chunk %u..%u, offset " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT,
+                filename,
+                status.first.timestamp, status.last.timestamp,
+                status.first.chunkNumber, status.last.chunkNumber,
+                BDBG_UINT64_ARG(status.first.offset), BDBG_UINT64_ARG(status.last.offset)
+                ));
+        }
+    }
+    else {
+        BDBG_ERR(("unable to export"));
+    }
+}
+
 int main(int argc, char **argv)
 {
     NEXUS_ParserBandSettings parserBandSettings;
@@ -417,6 +477,7 @@ int main(int argc, char **argv)
     int curarg = 1;
     unsigned interval = 1;
     bool playbackOnly = false;
+    bool exportOnly = false;
 
     memset(app, 0, sizeof(*app));
     app->rate = 1;
@@ -435,6 +496,9 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[curarg], "-play")) {
             playbackOnly = true;
         }
+        else if (!strcmp(argv[curarg], "-export")) {
+            exportOnly = true;
+        }
         else {
             print_usage();
             return -1;
@@ -446,6 +510,26 @@ int main(int argc, char **argv)
     rc = NEXUS_Platform_Init(NULL);
     if (rc) return -1;
     
+    if (exportOnly) {
+        if (app->chunksize) {
+            app->chunkedFifofile = NEXUS_ChunkedFifoRecord_ReOpenForExport(datafilename, indexfilename);
+            if (app->chunkedFifofile) {
+                set_interval(app, interval);
+                export_chunkedfifo(app->chunkedFifofile);
+                NEXUS_FileRecord_Close(NEXUS_ChunkedFifoRecord_GetFile(app->chunkedFifofile));
+                rc = 0;
+            }
+            else {
+                rc = BERR_TRACE(-1);
+            }
+        }
+        else {
+            rc = BERR_TRACE(-1);
+        }
+        NEXUS_Platform_Uninit();
+        return rc;
+    }
+
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     /******************************
@@ -794,59 +878,7 @@ int main(int argc, char **argv)
                 break;
             case 's':
                 if (app->chunksize) {
-                    char filename[128], indexname[128], timerange[64];
-                    NEXUS_ChunkedFifoRecordExportSettings settings;
-                    int rc;
-                    NEXUS_ChunkedFifoRecordExportHandle exportHandle;
-                    char *s;
-
-                    NEXUS_ChunkedFifoRecord_GetDefaultExportSettings(&settings);
-
-                    query_chunk_filenames(filename, sizeof(filename), indexname, sizeof(indexname));
-                    settings.filename = filename;
-                    settings.indexname = indexname;
-
-                    settings.first.timestamp = 0 * 1000;
-                    settings.last.timestamp = 60 * 1000;
-                    printf("time in seconds [%u,%u] : ", settings.first.timestamp/1000, settings.last.timestamp/1000);
-                    fgets(timerange, sizeof(timerange), stdin);
-                    timerange[strlen(timerange)-1] = 0;
-                    s = strchr(timerange,',');
-                    if (s) {
-                        *s++ = 0;
-                        settings.first.timestamp = atoi(timerange) * 1000;
-                        settings.last.timestamp = atoi(s) * 1000;
-                    }
-
-                    /* deleting old chunks allows the playback_chunk autodetect of first chunk/chunk size to be reliable */
-                    delete_chunked_file(filename, indexname);
-
-                    /* NOTE: if chunkTemplate contains a subdir, app is responsible to mkdir first:
-                        strcpy(settings.chunkTemplate, "%s/chunk.%u%03u");
-                        mkdir(settings.filename);
-                    */
-                    strcpy(settings.chunkTemplate, "%s_%04u");
-                    exportHandle = NEXUS_ChunkedFifoRecord_StartExport(app->chunkedFifofile, &settings);
-                    if (exportHandle) {
-                        NEXUS_ChunkedFifoRecordExportStatus status;
-                        while (1) {
-                            NEXUS_ChunkedFifoRecord_GetExportStatus(exportHandle, &status);
-                            if (status.state >= NEXUS_ChunkedFifoRecordExportState_eFailed) break;
-                            BKNI_Sleep(250);
-                        }
-                        NEXUS_ChunkedFifoRecord_StopExport(exportHandle);
-                        if (status.state == NEXUS_ChunkedFifoRecordExportState_eFailed) {
-                            BDBG_ERR(("export failed"));
-                        }
-                        else {
-                            BDBG_WRN(("saved %s: timestamp %lu..%lu, chunk %u..%u, offset " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT,
-                                filename,
-                                status.first.timestamp, status.last.timestamp,
-                                status.first.chunkNumber, status.last.chunkNumber,
-                                BDBG_UINT64_ARG(status.first.offset), BDBG_UINT64_ARG(status.last.offset)
-                                ));
-                        }
-                    }
+                    export_chunkedfifo(app->chunkedFifofile);
                 }
                 else {
                     BDBG_ERR(("save only supported with chunked fifo"));

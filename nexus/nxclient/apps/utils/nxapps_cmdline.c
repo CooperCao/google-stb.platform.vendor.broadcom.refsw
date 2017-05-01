@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "nxapps_cmdline.h"
 #include "bstd.h"
@@ -95,8 +94,9 @@ bool parse_boolean(const char *s)
 static int32_t mnr_level[SETTOP_MAX_PQ_LEVELS] = {SETTOP_ANR_DNR_OFF_LEVEL,-75,-33,0,100,200};
 static int32_t bnr_level[SETTOP_MAX_PQ_LEVELS] = {SETTOP_ANR_DNR_OFF_LEVEL,-75,-33,0,100,500};
 static int32_t dcr_level[SETTOP_MAX_PQ_LEVELS] = {SETTOP_ANR_DNR_OFF_LEVEL,-90,-50,0,50,90};
-/* ANR levels are 0 = off and 1-5 */
-static int32_t anr_level[SETTOP_MAX_PQ_LEVELS] = {SETTOP_ANR_DNR_OFF_LEVEL,-12,-6,0,6,12};
+/* ANR levels are 0 = off and 1-6 */
+#define SETTOP_MAX_ANR_LEVELS 7
+static int32_t anr_level[SETTOP_MAX_ANR_LEVELS] = {SETTOP_ANR_DNR_OFF_LEVEL,-1,0,50,100,150,200};
 #endif
 
 void nxapps_cmdline_print_usage(const struct nxapps_cmdline *cmdline)
@@ -118,7 +118,7 @@ void nxapps_cmdline_print_usage(const struct nxapps_cmdline *cmdline)
         "  -dnr MNR,BNR,DCR    video DNR. values range: 0 = off, 1..%u\n"
         "  -anr ANR            video ANR. value range: 0 = off, 1..%u\n"
         "  -sharp SHARPNESS    video sharpness. value range: 0 = off, 1..%u\n",
-        SETTOP_MAX_PQ_LEVELS-1,SETTOP_MAX_PQ_LEVELS-1,SETTOP_MAX_PQ_LEVELS-1
+        SETTOP_MAX_PQ_LEVELS-1,SETTOP_MAX_ANR_LEVELS-1,SETTOP_MAX_PQ_LEVELS-1
         );
 #endif
         printf(
@@ -402,7 +402,7 @@ void nxapps_cmdline_apply_SimpleVideoDecodePictureQualitySettings(const struct n
         }
     }
     if (cmdline->pq.anr.set) {
-        if ((cmdline->pq.anr.value > 0) && (cmdline->pq.anr.value < SETTOP_MAX_PQ_LEVELS)) {
+        if ((cmdline->pq.anr.value > 0) && (cmdline->pq.anr.value < SETTOP_MAX_ANR_LEVELS)) {
             pSettings->anr.anr.mode = NEXUS_VideoWindowFilterMode_eEnable;
             pSettings->anr.anr.level = anr_level[cmdline->pq.anr.value];
         } else {

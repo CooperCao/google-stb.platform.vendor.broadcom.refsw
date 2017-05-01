@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 URSR_TOP ?= ../../../../..
 NEXUS_TOP := $(URSR_TOP)/nexus
@@ -97,7 +96,7 @@ include $(DIF_TOP)/dif_libdir.inc
 CFLAGS += -I./include
 ifeq ($(WIDEVINE_SUPPORT),y)
 ifneq ($(MAKECMDGOALS),clean)
-include $(SECURITY_TOP)/third_party/widevine/widevine21.inc
+include $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/third_party/widevine/CENC21/widevine/widevine21.inc
 endif
 CFLAGS += -DENABLE_WIDEVINE $(WIDEVINE21_CFLAGS)
 endif
@@ -111,14 +110,14 @@ CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
 
 # PlayreadyPK 3.0 is only supported with Sage
 ifeq ($(SAGE_SUPPORT), y)
-include $(BSEAV_TOP)/lib/playready/http/prdyhttp.inc
+include $(BSEAV_TOP)/thirdparty/playready/http/prdyhttp.inc
 CFLAGS += -DUSE_PK_NAMESPACES=1
 CFLAGS += -DMSDRM_PRDY30
 CFLAGS += -DDRM_BUILD_PROFILE=900
 CFLAGS += -DTARGET_LITTLE_ENDIAN=1
 CFLAGS += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
 CFLAGS += -I${BSEAV_TOP}/lib/drmrootfs
-CFLAGS += -I${BSEAV_TOP}/lib/playready/3.0/inc
+CFLAGS += -I${BSEAV_TOP}/thirdparty/playready/3.0/inc
 CFLAGS += $(addprefix -I, ${PRDY_HTTP_INCLUDES})
 LDFLAGS += ${PRDY_HTTP_LDFLAGS}
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
@@ -131,7 +130,7 @@ CFLAGS += -DUSE_PR_DECRYPT_OPAQUE
 endif
 
 ifeq ($(USE_CURL),y)
-include $(BSEAV_TOP)/lib/curl/curl.inc
+include $(BSEAV_TOP)/opensource/curl/curl.inc
 CFLAGS += $(CURL_CFLAGS)
 CFLAGS += -DUSE_CURL
 CFLAGS += -DSKIP_PEER_VERIFICATION

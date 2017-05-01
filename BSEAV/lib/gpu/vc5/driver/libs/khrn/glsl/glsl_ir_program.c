@@ -4,14 +4,16 @@
 #include <stdlib.h>
 
 #include "glsl_ir_program.h"
+#include "libs/util/gfx_util/gfx_util.h"
 
 static void init_vary_map(GLSL_VARY_MAP_T *map) {
    map->n = 0;
 }
 
 static void init_varying_info(VARYING_INFO_T *varying) {
-   varying->centroid = false;
-   varying->flat     = false;
+   varying->centroid      = false;
+   varying->noperspective = false;
+   varying->flat          = false;
 }
 
 LinkMap *glsl_link_map_alloc(int num_ins, int num_outs, int num_unifs, int num_buffers) {
@@ -46,6 +48,11 @@ void glsl_link_map_free(LinkMap *l) {
    free(l);
 }
 
+bool glsl_wg_size_requires_barriers(const unsigned wg_size[3]) {
+   unsigned wg_n_items = wg_size[0] * wg_size[1] * wg_size[2];
+   return wg_n_items > 16 || !gfx_is_power_of_2(wg_n_items);
+}
+
 IR_PROGRAM_T *glsl_ir_program_create() {
    IR_PROGRAM_T *ret = malloc(sizeof(*ret));
    if(!ret) return NULL;
@@ -74,6 +81,8 @@ IR_PROGRAM_T *glsl_ir_program_create() {
    for(int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++) {
       init_varying_info(&ret->varying[i]);
    }
+
+   for (int i=0; i<3; i++) ret->cs_wg_size[i] = 0;
 
    return ret;
 }

@@ -384,7 +384,8 @@ NEXUS_Error NEXUS_DolbyDigitalReencode_AddInput(
     /* Add to the PI */
     NEXUS_AUDIO_INPUT_CHECK_FROM_DSP(input);
     if (input->objectType != NEXUS_AudioInputType_eDspMixer &&
-        input->objectType != NEXUS_AudioInputType_eDolbyVolume258)
+        input->objectType != NEXUS_AudioInputType_eDolbyVolume258 &&
+        input->objectType != NEXUS_AudioInputType_eAudioProcessor)
     {
         BDBG_ERR(("input type %d (%s) is not a valid input type for DDRE.", input->objectType, input->pName));
         BDBG_ERR(("    DDRE requires either DspMixer->DDRE or DspMixer->DV258->DDRE"));

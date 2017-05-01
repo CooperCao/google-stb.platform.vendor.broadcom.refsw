@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -765,6 +765,8 @@ typedef struct BAPE_MixerInterface {
     BERR_Code (*removeAllOutputs)   (BAPE_MixerHandle handle);
     BERR_Code (*getInputVolume)     (BAPE_MixerHandle handle, BAPE_Connector input, BAPE_MixerInputVolume *pVolume);
     BERR_Code (*setInputVolume)     (BAPE_MixerHandle handle, BAPE_Connector input, const BAPE_MixerInputVolume *pVolume);
+    BERR_Code (*getInputSettings)   (BAPE_MixerHandle handle, BAPE_Connector input, BAPE_MixerInputSettings *pVolume);
+    BERR_Code (*setInputSettings)   (BAPE_MixerHandle handle, BAPE_Connector input, const BAPE_MixerInputSettings *pVolume);
     BERR_Code (*applyOutputVolume)  (BAPE_MixerHandle handle, BAPE_OutputPort output);
     BERR_Code (*setSettings)        (BAPE_MixerHandle hMixer, const BAPE_MixerSettings *pSettings);
     BERR_Code (*applyStereoMode)    (BAPE_MixerHandle handle, BAPE_StereoMode stereoMode);
@@ -801,6 +803,7 @@ typedef struct BAPE_Mixer
     bool inputMuted[BAPE_CHIP_MAX_MIXER_INPUTS];
     bool inputRunning[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_MixerInputVolume inputVolume[BAPE_CHIP_MAX_MIXER_INPUTS];
+    BAPE_MixerInputSettings inputSettings[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_CrcHandle crcs[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_StereoMode stereoMode; /* For HDMI on IOP devices.  We may need to adjust the input channel pairs to swap left and
                                    right or put just left or right on both channels.  Using the crossbar introduces issues
@@ -1728,6 +1731,10 @@ typedef struct BAPE_Decoder
     BTMR_TimerHandle underFlowTimer;
     unsigned underFlowCount;
     bool halted;
+
+    /* status event */
+    BKNI_EventHandle statusEvent;
+    bool firstStatusComplete;
 #else
     /* Stubs required in mixer for debug */
     BAPE_DecoderStartSettings startSettings;
@@ -1741,7 +1748,6 @@ Summary:
 Initialize the ancillary data buffer descriptor prior to start
 ***************************************************************************/
 void BAPE_Decoder_P_InitAncillaryDataBuffer(BAPE_DecoderHandle hDecoder);
-
 #endif
 
 /***************************************************************************
@@ -1903,12 +1909,6 @@ typedef struct BAPE_EchoCanceller
     BDSP_InterTaskBufferHandle hInterTaskBuffer;
 #endif
 } BAPE_EchoCanceller;
-
-/***************************************************************************
-Summary:
-Get the address of a mixer's config register
-***************************************************************************/
-uint32_t BAPE_P_GetMixerConfigAddress(unsigned mixerId);
 
 /***************************************************************************
 Summary:
@@ -2183,6 +2183,8 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
     );
 #endif
 #endif
+
+
 
 /* These must be after definition of path types above */
 #if BAPE_DSP_SUPPORT

@@ -71,6 +71,7 @@ public:
 
     virtual eRet initGraphics(uint16_t width, uint16_t height);
     virtual void uninitGraphics(void);
+    virtual void setActive(bool bActive);
 
 protected:
     CSurfaceClient * _pSurfaceClientVideo;

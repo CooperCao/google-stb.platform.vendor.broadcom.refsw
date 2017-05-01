@@ -1,46 +1,42 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom and/or its
-# licensors, and may only be used, duplicated, modified or distributed pursuant
-# to the terms and conditions of a separate, written license agreement executed
-# between you and Broadcom (an "Authorized License").  Except as set forth in
-# an Authorized License, Broadcom grants no license (express or implied), right
-# to use, or waiver of any kind with respect to the Software, and Broadcom
-# expressly reserves all rights in and to the Software and all intellectual
-# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 # NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
 # Except as expressly set forth in the Authorized License,
 #
-# 1. This program, including its structure, sequence and organization,
-#    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#    reasonable efforts to protect the confidentiality thereof, and to use
-#    this information only in connection with your use of Broadcom integrated
-#    circuit products.
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
 #############################################################################
 
-PHONY += all nexus apps clean clean_apps install install_only print_files      bwin
-.PHONY: ${PHONY}
+.PHONY: all nexus apps clean clean_apps install install_only print_files      bwin
 
 # Build the name of this makefile, relative to B_REFSW_TOP (used for recipe tracing)
 # Keep this line before any includes!
@@ -49,21 +45,11 @@ B_THIS_MAKEFILE_NAME := $(subst $(abspath ${NEXUS_TOP}/..),,$(abspath $(lastword
 # B_TRACE_RECIPE_BEGIN = @echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>  ${B_THIS_MAKEFILE_NAME}: Begin recipe: $@"
 # B_TRACE_RECIPE_END   = @echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<  ${B_THIS_MAKEFILE_NAME}:   End recipe: $@"
 
-
-ifeq ($(B_REFSW_REAL_MAKE),)
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-BINDIR := ${B_REFSW_OBJ_ROOT}/rockford/unittests/nexus/$(notdir ${CURDIR})
-
-${PHONY} ${APPS}: ${BINDIR}/exists
-	$(B_TRACE_RECIPE_BEGIN)
-	@${MAKE} -C ${BINDIR} B_REFSW_CURDIR=${CURDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
-	$(B_TRACE_RECIPE_END)
-
-${BINDIR}/exists:
-	@mkdir -p $@
-
-else # B_REFSW_REAL_MAKE
+ifndef B_REFSW_TOP
+# we can derive B_REFSW_TOP from this include file's path
+B_REFSW_TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../../..)
+endif
+NEXUS_TOP := $(B_REFSW_TOP)/nexus
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifeq ($(NEXUS_PLATFORM),)
@@ -81,6 +67,9 @@ ifeq ($(NEXUS_MODE),)
 else
     export NEXUS_MODE
 endif
+
+THISDIR := $(subst $(dir $(NEXUS_TOP)),,$(shell pwd))
+BINDIR := $(B_REFSW_OBJ_ROOT)/${THISDIR}
 
 # include IPSTB-related variables if PLAYBACK_IP_SUPPORT is explicitly on
 ifeq ($(PLAYBACK_IP_SUPPORT),y)
@@ -177,7 +166,7 @@ ifeq ($(BUILD_CHANNELS_FILE_UNITTESTS),y)
     CHANNELS_FILE_CFLAGS := -I$(CHANNELS_FILE_DIR) -DCHANNELS_FILE_SUPPORT
 endif #BUILD_CHANNELS_FILE_UNITTESTS
 
-APP_BINS = $(APPS)
+APP_BINS = $(addprefix $(BINDIR)/,$(APPS))
 
 .PHONY: nexus apps clean clean_apps
 
@@ -193,9 +182,7 @@ else
     all: apps
 endif
 
-vpath %.c ${B_REFSW_CURDIR}
-
-apps: $(APP_BINS)
+apps: $(APPS)
 $(APP_BINS): $(SUBLIBS)
 
 ifeq ($(DTCP_IP_SUPPORT),y)
@@ -279,9 +266,8 @@ endif
 
 clean_apps: $(OTHER_APP_CLEANS)
 	$(B_TRACE_RECIPE_BEGIN)
-	-$(RM) $(APP_BINS) *.d *.o *.out
+	-$(RM) $(APP_BINS) $(BINDIR)/*.d $(BINDIR)/*.o
 	$(B_TRACE_RECIPE_END)
-
 
 #
 # OS lib option for unittests
@@ -327,52 +313,46 @@ endif
 ifeq ($(BUILD_IP_UNITTESTS),y)
 CFLAGS += $(IP_STREAMER_CFLAGS)
 EXTRA_SRC += $(IP_STREAMER_SRC)
-EXTRA_OBJ += $(patsubst %.c,%.o,$(IP_STREAMER_SRC)
 endif
 
 ifeq ($(BUILD_CHANNELS_FILE_UNITTESTS),y)
 CFLAGS += $(CHANNELS_FILE_CFLAGS)
 EXTRA_SRC += $(CHANNELS_FILE_SRC)
-EXTRA_OBJ += $(patsubst %.c,%.o,$(CHANNELS_FILE_SRC)
 endif
 
 # Disable the built-in rules
 .SUFFIXES:
 
-# Implicit rule for building local apps
-#%$(APPSUFFIX) : %.o
-%$(APPSUFFIX) : %.o $(patsubst %.c,%.o,$(EXTRA_SRC))
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo [Link... $<]
-	$(Q_)$(CC) -o $@ $(filter %.o, $(sort ${EXTRA_OBJS} $^)) $(LDFLAGS)
-	$(Q_)mkdir -p $(DESTDIR)
-	$(CP) $@ $(DESTDIR)
-ifneq ($(DESTDIR),${INSTALL_DIR})
-	$(Q_)mkdir -p $(INSTALL_DIR)
-endif
-	$(B_TRACE_RECIPE_END)
+define app_rule
+$$(BINDIR)/$1: $$(BINDIR)/$1.o $$(addprefix $$(BINDIR)/,$$(patsubst %.c,%.o,$$(EXTRA_SRC)))
+	$$(B_TRACE_RECIPE_BEGIN)
+	@echo [Link... $$(notdir $$@)]
+	@mkdir -p $$(dir $$@)
+	$$(Q_)$$(CC) -o $$@ $$(filter %.o, $$^) $$(LDFLAGS)
+	$$(Q_)mkdir -p $$(DESTDIR)
+	$$(CP) $$@ $$(DESTDIR)
+	$$(B_TRACE_RECIPE_END)
 
-%.o: %.c
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo [Compile...  $(notdir $<)]
+$1: $$(BINDIR)/$1
+	@test 1
+endef
+
+$(foreach app, $(APPS), $(eval $(call app_rule,$(strip $(app)))))
+
+$(BINDIR)/%.o: %.c
+	@echo [Compile... $<]
+	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -c -o $@ $^ $(CFLAGS)
-	$(B_TRACE_RECIPE_END)
 
 .PHONY: install install_only
 install: all install_only
 
-APP_STREAMS = $(addsuffix .str,$(APP_BINS))
-
-APP_CHANNELS = $(addsuffix .chn,$(APP_BINS))
+APP_STREAMS = $(addsuffix .str,$(APPS))
 
 install_only:
 	$(B_TRACE_RECIPE_BEGIN)
 	$(Q_)mkdir -p $(INSTALL_DIR)
-ifeq ($(THEAPPS),)
-	$(CP) $(APP_BINS) $(wildcard $(addprefix ${B_REFSW_CURDIR}/, $(APP_STREAMS) $(APP_CHANNELS))) $(INSTALL_DIR)
-else
-	$(CP) $(THEAPPS) $(wildcard $(addprefix ${B_REFSW_CURDIR}/, $(APP_STREAMS) $(APP_CHANNELS))) $(INSTALL_DIR)
-endif
+	$(CP) $(APP_BINS) $(wildcard $(APP_STREAMS) $(APP_CHANNELS)) $(INSTALL_DIR)
 ifneq  ($(CHANNEL_MAP_FILE),)
 	$(CP) $(CHANNEL_MAP_FILE) $(DESTDIR)
 endif
@@ -382,5 +362,3 @@ print_files:
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo $(APP_BINS)
 	$(B_TRACE_RECIPE_END)
-
-endif # B_REFSW_REAL_MAKE

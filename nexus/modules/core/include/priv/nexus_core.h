@@ -66,7 +66,9 @@ system-wide compilation dependencies. */
 #include "bpxl.h"
 #include "bmrc_monitor.h"
 #include "bbox.h"
+#if NEXUS_ARM_AUDIO_SUPPORT
 #include "btee_instance.h"
+#endif
 #include "bdtu.h"
 
 #if B_HAS_TRC
@@ -128,7 +130,11 @@ typedef struct NEXUS_Core_MagnumHandles
     BCHP_MemoryLayout   memoryLayout;
     BBOX_Handle         box;
     const BBOX_Config  *boxConfig;
+#if NEXUS_ARM_AUDIO_SUPPORT
     BTEE_InstanceHandle tee;
+#else
+    void *tee;
+#endif
 } NEXUS_Core_MagnumHandles;
 
 /**

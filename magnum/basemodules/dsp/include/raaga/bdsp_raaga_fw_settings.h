@@ -133,6 +133,7 @@
 #define BDSP_Raaga_OutputFormatterSettings          BDSP_Raaga_Audio_OutputFormatterConfigParams
 #define BDSP_Raaga_VocalPPSettings                  BDSP_Raaga_Audio_VocalPPConfigParams
 #define BDSP_Raaga_FadeCtrlPPSetting                BDSP_Raaga_Audio_FadeCtrlConfigParams
+#define BDSP_Raaga_TsmCorrectionPPSetting           BDSP_Raaga_Audio_TsmCorrectionConfigParams
 
 /* BDSP_AudioEncode */
 #define BDSP_Raaga_Mpeg1Layer3Settings              BDSP_Raaga_Audio_Mpeg1L3EncConfigParams
@@ -1255,6 +1256,27 @@ typedef struct BDSP_Raaga_Audio_LpcmUserConfig
 
 }BDSP_Raaga_Audio_LpcmUserConfig;
 
+
+/*
+    This data structure defines TsmCorrection configuration parameters
+*/
+
+typedef struct BDSP_Raaga_Audio_TsmCorrectionConfigParams
+{
+    /* 0- No Correction (default), 1-DSOLA, 2-SOFT-PPM*
+    No Correction: Input will be bypassed. This mode is just bypass tight lipsync correction.
+    This mode may get used for certification.
+
+    DSOLA: In this mode, frame will get compress/expand based on the PTS and STC diff.
+    If the STC and PTS diff is well within the bound, input will be bypassed to output.
+    The correction will be done in one time.
+
+    Soft PPM: In this mode, frame will get compress/expand slowly based on PTS and STC diff.
+    If the STC and PTS diff is well within the bound, input will be bypassed to output.*/
+
+    uint32_t ui32TsmCorrectionMode;
+
+}BDSP_Raaga_Audio_TsmCorrectionConfigParams;
 
 /*
     This data structure defines dsola configuration parameters
@@ -2692,12 +2714,16 @@ typedef struct
     uint32_t                            ui32EnableAtmosMetadata;
 } BDSP_Raaga_Audio_UdcdecConfigParams;
 
+#define AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH          (8>>2)
+#define AC4_DEC_PROGRAM_IDENTIFIER_LENGTH                    (20>>2)
 typedef struct BDSP_Raaga_AC4_UserOutput
 {
     /* Channel configuration
          0 = Decoder outputs stereo or a LoRo downmix of multichannel content. (Default)
          1 = Decoder outputs stereo or a Dolby ProLogic compatible LtRt downmix of multichannel content.
-         2 = Decoder outputs stereo or a Dolby ProLogic II compatible LtRt downmix of multichannel content. */
+         2 = Decoder outputs stereo or a Dolby ProLogic II compatible LtRt downmix of multichannel content.
+         3 = Decoder outputs LoRo downmix of multichannel content only for dual language context.
+         6 = Multichannel */
     uint32_t        ui32ChannelConfig;
 
 
@@ -2705,7 +2731,7 @@ typedef struct BDSP_Raaga_AC4_UserOutput
           Range = -32 to 32 (in 1dB steps)
           Default = -32
           Extreme limits: -32 -> Main Audio only; 32 -> Associated only
-          */
+     */
     int32_t         i32MainAssocMixPref;
 
 
@@ -2718,7 +2744,7 @@ typedef struct BDSP_Raaga_AC4_UserOutput
     /* Indicates gain that will be applied to dialog enhancement
         Range = -12 to 12 dB (in 1 dB steps)
         Default = 0
-        */
+     */
     int32_t         i32DialogEnhGainInput;
 
 
@@ -2754,11 +2780,59 @@ typedef struct BDSP_Raaga_AC4_UserOutput
     uint32_t        ui32IeqProfile;
 
     uint32_t        ui32OutputChannelMatrix[BDSP_AF_P_MAX_CHANNELS];
+    /*********************************************************/
+    /* Dual Language Personalization Features of AC4 Decoder */
+    /* Below variables needs to be programmed in case dual
+          language context is enabled for AC4 */
+    /*********************************************************/
+    /* Presentation number to be decoded
+               0 to 511: presentation index
+               Default: 0xFFFFFFFF (INVALID)
+               A presentation is selected to be decoded based on one of the personalization user configs available, if none of the
+               selected personalizations match with what is available in a stream, then the first presentation, of presentation index 0 is decoded
+               Personalization options for a AC4 decode
+                 - By presentation index
+                 - By Language tags
+                 - By Associate Type */
+    uint32_t        ui32PresentationNumber;
+
+    /* Preferred language 1 of the presentation
+               Big Endian Population
+               Initialized to /'0'/ by default */
+    uint32_t        ui32PreferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH];
+
+    /* Preferred language 2 of the presentation
+               Big Endian Population
+               Initialized to /'0'/ by default */
+    uint32_t        ui32PreferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH];
+
+    /*  Preferred Associate type of the presentation
+           Identifies the type of associated audio service to decode for Dolby AC-4 inputs
+               1 = Visually impaired (Default)
+               2 = Hearing impaired
+               3 = Commentary */
+    uint32_t        ui32PreferredAssociateType;
+
+    /* Indicates the type of ID to be expected in the program_identifier field of the Dolby AC-4 bitstream.
+           0 = NONE (Default)
+           1 = PROGRAM_ID_TYPE_SHORT
+           2 = PROGRAM_ID_TYPE_UUID */
+    uint32_t        ui32PreferredIdentifierType;
+
+    /* Identifies the Dolby AC-4 stream that the primary presentation index relates to based on the opted for Preferred Identifier type
+          The Personalized-program universal unique ID is populated in the array in big endian fashion
+          Initialized to /'0'/ by default */
+    int32_t         i32PreferredProgramID[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH];
+
+    /* Prioritize associated audio service type matching
+       Indicates whether matching of the preferred associated audio service type takes priority over matching of the
+       preferred language type when selecting a presentation for decoding
+           0 = No
+           1 = Yes (default) */
+    uint32_t        ui32PreferAssociateTypeOverLanguage;
 } BDSP_Raaga_AC4_UserOutput;
 
-
-#define AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH          (8>>2)
-#define AC4_DEC_PROGRAM_IDENTIFIER_LENGTH                    (20>>2)
+#define BDSP_RAAGA_AC4_NUM_OUTPUTPORTS      3
 typedef struct BDSP_Raaga_Audio_AC4DecConfigParams
 {
     /* Possible Values: eSingleDecodeMode, eMS12DecodeMode
@@ -2783,7 +2857,7 @@ typedef struct BDSP_Raaga_Audio_AC4DecConfigParams
        {2,0,0,0,-31,0,0,0,0,{0,1,2,3,4,5,6,7}}  POrt Config 2
 
     */
-    BDSP_Raaga_AC4_UserOutput           sUserOutputCfg[2];
+    BDSP_Raaga_AC4_UserOutput           sUserOutputCfg[BDSP_RAAGA_AC4_NUM_OUTPUTPORTS];
 
     /* AC-4 Decoding complexity level
          3 = Level 3 (Default)     */
@@ -2820,17 +2894,6 @@ typedef struct BDSP_Raaga_Audio_AC4DecConfigParams
          1 = Enable DAP  */
     uint32_t        ui32DapEnable;
 
-    /* Presentation number to be decoded
-        0 to 511: presentation index
-        Default: 0xFFFFFFFF (INVALID)
-        A presentation is selected to be decoded based on one of the personalization user configs available, if none of the
-        selected personalizations match with what is available in a stream, then the first presentation, of presentation index 0 is decoded
-        Personalization options for a AC4 decode
-          - By presentation index
-          - By Language tags
-          - By Associate Type */
-    uint32_t        ui32PresentationNumber;
-
     /* Enable limiter : Turn off/on limiter for testing
             Default : 1 (Enable)*/
     uint32_t        ui32LimiterEnable;
@@ -2846,39 +2909,6 @@ typedef struct BDSP_Raaga_Audio_AC4DecConfigParams
          IDK Default = AC4DEC_FRAMER_DEFAULT_TIME_SCALE */
     uint32_t        ui32TimeScale;
 
-    /*******************************************/
-    /* Personalization Features of AC4 Decoder */
-    /*******************************************/
-    /* Preferred language 1 of the presentation
-        Big Endian Population
-        Initialized to /'0'/ by default */
-    uint32_t        ui32PreferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH];
-
-    /* Preferred language 1 of the presentation
-        Big Endian Population
-        Initialized to /'0'/ by default */
-    uint32_t        ui32PreferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH];
-
-    /*  Preferred Associate type of the presentation
-        Identifies the type of associated audio service to decode for Dolby AC-4 inputs
-            1 = Visually impaired (Default)
-            2 = Hearing impaired
-            3 = Commentary */
-    uint32_t        ui32PreferredAssociateType;
-
-
-    /* Indicates the type of ID to be expected in the program_identifier field of the Dolby AC-4 bitstream.
-        0 = NONE (Default)
-        1 = PROGRAM_ID_TYPE_SHORT
-        2 = PROGRAM_ID_TYPE_UUID */
-    uint32_t        ui32PreferredIdentifierType;
-
-
-    /* Identifies the Dolby AC-4 stream that the primary presentation index relates to based on the opted for Preferred Identifier type
-       The Personalized-program universal unique ID is populated in the array in big endian fashion
-       Initialized to /'0'/ by default */
-    int32_t         i32PreferredProgramID[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH];
-
 
     /* Choose a AC4 Decoding Mode
         0 = Single Stream, Single Decode (Default)
@@ -2893,12 +2923,10 @@ typedef struct BDSP_Raaga_Audio_AC4DecConfigParams
         1 = Enable (Default)*/
     uint32_t        ui32EnableADMixing;
 
-    /* Prioritize associated audio service type matching
-    Indicates whether matching of the preferred associated audio service type takes priority over matching of the
-    preferred language type when selecting a presentation for decoding
-        0 = No
-        1 = Yes (default) */
-    uint32_t    ui32PreferAssociateTypeOverLanguage;
+    /* Stream Info Presentation number - index of presentation for which presentation info needs to be sent
+       Default = -1
+    */
+    int32_t i32StreamInfoPresentationNumber;
 
 } BDSP_Raaga_Audio_AC4DecConfigParams;
 
@@ -4931,6 +4959,7 @@ extern const BDSP_Raaga_Audio_Brcm3DSurroundConfigParams   BDSP_sDefBrcm3DSurrou
 extern const BDSP_Raaga_Audio_MixerConfigParams  BDSP_sDefFwMixerConfigSettings;
 extern const BDSP_Raaga_Audio_DsolaConfigParams BDSP_sDefDsolaConfigSettings;
 extern const BDSP_Raaga_Audio_FadeCtrlConfigParams BDSP_sDefFadeCtrlConfigSettings;
+extern const BDSP_Raaga_Audio_TsmCorrectionConfigParams BDSP_sDefTsmCorrectionConfigSettings;
 extern const BDSP_Raaga_Audio_TruSurrndHDConfigParams BDSP_sDefTruSurrndHDConfigSettings;
 extern const BDSP_Raaga_Audio_G723_1DEC_ConfigParams BDSP_sG723_1_Configsettings;
 extern const BDSP_Raaga_Audio_G723EncoderUserConfig BDSP_sDefG723_1EncodeConfigSettings;

@@ -147,6 +147,7 @@
 #define BDSP_Raaga_VocalPPStatus                BDSP_Raaga_Audio_VocalPPStatusInfo
 #define BDSP_Raaga_FadeCtrlPPStatus             BDSP_Raaga_Audio_FadeCtrlPPStatusInfo
 #define BDSP_Raaga_MixerDapv2PPStatus           BDSP_Raaga_Audio_MixerDapv2StatusInfo
+#define BDSP_Raaga_TsmCorrectionPPStatus        BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo
 
 /* BDSP_AudioEncode */
 #define BDSP_Raaga_Mpeg1Layer3Status        BDSP_Raaga_Audio_EncodeStreamInfo
@@ -2466,7 +2467,7 @@ typedef struct BDSP_Raaga_Audio_AC4StreamInfo
     uint32_t    ui32NumPresentations;
 
     /*  Presentations Infos in the stream */
-    BDSP_Raaga_Audio_AC4PresentationInfo                AC4DECPresentationInfo[AC4_DEC_NUM_OF_PRESENTATIONS];
+    BDSP_Raaga_Audio_AC4PresentationInfo                AC4DECPresentationInfo;
 
     /*  Extended Bitstream Metadata availability indication */
     uint32_t    ui32ExtBitstreamMdAvailable;
@@ -4331,6 +4332,35 @@ typedef struct BDSP_Raaga_Audio_Mixing_FadeCtrl_Info
     uint32_t ui32StatusValid;
 } BDSP_Raaga_Audio_Mixing_FadeCtrl_Info;
 
+typedef struct BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo
+{
+    /* PTS Value as it is from the stream */
+    uint32_t                        ui32PTS;
+
+    /* 0 - Invalid and 1 - Valid. Any Other Value - Invalid */
+    uint32_t                        ui32PTSValid;
+
+    /* This Field Represents PTS types as 0-Coded, 1-INTERPOLATED, 2-INTERPOLATED from INVALID PTS */
+    uint32_t                        ui32PTSType;
+
+    /* This Field Represents the time (in msec with 45 KHz running clock) ajusted.
+     * Negative Value represents that the frame is shorten which is possible when PTS is behind STC.*/
+    int32_t                         i32TimeInMsecAdjusted;
+
+    /* This is time snapshot of unadulterated 45KHz timer */
+    uint32_t                        ui32TimeSnapshot45KHz;
+
+    /* This is diff between STC and PTS represented in msec at 45 KHz clock */
+    uint32_t                        ui32StcPtsPhaseDiffInT45;
+
+    /* This represents the STC and PTS position. Possible values: 0 or 1, 0 - (STC > PTS),  1 - (STC < PTS) */
+    uint32_t                        ui32StcBehindPtsStatus;
+
+    /* ui32StatusValid=1 indicates status as "valid"
+    ui32StatusValid = other than 1 indicates status as "in-valid" */
+    uint32_t                        ui32StatusValid;
+}BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo;
+
 typedef struct BDSP_Raaga_Audio_MixerDapv2StatusInfo
 {
 
@@ -4420,6 +4450,7 @@ typedef union BDSP_Raaga_Audio_StreamInfo
     BDSP_Raaga_Audio_OpusDecStreamInfo    sOpusDecStreamInfo;
     BDSP_Raaga_Audio_ALSDecStreamInfo    sALSDecStreamInfo;
     BDSP_Raaga_Audio_FadeCtrlPPStatusInfo sFadeCtrlProcessInfo;
+	BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo sTsmCorrectionProcessInfo;
     BDSP_Raaga_Audio_MixerDapv2StatusInfo sMixerDapv2ProcessInfo;
     BDSP_Raaga_VideoH264EncoderInfo      sH264EncoderInfo;
 	BDSP_Raaga_VideoX264EncoderInfo      sX264EncoderInfo;

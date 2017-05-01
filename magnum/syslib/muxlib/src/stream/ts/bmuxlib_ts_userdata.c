@@ -317,6 +317,9 @@ bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS)
       BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
       BMUXlib_TS_P_UserdataVideoInfo *pCompanionVideo = pUserdataInfo->pCompanionVideo;
 
+      if (pCompanionVideo == NULL )
+          continue;   /* skip this userdata input if there is no video at all */
+
       if (hMuxTS->status.stUserdataStatus.uiCurrentVideoPID != pCompanionVideo->uiPID)
          continue;   /* skip this userdata input - does not match companion video */
 
@@ -331,7 +334,7 @@ bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS)
          is sent to the release Q, so we need to ensure that the release Q has enough space, which in turn
          implies the pending Q must have enough space (even though we wont use that space) */
    }
-   BMUXlib_List_GetNumEntries(hMuxTS->hUserdataFreeList, &uiAvailablePendingEntries);
+   BMUXLIB_LIST_GETNUMENTRIES(&hMuxTS->stUserdataFreeList, &uiAvailablePendingEntries);
    return (uiAvailablePendingEntries >= uiRequiredPendingEntries);
 }
 
@@ -363,6 +366,9 @@ bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS)
    NOTE: it is assumed that video stream from encoder will NEVER have a discontinuity.  The only obvious
    change will be sudden change in adjustment factor (OPTS will be discontinuous, but PTS/DTS will not)
 */
+
+#define BMUXLIB_TS_USERDATA_IS_FULL( _pmux, _index ) ( BMUXLIB_LIST_COUNT ( &(_pmux)->stUserdataPendingList[_index] ) >= BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP((_pmux)->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData][BMUXlib_TS_P_InputType_eSystem].uiCount, (_pmux)->status.stStartSettings.uiNumValidUserdataPIDs) )
+
 BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
 {
    BERR_Code rc = BERR_SUCCESS;
@@ -437,9 +443,10 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
          (we require one free entry for the current packet, and one free spot on the pending list
           to send that packet to transport. We can also require up to two entries in the PTS list) */
       while ((stInputData.uiBytesTotal >= BMUXLIB_TS_PACKET_LENGTH)
-             && (false == BMUXlib_List_IsEmpty(hMuxTS->hUserdataPTSFreeList))
-             && (false == BMUXlib_List_IsEmpty(hMuxTS->hUserdataFreeList))
-             && (false == BMUXlib_List_IsFull(hMuxTS->hUserdataPendingList[uiUserdataIndex])))
+             && (false == BMUXLIB_LIST_ISEMPTY(&hMuxTS->stUserdataPTSFreeList))
+             && (false == BMUXLIB_LIST_ISEMPTY(&hMuxTS->stUserdataFreeList))
+             && (false == BMUXLIB_TS_USERDATA_IS_FULL(hMuxTS, uiUserdataIndex))
+             )
       {
          uint32_t uiBytesToEnd = stInputData.uiBytes0;
          bool bDropPacket = false;
@@ -499,7 +506,7 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
             {
                /* verify we have sufficient resources to process the DTS as well (we require 2 free PTS entries) */
                size_t uiEntriesAvail;
-               BMUXlib_List_GetNumFree(hMuxTS->hUserdataPTSFreeList, &uiEntriesAvail);
+               BMUXLIB_LIST_GETNUMENTRIES(&hMuxTS->stUserdataPTSFreeList, &uiEntriesAvail);
                if (uiEntriesAvail < 2)
                {
                   /* since we have verified availability of pending Q resources prior to entering the
@@ -624,9 +631,10 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
          pPacketInfo->bParsed = false;
       } /* end: while packets to process & resources available */
 
-      if ((true == BMUXlib_List_IsEmpty(hMuxTS->hUserdataPTSFreeList))
-           || (true == BMUXlib_List_IsEmpty(hMuxTS->hUserdataFreeList))
-           || (true == BMUXlib_List_IsFull(hMuxTS->hUserdataPendingList[uiUserdataIndex])))
+      if ((true == BMUXLIB_LIST_ISEMPTY(&hMuxTS->stUserdataPTSFreeList))
+           || (true == BMUXLIB_LIST_ISEMPTY(&hMuxTS->stUserdataFreeList))
+           || (true == BMUXLIB_TS_USERDATA_IS_FULL(hMuxTS, uiUserdataIndex))
+           )
       {
          /* SW7425-4974: if we ran out of resources then it implies that the calculation
             of the estimated resources required for processing userdata may be invalid
@@ -802,24 +810,26 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
       {
          if (!aDoneFlags[uiUserdataIndex])
          {
-            BMUXlib_List_Handle hPending = hMuxTS->hUserdataPendingList[uiUserdataIndex];
+            BMUXLIB_LIST_TYPE(BMUXlib_TS_P_UserdataPending) *hPending = &hMuxTS->stUserdataPendingList[uiUserdataIndex];
             if ((0 == hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR) &&
-               (false == BMUXlib_List_IsEmpty(hPending)))
+               (false == BMUXLIB_LIST_ISEMPTY(hPending)))
                BDBG_WRN(("Insufficient System Data bitrate to insert Userdata packets"));
-            if (false == BMUXlib_List_IsEmpty(hPending) && 0 != uiSpaceAvailable)
+            if (false == BMUXLIB_LIST_ISEMPTY(hPending) && 0 != uiSpaceAvailable)
             {
                /* there is userdata waiting for this input ... */
+               BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPending) *pUserdataEntry;
                BMUXlib_TS_P_UserdataPending *pUserdata;
                size_t uiSpaceInPendingList;
                size_t uiNumAvailableDescriptors;
 
                /* look at the pending entry ...*/
-               BMUXlib_List_GetHead(hPending, (void **)&pUserdata);
+               BMUXLIB_LIST_FIRST( hPending, &pUserdataEntry);
+               pUserdata = BMUXLIB_LIST_ENTRY_DATA(pUserdataEntry);
 
                BDBG_ASSERT(0 != pUserdata->uiNumSegments);
 
-               BMUXlib_List_GetNumFree(hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex], &uiSpaceInPendingList);
-               BMUXlib_List_GetNumEntries(hMuxTS->hTransportDescriptorFreeList, &uiNumAvailableDescriptors);
+               BMUXLIB_TS_TRANSPORT_GET_NUM_FREE(hMuxTS, uiTransportChannelIndex, &uiSpaceInPendingList);
+               BMUXLIB_LIST_GETNUMENTRIES(&hMuxTS->stTransportDescriptorFreeList, &uiNumAvailableDescriptors);
 
                /* ensure there is space for this packet ... */
                if ((pUserdata->uiNumSegments <= uiSpaceInPendingList)
@@ -864,12 +874,14 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                      uint32_t uiSequenceCount;
 
                      /* remove the pending userdata packet  ... */
-                     BMUXlib_List_Remove(hPending, (void **)&pUserdata);
+                     BMUXLIB_LIST_REMOVE(hPending, &pUserdataEntry);
+                     pUserdata = BMUXLIB_LIST_ENTRY_DATA( pUserdataEntry );
                      uiSequenceCount = pUserdata->uiSequenceCount;
 
                      /* add each segment to transport */
                      for (uiSegment = 0; uiSegment < uiNumSegments; uiSegment++)
                      {
+                        BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pDescEntry = NULL;
                         BMUXlib_TS_TransportDescriptor *pDesc = NULL;
                         BMUXlib_TS_P_TransportDescriptorMetaData *pMetaDesc = NULL;
 
@@ -882,13 +894,9 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                            BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Adding Segment[%d]: %d bytes from local buffer @ %p", uiSegment, pUserdata->aSegments[uiSegment].uiLength, pUserdata->aSegments[uiSegment].pData));
                         }
                         /* fetch a free descriptor and meta-descriptor */
-                        rc = BERR_TRACE(BMUXlib_List_Remove(hMuxTS->hTransportDescriptorFreeList, (void **)&pDesc));
-                        /* this should be successful, since we check for available descriptors up-front */
-                        BDBG_ASSERT(BERR_SUCCESS == rc);
-
-                        rc = BERR_TRACE( BMUXlib_List_Remove(hMuxTS->hTransportDescriptorMetaDataFreeList, (void **)&pMetaDesc));
-                        /* this should be successful, since we check for available descriptors up-front */
-                        BDBG_ASSERT(BERR_SUCCESS == rc);
+                        BMUXLIB_LIST_REMOVE(&hMuxTS->stTransportDescriptorFreeList, &pDescEntry);
+                        pDesc = BMUXLIB_LIST_ENTRY_DATA( pDescEntry );
+                        pMetaDesc = BMUXLIB_LIST_ENTRY_METADATA( pDescEntry );
 
                         /* Populate Transport Meta Data */
                         BKNI_Memset(pMetaDesc, 0, sizeof(BMUXlib_TS_P_TransportDescriptorMetaData));
@@ -915,22 +923,20 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         {
                            BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
 
-                           BSTD_DeviceOffset uiBlockBase = BMMA_LockOffset( pUserdataInfo->hBlock );
                            BDBG_ASSERT(pUserdata->aSegments[uiSegment].pData == NULL);
 
-                           pMetaDesc->hBufferBaseBlock = pUserdataInfo->hBlock;
+                           BMUXLIB_P_LOCK_METADATA_MEMORY(pMetaDesc, pUserdataInfo->hBlock);
                            pMetaDesc->pBufferAddress = NULL; /* Not used for userdata input data */
-                           pDesc->uiBufferOffset = uiBlockBase + pUserdata->aSegments[uiSegment].uiOffset;
+                           pDesc->uiBufferOffset = pMetaDesc->uiBufferBaseOffset + pUserdata->aSegments[uiSegment].uiOffset;
                            /* NOTE: This block will be unlocked when the data is returned from transport */
                         }
                         else
                         {
-                           /* this is PTS or unwrap buffer.  Since these are in shared memory from BMEM, we do not lock the block
+                           /* this is PTS or unwrap buffer.  Since these are in shared memory, we do not lock the block
                               and we store the pointer in metadata so the PTS entry can be returned to the free list */
-                           /* FIXME: when we move to MMA for sub-heaps, then we need to lock/unlock offset same as for all
-                              other memory before passing to transport */
                            BDBG_ASSERT(pUserdata->aSegments[uiSegment].uiOffset == BMUXLIB_TS_P_INVALID_OFFSET);
-                           pMetaDesc->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
+                           pMetaDesc->uListEntry.pUserDataPTSEntry = pUserdata->aSegments[uiSegment].pPTSEntry;
+                           BMUXLIB_P_LOCK_METADATA_MEMORY(pMetaDesc, hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock);
                            pMetaDesc->pBufferAddress = (void *) pUserdata->aSegments[uiSegment].pData;
                            pDesc->uiBufferOffset = (uint8_t *) pMetaDesc->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
                            pDesc->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
@@ -941,14 +947,12 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         rc = BERR_TRACE(BMUXlib_TS_P_AddTransportDescriptor(
                            hMuxTS,
                            uiTransportChannelIndex,
-                           pDesc,
-                           pMetaDesc));
+                           pDescEntry));
                         BDBG_ASSERT(BERR_SUCCESS == rc);
                      } /* end: for each userdata PES segment */
 
                      /* return the userdata entry to the free list (there should always be room for it!)*/
-                     rc = BERR_TRACE(BMUXlib_List_Add(hMuxTS->hUserdataFreeList, (void *)pUserdata));
-                     BDBG_ASSERT(BERR_SUCCESS == rc);
+                     BMUXLIB_LIST_ADD(&hMuxTS->stUserdataFreeList, pUserdataEntry);
 
                      uiSpaceAvailable--;
                      uiTSPacketsMuxed++;
@@ -1211,7 +1215,6 @@ int32_t AdjustTimingDiff(BMUXlib_TS_P_UserdataInfo *pUserdataInfo, int32_t iTimi
 */
 static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo)
 {
-   BERR_Code rc;
    BMUXlib_TS_P_UserdataPacketInfo *pPacketInfo = &pUserdataInfo->stPacketInfo;
    uint8_t *pTSPacket = pUserdataInfo->pCurrentPacket;
    bool bLocal = (pTSPacket == pUserdataInfo->pUnwrap);
@@ -1219,6 +1222,7 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
    /* NOTE: The following is only valid if the packet is from userdata input
       (i.e. DataType is CDB) NOT from PTS or local unwrap buffer */
    size_t uiPacketOffset = (bLocal)?BMUXLIB_TS_P_INVALID_OFFSET:(pUserdataInfo->pCurrentPacket - (uint8_t *)pUserdataInfo->pBlockBase);
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPending) *pListEntry;
    BMUXlib_TS_P_UserdataPending *pEntry;
 
    /* queue the packet for transport (pTSPacket points to the start of the packet) */
@@ -1229,9 +1233,8 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
       /* the following is cleared when the packet is freed - for error checking */
       pUserdataInfo->bUnwrapInUse = true;
 
-   rc = BMUXlib_List_Remove(hMuxTS->hUserdataFreeList, (void **)&pEntry);
-   /* this should always be successful, since we check for available entries */
-   BDBG_ASSERT(BERR_SUCCESS == rc);
+   BMUXLIB_LIST_REMOVE(&hMuxTS->stUserdataFreeList, &pListEntry);
+   pEntry = BMUXLIB_LIST_ENTRY_DATA( pListEntry );
    /* clear the entry (ESCR invalid, num segments = 0) */
    BKNI_Memset(pEntry, 0, sizeof(BMUXlib_TS_P_UserdataPending));
    /* SW7425-3250: set the starting sequence count for the first segment in the packet */
@@ -1239,6 +1242,7 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
 
    if (pPacketInfo->bPTSPresent)
    {
+      BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_UserdataPTSEntry ) *pPTSEntry;
       uint8_t *pPTS = NULL;
       uint8_t *pDTS = NULL;
       uint32_t uiESCR;
@@ -1273,9 +1277,8 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
       pEntry->uiNumSegments++;
 
       /* obtain a PTS entry for this packet */
-      rc = BMUXlib_List_Remove(hMuxTS->hUserdataPTSFreeList, (void **)&pPTS);
-      /* we know this must succeed since we checked for available entries before entering the loop */
-      BDBG_ASSERT(BERR_SUCCESS == rc);
+      BMUXLIB_LIST_REMOVE(&hMuxTS->stUserdataPTSFreeList, &pPTSEntry);
+      pPTS = BMUXLIB_LIST_ENTRY_DATA( pPTSEntry )->aPTS;
 
       /* write updated PTS ...*/
       BMUXLIB_TS_USERDATA_SET_PTS_DTS(pPTS, uiNewPTS);
@@ -1286,15 +1289,15 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
       uiInitialLength += BMUXLIB_PES_PTS_LENGTH;
       pEntry->aSegments[pEntry->uiNumSegments].eDataType = BMUXlib_TS_P_DataType_eUserdataPTS;
       pEntry->aSegments[pEntry->uiNumSegments].uiTimestamp = uiNewPTS;
+      pEntry->aSegments[pEntry->uiNumSegments].pPTSEntry = pPTSEntry;
       pEntry->uiNumSegments++;
 
       if (pPacketInfo->bDTSPresent)
       {
          uint64_t uiNewDTS = (uint64_t)(pPacketInfo->uiDTS45kHz) << 1;
          /* obtain a PTS entry for the DTS */
-         rc = BMUXlib_List_Remove(hMuxTS->hUserdataPTSFreeList, (void **)&pDTS);
-         /* we know this must succeed since we checked for available entries before entering the loop */
-         BDBG_ASSERT(BERR_SUCCESS == rc);
+         BMUXLIB_LIST_REMOVE(&hMuxTS->stUserdataPTSFreeList, &pPTSEntry);
+         pDTS = BMUXLIB_LIST_ENTRY_DATA( pPTSEntry )->aPTS;
          /* write updated DTS ...*/
          BMUXLIB_TS_USERDATA_SET_PTS_DTS(pDTS, uiNewDTS);
          pEntry->aSegments[pEntry->uiNumSegments].pData = pDTS;
@@ -1303,6 +1306,7 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
          uiInitialLength += BMUXLIB_PES_PTS_LENGTH;
          pEntry->aSegments[pEntry->uiNumSegments].eDataType = BMUXlib_TS_P_DataType_eUserdataPTS;
          pEntry->aSegments[pEntry->uiNumSegments].uiTimestamp = uiNewDTS;
+         pEntry->aSegments[pEntry->uiNumSegments].pPTSEntry = pPTSEntry;
          pEntry->uiNumSegments++;
       }
 
@@ -1330,9 +1334,7 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
    pUserdataInfo->uiSequenceCount += pEntry->uiNumSegments;
 
    /* add the entry to the pending queue for this packet */
-   rc = BMUXlib_List_Add(hMuxTS->hUserdataPendingList[pUserdataInfo->uiIndex], pEntry);
-   /* we know there is room for the entry ... */
-   BDBG_ASSERT(BERR_SUCCESS == rc);
+   BMUXLIB_LIST_ADD(&hMuxTS->stUserdataPendingList[pUserdataInfo->uiIndex], pListEntry);
 }
 
 /* Drop/Ignore the packet

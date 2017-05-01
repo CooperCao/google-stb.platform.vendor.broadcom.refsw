@@ -61,7 +61,8 @@ static const BBOX_MemConfig stBoxMemConfig_7445D0_box18 =
          BBOX_MK_WIN_MEMC_IDX(1,       Invalid, 1,       Invalid,       0),  /* disp 6 */
       }
    },
-   BBOX_INVALID_NUM_MEMC
+   BBOX_INVALID_NUM_MEMC,
+   BBOX_MK_DRAM_REFRESH_RATE(2x)
 };
 
 void BBOX_P_GetBox18MemConfig

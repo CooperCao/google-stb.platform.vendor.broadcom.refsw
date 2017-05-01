@@ -55,11 +55,11 @@
 #include "bchp_memc_arb_2.h"
 #endif
 
-
 BDBG_MODULE(BBOX_PRIV_VDC_COMMON);
 BDBG_FILE_MODULE(BBOX_SELF_CHECK);
 BDBG_FILE_MODULE(BBOX_MEMC);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV_VDC_COMMON);
+
 
 static void BBOX_P_Vdc_SetDefaultSourceCapabilities
     ( BBOX_Vdc_Source_Capabilities        *pSourceCap )
@@ -101,6 +101,9 @@ static void BBOX_P_Vdc_SetDefaultDisplayCapabilities
             pDisplayCap->astWindow[j].stSizeLimits.ulHeightFraction = BBOX_VDC_DISREGARD;
             pDisplayCap->astWindow[j].stSizeLimits.ulWidthFraction = BBOX_VDC_DISREGARD;
             pDisplayCap->astWindow[j].stResource.ulMad = BBOX_FTR_INVALID;
+            pDisplayCap->astWindow[j].stResource.eCap = BBOX_VDC_DISREGARD;
+            pDisplayCap->astWindow[j].stResource.eVfd = BBOX_VDC_DISREGARD;
+            pDisplayCap->astWindow[j].stResource.eScl = BBOX_VDC_DISREGARD;
             pDisplayCap->astWindow[j].eSclCapBias = BBOX_VDC_DISREGARD;
         }
         pDisplayCap++;
@@ -279,6 +282,9 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
       BBOX_Vdc_DisplayId             eDisplayId,
       BBOX_Vdc_WindowId              eWinId,
       uint32_t                       ulMad,
+      BBOX_Vdc_Resource_Capture      eCap,
+      BBOX_Vdc_Resource_Feeder       eVfd,
+      BBOX_Vdc_Resource_Scaler       eScl,
       uint32_t                       ulWinWidthFraction,
       uint32_t                       ulWinHeightFraction,
       BBOX_Vdc_SclCapBias            eSclCapBias )
@@ -288,6 +294,9 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
     pDisplayCap += eDisplayId;
     pDisplayCap->astWindow[eWinId].bAvailable = (eWinId <= BBOX_Vdc_Window_eGfx0) ? true : false;
     pDisplayCap->astWindow[eWinId].stResource.ulMad = ulMad;
+    pDisplayCap->astWindow[eWinId].stResource.eCap = eCap;
+    pDisplayCap->astWindow[eWinId].stResource.eVfd = eVfd;
+    pDisplayCap->astWindow[eWinId].stResource.eScl = eScl;
     pDisplayCap->astWindow[eWinId].eSclCapBias = eSclCapBias;
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulHeightFraction = ulWinHeightFraction;
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulWidthFraction = ulWinWidthFraction;
@@ -383,6 +392,9 @@ BERR_Code BBOX_P_Vdc_ResetWindowLimits
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulHeightFraction = BBOX_VDC_DISREGARD;
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulWidthFraction = BBOX_VDC_DISREGARD;
     pDisplayCap->astWindow[eWinId].stResource.ulMad = BBOX_FTR_INVALID;
+    pDisplayCap->astWindow[eWinId].stResource.eCap = BBOX_VDC_DISREGARD;
+    pDisplayCap->astWindow[eWinId].stResource.eVfd = BBOX_VDC_DISREGARD;
+    pDisplayCap->astWindow[eWinId].stResource.eScl = BBOX_VDC_DISREGARD;
     pDisplayCap->astWindow[eWinId].eSclCapBias = BBOX_VDC_DISREGARD;
     return err;
 }
@@ -423,6 +435,25 @@ BERR_Code BBOX_P_Vdc_SelfCheck
     /* Check each entry in MEMC table against appropriate entries in BBOX_Vdc_Capabilities */
     for (i=0; i<BBOX_VDC_DISPLAY_COUNT; i++)
     {
+        /* Check HDMI CFC memc index entries for CMP 0 and 1 only */
+        if (i==0 || i==1)
+        {
+            if (pMemConfig->stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i] != BBOX_MemcIndex_Invalid &&
+                pVdcCap->astDisplay[i].bAvailable == false)
+            {
+                BDBG_ERR(("HDMI CFC allocation in MEMC %d doesn't correspond to display %d entry.",
+                    pMemConfig->stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i], i));
+                eStatus = BERR_INVALID_PARAMETER;
+            }
+            if (pMemConfig->stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex != BBOX_MemcIndex_Invalid &&
+                pVdcCap->astDisplay[i].bAvailable == false)
+            {
+                BDBG_ERR(("CMP CFC allocation in MEMC %d doesn't correspond to display %d entry.",
+                    pMemConfig->stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex, i));
+                eStatus = BERR_INVALID_PARAMETER;
+            }
+        }
+
         for (j=0; j<BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY; j++)
         {
             BBOX_Vdc_MosaicModeClass eMosaic = pVdcCap->astDisplay[i].eMosaicModeClass;
@@ -454,17 +485,60 @@ BERR_Code BBOX_P_Vdc_SelfCheck
                 eStatus = BERR_INVALID_PARAMETER;
             }
 
+            if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
+                (pVdcCap->astDisplay[i].astWindow[j].stResource.eCap == BBOX_Vdc_Resource_Capture_eUnknown)) ||
+                ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
+                (pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_Vdc_Resource_Capture_eUnknown &&
+                 pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_VDC_DISREGARD)))
+            {
+                BDBG_ERR(("Memconfig Table display %d capture %d entry [%x] doesn't correspond to VDC BOX config entry [%x].",
+                    i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j],
+                    pVdcCap->astDisplay[i].astWindow[j].stResource.eCap));
+                eStatus = BERR_INVALID_PARAMETER;
+            }
+
+            if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
+                (pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd == BBOX_Vdc_Resource_Feeder_eUnknown)) ||
+                ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
+                (pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_Vdc_Resource_Feeder_eUnknown &&
+                 pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_VDC_DISREGARD)))
+            {
+                BDBG_ERR(("Memconfig Table display %d feeder %d entry [%x] doesn't correspond to VDC BOX config entry [%x].",
+                    i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j],
+                    pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd));
+                eStatus = BERR_INVALID_PARAMETER;
+            }
+
+            /* check if CAP/VFD/SCL used are correctly paired */
+            if (pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_Vdc_Resource_Capture_eUnknown &&
+                pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_VDC_DISREGARD &&
+                pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_Vdc_Resource_Feeder_eUnknown &&
+                pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_VDC_DISREGARD &&
+                pVdcCap->astDisplay[i].astWindow[j].stResource.eScl != BBOX_Vdc_Resource_Scaler_eUnknown &&
+                pVdcCap->astDisplay[i].astWindow[j].stResource.eScl != BBOX_VDC_DISREGARD)
+            {
+                if ((uint8_t)pVdcCap->astDisplay[i].astWindow[j].stResource.eCap !=
+                    (uint8_t)(pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd - BBOX_Vdc_Resource_Feeder_eVfd0) &&
+                    (uint8_t)pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != (uint8_t)pVdcCap->astDisplay[i].astWindow[j].stResource.eScl)
+                {
+                    BDBG_ERR(("CAP, VFD, SCL resources are incorrectly paired, CAP%d, VFD%d, SCL%d.",
+                        (uint8_t)pVdcCap->astDisplay[i].astWindow[j].stResource.eCap,
+                        (uint8_t)pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd,
+                        (uint8_t)pVdcCap->astDisplay[i].astWindow[j].stResource.eScl));
+                    eStatus = BERR_INVALID_PARAMETER;
+                }
+            }
+
             if (eMaxFmt < BFMT_VideoFmt_eMaxCount && eMosaic < BBOX_Vdc_MosaicModeClass_eDisregard &&
                 (!(eMosaic >= BBOX_Vdc_MosaicModeClass_eClass2 && BFMT_IS_UHD(eMaxFmt)) &&
                 (!(eMosaic == BBOX_Vdc_MosaicModeClass_eClass1 &&
                   ((eMaxFmt >= BFMT_VideoFmt_e1080i_50Hz && eMaxFmt <= BFMT_VideoFmt_e1080p_120Hz) ||
                    (eMaxFmt >= BFMT_VideoFmt_e1080i      && eMaxFmt <= BFMT_VideoFmt_e1080p) ||
                    (eMaxFmt >= BFMT_VideoFmt_e720p       && eMaxFmt <= BFMT_VideoFmt_e720p_24Hz_3DOU_AS) ||
-                   (eMaxFmt >= BFMT_VideoFmt_e720p_24Hz  && eMaxFmt <= BFMT_VideoFmt_e720p_50Hz)))) &&
+                   (eMaxFmt >= BFMT_VideoFmt_e720p_24Hz  && eMaxFmt <= BFMT_VideoFmt_e720p_50Hz) ||
+                   (eMaxFmt == BFMT_VideoFmt_e480p) || (eMaxFmt == BFMT_VideoFmt_e576p_50Hz))))) &&
                 (!(eMosaic == BBOX_Vdc_MosaicModeClass_eClass0 &&
-                  (eMaxFmt <= BFMT_VideoFmt_eSECAM_H ||
-                   eMaxFmt == BFMT_VideoFmt_e480p ||
-                   eMaxFmt == BFMT_VideoFmt_e576p_50Hz)))))
+                   eMaxFmt <= BFMT_VideoFmt_eSECAM_H)))
             {
                 BFMT_VideoInfo videoFmtInfo;
                 BFMT_GetVideoFormatInfo(eMaxFmt, &videoFmtInfo);
@@ -494,93 +568,28 @@ BERR_Code BBOX_P_Vdc_SelfCheck
                     pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable ? "true" : "false"));
                 eStatus = BERR_INVALID_PARAMETER;
             }
+
+            if ((pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable == true) &&
+                (pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].eSclCapBias != BBOX_Vdc_SclCapBias_eDisregard))
+            {
+                BDBG_ERR(("Scl-Cap bias is enabled on graphics window for display %d.", i));
+                eStatus = BERR_INVALID_PARAMETER;
+            }
+
+            if (j==0) /* first GFX window only */
+            {
+                if (pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex != BBOX_MemcIndex_Invalid &&
+                    pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable == false)
+                {
+                    BDBG_ERR(("GFD CFC allocation in MEMC %d doesn't correspond to display %d gfx window %d entry.",
+                        pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex, i, j));
+                    eStatus = BERR_INVALID_PARAMETER;
+                }
+            }
         }
     }
 
     return eStatus;
 }
 
-BERR_Code BBOX_P_LoadRts
-    ( const BREG_Handle hReg,
-      const uint32_t    ulBoxId )
-{
-    BERR_Code eStatus = BERR_SUCCESS;
-    BBOX_Rts stBoxRts;
-
-    if (ulBoxId == 0)
-    {
-        BSTD_UNUSED(hReg);
-        BSTD_UNUSED(ulBoxId);
-    }
-    else
-    {
-        BDBG_ASSERT(hReg);
-
-        eStatus = BBOX_P_ValidateId(ulBoxId);
-        if (eStatus != BERR_SUCCESS)
-            goto done;
-
-        eStatus = BBOX_P_GetRtsConfig(ulBoxId, &stBoxRts);
-        if (eStatus == BERR_SUCCESS)
-        {
-            uint32_t i, j;
-
-            /* verify box ID */
-            if (stBoxRts.ulBoxId != ulBoxId)
-            {
-                BDBG_ERR(("Mismatched box ID between device tree/env var and RTS file."));
-                eStatus = BBOX_ID_AND_RTS_MISMATCH;
-                goto done;
-            }
-
-            for (i=0;i<stBoxRts.ulNumMemc;i++)
-            {
-                uint32_t ulMemcBaseAddr = 0x0;
-                BDBG_ASSERT(stBoxRts.paulMemc[i][0]);
-
-#ifdef BCHP_MEMC_ARB_0_REG_START
-                if (i==0)
-                {
-                    ulMemcBaseAddr = BCHP_MEMC_ARB_0_CLIENT_INFO_0;
-                }
-#endif
-#ifdef BCHP_MEMC_ARB_1_REG_START
-                else if (i==1)
-                {
-                    ulMemcBaseAddr = BCHP_MEMC_ARB_1_CLIENT_INFO_0;
-                }
-#endif
-#ifdef BCHP_MEMC_ARB_2_REG_START
-                else if (i==2)
-                {
-                    ulMemcBaseAddr = BCHP_MEMC_ARB_2_CLIENT_INFO_0;
-                }
-#endif
-
-                BDBG_ASSERT(ulMemcBaseAddr);
-
-                for (j=0;j<stBoxRts.ulNumMemcEntries;j++)
-                {
-                    BREG_Write32(hReg, ulMemcBaseAddr+(j*4), stBoxRts.paulMemc[i][j]);
-                    BDBG_MODULE_MSG(BBOX_MEMC, ("MEMC_%d[%d] = 0x%x", i, j, stBoxRts.paulMemc[i][j]));
-                 }
-
-            }
-
-            for (i=0;i<stBoxRts.ulNumPfriClients;i++)
-            {
-                BREG_Write32(hReg, stBoxRts.pastPfriClient[i].ulAddr, stBoxRts.pastPfriClient[i].ulData);
-                BDBG_MODULE_MSG(BBOX_MEMC, ("PFRI[%d] = 0x%x : 0x%x", i, stBoxRts.pastPfriClient[i].ulAddr, stBoxRts.pastPfriClient[i].ulData));
-            }
-        }
-        else if (eStatus == BBOX_RTS_LOADED_BY_CFE)
-        {
-            eStatus = BERR_SUCCESS;
-            BSTD_UNUSED(hReg);
-            BSTD_UNUSED(ulBoxId);
-        }
-    }
-done:
-    return eStatus;
-}
 /* end of file */

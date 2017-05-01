@@ -95,6 +95,14 @@
 #include <wlc_iocv.h>
 #include <pcicfg.h>
 
+#if defined(GTKOE) && (defined(BCMULP) || defined(STB_SOC_WIFI))
+#include <wl_gtkrefresh.h>
+#endif /* GTKOE && (BCMULP || STB_SOC_WIFI) */
+
+#if defined(GTKOE) && defined(STB_SOC_WIFI)
+#include <wl_cfg80211.h>
+#endif /* GTKOE && STB_SOC_WIFI */
+
 #ifdef WOWL_OS_OFFLOADS
 
 #if defined(BCMULP)
@@ -136,7 +144,8 @@ enum {
 	IOV_WOWL_PM_MODE,		/**< PM mode while in sleep. PM_OFF/PM_MAX/AUTO */
 	IOV_WOWL_DPKT,			/**< not used */
 	IOV_WOWL_GPIO,	 /**< configure gpio pin to be used to indicate wakeup towards host */
-	IOV_WOWL_GPIOPOL /**< configure polarity of wakeup gpio pin */
+	IOV_WOWL_GPIOPOL,/**< configure polarity of wakeup gpio pin */
+	IOV_WOWL_RLS_WAKE_MDNS          /** release the mDNS payload of a packet that triggerred a wake up event */
 };
 
 static const bcm_iovar_t wowl_iovars[] = {
@@ -157,6 +166,7 @@ static const bcm_iovar_t wowl_iovars[] = {
 	{"wowl_keepalive", IOV_WOWL_KEEPALIVE, (0), 0, IOVT_BUFFER, WL_MKEEP_ALIVE_FIXED_LEN},
 	{"wowl_pm_mode", IOV_WOWL_PM_MODE, (0), 0, IOVT_INT32, 0},
 	{"wowl_activate", IOV_WOWL_ACTIVATE, (0), 0, IOVT_BOOL, 0},
+	{"wowl_rls_wake_mdns", IOV_WOWL_RLS_WAKE_MDNS, (0), 0, IOVT_BUFFER, 0},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -250,6 +260,10 @@ struct wowl_info {
 	uint32  ns_pattern_count;
 #endif /* defined(WOWL_OS_OFFLOADS) */
 	wl_wowl_pattern_t * ns_wowl_patterns[MAX_WOWL_IPV6_NS_PATTERNS];
+#ifdef BCMINTDBG
+	uint16  ucode_txpsp_cnt;
+	uint16  ucode_phyerr;
+#endif
 #ifdef WL_WOWL_MEDIA
 	bool dngldown;
 #endif
@@ -264,6 +278,51 @@ struct wowl_info {
 	int32	wowl_pm_mode; /* PM mode while in sleep. PM_OFF/PM_MAX/AUTO  */
 	bool	wowl_force;
 };
+
+typedef struct {
+	uint16  offset;
+        uint16  pattern_size;
+        uint8   mdns_mask[MAXMASKSIZE];
+        uint8   mac_addr[2*ETHER_ADDR_LEN];
+        uint16  ether_type;
+        uint8   ip_ver;
+        uint8   ip_hdr[8];
+        uint8   ip_type;
+        uint16  ip_cs;
+        uint8   ip_sa[IPV4_ADDR_LEN];
+        uint8   ip_da[IPV4_ADDR_LEN];
+        uint16  port_src;
+        uint16  port_dst;
+        uint16  padding; /* add 2 bytes padding for structure size alignment */
+} mdns_v4_pattern;
+
+typedef struct {
+	uint16  offset;
+	uint16  pattern_size;
+	uint8   mdns_mask[MAXMASKSIZE];
+	uint8   mac_addr[2*ETHER_ADDR_LEN];
+	uint16  ether_type;
+	uint8	ip_ver;
+	uint8	ver_class_label[3];
+	uint16  length;
+	uint8	next_header;  /* ip type */
+	uint8	hop_limit;
+	uint8   ip_sa[IPV6_ADDR_LEN];
+	uint8   ip_da[IPV6_ADDR_LEN];
+	uint16  port_src;
+	uint16  port_dst;
+	uint8	padding[6]; /* add 6 bytes padding for structure size alignment */
+} mdns_v6_pattern;
+
+/* mDNS : UDP 5353 */
+#define MDNS_PORT	0xe914
+#define IP_VER_V4	0x45
+#define IP_VER_V6	0x60
+/* Ethernet type */
+#define IP_ETHER_V4	0x0008
+#define IP_ETHER_V6	0xdd86
+#define MDNS_WAKEIND	0x3
+#define MDNS_FLAG	0x1
 
 #ifdef BCMDBG
 static void wlc_print_wowlpattern(wl_wowl_pattern_t *pattern);
@@ -283,6 +342,7 @@ static uint32 wlc_wowl_setup_offloads(wowl_info_t *wowl, struct scb *scb);
 static int wlc_wowl_enable_ucode(wowl_info_t *wowl, uint32 wowl_flags, struct scb *scb);
 static uint32 wlc_wowl_clear_ucode(wowl_info_t *wowl);
 static void wlc_wowl_update_pm_mode(wowl_info_t *wowl, wlc_bsscfg_t *cfg);
+static int wlc_wowl_mdns_patterns(wlc_info_t *wlc);
 
 #ifdef WOWL_OS_OFFLOADS
 static void* wlc_wowl_hw_init(wowl_info_t *wowl, struct scb *scb);
@@ -317,6 +377,10 @@ static bool wlc_wowl_enable_by_cfgid(wowl_info_t *wowl, uint16 id);
 static uint32 wlc_wowl_clear_by_cfgid(wowl_info_t *wowl, uint16 id);
 static int wlc_wowl_wake_reason_process_by_cfgid(wowl_info_t *wowl,
 	uint16 id);
+
+#if defined(WOWL_DRV_NORELOAD)
+int wl_wowl_resume_normalmode(wlc_info_t* wlc);
+#endif /* WOWL_DRV_NORELOAD  */
 
 /* antenna swap threshold */
 #define	ANTCNT			10	/**< vanilla M_MAX_ANTCNT value */
@@ -458,6 +522,10 @@ wlc_wowl_dump(wowl_info_t *wowl, struct bcmstrbuf *b)
 	if (!wowl->pci_wakeind && wakeind == 0)
 		bcm_bprintf(b, "\tNo wakeup indication set\n");
 
+#ifdef BCMINTDBG
+	bcm_bprintf(b, "\t\ttxpsp_cnt %d phyerr %d \n",
+		wowl->ucode_txpsp_cnt, wowl->ucode_phyerr);
+#endif
 	return 0;
 }
 #endif	/* BCMDBG */
@@ -497,6 +565,51 @@ BCMATTACHFN(wlc_wowl_detach)(wowl_info_t *wowl)
 	MFREE(wowl->wlc->osh, wowl, sizeof(wowl_info_t));
 }
 
+#if defined(WOWL_DRV_NORELOAD)
+int wl_wowl_resume_normalmode(wlc_info_t* wlc)
+{
+	wowl_info_t *wowl = wlc->wowl;
+	wlc_bsscfg_t *bsscfg = NULL;
+	WL_WOWL(("wl_wowl_resume_normalmode\n\n"));
+
+	bsscfg = wlc_bsscfg_find_by_wlcif(wlc, wlc->wlcif_list);
+	if (WOWL_ACTIVE(wlc->pub)) {
+		wlc_bmac_set_noreset(wlc->hw, TRUE);
+		wl_intrsoff(wlc->wl);
+		wlc_wowl_clear_by_cfgid(wowl, bsscfg->ID);
+		wlc_bmac_set_noreset(wlc->hw, FALSE);
+
+		wowl->wowl_force = 0;
+		wowl->key_rot = 0;
+		wowl->flags_user = 0;
+		wlc->down_override = FALSE;
+		wlc->pub->up = FALSE;
+		wlc->pub->hw_up = FALSE;
+		wl_up(wlc->wl);
+		wl_intrson(wlc->wl);
+		{
+			wlc_bsscfg_t *cfg;
+			uint32 psmode = 0;
+			cfg = wlc_bsscfg_find_by_ID(wlc, bsscfg->ID);
+			if (cfg) {
+				/* Sync PS state */
+				wlc_set_ps_ctrl(cfg);
+				cfg->up=1;
+			}
+			wlc_get(wlc, WLC_GET_PM, (int *)&psmode);
+			ASSERT(psmode <= PM_FAST);
+			if (wowl->pmstate_prev != psmode) {
+				WL_WOWL(("wl%d: %s :Switching PM mode from back to %d from %d\n",
+					wlc->pub->unit, __FUNCTION__, wowl->pmstate_prev,psmode));
+				wlc_set(wlc, WLC_SET_PM, wowl->pmstate_prev);
+			}
+			WL_WOWL(("wl_wowl_resume_normalmode cfg is %p  is up ? %d \n\n",cfg, cfg->up));
+		}
+	}
+	return 0;
+}
+#endif /* WOWL_DRV_NORELOAD */
+
 /** handle WOWL related iovars */
 static int
 wlc_wowl_doiovar(void *hdl, uint32 actionid,
@@ -531,6 +644,8 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 		wowl_bits = (WL_WOWL_MAGIC | WL_WOWL_NET | WL_WOWL_DIS | WL_WOWL_GTK_FAILURE |
 			WL_WOWL_RETR | WL_WOWL_BCN | WL_WOWL_M1 |
 			WL_WOWL_EAPID | WL_WOWL_ARPOFFLOAD | WL_WOWL_KEYROT);
+		if (D11REV_GT(wlc->pub->corerev, 65))
+			wowl_bits = wowl_bits | WL_WOWL_MDNS_SERVICE;
 #if defined(BCMULP)
 		/* for ULP case, we retrieve from SHM, so override and mask unwanted values */
 		if (BCMULP_ENAB()) {
@@ -616,6 +731,14 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 		}
 
 		wake->ucode_wakeind = wlc_read_shm(wlc, M_WAKEEVENT_IND(wlc));
+
+		if ((D11REV_GT(wlc->pub->corerev, 65)) && (wake->ucode_wakeind & WL_WOWL_NET)) {
+			if ((wlc_read_shm(wlc, M_MDNS_FLAG(wlc)) & MDNS_WAKEIND ) == MDNS_WAKEIND) {
+				wake->ucode_wakeind = wake->ucode_wakeind & (~WL_WOWL_NET);
+				wake->ucode_wakeind = wake->ucode_wakeind | WL_WOWL_MDNS_SERVICE;
+			}
+		}
+
 #else /* BCMDONGLEHOST || BCMEMBEDIMAGE || BCM_DNGL_EMBEDIMAGE || STB_SOC_WIFI */
 		wake->ucode_wakeind = wowl->wakeind;
 #endif /* BCMDONGLEHOST || BCMEMBEDIMAGE || BCM_DNGL_EMBEDIMAGE || STB_SOC_WIFI */
@@ -629,6 +752,48 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 		}
 		else {
 			wowl->wakeind = int_val;
+		}
+		break;
+	}
+
+	case IOV_GVAL(IOV_WOWL_RLS_WAKE_MDNS): {
+
+		uint16 *payload_len;
+		uint8  *payload_mdns;
+		uint32 shm_offset;
+		uint16 len_temp;
+
+		if ((D11REV_GT(wlc->pub->corerev, 65)) && (M_WAKEEVENT_IND(wlc) != ID16_INVALID)) {
+			if  ((wlc_read_shm(wlc, M_WAKEEVENT_IND(wlc)) & WL_WOWL_NET) &&
+				((wlc_read_shm(wlc, M_MDNS_FLAG(wlc)) & MDNS_WAKEIND) == MDNS_WAKEIND)) {
+
+				shm_offset = wlc_read_shm(wlc, M_NETPAT_BLK_PTR(wlc)) * 2;
+				len_temp = wlc_read_shm(wlc, shm_offset);
+				payload_len = (uint16*)arg;
+				*payload_len = len_temp;
+
+				/*payload + mac_addr (6 bytes) and length (2 bytes) */
+				if (len_temp & 1)
+					len_temp = len_temp + ETHER_ADDR_LEN + 1 ;
+				else
+					len_temp = len_temp + ETHER_ADDR_LEN;
+
+				if (alen <(len_temp + 2)) {
+					err = BCME_BUFTOOSHORT;
+					break;
+				}
+
+				payload_mdns = (uint8*)arg;
+				payload_mdns = payload_mdns + 2;
+				shm_offset = shm_offset + 2;
+				wlc_copyfrom_shm(wlc, shm_offset, payload_mdns, len_temp);
+			}
+			else {
+				err = BCME_EPERM;
+			}
+		}
+		else {
+			err = BCME_UNSUPPORTED;
 		}
 		break;
 	}
@@ -750,17 +915,47 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 			}
 			wowl->wowl_force = 1;
 		} else if (WOWL_ACTIVE(wlc->pub)) {
+#if defined(WOWL_DRV_NORELOAD)
+			wlc_bmac_set_noreset(wlc->hw, TRUE);
+			wl_intrsoff(wlc->wl);
+
+#endif /*WOWL_DRV_NORELOAD*/
 			wlc_wowl_clear_by_cfgid(wowl, bsscfg->ID);
 			/* wowl_force flag use in wlc_wowl_clear fn.
 			   clear after call returns.
 			 */
+#if defined(WOWL_DRV_NORELOAD)
+			wlc->pub->align_wd_tbtt = TRUE;
+			wlc_bmac_set_noreset(wlc->hw, FALSE);
+#else
 			err = wlc_wowl_wake_reason_process_by_cfgid(wowl, bsscfg->ID);
+#endif /*WOWL_DRV_NORELOAD*/
 			wowl->wowl_force = 0;
 			wlc->down_override = FALSE;
 			wlc->pub->up = FALSE;
 			wlc->pub->hw_up = FALSE;
-
 			wl_up(wlc->wl);
+#if defined(WOWL_DRV_NORELOAD)
+			wl_intrson(wlc->wl);
+			{
+				wlc_bsscfg_t *cfg;
+				uint32 psmode = 0;
+
+				cfg = wlc_bsscfg_find_by_ID(wlc, bsscfg->ID);
+				if(cfg) {
+					cfg->up=1;
+					wlc_set_ps_ctrl(cfg);
+				}
+
+				wlc_get(wlc, WLC_GET_PM, (int *)&psmode);
+				ASSERT(psmode <= PM_FAST);
+				if (wowl->pmstate_prev != psmode) {
+					WL_WOWL(("wl%d: %s :Switching PM mode from back to %d from %d\n",
+						wlc->pub->unit, __FUNCTION__, wowl->pmstate_prev,psmode));
+					wlc_set(wlc, WLC_SET_PM, wowl->pmstate_prev);
+				}
+			}
+#endif /*WOWL_DRV_NORELOAD*/
 		}
 		break;
 
@@ -1447,10 +1642,10 @@ wlc_wowl_wsec_setup(wowl_info_t *wowl, struct scb *scb, uint32 *wowl_flags)
 			if (wowl->key_rot && scb->bsscfg) {
 				if (SUP_ENAB(wlc->pub) && sup_wpa)
 					pkt = wlc_sup_hw_wowl_init(wlc->idsup, scb->bsscfg);
-#if defined(GTKOE) && defined(BCMULP)
-				else if (GTKOE_ENAB(wlc->pub) && BCMULP_ENAB())
-					pkt = wlc_gtkoe_hw_wowl_init(wlc->idsup, scb);
-#endif /* GTKOE && BCMULP */
+#if defined(GTKOE) && (defined(BCMULP) || defined(STB_SOC_WIFI))
+				else if (GTKOE_ENAB(wlc->pub))
+					pkt = wlc_gtkoe_hw_wowl_init(wlc->gtkref, scb);
+#endif /* GTKOE && (defined(BCMULP) || defined(STB_SOC_WIFI)) */
 				else
 					WL_ERROR(("wl%d: Key rotation not enabled "
 					"because neither internal sup nor gtkoe are enabled",
@@ -1864,11 +2059,14 @@ wlc_wowl_update_pm_mode(wowl_info_t *wowl, wlc_bsscfg_t *cfg)
 	ASSERT(wowl->pmstate_prev <= PM_FAST);
 
 	if (wowl->wowl_pm_mode == AUTO) {
+#if defined(WOWL_DRV_NORELOAD)
+		pmstate_new = PM_MAX;
+#else
 		if (wowl->pmstate_prev == PM_FAST)
 			pmstate_new = PM_MAX;
 		else
 			pmstate_new = wowl->pmstate_prev;
-
+#endif  /*WOWL_DRV_NORELOAD*/
 	} else {
 		pmstate_new = wowl->wowl_pm_mode;
 	}
@@ -2050,8 +2248,9 @@ wlc_wowl_enable_by_cfgid(wowl_info_t *wowl, uint16 id)
 	if (wlc_bss_connected(cfg))
 		ASSERT(scb || wowl->wowl_test);
 
+#if !defined(WOWL_DRV_NORELOAD)
 	WOWL_ACTIVE(wlc->pub) = TRUE;
-
+#endif /*WOWL_DRV_NORELOAD*/
 
 	/* Force up if down. Use WLC_OUT interface directly */
 	if (wowl->wowl_test) {
@@ -2081,13 +2280,18 @@ wlc_wowl_enable_by_cfgid(wowl_info_t *wowl, uint16 id)
 		wlc_wowl_update_pm_mode(wowl, cfg);
 
 		wlc_bmac_set_noreset(wlc->hw, TRUE);
-
+#if defined(WOWL_DRV_NORELOAD)
+		WOWL_ACTIVE(wlc->pub) = TRUE;
+#endif /*WOWL_DRV_NORELOAD*/
 		if (ASSOC_RECREATE_ENAB(wlc->pub)) {
 			WL_WOWL(("wl%d: Enabling preserve assoc\n", wlc->pub->unit));
 			wlc_iovar_setint(wlc, "preserve_assoc", 1);
 		}
 
 		wl_down(wlc->wl);
+
+		/* Disable to trigger wlc_watchdog in wowl mode */
+		wlc->pub->align_wd_tbtt = FALSE;
 
 		wlc_bmac_set_noreset(wlc->hw, FALSE);
 		/* core clk is TRUE in BMAC driver due to noreset,
@@ -2405,6 +2609,14 @@ wlc_wowl_enable_ucode(wowl_info_t *wowl, uint32 wowl_flags, struct scb *scb)
 		}
 	}
 
+	/* configure mDNS detection */
+	if ((D11REV_GT(wlc->pub->corerev, 65)) && (wowl_flags & WL_WOWL_MDNS_SERVICE)) {
+		if (wlc_wowl_mdns_patterns(wlc) != BCME_OK) {
+			WL_ERROR(("%s: Setup for mDNS packet detection failed\n", __FUNCTION__));
+			goto done;
+		}
+	}
+
 	/* configure the bcn loss value */
 	if (wowl_flags & WL_WOWL_BCN) {
 		wlc_write_shm(wlc,
@@ -2538,6 +2750,19 @@ enable:
 	wowl_flags |= WL_WOWL_BCAST;
 #endif
 
+	/* WL_WOWL_NET must be set when mDNS is enabled */
+	if (wowl_flags & WL_WOWL_MDNS_SERVICE) {
+		if (D11REV_LT(wlc->pub->corerev, 66)) {
+			WL_ERROR(("%s: mDNS cannot be enabled for rev. <= 65\n",__FUNCTION__));
+			goto done;
+		}
+		wowl_flags = wowl_flags | WL_WOWL_NET;
+		if (!(wlc_read_shm(wlc, M_MDNS_FLAG(wlc)) & 0x1)) {
+			WL_ERROR(("%s: mDNS detection is not properly configured \n",__FUNCTION__));
+			goto done;
+		}
+	}
+
 	/* Enabling Wowl */
 	WL_ERROR(("wl%d:%s enabling wowl 0x%x assoc recreate = %d \n",
 		wlc->pub->unit, __FUNCTION__, wowl_flags, wlc->pub->_assoc_recreate));
@@ -2606,6 +2831,112 @@ done:
 	return err;
 }
 
+
+/* The mDNS configuration function */
+static int
+wlc_wowl_mdns_patterns(wlc_info_t *wlc)
+{
+	uint16 MDNS_PAT_NUM = 0;
+	/* the max. mask size is 16 bytes */
+	uint8 mdns_mask_v4[] = {0x3f, 0x70, 0x80, 0xc0, 0x3f};
+	uint8 mdns_mask_v6[] = {0x3f, 0xf0, 0x10, 0x00, 0xc0, 0xff, 0xff, 0x03};
+	uint8 mdns_mac_ipv4[] = {0x01, 0x00, 0x5e, 0x00, 0x00, 0xfb};
+	uint8 mdns_mac_ipv6[] = {0x33, 0x33, 0x00, 0x00, 0x00, 0xfb};
+	uint8 mdns_da_ipv4[] = {0xe0, 0x00, 0x00, 0xfb};
+	uint8 mdns_da_ipv6[] = {0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfb};
+
+	int err = BCME_OK;
+	mdns_v4_pattern *mdns_v4 = NULL;
+	mdns_v6_pattern *mdns_v6 = NULL;
+
+	/* IPv4 */
+
+	mdns_v4 = (mdns_v4_pattern*) MALLOC(wlc->pub->osh, sizeof(mdns_v4_pattern));
+	if (mdns_v4 == NULL) {
+		WL_ERROR(("%s: Failed to allocate memory for mDNS pattern", __FUNCTION__));
+		err = BCME_ERROR;
+		goto fail_mdns;
+	}
+
+	memset((uint8*)mdns_v4, 0, sizeof(mdns_v4_pattern));
+
+	if ((sizeof(mdns_mask_v4) > MAXMASKSIZE) || (sizeof(mdns_mac_ipv4) != ETHER_ADDR_LEN) ||
+		(sizeof(mdns_da_ipv4) != IPV4_ADDR_LEN)) {
+		WL_ERROR(("%s:  Failed the size check for mask, MAC or IPv4 ", __FUNCTION__));
+		err = BCME_ERROR;
+		goto fail_mdns;
+	}
+
+	bcopy(mdns_mask_v4, mdns_v4->mdns_mask, sizeof(mdns_mask_v4));
+	bcopy(mdns_mac_ipv4, mdns_v4->mac_addr, ETHER_ADDR_LEN);
+
+	mdns_v4->ether_type = IP_ETHER_V4;
+	mdns_v4->ip_ver = IP_VER_V4;
+	mdns_v4->ip_type = IP_PROT_UDP;
+
+	bcopy(mdns_da_ipv4, mdns_v4->ip_da, IPV4_ADDR_LEN);
+
+	mdns_v4->port_src = MDNS_PORT;
+	mdns_v4->port_dst = MDNS_PORT;
+	mdns_v4->offset = 0;
+	mdns_v4->pattern_size = sizeof(mdns_v4_pattern) - MAXMASKSIZE -
+		sizeof(((mdns_v4_pattern*)0)->pattern_size) - sizeof(((mdns_v4_pattern*)0)->offset);
+
+	wlc_copyto_shm(wlc, M_MDNS_PAT_BLK(wlc), mdns_v4, sizeof(mdns_v4_pattern));
+	MDNS_PAT_NUM = MDNS_PAT_NUM + 1;
+
+	/* IPv6 */
+
+	mdns_v6 = (mdns_v6_pattern*) MALLOC(wlc->pub->osh, sizeof(mdns_v6_pattern));
+	if (mdns_v6 == NULL) {
+		WL_ERROR(("%s: Failed to allocate memory for mDNS pattern", __FUNCTION__));
+		err = BCME_ERROR;
+		goto fail_mdns;
+	}
+
+	memset((uint8*)mdns_v6, 0, sizeof(mdns_v6_pattern));
+
+	if ((sizeof(mdns_mask_v6) > MAXMASKSIZE) || (sizeof(mdns_mac_ipv6) != ETHER_ADDR_LEN) ||
+		(sizeof(mdns_da_ipv6) != IPV6_ADDR_LEN)) {
+		WL_ERROR(("%s:  Failed the size check for mask, MAC or IPv6 ", __FUNCTION__));
+		err = BCME_ERROR;
+		goto fail_mdns;
+	}
+
+	bcopy(mdns_mask_v6, mdns_v6->mdns_mask, sizeof(mdns_mask_v6));
+	bcopy(mdns_mac_ipv6, mdns_v6->mac_addr, ETHER_ADDR_LEN);
+
+	mdns_v6->ether_type = IP_ETHER_V6;
+	mdns_v6->ip_ver = IP_VER_V6;
+	mdns_v6-> next_header = IP_PROT_UDP;
+
+	bcopy(mdns_da_ipv6, mdns_v6->ip_da, IPV6_ADDR_LEN);
+
+	mdns_v6->port_src = MDNS_PORT;
+	mdns_v6->port_dst = MDNS_PORT;
+	mdns_v6->offset = 0;
+	mdns_v6->pattern_size = sizeof(mdns_v6_pattern) - MAXMASKSIZE -
+		sizeof(((mdns_v6_pattern*)0)->pattern_size) - sizeof(((mdns_v6_pattern*)0)->offset);
+
+	wlc_copyto_shm(wlc, M_MDNS_PAT_BLK(wlc) + NETPATTERNSIZE, mdns_v6, sizeof(mdns_v6_pattern));
+	MDNS_PAT_NUM = MDNS_PAT_NUM + 1;
+
+	/* end IPv6 */
+
+	/* Enable mDNS and set the nr of mDNS pkt patterns */
+	wlc_write_shm(wlc, M_MDNSPAT_NUM(wlc), MDNS_PAT_NUM);
+	wlc_write_shm(wlc, M_MDNS_FLAG(wlc), MDNS_FLAG);
+
+fail_mdns:
+	if (mdns_v4 != NULL)
+		MFREE(wlc->pub->osh, mdns_v4, sizeof(mdns_v4_pattern));
+	if (mdns_v6 != NULL)
+		MFREE(wlc->pub->osh, mdns_v6, sizeof(mdns_v6_pattern));
+	return err;
+}
+
+
 static void
 wlc_wowl_reassoc(wowl_info_t *wowl, wlc_bsscfg_t *cfg)
 {
@@ -2630,7 +2961,6 @@ wlc_wowl_reassoc(wowl_info_t *wowl, wlc_bsscfg_t *cfg)
 		{
 			wlc_bsscfg_disable(wlc, cfg);
 		}
-
 		wlc_link(wlc, FALSE, &cfg->BSSID, cfg,
 			WLC_E_LINK_ASSOC_REC);
 	}
@@ -2685,7 +3015,9 @@ wlc_wowl_clear_by_cfgid(wowl_info_t *wowl, uint16 id)
 		uint32 psmode = 0;
 
 		/* Clear PME enable & pme status bits */
+#if !defined(STB_SOC_WIFI)
 		wowl->pci_wakeind = si_pci_pmestat(wlc->pub->sih);
+#endif /*STB_SOC_WIFI*/
 		si_setcore(wlc->pub->sih, D11_CORE_ID, 0);
 
 		/* Bring it out of reset to read wakeind */
@@ -2714,11 +3046,15 @@ wlc_wowl_clear_by_cfgid(wowl_info_t *wowl, uint16 id)
 		/* Restore the PM state to the one before going to wowl state. */
 		wlc_get(wlc, WLC_GET_PM, (int *)&psmode);
 		ASSERT(psmode <= PM_FAST);
+#if !defined(WOWL_DRV_NORELOAD)
 		if (wowl->pmstate_prev != psmode) {
 			WL_WOWL(("wl%d: %s :Switching PM mode from back to %d from %d.\n",
 				wlc->pub->unit, __FUNCTION__, wowl->pmstate_prev, psmode));
 			wlc_set(wlc, WLC_SET_PM, (int)wowl->pmstate_prev);
 		}
+#else
+		wlc_set_pmawakebcn(cfg,TRUE);
+#endif /*WOWL_DRV_NORELOAD*/
 
 		/* notify keymgmt of wowl clear */
 		if ((scb = wlc_scbfind(wlc, cfg, &cfg->BSSID)) != NULL) {
@@ -2742,7 +3078,11 @@ wlc_wowl_clear_by_cfgid(wowl_info_t *wowl, uint16 id)
 		}
 	}
 
+#if !defined(STB_SOC_WIFI)
 	return wowl->pci_wakeind;
+#else
+	return wowl->wakeind;
+#endif /* STB_SOC_WIFI */
 }
 
 int
@@ -2780,6 +3120,12 @@ wlc_wowl_clear_ucode(wowl_info_t *wowl)
 
 	wowl->wakeind = wlc_read_shm(wlc, M_WAKEEVENT_IND(wlc));
 
+#ifdef BCMINTDBG
+	if (WOWL_ENAB(wlc->pub)) {
+		wowl->ucode_txpsp_cnt = wlc_read_shm(wlc, M_TXPSPFRM_CNT(wlc));
+		wowl->ucode_phyerr = wlc_read_shm(wlc, M_TXPHYERR_CNT(wlc));
+	}
+#endif
 
 	if (wowl->wowl_test == 0) {
 		struct scb *scb = NULL;
@@ -2787,8 +3133,12 @@ wlc_wowl_clear_ucode(wowl_info_t *wowl)
 		uint32 key_rot_indx = 0;
 
 		if (wowl->flags_current & WOWL_KEYROT) {
+#if defined(WOWL_OS_OFFLOADS) || (defined(GTKOE) && defined(STB_SOC_WIFI))
 #ifdef WOWL_OS_OFFLOADS
 			if (WOWL_OFFLOAD_ENABLED(wlc)) {
+#elif defined(GTKOE) && defined(STB_SOC_WIFI)
+			if (GTKOE_ENAB(wlc->pub)) {
+#endif /* WOWL_OS_OFFLOADS */
 				uint8 uc_rc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 				uint32 keyrc_offset;
 				keyrc_offset = M_KEYRC_LAST(wlc);
@@ -2811,9 +3161,13 @@ wlc_wowl_clear_ucode(wowl_info_t *wowl)
 					NTOH32(*((uint32 *)(uc_rc + sizeof(uint32))));
 				}
 #endif /* (defined(NDIS) && (NDISVER >= 0x0620)) */
+#if defined(GTKOE) && defined(STB_SOC_WIFI)
+				wl_cfg80211_gtk_rekey_notify(wl_get_cfg(NULL),
+					(const u8*) wlc->cfg->BSSID.octet, (const u8*) uc_rc);
+#endif /* GTKOE && STB_SOC_WIFI */
 			}
 			else
-#endif /* WOWL_OS_OFFLOADS */
+#endif /* WOWL_OS_OFFLOADS || (GTKOE && STB_SOC_WIFI) */
 			if (SUP_ENAB(wlc->pub))
 				wlc_sup_sw_wowl_update(wlc->idsup, wlc->cfg);
 
@@ -2843,6 +3197,12 @@ wlc_wowl_clear_ucode(wowl_info_t *wowl)
 
 	wowl->wakeind = wlc_read_shm(wlc, M_WAKEEVENT_IND(wlc));
 
+#ifdef BCMINTDBG
+	if (WOWL_ENAB(wlc->pub)) {
+		wowl->ucode_txpsp_cnt = wlc_read_shm(wlc, M_TXPSPFRM_CNT(wlc));
+		wowl->ucode_phyerr = wlc_read_shm(wlc, M_TXPHYERR_CNT(wlc));
+	}
+#endif
 
 	return wowl->wakeind;
 } /* wlc_wowl_clear_ucode */
@@ -3061,6 +3421,15 @@ wlc_wowl_setup_offloads(wowl_info_t *wowl, struct scb *scb)
 		pkt = wlc_wowl_wsec_setup(wowl, scb, &new_flags);
 
 		if (pkt) {
+			/* This SDU already has TKIP MIC,
+			* and wlc_sdu_to_pdu will add it once more to the length
+			* So hack here to compensate.
+			*/
+			if (key_info.algo == CRYPTO_ALGO_TKIP) {
+				uint pkt_length = pkttotlen(wlc->osh, pkt);
+				pkt_length -= TKIP_MIC_SIZE;
+				PKTSETLEN(wlc->osh, pkt, pkt_length);
+			}
 			/* Get D11 hdrs put on it */
 			pkt = wlc_sdu_to_pdu(wlc, pkt, scb, TRUE);
 

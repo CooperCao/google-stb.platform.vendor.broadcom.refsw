@@ -40,6 +40,7 @@
  *****************************************************************************/
 #include "stream_player.h"
 #include "stream_player_priv.h"
+#include "util_priv.h"
 #include "platform.h"
 #include "blst_queue.h"
 #include <stdio.h>
@@ -70,6 +71,8 @@ bool stream_player_p_file_filter(const char * path)
         strstr(path, ".avi")
         ||
         strstr(path, ".asf")
+        ||
+        strstr(path, ".webm")
     )
     {
         return true;
@@ -142,64 +145,64 @@ void stream_player_print(StreamPlayerHandle player)
 {
     assert(player);
 
-    if (!player->pCurrent) { printf("No current stream source\n"); return; }
-    printf("Currently playing '%s' (%s)\n", file_switcher_get_path(player->pCurrent->switcher), eotfStrings[player->pCurrent->eotf]);
+    if (!player->pCurrentSource) { printf("No current stream source\n"); return; }
+    printf("Currently playing '%s' (%s)\n", file_switcher_get_path(player->pCurrentSource->switcher), eotfStrings[player->pCurrentSource->eotf]);
 }
 
-void stream_player_next(StreamPlayerHandle player)
+void stream_player_next(StreamPlayerHandle player, bool mosaic)
 {
     assert(player);
 
-    if (!player->pCurrent) { printf("next: no current stream source\n"); return; }
+    if (!player->pCurrentSource) { printf("next: no current stream source\n"); return; }
 
     stream_player_stop(player);
-    if (file_switcher_get_position(player->pCurrent->switcher) + 1 < file_switcher_get_count(player->pCurrent->switcher))
+    if (file_switcher_get_position(player->pCurrentSource->switcher) + 1 < (int)file_switcher_get_count(player->pCurrentSource->switcher))
     {
-        file_switcher_next(player->pCurrent->switcher);
+        file_switcher_next(player->pCurrentSource->switcher);
     }
     else
     {
         do
         {
-            player->pCurrent = BLST_Q_NEXT(player->pCurrent, link);
-            if (!player->pCurrent) { player->pCurrent = BLST_Q_FIRST(&player->sources); }
-        } while (!file_switcher_get_count(player->pCurrent->switcher));
-        file_switcher_first(player->pCurrent->switcher);
+            player->pCurrentSource = BLST_Q_NEXT(player->pCurrentSource, link);
+            if (!player->pCurrentSource) { player->pCurrentSource = BLST_Q_FIRST(&player->sources); }
+        } while (!file_switcher_get_count(player->pCurrentSource->switcher));
+        file_switcher_first(player->pCurrentSource->switcher);
     }
-    stream_player_start(player);
+    stream_player_start(player, mosaic);
 }
 
-void stream_player_prev(StreamPlayerHandle player)
+void stream_player_prev(StreamPlayerHandle player, bool mosaic)
 {
     assert(player);
 
-    if (!player->pCurrent) { printf("prev: no current stream source\n"); return; }
+    if (!player->pCurrentSource) { printf("prev: no current stream source\n"); return; }
 
     stream_player_stop(player);
-    file_switcher_prev(player->pCurrent->switcher);
-    while (!file_switcher_get_path(player->pCurrent->switcher))
+    file_switcher_prev(player->pCurrentSource->switcher);
+    while (!file_switcher_get_path(player->pCurrentSource->switcher))
     {
-        player->pCurrent = BLST_Q_PREV(player->pCurrent, link);
-        if (!player->pCurrent) { player->pCurrent = BLST_Q_LAST(&player->sources); }
-        if (player->pCurrent)
+        player->pCurrentSource = BLST_Q_PREV(player->pCurrentSource, link);
+        if (!player->pCurrentSource) { player->pCurrentSource = BLST_Q_LAST(&player->sources); }
+        if (player->pCurrentSource)
         {
-            file_switcher_last(player->pCurrent->switcher);
+            file_switcher_last(player->pCurrentSource->switcher);
         }
     }
-    stream_player_start(player);
+    stream_player_start(player, mosaic);
 }
 
-void stream_player_first(StreamPlayerHandle player)
+void stream_player_first(StreamPlayerHandle player, bool mosaic)
 {
     assert(player);
 
     stream_player_stop(player);
-    player->pCurrent = BLST_Q_FIRST(&player->sources);
-    if (player->pCurrent)
+    player->pCurrentSource = BLST_Q_FIRST(&player->sources);
+    if (player->pCurrentSource)
     {
-        file_switcher_first(player->pCurrent->switcher);
+        file_switcher_first(player->pCurrentSource->switcher);
     }
-    stream_player_start(player);
+    stream_player_start(player, mosaic);
 }
 
 unsigned stream_player_get_count(StreamPlayerHandle player)
@@ -213,61 +216,110 @@ unsigned stream_player_get_count(StreamPlayerHandle player)
     return count;
 }
 
-void stream_player_play_stream(StreamPlayerHandle player, unsigned streamIndex)
+static void stream_player_p_play_stream(StreamPlayerHandle player, StreamSource * pSource, int streamIndex, bool mosaic, bool forceRestart)
 {
-    StreamSource * pSource = NULL;
     StreamSource * pOldSource = NULL;
-    unsigned count = 0;
     int oldPosition = -1;
 
-    pOldSource = player->pCurrent;
+    pOldSource = player->pCurrentSource;
     if (pOldSource)
     {
         oldPosition = file_switcher_get_position(pOldSource->switcher);
     }
 
-    if (streamIndex >= stream_player_get_count(player)) { printf("stream_player: stream index %u out of bounds\n", streamIndex, count); }
+    if (!forceRestart && ((pOldSource != pSource) || (oldPosition != streamIndex)))
+    {
+        stream_player_stop(player);
+        player->pCurrentSource = pSource;
+        if (pSource)
+        {
+            file_switcher_set_position(pSource->switcher, streamIndex);
+            player->pCurrentUrl = set_string(player->pCurrentUrl, file_switcher_get_path(pSource->switcher));
+            printf("stream_player: playing stream '%s'\n", player->pCurrentUrl);
+        }
+        stream_player_start(player, mosaic);
+    }
+}
+
+void stream_player_play_stream_by_index(StreamPlayerHandle player, int streamIndex, bool mosaic, bool forceRestart)
+{
+    StreamSource * pSource = NULL;
+    unsigned count = 0;
+
+    if (streamIndex >= (int)stream_player_get_count(player)) { printf("stream_player: stream index %d out of bounds (%u)\n", streamIndex, count); return; }
     for (pSource = BLST_Q_FIRST(&player->sources); pSource; pSource = BLST_Q_NEXT(pSource, link))
     {
         count = file_switcher_get_count(pSource->switcher);
-        if (streamIndex < count)
+        if (streamIndex < (int)count)
         {
             break;
         }
         streamIndex -= count;
     }
 
-    if ((pOldSource != pSource) || (oldPosition != streamIndex))
+    stream_player_p_play_stream(player, pSource, streamIndex, mosaic, forceRestart);
+}
+
+void stream_player_p_play_stream_by_path(StreamPlayerHandle player, const char * streamPath, bool mosaic, bool forceRestart)
+{
+    StreamSource * pSource = NULL;
+    int streamIndex = -1;
+
+    for (pSource = BLST_Q_FIRST(&player->sources); pSource; pSource = BLST_Q_NEXT(pSource, link))
     {
-        stream_player_stop(player);
-        player->pCurrent = pSource;
-        if (pSource)
+        streamIndex = file_switcher_find(pSource->switcher, streamPath);
+        if (streamIndex != -1)
         {
-            printf("stream_player: playing stream index %u\n", streamIndex);
-            file_switcher_set_position(pSource->switcher, streamIndex);
+            break;
         }
-        stream_player_start(player);
+    }
+
+    if (streamIndex == -1) { printf("stream_player: stream path '%s' not found\n", streamPath); return; }
+
+    stream_player_p_play_stream(player, pSource, streamIndex, mosaic, forceRestart);
+}
+
+void stream_player_play_stream_by_url(StreamPlayerHandle player, const char * streamUrl, bool mosaic, bool forceRestart)
+{
+    if (!streamUrl) { printf("stream_player: NULL stream url\n"); return; }
+
+    if (strchr(streamUrl, ':') || streamUrl[0] == '/')
+    {
+        if (!forceRestart && player->pCurrentUrl && !strcmp(player->pCurrentUrl, streamUrl)) return;
+        if (player->started)
+        {
+            stream_player_stop(player);
+        }
+        player->pCurrentUrl = set_string(player->pCurrentUrl, streamUrl);
+        printf("stream_player: playing stream '%s'\n", player->pCurrentUrl);
+        stream_player_start(player, mosaic);
+    }
+    else
+    {
+        stream_player_p_play_stream_by_path(player, streamUrl, mosaic, forceRestart);
     }
 }
 
 void stream_player_stop(StreamPlayerHandle player)
 {
     assert(player);
-    if (!player->pCurrent) { printf("stop: no current stream source\n"); return; }
+    if (!player->pCurrentUrl) { printf("stop: no current stream\n"); return; }
 
 #ifdef DEBUG
-    printf("Stopping '%s'\n", file_switcher_get_path(player->pCurrent->switcher));
+    printf("Stopping '%s'\n", player->pCurrentUrl);
 #endif
     platform_media_player_stop(player->platformPlayer);
+    player->started = false;
 }
 
-void stream_player_start(StreamPlayerHandle player)
+void stream_player_start(StreamPlayerHandle player, bool mosaic)
 {
     int rc;
     assert(player);
-    if (!player->pCurrent) { printf("start: no current stream source\n"); return; }
-    rc = platform_media_player_start(player->platformPlayer, file_switcher_get_path(player->pCurrent->switcher));
+    if (!player->pCurrentUrl) { printf("start: no current stream\n"); return; }
+    rc = platform_media_player_start(player->platformPlayer, player->pCurrentUrl, mosaic);
     if (!rc) { stream_player_print(player); }
+    player->started = true;
 }
 
 const PlatformPictureInfo * stream_player_get_picture_info(StreamPlayerHandle player)
@@ -352,4 +404,11 @@ void stream_player_toggle_pause(StreamPlayerHandle player)
         platform_media_player_trick(player->platformPlayer, 0);
         player->paused = true;
     }
+}
+
+void stream_player_frame_advance(StreamPlayerHandle player, bool mosaic)
+{
+    assert(player);
+    platform_media_player_frame_advance(player->platformPlayer, mosaic);
+    printf("stream_player: frame advanced\n");
 }

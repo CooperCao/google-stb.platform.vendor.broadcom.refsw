@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image format conversion
-
-FILE DESCRIPTION
-Sends jobs to the scheduler to convert between different image formats
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_imgconv.h"
 #include "v3d_imgconv_internal.h"
 #include "v3d_platform.h"

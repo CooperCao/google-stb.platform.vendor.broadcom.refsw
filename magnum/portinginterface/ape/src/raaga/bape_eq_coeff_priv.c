@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,80 +51,80 @@
 #include "bape_eq_coeff_priv.h"
 
 /* Local functions used in Equalizer */
-void EQ_convert_analog_to_digital ( const int32_t ptr_mant[],
+static void EQ_convert_analog_to_digital ( const int32_t ptr_mant[],
         const int32_t ptr_exp[],
         int32_t fc,
         int32_t fs,
         int32_t coef_mant[],
         int32_t coef_exp[]);
 
-int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
+static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[]);
 
-int32_t EQ_generate_treble (int32_t gain, int32_t fs, int32_t fc,
+static int32_t EQ_generate_treble (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[]);
 
-void EQ_int2fix(int32_t inp,
+static void EQ_int2fix(int32_t inp,
         int32_t *mant,
         int32_t *exp);
 
-int32_t EQ_mul_32_32 (int32_t a,
+static int32_t EQ_mul_32_32 (int32_t a,
         int32_t b);
 
-void EQ_mul (int32_t *dest_mant,
+static void EQ_mul (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t mant,
         int32_t exp,
         int32_t src_mant,
         int32_t src_exp);
 
-void EQ_add (int32_t *dest_mant,
+static void EQ_add (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t mant,
         int32_t exp,
         int32_t src_mant,
         int32_t src_exp);
 
-void EQ_add_32_32 (int32_t *dest_mant,
+static void EQ_add_32_32 (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t src_mant,
         int32_t src_exp);
 
-void EQ_renormalise (int32_t *p_mant,
+static void EQ_renormalise (int32_t *p_mant,
         int32_t *p_exp);
 
-int32_t EQ_div_32_32 (int32_t num,
+static int32_t EQ_div_32_32 (int32_t num,
         int32_t den);
 
-void EQ_div (int32_t *dest_mant,
+static void EQ_div (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t mant,
         int32_t exp,
         int32_t src_mant,
         int32_t src_exp);
 
-void EQ_sqrt (int32_t *dest_mant,
+static void EQ_sqrt (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t src_mant,
         int32_t src_exp);
 
-int32_t EQ_sqrt_32 (int32_t in);
+static int32_t EQ_sqrt_32 (int32_t in);
 
-void EQ_cos_sin (int32_t phase,
+static void EQ_cos_sin (int32_t phase,
         int32_t *cos_val,
         int32_t *sin_val);
 
-void EQ_tan(int32_t f1,
+static void EQ_tan(int32_t f1,
         int32_t f2,
         int32_t *fc_a_mant,
         int32_t *fc_a_exp);
 
-void EQ_db_2_linear (int32_t *dest_mant,
+static void EQ_db_2_linear (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t src_mant,
         int32_t src_exp);
 
-int32_t EQ_db_2_linear_table(int32_t in,
+static int32_t EQ_db_2_linear_table(int32_t in,
         const int32_t table[]);
 
 /* Tables used in equalizer */
@@ -903,7 +903,7 @@ int32_t EQ_subsonic_HPF_isrsafe (int32_t fs, int32_t fc, int32_t type, int32_t o
 /*********** End of API functions *************/
 
 /* Functions internal to Equalizer module */
-int32_t EQ_db_2_linear_table(int32_t in, const int32_t table[])
+static int32_t EQ_db_2_linear_table(int32_t in, const int32_t table[])
 {
     int32_t ret, i;
     ret = 0x10000000;
@@ -917,7 +917,7 @@ int32_t EQ_db_2_linear_table(int32_t in, const int32_t table[])
     return ret;
 }
 
-void EQ_div (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
+static void EQ_div (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
 {
     EQ_renormalise (&mant, &exp);
     EQ_renormalise (&src_mant, &src_exp);
@@ -926,7 +926,7 @@ void EQ_div (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, i
     return;
 }
 
-void EQ_add (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
+static void EQ_add (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
 {
     EQ_renormalise (&mant, &exp);
     EQ_renormalise (&src_mant, &src_exp);
@@ -936,7 +936,7 @@ void EQ_add (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, i
     return;
 }
 
-void EQ_mul (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
+static void EQ_mul (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
 {
     EQ_renormalise (&mant, &exp);
     EQ_renormalise (&src_mant, &src_exp);
@@ -945,7 +945,7 @@ void EQ_mul (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, i
     return;
 }
 
-void EQ_int2fix(int32_t inp, int32_t *mant, int32_t *exp)
+static void EQ_int2fix(int32_t inp, int32_t *mant, int32_t *exp)
 {
     int32_t sign;
     int32_t i;
@@ -971,7 +971,7 @@ void EQ_int2fix(int32_t inp, int32_t *mant, int32_t *exp)
     return;
 }
 
-int32_t EQ_mul_32_32 (int32_t a, int32_t b)
+static int32_t EQ_mul_32_32 (int32_t a, int32_t b)
 {
     int32_t a1, a0, b1, b0;
     int32_t acc;
@@ -1005,7 +1005,7 @@ int32_t EQ_mul_32_32 (int32_t a, int32_t b)
     return acc;
 }
 
-void EQ_add_32_32 (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
+static void EQ_add_32_32 (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
 {
     int32_t ret = 0;
     if (*dest_mant == 0)
@@ -1060,7 +1060,7 @@ void EQ_add_32_32 (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int3
     return;
 }
 
-void EQ_renormalise (int32_t *p_mant, int32_t *p_exp)
+static void EQ_renormalise (int32_t *p_mant, int32_t *p_exp)
 {
     int32_t ret = 0;
     int32_t mant, exp;
@@ -1087,7 +1087,7 @@ void EQ_renormalise (int32_t *p_mant, int32_t *p_exp)
     return;
 }
 
-int32_t EQ_div_32_32 (int32_t num, int32_t den)
+static int32_t EQ_div_32_32 (int32_t num, int32_t den)
 {
     int32_t i, res = 0;
     int32_t begin = 0, end = 0, mid = 0;
@@ -1127,7 +1127,7 @@ int32_t EQ_div_32_32 (int32_t num, int32_t den)
     /* The return value should be in 2.30 format. Both are compensated */
 }
 
-void EQ_sqrt (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
+static void EQ_sqrt (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
 {
     EQ_renormalise (&src_mant, &src_exp);
     if ((src_exp&1) == 0)
@@ -1140,7 +1140,7 @@ void EQ_sqrt (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t s
     return;
 }
 
-int32_t EQ_sqrt_32 (int32_t in)
+static int32_t EQ_sqrt_32 (int32_t in)
 {
     int32_t begin = 0, end = 0, mid = 0;
     int32_t i, res = 0;
@@ -1164,7 +1164,7 @@ int32_t EQ_sqrt_32 (int32_t in)
     return end;
 }
 
-void EQ_tan(int32_t f1, int32_t f2, int32_t *fc_a_mant, int32_t *fc_a_exp)
+static void EQ_tan(int32_t f1, int32_t f2, int32_t *fc_a_mant, int32_t *fc_a_exp)
 {
     int32_t phase = 0;
     int32_t cos_val = 0, sin_val = 0;
@@ -1190,7 +1190,7 @@ void EQ_tan(int32_t f1, int32_t f2, int32_t *fc_a_mant, int32_t *fc_a_exp)
     return;
 }
 
-void EQ_cos_sin (int32_t phase, int32_t *cos_val, int32_t *sin_val)
+static void EQ_cos_sin (int32_t phase, int32_t *cos_val, int32_t *sin_val)
 {
     int32_t sign = 0;
     int32_t sv = 0, cv = 0, i;
@@ -1231,7 +1231,7 @@ void EQ_cos_sin (int32_t phase, int32_t *cos_val, int32_t *sin_val)
     return;
 }
 
-void EQ_db_2_linear (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
+static void EQ_db_2_linear (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
 {
     /* Renormalize the db values in 16.16 format */
     int sign = 0, i;
@@ -1269,7 +1269,7 @@ void EQ_db_2_linear (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, in
     return;
 }
 
-void EQ_convert_analog_to_digital (const int32_t ptr_mant[], const int32_t ptr_exp[], int32_t fc, int32_t fs, int32_t coef_mant[], int32_t coef_exp[])
+static void EQ_convert_analog_to_digital (const int32_t ptr_mant[], const int32_t ptr_exp[], int32_t fc, int32_t fs, int32_t coef_mant[], int32_t coef_exp[])
 {
     /*
        The input is an analog filter with normalized frequency.
@@ -1366,7 +1366,7 @@ void EQ_convert_analog_to_digital (const int32_t ptr_mant[], const int32_t ptr_e
 /* Type - 0 Butterworth filter
    Type - 1 Linkwitz-Riley */
 
-int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
+static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
 {
     int32_t temp1_mant = 0, temp1_exp = 0;
@@ -1459,12 +1459,94 @@ int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
     a2[0] = -coef_mant[5] >> (-coef_exp[5] - 25);
     return 0;
 }
-int32_t EQ_generate_treble (int32_t gain, int32_t fs, int32_t fc,
+
+static int32_t EQ_generate_treble (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
 {
     EQ_generate_bass (gain, fs, (fs/2) - fc, b0, b1, b2, a1, a2);
     b1[0] = -b1[0];
     a1[0] = -a1[0];
+    return 0;
+}
+#else /* BAPE_CHIP_SRC_TYPE_IS_IIR */
+int32_t EQ_generate_peq_isrsafe ( int32_t q_int, int32_t fc,
+        int32_t dbval_int, int32_t fs, int32_t gb,
+        int32_t b_int[], int32_t a_int[])
+{
+    BSTD_UNUSED(q_int);
+    BSTD_UNUSED(fc);
+    BSTD_UNUSED(dbval_int);
+    BSTD_UNUSED(fs);
+    BSTD_UNUSED(gb);
+    BSTD_UNUSED(b_int);
+    BSTD_UNUSED(a_int);
+    return 0;
+}
+
+int32_t EQ_generate_geq_isrsafe ( int32_t fs, int32_t req_db_int[5],
+        int32_t b0_int[5], int32_t b1_int[5], int32_t b2_int[5],
+        int32_t a1_int[5], int32_t a2_int[5])
+{
+    BSTD_UNUSED(fs);
+    BSTD_UNUSED(req_db_int);
+    BSTD_UNUSED(b0_int);
+    BSTD_UNUSED(b1_int);
+    BSTD_UNUSED(b2_int);
+    BSTD_UNUSED(a1_int);
+    BSTD_UNUSED(a2_int);
+    return 0;
+}
+
+int32_t EQ_subsonic_HPF_isrsafe (int32_t fs, int32_t fc, int32_t type, int32_t order,
+        int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
+{
+    BSTD_UNUSED(fs);
+    BSTD_UNUSED(fc);
+    BSTD_UNUSED(type);
+    BSTD_UNUSED(order);
+    BSTD_UNUSED(b0);
+    BSTD_UNUSED(b1);
+    BSTD_UNUSED(b2);
+    BSTD_UNUSED(a1);
+    BSTD_UNUSED(a2);
+    return 0;
+}
+
+int32_t EQ_subwoofer_LPF_isrsafe (int32_t fs, int32_t fc, int32_t type, int32_t order,
+        int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
+{
+    BSTD_UNUSED(fs);
+    BSTD_UNUSED(fc);
+    BSTD_UNUSED(type);
+    BSTD_UNUSED(order);
+    BSTD_UNUSED(b0);
+    BSTD_UNUSED(b1);
+    BSTD_UNUSED(b2);
+    BSTD_UNUSED(a1);
+    BSTD_UNUSED(a2);
+    return 0;
+}
+
+int32_t EQ_generate_tone_control_isrsafe (int32_t fs, int32_t gain_bass, int32_t gain_treble,
+        int32_t fc_bass, int32_t fc_treble, BAPE_ToneControlEqType type_bass,
+        BAPE_ToneControlEqType type_treble, int32_t bandwidth_bass,
+        int32_t bandwidth_treble,
+        int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
+{
+    BSTD_UNUSED(fs);
+    BSTD_UNUSED(gain_bass);
+    BSTD_UNUSED(gain_treble);
+    BSTD_UNUSED(fc_bass);
+    BSTD_UNUSED(fc_treble);
+    BSTD_UNUSED(type_bass);
+    BSTD_UNUSED(type_treble);
+    BSTD_UNUSED(bandwidth_bass);
+    BSTD_UNUSED(bandwidth_treble);
+    BSTD_UNUSED(b0);
+    BSTD_UNUSED(b1);
+    BSTD_UNUSED(b2);
+    BSTD_UNUSED(a1);
+    BSTD_UNUSED(a2);
     return 0;
 }
 #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  

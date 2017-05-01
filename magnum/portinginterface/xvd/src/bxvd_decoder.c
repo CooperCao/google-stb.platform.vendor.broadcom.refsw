@@ -3236,6 +3236,114 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
    }
 
+#if BXVD_P_PPB_EXTENDED
+
+   /******************************************************
+    *
+    * SWSTB-3950: pass a pointer to the user data buffer
+    *
+    ******************************************************/
+
+   /* Only go through the work of checking the user data
+    * when BXVD_P_PPB_EXT0_FLAG_META_DATA is set. */
+
+   if ( uiFlagsExt0 & BXVD_P_PPB_EXT0_FLAG_META_DATA )
+   {
+      void * pUserData;
+
+      UD_HDR * pstHdr = (UD_HDR *)NULL;
+
+      BXVD_P_PHY_ADDR userDataOffset;
+
+      userDataOffset = pPPB->user_data;
+
+      while( userDataOffset )
+      {
+         uint32_t uiDataType;
+         bool bPassDataToVdc=false;
+
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+         userDataOffset += hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
+#endif
+         /* TODO: do we need error checking here for pUserData? */
+         pUserData = (void*)BXVD_P_OFFSET_TO_VA( hXvdCh, userDataOffset );
+
+         /* Flush the header of the "user data" packet. */
+         BMMA_FlushCache_isr( hXvdCh->hFWGenMemBlock, pUserData, sizeof(UD_HDR) );
+
+         /* Extract the header information */
+         pstHdr = (UD_HDR *)pUserData;
+
+         /* Get the offset for the next user data packet, needs to be done before the following check. */
+         userDataOffset = pstHdr->next;
+
+         /* Does the packet contain user data or another type of meta data?
+          * If it is user data, just continue. */
+
+         if ( !( pstHdr->type & BXVD_P_PPB_METADATA_PRESENT ) )
+         {
+            continue;
+         }
+
+         /* Flush the body of the "user data" packet. */
+         BMMA_FlushCache_isr( hXvdCh->hFWGenMemBlock, (uint8_t *)pUserData + sizeof(UD_HDR), pstHdr->size );
+
+         uiDataType = ( pstHdr->type & BXVD_P_PPB_METADATA_MASK );
+
+         bPassDataToVdc = ( uiDataType == BXVD_P_PPB_METADATA_TYPE_eDRPU );
+         bPassDataToVdc |= ( uiDataType == BXVD_P_PPB_METADATA_TYPE_eTCH_CVRI ); /* SWSTB-4182 */
+         bPassDataToVdc |= ( uiDataType == BXVD_P_PPB_METADATA_TYPE_eTCH_CRI );  /* SWSTB-4182 */
+
+         if ( true == bPassDataToVdc )
+         {
+            BXDM_Picture_ExtensionData * pstExtensionData;
+            uint32_t uiIndex;
+
+            uiIndex = pstXdmPicture->stExtensionInfo.uiCount;
+            pstExtensionData = &(pstXdmPicture->stExtensionInfo.astExtensionData[uiIndex]);
+
+            if ( uiIndex >= BXDM_MAX_PICTURE_EXTENSION_INFO - 1 )
+            {
+               BXVD_DBG_WRN(hXvdCh, ("%s:: uiIndex == %d, astExtensionData is full",  __FUNCTION__, uiIndex ));
+               break;
+            }
+
+            /* Set the appropriate values. */
+            pstExtensionData->eType = BXDM_Picture_ExtensionType_eMetaData;
+            pstExtensionData->data.stMetaDataHdr.uiSize = pstHdr->size;
+            pstExtensionData->data.stMetaDataHdr.pData = (void *)( (uint8_t *)pUserData + sizeof(UD_HDR) );
+
+            switch( uiDataType )
+            {
+               case BXVD_P_PPB_METADATA_TYPE_eDRPU:
+                  pstExtensionData->data.stMetaDataHdr.eType = BAVC_HdrMetadataType_eDrpu;
+                  break;
+
+               case BXVD_P_PPB_METADATA_TYPE_eTCH_CVRI:  /* SWSTB-4182 */
+                  pstExtensionData->data.stMetaDataHdr.eType = BAVC_HdrMetadataType_eTch_Cvri;
+                  break;
+
+               case BXVD_P_PPB_METADATA_TYPE_eTCH_CRI:   /* SWSTB-4182 */
+                  pstExtensionData->data.stMetaDataHdr.eType = BAVC_HdrMetadataType_eTch_Cri;
+                  break;
+
+               default:
+                  pstExtensionData->data.stMetaDataHdr.eType = BAVC_HdrMetadataType_eUnknown;
+                  break;
+            }
+
+            /* Bump the extension count.*/
+            pstXdmPicture->stExtensionInfo.uiCount++;
+
+         }
+
+      }
+
+
+   } /* ednd of if ( uiFlagsExt0 & BXVD_P_PPB_EXT0_FLAG_META_DATA ) */
+
+#endif /* #if BXVD_P_PPB_EXTENDED */
+
    /* Conditionally print the Unified Picture.
     * If this is the 2nd picture of a pair of pictures, hold off printing until we hit
     * this point for the 1st (base) picture of the pair.  However if the picture is being

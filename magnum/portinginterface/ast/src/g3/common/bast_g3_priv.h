@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef _BAST_G3_PRIV_H__
@@ -82,7 +102,7 @@
 #endif
 
 
-#define BAST_G3_RELEASE_VERSION 13
+#define BAST_G3_RELEASE_VERSION 14
 
 
 #define BAST_CHK_RETCODE(x) \
@@ -128,6 +148,8 @@
 #define BAST_PEAK_SCAN_STATUS_DUMP_BINS 0x10
 
 #define BAST_BCM3445_DEFAULT_ADDRESS 0xD8
+
+#define BAST_TUNER_KVCO_CAL_TABLE_SIZE 8
 
 typedef BERR_Code (*BAST_g3_FUNCT)(BAST_ChannelHandle);
 typedef BERR_Code (*BAST_g3_DEV_FUNCT)(BAST_Handle);
@@ -234,6 +256,18 @@ typedef struct BAST_NotchSettings
 
 
 #ifndef BAST_EXCLUDE_FTM
+/******************************************************************************
+BAST_FtmCbInfo
+Summary: Interrupt Callback Table to store ID, callback handle, and enable state
+*******************************************************************************/
+typedef struct BAST_FtmCbInfo
+{
+   BINT_Id       	      intID;
+   BINT_CallbackHandle  hCb;
+	bool                 bEnable;
+} BAST_FtmCbInfo;
+
+
 /***************************************************************************
 Summary:
    Structure for FTM device of the BAST_g3_P_Handle
@@ -249,7 +283,7 @@ typedef struct
 #ifndef BAST_ENABLE_GENERIC_FSK
    BAST_FTM_ISR         idle_funct_isr;
    BKNI_EventHandle     event;
-   BINT_CallbackHandle  hCallback[32];          /* ftm interrupts callback array */
+   BAST_FtmCbInfo       cbInfo[32];             /* callback info */
    uint32_t             rid;                    /* receiver id */
    uint32_t             reg_time_left;          /* registration time remaining */
    bool                 bForwardPacket;         /* determine whether to forward rcvd network packet to host */
@@ -606,6 +640,8 @@ typedef struct BAST_g3_P_ChannelHandle
    uint16_t             tunerAgcAmpThresh;   /* value of BB/LNA AGC amplitude thresholds */
    uint16_t             tunerAgcLoopCoeff;   /* value of BB/LNA AGC loop coefficients */
 #endif
+   uint16_t             tuner_kvco_cal_capcntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE];
+   uint8_t              tuner_kvco_cal_kvcocntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE];
    uint8_t              dftFreqEstimateStatus; /* used in DFT freq estimate algorithm */
    uint8_t              blindScanCurrMode;   /* used in blind acquisition */
    uint8_t              blindScanModes;      /* config parameter used to specify which modes to scan */
@@ -668,19 +704,6 @@ typedef struct BAST_g3_P_ChannelHandle
 } BAST_g3_P_ChannelHandle;
 
 
-/******************************************************************************
-BAST_g3_Ftm_P_InterruptCbTable
-Summary: Interrupt Callback Table to describe interrupt Names, ISRs, and Masks
-*******************************************************************************/
-typedef struct BAST_g3_Ftm_P_InterruptCbTable
-{
-	BINT_Id       	   IntrId;
-	BINT_CallbackFunc pfCallback;
-	int               iParam2;
-	bool              enable;
-} BAST_g3_Ftm_P_InterruptCbTable ;
-
-
 /* implementation of API functions */
 BERR_Code BAST_g3_P_Open(BAST_Handle *, BCHP_Handle, void*, BINT_Handle, const BAST_Settings *pDefSettings);
 BERR_Code BAST_g3_P_Close(BAST_Handle);
@@ -726,6 +749,7 @@ BERR_Code BAST_g3_P_ReadConfig(BAST_ChannelHandle, uint16_t, uint8_t*, uint8_t);
 BERR_Code BAST_g3_P_WriteConfig(BAST_ChannelHandle, uint16_t, uint8_t*, uint8_t);
 BERR_Code BAST_g3_P_GetLockChangeEventHandle(BAST_ChannelHandle, BKNI_EventHandle*);
 #ifndef BAST_EXCLUDE_FTM
+BERR_Code BAST_g3_P_InitCbInfo(BAST_Handle h);
 BERR_Code BAST_g3_P_GetFtmEventHandle(BAST_Handle, BKNI_EventHandle*);
 BERR_Code BAST_g3_P_ResetFtm(BAST_Handle);
 BERR_Code BAST_g3_P_ReadFtm(BAST_Handle, uint8_t *pBuf, uint8_t *n);

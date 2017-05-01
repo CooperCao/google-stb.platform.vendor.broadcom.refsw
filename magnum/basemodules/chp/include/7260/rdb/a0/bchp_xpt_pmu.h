@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,50 +70,50 @@
 /***************************************************************************
  *XPT_PMU - XPT PMU Control Registers
  ***************************************************************************/
-#define BCHP_XPT_PMU_CLK_CTRL                    0x20a00200 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_RBUS_RSP_CTRL               0x20a00204 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_RBUS_RSP_VAL                0x20a00208 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_PSM_VDD_CTRL                0x20a0020c /* [RW] Power Management control */
-#define BCHP_XPT_PMU_STBY_CTRL                   0x20a00210 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_MEM_INIT_CTRL               0x20a00214 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_MEMDMA_SW_INIT_CTRL         0x20a00218 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_CTRL    0x20a0021c /* [RW] Power Management control */
-#define BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_STATUS  0x20a00220 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_MCPB_SP_PD_MEM_PWR_DN_CTRL  0x20a00224 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_MCPB_SP_PD_MEM_PWR_DN_STATUS 0x20a00228 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_MEMDMA_SP_PD_MEM_PWR_DN_CTRL 0x20a0022c /* [RW] Power Management control */
-#define BCHP_XPT_PMU_MEMDMA_SP_PD_MEM_PWR_DN_STATUS 0x20a00230 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_MSG_SP_PD_MEM_PWR_DN_CTRL   0x20a00234 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_MSG_SP_PD_MEM_PWR_DN_STATUS 0x20a00238 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_RAVE_SP_PD_MEM_PWR_DN_CTRL  0x20a0023c /* [RW] Power Management control */
-#define BCHP_XPT_PMU_RAVE_SP_PD_MEM_PWR_DN_STATUS 0x20a00240 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_TSIO_SP_PD_MEM_PWR_DN_CTRL  0x20a00244 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_TSIO_SP_PD_MEM_PWR_DN_STATUS 0x20a00248 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_PCROFFSET_SP_PD_MEM_PWR_DN_CTRL 0x20a0024c /* [RW] Power Management control */
-#define BCHP_XPT_PMU_PCROFFSET_SP_PD_MEM_PWR_DN_STATUS 0x20a00250 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_PSUB_SP_PD_MEM_PWR_DN_CTRL  0x20a00254 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_PSUB_SP_PD_MEM_PWR_DN_STATUS 0x20a00258 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_RSBUFF_SP_PD_MEM_PWR_DN_CTRL 0x20a0025c /* [RW] Power Management control */
-#define BCHP_XPT_PMU_RSBUFF_SP_PD_MEM_PWR_DN_STATUS 0x20a00260 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL 0x20a00264 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_STATUS 0x20a00268 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL 0x20a0026c /* [RW] Power Management control */
-#define BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_STATUS 0x20a00270 /* [RO] Power Management control */
-#define BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_EN  0x20a00280 /* [RW] Hardware Controlled Clock Gating sub-module enable */
-#define BCHP_XPT_PMU_HWG_PDA_SUB_MODULE_EN       0x20a00284 /* [RW] Hardware Controlled PDA sub-module enable */
-#define BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_STATUS 0x20a00288 /* [RO] Hardware Controlled Clock Gating sub-module status */
-#define BCHP_XPT_PMU_HWG_MIN_START_DELAY         0x20a0028c /* [RW] Hardware Controlled Clock Gating minimum start delay */
-#define BCHP_XPT_PMU_HWG_MIN_RUN_DELAY           0x20a00290 /* [RW] Hardware Controlled Clock Gating minimum run delay */
-#define BCHP_XPT_PMU_HWG_CTRL_END_DELAY          0x20a00294 /* [RW] Hardware Controlled Clock Gating end delay */
-#define BCHP_XPT_PMU_HWG_PDA_SETUP_DELAY         0x20a00298 /* [RW] Hardware Controlled PDA SETUP DELAY */
-#define BCHP_XPT_PMU_HWG_PDA_HOLD_DELAY          0x20a0029c /* [RW] Hardware Controlled PDA HOLD DELAY */
-#define BCHP_XPT_PMU_HWG_CLCT_CTRL               0x20a002a0 /* [RW] Collecting Control */
-#define BCHP_XPT_PMU_HWG_CLCT_RST                0x20a002a4 /* [RW] Collecting Reset */
-#define BCHP_XPT_PMU_HWG_CLCT_FREEZE             0x20a002a8 /* [RW] Collecting Freeze */
-#define BCHP_XPT_PMU_HWG_FR_CLK_VALUE_HI         0x20a002ac /* [RO] Free running clock higher value */
-#define BCHP_XPT_PMU_HWG_FR_CLK_VALUE_LO         0x20a002b0 /* [RO] Free running clock lower value */
-#define BCHP_XPT_PMU_HWG_GT_CLK_VALUE_HI         0x20a002b4 /* [RO] Gated Clock higher value */
-#define BCHP_XPT_PMU_HWG_GT_CLK_VALUE_LO         0x20a002b8 /* [RO] Gated Clock lower value */
+#define BCHP_XPT_PMU_CLK_CTRL                    0x20a00200 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_RBUS_RSP_CTRL               0x20a00204 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_RBUS_RSP_VAL                0x20a00208 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_PSM_VDD_CTRL                0x20a0020c /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_STBY_CTRL                   0x20a00210 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_MEM_INIT_CTRL               0x20a00214 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_MEMDMA_SW_INIT_CTRL         0x20a00218 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_CTRL    0x20a0021c /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_STATUS  0x20a00220 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_MCPB_SP_PD_MEM_PWR_DN_CTRL  0x20a00224 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_MCPB_SP_PD_MEM_PWR_DN_STATUS 0x20a00228 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_MEMDMA_SP_PD_MEM_PWR_DN_CTRL 0x20a0022c /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_MEMDMA_SP_PD_MEM_PWR_DN_STATUS 0x20a00230 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_MSG_SP_PD_MEM_PWR_DN_CTRL   0x20a00234 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_MSG_SP_PD_MEM_PWR_DN_STATUS 0x20a00238 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_RAVE_SP_PD_MEM_PWR_DN_CTRL  0x20a0023c /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_RAVE_SP_PD_MEM_PWR_DN_STATUS 0x20a00240 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_TSIO_SP_PD_MEM_PWR_DN_CTRL  0x20a00244 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_TSIO_SP_PD_MEM_PWR_DN_STATUS 0x20a00248 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_PCROFFSET_SP_PD_MEM_PWR_DN_CTRL 0x20a0024c /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_PCROFFSET_SP_PD_MEM_PWR_DN_STATUS 0x20a00250 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_PSUB_SP_PD_MEM_PWR_DN_CTRL  0x20a00254 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_PSUB_SP_PD_MEM_PWR_DN_STATUS 0x20a00258 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_RSBUFF_SP_PD_MEM_PWR_DN_CTRL 0x20a0025c /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_RSBUFF_SP_PD_MEM_PWR_DN_STATUS 0x20a00260 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL 0x20a00264 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_STATUS 0x20a00268 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL 0x20a0026c /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_STATUS 0x20a00270 /* [RO][32] Power Management control */
+#define BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_EN  0x20a00280 /* [RW][32] Hardware Controlled Clock Gating sub-module enable */
+#define BCHP_XPT_PMU_HWG_PDA_SUB_MODULE_EN       0x20a00284 /* [RW][32] Hardware Controlled PDA sub-module enable */
+#define BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_STATUS 0x20a00288 /* [RO][32] Hardware Controlled Clock Gating sub-module status */
+#define BCHP_XPT_PMU_HWG_MIN_START_DELAY         0x20a0028c /* [RW][32] Hardware Controlled Clock Gating minimum start delay */
+#define BCHP_XPT_PMU_HWG_MIN_RUN_DELAY           0x20a00290 /* [RW][32] Hardware Controlled Clock Gating minimum run delay */
+#define BCHP_XPT_PMU_HWG_CTRL_END_DELAY          0x20a00294 /* [RW][32] Hardware Controlled Clock Gating end delay */
+#define BCHP_XPT_PMU_HWG_PDA_SETUP_DELAY         0x20a00298 /* [RW][32] Hardware Controlled PDA SETUP DELAY */
+#define BCHP_XPT_PMU_HWG_PDA_HOLD_DELAY          0x20a0029c /* [RW][32] Hardware Controlled PDA HOLD DELAY */
+#define BCHP_XPT_PMU_HWG_CLCT_CTRL               0x20a002a0 /* [RW][32] Collecting Control */
+#define BCHP_XPT_PMU_HWG_CLCT_RST                0x20a002a4 /* [RW][32] Collecting Reset */
+#define BCHP_XPT_PMU_HWG_CLCT_FREEZE             0x20a002a8 /* [RW][32] Collecting Freeze */
+#define BCHP_XPT_PMU_HWG_FR_CLK_VALUE_HI         0x20a002ac /* [RO][32] Free running clock higher value */
+#define BCHP_XPT_PMU_HWG_FR_CLK_VALUE_LO         0x20a002b0 /* [RO][32] Free running clock lower value */
+#define BCHP_XPT_PMU_HWG_GT_CLK_VALUE_HI         0x20a002b4 /* [RO][32] Gated Clock higher value */
+#define BCHP_XPT_PMU_HWG_GT_CLK_VALUE_LO         0x20a002b8 /* [RO][32] Gated Clock lower value */
 
 /***************************************************************************
  *CLK_CTRL - Power Management control

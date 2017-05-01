@@ -190,6 +190,11 @@ typedef struct BMUXlib_Input_Status
 typedef struct BMUXlib_Input_CreateSettings
 {
    uint32_t uiSignature;                  /* [DO NOT MODIFY] Populated by BMUXlib_Input_GetDefaultCreateSettings() */
+} BMUXlib_Input_CreateSettings;
+
+typedef struct BMUXlib_Input_StartSettings
+{
+   uint32_t uiSignature;                  /* [DO NOT MODIFY] Populated by BMUXlib_Input_GetDefaultStartSettings() */
 
    BMUXlib_Input_Type eType;
    union
@@ -216,7 +221,7 @@ typedef struct BMUXlib_Input_CreateSettings
                                              E.g. for dual transcode, each mux "output" should have a different instance */
    unsigned uiTypeInstance;               /* indicates which input instance for this type that is associated with the mux instance.
                                              E.g. for single transcode with multiple audio, each audio input should have a different type instance */
-} BMUXlib_Input_CreateSettings;
+} BMUXlib_Input_StartSettings;
 
 typedef struct BMUXlib_Input_P_Context * BMUXlib_Input_Handle;
 
@@ -255,9 +260,16 @@ typedef struct BMUXlib_InputGroup_CreateSettings
 {
    uint32_t uiSignature;                  /* [DO NOT MODIFY] Populated by BMUXlib_InputGroup_GetDefaultCreateSettings() */
 
+   uint32_t uiMaxInputCount;              /* max number of inputs to be added to the group */
+} BMUXlib_InputGroup_CreateSettings;
+
+typedef struct BMUXlib_InputGroup_StartSettings
+{
+   uint32_t uiSignature;                  /* [DO NOT MODIFY] Populated by BMUXlib_InputGroup_GetDefaultStartSettings() */
+
    uint32_t uiInputCount;                 /* number of inputs to add to the group */
    BMUXlib_Input_Handle *pInputTable;     /* table of handles for the inputs in the group */
-} BMUXlib_InputGroup_CreateSettings;
+} BMUXlib_InputGroup_StartSettings;
 
 typedef struct
 {
@@ -293,14 +305,30 @@ BMUXlib_Input_Create(
          );
 
 BERR_Code
-BMUXlib_Input_GetCreateSettings(
-         BMUXlib_Input_Handle hInput,
-         BMUXlib_Input_CreateSettings *pstSettings
+BMUXlib_Input_Destroy(
+         BMUXlib_Input_Handle hInput
+         );
+
+void
+BMUXlib_Input_GetDefaultStartSettings(
+         BMUXlib_Input_StartSettings *pstSettings
          );
 
 BERR_Code
-BMUXlib_Input_Destroy(
+BMUXlib_Input_Start(
+         BMUXlib_Input_Handle hInput,
+         const BMUXlib_Input_StartSettings *pstSettings
+         );
+
+void
+BMUXlib_Input_Stop(
          BMUXlib_Input_Handle hInput
+         );
+
+BERR_Code
+BMUXlib_Input_GetStartSettings(
+         BMUXlib_Input_Handle hInput,
+         BMUXlib_Input_StartSettings *pstSettings
          );
 
 void
@@ -382,6 +410,21 @@ BMUXlib_InputGroup_Create(
 
 void
 BMUXlib_InputGroup_Destroy(
+         BMUXlib_InputGroup_Handle hInputGroup
+         );
+
+void
+BMUXlib_InputGroup_GetDefaultStartSettings(
+         BMUXlib_InputGroup_StartSettings *pstSettings);
+
+BERR_Code
+BMUXlib_InputGroup_Start(
+         BMUXlib_InputGroup_Handle hInputGroup,
+         const BMUXlib_InputGroup_StartSettings *pstSettings
+         );
+
+void
+BMUXlib_InputGroup_Stop(
          BMUXlib_InputGroup_Handle hInputGroup
          );
 

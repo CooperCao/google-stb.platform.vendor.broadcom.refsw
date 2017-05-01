@@ -44,7 +44,6 @@
 #include "bxpt_priv.h"
 #include "bxpt.h"
 #include "bkni.h"
-#include "bmem.h"
 #include "blst_slist.h"
 #include "bxpt_rave.h"
 #include "bxpt_rave_ihex.h"
@@ -204,6 +203,8 @@
 #define AV_THRESHOLDS_OFFSET    ( BCHP_XPT_RAVE_CX0_AV_THRESHOLDS - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
 #define AV_CDB_THRESHOLD_OFFSET ( BCHP_XPT_RAVE_CX0_AV_CDB_THRESHOLD_LEVEL - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
 #define AV_ITB_THRESHOLD_OFFSET ( BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
+#define AV_CDB_MIN_DEPTH_THRESHOLD_OFFSET ( BCHP_XPT_RAVE_CX0_AV_CDB_MIN_DEPTH_THRESHOLD - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
+#define AV_ITB_MIN_DEPTH_THRESHOLD_OFFSET ( BCHP_XPT_RAVE_CX0_AV_ITB_MIN_DEPTH_THRESHOLD - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
 #define REC_TIME_CONFIG_OFFSET  ( BCHP_XPT_RAVE_CX0_REC_TIME_CONFIG - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
 #define AV_RESERVE_CFG2_OFFSET  ( BCHP_XPT_RAVE_CX0_AV_RESERVE_CFG2 - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
 
@@ -692,6 +693,15 @@ BERR_Code BXPT_Rave_OpenChannel(
     );
     BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_MISC_CONTROL, Reg );
 
+    Reg = BREG_Read32( lhRave->hReg, BCHP_XPT_RAVE_MISC_CONTROL3 );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_MISC_CONTROL3, MIN_DEPTH_THRESHOLD_INTR_MODE )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_MISC_CONTROL3, MIN_DEPTH_THRESHOLD_INTR_MODE, 1 )
+    );
+    BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_MISC_CONTROL3, Reg );
+
     /* Mark this channel as allocated and return the handle. */
     hXpt->RaveChannels[ ChannelNo ].Allocated = true;
 
@@ -902,23 +912,6 @@ error:
 }
 
 #if (!B_REFSW_MINIMAL)
-BERR_Code BXPT_Rave_AllocContextFromHeap(
-    BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
-    BXPT_RaveCx RequestedType,      /* [in] The type of context to allcoate */
-    const BAVC_CdbItbConfig *BufferCfg,   /* [in] Size and alignment for ITB and CDB */
-    BMEM_Handle ContextHeap,         /* [in] This context's memory heap handle */
-    BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
-    )
-{
-    /* deprecated due to MMA conversion */
-    BSTD_UNUSED(hRave);
-    BSTD_UNUSED(RequestedType);
-    BSTD_UNUSED(BufferCfg);
-    BSTD_UNUSED(ContextHeap);
-    BSTD_UNUSED(Context);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
 BERR_Code BXPT_Rave_AllocContext(
     BXPT_Rave_Handle hRave,             /* [in] Handle for this RAVE channel */
     BXPT_RaveCx RequestedType,          /* [in] The type of context to allcoate */
@@ -2575,6 +2568,7 @@ BERR_Code BXPT_Rave_GetRecordConfig(
     Cfg->StreamIdLo = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1, STREAM_ID_LO );
     Cfg->MpegMode = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1, PES_SYNC_MODE ) == 1 ? true : false;
     Cfg->BandHoldEn = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1,  BAND_HOLD_EN  ) == 1 ? true : false;
+    Cfg->removeEmulationPrevention = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1, EMU_PREV_BYTE_REMOVE  ) == 1 ? true : false;
 
     Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + REC_CTRL1_OFFSET );
     Cfg->UseTimeStamps = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_REC_CTRL1, REC_TIMESTAMP_ENABLE ) ? true : false;
@@ -2594,6 +2588,12 @@ BERR_Code BXPT_Rave_GetRecordConfig(
     Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + AV_ITB_THRESHOLD_OFFSET );
     Cfg->ItbUpperThreshold = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL, ITB_UPPER_THRESHOLD );
     Cfg->ItbLowerThreshold = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL, ITB_LOWER_THRESHOLD );
+
+    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + AV_CDB_MIN_DEPTH_THRESHOLD_OFFSET );
+    Cfg->CdbMinDepthThreshold = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_CDB_MIN_DEPTH_THRESHOLD , CDB_MIN_DEPTH_THRESHOLD );
+
+    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + AV_ITB_MIN_DEPTH_THRESHOLD_OFFSET );
+    Cfg->ItbMinDepthThreshold = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_ITB_MIN_DEPTH_THRESHOLD , ITB_MIN_DEPTH_THRESHOLD );
 
     Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + AV_MISC_CFG3_OFFSET );
     Cfg->DisableContinuityCheck = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_MISC_CONFIG3, DISABLE_CC_CHECK ) ? true : false;
@@ -2642,6 +2642,11 @@ BERR_Code BXPT_Rave_GetRecordConfig(
     Reg = BREG_Read32(Ctx->hReg, Ctx->BaseAddr + FW_REG_5);
     Cfg->bipIndexing = (Reg >> 27) & 1;
     Cfg->bipPidChannel = Cfg->bipIndexing ? (Reg >> 16) & 0x7ff : 0;
+
+   /* REC_AVN is 1 for record config, 0 for AV. */
+   Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + REC_MISC_CFG_OFFSET );
+   Cfg->useAvConfig = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_REC_MISC_CONFIG, REC_AVN ) ? false : true;
+
     return( ExitCode );
 }
 
@@ -2744,7 +2749,8 @@ BERR_Code BXPT_Rave_SetRecordConfig(
         BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, PES_SYNC_MODE ) |
         BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, OUTPUT_FORMAT ) |
         BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, STREAM_ID_HI ) |
-        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, STREAM_ID_LO )
+        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, EMU_PREV_BYTE_REMOVE ) |
+        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, EMU_PREV_MODE )
     );
 
     Reg |= (
@@ -2754,7 +2760,8 @@ BERR_Code BXPT_Rave_SetRecordConfig(
         BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG1, OUTPUT_FORMAT, OutputFormat ) |
         BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG1, INPUT_ES_FORMAT, InputEsFormat ) |
         BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG1, STREAM_ID_HI, Cfg->StreamIdHi ) |
-        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG1, STREAM_ID_LO, Cfg->StreamIdLo )
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG1, STREAM_ID_LO, Cfg->StreamIdLo ) |
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG1, EMU_PREV_BYTE_REMOVE, Cfg->removeEmulationPrevention ? 1 : 0 )
     );
     BREG_Write32( Ctx->hReg, Ctx->BaseAddr + AV_MISC_CFG1_OFFSET, Reg );
 
@@ -2779,6 +2786,9 @@ BERR_Code BXPT_Rave_SetRecordConfig(
         BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL, ITB_LOWER_THRESHOLD, Cfg->ItbLowerThreshold )
     );
     BREG_Write32( Ctx->hReg, Ctx->BaseAddr + AV_ITB_THRESHOLD_OFFSET, Reg );
+
+    BREG_Write32( Ctx->hReg, Ctx->BaseAddr + AV_CDB_MIN_DEPTH_THRESHOLD_OFFSET, Cfg->CdbMinDepthThreshold );
+    BREG_Write32( Ctx->hReg, Ctx->BaseAddr + AV_ITB_MIN_DEPTH_THRESHOLD_OFFSET, Cfg->ItbMinDepthThreshold );
 
     Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + AV_MISC_CFG3_OFFSET );
     Reg &= ~(
@@ -2838,7 +2848,7 @@ BERR_Code BXPT_Rave_SetRecordConfig(
         {
             /* adjust the end pointer to the new value */
             Ctx->usedCdbBufferSize = Cfg->UseCdbSize;
-            BREG_Write32( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, offset + Ctx->usedCdbBufferSize - 1 );
+            BREG_WriteAddr( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, offset + Ctx->usedCdbBufferSize - 1 );
         }
 
     }
@@ -2846,7 +2856,7 @@ BERR_Code BXPT_Rave_SetRecordConfig(
     {
         /* adjust the cdb end pointer to allocated size */
         Ctx->usedCdbBufferSize = Ctx->allocatedCdbBufferSize;
-        BREG_Write32( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, offset + Ctx->usedCdbBufferSize - 1 );
+        BREG_WriteAddr( Ctx->hReg, Ctx->BaseAddr + CDB_END_PTR_OFFSET, offset + Ctx->usedCdbBufferSize - 1 );
     }
 
     if(Cfg->EmmModeEn)
@@ -2933,6 +2943,11 @@ BERR_Code BXPT_Rave_SetRecordConfig(
     }
     BREG_Write32(Ctx->hReg, Ctx->BaseAddr + FW_REG_5, Reg);
     }
+
+    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + REC_MISC_CFG_OFFSET );
+    Reg &= ~( BCHP_MASK( XPT_RAVE_CX0_REC_MISC_CONFIG, REC_AVN ) );
+    Reg |= ( BCHP_FIELD_DATA( XPT_RAVE_CX0_REC_MISC_CONFIG, REC_AVN, Cfg->useAvConfig ? 0 : 1 ));
+    BREG_Write32( Ctx->hReg, Ctx->BaseAddr + REC_MISC_CFG_OFFSET, Reg );
 
     done:
     return( ExitCode );
@@ -4933,16 +4948,16 @@ BERR_Code InitContext(
             BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_VALID_PTR_OFFSET, BufferOffset );
             BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
 
-        Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
-        Reg &= ~(
-            BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD ) |
-            BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD )
-        );
-        Reg |= (
-            BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD, BXPT_RAVE_OVERFLOW_THRESH ) |
-            BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD, BXPT_RAVE_WRAP_THRESH )
-        );
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET, Reg );
+           Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
+           Reg &= ~(
+               BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD ) |
+               BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD )
+           );
+           Reg |= (
+               BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD, BXPT_RAVE_OVERFLOW_THRESH ) |
+               BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD, BXPT_RAVE_WRAP_THRESH )
+           );
+           BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_THRESHOLDS_OFFSET, Reg );
         }
         else
         {
@@ -7038,21 +7053,6 @@ BERR_Code BXPT_Rave_AllocSoftContext(
     BSTD_UNUSED(DestContext);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
-
-BERR_Code BXPT_Rave_AllocSoftContextFromHeap(
-    BXPT_RaveCx_Handle SrcContext,      /* [in] The source context */
-    BXPT_RaveSoftMode DestContextMode,  /* [in] The type of data that the destination should generate. */
-    BMEM_Handle ContextHeap,            /* [in] The soft-context's memory heap handle */
-    BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
-    )
-{
-    /* deprecated due to MMA conversion */
-    BSTD_UNUSED(SrcContext);
-    BSTD_UNUSED(DestContextMode);
-    BSTD_UNUSED(ContextHeap);
-    BSTD_UNUSED(DestContext);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
 #endif
 
 BERR_Code AllocSoftContext_Priv(
@@ -7307,7 +7307,6 @@ void BXPT_Rave_AdvanceSoftContext(
     BMMA_DeviceOffset dest_valid, dest_wrap, dest_read;
     uint32_t reg, overflow;
     BMMA_DeviceOffset src_valid_copy, src_wrap_copy, dest_read_copy;
-
 
     BDBG_ASSERT( DestCtx );
 
@@ -7626,13 +7625,14 @@ void BXPT_Rave_AdvanceSoftContext(
             }
             else if (DestCtx->SoftRave.mode == BXPT_RaveSoftMode_eDivX)
             {
-            uint32_t itb_type, prev_frame_size;
+               uint32_t itb_type;
+               uint64_t prev_frame_size;
 
-            itb_type = (src_itb[0]>>24) & 0xFF;
+               itb_type = (src_itb[0]>>24) & 0xFF;
 
-            if((dest_valid<dest_read) && ((dest_valid+(4*BXPT_ITB_SIZE))>dest_read)){
-                break;
-            }
+               if((dest_valid<dest_read) && ((dest_valid+(4*BXPT_ITB_SIZE))>dest_read)){
+                   break;
+               }
 
             switch (itb_type) {
             case brave_itb_base_address:
@@ -7641,9 +7641,9 @@ void BXPT_Rave_AdvanceSoftContext(
                 if(src_itb[1] >= DestCtx->SoftRave.last_base_address){
                     prev_frame_size = src_itb[1] - DestCtx->SoftRave.last_base_address;
                 } else {
-                    uint32_t cdb_wrap_ptr, cdb_base_ptr;
-                    cdb_base_ptr = BREG_Read32(DestCtx->hReg, CDB_BASE_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
-                    cdb_wrap_ptr = BREG_Read32(DestCtx->hReg, CDB_WRAP_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
+                    BMMA_DeviceOffset cdb_wrap_ptr, cdb_base_ptr;
+                    cdb_base_ptr = BREG_ReadAddr(DestCtx->hReg, CDB_BASE_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
+                    cdb_wrap_ptr = BREG_ReadAddr(DestCtx->hReg, CDB_WRAP_PTR_OFFSET+DestCtx->SoftRave.SrcBaseAddr);
                     prev_frame_size = (cdb_wrap_ptr - DestCtx->SoftRave.last_base_address) + (src_itb[1] - cdb_base_ptr) + 1;
                 }
                 if(DestCtx->SoftRave.b_frame_found && (prev_frame_size<=8)){
@@ -8220,7 +8220,7 @@ BERR_Code BXPT_Rave_ResetSoftContext(
     hCtx->SoftRave.ItbSize = ItbSize;
     hCtx->SoftRave.SrcBaseAddr = SrcBaseAddr;
     hCtx->SoftRave.mode = Mode;
-    hCtx->SoftRave.last_base_address = BREG_Read32(hCtx->hReg, CDB_BASE_PTR_OFFSET+hCtx->SoftRave.SrcBaseAddr);
+    hCtx->SoftRave.last_base_address = BREG_ReadAddr(hCtx->hReg, CDB_BASE_PTR_OFFSET+hCtx->SoftRave.SrcBaseAddr);
 
     hCtx->SoftRave.b_frame_found = false;
     hCtx->SoftRave.last_dest_valid = DestItbBase;

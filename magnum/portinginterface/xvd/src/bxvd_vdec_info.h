@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -182,17 +182,36 @@ typedef struct user_data
    uint32_t      size;
 } UD_HDR;
 
+/*--------------------------------------------------*
+ * SWSTB-3950: meta data extension to the user data *
+ *--------------------------------------------------*/
+
+#define  BXVD_P_PPB_METADATA_PRESENT   0x80000000
+#define  BXVD_P_PPB_METADATA_MASK      0x7FFFFFFF
+
+typedef enum BXVD_P_PPB_METADATA_TYPE
+{
+  BXVD_P_PPB_METADATA_TYPE_eNone = 0,
+  BXVD_P_PPB_METADATA_TYPE_eDRPU,
+  BXVD_P_PPB_METADATA_TYPE_eTCH_CVRI,  /* SWSTB-4182 */
+  BXVD_P_PPB_METADATA_TYPE_eTCH_CRI,   /* SWSTB-4182 */
+
+  BXVD_P_PPB_METADATA_TYPE_eMax
+
+} BXVD_P_PPB_METADATA_TYPE;
+
+
 /*------------------------------------------------------*
  *    MPEG Extension to the BXVD_P_PPB                  *
  *------------------------------------------------------*/
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_SEQ           (1)
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_GOP           (2)
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_PIC           (4)
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_TOP           (8)
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_BOT           (16)
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_I             (32)
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_P             (64)
-#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_B             (128)
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_SEQ         0x00000001
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_GOP         0x00000002
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_PIC         0x00000004
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_TOP         0x00000008
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_BOT         0x00000010
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_I           0x00000020
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_P           0x00000040
+#define  BXVD_P_PPB_MPEG_USERDATA_TYPE_B           0x00000080
 
 /* GOP time code field extraction */
 #define BXVD_P_PPB_MPEG_GOP_HOUR_MASK    0xf80000

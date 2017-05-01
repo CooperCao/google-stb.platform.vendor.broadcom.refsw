@@ -39,7 +39,7 @@
 *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ******************************************************************************/
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_HAS_XPT_DMA && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 4)
 
 #include "nexus_platform.h"
 #include "nexus_dma.h"
@@ -54,22 +54,10 @@
 #include <assert.h>
 #include "nexus_security.h"
 #include "nexus_bsp_config.h"
+#include "nexus_security_examples_setups.h"
 
 /* This application examplifies how DMA transfers that are not a multiple of algorithm block size (usually 16 bytes) can be handled.
    It is achieved with the assiatance of a thin layer on top of the DMA engine (sampleDmaTransferManager_*) . */
-
-typedef struct sampleDmaTransferManagerInstance*  sampleDmaTransferManagerHandle;
-
-typedef struct{
-    NEXUS_KeySlotHandle keySlotHandle;
-}sampleDmaTransferManagerAllocSettings;
-
-static sampleDmaTransferManagerHandle sampleDmaTransferManager_Create( sampleDmaTransferManagerAllocSettings *pSettings );
-static void sampleDmaTransferManager_Destroy( sampleDmaTransferManagerHandle handle );
-static unsigned sampleDmaTransferManager_Transfer( sampleDmaTransferManagerHandle handle, char* pSource, char* pDestination, unsigned size );
-static unsigned sampleDmaTransferManager_Flush( sampleDmaTransferManagerHandle handle );
-
-
 
 const uint8_t g_Key[] = { 0xe9, 0x7a, 0xd2, 0x85, 0xcb, 0x5d, 0x3b, 0xe4, 0xa7, 0x96, 0x1b, 0x7a, 0xf6, 0x91, 0x70, 0xda };
 const uint8_t g_iv[]  = { 0x42, 0xbc, 0x2e, 0x0d, 0xc9, 0x52, 0xaf, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -81,24 +69,12 @@ uint8_t* g_encryptedData = NULL;  /* encrypted data.     */
 uint8_t* g_decryptedData = NULL;  /* decrypted data      */
 
 
-#define DEBUG_PRINT_ARRAY(description_txt,in_size,in_ptr) { int x_offset;       \
-            printf("[%s][%d]", description_txt, in_size );                      \
-            for( x_offset = 0; x_offset < (int)(in_size); x_offset++ )          \
-            {                                                                   \
-                if( x_offset%32 == 0 ) printf("\n");                            \
-                                                                                \
-                printf("0x%02X, ", in_ptr[x_offset] );                             \
-            }                                                                   \
-            printf("\n");                                                       \
-}
-
 static void CompleteCallback(void *pParam, int iParam)
 {
     BSTD_UNUSED(iParam);
     /* fprintf(stderr, ".", (unsigned long)pParam); */
     BKNI_SetEvent(pParam);
 }
-
 
 NEXUS_KeySlotHandle CreateAndConfigureKeySlot(void)
 {
@@ -311,215 +287,6 @@ int main(void)
     NEXUS_Platform_Uninit();
     return 0;
 }
-
-
-#define ALGORITHM_BLOCK_SIZE (16)
-
-typedef struct{
-    NEXUS_KeySlotHandle keySlotHandle;
-
-    NEXUS_DmaHandle dmaHandle;
-    BKNI_EventHandle dmaEvent;
-    NEXUS_DmaJobHandle dmaJobHandle;
-    NEXUS_DmaJobBlockSettings blockSettings[ALGORITHM_BLOCK_SIZE]; /* cached data. */
-    unsigned numBlocks;         /* number of configure blocks. */
-    unsigned numCachedBytes;    /* number of bytes currently cached. */
-    char *pTransferCache;       /* cache for data remnant that is not a multiple of ALGORITHM_BLOCK_SIZE.
-                                        - Max size will be alogorithm block size.
-                                        - needs to be nexus device memory. */
-    bool resetCrypto;
-}sampleDmaTransferManagerInstance;
-
-
-static sampleDmaTransferManagerHandle sampleDmaTransferManager_Create( sampleDmaTransferManagerAllocSettings *pSettings )
-{
-    sampleDmaTransferManagerInstance *pThis;
-    NEXUS_DmaJobSettings jobSettings;
-    unsigned x = 0;
-
-    /* allocate object instance data. */
-    pThis = (sampleDmaTransferManagerInstance*)malloc( sizeof(*pThis));
-    BDBG_ASSERT( pThis );
-    BKNI_Memset( pThis, 0, sizeof(*pThis) );
-
-    /* allocate transfer cache */
-    NEXUS_Memory_Allocate( ALGORITHM_BLOCK_SIZE, NULL, (void*)&(pThis->pTransferCache) );
-    BDBG_ASSERT( pThis->pTransferCache );
-
-    /* allocate DMA resources. */
-    pThis->dmaHandle = NEXUS_Dma_Open( 0, NULL );
-    BDBG_ASSERT( pThis->dmaHandle );
-
-    /* reset the transfer blocks. */
-    for( x=0; x<ALGORITHM_BLOCK_SIZE; x++ )
-    {
-        NEXUS_DmaJob_GetDefaultBlockSettings( &(pThis->blockSettings[x]) );
-    }
-    pThis->keySlotHandle = pSettings->keySlotHandle;
-
-    BKNI_CreateEvent( &pThis->dmaEvent );
-    BDBG_ASSERT( pThis->dmaEvent );
-
-    NEXUS_DmaJob_GetDefaultSettings( &jobSettings );
-    jobSettings.numBlocks                   = ALGORITHM_BLOCK_SIZE;
-    jobSettings.keySlot                     = pThis->keySlotHandle;
-    jobSettings.dataFormat                  = NEXUS_DmaDataFormat_eBlock;
-    jobSettings.completionCallback.callback = CompleteCallback;
-    jobSettings.completionCallback.context  = pThis->dmaEvent;
-    pThis->dmaJobHandle = NEXUS_DmaJob_Create( pThis->dmaHandle, &jobSettings );
-    BDBG_ASSERT( pThis->dmaJobHandle );
-
-    pThis->resetCrypto = true;
-
-    return (sampleDmaTransferManagerHandle)pThis;
-}
-
-static void sampleDmaTransferManager_Destroy( sampleDmaTransferManagerHandle handle )
-{
-    sampleDmaTransferManagerInstance *pThis = (sampleDmaTransferManagerInstance*) handle;
-
-    /* free resources. */
-    NEXUS_Memory_Free( pThis->pTransferCache );
-    BKNI_DestroyEvent( pThis->dmaEvent );
-    NEXUS_DmaJob_Destroy( pThis->dmaJobHandle );
-    NEXUS_Dma_Close( pThis->dmaHandle );
-
-    /* free instance memory. */
-    BKNI_Memset( pThis, 0, sizeof(*pThis) );
-    free( pThis );
-
-    return;
-}
-
-/* transfer a data block.
-    - function is synchronous, it will block until data is transfered.
-    - if size is not a muiltipe of algorithm block size, the remnant will be cached locally.
-    - the lenght of the actuall transfer will be returned. This may be less that or greater than the
-      specified size.
-*/
-static unsigned sampleDmaTransferManager_Transfer( sampleDmaTransferManagerHandle handle,
-                                          char* pSource,
-                                          char* pDestination,
-                                          unsigned size )
-{
-    sampleDmaTransferManagerInstance *pThis = (sampleDmaTransferManagerInstance*) handle;
-    unsigned transferSize = 0;  /* the number of bytes that will actually be DMAed on the call */
-    unsigned remnant = 0;
-    unsigned x = 0;
-    NEXUS_Error rc;
-
-    if( size == 0 ) return 0;
-
-    remnant = (pThis->numCachedBytes + size) % ALGORITHM_BLOCK_SIZE;
-    transferSize = ((pThis->numCachedBytes + size)/ALGORITHM_BLOCK_SIZE)*ALGORITHM_BLOCK_SIZE;
-
-    if( transferSize ) /* have we enough data for a transfer? */
-    {
-        NEXUS_DmaJobBlockSettings *pBlockSettings = &pThis->blockSettings[pThis->numBlocks];
-
-        pBlockSettings->pSrcAddr  = pSource;
-        pBlockSettings->pDestAddr = pDestination;
-        pBlockSettings->blockSize = size-remnant;
-        pBlockSettings->cached = true;
-        pBlockSettings->resetCrypto = pThis->resetCrypto;
-        if( pThis->numBlocks == 0 )
-        {
-            pBlockSettings->scatterGatherCryptoStart = true;
-        }
-        pBlockSettings->scatterGatherCryptoEnd = true;
-
-        pThis->numBlocks++;
-
-        rc = NEXUS_DmaJob_ProcessBlocks( pThis->dmaJobHandle, &pThis->blockSettings[0], pThis->numBlocks );
-
-        if( rc == NEXUS_DMA_QUEUED )
-        {
-            NEXUS_DmaJobStatus jobStatus;
-            BKNI_WaitForEvent( pThis->dmaEvent, BKNI_INFINITE );
-            NEXUS_DmaJob_GetStatus( pThis->dmaJobHandle, &jobStatus );
-            BDBG_ASSERT( jobStatus.currentState == NEXUS_DmaJobState_eComplete );
-        }
-
-        for( x=0; x < pThis->numBlocks; x++ )
-        {
-           NEXUS_DmaJob_GetDefaultBlockSettings( &(pThis->blockSettings[x]) );
-        }
-        pThis->resetCrypto = false;
-
-        pThis->numBlocks = 0;
-        pThis->numCachedBytes = 0;
-
-        if( remnant )
-        {   /* updated source and destination. */
-            pSource += size-remnant;
-            pDestination += size-remnant;
-        }
-    }
-
-    if( remnant )
-    {
-        NEXUS_DmaJobBlockSettings *pBlockSettings = &pThis->blockSettings[pThis->numBlocks];
-        unsigned remnantDelta = remnant - pThis->numCachedBytes;
-
-        BKNI_Memcpy( &pThis->pTransferCache[pThis->numCachedBytes], pSource, remnantDelta );
-        pBlockSettings->pSrcAddr = &pThis->pTransferCache[pThis->numCachedBytes];
-        pBlockSettings->pDestAddr = pDestination;
-        pBlockSettings->blockSize = remnantDelta;
-        pBlockSettings->cached = true;
-        pBlockSettings->resetCrypto = pThis->resetCrypto;
-        if( pThis->numBlocks == 0 )
-        {
-            pBlockSettings->scatterGatherCryptoStart = true;
-        }
-
-        pThis->numCachedBytes += remnantDelta;
-        pThis->numBlocks++;
-        pThis->resetCrypto = false;
-    }
-
-    return transferSize;
-}
-
-/* flush all blocks through the DMA, even if they are not a multiple of algorithm block size. */
-static unsigned sampleDmaTransferManager_Flush( sampleDmaTransferManagerHandle handle )
-{
-    sampleDmaTransferManagerInstance *pThis = (sampleDmaTransferManagerInstance*) handle;
-    NEXUS_DmaJobBlockSettings *pBlockSettings = &pThis->blockSettings[pThis->numBlocks];
-    unsigned transferSize = 0;  /* the number of bytes that will actually be DMAed on the call */
-    NEXUS_Error rc;
-    unsigned x = 0;
-
-    if( pThis->numBlocks == 0 )
-    {
-        return 0;
-    }
-
-    pBlockSettings = &pThis->blockSettings[pThis->numBlocks-1];
-    pBlockSettings->scatterGatherCryptoEnd = true;
-
-    rc = NEXUS_DmaJob_ProcessBlocks( pThis->dmaJobHandle, &pThis->blockSettings[0], pThis->numBlocks );
-
-    if( rc == NEXUS_DMA_QUEUED )
-    {
-        NEXUS_DmaJobStatus jobStatus;
-        BKNI_WaitForEvent( pThis->dmaEvent, BKNI_INFINITE );
-        NEXUS_DmaJob_GetStatus( pThis->dmaJobHandle, &jobStatus );
-        BDBG_ASSERT( jobStatus.currentState == NEXUS_DmaJobState_eComplete );
-    }
-
-    transferSize = pThis->numCachedBytes;
-
-    /* reset blocks to default. */
-    for( x=0; x < pThis->numBlocks; x++ )
-    {
-       NEXUS_DmaJob_GetDefaultBlockSettings( &(pThis->blockSettings[x]) );
-    }
-    pThis->numBlocks = 0;
-    pThis->numCachedBytes = 0;
-
-    return transferSize;
-}
-
 #else /* NEXUS_HAS_SECURITY */
 #include <stdio.h>
 int main(void)

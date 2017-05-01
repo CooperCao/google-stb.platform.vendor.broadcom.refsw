@@ -456,5 +456,8 @@ unsigned int bmemperf_get_ddr_stat_cas_client_data( unsigned int client_id, unsi
 int          compare_cas_data( const void *a, const void *b );
 float        bmemperf_computeBWinMbps( unsigned int cycles, unsigned int interval_in_MHZ, unsigned int memc_index );
 volatile unsigned int *bmemperf_get_g_pMem( void );
+float        bmemperf_convert_bw_to_utilization( unsigned int memc_index, unsigned int bandwidth );
+float        bmemperf_convert_utilization_to_bw( unsigned int memc_index, float utilization );
+int          BitsPerCycle( unsigned int memc_index );
 
 #endif /*__BMEMPERF_H__ */

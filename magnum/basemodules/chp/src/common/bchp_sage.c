@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -77,6 +77,11 @@ BDBG_MODULE(BCHP_SAGE);
 #define SAGE_RESETVAL_DOWN  0x1FF1FEED
 #define SAGE_RESETVAL_ERROR 0x30DE018E
 
+bool BCHP_SAGE_IsStarted(BREG_Handle hReg)
+{
+    return (BREG_Read32(hReg, SAGE_SRR_START_REG) != 0x0);
+}
+
 BERR_Code
 BCHP_SAGE_Reset(
     BREG_Handle hReg)
@@ -88,8 +93,7 @@ BCHP_SAGE_Reset(
 
     BDBG_ASSERT(hReg);
 
-    val = BREG_Read32(hReg, SAGE_SRR_START_REG);
-    if (val == 0x0) {
+    if (!BCHP_SAGE_IsStarted(hReg)) {
         BDBG_MSG(("SAGE is not started. Continue...."));
         goto end;
     }

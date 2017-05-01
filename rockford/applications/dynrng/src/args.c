@@ -48,7 +48,6 @@
 
 void args_p_print_usage(ArgsHandle args)
 {
-    unsigned i;
     assert(args);
     printf("Usage: %s OPTIONS\n", args->name);
     printf("-im method  'console'|'remote'. Defaults to 'remote'\n");
@@ -62,16 +61,17 @@ void args_p_print_usage(ArgsHandle args)
     printf("-ss path    path to directory containing SDR streams\n");
     printf("-sh path    path to directory containing HDR streams\n");
     printf("-sg path    path to directory containing HLG streams\n");
+    printf("-sd path    path to directory containing DVS streams\n");
     printf("-sm path    path to directory containing mixed SDR/HDR streams\n");
     printf("-cfg path   path to config root directory (contains all cfg files in defined hierarchy)\n");
     printf("-rc path    path to shared resource root directory (contains streams and images in defined hierarchy)\n");
-    printf("-ct color   hex constant specifying text fg color incl alpha, e.g. 0xff000000 is black 100% opaque\n");
+    printf("-ct color   hex constant specifying text fg color incl alpha, e.g. 0xff000000 is black 100%% opaque\n");
     printf("-cm color   hex constant specifying main panel bg color incl alpha\n");
     printf("-cg color   hex constant specifying instruction panel bg color incl alpha\n");
     printf("-ci color   hex constant specifying info panel bg color incl alpha\n");
     printf("-cd color   hex constant specifying details panel bg color incl alpha\n");
     printf("--osd wxh   w is int constant specifying width of osd, h is height of osd\n");
-    printf("--demo      run in demo mode, where all settings are reset on each change\n");
+    printf("-m demo|test demo runs in demo mode, test runs in test mode\n");
 }
 
 static const struct
@@ -85,6 +85,7 @@ static const struct
     const char * const hdrStreamPath;
     const char * const hlgStreamPath;
     const char * const mixStreamPath;
+    const char * const dvsStreamPath;
     const char * const sdrThumbnailPath;
     const char * const sdrBackgroundPath;
 } defaultRelativePaths =
@@ -98,6 +99,7 @@ static const struct
     "streams/hdr",
     "streams/hlg",
     "streams/mix",
+    "streams/dvs",
     "images/sdr",
     "backgrounds/sdr"
 };
@@ -115,6 +117,7 @@ static const Args defaultArgs =
     "../share/dynrng/streams/hdr",
     "../share/dynrng/streams/hlg",
     "../share/dynrng/streams/mix",
+    "../share/dynrng/streams/dvs",
     "../share/dynrng/images/sdr",
     "../share/dynrng/backgrounds/sdr",
     "../etc/dynrng",
@@ -132,7 +135,8 @@ static const Args defaultArgs =
             0xff000000  /* detailsPanelBg, black 100% */
         }
     },
-    false
+    false,
+    ARGS_RunMode_eDemo
 };
 
 void args_p_get_default(ArgsHandle args)
@@ -141,7 +145,8 @@ void args_p_get_default(ArgsHandle args)
     memset(args, 0, sizeof(*args));
     args->method = defaultArgs.method;
     memcpy(&args->osd, &defaultArgs.osd, sizeof(args->osd));
-    args->demo = defaultArgs.demo;
+    args->advanced = defaultArgs.advanced;
+    args->runMode = defaultArgs.runMode;
 }
 
 static char * args_p_make_abs_path(const char * const root, const char * const rel)
@@ -240,6 +245,9 @@ ArgsHandle args_create(int argc, char **argv)
         else if (!strcmp(argv[curarg], "-sm") && argc>curarg+1) {
             args->mixStreamPath = strdup(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-sd") && argc>curarg+1) {
+            args->dvsStreamPath = strdup(argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-cfg") && argc>curarg+1) {
             args->configRoot = strdup(argv[++curarg]);
         }
@@ -268,8 +276,20 @@ ArgsHandle args_create(int argc, char **argv)
             args->osd.dims.width = strtoul(argv[curarg], NULL, 0);
             args->osd.dims.height = strtoul(p, NULL, 0);
         }
-        else if (!strcmp(argv[curarg], "--demo")) {
-            args->demo = true;
+        else if (!strcmp(argv[curarg], "-m") && argc>curarg+1) {
+            switch (argv[++curarg][0])
+            {
+                case 't':
+                    args->runMode = ARGS_RunMode_eTest;
+                    break;
+                default:
+                case 'd':
+                    args->runMode = ARGS_RunMode_eDemo;
+                    break;
+            }
+        }
+        else if (!strcmp(argv[curarg], "--adv-ctrl")) {
+            args->advanced = true;
         }
         else
         {
@@ -286,6 +306,7 @@ ArgsHandle args_create(int argc, char **argv)
     ARGS_P_GET_PATH(hdrStreamPath, sharedResourceRoot);
     ARGS_P_GET_PATH(hlgStreamPath, sharedResourceRoot);
     ARGS_P_GET_PATH(mixStreamPath, sharedResourceRoot);
+    ARGS_P_GET_PATH(dvsStreamPath, sharedResourceRoot);
     ARGS_P_GET_PATH(scenarioPath, configRoot);
     ARGS_P_GET_PATH(gfxSdr2HdrPath, configRoot);
     ARGS_P_GET_PATH(vidSdr2HdrPath, configRoot);
@@ -311,6 +332,7 @@ void args_destroy(ArgsHandle args)
     if (args->hdrStreamPath) free(args->hdrStreamPath);
     if (args->hlgStreamPath) free(args->hlgStreamPath);
     if (args->mixStreamPath) free(args->mixStreamPath);
+    if (args->dvsStreamPath) free(args->dvsStreamPath);
     if (args->sdrThumbnailPath) free(args->sdrThumbnailPath);
     if (args->sdrBackgroundPath) free(args->sdrBackgroundPath);
     if (args->configRoot) free(args->configRoot);

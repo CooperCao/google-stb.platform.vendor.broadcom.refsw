@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Mangles client-side names to avoid conflicts
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRONOS_MANGLE_H
 #if defined KHRONOS_NAME_MANGLING || defined REMOTE_API_LOGGING || defined BCG_MULTI_THREADED
 
@@ -367,10 +359,6 @@ Mangles client-side names to avoid conflicts
 #undef glFramebufferTexture2DOES
 #undef glGetFramebufferAttachmentParameterivOES
 #undef glGenerateMipmapOES
-#undef glCurrentPaletteMatrixOES
-#undef glLoadPaletteFromModelViewMatrixOES
-#undef glMatrixIndexPointerOES
-#undef glWeightPointerOES
 
 /* Internal functions */
 #undef egl_surface_create

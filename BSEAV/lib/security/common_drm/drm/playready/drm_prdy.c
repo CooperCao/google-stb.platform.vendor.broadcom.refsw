@@ -3099,6 +3099,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_DecryptOpaque(
         uint32_t                          nelem)
 {
     DRM_RESULT     dr = DRM_SUCCESS;
+    DRM_Prdy_Error_e rc = DRM_Prdy_fail;
 
     BDBG_MSG(("%s - entering", __FUNCTION__));
 
@@ -3124,7 +3125,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_DecryptOpaque(
 ErrorExit:
 
     BDBG_ERR(("%s: Reader Decrypt Opaque failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
-    return DRM_Prdy_fail;
+    return convertDrmResult_Ex((unsigned int)dr);
 }
 
 DRM_Prdy_Error_e DRM_Prdy_Reader_CloneDecryptContext(
@@ -3813,7 +3814,9 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSample(
 {
     DRM_RESULT    dr = DRM_SUCCESS;
     DRM_DWORD     rgbSubsampleCount[1] = {0};
-    DRM_BYTE      *rgbSubsamplePointer[1] = {0};
+    DRM_BYTE      *rgbSubsamplePointerIn[1] = {0};
+    DRM_BYTE      *rgbSubsamplePointerOut[1] = {0};
+    OEM_HAL_SAMPLE_METADATA metaData;
 
     BDBG_MSG(("%s - entering", __FUNCTION__));
 
@@ -3822,17 +3825,44 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSample(
     BDBG_ASSERT(pOutBuf != NULL );
     BDBG_ASSERT(pIV != NULL );
 
-    BKNI_Memcpy(pOutBuf, pInBuf, cbData);
+    rgbSubsampleCount[0] = cbData;
+    rgbSubsamplePointerIn[0] = (DRM_BYTE*)pInBuf;
+    rgbSubsamplePointerOut[0] = (DRM_BYTE*)pOutBuf;
 
-    rgbSubsampleCount[0]   = cbData;
-    rgbSubsamplePointer[0] = (DRM_BYTE*) pOutBuf;
+    if (pOutBuf == pInBuf) {
+        ChkDR(Drm_LocalLicense_EncryptSample(
+            (DRM_LICENSE_HANDLE ) hLicense,
+            1,
+            rgbSubsampleCount,
+            rgbSubsamplePointerOut,
+            (DRM_UINT64 *)pIV));
+    } else {
+#ifdef PLAYREADY_HOST_IMPL
+        metaData.cSubSamples = 1;
+        metaData.rgSubSamples[0].dwClearLength = 0;
+        metaData.rgSubSamples[0].dwEncryptedLength = cbData;
 
-    ChkDR( Drm_LocalLicense_EncryptSample(
-                (DRM_LICENSE_HANDLE ) hLicense,
-                1,
-                rgbSubsampleCount,
-                rgbSubsamplePointer,
-                (DRM_UINT64 *)pIV) );
+        ChkDR(Drm_LocalLicense_EncryptOpaqueSample(
+            (DRM_LICENSE_HANDLE ) hLicense,
+            &metaData,
+            (OEM_OPAQUE_BUFFER_HANDLE)rgbSubsamplePointerIn,
+            (OEM_OPAQUE_BUFFER_HANDLE)rgbSubsamplePointerOut,
+            1,
+            (DRM_UINT64 *)pIV));
+#else
+        /*
+         * For non-sage, this is just to keep backward compatibility
+         */
+        BKNI_Memcpy(pOutBuf, pInBuf, cbData);
+
+        ChkDR(Drm_LocalLicense_EncryptSample(
+            (DRM_LICENSE_HANDLE ) hLicense,
+            1,
+            rgbSubsampleCount,
+            rgbSubsamplePointerOut,
+            (DRM_UINT64 *)pIV));
+#endif
+    }
 
     BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
     return DRM_Prdy_ok;
@@ -3852,7 +3882,8 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSubsamples(
 {
     DRM_RESULT              dr = DRM_SUCCESS;
     DRM_DWORD              *rgbSubsampleCount = NULL;
-    DRM_BYTE              **rgbSubsamplePointer = NULL;
+    DRM_BYTE              **rgbSubsamplePointerClr = NULL;
+    DRM_BYTE              **rgbSubsamplePointerEnc = NULL;
     uint32_t                numOfSubsamples;
     DRM_Prdy_subSample_t   *clrSub = NULL;
     DRM_Prdy_subSample_t   *encSub = NULL;
@@ -3866,45 +3897,100 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSubsamples(
     BDBG_ASSERT(pIV != NULL );
 
     numOfSubsamples = pClearSamples->numOfSubsamples;
-    ChkMem(rgbSubsampleCount = Oem_MemAlloc(SIZEOF(DRM_DWORD) * numOfSubsamples));
-    ChkMem(rgbSubsamplePointer = Oem_MemAlloc(SIZEOF(DRM_BYTE) * numOfSubsamples));
-
     clrSub = pClearSamples->subsamples;
     encSub = pEncSamples->subsamples;
 
-    for( i =0; i < numOfSubsamples; ++i)
+    ChkMem(rgbSubsamplePointerEnc = Oem_MemAlloc(SIZEOF(DRM_BYTE) * numOfSubsamples));
+    for (i = 0; i < numOfSubsamples; ++i)
     {
-        rgbSubsampleCount[i] = clrSub[i].size;
-        /*
-         * Assuming the memory of pEncSamples has been properly allocated
-         * However, this memcpy can be avoided if we support in-place encryption
-         */
-        BKNI_Memcpy(encSub[i].sample, clrSub[i].sample, clrSub[i].size);
-        /*
-         * To avoid an extra memcpy for the output at the end,
-         * we passed the pEncSamples[].subsamples.sample directly to the API
-         * */
-        rgbSubsamplePointer[i] = encSub[i].sample;
+        rgbSubsamplePointerEnc[i] = encSub[i].sample;
     }
 
-    ChkDR( Drm_LocalLicense_EncryptSample(
+    if (clrSub == encSub) {
+        ChkMem(rgbSubsampleCount = Oem_MemAlloc(SIZEOF(DRM_DWORD) * numOfSubsamples));
+
+        for (i = 0; i < numOfSubsamples; ++i)
+        {
+            rgbSubsampleCount[i] = clrSub[i].size;
+        }
+
+        ChkDR(Drm_LocalLicense_EncryptSample(
                 (DRM_LICENSE_HANDLE ) hLicense,
                 numOfSubsamples,
                 rgbSubsampleCount,
-                rgbSubsamplePointer,
-                (DRM_UINT64 *)pIV) );
+                rgbSubsamplePointerEnc,
+                (DRM_UINT64 *)pIV));
+
+        /* clean up */
+        if (rgbSubsampleCount != NULL)
+            SAFE_OEM_FREE(rgbSubsampleCount);
+    } else {
+#ifdef PLAYREADY_HOST_IMPL
+        OEM_HAL_SAMPLE_METADATA metaData;
+        uint64_t qwOffset = 0;
+        DRM_UINT64 *pqwIV = (DRM_UINT64*)pIV;
+
+        ChkMem(rgbSubsamplePointerClr = Oem_MemAlloc(SIZEOF(DRM_BYTE) * numOfSubsamples));
+
+        for (i = 0; i < numOfSubsamples; ++i)
+        {
+            metaData.rgSubSamples[i].dwClearLength = 0;
+            metaData.rgSubSamples[i].dwEncryptedLength = clrSub[i].size;
+            rgbSubsamplePointerClr[i] = clrSub[i].sample;
+        }
+
+        metaData.cSubSamples = numOfSubsamples;
+        metaData.qwBlockOffset = 0;
+        metaData.bByteOffset = 0;
+
+        ChkDR(Drm_LocalLicense_EncryptOpaqueSample(
+            (DRM_LICENSE_HANDLE)hLicense,
+            &metaData,
+            (OEM_OPAQUE_BUFFER_HANDLE)rgbSubsamplePointerClr,
+            (OEM_OPAQUE_BUFFER_HANDLE)rgbSubsamplePointerEnc,
+            numOfSubsamples,
+            (DRM_UINT64 *)pIV));
+
+        /* clean up */
+        if (rgbSubsamplePointerClr != NULL)
+            SAFE_OEM_FREE(rgbSubsamplePointerClr);
+#else
+        /*
+         * For non-sage, this is just to keep backward compatibility
+         */
+        ChkMem(rgbSubsampleCount = Oem_MemAlloc(SIZEOF(DRM_DWORD) * numOfSubsamples));
+
+        for (i = 0; i < numOfSubsamples; ++i)
+        {
+            rgbSubsampleCount[i] = clrSub[i].size;
+            BKNI_Memcpy(encSub[i].sample, clrSub[i].sample, clrSub[i].size);
+        }
+
+        ChkDR(Drm_LocalLicense_EncryptSample(
+                (DRM_LICENSE_HANDLE ) hLicense,
+                numOfSubsamples,
+                rgbSubsampleCount,
+                rgbSubsamplePointerEnc,
+                (DRM_UINT64 *)pIV));
+
+        /* clean up */
+        if (rgbSubsampleCount != NULL)
+            SAFE_OEM_FREE(rgbSubsampleCount);
+#endif
+    }
 
     /* clean up */
-    if( rgbSubsampleCount != NULL)  SAFE_OEM_FREE(rgbSubsampleCount);
-    if( rgbSubsamplePointer  != NULL)  SAFE_OEM_FREE(rgbSubsamplePointer);
+    if (rgbSubsamplePointerEnc != NULL)
+        SAFE_OEM_FREE(rgbSubsamplePointerEnc);
 
     BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
     return DRM_Prdy_ok;
 
 ErrorExit:
 
-    if( rgbSubsampleCount != NULL)  SAFE_OEM_FREE(rgbSubsampleCount);
-    if( rgbSubsamplePointer  != NULL)  SAFE_OEM_FREE(rgbSubsamplePointer);
+    if (rgbSubsampleCount != NULL) SAFE_OEM_FREE(rgbSubsampleCount);
+    if (rgbSubsamplePointerEnc != NULL) SAFE_OEM_FREE(rgbSubsamplePointerEnc);
+    if (rgbSubsamplePointerClr != NULL) SAFE_OEM_FREE(rgbSubsamplePointerClr);
 
     BDBG_ERR(("%s: LocalLicense_EncryptSample failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
     return DRM_Prdy_fail;

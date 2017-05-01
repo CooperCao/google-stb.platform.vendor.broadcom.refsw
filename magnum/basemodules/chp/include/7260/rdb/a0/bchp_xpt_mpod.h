@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,14 +70,14 @@
 /***************************************************************************
  *XPT_MPOD - XPT MPOD Control Registers
  ***************************************************************************/
-#define BCHP_XPT_MPOD_CFG                        0x20a02c00 /* [RW] MPOD Configuration Register */
-#define BCHP_XPT_MPOD_OCTRL                      0x20a02c04 /* [RW] MPOD Output Interface Formatter Control Register */
-#define BCHP_XPT_MPOD_ICTRL                      0x20a02c08 /* [RW] MPOD Input Interface Formatter Control Register */
-#define BCHP_XPT_MPOD_RES_FIELD                  0x20a02c0c /* [RO] MPOD Reserved Fields Register */
-#define BCHP_XPT_MPOD_OCTRL2                     0x20a02c10 /* [RW] MPOD Output Interface Formatter Control2 Register */
-#define BCHP_XPT_MPOD_MPOD_BAND_ID_IBP_DROP      0x20a02c14 /* [RW] MPOD Band ID IBP Disable */
-#define BCHP_XPT_MPOD_MPOD_BAND_ID_PBP_DROP      0x20a02c18 /* [RW] MPOD Band ID PBP Disable */
-#define BCHP_XPT_MPOD_TV_STATUS                  0x20a02c20 /* [RW] TV Status */
+#define BCHP_XPT_MPOD_CFG                        0x20a02c00 /* [RW][32] MPOD Configuration Register */
+#define BCHP_XPT_MPOD_OCTRL                      0x20a02c04 /* [RW][32] MPOD Output Interface Formatter Control Register */
+#define BCHP_XPT_MPOD_ICTRL                      0x20a02c08 /* [RW][32] MPOD Input Interface Formatter Control Register */
+#define BCHP_XPT_MPOD_RES_FIELD                  0x20a02c0c /* [RO][32] MPOD Reserved Fields Register */
+#define BCHP_XPT_MPOD_OCTRL2                     0x20a02c10 /* [RW][32] MPOD Output Interface Formatter Control2 Register */
+#define BCHP_XPT_MPOD_MPOD_BAND_ID_IBP_DROP      0x20a02c14 /* [RW][32] MPOD Band ID IBP Disable */
+#define BCHP_XPT_MPOD_MPOD_BAND_ID_PBP_DROP      0x20a02c18 /* [RW][32] MPOD Band ID PBP Disable */
+#define BCHP_XPT_MPOD_TV_STATUS                  0x20a02c20 /* [RW][32] TV Status */
 
 /***************************************************************************
  *CFG - MPOD Configuration Register

@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef BVC5_INTERNAL_JOB_H__
 #define BVC5_INTERNAL_JOB_H__
 
@@ -48,16 +47,25 @@ struct BVC5_P_JobDependentFence;
 #define BVC5_P_BIN_JOB_COMPLETED   ((uint64_t)0)
 #define BVC5_P_BIN_JOB_FINALIZED (~((uint64_t)0))
 
+typedef struct BVC5_P_SharedFenceInfo
+{
+   bool           bSignalled;
+   uint32_t       uCountRef;        /* Reference count to know when to delete this struct */
+   void           *pFenceSignalData;
+   int            iFence;
+} BVC5_P_SharedFenceInfo;
+
+
 typedef struct BVC5_P_JobDependentFence
 {
-   struct BVC5_P_JobDependentFence *psNext;        /* Next pointer for psOnCompleted/FinalizedFenceList in job */
+   struct BVC5_P_JobDependentFence  *psNext;             /* Next pointer for psOnCompleted/FinalizedFenceList in job */
 
    /* Note that these will *not* include the job this fence is currently listed
     * on -- that is implicit */
-   BVC5_SchedDependencies           sNotCompleted; /* Completion dependencies not yet done */
-   BVC5_SchedDependencies           sNotFinalized; /* Finalize dependencies not yet finalized */
+   BVC5_SchedDependencies           sNotCompleted;       /* Completion dependencies not yet done */
+   BVC5_SchedDependencies           sNotFinalized;       /* Finalize dependencies not yet finalized */
 
-   void                            *pFenceSignalData;
+   struct BVC5_P_SharedFenceInfo    *psSharedFenceInfo;  /* Fence info shared between jobs that have a common fence */
 } BVC5_P_JobDependentFence;
 
 typedef struct BVC5_P_InternalJob

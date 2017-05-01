@@ -291,6 +291,14 @@ unsigned NEXUS_VideoDecoder_GetMosaicIndex_isrsafe(NEXUS_VideoDecoderHandle vide
 void NEXUS_VideoDecoder_P_GetVsyncRate_isrsafe(unsigned refreshRate, unsigned *vsyncRate, bool *b1001Slip);
 BXDM_PictureProvider_MonitorRefreshRate NEXUS_VideoDecoder_P_GetXdmMonitorRefreshRate_isrsafe(unsigned nexusRefreshRate);
 
+NEXUS_Timebase NEXUS_VideoDecoder_P_GetTimebase_isrsafe(NEXUS_VideoDecoderHandle handle);
+void NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(NEXUS_VideoDecoderSettings *pSettings);
+void NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(NEXUS_VideoDecoderPlaybackSettings *pSettings);
+void NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(NEXUS_VideoDecoderExtendedSettings *pSettings);
+
+/* must be called before Start to have effect */
+void NEXUS_VideoDecoder_EnableCrcMode_priv(NEXUS_VideoDecoderHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

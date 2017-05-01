@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,14 +70,14 @@
 /***************************************************************************
  *UPG_SPI_AON_IRQ - SPI AON  Level 2 Interrupt Enable/Status
  ***************************************************************************/
-#define BCHP_UPG_SPI_AON_IRQ_CPU_STATUS          0x20417480 /* [RO] CPU interrupt Status Register */
-#define BCHP_UPG_SPI_AON_IRQ_CPU_MASK_STATUS     0x20417484 /* [RO] CPU interrupt Mask Status Register */
-#define BCHP_UPG_SPI_AON_IRQ_CPU_MASK_SET        0x20417488 /* [WO] CPU interrupt Mask Set Register */
-#define BCHP_UPG_SPI_AON_IRQ_CPU_MASK_CLEAR      0x2041748c /* [WO] CPU interrupt Mask Clear Register */
-#define BCHP_UPG_SPI_AON_IRQ_PCI_STATUS          0x20417490 /* [RO] PCI interrupt Status Register */
-#define BCHP_UPG_SPI_AON_IRQ_PCI_MASK_STATUS     0x20417494 /* [RO] PCI interrupt Mask Status Register */
-#define BCHP_UPG_SPI_AON_IRQ_PCI_MASK_SET        0x20417498 /* [WO] PCI interrupt Mask Set Register */
-#define BCHP_UPG_SPI_AON_IRQ_PCI_MASK_CLEAR      0x2041749c /* [WO] PCI interrupt Mask Clear Register */
+#define BCHP_UPG_SPI_AON_IRQ_CPU_STATUS          0x20417480 /* [RO][32] CPU interrupt Status Register */
+#define BCHP_UPG_SPI_AON_IRQ_CPU_MASK_STATUS     0x20417484 /* [RO][32] CPU interrupt Mask Status Register */
+#define BCHP_UPG_SPI_AON_IRQ_CPU_MASK_SET        0x20417488 /* [WO][32] CPU interrupt Mask Set Register */
+#define BCHP_UPG_SPI_AON_IRQ_CPU_MASK_CLEAR      0x2041748c /* [WO][32] CPU interrupt Mask Clear Register */
+#define BCHP_UPG_SPI_AON_IRQ_PCI_STATUS          0x20417490 /* [RO][32] PCI interrupt Status Register */
+#define BCHP_UPG_SPI_AON_IRQ_PCI_MASK_STATUS     0x20417494 /* [RO][32] PCI interrupt Mask Status Register */
+#define BCHP_UPG_SPI_AON_IRQ_PCI_MASK_SET        0x20417498 /* [WO][32] PCI interrupt Mask Set Register */
+#define BCHP_UPG_SPI_AON_IRQ_PCI_MASK_CLEAR      0x2041749c /* [WO][32] PCI interrupt Mask Clear Register */
 
 /***************************************************************************
  *CPU_STATUS - CPU interrupt Status Register

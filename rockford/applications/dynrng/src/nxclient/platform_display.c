@@ -39,18 +39,23 @@
  *
  *****************************************************************************/
 #include "nexus_platform_client.h"
+#include "nexus_platform.h"
 #include "nxclient.h"
 #include "namevalue.h"
 #include "nexus_video_types.h"
+#include "nexus_hdmi_output_extra.h"
 #include "nexus_core_utils.h"
 #include "nxapps_cmdline.h"
 #include "platform.h"
 #include "platform_priv.h"
 #include "platform_display_priv.h"
-#include "bchp_hdr_cmp_0.h"
+#include "bchp_common.h"
 #include "bkni.h"
 #include "bdbg.h"
-#include "assert.h"
+
+#ifdef BCHP_HDR_CMP_0_REG_START
+#include "bchp_hdr_cmp_0.h"
+#endif
 
 BDBG_MODULE(platform_display);
 
@@ -62,27 +67,35 @@ PlatformDisplayHandle platform_display_open(PlatformHandle platform)
     BKNI_Memset(display, 0, sizeof(*display));
     platform->display = display;
     display->platform = platform;
+    display->hdmi.alias = NEXUS_HdmiOutput_Open(NEXUS_ALIAS_ID + 0, NULL);
     return display;
 }
 
 void platform_display_close(PlatformDisplayHandle display)
 {
     if (!display) return;
+    NEXUS_HdmiOutput_Close(display->hdmi.alias);
     display->platform->display = NULL;
     BKNI_Free(display);
 }
 
 void platform_display_load_nl2l_lut(size_t len, uint32_t * data)
 {
+#ifdef BCHP_HDR_CMP_0_V0_NL2L_TF_LUTi_ARRAY_BASE
     unsigned i;
     for (i=0; i<len; i++)
     {
         NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_NL2L_TF_LUTi_ARRAY_BASE + i*4, data[i]);
     }
+#else
+    BSTD_UNUSED(len);
+    BSTD_UNUSED(data);
+#endif
 }
 
 void platform_display_set_nl2l_source(unsigned source)
 {
+#if BCHP_HDR_CMP_0_V0_NL_LUT_SEG_CTRLi_ARRAY_END
     #define SIZE (BCHP_HDR_CMP_0_V0_NL_LUT_SEG_CTRLi_ARRAY_END+1)
     const unsigned segEnd[SIZE] =     {128, 256, 512, 0, 0, 0};
     const unsigned segOffset[SIZE] =  {0,   256, 768, 0, 0, 0};
@@ -90,7 +103,7 @@ void platform_display_set_nl2l_source(unsigned source)
     uint32_t val;
     unsigned i;
 
-    assert(source <= BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_RECT0_SEL_NL2L_BYPASS);
+    BDBG_ASSERT(source <= BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_RECT0_SEL_NL2L_BYPASS);
 
     NEXUS_Platform_ReadRegister(BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE, &val);
     BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_NL2L, source);
@@ -111,6 +124,9 @@ void platform_display_set_nl2l_source(unsigned source)
         BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_NL_LUT_SEG_CTRLi, NL_LUT_SEG_INT_BITS, setIntBits[i]);
         NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_NL_LUT_SEG_CTRLi_ARRAY_BASE + i*4, val);
     }
+#else
+    BSTD_UNUSED(source);
+#endif
 }
 
 const PlatformPictureInfo * platform_display_get_picture_info(PlatformDisplayHandle display)
@@ -119,7 +135,8 @@ const PlatformPictureInfo * platform_display_get_picture_info(PlatformDisplayHan
     BDBG_ASSERT(display);
     NxClient_GetDisplaySettings(&display->nxSettings);
     display->info.depth = display->nxSettings.hdmiPreferences.colorDepth;
-    display->info.dynrng = platform_p_dynamic_range_from_nexus(display->nxSettings.hdmiPreferences.drmInfoFrame.eotf);
+    display->info.dynrng = platform_p_dynamic_range_from_nexus(display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
+            display->nxSettings.hdmiPreferences.dolbyVision.outputMode);
     display->info.gamut = platform_p_colorimetry_from_nexus(display->nxSettings.hdmiPreferences.matrixCoefficients);
     display->info.space = platform_p_color_space_from_nexus(display->nxSettings.hdmiPreferences.colorSpace);
     NEXUS_VideoFormat_GetInfo(display->nxSettings.format, &info);
@@ -147,7 +164,8 @@ void platform_display_print_hdmi_drm_settings(PlatformDisplayHandle display, con
     pCll = &pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel;
 
     n = 0;
-    n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, "eotf=%s", lookup_name(g_videoEotfStrs, pSettings->hdmiPreferences.drmInfoFrame.eotf));
+    n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, "dolby=%s", lookup_name(g_dolbyVisionModeStrs, pSettings->hdmiPreferences.dolbyVision.outputMode));
+    n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, " eotf=%s", lookup_name(g_videoEotfStrs, pSettings->hdmiPreferences.drmInfoFrame.eotf));
     n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, " matrixCoeffs=%s", lookup_name(g_matrixCoeffStrs, pSettings->hdmiPreferences.matrixCoefficients));
     n += BKNI_Snprintf(&buf[n], sizeof(buf)-n, " cll={");
     PRINT_PARAM(pCll->max);
@@ -180,37 +198,35 @@ void platform_display_print_hdmi_drm_settings(PlatformDisplayHandle display, con
 
 void platform_display_p_load_status(PlatformDisplayHandle display)
 {
-    NEXUS_Error rc;
     BDBG_ASSERT(display);
-
-    rc = NxClient_GetDisplayStatus(&display->nxStatus);
-    if (rc) BERR_TRACE(rc);
+    NEXUS_HdmiOutput_GetStatus(display->hdmi.alias, &display->hdmi.status);
+    NEXUS_HdmiOutput_GetExtraStatus(display->hdmi.alias, &display->hdmi.extraStatus);
 }
 
 bool platform_display_hdmi_is_connected(PlatformDisplayHandle display)
 {
     platform_display_p_load_status(display);
-    return display->nxStatus.hdmi.status.connected;
+    return display->hdmi.status.connected;
+}
+
+bool platform_display_p_is_dolby_vision_supported(PlatformDisplayHandle display)
+{
+    platform_display_p_load_status(display);
+    return display->hdmi.extraStatus.dolbyVision.supported;
 }
 
 void platform_display_print_hdmi_status(PlatformDisplayHandle display)
 {
-    unsigned i;
-
     BDBG_ASSERT(display);
 
     platform_display_p_load_status(display);
 
 #if NEXUS_HAS_HDMI_OUTPUT
-    BDBG_MSG(("HdmiOutput: connected? %c (eotf=%s)", display->nxStatus.hdmi.status.connected?'y':'n', lookup_name(g_videoEotfStrs, display->nxStatus.hdmi.status.eotf)));
-    {
-        NEXUS_HdmiOutputHandle hdmiOutput;
-        hdmiOutput = NEXUS_HdmiOutput_Open(NEXUS_ALIAS_ID + 0, NULL);
-        if (hdmiOutput) {
-            NEXUS_HdmiOutput_DisplayRxEdid(hdmiOutput);
-            NEXUS_HdmiOutput_Close(hdmiOutput);
-        }
-    }
+    BDBG_MSG(("HdmiOutput: connected? %c (eotf=%s) %s",
+        display->hdmi.status.connected ? 'y' : 'n',
+        lookup_name(g_videoEotfStrs, display->hdmi.status.eotf),
+        display->hdmi.extraStatus.dolbyVision.supported ? "dbv support" : ""));
+    NEXUS_HdmiOutput_DisplayRxEdid(display->hdmi.alias);
 #endif
 }
 
@@ -286,6 +302,14 @@ void platform_display_p_compute_hdmi_drm_metadata(NEXUS_HdmiDynamicRangeMasterin
     {
         BKNI_Memcpy(&pInfoFrame->metadata, &SMD_BT2020, sizeof(pInfoFrame->metadata));
     }
+    else if (pInfoFrame->eotf == NEXUS_VideoEotf_eHlg)
+    {
+        BKNI_Memcpy(&pInfoFrame->metadata, &SMD_ZERO, sizeof(pInfoFrame->metadata));
+    }
+    else if (pInfoFrame->eotf == NEXUS_VideoEotf_eInvalid)
+    {
+        BKNI_Memcpy(&pInfoFrame->metadata, &SMD_ZERO, sizeof(pInfoFrame->metadata));
+    }
     else
     {
         BDBG_ERR(("Unrecognized eotf: %u", pInfoFrame->eotf));
@@ -299,7 +323,8 @@ void platform_display_set_hdmi_drm_dynamic_range(PlatformDisplayHandle display, 
     BDBG_ASSERT(display);
 
     NxClient_GetDisplaySettings(&display->nxSettings);
-    display->nxSettings.hdmiPreferences.drmInfoFrame.eotf = platform_p_dynamic_range_to_nexus(dynrng);
+    platform_p_dynamic_range_to_nexus(dynrng, &display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
+            &display->nxSettings.hdmiPreferences.dolbyVision.outputMode);
     platform_display_p_compute_hdmi_drm_metadata(&display->nxSettings.hdmiPreferences.drmInfoFrame);
     rc = NxClient_SetDisplaySettings(&display->nxSettings);
     if (rc) BERR_TRACE(rc);
@@ -322,5 +347,5 @@ void platform_display_set_hdmi_colorimetry(PlatformDisplayHandle display, Platfo
 void platform_display_wait_for_display_settings_application(PlatformDisplayHandle display)
 {
     BDBG_ASSERT(display);
-    BKNI_Sleep(60);
+    BKNI_Sleep(125); /* 3 VSYNCs at 24 Hz worst case */
 }

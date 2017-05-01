@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,6 +56,7 @@ typedef struct BAPE_DebugOpenSettings
 typedef enum BAPE_DebugSourceType
 {
     BAPE_DebugSourceType_eOutput,
+    BAPE_DebugSourceType_eVolume,
     BAPE_DebugSourceType_eMax
 } BAPE_DebugSourceType;
 
@@ -86,7 +87,6 @@ typedef struct BAPE_DebugDigitalOutputStatus
 
 typedef struct BAPE_DebugOutputStatus
 {
-    BAPE_DebugSourceType type;
 #if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0 
     BAPE_DebugDigitalOutputStatus spdif[BAPE_CHIP_MAX_SPDIF_OUTPUTS];
 #endif
@@ -95,12 +95,40 @@ typedef struct BAPE_DebugOutputStatus
 #endif
 } BAPE_DebugOutputStatus;
 
+typedef struct BAPE_DebugOutputVolume
+{
+    char *pName;
+    uint32_t index;
+    bool enabled;
+    BAPE_DataType   type;
+    BAPE_OutputVolume outputVolume;
+
+} BAPE_DebugOutputVolume;
+
+typedef struct BAPE_DebugVolumeStatus
+{
+#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
+    BAPE_DebugOutputVolume spdif[BAPE_CHIP_MAX_SPDIF_OUTPUTS];
+#endif
+#if BAPE_CHIP_MAX_MAI_OUTPUTS > 0
+    BAPE_DebugOutputVolume hdmi[BAPE_CHIP_MAX_MAI_OUTPUTS];
+#endif
+#if BAPE_CHIP_MAX_DACS > 0
+    BAPE_DebugOutputVolume dac[BAPE_CHIP_MAX_DACS];
+#endif
+#if BAPE_CHIP_MAX_I2S_OUTPUTS > 0
+    BAPE_DebugOutputVolume i2s[BAPE_CHIP_MAX_I2S_OUTPUTS];
+#endif
+} BAPE_DebugVolumeStatus;
+
+
 typedef struct BAPE_DebugStatus
 {
     BAPE_DebugSourceType type;
 
     union {
         BAPE_DebugOutputStatus outputStatus;
+        BAPE_DebugVolumeStatus volumeStatus;
     } status;
     
 } BAPE_DebugStatus;
@@ -139,6 +167,16 @@ Summary:
 ***************************************************************************/
 BERR_Code BAPE_Debug_GetOutputStatus(
     BAPE_DebugHandle handle,    
+    BAPE_DebugStatus * pStatus /* out */
+    );
+
+
+/***************************************************************************
+Summary:
+    Retrieves the volume of the enabled outputs.
+***************************************************************************/
+BERR_Code BAPE_Debug_GetOutputVolume(
+    BAPE_DebugHandle handle,
     BAPE_DebugStatus * pStatus /* out */
     );
 

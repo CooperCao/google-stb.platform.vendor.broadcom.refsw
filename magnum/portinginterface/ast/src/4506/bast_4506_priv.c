@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -362,7 +382,7 @@ BERR_Code BAST_4506_P_InitAp(
             if ((sb & BCM4506_STAT1_H_ER) == 0)
                break;
 
-            BDBG_WRN(("host transfer error\n"));
+            BDBG_WRN(("host transfer error"));
             BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_H_STAT1, &sb));
 #endif
          }
@@ -408,7 +428,7 @@ BERR_Code BAST_4506_P_InitAp(
    /* wait for init done interrupt */
    if (BAST_4506_P_WaitForEvent(h, p4506->hInitDoneEvent, 1000) != BERR_SUCCESS)
    {
-      BDBG_ERR(("AP initialization timeout\n"));
+      BDBG_ERR(("AP initialization timeout"));
       BERR_TRACE(retCode = BAST_ERR_AP_NOT_INIT);
    }
 #endif
@@ -1267,7 +1287,7 @@ BERR_Code BAST_4506_P_ReadFtm(
 
       if (checksum != buf[2+len])
       {
-         BDBG_ERR(("Bad HAB checksum!\n"));
+         BDBG_ERR(("Bad HAB checksum!"));
          BERR_TRACE(retCode = BAST_ERR_HAB_CHECKSUM);
          goto done;
       }
@@ -1934,12 +1954,12 @@ BERR_Code BAST_4506_P_WriteMbox(
    if (sb & 0x80)
    {
       BERR_TRACE(retCode = BAST_ERR_IOMB_BUSY);
-      BDBG_ERR(("BAST_4506_P_WriteMbox(): IO_MBOX busy\n"));
+      BDBG_ERR(("BAST_4506_P_WriteMbox(): IO_MBOX busy"));
    }
    else if (sb & 0x40)
    {
       BERR_TRACE(retCode = BAST_ERR_IOMB_XFER);
-      BDBG_ERR(("BAST_4506_P_WriteMbox(): IO_MBOX xfer error\n"));
+      BDBG_ERR(("BAST_4506_P_WriteMbox(): IO_MBOX xfer error"));
    }
 
    done:
@@ -2368,7 +2388,7 @@ BERR_Code BAST_4506_P_ResetAp(BAST_Handle h)
    BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_H_CTL1, &sb));
    if ((sb & BCM4506_AP_MASK) != BCM4506_AP_RESET)
    {
-      BDBG_ERR(("unable to reset the AP\n"));
+      BDBG_ERR(("unable to reset the AP"));
       BERR_TRACE(retCode = BAST_ERR_AP_FAIL);
    }
 
@@ -2400,7 +2420,7 @@ BERR_Code BAST_4506_P_RunAp(BAST_Handle h)
       BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_H_CTL1, &sb));
       if ((sb & BCM4506_AP_MASK) != BCM4506_AP_RUN)
       {
-         BDBG_ERR(("unable to run the AP\n"));
+         BDBG_ERR(("unable to run the AP"));
          BERR_TRACE(retCode = BAST_ERR_AP_FAIL);
          goto done;
       }
@@ -2411,7 +2431,7 @@ BERR_Code BAST_4506_P_RunAp(BAST_Handle h)
    }
    else
    {
-      BDBG_WRN(("BAST_4506_P_RunAp(): AP already running\n"));
+      BDBG_WRN(("BAST_4506_P_RunAp(): AP already running"));
    }
 
    done:
@@ -2548,7 +2568,7 @@ BERR_Code BAST_4506_P_DecodeError(
             break;
 
          default:
-            BDBG_ERR(("unknown MSG1 (=0x%02X)\n", sb));
+            BDBG_ERR(("unknown MSG1 (=0x%02X)", sb));
             retCode = BAST_ERR_AP_UNKNOWN;
             break;
       }
@@ -2675,7 +2695,7 @@ BERR_Code BAST_4506_P_ServiceHab(
    /* determine if the command was serviced */
    if (ack_byte != read_buf[0])
    {
-      BDBG_ERR(("HAB command not serviced!\n"));
+      BDBG_ERR(("HAB command not serviced!"));
       BERR_TRACE(retCode = BAST_ERR_HAB_NO_ACK);
       goto done;
    }
@@ -2692,7 +2712,7 @@ BERR_Code BAST_4506_P_ServiceHab(
       }
       if (cs != read_buf[read_len - 1])
       {
-         BDBG_ERR(("Bad HAB checksum!\n"));
+         BDBG_ERR(("Bad HAB checksum!"));
          BERR_TRACE(retCode = BAST_ERR_HAB_CHECKSUM);
       }
    }

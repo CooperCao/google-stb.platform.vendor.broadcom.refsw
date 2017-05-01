@@ -87,23 +87,25 @@ B_REFSW_OBJ_ROOT ?= ${B_REFSW_ROOT}/${B_REFSW_OBJ_DIR}
 BCM_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/connectivity/wlan/wakeonwlan
 BCM_OBJ_PATH := ${BCM_OBJ_ROOT}/$(B_REFSW_ARCH)
 BCM_NEXUS_BIN_PATH := ${B_REFSW_OBJ_ROOT}/nexus/bin
-obj-m += wowl-plat.o
+BCM_BSEAV_BIN_PATH := ${B_REFSW_OBJ_ROOT}/BSEAV/bin
+obj-m += wlan_plat.o
 
 ifeq ($(ANDROID_BUILD),y)
 ccflags-y += -DB_REFSW_ANDROID
 endif
 
-wakeup_drv-objs := wowl-plat.o
+wakeup_drv-objs := wlan_plat.o
 
 all: $(BCM_OBJ_PATH) $(BCM_NEXUS_BIN_PATH)
 	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) modules srctree=$(LINUX) ARCH=$(B_REFSW_LINUX_ARCH) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
 	${Q_}cp -f $(BCM_OBJ_PATH)/*.ko $(BCM_NEXUS_BIN_PATH)
+	${Q_}cp -f $(BCM_OBJ_PATH)/*.ko $(BCM_BSEAV_BIN_PATH)
 
 clean: $(BCM_OBJ_PATH)
 	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) clean
-	${Q_}rm $(BCM_OBJ_PATH)/*.c $(BCM_OBJ_PATH)/*.h $(BCM_OBJ_PATH)/Makefile
-	${Q_}rm $(BCM_NEXUS_BIN_PATH)/wowl*
-
+	${Q_}rm -f  $(BCM_OBJ_PATH)/*.c $(BCM_OBJ_PATH)/Makefile
+	${Q_}rm -f $(BCM_NEXUS_BIN_PATH)/wlan*
+	${Q_}rm -f $(BCM_BSEAV_BIN_PATH)/wlan*
 .PHONY: $(BCM_OBJ_PATH)
 
 $(BCM_OBJ_PATH)/exists:

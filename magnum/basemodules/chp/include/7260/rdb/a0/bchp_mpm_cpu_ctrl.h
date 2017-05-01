@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:27 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,23 +70,23 @@
 /***************************************************************************
  *MPM_CPU_CTRL - CPU Control Registers
  ***************************************************************************/
-#define BCHP_MPM_CPU_CTRL_REVID                  0x20d82300 /* [RO] MPM Revision ID */
-#define BCHP_MPM_CPU_CTRL_RESET_CTRL             0x20d82304 /* [RW] Reset Control Register */
-#define BCHP_MPM_CPU_CTRL_CLOCK_CTRL             0x20d82308 /* [RW] Clock Control Register */
-#define BCHP_MPM_CPU_CTRL_PM_CTRL                0x20d8230c /* [RW] Power Management Control Register */
-#define BCHP_MPM_CPU_CTRL_MISC_CTRL              0x20d82310 /* [RW] Control Register */
-#define BCHP_MPM_CPU_CTRL_SW_SPARE0              0x20d82318 /* [RW] Software Spare Register 0 */
-#define BCHP_MPM_CPU_CTRL_SW_SPARE1              0x20d8231c /* [RW] Software Spare Register 1 */
-#define BCHP_MPM_CPU_CTRL_SW_SPARE2              0x20d82320 /* [RW] Software Spare Register 2 */
-#define BCHP_MPM_CPU_CTRL_SW_SPARE3              0x20d82324 /* [RW] Software Spare Register 3 */
-#define BCHP_MPM_CPU_CTRL_RBUS_ERR_ADDR          0x20d82328 /* [RO] RBUS Error Address */
-#define BCHP_MPM_CPU_CTRL_RBUS_ERR_DATA          0x20d8232c /* [RO] RBUS Error Write Data */
-#define BCHP_MPM_CPU_CTRL_RBUS_ERR_XAC           0x20d82330 /* [RO] RBUS Error Transaction */
-#define BCHP_MPM_CPU_CTRL_RBUS_ERR_CTRL          0x20d82334 /* [RW] RBUS Error Control */
-#define BCHP_MPM_CPU_CTRL_SYS_ADDR_OFFSET        0x20d82338 /* [RW] System Address Offset Register */
-#define BCHP_MPM_CPU_CTRL_FLASH_MEM_ADDR_OFFSET  0x20d8233c /* [RW] Flash Memory Address Offset Register */
-#define BCHP_MPM_CPU_CTRL_SPI_DBG_SEL            0x20d82340 /* [RW] SPI debug select */
-#define BCHP_MPM_CPU_CTRL_STATUS                 0x20d82344 /* [RO] Status Register */
+#define BCHP_MPM_CPU_CTRL_REVID                  0x20d82300 /* [RO][32] MPM Revision ID */
+#define BCHP_MPM_CPU_CTRL_RESET_CTRL             0x20d82304 /* [RW][32] Reset Control Register */
+#define BCHP_MPM_CPU_CTRL_CLOCK_CTRL             0x20d82308 /* [RW][32] Clock Control Register */
+#define BCHP_MPM_CPU_CTRL_PM_CTRL                0x20d8230c /* [RW][32] Power Management Control Register */
+#define BCHP_MPM_CPU_CTRL_MISC_CTRL              0x20d82310 /* [RW][32] Control Register */
+#define BCHP_MPM_CPU_CTRL_SW_SPARE0              0x20d82318 /* [RW][32] Software Spare Register 0 */
+#define BCHP_MPM_CPU_CTRL_SW_SPARE1              0x20d8231c /* [RW][32] Software Spare Register 1 */
+#define BCHP_MPM_CPU_CTRL_SW_SPARE2              0x20d82320 /* [RW][32] Software Spare Register 2 */
+#define BCHP_MPM_CPU_CTRL_SW_SPARE3              0x20d82324 /* [RW][32] Software Spare Register 3 */
+#define BCHP_MPM_CPU_CTRL_RBUS_ERR_ADDR          0x20d82328 /* [RO][32] RBUS Error Address */
+#define BCHP_MPM_CPU_CTRL_RBUS_ERR_DATA          0x20d8232c /* [RO][32] RBUS Error Write Data */
+#define BCHP_MPM_CPU_CTRL_RBUS_ERR_XAC           0x20d82330 /* [RO][32] RBUS Error Transaction */
+#define BCHP_MPM_CPU_CTRL_RBUS_ERR_CTRL          0x20d82334 /* [RW][32] RBUS Error Control */
+#define BCHP_MPM_CPU_CTRL_SYS_ADDR_OFFSET        0x20d82338 /* [RW][32] System Address Offset Register */
+#define BCHP_MPM_CPU_CTRL_FLASH_MEM_ADDR_OFFSET  0x20d8233c /* [RW][32] Flash Memory Address Offset Register */
+#define BCHP_MPM_CPU_CTRL_SPI_DBG_SEL            0x20d82340 /* [RW][32] SPI debug select */
+#define BCHP_MPM_CPU_CTRL_STATUS                 0x20d82344 /* [RO][32] Status Register */
 
 /***************************************************************************
  *REVID - MPM Revision ID

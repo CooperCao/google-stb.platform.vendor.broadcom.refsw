@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep  1 14:32:39 2016
- *                 Full Compile MD5 Checksum  6fb3c439bf5a497d10d0a09493b41526
+ * Date:           Generated on               Mon Mar  6 16:19:50 2017
+ *                 Full Compile MD5 Checksum  d3a054e381114fab8d457a0fcb0bf3ef
  *                     (minus title and desc)
- *                 MD5 Checksum               c7e6f0a8e19df692ab31ede29db92393
+ *                 MD5 Checksum               6079d4a663f2e302418ce9b4791e9d69
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1105
+ *                 RDB.pm                     1259
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -72,7 +72,7 @@
  ***************************************************************************/
 #define BCHP_CMP_0_REVISION                      0x0002b000 /* [RO][32] Compositor Revision ID */
 #define BCHP_CMP_0_HW_CONFIGURATION              0x0002b004 /* [RO][32] Compositor HW Configuration */
-#define BCHP_CMP_0_CANVAS_CTRL                   0x0002b008 /* [XRW][32] Canvas control */
+#define BCHP_CMP_0_CANVAS_CTRL                   0x0002b008 /* [RW][32] Canvas control */
 #define BCHP_CMP_0_CANVAS_SIZE                   0x0002b00c /* [RW][32] Canvas Vertical and Horizontal Size */
 #define BCHP_CMP_0_BG_COLOR                      0x0002b010 /* [RW][32] Background color register */
 #define BCHP_CMP_0_BLEND_0_CTRL                  0x0002b014 /* [RW][32] Blending Control for First stage Blender */

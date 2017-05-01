@@ -71,13 +71,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
          default:
          /* 1 MEMC */
          case 1:
-            /* use the rest of available memc0 main heap memory */
-#ifndef NEXUS_USE_7439_DR3 /* Only use this DR3 define when using a 7251S on a 7449SSV_DR3 board.*/
-            if (g_platformMemory.memoryLayout.memc[0].size > 1 * 1024 * 1024)
-             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 192*1024*1024; /* for trellis usage */
-            /* If the platform does not have more then 1GB then customer has to tweak these values
-               to conform with their 3D app usage */
-#endif
          case 12:
          case 13:
          case 17:
@@ -87,6 +80,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
          case 23:
          case 26:
          case 28:
+         case 29:
             pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 124*1024*1024;
             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
             break;
@@ -109,6 +103,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
          case 24:
          case 25:
          case 27:
+         case 30:
            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 256*1024*1024;
            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -898,9 +898,6 @@ static void BXDM_PPOUT_S_SetDisplayParameters_isr(
 
    BDBG_ASSERT(pPicture);
 
-   /* SWSTB-1873: support for color range */
-   pPicture->eColorRange = pUnifiedPicture->stDisplayInfo.eColorRange;
-
    /* Set Defaults */
    pPicture->eMatrixCoefficients = pDefaultParams->eMatrixCoefficients;
    pPicture->eColorPrimaries = pDefaultParams->eColorPrimaries;
@@ -919,6 +916,9 @@ static void BXDM_PPOUT_S_SetDisplayParameters_isr(
 
    if ( pUnifiedPicture )
    {
+      /* SWSTB-1873: support for color range */
+      pPicture->eColorRange = pUnifiedPicture->stDisplayInfo.eColorRange;
+
       if ( true == pUnifiedPicture->stDisplayInfo.bValid )
       {
          BXDM_PictureProvider_ColorOverride * pOverride  = &hXdmPP->stDMConfig.stColorOverride;
@@ -1770,6 +1770,42 @@ void BXDM_PPOUT_P_CalculateStaticVdcData_isr(
          break;
    }
 
+
+   /* SWSTB-3950: add support of passing synchronous meta data. */
+   {
+      const BXDM_Picture_ExtensionInfo * pstMeta = &(pPictureContext->pstUnifiedPicture->stExtensionInfo);
+
+      uint32_t i;
+
+      pMFDPicture->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
+      pMFDPicture->stHdrMetadata.ulSize = 0;
+      pMFDPicture->stHdrMetadata.pData = NULL;
+
+      for ( i=0; i < pstMeta->uiCount; i++ )
+      {
+         if ( pstMeta->astExtensionData[i].eType == BXDM_Picture_ExtensionType_eMetaData )
+         {
+            switch( pstMeta->astExtensionData[i].data.stMetaDataHdr.eType )
+            {
+               /* This check is really only needed if the Unified Picture was NOT generated
+                * by XVD, i.e. if the picture came from a decoder other than AVD/HVD.
+                * XVD will only forward supported meta data packets. */
+               case BAVC_HdrMetadataType_eDrpu:
+               case BAVC_HdrMetadataType_eTch_Cvri:
+               case BAVC_HdrMetadataType_eTch_Cri:
+                  pMFDPicture->stHdrMetadata.eType = pstMeta->astExtensionData[i].data.stMetaDataHdr.eType;
+                  pMFDPicture->stHdrMetadata.ulSize = pstMeta->astExtensionData[i].data.stMetaDataHdr.uiSize;
+                  pMFDPicture->stHdrMetadata.pData = pstMeta->astExtensionData[i].data.stMetaDataHdr.pData;
+                  break;
+
+               default:
+                  break;
+            }
+         }
+      }
+
+   }
+
    /* Only update the parameters BEFORE the first PPB has passed TSM */
    /* Update the Picture Parameter structure with the data for this PPB. */
    if (( true == hXdmPP->stDMState.stDecode.bFirstPPBSeen )
@@ -2312,11 +2348,32 @@ void BXDM_PPOUT_P_CalculateVdcData_isr(
       /* SW7425-44: parameters for encoder ... */
       /* set original PTS for encoder use. Note: original PTS is either the original coded
          PTS of the selected picture or the interpolated PTS for this picture BEFORE any jitter
-         correction or adjustments are made */
-      BXDM_PPQM_P_GetPtsUnfiltered_isr(pstSelectedPicture,
-                                   BXDM_PictureProvider_P_PTSIndex_eActual,
-                                   pstSelectedPicture->stPicParms.stTSM.stDynamic.uiTSMSelectedElement,
-                                   &pCurrentMFDPicture->ulOrigPTS);
+         correction or adjustments are made. */
+
+      {
+         /* SWSTB-5027: use "eTrickPlayRepeatMode" to infer if the content is progressive.
+          * If the content is progressive, send the coded PTS for the frame.  When the frame is repeated,
+          * the same PTS will be sent every time.  If the content is interlaced, send the per field PTS.
+          * The PTS for the first field will be the coded PTS.  The PTS for subsequent fields will be an
+          * interpolated PTS. When a field is repeated, the PTS associated with that field will be sent again. */
+
+         uint32_t uiIndex;
+
+         if ( BXDM_PictureProvider_P_RepeatMode_eFrame == pstSelectedPicture->stPicParms.stDisplay.stDynamic.eTrickPlayRepeatMode )
+         {
+            uiIndex = 0;
+         }
+         else
+         {
+            uiIndex =  pstSelectedPicture->stPicParms.stTSM.stDynamic.uiTSMSelectedElement;
+         }
+
+         BXDM_PPQM_P_GetPtsUnfiltered_isr(
+                        pstSelectedPicture,
+                        BXDM_PictureProvider_P_PTSIndex_eActual,
+                        uiIndex,
+                        &pCurrentMFDPicture->ulOrigPTS );
+      }
 
       /* SW7425-764: copy the monitor refresh rate into the MFD structure. */
       pCurrentMFDPicture->eInterruptRefreshRate = pstSelectedPicture->stPicParms.stDisplay.stStatic.eBFMTRefreshRate;

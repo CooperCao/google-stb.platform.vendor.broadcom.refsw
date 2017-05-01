@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -850,16 +850,14 @@ BPVRlib_Feed_AddExtendedOffsetEntries(BPVRlib_Feed_Handle feed, const BPVRlib_Fe
 }
 
 BERR_Code
-BPVRlib_Feed_AddEntries(BPVRlib_Feed_Handle feed, BMEM_Heap_Handle heap, const BPVRlib_Feed_Entry *entries /* pointer to array of entries */ , size_t nentries /* number of entries in the array */ , size_t *nconsumed)
+BPVRlib_Feed_AddEntries(BPVRlib_Feed_Handle feed, const BPVRlib_Feed_Entry *entries /* pointer to array of entries */ , size_t nentries /* number of entries in the array */ , size_t *nconsumed)
 {
     unsigned off;
     BPVRlib_Feed_OffsetEntry *offset_entries = feed->offset_entries;
     BERR_Code rc = BERR_SUCCESS;
-    BSTD_UNUSED(heap);
 
     BDBG_MSG_TRACE(("BPVRlib_Feed_AddEntries>: %p entries %p:%u", (void *)feed, (void *)entries, (unsigned)nentries));
     BDBG_OBJECT_ASSERT(feed, BPVRlib_Feed);
-    BDBG_ASSERT(heap);
     BDBG_ASSERT(entries);
     BDBG_ASSERT(nconsumed);
     BDBG_ASSERT(feed->config.bufferBlock);

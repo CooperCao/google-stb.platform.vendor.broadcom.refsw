@@ -49,7 +49,6 @@ typedef struct PlatformInputEventHandler
 {
     PlatformCallback callback;
     void * context;
-    int param;
 } PlatformInputEventHandler;
 
 typedef struct PlatformInput
@@ -60,8 +59,8 @@ typedef struct PlatformInput
     binput_t nxInput;
 } PlatformInput;
 
-bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInputEvent * pEvent);
-bool platform_input_p_get_remote_input(PlatformInputHandle input, PlatformInputEvent * pEvent);
-PlatformInputEvent platform_input_p_event_from_key(b_remote_key key);
+bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInputEvent * pEvent, int * pParam);
+bool platform_input_p_get_remote_input(PlatformInputHandle input, PlatformInputEvent * pEvent, int * pParam);
+PlatformInputEvent platform_input_p_event_from_key(b_remote_key key, int * pParam);
 
 #endif /* PLATFORM_INPUT_PRIV_H__ */

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -62,24 +57,61 @@ struct bfile_otf_indexer {
         unsigned rptr, wptr;
     } input;
     struct {
-        void *buf;
-        unsigned max, len;
+        unsigned char buf[sizeof(BNAV_AVC_Entry)*350]; /* support 5 seconds at 60fps, with some headroom */
+        unsigned rptr, wptr;
     } output;
 };
-
-/* if there are no pictures, don't read the entire file */
-#define MAX_READ (3*1024*1024)
 
 static ssize_t bfile_otf_indexer_read(bfile_io_read_t fd, void *buf, size_t length)
 {
     struct bfile_otf_indexer *f=(void *)fd;
-    unsigned total = 0;
+    if (f->output.rptr + length > f->output.wptr) {
+        length = f->output.wptr - f->output.rptr;
+    }
+    if (length) {
+        memcpy(buf, &f->output.buf[f->output.rptr], length);
+        f->output.rptr += length;
+    }
+    return length;
+}
 
-    BDBG_OBJECT_ASSERT(f, bfile_otf_indexer);
-    f->output.buf = buf;
-    f->output.max = length;
-    f->output.len = 0;
-    do {
+static off_t bfile_otf_indexer_seek(bfile_io_read_t fd, off_t offset, int whence)
+{
+    struct bfile_otf_indexer *f=(void *)fd;
+    int pos = f->output.rptr;
+    switch (whence) {
+    case SEEK_CUR:
+        pos += offset; break;
+    case SEEK_END:
+        pos = f->output.wptr + offset; break;
+    case SEEK_SET:
+        pos = offset; break;
+    default:
+        return BERR_TRACE(-1);
+    }
+    if (pos < 0 || pos > (int)f->output.wptr) {
+        return BERR_TRACE(-1);
+    }
+    f->output.rptr = pos;
+    return pos;
+}
+
+static int bfile_otf_indexer_bounds(bfile_io_read_t fd, off_t *first, off_t *last)
+{
+    struct bfile_otf_indexer *f=(void *)fd;
+    *first = 0;
+    *last = f->output.wptr;
+    return 0;
+}
+
+/* if there are no pictures, don't read the entire file */
+#define MAX_READ (100*1024*1024)
+
+/* feed SCT until we have enough NAV */
+static int botf_index(struct bfile_otf_indexer *f)
+{
+    unsigned total = 0;
+    while (f->output.wptr < sizeof(f->output.buf) && total < MAX_READ) {
         int n;
         if (f->input.rptr == f->input.wptr) {
             f->input.rptr = f->input.wptr = 0;
@@ -97,9 +129,9 @@ static ssize_t bfile_otf_indexer_read(bfile_io_read_t fd, void *buf, size_t leng
         BDBG_ASSERT(f->input.rptr + n <= f->input.wptr);
         BDBG_MSG(("tsindex_feed consumed %d", n));
         f->input.rptr += n;
-    } while (!f->output.len && total <= MAX_READ);
-    BDBG_MSG(("bfile_otf_indexer_read %d => %d", (unsigned)length, f->output.len));
-    return f->output.len;
+    };
+    BDBG_MSG(("bfile_otf_indexer_read %d => %d", (unsigned)total, f->output.wptr));
+    return 0;
 }
 
 static unsigned long otf_indexer_recv_sct( const void *ptr, unsigned long numEntries, unsigned long entrySize, void *fp )
@@ -108,31 +140,33 @@ static unsigned long otf_indexer_recv_sct( const void *ptr, unsigned long numEnt
     BDBG_OBJECT_ASSERT(f, bfile_otf_indexer);
     BSTD_UNUSED(entrySize);
     BDBG_MSG(("otf_indexer_recv_sct %ld %ld", numEntries, entrySize));
-    return BNAV_Indexer_Feed(f->bcmindexer, (void*)ptr, numEntries);
+    if (f->output.wptr < sizeof(f->output.buf)) {
+        return BNAV_Indexer_Feed(f->bcmindexer, (void*)ptr, numEntries);
+    }
+    else {
+        return 0;
+    }
 }
 
 static size_t otf_indexer_recv_nav(const void *ptr, size_t size, size_t nmemb, void *fp)
 {
     struct bfile_otf_indexer *f = (void *)fp;
     BDBG_OBJECT_ASSERT(f, bfile_otf_indexer);
-    if (!f->output.len) {
+    if (f->output.wptr + size * nmemb > sizeof(f->output.buf)) {
+        nmemb = (sizeof(f->output.buf) - f->output.wptr) / size;
+    }
+    if (size * nmemb) {
         BDBG_MSG(("otf_indexer_recv_nav %d %d", (unsigned)size, (unsigned)nmemb));
-        f->output.len = size*nmemb;
-        if (f->output.len > f->output.max) {
-            f->output.len = f->output.max;
-        }
-        memcpy(f->output.buf, ptr, f->output.len);
-        return f->output.len / size;
+        memcpy(&f->output.buf[f->output.wptr], ptr, size * nmemb);
+        f->output.wptr += size * nmemb;
     }
-    else {
-        return nmemb;
-    }
+    return nmemb;
 }
 
 static struct bfile_io_read botf_bcmindexer_ops = {
     bfile_otf_indexer_read,
-    NULL,
-    NULL,
+    bfile_otf_indexer_seek,
+    bfile_otf_indexer_bounds,
     BIO_DEFAULT_PRIORITY
 };
 
@@ -187,6 +221,7 @@ bfile_io_read_t botf_bcmindexer_open(const char *streamname, unsigned short pid,
     bcmindexer_settings.filePointer = (void *)f;
     bcmindexer_settings.transportTimestampEnabled = (packetSize == 192);
     bcmindexer_settings.sctVersion = BSCT_Version6wordEntry;
+    bcmindexer_settings.ptsBasedFrameRate = true;
     rc = BNAV_Indexer_Open(&f->bcmindexer, &bcmindexer_settings);
     if (rc) {BERR_TRACE(rc); goto err_bcmindexer;}
 
@@ -199,8 +234,12 @@ bfile_io_read_t botf_bcmindexer_open(const char *streamname, unsigned short pid,
     f->tsindexer = tsindex_allocate_ex(&tsindexer_settings);
     if (!f->tsindexer) {BERR_TRACE(-1); goto err_tsindexer;}
 
+    rc = botf_index(f);
+    if (rc) {BERR_TRACE(rc); goto err_index;}
+
     return &f->ops;
 
+err_index:
 err_tsindexer:
 err_bcmindexer:
 err_codec:

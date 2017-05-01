@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -126,6 +126,7 @@ static void InitializeAuxiliaryTracks(BMUXlib_File_MP4_Handle hMP4Mux);
 static BERR_Code CreateOutputs(BMUXlib_File_MP4_Handle hMP4Mux);
 static void DestroyOutputs(BMUXlib_File_MP4_Handle hMP4Mux);
 
+static BERR_Code ProcessInputDescriptorsWaiting(BMUXlib_File_MP4_Handle hMP4Mux);
 static BERR_Code ProcessVideoDescriptors(BMUXlib_File_MP4_Handle hMP4Mux, BMUXlib_File_MP4_P_BlockedCause *peBlocked);
 static BERR_Code ProcessAudioDescriptors(BMUXlib_File_MP4_Handle hMP4Mux, BMUXlib_File_MP4_P_BlockedCause *peBlocked);
 
@@ -366,21 +367,19 @@ void BMUXlib_File_MP4_P_Stop(BMUXlib_File_MP4_Handle hMP4Mux)
    /* release the outputs and temporary storage to the system */
    DestroyOutputs(hMP4Mux);
 
-   /* destroy input group */
-   if (NULL != hMP4Mux->hInputGroup)
+   /* stop input group */
+   if (NULL != hMP4Mux->stCreate.hInputGroup)
    {
-      BMUXlib_InputGroup_Destroy(hMP4Mux->hInputGroup);
-      hMP4Mux->hInputGroup = NULL;
+      BMUXlib_InputGroup_Stop(hMP4Mux->stCreate.hInputGroup);
    }
 
-   /* destroy active inputs */
+   /* stop active inputs */
    for (uiInputIndex = 0; uiInputIndex < BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS; uiInputIndex++)
    {
       BMUXlib_File_MP4_P_Input *pInput = &hMP4Mux->aActiveInputs[uiInputIndex];
       if (NULL != pInput->hInput)
       {
-         BMUXlib_Input_Destroy(pInput->hInput);
-         pInput->hInput = NULL;
+         BMUXlib_Input_Stop(pInput->hInput);
       }
    }
 
@@ -507,34 +506,6 @@ BERR_Code BMUXlib_File_MP4_P_ProcessOutputDescriptorsCompleted(BMUXlib_File_MP4_
 
 /*
    Function:
-      BMUXlib_File_MP4_P_ProcessInputDescriptorsWaiting
-
-   Process new input descriptors that are waiting
-
-   Returns:
-      Input interface error code
-*/
-BERR_Code BMUXlib_File_MP4_P_ProcessInputDescriptorsWaiting(BMUXlib_File_MP4_Handle hMP4Mux)
-{
-   BERR_Code rc = BERR_SUCCESS;
-   uint32_t uiInputIndex;
-
-   BDBG_ENTER(BMUXlib_File_MP4_P_ProcessInputDescriptorsWaiting);
-
-   for (uiInputIndex = 0; (uiInputIndex < BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS) && (BERR_SUCCESS == rc); uiInputIndex++)
-   {
-      if (NULL != hMP4Mux->aActiveInputs[uiInputIndex].hInput)
-      {
-         rc = BMUXlib_Input_ProcessNewDescriptors(hMP4Mux->aActiveInputs[uiInputIndex].hInput);
-      }
-   }
-
-   BDBG_LEAVE(BMUXlib_File_MP4_P_ProcessInputDescriptorsWaiting);
-   return rc;
-}
-
-/*
-   Function:
       BMUXlib_File_MP4_P_ProcessInputDescriptors
 
    Process new data from encoder(s) and create output descriptor lists to describe the data
@@ -572,7 +543,7 @@ BERR_Code BMUXlib_File_MP4_P_ProcessInputDescriptors(BMUXlib_File_MP4_Handle hMP
       return rc;
    }
 
-   rc = BMUXlib_File_MP4_P_ProcessInputDescriptorsWaiting(hMP4Mux);
+   rc = ProcessInputDescriptorsWaiting(hMP4Mux);
    if (BERR_SUCCESS != rc)
    {
       BDBG_LEAVE(BMUXlib_File_MP4_P_ProcessInputDescriptors);
@@ -742,7 +713,7 @@ BERR_Code BMUXlib_File_MP4_P_ProcessInputDescriptors(BMUXlib_File_MP4_Handle hMP
             /* locate the new sample to process (the input with the lowest DTS) */
             BDBG_MODULE_MSG(BMUX_MP4_STATE, ("Finding next sample to process ..."));
             /* determine the next input to process, based on which has the lowest DTS */
-            BMUXlib_InputGroup_GetNextInput(hMP4Mux->hInputGroup, &hSelectedInput);
+            BMUXlib_InputGroup_GetNextInput(hMP4Mux->stCreate.hInputGroup, &hSelectedInput);
             if (NULL == hSelectedInput)
             {
                /* no more data to process */
@@ -752,10 +723,10 @@ BERR_Code BMUXlib_File_MP4_P_ProcessInputDescriptors(BMUXlib_File_MP4_Handle hMP
             else
             {
                /* found the next input to process ... */
-               BMUXlib_Input_CreateSettings stSettings;
+               BMUXlib_Input_StartSettings stSettings;
 
                /* fetch the metadata for the current input - this is the pointer to the input to process */
-               BMUXlib_Input_GetCreateSettings(hSelectedInput, &stSettings);
+               BMUXlib_Input_GetStartSettings(hSelectedInput, &stSettings);
                if (NULL == stSettings.pMetadata)
                {
                   BDBG_ERR(("Selected Input %p: Metadata missing (unable to fetch pointer to input)", (void *)hSelectedInput));
@@ -852,7 +823,7 @@ BERR_Code BMUXlib_File_MP4_P_ProcessInputDescriptors(BMUXlib_File_MP4_Handle hMP
                pCurrentSample->bComplete = true;
                BDBG_MODULE_MSG(BMUX_MP4_FINISH, ("EOS Detected on input %d", pCurrentSample->pInput->uiIndex));
                /* deactivate this input after EOS, so it will no longer be considered for selection */
-               rc = BMUXlib_InputGroup_ActivateInput(hMP4Mux->hInputGroup, pCurrentSample->pInput->hInput, false);
+               rc = BMUXlib_InputGroup_ActivateInput(hMP4Mux->stCreate.hInputGroup, pCurrentSample->pInput->hInput, false);
                if (BERR_SUCCESS != rc)
                {
                   /* this should always succeed */
@@ -1391,6 +1362,34 @@ static void DestroyOutputs(BMUXlib_File_MP4_Handle hMP4Mux)
 /*********************************
    Input Descriptor Processing
 *********************************/
+/*
+   Function:
+      ProcessInputDescriptorsWaiting
+
+   Process new input descriptors that are waiting
+
+   Returns:
+      Input interface error code
+*/
+static BERR_Code ProcessInputDescriptorsWaiting(BMUXlib_File_MP4_Handle hMP4Mux)
+{
+   BERR_Code rc = BERR_SUCCESS;
+   uint32_t uiInputIndex;
+
+   BDBG_ENTER(ProcessInputDescriptorsWaiting);
+
+   for (uiInputIndex = 0; (uiInputIndex < BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS) && (BERR_SUCCESS == rc); uiInputIndex++)
+   {
+      if (NULL != hMP4Mux->aActiveInputs[uiInputIndex].hInput)
+      {
+         rc = BMUXlib_Input_ProcessNewDescriptors(hMP4Mux->aActiveInputs[uiInputIndex].hInput);
+      }
+   }
+
+   BDBG_LEAVE(ProcessInputDescriptorsWaiting);
+   return rc;
+}
+
 
 /* Initialise the metadata for the current sample, based on the new descriptor */
 static void InitializeSampleMetadata(BMUXlib_File_MP4_P_CurrentSample *pCurrentSample , const BMUXlib_Input_Descriptor *pInDesc, const uint64_t uiOffset)

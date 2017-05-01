@@ -1,12 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2015 Broadcom.
- All rights reserved.
-
- Module   :  khrn_mr_crc.h
-
- FILE DESCRIPTION
- Saves CRC checksums after an fmem flush.
-==============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/platform/v3d_scheduler.h"

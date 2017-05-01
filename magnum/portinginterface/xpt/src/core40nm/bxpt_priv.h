@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,6 @@
 
 #include "breg_mem.h"
 #include "bint.h"
-#include "bmem.h"
 #include "bavc.h"
 #include "bchp.h"
 #include "berr_ids.h"
@@ -159,7 +158,6 @@ typedef struct BXPT_P_PbHandle
 {
     BCHP_Handle hChip;              /* [Input] Handle to used chip. */
     BREG_Handle hRegister;          /* [Input] Handle to access regiters. */
-    BMEM_Handle hMemory;            /* [Input] Handle to memory heap to use. */
     void *vhXpt;                    /* Pointer to parent transport handle. Requires casting. */
 
     uint8_t ChannelNo;      /* This channels number. */
@@ -173,7 +171,7 @@ typedef struct BXPT_P_PbHandle
     bool ForceResync;
 
     BXPT_PvrDescriptor *DummyDescriptor;
-    uint8_t *DummyBuffer;
+
     bool ResetPacingOnTsRangeError;
     uint32_t BitRate;
 
@@ -187,6 +185,22 @@ typedef struct BXPT_P_PbHandle
 #endif
 
     unsigned long maxTsError;
+
+    BXPT_Playback_ChannelSettings settings;
+
+    struct {
+        BMMA_Block_Handle descBlock;
+        void *descPtr;
+        BMMA_DeviceOffset descOffset;
+    } mma;
+
+    BMMA_Heap_Handle mmaHeap;
+    BMMA_Block_Handle dummyDescBlock;
+    void *dummyDesc;
+    BMMA_DeviceOffset dummyDescOffset;
+    BMMA_Block_Handle DummyBufferBlock;
+    uint8_t *DummyBuffer;
+    BMMA_DeviceOffset DummyBufferOffset;
 }
 BXPT_P_PbHandle;
 
@@ -202,7 +216,6 @@ typedef struct BXPT_P_RemuxHandle
 
     BCHP_Handle hChip;              /* [Input] Handle to used chip. */
     BREG_Handle hRegister;          /* [Input] Handle to access regiters. */
-    BMEM_Handle hMemory;            /* [Input] Handle to memory heap to use. */
 
     bool Opened;
     bool Running;
@@ -224,7 +237,6 @@ typedef struct BXPT_P_PacketSubHandle
 {
     BCHP_Handle hChip;              /* [Input] Handle to used chip. */
     BREG_Handle hRegister;          /* [Input] Handle to access regiters. */
-    BMEM_Handle hMemory;            /* [Input] Handle to memory heap to use. */
     void *vhXpt;
 
     uint8_t ChannelNo;      /* This channels number. */
@@ -232,6 +244,12 @@ typedef struct BXPT_P_PacketSubHandle
     void *LastDescriptor_Cached;    /* Address of the last descriptor on the linked list. */
     bool Opened;
     bool Running;
+
+    struct {
+        BMMA_Block_Handle block;
+        void *ptr;
+        BMMA_DeviceOffset offset;
+    } mma;
 }
 BXPT_P_PacketSubHandle;
 
@@ -297,7 +315,6 @@ BXPT_P_IndexerHandle;
 typedef struct StartCodeIndexer
 {
     BREG_Handle hReg;
-    BMEM_Handle hMem;
     BINT_Handle hInt;
     uint32_t BaseAddr;
     unsigned ChannelNo;
@@ -398,10 +415,9 @@ typedef struct BXPT_P_ContextHandle
 {
     BREG_Handle hReg;
     BCHP_Handle hChp;
-    BMEM_Handle hMem;
     BINT_Handle hInt;
-    BMEM_Handle hRHeap;
     void *vhRave;
+    BMMA_Heap_Handle mmaHeap, mmaRHeap;
 
     unsigned Type;
     uint32_t BaseAddr;
@@ -427,6 +443,13 @@ typedef struct BXPT_P_ContextHandle
     bool externalCdbAlloc;
     bool externalItbAlloc;
 
+    struct {
+        BMMA_Block_Handle cdbBlock, itbBlock;
+        unsigned cdbBlockOffset, itbBlockOffset;
+        void *cdbPtr, *itbPtr;
+        BMMA_DeviceOffset cdbOffset, itbOffset;
+    } mma;
+
     /* For streaming IP support only. Don't use in AV or REC processing */
     bool IsMpegTs;      /* True if context is handling MPEG TS, false if DirecTV */
 
@@ -434,6 +457,7 @@ typedef struct BXPT_P_ContextHandle
     bool VobMode;
 
     bool IsSoftContext;
+    void *SourceContext;
     SoftRaveData SoftRave;
 
     StartCodeIndexer *hVctScd;
@@ -473,7 +497,6 @@ CtxIntData;
 typedef struct TpitIndexer
 {
     BREG_Handle hReg;
-    BMEM_Handle hMem;
     BINT_Handle hInt;
     uint32_t BaseAddr;
     uint32_t PidTableBaseAddr;
@@ -487,7 +510,6 @@ typedef struct BXPT_P_RaveHandle
 {
     BCHP_Handle hChip;
     BREG_Handle hReg;
-    BMEM_Handle hMem;
     BINT_Handle hInt;
     void *lvXpt;
     unsigned ChannelNo;
@@ -520,7 +542,6 @@ typedef struct BXPT_P_PcrOffset_Impl
 {
     BCHP_Handle hChip;
     BREG_Handle hReg;
-    BMEM_Handle hMem;
     unsigned int ChannelNo;
     uint32_t BaseAddr;
     void *lvXpt;
@@ -552,7 +573,6 @@ typedef struct BXPT_P_TransportData
     BREG_Handle hRegister;          /* [Input] Handle to access regiters. */
     BINT_Handle hInt;               /* [Input] Handle to interrupt interface to use. */
     BMMA_Heap_Handle mmaHeap, mmaRHeap;
-    BMEM_Heap_Handle hMemory, hRHeap;
 
     BINT_CallbackHandle hMsgCb;     /* Callback handle for message interrupts */
     BINT_CallbackHandle hMsgOverflowCb; /* Callback handle for message overflow interrupts */
@@ -641,8 +661,6 @@ typedef struct BXPT_P_TransportData
     bool Pid2BuffMappingOn;
     bool MesgDataOnRPipe;
 
-    BMEM_Handle hPbHeap; /* no longer used */
-
     BXPT_PidChannel_CC_Config CcConfigBeforeAllPass[ BXPT_NUM_PID_CHANNELS ];
 
 #if BXPT_HAS_PARSER_REMAPPING
@@ -699,6 +717,7 @@ void BXPT_P_Interrupt_MsgSw_isr(
     );
 
 BERR_Code BXPT_P_GetGroupSelect( unsigned int Bank, unsigned int *GenGrpSel );
+unsigned int BXPT_PB_P_GetPbBandId( BXPT_Handle hXpt, unsigned int Band );
 
 #if BXPT_HAS_PID_CHANNEL_PES_FILTERING
 

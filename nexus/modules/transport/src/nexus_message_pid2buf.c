@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -546,9 +546,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         msg->psiMessageSettings.Band = nexus_p_xpt_parser_band(hwPidChannel);
         msg->psiMessageSettings.StartingOffset = pStartSettings->filterOffset;
         msg->psiMessageSettings.SkipByte2 = pStartSettings->includeThirdFilterByte ? false : true;  /* BXPT preserves the hw's inverted logic. */
-#if !NEXUS_HAS_LEGACY_XPT
         msg->psiMessageSettings.UseRPipe = pStartSettings->useRPipe;
-#endif
 
         if (msg->startSettings.filterGroup) {
             rc = BXPT_Mesg_AddFilterToGroup(pTransport->xpt, msg->PidChannelNum, msg->MesgBufferNum, msg->FilterNum, &msg->psiMessageSettings);
@@ -582,10 +580,6 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         BXPT_GetDefaultPidChannelRecordSettings(&ChanSettings);
         ChanSettings.Pid = pid;
         ChanSettings.Band = nexus_p_xpt_parser_band(hwPidChannel);
-#if NEXUS_HAS_LEGACY_XPT
-        ChanSettings.SaveAllCountType = 0;
-        ChanSettings.SaveAllCount = 10;
-#endif
         ChanSettings.ByteAlign = false;
         switch (pStartSettings->format) {
         case NEXUS_MessageFormat_eTs:
@@ -598,9 +592,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
             ChanSettings.RecordType = BXPT_SingleChannelRecordType_ePesSaveAll;
             break;
         }
-#if !NEXUS_HAS_LEGACY_XPT
         ChanSettings.UseRPipe = pStartSettings->useRPipe;
-#endif
 
         rc = BXPT_Mesg_StartPidChannelRecord(pTransport->xpt, msg->PidChannelNum, msg->MesgBufferNum, &ChanSettings);
         if (rc) return BERR_TRACE(rc);

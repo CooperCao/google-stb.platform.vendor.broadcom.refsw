@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:26 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:45 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,60 +70,60 @@
 /***************************************************************************
  *V3D_GCA - V3D support registers
  ***************************************************************************/
-#define BCHP_V3D_GCA_CACHE_ID                    0x21304100 /* [RW] V3D External Cache ID Control Register */
-#define BCHP_V3D_GCA_CACHE_SWAP_CTRL             0x21304104 /* [RW] Cache Data Swaping Control Register */
-#define BCHP_V3D_GCA_CACHE_SWAP_CTRL_2           0x21304108 /* [RW] Cache Data Swaping Control Register */
-#define BCHP_V3D_GCA_CACHE_CTRL                  0x2130410c /* [RW] Cache Control Register */
-#define BCHP_V3D_GCA_CACHE_STATUS                0x21304110 /* [RO] Cache Status Register */
-#define BCHP_V3D_GCA_PM_CTRL                     0x21304114 /* [RW] Cache Performance Control Register */
-#define BCHP_V3D_GCA_V3D_BW_CNT                  0x21304118 /* [RO] Cache Hit Counter */
-#define BCHP_V3D_GCA_MEM_BW_CNT                  0x2130411c /* [RO] Cache Miss Counter */
-#define BCHP_V3D_GCA_LOW_PRI_ID                  0x21304120 /* [RW] Low Priority Queue */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_CTRL       0x21304124 /* [RW] V3D Address Translation: Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_DFLT_ADDR  0x21304128 /* [RW] V3D Address Translation: Default Global address for address translation */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_0 0x2130412c /* [RW] V3D Address Translation: Zone0 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_0 0x21304130 /* [RW] V3D Address Translation: Zone0 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_0 0x21304134 /* [RW] V3D Address Translation: Zone0 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_1 0x21304138 /* [RW] V3D Address Translation: Zone1 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_1 0x2130413c /* [RW] V3D Address Translation: Zone1 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_1 0x21304140 /* [RW] V3D Address Translation: Zone1 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_2 0x21304144 /* [RW] V3D Address Translation: Zone2 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_2 0x21304148 /* [RW] V3D Address Translation: Zone2 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_2 0x2130414c /* [RW] V3D Address Translation: Zone2 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_3 0x21304150 /* [RW] V3D Address Translation: Zone3 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_3 0x21304154 /* [RW] V3D Address Translation: Zone3 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_3 0x21304158 /* [RW] V3D Address Translation: Zone3 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_4 0x2130415c /* [RW] V3D Address Translation: Zone4 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_4 0x21304160 /* [RW] V3D Address Translation: Zone4 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_4 0x21304164 /* [RW] V3D Address Translation: Zone4 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_5 0x21304168 /* [RW] V3D Address Translation: Zone5 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_5 0x2130416c /* [RW] V3D Address Translation: Zone5 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_5 0x21304170 /* [RW] V3D Address Translation: Zone5 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_6 0x21304174 /* [RW] V3D Address Translation: Zone6 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_6 0x21304178 /* [RW] V3D Address Translation: Zone6 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_6 0x2130417c /* [RW] V3D Address Translation: Zone7 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_7 0x21304180 /* [RW] V3D Address Translation: Zone7 Control Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_7 0x21304184 /* [RW] V3D Address Translation: Zone7 Global Base Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_7 0x21304188 /* [RW] V3D Address Translation: Zone7 Global End Address Register */
-#define BCHP_V3D_GCA_ADDR_TRANSLATION_ERROR      0x2130418c /* [RO] V3D Address Translation: Error Status Register */
-#define BCHP_V3D_GCA_AXI_BRIDGE_CTRL             0x21304190 /* [RW] V3D AXI-MCP bridge control */
-#define BCHP_V3D_GCA_AXI_BRIDGE_STATUS_HI        0x21304194 /* [RO] V3D AXI-MCP bridge status on high priority path */
-#define BCHP_V3D_GCA_AXI_BRIDGE_STATUS_LO        0x21304198 /* [RO] V3D AXI-MCP bridge status on low priority path */
-#define BCHP_V3D_GCA_AXI_BRIDGE_ERROR_0          0x2130419c /* [RO] V3D AXI-MCP bridge error status MCP0 interface */
-#define BCHP_V3D_GCA_AXI_BRIDGE_ERROR_1          0x213041a0 /* [RO] V3D AXI-MCP bridge error status MCP1 interface */
-#define BCHP_V3D_GCA_AXI_BRIDGE_ERROR_2          0x213041a4 /* [RO] V3D AXI-MCP bridge error status MCP2 interface */
-#define BCHP_V3D_GCA_ERROR_STATUS_CLEAR          0x213041a8 /* [RW] V3D Address Translation: Error Status Clear Register */
-#define BCHP_V3D_GCA_SCRATCH_0                   0x213041ac /* [RW] V3D Scratch Register 0 */
-#define BCHP_V3D_GCA_SAFE_SHUTDOWN               0x213041b0 /* [RW] V3D Safe Shutdown Register */
-#define BCHP_V3D_GCA_SAFE_SHUTDOWN_ACK           0x213041b4 /* [RO] V3D Safe Shutdown Acknowledge Register */
-#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_1        0x213041b8 /* [RO] V3D HUB AXI channel status */
-#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_2        0x213041bc /* [RO] V3D L3C AXI channel status */
-#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_3        0x213041c0 /* [RO] V3D AXI channel status on high priority MCP bridge */
-#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_4        0x213041c4 /* [RO] V3D AXI channel status on low priority MCP bridge */
-#define BCHP_V3D_GCA_WRAPPER_IDENT               0x213041c8 /* [RO] V3D Wrapper Identification Register */
-#define BCHP_V3D_GCA_WRAPPER_REVISION_ID         0x213041cc /* [RO] V3D Wrapper Revision ID Register */
-#define BCHP_V3D_GCA_DRAM_MAP_VERSION            0x213041d0 /* [RW] DRAM MAP version Register */
-#define BCHP_V3D_GCA_SCB_8_0_CMD_SPLIT_CTL       0x213041d4 /* [RW] SCB 8.0 Command Split Control */
+#define BCHP_V3D_GCA_CACHE_ID                    0x21304100 /* [RW][32] V3D External Cache ID Control Register */
+#define BCHP_V3D_GCA_CACHE_SWAP_CTRL             0x21304104 /* [RW][32] Cache Data Swaping Control Register */
+#define BCHP_V3D_GCA_CACHE_SWAP_CTRL_2           0x21304108 /* [RW][32] Cache Data Swaping Control Register */
+#define BCHP_V3D_GCA_CACHE_CTRL                  0x2130410c /* [RW][32] Cache Control Register */
+#define BCHP_V3D_GCA_CACHE_STATUS                0x21304110 /* [RO][32] Cache Status Register */
+#define BCHP_V3D_GCA_PM_CTRL                     0x21304114 /* [RW][32] Cache Performance Control Register */
+#define BCHP_V3D_GCA_V3D_BW_CNT                  0x21304118 /* [RO][32] Cache Hit Counter */
+#define BCHP_V3D_GCA_MEM_BW_CNT                  0x2130411c /* [RO][32] Cache Miss Counter */
+#define BCHP_V3D_GCA_LOW_PRI_ID                  0x21304120 /* [RW][32] Low Priority Queue */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_CTRL       0x21304124 /* [RW][32] V3D Address Translation: Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_DFLT_ADDR  0x21304128 /* [RW][32] V3D Address Translation: Default Global address for address translation */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_0 0x2130412c /* [RW][32] V3D Address Translation: Zone0 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_0 0x21304130 /* [RW][32] V3D Address Translation: Zone0 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_0 0x21304134 /* [RW][32] V3D Address Translation: Zone0 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_1 0x21304138 /* [RW][32] V3D Address Translation: Zone1 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_1 0x2130413c /* [RW][32] V3D Address Translation: Zone1 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_1 0x21304140 /* [RW][32] V3D Address Translation: Zone1 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_2 0x21304144 /* [RW][32] V3D Address Translation: Zone2 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_2 0x21304148 /* [RW][32] V3D Address Translation: Zone2 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_2 0x2130414c /* [RW][32] V3D Address Translation: Zone2 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_3 0x21304150 /* [RW][32] V3D Address Translation: Zone3 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_3 0x21304154 /* [RW][32] V3D Address Translation: Zone3 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_3 0x21304158 /* [RW][32] V3D Address Translation: Zone3 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_4 0x2130415c /* [RW][32] V3D Address Translation: Zone4 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_4 0x21304160 /* [RW][32] V3D Address Translation: Zone4 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_4 0x21304164 /* [RW][32] V3D Address Translation: Zone4 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_5 0x21304168 /* [RW][32] V3D Address Translation: Zone5 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_5 0x2130416c /* [RW][32] V3D Address Translation: Zone5 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_5 0x21304170 /* [RW][32] V3D Address Translation: Zone5 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_6 0x21304174 /* [RW][32] V3D Address Translation: Zone6 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_6 0x21304178 /* [RW][32] V3D Address Translation: Zone6 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_6 0x2130417c /* [RW][32] V3D Address Translation: Zone7 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ZONE_CTRL_7 0x21304180 /* [RW][32] V3D Address Translation: Zone7 Control Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_BASE_7 0x21304184 /* [RW][32] V3D Address Translation: Zone7 Global Base Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ADDR_END_7 0x21304188 /* [RW][32] V3D Address Translation: Zone7 Global End Address Register */
+#define BCHP_V3D_GCA_ADDR_TRANSLATION_ERROR      0x2130418c /* [RO][32] V3D Address Translation: Error Status Register */
+#define BCHP_V3D_GCA_AXI_BRIDGE_CTRL             0x21304190 /* [RW][32] V3D AXI-MCP bridge control */
+#define BCHP_V3D_GCA_AXI_BRIDGE_STATUS_HI        0x21304194 /* [RO][32] V3D AXI-MCP bridge status on high priority path */
+#define BCHP_V3D_GCA_AXI_BRIDGE_STATUS_LO        0x21304198 /* [RO][32] V3D AXI-MCP bridge status on low priority path */
+#define BCHP_V3D_GCA_AXI_BRIDGE_ERROR_0          0x2130419c /* [RO][32] V3D AXI-MCP bridge error status MCP0 interface */
+#define BCHP_V3D_GCA_AXI_BRIDGE_ERROR_1          0x213041a0 /* [RO][32] V3D AXI-MCP bridge error status MCP1 interface */
+#define BCHP_V3D_GCA_AXI_BRIDGE_ERROR_2          0x213041a4 /* [RO][32] V3D AXI-MCP bridge error status MCP2 interface */
+#define BCHP_V3D_GCA_ERROR_STATUS_CLEAR          0x213041a8 /* [RW][32] V3D Address Translation: Error Status Clear Register */
+#define BCHP_V3D_GCA_SCRATCH_0                   0x213041ac /* [RW][32] V3D Scratch Register 0 */
+#define BCHP_V3D_GCA_SAFE_SHUTDOWN               0x213041b0 /* [RW][32] V3D Safe Shutdown Register */
+#define BCHP_V3D_GCA_SAFE_SHUTDOWN_ACK           0x213041b4 /* [RO][32] V3D Safe Shutdown Acknowledge Register */
+#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_1        0x213041b8 /* [RO][32] V3D HUB AXI channel status */
+#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_2        0x213041bc /* [RO][32] V3D L3C AXI channel status */
+#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_3        0x213041c0 /* [RO][32] V3D AXI channel status on high priority MCP bridge */
+#define BCHP_V3D_GCA_AXI_CHANNEL_STATUS_4        0x213041c4 /* [RO][32] V3D AXI channel status on low priority MCP bridge */
+#define BCHP_V3D_GCA_WRAPPER_IDENT               0x213041c8 /* [RO][32] V3D Wrapper Identification Register */
+#define BCHP_V3D_GCA_WRAPPER_REVISION_ID         0x213041cc /* [RO][32] V3D Wrapper Revision ID Register */
+#define BCHP_V3D_GCA_DRAM_MAP_VERSION            0x213041d0 /* [RW][32] DRAM MAP version Register */
+#define BCHP_V3D_GCA_SCB_8_0_CMD_SPLIT_CTL       0x213041d4 /* [RW][32] SCB 8.0 Command Split Control */
 
 /***************************************************************************
  *CACHE_ID - V3D External Cache ID Control Register

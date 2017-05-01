@@ -558,6 +558,10 @@ _wlc_pio4_rx(pio_info_t *pt)
 		*va32 = R_REG(pt->wlc->osh, dptr) & mask[i];
 	}
 
+#ifdef BCMINTDBG
+	/* all bytes should have been pulled out */
+	ASSERT((R_REG(pt->wlc->osh, &regs->fifocontrol) & RFC_DR) == 0);
+#endif
 
 	retval = p;
 

@@ -1,19 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2014 Broadcom.
- All rights reserved.
-
- FILE DESCRIPTION
-
- Image Format Library - Public APIs
-
- Provides a slow and simple(*) C-only implementation of image and pixel
- conversion functionality. Useful as a reference implementation (e.g. for
- simpenrose TMU, TLB, TFU), tools (like debugging images with geomd), or as a
- last resort for image conversion when no HW accelerated or optimized
- implementation is available.
-
- (*) Work to make it simpler is outstanding.
-==============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/core/lfmt/lfmt_block.h"

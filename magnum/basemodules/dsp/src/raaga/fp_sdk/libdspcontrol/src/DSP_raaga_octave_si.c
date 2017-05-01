@@ -63,6 +63,8 @@
 
 #include "bchp_raaga_dsp_misc.h"
 
+
+
 #if !IS_HOST(SILICON)
 #  error "This module is for silicon targets only"
 #endif
@@ -72,6 +74,7 @@
 #if FEATURE_IS(ENDIANESS, BIG)
 #  error "Big endian platforms not properly supported at the moment"
 #endif
+
 
 /* Workaround for the missing inttypes.h */
 #define PRIu32      "u"
@@ -274,20 +277,4 @@ void DSP_writeShared64BitRegister(DSP *dsp, uint32_t reg_addr, uint64_t value)
 {
     DSPLOG_JUNK("DSP: writeShared64BitRegister address = %#x, data = %#llx", reg_addr, value);
     BREG_Write64(dsp->reg, reg_addr, value);
-}
-
-
-/*
- * Memory layout.
- */
-const DSP_MEMORY_LAYOUT *DSP_getMemoryLayout(DSP *dsp __unused)
-{
-    static const DSP_MEMORY_AREA areas[] = {{0}};       /* no well defined memory areas yet */
-    static DSP_MEMORY_LAYOUT layout =
-    {
-        sizeof (areas) / sizeof (DSP_MEMORY_AREA),
-        areas
-    };
-
-    return &layout;
 }

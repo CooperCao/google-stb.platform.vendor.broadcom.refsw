@@ -97,6 +97,9 @@ static void
 b_pump_crypto_advance_recycle(b_pump_crypto_t crypto);
 
 static void
+b_pump_crypto_dma_callback(void *context);
+
+static void
 b_pump_crypto_atom_free(batom_t atom, void *user)
 {
     struct bpvr_queue_item *item = *(struct bpvr_queue_item **)user;
@@ -255,7 +258,7 @@ b_pump_crypto_process_mpeg2ts(b_pump_crypto_t crypto)
             rc = NEXUS_DmaJob_ProcessBlocks_priv(crypto->dma.job, crypto->dma.blocks, nvecs, crypto->dma.event);
             NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.moduleSettings.dma);
 #else
-            rc = NEXUS_DmaJob_ProcessBlocks_priv(crypto->dma.job, crypto->dma.blocks, nvecs, crypto->dma.event);
+            rc = NEXUS_DmaJob_ProcessBlocks_priv(crypto->dma.job, crypto->dma.blocks, nvecs, b_pump_crypto_dma_callback, crypto);
 #endif
             if(rc==NEXUS_SUCCESS) {
                 BDBG_MSG_FLOW(("b_pump_crypto_process_mpeg2ts:%#lx completed %#lx:%u", (unsigned long)crypto, (unsigned long)vec[0].base, len));
@@ -441,18 +444,22 @@ b_pump_crypto_create(NEXUS_PlaypumpHandle pump)
     crypto->parser_acc = batom_accum_create(crypto->factory);
     if(!crypto->parser_acc) { rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_parser_acc; }
 
+#if (!NEXUS_HAS_XPT_DMA)
     rc = BKNI_CreateEvent(&crypto->dma.event);
     if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto err_dma_event; }
 
     crypto->dma.callback = NEXUS_RegisterEvent(crypto->dma.event, b_pump_crypto_dma_callback, crypto);
     if(!crypto->dma.callback) { rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_dma_callback; }
+#endif
 
     BDBG_MSG_TRACE(("b_pump_crypto_create>: %#lx", (unsigned long)crypto));
     return crypto;
 
+#if (!NEXUS_HAS_XPT_DMA)
 err_dma_callback:
     BKNI_DestroyEvent(crypto->dma.event);
 err_dma_event:
+#endif
     batom_accum_destroy(crypto->parser_acc);
 err_parser_acc:
     batom_pipe_destroy(crypto->ts_feed.pipe_clear);
@@ -474,8 +481,10 @@ b_pump_crypto_destroy(b_pump_crypto_t crypto)
     BDBG_OBJECT_ASSERT(crypto, b_pump_crypto_t);
     BDBG_MSG_TRACE(("b_pump_crypto_destroy>: %#lx", (unsigned long)crypto));
     bsink_playback_destroy(crypto->sink);
+#if (!NEXUS_HAS_XPT_DMA)
     NEXUS_UnregisterEvent(crypto->dma.callback);
     BKNI_DestroyEvent(crypto->dma.event);
+#endif
     batom_accum_destroy(crypto->parser_acc);
     batom_pipe_destroy(crypto->parser_pipe);
     batom_pipe_destroy(crypto->ts_feed.pipe_clear);

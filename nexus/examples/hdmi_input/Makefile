@@ -1,5 +1,5 @@
 ###########################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,27 +35,13 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# Module Description:
-#
 ##########################################################################
 
-# Nexus examples
-B_THIS_DIR:=nexus/examples/hdmi_input
-
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
-
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
-# This will be defined in platform_app.inc appropriately
-THEAPPS += \
+APPS += \
     hdmi_input_to_hdmi_output \
     hdmi_input_capture_pcm \
     hdmi_repeater_passthrough_hdcp22 \
     hdmi_repeater_passthrough \
     hdmi_input_hdcp_keyloader
 
-
-include ${NEXUS_TOP}/examples/Makefile.inc
+include ../Makefile.inc

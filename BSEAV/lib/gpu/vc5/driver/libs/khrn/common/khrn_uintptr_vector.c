@@ -1,26 +1,20 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-This is a basic implementation of a std::vector for storing uintptr
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_uintptr_vector.h"
 
-void khrn_uintptr_vector_init(KHRN_UINTPTR_VECTOR_T *vector)
+void khrn_uintptr_vector_init(khrn_uintptr_vector *vector)
 {
-   memset(vector, 0, sizeof(KHRN_UINTPTR_VECTOR_T));
+   memset(vector, 0, sizeof(khrn_uintptr_vector));
 }
 
-void khrn_uintptr_vector_destroy(KHRN_UINTPTR_VECTOR_T *vector)
+void khrn_uintptr_vector_destroy(khrn_uintptr_vector *vector)
 {
    free(vector->data);
-   memset(vector, 0, sizeof(KHRN_UINTPTR_VECTOR_T));
+   memset(vector, 0, sizeof(khrn_uintptr_vector));
 }
 
-bool khrn_uintptr_vector_push_back(KHRN_UINTPTR_VECTOR_T *vector, uintptr_t elem)
+bool khrn_uintptr_vector_push_back(khrn_uintptr_vector *vector, uintptr_t elem)
 {
    if (vector->size == vector->capacity)
    {

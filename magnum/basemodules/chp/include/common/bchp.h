@@ -893,6 +893,7 @@ typedef struct BCHP_OpenSettings
     unsigned productId; /* hex value. if non-zero, this will override BCHP_Info.productId. default is zero. */
     BCHP_MemoryLayout memoryLayout;
     unsigned pMapId;
+    bool skipInitialReset;
 } BCHP_OpenSettings;
 
 void BCHP_GetDefaultOpenSettings(
@@ -969,7 +970,7 @@ Summary:
 typedef struct BCHP_MemoryInfo
 {
     struct {
-        uint64_t size; /* in bytes */
+        bool valid;
         unsigned width; /* width of MEMC PHY. in bits, typically 16 or 32. */
         unsigned deviceWidth; /* width of DRAM device. in bits, typically 8, 16 or 32. The number of DRAM parts per MEMC = width/deviceWidth. */
         BCHP_DramType type;
@@ -1119,6 +1120,24 @@ BERR_Code BCHP_GetMemoryInfo_PreInit(
 
 /* Stripe memory address may be shuffled if the MEMC bus protocol supports it */
 BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, BSTD_DeviceOffset offset);
+
+
+/* BP3 Do NOT Modify Start */
+typedef enum BCHP_LicensedFeature {
+    BCHP_LicensedFeature_eMacrovision,
+    BCHP_LicensedFeature_eDolbyVision,
+    BCHP_LicensedFeature_eTchPrime,
+    BCHP_LicensedFeature_eItm,
+    BCHP_LicensedFeature_eMax
+} BCHP_LicensedFeature;
+
+BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature feature);
+
+/* BP3 Do NOT Modify End */
+
+/* Use the following API in order to reset SAGE. */
+bool BCHP_SAGE_IsStarted(BREG_Handle hReg);
+BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
 
 #ifdef __cplusplus
 }

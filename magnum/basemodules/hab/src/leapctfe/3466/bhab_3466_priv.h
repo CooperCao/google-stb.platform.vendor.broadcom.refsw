@@ -100,7 +100,7 @@ typedef enum BHAB_CoreType
     BHAB_CoreType_eLast
 } BHAB_CoreType;
 #define BHAB_HAB_DONE               0x03000040
-#define BHAB_HAB_RESET              0x00100000
+#define BHAB_HAB_RESET              0x04000000
 
 #define BHAB_AP_INIT_DONE           0x80000000
 #define BHAB_AP_ERROR               0x40000000

@@ -49,25 +49,14 @@
     cpsid   if
     sub     lr, lr, #8
 
-    push    {r0}
-    push    {r1}
-    push    {r2}
-    push    {r3}
-    push    {r12}
-    push    {lr}
-
-    mov     r0, #2
-    mrs     r1, spsr_abt
-    and     r1, #0x1f
-    bl      excYieldCurrentTask
-    /* r0 now points to the array where we should save register context */
-
-    /* Pop all registers except r0 */
-    pop     {lr}
-    pop     {r12}
-    pop     {r3}
-    pop     {r2}
-    pop     {r1}
+    push   {r0}
+    push   {r1}
+    push   {r2}
+    push   {lr}
+    bl get_regbase
+    pop    {lr}
+    pop    {r2}
+    pop    {r1}
 
     /*
      * Save all the core regsiters
@@ -122,6 +111,10 @@
     mul     r7, r4
     sub     r6, r7
     msr     SP_svc, r6
+
+    mov     r0, #2
+    mrs     r1, spsr_abt
+    bl      yieldCurrentTask
 
     cpsid   if, #Mode_SVC
     bl      serviceDataAbort

@@ -48,7 +48,6 @@ NEXUS_TOP := $(B_REFSW_TOP)/nexus
 include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
 include $(BSEAV_TOP)/opensource/freetype/freetype.inc
-include freetype.inc
 
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
@@ -74,13 +73,23 @@ all : source
 		fi ;\
 	fi
 
-	@echo "================ Compiling FREETYPE==============================="
+	@echo "================ Configuring FREETYPE 2.3.12 ============================="
+	@if [ ! -e "${FREETYPE_TAR_PATH}/config.mk" ]; then \
+		echo "================ Configure FREETYPE"; \
+		cd ${FREETYPE_TAR_PATH}; \
+		./configure --host=${B_REFSW_ARCH} >/dev/null 2>&1 ; \
+		echo "================ Configuring FREETYPE 2.3.12 complete ===================="; \
+	else \
+		echo "================ FREETYPE 2.3.12 already configured"; \
+	fi
+
+	@echo "================ Compiling FREETYPE 2.3.12 ==============================="
 	echo "NEXUS_TOP=$(abspath ${NEXUS_TOP})"
 	${MAKE} ${MAKE_OPTIONS} -C ${FREETYPE_TAR_PATH} NEXUS_TOP=$(abspath ${NEXUS_TOP}) ${MAKE_SUFFIX}
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
-		${STRIP} ${FREETYPE_LIB_FOLDER}/*.so; \
+		if ls ${FREETYPE_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then ${STRIP} ${FREETYPE_LIB_FOLDER}/*.so ; fi \
 	fi
-	@echo "================ FREETYPE Compiled!"
+	@echo "================ FREETYPE 2.3.12 Compiled!"
 
 source:
 ifneq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
@@ -91,14 +100,14 @@ ifneq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
 		echo "FREETYPE_SOURCE_DIRECTORY is ${FREETYPE_SOURCE_DIRECTORY}"; \
 		echo "$(B_REFSW_ARCH).$(DEBUG_SUFFIX)"; \
 		if [ ! -e "${FREETYPE_TAR_PATH}/${FREETYPE_SOURCE_TARBALL}" ]; then \
-			echo "================ Downloading FREETYPE tarball  to ${FREETYPE_TAR_PATH}"; \
+			echo "================ Downloading FREETYPE 2.3.12 tarball  to ${FREETYPE_TAR_PATH}"; \
 			mkdir -p ${FREETYPE_TAR_PATH}; \
 			echo "${FREETYPE_BUILD_DIR}/${FREETYPE_NAME}"; \
 			echo "${FREETYPE_TAR_PATH}"; \
 			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${FREETYPE_BUILD_DIR}/${FREETYPE_NAME}.info ${FREETYPE_TAR_PATH}; \
 		fi ;\
 		if [ -e "${FREETYPE_TAR_PATH}/${FREETYPE_SOURCE_TARBALL}" ]; then \
-			echo "================ Extracting FREETYPE tarball"; \
+			echo "================ Extracting FREETYPE 2.3.12 tarball"; \
 			echo "${FREETYPE_SOURCE_PATH}"; \
 			mkdir -p ${FREETYPE_SOURCE_PATH}; \
 			echo "FREETYPE_TAR_PATH is ${FREETYPE_TAR_PATH}"; \
@@ -113,7 +122,7 @@ ifneq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
 endif   #  ifeq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
 
 install_to_nexus_bin: all
-	@echo "================ Installing FREETYPE to ${NEXUS_BIN_DIR}"
+	@echo "================ Installing FREETYPE 2.3.12 to ${NEXUS_BIN_DIR}"
 	@mkdir -p ${NEXUS_BIN_DIR}
 	@install -c -m 0755 $(FREETYPE_LIB_FOLDER)/*.so* ${NEXUS_BIN_DIR}
 

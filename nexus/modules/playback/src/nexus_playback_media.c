@@ -62,6 +62,9 @@ b_play_suspend_timer(void *playback)
             p->state.simpleDecoderSuspend.pid = NULL;
         }
     }
+    else if (p->state.media.entry.type == bmedia_player_entry_type_sleep_10msec) {
+        p->state.media.entry.type = bmedia_player_entry_type_noop;
+    }
     if (b_play_control(p, eControlDataIO)) {
         p->state.io_size = B_MEDIA_NEST_MAGIC;
         BDBG_MSG(("b_play_suspend_timer: %#lx interrupted",(unsigned long)p));
@@ -120,15 +123,22 @@ b_play_media_next_frame(NEXUS_PlaybackHandle p)
 {
     int rc;
     off_t offset;
+    unsigned suspend_timeout = 0;
 
     BDBG_ASSERT(p->media_player);
     if (b_play_control(p, eControlFrame)) {
         return ;
     }
-    if(p->state.media.nest_count>8 || p->state.simpleDecoderSuspend.pid) {
+    if (p->state.simpleDecoderSuspend.pid) {
+        suspend_timeout = 100;
+    }
+    else if (p->state.media.entry.type == bmedia_player_entry_type_sleep_10msec) {
+        suspend_timeout = 10;
+    }
+    if(p->state.media.nest_count>8 || suspend_timeout) {
         if(p->state.media.nest_timer==NULL) {
-            /* schedule a call-out to either unwind a stack or wait for simpleDecoder to be resumed */
-            p->state.media.nest_timer = NEXUS_ScheduleTimer(p->state.simpleDecoderSuspend.pid ? 100 : 0, b_play_suspend_timer, p);
+            /* schedule a call-out to either unwind a stack or wait for simpleDecoder to be resumed or wait for mdqt to advance */
+            p->state.media.nest_timer = NEXUS_ScheduleTimer(suspend_timeout, b_play_suspend_timer, p);
             BDBG_MSG(("b_play_media_next_frame: %#lx nest:%u schedule timer %#lx",(unsigned long)p, p->state.media.nest_count, (unsigned long)p->state.media.nest_timer));
             if(p->state.media.nest_timer) {
                 p->state.state = eWaitingIo; /* Reuse eWaitingIo state */
@@ -225,7 +235,7 @@ NEXUS_Error
 b_play_media_handle_loop_condition(NEXUS_PlaybackHandle p, bool is_beginning, NEXUS_PlaybackLoopMode loopmode, const bmedia_player_bounds *bounds)
 {
     int rc;
-    int pos;
+    unsigned pos;
 
     BDBG_ASSERT(p->media_player);
     switch(loopmode) {
@@ -250,9 +260,12 @@ b_play_media_handle_loop_condition(NEXUS_PlaybackHandle p, bool is_beginning, NE
         bplay_p_clear_buffer(p);
         break;
     case NEXUS_PlaybackLoopMode_ePlay:
+        {
+        bool skip = false;
         if (is_beginning) {
             /* if the beginning has been trimmed, we should gap so that we avoid getting chopped again by bfile_fifo. */
             pos = (bounds->first == 0) ? bounds->first : bounds->first + p->params.timeshiftingSettings.beginningOfStreamGap;
+            skip = (pos == bounds->first);
         } else {
             /* play at EOF requires a gap for record, otherwise, there's really nothing we can do. */
             if (!p->params.timeshifting) {
@@ -268,12 +281,16 @@ b_play_media_handle_loop_condition(NEXUS_PlaybackHandle p, bool is_beginning, NE
                 else {
                     pos = 0;
                 }
+                skip = (pos == bounds->last);
             }
         }
-        BDBG_MSG(("seek pos %u in %u...%u", (unsigned)pos, (unsigned)bounds->first, (unsigned)bounds->last));
-
-        bplay_p_clear_buffer(p);
-        bplay_p_play_from(p, pos);
+        /* ignore gapping outsides of bounds (which are inclusive) or with an empty file */
+        if (!skip && pos >= bounds->first && pos <= bounds->last && bounds->last > 0) {
+            BDBG_MSG(("seek pos %u in %u...%u", (unsigned)pos, (unsigned)bounds->first, (unsigned)bounds->last));
+            bplay_p_clear_buffer(p);
+            bplay_p_play_from(p, pos);
+        }
+        }
         break;
     default:
     case NEXUS_PlaybackLoopMode_ePause:
@@ -461,6 +478,7 @@ b_play_media_send_meta(NEXUS_PlaybackHandle p)
         }
         /* keep going */
     case bmedia_player_entry_type_noop:
+    case bmedia_player_entry_type_sleep_10msec:
     case bmedia_player_entry_type_no_data:
         b_play_media_next_frame(p); /* keep on reading  */
         return;
@@ -562,6 +580,7 @@ b_play_media_send_meta(NEXUS_PlaybackHandle p)
     case bmedia_player_entry_type_error:
     case bmedia_player_entry_type_async:
     case bmedia_player_entry_type_noop:
+    case bmedia_player_entry_type_sleep_10msec:
         BDBG_ASSERT(0);
         break;
     }
@@ -677,7 +696,7 @@ b_play_media_player_error(void *cntx)
 }
 
 static int
-b_play_media_get_dqt_index(void *cntx, unsigned *index, unsigned *openGopPictures)
+b_play_media_get_dqt_index(void *cntx, bmedia_player_dqt_data *pdata)
 {
     NEXUS_PlaybackHandle playback = cntx;
     const NEXUS_Playback_P_PidChannel *pid;
@@ -687,8 +706,8 @@ b_play_media_get_dqt_index(void *cntx, unsigned *index, unsigned *openGopPicture
             NEXUS_VideoDecoderMultiPassDqtData data;
             int rc = NEXUS_VideoDecoder_ReadMultiPassDqtData(pid->cfg.pidTypeSettings.video.decoder, &data);
             if (!rc) {
-                *index = data.intraGopPictureIndex; /* Last intra gop picture index returned by decoder. Needed to advance MP DQT to previous GOP. */
-                *openGopPictures = data.openGopPictures;
+                pdata->index = data.intraGopPictureIndex; /* Last intra gop picture index returned by decoder. Needed to advance MP DQT to previous GOP. */
+                pdata->openGopPictures = data.openGopPictures;
             }
             return rc;
         }
@@ -697,8 +716,8 @@ b_play_media_get_dqt_index(void *cntx, unsigned *index, unsigned *openGopPicture
             NEXUS_VideoDecoderMultiPassDqtData data;
             int rc = NEXUS_SimpleVideoDecoder_ReadMultiPassDqtData(pid->cfg.pidTypeSettings.video.simpleDecoder, &data);
             if (!rc) {
-                *index = data.intraGopPictureIndex; /* Last intra gop picture index returned by decoder. Needed to advance MP DQT to previous GOP. */
-                *openGopPictures = data.openGopPictures;
+                pdata->index = data.intraGopPictureIndex; /* Last intra gop picture index returned by decoder. Needed to advance MP DQT to previous GOP. */
+                pdata->openGopPictures = data.openGopPictures;
             }
             return rc;
         }

@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL client-side function declarations. Dispatches GL calls to either 1.1 or 2.0
-handlers via RPC or direct call.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_client_mangle.h"
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_options.h"
@@ -209,8 +200,6 @@ GL_API void GL_APIENTRY glClear (GLbitfield mask)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
-      GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
-
       glClear_impl(mask);
    }
 }
@@ -539,7 +528,6 @@ GL_API void GL_APIENTRY glCullFace (GLenum mode)
 GL_API void GL_APIENTRY glDeleteBuffers (GLsizei n, const GLuint *buffers)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   int offset = 0;
    if (IS_OPENGLES_11_OR_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
@@ -1003,8 +991,6 @@ GL_API void GL_APIENTRY glFinish (void)
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
 
-      GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
-
 #if !(EGL_KHR_fence_sync == 1)
       if (thread->is_current_pixmap || thread->has_rendered_to_pixmap || khrn_options.glfinish_defer_off)
 #endif
@@ -1022,8 +1008,6 @@ GL_API void GL_APIENTRY glFlush (void)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
-
-      GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
 #if !(EGL_KHR_fence_sync == 1)
       if (thread->is_current_pixmap || thread->has_rendered_to_pixmap)
@@ -2820,123 +2804,6 @@ GL_API void GL_APIENTRY glPushMatrix (void)
    }
 }
 
-/*
-   we need to calculate on the client side how much data to transfer to the
-   server on a call to glTexImage2D()
-
-   from section 3.6 of the OpenGL ES 1.1 spec
-
-   the first element of the Nth row is indicated by
-
-   p + Nk
-
-   where N is the row number (counting from zero) and k is defined as
-
-   k = nl                  if s >= a
-     = a/s * ceil(snl/a)   otherwise
-
-   where n is the number of elements in a group, l is the number of groups in
-   the row, a is the value of UNPACK ALIGNMENT, and s is the size, in units of GL
-   ubytes, of an element.
-
-   this code is
-*/
-
-static uint32_t get_pitch(uint32_t w, GLenum format, GLenum type, uint32_t a)
-{
-   uint32_t n = 0;
-   uint32_t s = 0;
-   uint32_t k = 0;
-
-   switch (format) {
-   case GL_RGBA:
-#if GL_EXT_texture_format_BGRA8888
-   case GL_BGRA_EXT:
-#endif
-      switch (type) {
-      case GL_UNSIGNED_BYTE:
-         n = 4;
-         s = 1;
-         break;
-      case GL_UNSIGNED_SHORT_4_4_4_4:
-      case GL_UNSIGNED_SHORT_5_5_5_1:
-         n = 1;
-         s = 2;
-         break;
-      }
-      break;
-   case GL_RGB:
-      switch (type) {
-      case GL_UNSIGNED_BYTE:
-         n = 3;
-         s = 1;
-         break;
-      case GL_UNSIGNED_SHORT_5_6_5:
-         n = 1;
-         s = 2;
-         break;
-      }
-      break;
-   case GL_LUMINANCE_ALPHA:
-      n = 2;
-      s = 1;
-      break;
-   case GL_LUMINANCE:
-   case GL_ALPHA:
-      n = 1;
-      s = 1;
-      break;
-#if GL_APPLE_rgb_422
-   case GL_RGB_422_APPLE:
-      n = 1;
-      s = 2;
-      break;
-#endif
-   }
-
-   if (s != 0) {   /* Avoid division by zero errors on invalid formats */
-      if (s < a)
-         k = (a / s) * ((s * n * w + a - 1) / a);
-      else
-         k = n * w;
-   }
-
-   switch (format) {
-   case GL_RGBA:
-#if GL_EXT_texture_format_BGRA8888
-   case GL_BGRA_EXT:
-#endif
-      switch (type) {
-      case GL_UNSIGNED_BYTE:
-         return k;
-      case GL_UNSIGNED_SHORT_4_4_4_4:
-      case GL_UNSIGNED_SHORT_5_5_5_1:
-         return k * 2;
-      }
-      break;
-   case GL_RGB:
-      switch (type) {
-      case GL_UNSIGNED_BYTE:
-         return k;
-      case GL_UNSIGNED_SHORT_5_6_5:
-         return k * 2;
-      }
-      break;
-   case GL_LUMINANCE_ALPHA:
-   case GL_LUMINANCE:
-   case GL_ALPHA:
-      return k;
-      break;
-#if GL_APPLE_rgb_422
-   case GL_RGB_422_APPLE:
-      return k * 2;
-      break;
-#endif
-   }
-
-   return 0;      // transfer no data, format will be rejected by server
-}
-
 GL_API void GL_APIENTRY glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
@@ -4253,25 +4120,3 @@ void glxx_client_state_free(GLXX_CLIENT_STATE_T *state)
    khrn_cache_term(&state->cache);
    khrn_platform_free(state);
 }
-
-
-
-
-//TODO we need these to get the conformance test to build
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-GL_API void GL_APIENTRY glCurrentPaletteMatrixOES (GLuint matrixpaletteindex) { UNUSED(matrixpaletteindex); }
-GL_API void GL_APIENTRY glLoadPaletteFromModelViewMatrixOES (void) {}
-GL_API void GL_APIENTRY glMatrixIndexPointerOES (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) { UNUSED(size); UNUSED(type); UNUSED(stride); UNUSED(pointer); }
-GL_API void GL_APIENTRY glWeightPointerOES (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) { UNUSED(size); UNUSED(type); UNUSED(stride); UNUSED(pointer); }
-
-GL_API void GL_APIENTRY glTexImage3DOES (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid* pixels) { UNUSED(target); UNUSED(level); UNUSED(internalformat); UNUSED(width); UNUSED(height); UNUSED(depth); UNUSED(border); UNUSED(format); UNUSED(type); UNUSED(pixels); }
-GL_API void GL_APIENTRY glTexSubImage3DOES (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid* pixels) { UNUSED(target); UNUSED(level); UNUSED(xoffset); UNUSED(yoffset); UNUSED(zoffset); UNUSED(width); UNUSED(height); UNUSED(depth); UNUSED(format); UNUSED(type); UNUSED(pixels); }
-GL_API void* GL_APIENTRY glMapBufferOES (GLenum target, GLenum access) {UNUSED(target); UNUSED(access); return NULL; };
-GL_API GLboolean GL_APIENTRY glUnmapBufferOES (GLenum target) {UNUSED(target); return GL_FALSE; };
-
-#ifdef __cplusplus
-}
-#endif

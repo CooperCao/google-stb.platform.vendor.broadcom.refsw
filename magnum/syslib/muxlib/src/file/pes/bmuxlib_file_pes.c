@@ -136,8 +136,6 @@ BERR_Code BMUXlib_File_PES_Create(BMUXlib_File_PES_Handle *phPESMux, const BMUXl
    {
       BKNI_Memset( hMux, 0, sizeof(struct BMUXlib_File_PES_P_Context) );
       BDBG_OBJECT_SET(hMux, BMUXlib_File_PES_P_Context);
-
-      *phPESMux = hMux;
       rc = BERR_SUCCESS;
    } /* hMux != NULL */
    else
@@ -147,6 +145,20 @@ BERR_Code BMUXlib_File_PES_Create(BMUXlib_File_PES_Handle *phPESMux, const BMUXl
       rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
    }
 
+   {
+      BMUXlib_Input_CreateSettings stInputCreateSettings;
+      BMUXlib_Input_GetDefaultCreateSettings( &stInputCreateSettings );
+      rc = BMUXlib_Input_Create( &hMux->hInput, &stInputCreateSettings );
+      if ( BERR_SUCCESS != rc )
+      {
+         BMUXlib_File_PES_Destroy( hMux );
+      }
+   }
+
+   if ( BERR_SUCCESS == rc )
+   {
+      *phPESMux = hMux;
+   }
 
    BDBG_LEAVE(BMUXlib_File_PES_Create);
    return rc;
@@ -174,6 +186,13 @@ void BMUXlib_File_PES_Destroy(BMUXlib_File_PES_Handle hPESMux)
       b) has already been destroyed
    */
    BDBG_OBJECT_ASSERT(hPESMux, BMUXlib_File_PES_P_Context);
+
+   if ( NULL != hPESMux->hInput )
+   {
+      BMUXlib_Input_Destroy( hPESMux->hInput );
+      hPESMux->hInput = NULL;
+   }
+
    BDBG_OBJECT_DESTROY(hPESMux, BMUXlib_File_PES_P_Context);
 
    /* free the context ... */

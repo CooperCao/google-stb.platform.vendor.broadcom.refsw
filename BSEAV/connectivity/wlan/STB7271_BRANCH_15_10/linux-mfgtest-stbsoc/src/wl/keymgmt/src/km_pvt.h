@@ -233,7 +233,8 @@ struct km_ibss_scb {
 
 enum {
 	KM_SCB_FLAG_NONE	= 0x0000,
-	KM_SCB_FLAG_OWN_AMT = 0x0001
+	KM_SCB_FLAG_OWN_AMT	= 0x0001,
+	KM_SCB_FLAG_INIT	= 0x0002
 };
 typedef int16 km_scb_flags_t;
 

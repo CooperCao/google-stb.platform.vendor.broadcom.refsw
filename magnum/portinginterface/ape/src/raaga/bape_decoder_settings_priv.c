@@ -48,6 +48,8 @@
 BDBG_MODULE(bape_decoder_settings);
 BDBG_FILE_MODULE(bape_loudness);
 
+#define BAPE_INVALID_DSP_OUTPUTPORT     ((unsigned)-1)
+
 #if BAPE_CHIP_MAX_DECODERS
 static bool BAPE_Decoder_P_HasMultichannelOutput(
     BAPE_DecoderHandle handle
@@ -120,12 +122,20 @@ static bool BAPE_Decoder_P_HasMonoOutput(
     return handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMono].numValidOutputs > 0 ? true : false;
 }
 
+static bool BAPE_Decoder_P_HasAlternateStereoOutput(
+    BAPE_DecoderHandle handle
+    )
+{
+    return handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eAlternateStereo].numValidOutputs > 0 ? true : false;
+}
+
+
 static BAPE_ChannelMode BAPE_Decoder_P_GetChannelMode(BAPE_DecoderHandle handle)
 {
     return BAPE_DSP_P_GetChannelMode(handle->startSettings.codec, handle->settings.outputMode, BAPE_Decoder_P_HasMultichannelOutput(handle), handle->settings.multichannelFormat);
 }
 
-static void BAPE_Decoder_P_GetAFDecoderType(BAPE_DecoderHandle handle, BDSP_AF_P_DecoderType *pType)
+void BAPE_Decoder_P_GetAFDecoderType(BAPE_DecoderHandle handle, BDSP_AF_P_DecoderType *pType)
 {
     if ( handle->fwMixerMaster )
     {
@@ -223,22 +233,23 @@ static void BAPE_Decoder_P_GetDefaultAc4Settings(BAPE_DecoderHandle handle)
     handle->ac4Settings.codecSettings.ac4.selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIndex;
     handle->ac4Settings.codecSettings.ac4.programSelection = handle->userConfig.ac4.ui32MainAssocDec;
     handle->ac4Settings.codecSettings.ac4.programBalance = handle->userConfig.ac4.sUserOutputCfg[0].i32MainAssocMixPref;
-    handle->ac4Settings.codecSettings.ac4.presentationIndex = handle->userConfig.ac4.ui32PresentationNumber;
+    handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].presentationIndex = handle->userConfig.ac4.sUserOutputCfg[0].ui32PresentationNumber;
     handle->ac4Settings.codecSettings.ac4.dialogEnhancerAmount = handle->userConfig.ac4.sUserOutputCfg[0].i32DialogEnhGainInput;
 
     /* personalization settings */
-    handle->ac4Settings.codecSettings.ac4.preferLanguageOverAssociateType = (handle->userConfig.ac4.ui32PreferAssociateTypeOverLanguage == 0) ? 1 : 0;
-    handle->ac4Settings.codecSettings.ac4.preferredAssociateType = (BAPE_Ac4AssociateType)handle->userConfig.ac4.ui32PreferredAssociateType;
+    handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].preferLanguageOverAssociateType = (handle->userConfig.ac4.sUserOutputCfg[0].ui32PreferAssociateTypeOverLanguage == 0) ? true : false;
+    handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].preferredAssociateType = (BAPE_Ac4AssociateType)handle->userConfig.ac4.sUserOutputCfg[0].ui32PreferredAssociateType;
     handle->ac4Settings.codecSettings.ac4.enableAssociateMixing = (handle->userConfig.ac4.ui32EnableADMixing == 1)?true:false;
     for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
     {
-        handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage1[i/sizeof(uint32_t)] >> 8*(3-(i%4))) & 0xff);
+        handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].languagePreference[0].selection[i] = (char)((handle->userConfig.ac4.sUserOutputCfg[0].ui32PreferredLanguage1[i/sizeof(uint32_t)] >> 8*(3-(i%4))) & 0xff);
     }
     for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
     {
-        handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage2[i/sizeof(uint32_t)] >> 8*(3-(i%4))) & 0xff);
+        handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].languagePreference[1].selection[i] = (char)((handle->userConfig.ac4.sUserOutputCfg[0].ui32PreferredLanguage2[i/sizeof(uint32_t)] >> 8*(3-(i%4))) & 0xff);
     }
-    BKNI_Memset(handle->ac4Settings.codecSettings.ac4.presentationId, 0, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
+    BKNI_Memset(handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain].presentationId, 0, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
+    BKNI_Memcpy(&handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate], &handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain], sizeof(handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate]));
 }
 
 #if BDSP_MS12_SUPPORT
@@ -935,15 +946,20 @@ Certification mode parameters for AC4 Decoder
 #define BAPE_DOLBY_AC4_DECODEMODE_MASK          (0xe0000000)
 #define BAPE_DOLBY_AC4_DECODEMODE_SHIFT         (29)
 
+#define BAPE_DOLBY_AC4_MAX_OUTPUTPORTS          (3)
+
 static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE_Ac4Settings *pSettings)
 {
     bool lfe;
     bool forceDrcModes=false;
     BERR_Code errCode;
     BAPE_ChannelMode channelMode;
-    unsigned stereoOutputPort;
-    unsigned multichOutputPort;
+    unsigned numPorts, ports = 0;
+    unsigned stereoOutputPort = BAPE_INVALID_DSP_OUTPUTPORT;
+    unsigned multichOutputPort = BAPE_INVALID_DSP_OUTPUTPORT;
+    unsigned altStereoOutputPort = BAPE_INVALID_DSP_OUTPUTPORT;
     unsigned decodeMode = 0;
+    unsigned j;
 
     if ( handle->deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
     {
@@ -956,31 +972,28 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
         return BERR_TRACE(errCode);
     }
 
-    if ( BAPE_Decoder_P_HasStereoOutput(handle) && BAPE_Decoder_P_HasMultichannelOutput(handle) )
+    if ( BAPE_Decoder_P_HasMultichannelOutput(handle) )
     {
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32NumOutPorts, 2);
-        multichOutputPort = 0;
-        stereoOutputPort = 1;
+        multichOutputPort = ports++;
     }
-    else if ( BAPE_Decoder_P_HasStereoOutput(handle) )
+
+    if ( BAPE_Decoder_P_HasStereoOutput(handle) )
     {
-        /* only Stereo output port */
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32NumOutPorts, 1);
-        stereoOutputPort = 0;
-        multichOutputPort = 1; /* This will be populate values but not be used */
+        stereoOutputPort = ports++;
     }
-    else if ( BAPE_Decoder_P_HasMultichannelOutput(handle) )
+
+    if ( BAPE_Decoder_P_HasAlternateStereoOutput(handle) )
     {
-        /* only Multich output port */
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32NumOutPorts, 1);
-        multichOutputPort = 0;
-        stereoOutputPort = 1; /* This will be populate values but not be used */
+        altStereoOutputPort = ports++;
     }
-    else
+
+    if ( ports == 0 )
     {
         BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
+
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32NumOutPorts, ports);
 
     /* Determine output mode */
     lfe = handle->settings.outputLfe;
@@ -993,6 +1006,22 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
     /* Setup global parameters */
     BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.ac4.eDecoderType);
 
+    /* work some magic to allow generic configuration below */
+    numPorts = ports;
+    if ( multichOutputPort == BAPE_INVALID_DSP_OUTPUTPORT )
+    {
+        multichOutputPort = numPorts++; /* set to next port to allow configuration below */
+    }
+    if ( stereoOutputPort == BAPE_INVALID_DSP_OUTPUTPORT )
+    {
+        stereoOutputPort = numPorts++; /* set to next port to allow configuration below */
+    }
+    if ( altStereoOutputPort == BAPE_INVALID_DSP_OUTPUTPORT )
+    {
+        altStereoOutputPort = numPorts++; /* set to next port to allow configuration below */
+    }
+    BDBG_ASSERT(numPorts <= BDSP_RAAGA_AC4_NUM_OUTPUTPORTS);
+
     if ( handle->ddre && BAPE_Decoder_P_HasMultichannelOutput(handle) )
     {
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, eDolbyMSUsageMode, BDSP_AF_P_DolbyMsUsageMode_eMS12DecodeMode);
@@ -1003,7 +1032,9 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
     }
 
     /* Outputcfg[0] is used for multichannel if enabled otherwise is used for stereo */
-    BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, handle->userConfig.ac4.sUserOutputCfg[0].ui32OutputChannelMatrix);
+    BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, handle->userConfig.ac4.sUserOutputCfg[multichOutputPort].ui32OutputChannelMatrix);
+    BAPE_DSP_P_GetChannelMatrix(BAPE_ChannelMode_e2_0, false, handle->userConfig.ac4.sUserOutputCfg[stereoOutputPort].ui32OutputChannelMatrix);
+    BAPE_DSP_P_GetChannelMatrix(BAPE_ChannelMode_e2_0, false, handle->userConfig.ac4.sUserOutputCfg[altStereoOutputPort].ui32OutputChannelMatrix);
 
     /* To simplify setting UserOutputCfg settings for stereo and multichannel we will always have a valid index for
        multichannel and stereo outputs.  The index will be dependent on what outputs are connected but if only one
@@ -1088,6 +1119,15 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
     uint16_t drcScaleLowDownmix;    /* In %, ranges from 0..100 */
     #endif
 
+    /* replicate the Stereo settings to the Alt Stereo output as well */
+    BKNI_Memcpy(&handle->userConfig.ac4.sUserOutputCfg[altStereoOutputPort], &handle->userConfig.ac4.sUserOutputCfg[stereoOutputPort], sizeof(handle->userConfig.ac4.sUserOutputCfg[altStereoOutputPort]));
+
+    /* customize Multichannel path settings */
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[altStereoOutputPort].ui32ChannelConfig, 6);
+
+    /* customize Alt Stereo path settings */
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[altStereoOutputPort].ui32ChannelConfig, 3);
+
     BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32MainAssocDec, handle->ac4Settings.codecSettings.ac4.programSelection);
     decodeMode = (handle->ac4Settings.codecSettings.ac4.certificationMode & BAPE_DOLBY_AC4_DECODEMODE_MASK) >> BAPE_DOLBY_AC4_DECODEMODE_SHIFT;
     if ( decodeMode != 0 )
@@ -1117,86 +1157,97 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32AC4DecodeMode, decodeMode);
     }
 
-    /* decide how we select the presentation */
-    if ( handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_ePresentationIndex ||
-         handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_eAuto )
-    {
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PresentationNumber, handle->ac4Settings.codecSettings.ac4.presentationIndex);
-    }
-    else
-    {
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PresentationNumber, 0xffffffff);
-    }
-
-    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredIdentifierType, 0);
-    if ( handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_ePresentationIdentifier ||
-         handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_eAuto )
-    {
-        unsigned length = 0;
-
-        while ( length < BAPE_AC4_PRESENTATION_ID_LENGTH && handle->ac4Settings.codecSettings.ac4.presentationId[length] != '\0' )
-        {
-            length++;
-        }
-
-        if ( length == 2 || length == 1 )
-        {
-            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredIdentifierType, 1);
-        }
-        else if ( length == 16 )
-        {
-            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredIdentifierType, 2);
-        }
-        else if ( length > 0 )
-        {
-            BDBG_WRN(("WARNING: Invalid Presentation ID length %d.  Valid lengths are 2 chars or 16 chars, selection by Presentation Id will not be prioritized and language or associate will be used instead.", length));
-        }
-        /* Presentation id will be set below with personalization settings */
-    }
-
-    /* personalization settings */
-    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferAssociateTypeOverLanguage, handle->ac4Settings.codecSettings.ac4.preferLanguageOverAssociateType ? 0 : 1);
-    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredAssociateType, (uint32_t)handle->ac4Settings.codecSettings.ac4.preferredAssociateType);
     BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32EnableADMixing, handle->ac4Settings.codecSettings.ac4.enableAssociateMixing?1:0);
+
+    for ( j = 0; j < ports; j++ )
     {
-        unsigned i;
-        uint32_t preferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
-        uint32_t preferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
-        uint32_t presId[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH] = {0};
-        BDBG_MSG(("Preferred Languages: 1) \"%s\", 2) \"%s\"",
-                  handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection,
-                  handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection));
-        BDBG_MSG(("Presentation Id: \"%s\"", handle->ac4Settings.codecSettings.ac4.presentationId));
-        for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+        unsigned config = (unsigned)BAPE_Ac4Program_eMain;
+        if ( j == altStereoOutputPort )
         {
-            preferredLanguage1[i/sizeof(uint32_t)] = preferredLanguage1[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] << 8*(3-(i%4)) );
+            config = (unsigned)BAPE_Ac4Program_eAlternate;
         }
-        for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+
+        /* decide how we select the presentation */
+        if ( handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_ePresentationIndex ||
+             handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_eAuto )
         {
-            preferredLanguage2[i/sizeof(uint32_t)] = preferredLanguage2[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] << 8*(3-(i%4)) );
-        }
-        if ( handle->userConfig.ac4.ui32PreferredIdentifierType == 1 ) /* short id */
-        {
-            presId[0] = handle->ac4Settings.codecSettings.ac4.presentationId[0];
-            presId[0] |= handle->ac4Settings.codecSettings.ac4.presentationId[1] << 8;
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PresentationNumber, handle->ac4Settings.codecSettings.ac4.programs[config].presentationIndex);
         }
         else
         {
-            for ( i = 0; i < BAPE_AC4_PRESENTATION_ID_LENGTH; i++ )
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PresentationNumber, 0xffffffff);
+        }
+
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PreferredIdentifierType, 0);
+        if ( handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_ePresentationIdentifier ||
+             handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_eAuto )
+        {
+            unsigned length = 0;
+
+            while ( length < BAPE_AC4_PRESENTATION_ID_LENGTH && handle->ac4Settings.codecSettings.ac4.programs[config].presentationId[length] != '\0' )
             {
-                presId[i / sizeof(uint32_t)] = presId[i / sizeof(uint32_t)] | ((uint32_t)handle->ac4Settings.codecSettings.ac4.presentationId[i] << 8 * (3 - (i % 4)));
+                length++;
+            }
+
+            if ( length == 2 || length == 1 )
+            {
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PreferredIdentifierType, 1);
+            }
+            else if ( length == 16 )
+            {
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PreferredIdentifierType, 2);
+            }
+            else if ( length > 0 )
+            {
+                BDBG_WRN(("WARNING: Invalid Presentation ID length %d.  Valid lengths are 2 chars or 16 chars, selection by Presentation Id will not be prioritized and language or associate will be used instead.", length));
+            }
+            /* Presentation id will be set below with personalization settings */
+        }
+
+        /* personalization settings */
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PreferAssociateTypeOverLanguage, handle->ac4Settings.codecSettings.ac4.programs[config].preferLanguageOverAssociateType ? 0 : 1);
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PreferredAssociateType, (uint32_t)handle->ac4Settings.codecSettings.ac4.programs[config].preferredAssociateType);
+        {
+            unsigned i;
+            uint32_t preferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
+            uint32_t preferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
+            uint32_t presId[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH] = {0};
+            BDBG_MSG(("Preferred Languages: 1) \"%s\", 2) \"%s\"",
+                      handle->ac4Settings.codecSettings.ac4.programs[config].languagePreference[0].selection,
+                      handle->ac4Settings.codecSettings.ac4.programs[config].languagePreference[1].selection));
+            BDBG_MSG(("Presentation Id: \"%s\"", handle->ac4Settings.codecSettings.ac4.programs[config].presentationId));
+            for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+            {
+                preferredLanguage1[i/sizeof(uint32_t)] = preferredLanguage1[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.programs[config].languagePreference[0].selection[i] << 8*(3-(i%4)) );
+            }
+            for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+            {
+                preferredLanguage2[i/sizeof(uint32_t)] = preferredLanguage2[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.programs[config].languagePreference[1].selection[i] << 8*(3-(i%4)) );
+            }
+            if ( handle->userConfig.ac4.sUserOutputCfg[j].ui32PreferredIdentifierType == 1 ) /* short id */
+            {
+                presId[0] = handle->ac4Settings.codecSettings.ac4.programs[config].presentationId[0];
+                presId[0] |= handle->ac4Settings.codecSettings.ac4.programs[config].presentationId[1] << 8;
+            }
+            else
+            {
+                for ( i = 0; i < BAPE_AC4_PRESENTATION_ID_LENGTH; i++ )
+                {
+                    presId[i / sizeof(uint32_t)] = presId[i / sizeof(uint32_t)] | ((uint32_t)handle->ac4Settings.codecSettings.ac4.programs[config].presentationId[i] << 8 * (3 - (i % 4)));
+                }
+            }
+            for ( i = 0; i < AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH; i++ )
+            {
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PreferredLanguage1[i], preferredLanguage1[i]);
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], ui32PreferredLanguage2[i], preferredLanguage2[i]);
+            }
+            for ( i = 0; i < AC4_DEC_PROGRAM_IDENTIFIER_LENGTH; i++ )
+            {
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4.sUserOutputCfg[j], i32PreferredProgramID[i], presId[i]);
             }
         }
-        for ( i = 0; i < AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH; i++ )
-        {
-            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage1[i], preferredLanguage1[i]);
-            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage2[i], preferredLanguage2[i]);
-        }
-        for ( i = 0; i < AC4_DEC_PROGRAM_IDENTIFIER_LENGTH; i++ )
-        {
-            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32PreferredProgramID[i], presId[i]);
-        }
     }
+
     errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4));
     if ( errCode )
     {
@@ -1223,23 +1274,17 @@ static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
         return BERR_TRACE(errCode);
     }
 
-    else if ( handle->fwMixer && handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eDescription )
+    BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.aac.eDecoderType);
+
+    if ( handle->ddre && (handle->userConfig.aac.eDecoderType == BDSP_AF_P_DecoderType_ePrimary ||
+                          handle->userConfig.aac.eDecoderType == BDSP_AF_P_DecoderType_eSecondary ) )
     {
         handle->userConfig.aac.eDolbyAacheUsageMode = BDSP_AF_P_DolbyMsUsageMode_eMS12DecodeMode;
     }
     else
     {
-        if ( pSettings->mpegConformanceMode )
-        {
-            handle->userConfig.aac.eDolbyAacheUsageMode = BDSP_AF_P_DolbyMsUsageMode_eMpegConformanceMode;
-        }
-        else
-        {
-            handle->userConfig.aac.eDolbyAacheUsageMode = BDSP_AF_P_DolbyMsUsageMode_eSingleDecodeMode;
-        }
+        handle->userConfig.aac.eDolbyAacheUsageMode = BDSP_AF_P_DolbyMsUsageMode_eSingleDecodeMode;
     }
-
-    BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.aac.eDecoderType);
 
     /* Force RF mode for loudness equivalence.  This will normalize output level at -20dB.  */
     BDBG_MSG(("Loudness Management Active for Dolby AacHe"));

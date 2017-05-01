@@ -82,7 +82,7 @@ all: $(BCM_OBJ_PATH)
 	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) modules srctree=$(LINUX) ARCH=$(B_REFSW_LINUX_ARCH) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
 
 clean: $(BCM_OBJ_PATH)
-	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) clean
+	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) ARCH=$(B_REFSW_LINUX_ARCH) clean
 	${Q_}rm $(BCM_OBJ_PATH)/*.c $(BCM_OBJ_PATH)/*.h $(BCM_OBJ_PATH)/Makefile
 
 .PHONY: $(BCM_OBJ_PATH)

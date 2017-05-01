@@ -46,6 +46,9 @@ static int wl_mfp_deauth(void *wl, cmd_t *cmd, char **argv);
 static int wl_mfp_assoc(void *wl, cmd_t *cmd, char **argv);
 static int wl_mfp_auth(void *wl, cmd_t *cmd, char **argv);
 static int wl_mfp_reassoc(void *wl, cmd_t *cmd, char **argv);
+#ifdef BCMINTDBG
+static int wl_mfp_bip_test(void *wl, cmd_t *cmd, char **argv);
+#endif
 
 static cmd_t wl_mfp_cmds[] = {
 	{ "mfp_config", wl_mfp_config, -1, WLC_SET_VAR,
@@ -72,6 +75,11 @@ static cmd_t wl_mfp_cmds[] = {
 	{ "mfp_reassoc", wl_mfp_reassoc, WLC_GET_VAR, WLC_SET_VAR,
 	"send reassoc\n"
 	"\tUsage: wl mfp_reassoc"},
+#ifdef BCMINTDBG
+	{ "mfp_bip_test", wl_mfp_bip_test, WLC_GET_VAR, WLC_SET_VAR,
+	"bip test\n"
+	"\tUsage: wl mfp_bip_test"},
+#endif
 	{ NULL, NULL, 0, 0, NULL }
 };
 
@@ -339,3 +347,32 @@ wl_mfp_reassoc(void *wl, cmd_t *cmd, char **argv)
 
 	return err;
 }
+
+#ifdef BCMINTDBG
+static int
+wl_mfp_bip_test(void *wl, cmd_t *cmd, char **argv)
+{
+	const char *cmdname = "mfp_bip_test";
+	int argc;
+	int	flag;
+	char varbuf[256];
+	int err;
+
+	UNUSED_PARAMETER(cmd);
+	memset(varbuf, 0, 256);
+
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++)
+		;
+
+	/* add the action */
+	if (argc > 1 && argv[1]) {
+		flag = htod32(atoi(argv[1]));
+		*(int *)varbuf = flag;
+	}
+
+	err = wlu_iovar_set(wl, cmdname, varbuf, 256);
+
+	return err;
+}
+#endif /* BCMINTDBG */

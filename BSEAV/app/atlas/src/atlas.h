@@ -59,6 +59,8 @@ extern "C" {
 #define MAX(x, y)  (((x) < (y)) ? (y) : (x))
 #undef ABS
 #define ABS(x)     (((x) < 0) ? -(x) : (x))
+#undef ROUND
+#define ROUND(x) ((int)((x) + 0.5))
 
 #define COLOR_STEP              0x000a0a0a
 #define COLOR_BLACK             0xFF000000
@@ -87,6 +89,14 @@ extern "C" {
 #define COLOR_RED               0xFFCC2C2E
 #define COLOR_RED_LIGHT         0xFFFF3739
 #define COLOR_RED_DARK          0xFF992122
+
+/* percent 0-1000 == 0%-100.0% */
+#define SCALE_RECT_PERCENT(rectBase, rectPercent)                            \
+    MRect( \
+        (0 == (rectPercent).x())      ? rectBase.x()      : rectBase.x() + ROUND(rectBase.width()  * (rectPercent.x()) / 1000.0), \
+        (0 == (rectPercent).y())      ? rectBase.y()      : rectBase.y() + ROUND(rectBase.height() * (rectPercent.y()) / 1000.0), \
+        (0 == (rectPercent).width())  ? rectBase.width()  : ROUND(rectBase.width()  * (rectPercent).width()  / 1000.0), \
+        (0 == (rectPercent).height()) ? rectBase.height() : ROUND(rectBase.height() * (rectPercent).height() / 1000.0));
 
 /* Atlas error codes */
 typedef enum eRet

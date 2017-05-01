@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "sched_nexus.h"
 #include "platform_common.h"
@@ -489,13 +489,14 @@ static BEGL_SchedStatus Query(
    return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
 }
 
-static int MakeFenceForJobs(void *session,
+int MakeFenceForJobs(void *context,
    const struct bcm_sched_dependencies *completed_deps,
    const struct bcm_sched_dependencies *finalised_deps,
    bool force_create)
 {
-   int fence;
-   if (NEXUS_Graphicsv3d_MakeFenceForJobs(session,
+   int            fence;
+   SchedContext   *ctx  = (SchedContext *)context;
+   if (NEXUS_Graphicsv3d_MakeFenceForJobs(ctx->session,
       (const NEXUS_Graphicsv3dSchedDependencies *)completed_deps,
       (const NEXUS_Graphicsv3dSchedDependencies *)finalised_deps,
       force_create,
@@ -508,10 +509,27 @@ static int MakeFenceForJobs(void *session,
    return fence;
 }
 
-static int MakeFenceForAnyNonFinalizedJob(void *session)
+int MakeFenceForAnyNonFinalizedJob(void *context)
 {
    int fence;
-   NEXUS_Error err = NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(session, &fence);
+   SchedContext   *ctx  = (SchedContext *)context;
+   NEXUS_Error err = NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(ctx->session, &fence);
+   if (err != NEXUS_SUCCESS)
+      abort();
+   return fence;
+}
+
+int MakeFenceForAnyJob(void *context,
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps)
+{
+   int            fence;
+   SchedContext   *ctx  = (SchedContext *)context;
+   NEXUS_Error    err   = NEXUS_Graphicsv3d_MakeFenceForAnyJob(ctx->session,
+                           (const NEXUS_Graphicsv3dSchedDependencies *)completed_deps,
+                           (const NEXUS_Graphicsv3dSchedDependencies *)finalised_deps,
+                           &fence);
+
    if (err != NEXUS_SUCCESS)
       abort();
    return fence;
@@ -710,6 +728,59 @@ static void CloseFence(void *context, int fence)
    {
       NEXUS_Graphicsv3d_FenceClose(ctx->session, fence);
    }
+}
+
+static bool WaitForAnyNonFinalisedJob(void *context)
+{
+   int fence = MakeFenceForAnyNonFinalizedJob(context);
+
+   if (fence != -1)
+   {
+      WaitFence(context, fence);
+      CloseFence(context, fence);
+   }
+
+   return fence != -1;
+}
+
+static void WaitJobs(void *context,
+      const struct bcm_sched_dependencies *completed_deps,
+      const struct bcm_sched_dependencies *finalised_deps)
+{
+   int            fence = MakeFenceForJobs(context, completed_deps, finalised_deps, false);
+   if (fence != -1)
+   {
+      WaitFence(context, fence);
+      CloseFence(context, fence);
+   }
+}
+
+static BEGL_FenceStatus WaitJobsTimeout(void *context,
+      const struct bcm_sched_dependencies *completed_deps,
+      const struct bcm_sched_dependencies *finalised_deps,
+      uint32_t timeoutms)
+{
+   int fence = MakeFenceForJobs(context, completed_deps, finalised_deps, false);
+   if (fence == -1)
+      return BEGL_FenceSignaled; /* dependency done */
+
+   BEGL_FenceStatus status = WaitFenceTimeout(context, fence, timeoutms);
+   CloseFence(context, fence);
+   return status;
+}
+
+static BEGL_FenceStatus WaitForAnyJobTimeout(void *context,
+      const struct bcm_sched_dependencies *completed_deps,
+      const struct bcm_sched_dependencies *finalised_deps,
+      uint32_t timeoutms)
+{
+   int fence = MakeFenceForAnyJob(context, completed_deps, finalised_deps);
+   if (fence == -1)
+      return BEGL_FenceSignaled; /* dependency done */
+
+   BEGL_FenceStatus status = WaitFenceTimeout(context, fence, timeoutms);
+   CloseFence(context, fence);
+   return status;
 }
 
 static void GetInfo(void *context, void *session, struct v3d_idents *info)
@@ -926,7 +997,6 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    /* iface->PollComplete     = PollComplete; */
    iface->Query            = Query;
    iface->MakeFenceForJobs = MakeFenceForJobs;
-   iface->MakeFenceForAnyNonFinalizedJob = MakeFenceForAnyNonFinalizedJob;
    iface->WaitFence        = WaitFence;
    iface->WaitFenceTimeout = WaitFenceTimeout;
    iface->CloseFence       = CloseFence;
@@ -934,6 +1004,11 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    iface->MakeFence        = MakeFence;
    iface->KeepFence        = KeepFence;
    iface->SignalFence      = SignalFence;
+
+   iface->WaitForAnyNonFinalisedJob = WaitForAnyNonFinalisedJob;
+   iface->WaitJobs                  = WaitJobs;
+   iface->WaitJobsTimeout           = WaitJobsTimeout;
+   iface->WaitForAnyJobTimeout      = WaitForAnyJobTimeout;
 
    iface->GetInfo          = GetInfo;
 

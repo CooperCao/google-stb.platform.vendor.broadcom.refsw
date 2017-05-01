@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "../../egl_display.h"
 #include "../../egl_surface.h"
@@ -28,7 +22,7 @@ FILE DESCRIPTION
 struct egl_window_surface
 {
    EGL_SURFACE_T base;                       /* The driver's internal surface data */
-   KHRN_IMAGE_T  *active_image;              /* The current back buffer as a KHRN_IMAGE_T */
+   khrn_image  *active_image;              /* The current back buffer as a khrn_image */
    void          *native_back_buffer;        /* The current back buffer surface (opaque) */
    void          *native_window_state;       /* Opaque data that the platform ties to the native window */
 };
@@ -78,7 +72,7 @@ static bool dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
       return true;
 
    uint64_t job_id = v3d_scheduler_submit_wait_fence(fence);
-   khrn_interlock_job_replace(khrn_image_get_interlock(surf->active_image), job_id);
+   khrn_resource_job_replace(khrn_image_get_resource(surf->active_image), job_id);
 
    return true;
 }
@@ -153,7 +147,7 @@ static void get_dimensions(EGL_SURFACE_T *surface, unsigned *width, unsigned *he
 }
 
 /* Get the buffer to draw to */
-static KHRN_IMAGE_T *get_back_buffer(const EGL_SURFACE_T *surface)
+static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
 {
    EGL_WINDOW_SURFACE_T *surf = (EGL_WINDOW_SURFACE_T *) surface;
 
@@ -185,10 +179,10 @@ static void delete_fn(EGL_SURFACE_T *surface)
 
             egl_context_gl_lock();
 
-            KHRN_INTERLOCK_T *interlock = khrn_image_get_interlock(surf->active_image);
+            khrn_resource *resource = khrn_image_get_resource(surf->active_image);
             /* we should have flushed by now (when the surface stopped being current) */
-            assert(!khrn_interlock_has_reader_or_writer(interlock));
-            deps = &interlock->pre_write;
+            assert(!khrn_resource_has_reader_or_writer(resource));
+            deps = &resource->pre_write;
 
             egl_context_gl_unlock();
 
@@ -328,26 +322,13 @@ static void swap_interval(EGL_SURFACE_T *surface, int interval)
       platform->SetSwapInterval(platform->context, surf->native_window_state, interval);
 }
 
-static bool get_attrib(const EGL_SURFACE_T *surface, EGLint attrib,
-      EGLAttribKHR *value)
-{
-   return egl_surface_base_get_attrib(surface, attrib, value);
-}
-
-static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib,
-      EGLAttribKHR value)
-{
-   return egl_surface_base_set_attrib(surface, attrib, value);
-}
-
-
 static EGL_SURFACE_METHODS_T fns =
 {
-   get_back_buffer,
-   swap_buffers,
-   swap_interval,
-   get_dimensions,
-   get_attrib,
-   set_attrib,
-   delete_fn
+   .get_back_buffer = get_back_buffer,
+   .swap_buffers = swap_buffers,
+   .swap_interval = swap_interval,
+   .get_dimensions = get_dimensions,
+   .get_attrib = NULL,
+   .set_attrib = NULL,
+   .delete_fn = delete_fn,
 };

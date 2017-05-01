@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:08 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,18 +70,18 @@
 /***************************************************************************
  *MPM_CPU_L2 - CPU L2 Interrupt Controller Registers
  ***************************************************************************/
-#define BCHP_MPM_CPU_L2_STATUS0                  0x20d82100 /* [RO] MPM CPU Interrupt Status Register */
-#define BCHP_MPM_CPU_L2_SET0                     0x20d82104 /* [WO] MPM CPU Interrupt Set Register */
-#define BCHP_MPM_CPU_L2_CLEAR0                   0x20d82108 /* [WO] MPM CPU Interrupt Clear Register */
-#define BCHP_MPM_CPU_L2_MASK_STATUS0             0x20d8210c /* [RO] MPM CPU Interrupt Mask Status Register */
-#define BCHP_MPM_CPU_L2_MASK_SET0                0x20d82110 /* [WO] MPM CPU Interrupt Mask Set Register */
-#define BCHP_MPM_CPU_L2_MASK_CLEAR0              0x20d82114 /* [WO] MPM CPU Interrupt Mask Clear Register */
-#define BCHP_MPM_CPU_L2_UNUSED_STATUS1           0x20d82118 /* [RO] Unused register */
-#define BCHP_MPM_CPU_L2_UNUSED_SET1              0x20d8211c /* [WO] Unused register */
-#define BCHP_MPM_CPU_L2_UNUSED_CLEAR1            0x20d82120 /* [WO] Unused register */
-#define BCHP_MPM_CPU_L2_UNUSED_MASK_STATUS1      0x20d82124 /* [RO] Unused register */
-#define BCHP_MPM_CPU_L2_UNUSED_MASK_SET1         0x20d82128 /* [WO] Unused register */
-#define BCHP_MPM_CPU_L2_UNUSED_MASK_CLEAR1       0x20d8212c /* [WO] Unused register */
+#define BCHP_MPM_CPU_L2_STATUS0                  0x20d82100 /* [RO][32] MPM CPU Interrupt Status Register */
+#define BCHP_MPM_CPU_L2_SET0                     0x20d82104 /* [WO][32] MPM CPU Interrupt Set Register */
+#define BCHP_MPM_CPU_L2_CLEAR0                   0x20d82108 /* [WO][32] MPM CPU Interrupt Clear Register */
+#define BCHP_MPM_CPU_L2_MASK_STATUS0             0x20d8210c /* [RO][32] MPM CPU Interrupt Mask Status Register */
+#define BCHP_MPM_CPU_L2_MASK_SET0                0x20d82110 /* [WO][32] MPM CPU Interrupt Mask Set Register */
+#define BCHP_MPM_CPU_L2_MASK_CLEAR0              0x20d82114 /* [WO][32] MPM CPU Interrupt Mask Clear Register */
+#define BCHP_MPM_CPU_L2_UNUSED_STATUS1           0x20d82118 /* [RO][32] Unused register */
+#define BCHP_MPM_CPU_L2_UNUSED_SET1              0x20d8211c /* [WO][32] Unused register */
+#define BCHP_MPM_CPU_L2_UNUSED_CLEAR1            0x20d82120 /* [WO][32] Unused register */
+#define BCHP_MPM_CPU_L2_UNUSED_MASK_STATUS1      0x20d82124 /* [RO][32] Unused register */
+#define BCHP_MPM_CPU_L2_UNUSED_MASK_SET1         0x20d82128 /* [WO][32] Unused register */
+#define BCHP_MPM_CPU_L2_UNUSED_MASK_CLEAR1       0x20d8212c /* [WO][32] Unused register */
 
 /***************************************************************************
  *STATUS0 - MPM CPU Interrupt Status Register

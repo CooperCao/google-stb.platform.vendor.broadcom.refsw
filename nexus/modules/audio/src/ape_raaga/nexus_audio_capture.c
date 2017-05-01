@@ -66,7 +66,7 @@ typedef struct NEXUS_AudioCapture
     int bufferSize, rptr, wptr, bufferDepth; */
     NEXUS_IsrCallbackHandle dataCallback, sampleRateCallback;
     unsigned sampleRate;
-    size_t fifoSize; 
+    size_t fifoSize;  /* PI capture fifo size (per channel pair) */
     char name[16];   /* AUDIO CAPTURE %d */
     BMMA_Heap_Handle fifoMem; /* heap used for fifo */
 
@@ -116,6 +116,7 @@ void NEXUS_AudioCapture_GetDefaultOpenSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     BAPE_OutputCapture_GetDefaultOpenSettings(&piSettings);
     pSettings->fifoSize = piSettings.bufferSize;
+    pSettings->threshold = piSettings.watermarkThreshold;
     pSettings->multichannelFormat = NEXUS_AudioMultichannelFormat_eStereo;
 }
 
@@ -211,24 +212,25 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
     {
     case NEXUS_AudioMultichannelFormat_eStereo:
         openSettings.numBuffers = 1;
-        openSettings.bufferSize = pSettings->fifoSize;
         break;
     case NEXUS_AudioMultichannelFormat_e5_1:
         openSettings.numBuffers = 3;
-        openSettings.bufferSize = pSettings->fifoSize/3;
         break;
     default:
         BDBG_ERR(("Unsupported multichannel format %u", pSettings->multichannelFormat));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);
         goto err_param;
     }
+
+    openSettings.bufferSize = pSettings->fifoSize/openSettings.numBuffers;
+
     if ( pSettings->threshold )
     {
         switch ( pSettings->format )
         {
         case NEXUS_AudioCaptureFormat_e16BitStereo:
         case NEXUS_AudioCaptureFormat_eCompressed:
-            openSettings.watermarkThreshold = (pSettings->threshold * 2) & (~255);
+            openSettings.watermarkThreshold = (pSettings->threshold/2) & (~255);
             break;
         case NEXUS_AudioCaptureFormat_e24BitStereo:
             openSettings.watermarkThreshold = pSettings->threshold & (~255);
@@ -236,10 +238,10 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
         case NEXUS_AudioCaptureFormat_e16BitMonoLeft:
         case NEXUS_AudioCaptureFormat_e16BitMonoRight:
         case NEXUS_AudioCaptureFormat_e16BitMono:
-            openSettings.watermarkThreshold = (pSettings->threshold * 4) & (~255);
+            openSettings.watermarkThreshold = (pSettings->threshold/4) & (~255);
             break;
         case NEXUS_AudioCaptureFormat_e24Bit5_1:
-            openSettings.watermarkThreshold = (pSettings->threshold / 3) & (~255);
+            openSettings.watermarkThreshold = (pSettings->threshold) & (~255);
             break;
         default:
             BDBG_ERR(("Unsupported capture format %u", pSettings->format));
@@ -286,7 +288,7 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
         goto err_ape_handle;
     }
 
-    handle->fifoBlock = BMMA_Alloc(handle->fifoMem, pSettings->fifoSize, 0, NULL);
+    handle->fifoBlock = BMMA_Alloc(handle->fifoMem, pSettings->fifoSize * openSettings.numBuffers, 0, NULL);
     if ( NULL == handle->fifoBlock )
     {
         (void)BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -955,11 +957,11 @@ static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessor
         }
 
         BMMA_FlushCache(bufferDescriptor.buffers[0].block, bufferDescriptor.buffers[0].pBuffer, bufferSize);
-        BMMA_FlushCache(bufferDescriptor.buffers[1].block, bufferDescriptor.buffers[1].pBuffer, bufferSize);
         BMMA_FlushCache(bufferDescriptor.buffers[2].block, bufferDescriptor.buffers[2].pBuffer, bufferSize);
+        BMMA_FlushCache(bufferDescriptor.buffers[4].block, bufferDescriptor.buffers[4].pBuffer, bufferSize);
         pSource0 = bufferDescriptor.buffers[0].pBuffer;
-        pSource1 = bufferDescriptor.buffers[1].pBuffer;
-        pSource2 = bufferDescriptor.buffers[2].pBuffer;
+        pSource1 = bufferDescriptor.buffers[2].pBuffer;
+        pSource2 = bufferDescriptor.buffers[4].pBuffer;
         copied = 0;
         while ( bufferSize >= 8 )
         {

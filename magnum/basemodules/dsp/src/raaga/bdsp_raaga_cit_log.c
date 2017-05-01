@@ -202,6 +202,7 @@ static const char AlgoIdEnum2Char[BDSP_AF_P_AlgoId_eMax+1][MAX_CHAR_LENGTH] =
     {"Output Formatter"},
     {"Vocal PostProc"},
     {"Fade Control"},
+	{"TsmCorrectionPostProc"},
     {"EndOfPpAlgos"},
     {"MixerFrameSync"},
     {"MixerDapv2FrameSync"},

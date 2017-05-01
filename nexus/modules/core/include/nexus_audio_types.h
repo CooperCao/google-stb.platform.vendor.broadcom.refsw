@@ -119,6 +119,7 @@ typedef enum NEXUS_AudioConnectorType
     NEXUS_AudioConnectorType_eCompressed16x,    /* Compressed IEC-61937 audio for HDMI HBR packets up to 768kHz.  Typically used for MAT/MLP (Dolby TrueHD)
                                                    and DTS-HD MA audio formats.  Available in HDMI 1.3 and later. */
     NEXUS_AudioConnectorType_eMono,             /* Mono (1.0) PCM output.  This data type is not commonly used, and is generally only for voice conferencing applications. */
+    NEXUS_AudioConnectorType_eAlternateStereo,  /* Alternate Stereo PCM output. This is intended for decoders that can generate multiple decoded outputs from a single PID (AC4, etc) */
     NEXUS_AudioConnectorType_eMax
 } NEXUS_AudioConnectorType;
 
@@ -477,6 +478,7 @@ typedef enum NEXUS_AudioPostProcessing
     NEXUS_AudioPostProcessing_eBtsc,
     NEXUS_AudioPostProcessing_eFade,
     NEXUS_AudioPostProcessing_eKaraokeVocal,
+    NEXUS_AudioPostProcessing_eAdvancedTsm,
     NEXUS_AudioPostProcessing_eMax
 } NEXUS_AudioPostProcessing;
 
@@ -491,6 +493,19 @@ typedef enum NEXUS_AudioLoudnessDeviceMode
     NEXUS_AudioLoudnessDeviceMode_ePassive, /* Output will always be treated as a passive output */
     NEXUS_AudioLoudnessDeviceMode_eMax
 } NEXUS_AudioLoudnessDeviceMode;
+
+
+/***************************************************************************
+Summary:
+Audio Running State
+**************************************************************************/
+typedef enum NEXUS_AudioRunningState
+{
+    NEXUS_AudioRunningState_eStopped,
+    NEXUS_AudioRunningState_eStarted,
+    NEXUS_AudioRunningState_eSuspended,
+    NEXUS_AudioRunningState_eMax
+} NEXUS_AudioRunningState;
 
 /***************************************************************************
 Summary:
@@ -542,6 +557,12 @@ typedef struct NEXUS_AudioMixerInputSettings
        when using Dsp Mixing (mixUsingDsp=true). These settings will be ignored in
        all other mixer configurations */
     NEXUS_AudioFadeSettings fade;
+
+    bool sampleRateConversionEnabled;   /* expert setting -- omit SRC HW for this mixer input. This can be used
+                                           to optimize HW resources for fixed samplerate usage cases. This setting
+                                           will not take effect until the next time this path to the mixer is started.
+                                           This configuration is honored for intermediate mixers only. Default is true. */
+
 } NEXUS_AudioMixerInputSettings;
 
 /***************************************************************************

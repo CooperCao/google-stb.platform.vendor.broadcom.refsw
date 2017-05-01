@@ -728,6 +728,7 @@ void BVDC_P_HdDvi_Init
             break;
         case BCHP_HD_DVI_0_HW_CONFIGURATION_CLOCK_FREQ_CLOCK_648:
             hHdDvi->ulSystemClock = BVDC_P_648_SYSCLK;
+            hHdDvi->hSource->bIs2xClk = true;
             break;
         default:
             hHdDvi->ulSystemClock = BVDC_P_BVB_BUS_CLOCK;

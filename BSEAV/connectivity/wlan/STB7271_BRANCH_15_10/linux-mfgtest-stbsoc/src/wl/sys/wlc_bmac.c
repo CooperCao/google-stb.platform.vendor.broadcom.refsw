@@ -696,6 +696,9 @@ static void wlc_bmac_led_hw_init(wlc_hw_info_t *wlc_hw);
 static void wlc_flushqueues(wlc_hw_info_t *wlc_hw);
 
 static void wlc_write_mhf(wlc_hw_info_t *wlc_hw, uint16 *mhfs);
+#if defined(BCMINTDBG)
+static void wlc_bmac_mctrl1(struct wlc_hw_info *wlc_hw, uint32 mask, uint32 val);
+#endif
 #if defined(WL_PSMX)
 static void wlc_mctrlx_reset(wlc_hw_info_t *wlc_hw);
 static void wlc_bmac_mctrlx(wlc_hw_info_t *wlc_hw, uint32 mask, uint32 val);
@@ -1522,7 +1525,7 @@ wlc_print_ge80_phy_rxhdr(wlc_info_t *wlc, d11rxhdr_ge80_t *ge80_rxh)
 	printf("PHY RXS [5]: 0x%x\n", ge80_rxh->PhyRxStatus_5);
 
 	/* Printing remaining (N_PRXS_REM) Phy Rxstatus words */
-	for (i = 0; i <= N_PRXS_REM; i++)
+	for (i = 0; i < N_PRXS_REM; i++)
 		printf("PHY RXS [%d]: 0x%x\n", (i + N_PRXS_LT80),
 			ge80_rxh->phyrxs_rem[i]);
 }
@@ -5966,7 +5969,9 @@ good_phy:
 		goto fail;
 	}
 #endif
-	wlc_bmac_register_dumps(wlc_hw);
+	if (wlc_hw->dump != NULL) {
+		wlc_bmac_register_dumps(wlc_hw);
+	}
 
 	if (wlc_bmac_rsdb_cap(wlc_hw)) {
 		wlc_hw->templatebase =
@@ -6841,6 +6846,11 @@ wlc_clkctl_clk(wlc_hw_info_t *wlc_hw, uint mode)
 				OR_REG(wlc_hw->osh, &wlc_hw->regs->clk_ctl_st, CCS_FORCEHT);
 
 				OSL_DELAY(64);
+				if (wlc_hw->sih->pmurev >= 0x1c) {
+					/* Need one more ILP clock cycle do forceht after a
+					 * d11 reset. */
+					OSL_DELAY(32);
+				}
 
 				SPINWAIT(((R_REG(wlc_hw->osh, &wlc_hw->regs->clk_ctl_st) &
 				           CCS_HTAVAIL) == 0), PMU_MAX_TRANSITION_DLY);
@@ -7047,9 +7057,11 @@ wlc_bmac_mhf(wlc_hw_info_t *wlc_hw, uint8 idx, uint16 mask, uint16 val, int band
 		 * changed band is the current band
 		 */
 		if (wlc_hw->clk && (band->mhfs[idx] != save) && (band == wlc_hw->band)) {
-			if (idx < MXHF0)
+			if (idx < MHFMAX)
 				wlc_bmac_write_shm(wlc_hw, addr[idx], (uint16)band->mhfs[idx]);
 #if defined(WL_PSMX)
+			else if (idx < MXHF0)
+				ASSERT(0);
 			else if (PSMX_HWCAP(wlc_hw->wlc->pub)) {
 				wlc_bmac_write_shmx(wlc_hw, addrx[idx-MXHF0],
 					(uint16)band->mhfs[idx]);
@@ -7196,6 +7208,20 @@ void wlc_get_avb_timestamp(wlc_hw_info_t *wlc_hw, uint32* ptx, uint32* prx)
 }
 #endif /* WL_PROXDETECT */
 
+#if defined(BCMINTDBG)
+static void
+wlc_bmac_mctrl1(wlc_hw_info_t *wlc_hw, uint32 mask, uint32 val)
+{
+	osl_t *osh = wlc_hw->osh;
+	d11regs_t *regs = wlc_hw->regs;
+	uint32 maccontrol;
+
+	ASSERT((val & ~mask) == 0);
+
+	maccontrol = (R_REG(osh, &regs->maccontrol1) & ~mask) | val;
+	W_REG(osh, &regs->maccontrol1, maccontrol);
+}
+#endif 
 
 /**
  * set the maccontrol register to desired reset state and
@@ -8820,6 +8846,9 @@ BCMINITFN(wlc_bmac_corereset)(wlc_hw_info_t *wlc_hw, uint32 flags)
 					if (!dma_txreset(di)) {
 						WL_ERROR(("wl%d: %s: dma_txreset[%d]: cannot stop "
 							"dma\n", wlc_hw->unit, __FUNCTION__, i));
+#if defined(BCMINTDBG)
+						si_viewall(wlc_hw->sih, FALSE);
+#endif
 					}
 
 					/* Reset AQM DMA channel */
@@ -8830,6 +8859,9 @@ BCMINITFN(wlc_bmac_corereset)(wlc_hw_info_t *wlc_hw, uint32 flags)
 					if (!dma_txreset(di)) {
 						WL_ERROR(("wl%d: %s: dma_txreset[%d]: cannot stop "
 							"dma\n", wlc_hw->unit, __FUNCTION__, i));
+#if defined(BCMINTDBG)
+						si_viewall(wlc_hw->sih, FALSE);
+#endif
 						WL_HEALTH_LOG(wlc_hw->wlc, DMATX_ERROR);
 					}
 					wlc_upd_suspended_fifos_clear(wlc_hw, i);
@@ -8841,6 +8873,9 @@ BCMINITFN(wlc_bmac_corereset)(wlc_hw_info_t *wlc_hw, uint32 flags)
 						WL_ERROR(("wl%d: %s: dma_rxreset[%d]:"
 							" cannot stop dma\n",
 							wlc_hw->unit, __FUNCTION__, i));
+#if defined(BCMINTDBG)
+						si_viewall(wlc_hw->sih, FALSE);
+#endif
 						WL_HEALTH_LOG(wlc_hw->wlc, DMARX_ERROR);
 					}
 				}
@@ -9362,7 +9397,9 @@ BCMINITFN(wlc_coreinit)(wlc_hw_info_t *wlc_hw)
 	}
 #endif /* defined(BCM_DMA_CT) && !defined(BCM_DMA_CT_DISABLED) */
 
+#if !defined(WOWL_DRV_NORELOAD)
 	wlc_bmac_btc_init(wlc_hw);
+#endif  /* WOWL_DRV_NORELOAD */
 
 #ifdef WLCX_ATLAS
 	if ((wlc_hw->boardflags & BFL_BTCOEX) && (wlc_hw->boardflags2 & BFL2_WLCX_ATLAS)) {
@@ -9381,6 +9418,11 @@ BCMINITFN(wlc_coreinit)(wlc_hw_info_t *wlc_hw)
 	 */
 	if ((wlc_hw->macunit == 0) || !wlc_bmac_rsdb_cap(wlc_hw))
 		wlc_ucode_download(wlc_hw);
+
+#if defined(WOWL_DRV_NORELOAD)
+	wlc_bmac_btc_init(wlc_hw);
+#endif /* WOWL_DRV_NORELOAD*/
+
 #endif /* (BCM_DMA_CT && !BCM_DMA_CT_DISABLED) || !DONGLEBUILD */
 #if defined(WLVASIP)
 #if (defined(BCM_DMA_CT) && !defined(BCM_DMA_CT_DISABLED)) || !defined(DONGLEBUILD)
@@ -9419,6 +9461,10 @@ BCMINITFN(wlc_coreinit)(wlc_hw_info_t *wlc_hw)
 
 	(void) wlc_bmac_wowlucode_start(wlc_hw);
 
+#if defined(PCIEDBG)
+	/* For PCIE debug, don't let MAC control gpio */
+	W_REG(osh, &regs->psm_gpio_oe, 0x0000);
+#endif
 	wlc_gpio_init(wlc_hw);
 
 	if (D11REV_GE(wlc_hw->corerev, 40)) {
@@ -10207,7 +10253,39 @@ BCMINITFN(wlc_gpio_init)(wlc_hw_info_t *wlc_hw)
 
 	/* use GPIO select 0 to get all gpio signals from the gpio out reg */
 	wlc_bmac_mctrl(wlc_hw, MCTL_GPOUT_SEL_MASK, 0);
+#if defined(PCIEDBG)
+	/* PCIE debug takes away all gpios */
+	return;
+#endif
 
+#ifdef BCMINTDBG
+	if (wlc_hw->ucode_dbgsel) {
+		/* GPIO selects for ucode debugging
+		 * 0: All GPIO (default)
+		 * 1: PSM PC (0:10), PC-Valid (11), GPIO (12:15)
+		 * 2: MAC/PHY interface signals (0:7), PSM PC (8:15)
+		 * 3: PSM pipeline signals (0:7), PSM PC (8:15)
+		 */
+		if ((D11REV_GE(wlc_hw->corerev, 26) || D11REV_GE(wlc_hw->corerev, 29)) &&
+			WLCISHTPHY(wlc_hw->band)) {
+			/* rev26 MAC has all GPIOSel in MACControl1 register */
+			wlc_bmac_mctrl1(wlc_hw, MCTL1_EGS_MASK_REV26,
+				((wlc_hw->ucode_dbgsel) << MCTL1_EGS_SHIFT_REV26));
+
+		} else {
+			/* 2 bits are in maccontrol */
+			wlc_bmac_mctrl(wlc_hw, MCTL_GPOUT_SEL_MASK,
+				(wlc_hw->ucode_dbgsel << MCTL_GPOUT_SEL_SHIFT));
+
+			/* from rev14, MAC has extra 2 bits for GPIOSel in MACControl1 register */
+			wlc_bmac_mctrl1(wlc_hw, MCTL1_EGS_MASK,
+				((wlc_hw->ucode_dbgsel >> 2) << MCTL1_EGS_SHIFT));
+		}
+
+		/* all gpios output enabled */
+		W_REG(osh, &regs->psm_gpio_oe, 0xffff); /* IHR access */
+	}
+#endif 
 
 	/*
 	 * Common GPIO setup:
@@ -10267,6 +10345,19 @@ BCMINITFN(wlc_gpio_init)(wlc_hw_info_t *wlc_hw)
 
 	/* gpio 14(Xtal_up) and gpio 15(PLL_powerdown) are controlled in PCI config space */
 
+#ifdef BCMINTDBG
+	/* override above settings to have all gpios allocated to non-PCI cores */
+	if (wlc_hw->ucode_dbgsel) {
+		gm = gc = 0xffff;
+
+		wlc_bmac_mhf(wlc_hw, MHF1, MHF1_PACTL, 0, WLC_BAND_ALL);
+
+		wlc_bmac_write_shm(wlc_hw, M_MACHW_CAP_H(wlc_hw),
+			(uint16)(((wlc_hw->machwcap & ~MCAP_BTCX) >> 16) & 0xffff));
+
+		wlc_bmac_set_ctrl_SROM(wlc_hw);
+	}
+#endif
 	/* config dual wlan radio coex function in bmac driver and monolithic driver */
 #ifdef USBAP
 	/* wlancoex master gpio init */
@@ -11367,6 +11458,10 @@ wlc_bmac_fifoerrors(wlc_hw_info_t *wlc_hw)
 			}
 		}
 
+#ifdef BCMINTDBG
+		if (fatal)
+			si_viewall(wlc_hw->sih, FALSE);
+#endif
 
 #endif /* BCMDBG */
 
@@ -12195,6 +12290,11 @@ wlc_bmac_flush_tx_fifos(wlc_hw_info_t *wlc_hw, uint fifo_bitmap)
 		} /* for */
 	} /* else */
 
+#if defined(BCMINTDBG)
+	if (mq_err) {
+		wlc_dump_ucode_fatal(wlc_hw->wlc, PSM_FATAL_WAKE);
+	}
+#endif
 	BCM_REFERENCE(mq_err);
 } /* wlc_bmac_flush_tx_fifos */
 
@@ -13169,6 +13269,10 @@ wlc_bmac_suspend_mac_and_wait(wlc_hw_info_t *wlc_hw)
 		WL_ERROR(("wl%d:%s: Hammering due to (mc & MI_MACSPNDD)\n",
 			wlc_hw->unit, __FUNCTION__));
 		wlc_hw->need_reinit = 4;
+#if defined(BCMINTDBG)
+		wlc_dump_ucode_fatal(wlc, PSM_FATAL_SUSP);
+		OSL_DELAY(1500);
+#endif /* BCMINTDBG */
 		return;
 	}
 #endif /* WAR4360_UCODE */
@@ -14014,6 +14118,11 @@ wlc_flushqueues(wlc_hw_info_t *wlc_hw)
 			PKTFREE(wlc_hw->osh, p, FALSE);
 		}
 #endif
+
+#ifdef AP
+		wlc_tx_fifo_sync_bcmc_reset(wlc);
+#endif
+
 		/* free any posted rx packets */
 		for (i = 0; i < MAX_RX_FIFO; i++) {
 			if ((wlc_hw->di[i] != NULL) && wlc_bmac_rxfifo_enab(i)) {
@@ -14649,6 +14758,13 @@ wlc_bmac_led_hw_deinit(wlc_hw_info_t *wlc_hw, uint32 gpiomask_cache)
 void
 wlc_bmac_led_hw_mask_init(wlc_hw_info_t *wlc_hw, uint32 mask)
 {
+#ifdef BCMINTDBG
+	if (wlc_hw->ucode_dbgsel != 0) {
+		WL_ERROR(("%s is set, skip\n", __FUNCTION__));
+		wlc_hw->led_gpio_mask = 0x0;
+		return;
+	}
+#endif
 	wlc_hw->led_gpio_mask = mask;
 }
 
@@ -14659,6 +14775,12 @@ wlc_bmac_led_hw_init(wlc_hw_info_t *wlc_hw)
 	struct bmac_led *led;
 	bmac_led_info_t *li = wlc_hw->ledh;
 
+#ifdef BCMINTDBG
+	if (wlc_hw->ucode_dbgsel != 0) {
+		WL_ERROR(("%s dbgsel is set, skip\n", __FUNCTION__));
+		return;
+	}
+#endif
 
 	if (!wlc_hw->sbclk)
 		return;
@@ -15131,6 +15253,15 @@ wlc_iocv_fwd_dump(void *ctx, struct bcmstrbuf *b)
 }
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(BCMDBG_PHYDUMP)
+#if defined(BCMINTDBG)
+static int
+wlc_bmac_si_ccreg_dump(wlc_hw_info_t *wlc_hw, struct bcmstrbuf *b)
+{
+	si_ccreg_dump(wlc_hw->sih, b);
+	ASSERT(!wlc_hw->sbclk || !si_taclear(wlc_hw->sih, FALSE) || TRUE);
+	return BCME_OK;
+}
+#endif /* BCMINTDBG */
 #endif /* BCMDBG || BCMDBG_DUMP || BCMDBG_PHYDUMP */
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WLTEST) || \
@@ -15167,12 +15298,12 @@ wlc_bmac_dump_phy(wlc_hw_info_t *wlc_hw, const char *name, struct bcmstrbuf *b)
 	int ret = BCME_UNSUPPORTED;
 	bool ta_ok = FALSE;
 
-#if defined(DBG_PHY_IOV)
+#if defined(BCMINTDBG) || defined(DBG_PHY_IOV)
 	if (!strcmp(name, "radioreg") || !strcmp(name, "phyreg") || !strcmp(name, "phytbl")) {
 		ret = phy_dbg_dump((phy_info_t *)wlc_hw->band->pi, name, b);
 		ta_ok = TRUE;
 	} else
-#endif 
+#endif /* BCMINTDBG|| DBG_PHY_IOV */
 	{
 	bool single_phy, a_only;
 	single_phy = (wlc_hw->bandstate[0]->pi == wlc_hw->bandstate[1]->pi) ||
@@ -15211,6 +15342,14 @@ wlc_bmac_register_dumps(wlc_hw_info_t *wlc_hw)
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(BCMDBG_PHYDUMP)
 	wlc_bmac_add_dump_fn(wlc_hw, "macsuspend", (bmac_dump_fn_t)wlc_bmac_suspend_dump, wlc_hw);
+#if defined(BCMINTDBG)
+	wlc_bmac_add_dump_fn(wlc_hw, "regcc", (bmac_dump_fn_t)wlc_bmac_si_ccreg_dump, wlc_hw);
+	wlc_bmac_add_dump_fn(wlc_hw, "gpio", (bmac_dump_fn_t)si_gpiodump, wlc_hw->sih);
+	wlc_bmac_add_dump_fn(wlc_hw, "siid", (bmac_dump_fn_t)si_dump, wlc_hw->sih);
+	wlc_bmac_add_dump_fn(wlc_hw, "sireg", (bmac_dump_fn_t)si_dumpregs, wlc_hw->sih);
+	wlc_bmac_add_dump_fn(wlc_hw, "siclk", (bmac_dump_fn_t)si_clkctl_dump, wlc_hw->sih);
+	wlc_bmac_add_dump_fn(wlc_hw, "pcieregs", (bmac_dump_fn_t)si_dump_pcieregs, wlc_hw->sih);
+#endif /* BCMINTDBG */
 #endif /* BCMDBG || BCMDBG_DUMP || BCMDBG_PHYDUMP */
 
 #if !defined(DONGLEBUILD) && (defined(BCMDBG) || defined(BCMDBG_DUMP) || \
@@ -16092,6 +16231,19 @@ wlc_bmac_set_txpwr_percent(wlc_hw_info_t *wlc_hw, uint8 val)
 	wlc_phy_txpwr_percent_set(wlc_hw->band->pi, val);
 }
 
+#ifdef BCMINTDBG
+uint16
+wlc_bmac_ucode_dbgsel_get(wlc_hw_info_t *wlc_hw)
+{
+	return wlc_hw->ucode_dbgsel;
+}
+
+void
+wlc_bmac_ucode_dbgsel_set(wlc_hw_info_t *wlc_hw, uint16 dbgsel)
+{
+	wlc_hw->ucode_dbgsel = dbgsel;
+}
+#endif	/* BCMINTDBG*/
 
 /** update auto d11 shmdef specific to ucode downlaod type */
 void
@@ -16774,6 +16926,18 @@ wlc_bmac_btc_wire_set(wlc_hw_info_t *wlc_hw, int btc_wire)
 			wlc_hw->btc->wire = WL_BTC_2WIRE;
 
 	}
+#ifdef BCMINTDBG
+	/* 2-wire ucode only present for corerev 0-13 and 15 */
+	else if (btc_wire == WL_BTC_2WIRE) {
+			WL_ERROR(("wl%d: 2-wire not supported for corerev %d\n",
+				wlc_hw->unit, wlc_hw->corerev));
+			return BCME_BADOPTION;
+	}
+	/* 3-wire ucode only present for corerev 11 or more */
+	else if (btc_wire >= WL_BTC_3WIRE) {
+			wlc_hw->btc->wire = btc_wire;
+	}
+#endif /* BCMINTDBG */
 	else
 		wlc_hw->btc->wire = btc_wire;
 	/* flush ucode_loaded so the ucode download will happen again to pickup the right ucode */
@@ -17316,6 +17480,9 @@ wlc_full_reset(wlc_hw_info_t *wlc_hw, uint32 val)
 				if (!dma_txreset(wlc_hw->di[i])) {
 					WL_ERROR(("wl%d: %s: dma_txreset[%d]: cannot stop dma\n",
 						wlc_hw->unit, __FUNCTION__, i));
+#if defined(BCMINTDBG)
+					si_viewall(wlc_hw->sih, FALSE);
+#endif
 					WL_HEALTH_LOG(wlc_hw->wlc, DMATX_ERROR);
 				}
 				wlc_upd_suspended_fifos_clear(wlc_hw, i);
@@ -17324,6 +17491,9 @@ wlc_full_reset(wlc_hw_info_t *wlc_hw, uint32 val)
 		if ((wlc_hw->di[RX_FIFO]) && (!wlc_dma_rxreset(wlc_hw, RX_FIFO))) {
 			WL_ERROR(("wl%d: %s: dma_rxreset[%d]: cannot stop dma\n",
 			          wlc_hw->unit, __FUNCTION__, RX_FIFO));
+#if defined(BCMINTDBG)
+			si_viewall(wlc_hw->sih, FALSE);
+#endif
 			WL_HEALTH_LOG(wlc_hw->wlc, DMARX_ERROR);
 		}
 	} else {
@@ -17425,6 +17595,30 @@ wlc_full_reset(wlc_hw_info_t *wlc_hw, uint32 val)
 	         wlc_hw->unit, __FUNCTION__, wlc_hw->wlc->pub->up, wlc_hw->up,
 	         wlc_hw->sbclk, wlc_hw->wlc->clk, wlc_hw->clk, wlc_hw->forcefastclk));
 
+#if defined(BCMINTDBG)
+	if (val & 4) {
+		char *buf;
+		struct bcmstrbuf b;
+
+		buf = MALLOC(wlc_hw->osh, 8192);
+		if (buf != NULL) {
+			bcm_binit(&b, buf, 8192);
+			si_dumpregs(wlc_hw->sih, &b);
+			printbig(buf);
+			for (i = 0; i < wlc_hw->nfifo_inuse; i++) {
+				/* dump dma rings to console */
+				if (wlc_hw->di[i])	{
+					bcm_binit(&b, buf, 8192);
+					dma_dumptx(wlc_hw->di[i], &b, TRUE);
+					if (i == RX_FIFO)
+						dma_dumprx(wlc_hw->di[i], &b, TRUE);
+					printbig(buf);
+				}
+			}
+			MFREE(wlc_hw->osh, buf, 8192);
+		}
+	}
+#endif 
 	if (val & 8) {
 		WL_INFORM(("wl%d: %s: calling wl_down()\n", wlc_hw->unit, __FUNCTION__));
 		wl_down(wlc_hw->wlc->wl);
@@ -18334,6 +18528,30 @@ BCMINITFN(wlc_bmac_bmc_init)(wlc_hw_info_t *wlc_hw)
 	return 0;
 } /* wlc_bmac_bmc_init */
 
+#ifdef BCMINTDBG
+int
+wlc_bmac_bmc_get(wlc_hw_info_t *wlc_hw)
+{
+	BCM_REFERENCE(wlc_hw);
+
+	return bmc_nbufs;
+}
+
+int
+wlc_bmac_bmc_set(wlc_hw_info_t *wlc_hw, uint16 nbufs)
+{
+	BCM_REFERENCE(wlc_hw);
+
+	if (bmc_params == NULL)
+		return BCME_ERROR;
+
+	if (nbufs > bmc_maxbufs || nbufs < bmc_params->minbufs[0])
+		return BCME_RANGE;
+	else
+		bmc_nbufs = nbufs;
+	return BCME_OK;
+}
+#endif /* BCMINTDBG */
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP)
 static int
@@ -20302,6 +20520,10 @@ wlc_bmac_dma_getnexttxp(wlc_info_t *wlc, uint fifo, txd_range_t range)
 	WL_TRACE(("wlc%d: %s fifo %d \n", wlc->pub->unit, __FUNCTION__, fifo));
 #ifdef BCM_DMA_CT
 	if (BCM_DMA_CT_ENAB(wlc)) {
+#if defined(BCMINTDBG)
+		uint16 pre_txin, numd;
+		uint txdma_numd = 0;
+#endif
 		uint32 txdma_flags = 0;
 
 		/* reclaim AQM descriptor */
@@ -20328,6 +20550,11 @@ wlc_bmac_dma_getnexttxp(wlc_info_t *wlc, uint fifo, txd_range_t range)
 			return NULL;
 		}
 
+#if defined(BCMINTDBG)
+		/* get number of reclaim TXDMA descriptor(s) from AQM descriptor field */
+		txdma_numd = (txdma_flags & D64_AQM_CTRL1_NUMD_MASK) >> D64_AQM_CTRL1_NUMD_SHIFT;
+		pre_txin = dma_get_next_txd_idx(WLC_HW_DI(wlc, fifo), FALSE);
+#endif
 
 		/* get next data packet and reclaim TXDMA descriptor(s) */
 		txp = dma_getnexttxp(WLC_HW_DI(wlc, fifo), HNDDMA_RANGE_ALL);
@@ -20337,6 +20564,15 @@ wlc_bmac_dma_getnexttxp(wlc_info_t *wlc, uint fifo, txd_range_t range)
 			return NULL;
 		}
 
+#if defined(BCMINTDBG)
+		/* get how many TXDMA descriptor have been reclaimed */
+		numd = dma_get_txd_count(WLC_HW_DI(wlc, fifo), pre_txin, FALSE);
+		if (txdma_numd != numd) {
+			WL_ERROR(("wlc%d %s: Number of reclaimed txdata descriptor mismatch,"
+				" txdma_numd %d numd %d\n", wlc->pub->unit, __FUNCTION__,
+				txdma_numd, numd));
+		}
+#endif
 		return txp;
 	}
 #endif /* #ifdef BCM_DMA_CT */
@@ -20445,3 +20681,15 @@ wlc_sr_timer(void *arg)
 	sr_timer_counter ++;
 }
 #endif
+
+bool
+wlc_bmac_pay_decode_war_get(wlc_hw_info_t *wlc_hw)
+{
+	return phy_ac_chanmgr_get_pay_decode_war((phy_info_t *)wlc_hw->band->pi);
+}
+
+void
+wlc_bmac_pay_decode_war_set(wlc_hw_info_t *wlc_hw, bool val)
+{
+	phy_ac_chanmgr_set_pay_decode_war((phy_info_t *)wlc_hw->band->pi, val);
+}

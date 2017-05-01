@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <string.h>
 #include <math.h>
 #include <limits.h>
@@ -21,7 +13,7 @@ Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
 #include "../gl11/gl11_int_config.h"
 #include "libs/util/dglenum/dglenum.h"
 
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 #include "../gl20/gl20_program.h"
 
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
@@ -325,7 +317,7 @@ bool glxx_teximage_internal_checks(GLXX_SERVER_STATE_T *state,
       GLXX_TEXTURE_T **tex_out, GLenum *error)
 {
    GLXX_TEXTURE_T *texture = NULL;
-   KHRN_IMAGE_T *img = NULL;
+   khrn_image *img = NULL;
    unsigned start_elem, num_array_elems;
    enum glxx_tex_target tex_target;
    unsigned width, height, depth, xoffset, yoffset, zoffset;
@@ -1247,7 +1239,7 @@ static bool glcopyteximage_convert_permitted(
 
 /* return false if copying from src_lfmt to internalformat is unsupported */
 static bool choose_copy_format(GLenum internalformat,
-      const KHRN_IMAGE_T *src, GFX_LFMT_T *dst_fmt)
+      const khrn_image *src, GFX_LFMT_T *dst_fmt)
 {
    GFX_LFMT_T dst_fmts[GFX_BUFFER_MAX_PLANES];
    unsigned dst_num_planes;
@@ -1296,7 +1288,7 @@ GL_API void GL_APIENTRY glCopyTexImage2D(GLenum target, GLint level, GLenum
    GLenum error = GL_NO_ERROR;
    struct glxx_teximage_sanity_checks checks;
    bool ok;
-   KHRN_IMAGE_T *src = NULL;
+   khrn_image *src = NULL;
    unsigned face;
    GFX_LFMT_T dst_fmt;
 
@@ -1363,7 +1355,7 @@ static void copytexSubImageX(GLenum target, GLint level, GLint xoffset, GLint
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLenum   error = GL_NO_ERROR;
    GLXX_TEXTURE_T *texture = NULL;
-   KHRN_IMAGE_T *src = NULL;
+   khrn_image *src = NULL;
    struct glxx_teximage_sanity_checks checks;
    bool ok;
    unsigned int face;

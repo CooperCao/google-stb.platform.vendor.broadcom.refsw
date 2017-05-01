@@ -135,7 +135,7 @@ export BRAND:=${B_WLAN_BRAND}
 ifeq (${B_WLAN_BRAND},linux-mfgtest-stbsoc)
     WLAN_DEFAULT_BUILDCFG?=debug-apdef-stadef-mfgtest-extnvm-${STB_FEAT}
 else ifeq (${B_WLAN_VER},STB7271_BRANCH_15_10)
-    WLAN_DEFAULT_BUILDCFG?=debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-slvradar-${STB_FEAT}
+    WLAN_DEFAULT_BUILDCFG?=nodebug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-wowl-${STB_FEAT}
 else
     WLAN_DEFAULT_BUILDCFG?=apdef-stadef-p2p-mchan-extnvm-${STB_FEAT}
 endif
@@ -325,11 +325,19 @@ build_wlexe:
 	${Q_}${MAKE} -C ${B_WLAN_WLEXE_RESULT_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_WLEXE_MAKE_REDIR}
 	$(B_TRACE_RECIPE_END)
 
+#  Submake the wowl plat driver.
+.PHONY: build_platdriver
+build_platdriver:
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "[Submake... Plat Driver (WLAN) Target ${BUILDCFG}]"
+	${Q_}${MAKE} -C ${BSEAV_TOP}/connectivity/wlan/wakeonwlan
+	$(B_TRACE_RECIPE_END)
+
 #  After submaking the driver and wl executable (via prerequisites), create a marker file.
 #  Then as long as the marker file is newer than all source files, we don't need to do
 #  any submakes.
 .PHONY: build_wlan_all
-build_wlan_all:  build_wldriver build_wlexe
+build_wlan_all:  build_wldriver build_wlexe build_platdriver
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Creating WLAN marker file..."
 	${Q_}$(shell date >${B_WLAN_LAST_BUILD_MARKER_FILE})
@@ -430,6 +438,7 @@ clean:
 	@echo "Cleaning..."
 	$(Q_)$(RM) -rf ${B_WLAN_OOSRC_VER_DIR}
 	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST}
+	$(Q_)$(MAKE) -C $(BSEAV_TOP)/connectivity/wlan/wakeonwlan clean
 	$(B_TRACE_RECIPE_END)
 
 #  Print out a list of make variables for debugging.

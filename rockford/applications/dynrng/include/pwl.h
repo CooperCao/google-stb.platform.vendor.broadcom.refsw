@@ -49,12 +49,17 @@ typedef void (*PwlPointMutator)(unsigned inputIndex, unsigned rectIndex, unsigne
 /* accessor loads from hardware */
 typedef void (*PwlPointAccessor)(unsigned inputIndex, unsigned rectIndex, unsigned pointIndex, double * pSlopeMantissa, int * pSlopeExponent, double * pX, double * pY);
 
-PwlCurveHandle pwl_create_curve(const char * name, unsigned maxNumPoints, PwlPointMutator set_point, PwlPointAccessor get_point);
+typedef void (*PwlLraMutator)(unsigned inputIndex, unsigned rectIndex, bool enabled);
+typedef void (*PwlLraAccessor)(unsigned inputIndex, unsigned rectIndex, bool *enabled);
+
+PwlCurveHandle pwl_create_curve(const char * name, unsigned maxNumPoints, PwlPointMutator set_point, PwlPointAccessor get_point, PwlLraMutator set_lra, PwlLraAccessor get_lra);
 void pwl_destroy_curve(PwlCurveHandle curve);
 void pwl_load_curve(PwlCurveHandle curve, const char * pwlFilename);
 void pwl_clear_curve(PwlCurveHandle curve);
 void pwl_print_curve(PwlCurveHandle curve);
 void pwl_get_curve_hw(PwlCurveHandle curve, unsigned inputIndex, unsigned rectIndex);
 void pwl_set_curve_hw(PwlCurveHandle curve, unsigned inputIndex, unsigned rectIndex);
+void pwl_get_lra_hw(PwlCurveHandle curve, unsigned inputIndex, unsigned rectIndex, bool *enabled);
+void pwl_set_lra_hw(PwlCurveHandle curve, unsigned inputIndex, unsigned rectIndex, bool enabled);
 
 #endif /* PWL_H__ */

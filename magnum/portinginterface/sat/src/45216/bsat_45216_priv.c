@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,8 +56,8 @@ BDBG_MODULE(bsat_45216_priv);
 
 
 /* local functions */
-BERR_Code BSAT_45216_P_InterruptCallback(void *pParm1, int parm2);
-BERR_Code BSAT_45216_P_EnableChannelInterrupt(BSAT_ChannelHandle h, bool bEnable, uint32_t mask);
+static BERR_Code BSAT_45216_P_InterruptCallback(void *pParm1, int parm2);
+static BERR_Code BSAT_45216_P_EnableChannelInterrupt(BSAT_ChannelHandle h, bool bEnable, uint32_t mask);
 
 
 /******************************************************************************
@@ -1734,7 +1734,7 @@ BERR_Code BSAT_45216_P_GetNotchSettings(BSAT_Handle h, uint32_t *pNum, BSAT_Notc
 /******************************************************************************
  BSAT_45216_P_InterruptCallback()
 ******************************************************************************/
-BERR_Code BSAT_45216_P_InterruptCallback(void *pParm1, int parm2)
+static BERR_Code BSAT_45216_P_InterruptCallback(void *pParm1, int parm2)
 {
    BERR_Code retCode = BERR_SUCCESS;
    BHAB_45216_IrqStatus *pParams = (BHAB_45216_IrqStatus *)pParm1;
@@ -1831,7 +1831,7 @@ BERR_Code BSAT_45216_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n)
 /******************************************************************************
  BSAT_45216_P_EnableChannelInterrupt()
 ******************************************************************************/
-BERR_Code BSAT_45216_P_EnableChannelInterrupt(
+static BERR_Code BSAT_45216_P_EnableChannelInterrupt(
    BSAT_ChannelHandle h, /* [in] BSAT channel handle */
    bool bEnable,         /* [in] true = enable lock interrupts, false = disables lock interrupts */
    uint32_t mask         /* [in] specifies which channel interrupt(s) to enable/disable */

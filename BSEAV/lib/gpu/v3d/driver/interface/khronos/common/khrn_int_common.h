@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Common include
-
-FILE DESCRIPTION
-Common include.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_INT_COMMON_H
 #define KHRN_INT_COMMON_H
 #ifdef __cplusplus
@@ -60,13 +52,13 @@ typedef unsigned long long uint64_t;
    #define verify(X) vcos_assert(X)
 #endif
 
-#ifdef __GNUC__
+#if (defined(__GNUC__) || defined(__clang__))
 #define UNREACHABLE() { vcos_demand(0); __builtin_unreachable(); }
 #else
 #define UNREACHABLE() vcos_demand(0);
 #endif
 
-#define UNUSED(X) X
+#define UNUSED(X) (void)X
 
 #ifdef NDEBUG
    #define UNUSED_NDEBUG(X) UNUSED(X)

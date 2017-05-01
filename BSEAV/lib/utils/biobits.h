@@ -102,24 +102,6 @@ Example:
 
 #define B_SET_BITS(name,v,e,b)  (((unsigned)(v))<<(b))
 
-#if 0
-/* this type is used to define bitstrem */
-typedef struct bio_bitstream {
-	bio_cursor *cursor;
-	uint32_t cache;
-	int cache_pos;
-} bio_bitstream;
-
-void bio_bitstream_init(bio_bitstream *bs, bio_cursor *cursor);
-void bio_bitstream_dump(bio_bitstream *bs);
-bool bio_bitstream_eof(bio_bitstream *bs);
-int bio_bitstream_show(bio_bitstream *bs);
-int bio_bitstream_bit(bio_bitstream *bs);
-int bio_bitstream_drop(bio_bitstream *bs);
-unsigned bio_bitstream_bits(bio_bitstream *bs, unsigned nbits);
-void bio_bitstream_drop_bits(bio_bitstream *bs, unsigned nbits);
-#endif
-
 #ifdef __cplusplus
 }
 #endif

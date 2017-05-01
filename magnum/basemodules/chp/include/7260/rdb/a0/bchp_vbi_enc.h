@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,36 +70,36 @@
 /***************************************************************************
  *VBI_ENC - VBI_ENC  registers
  ***************************************************************************/
-#define BCHP_VBI_ENC_VBI_0_CORE_0_SEL            0x206e8000 /* [RW] Core select for VBI_0_CORE_0 */
-#define BCHP_VBI_ENC_VBI_0_CORE_1_SEL            0x206e8004 /* [RW] Core select for VBI_0_CORE_1 */
-#define BCHP_VBI_ENC_VBI_0_CORE_2_SEL            0x206e8008 /* [RW] Core select for VBI_0_CORE_2 */
-#define BCHP_VBI_ENC_VBI_0_CORE_3_SEL            0x206e800c /* [RW] Core select for VBI_0_CORE_3 */
-#define BCHP_VBI_ENC_VBI_0_CORE_4_SEL            0x206e8010 /* [RW] Core select for VBI_0_CORE_4 */
-#define BCHP_VBI_ENC_VBI_0_CORE_5_SEL            0x206e8014 /* [RW] Core select for VBI_0_CORE_5 */
-#define BCHP_VBI_ENC_VBI_0_CORE_6_SEL            0x206e8018 /* [RW] Core select for VBI_0_CORE_6 */
-#define BCHP_VBI_ENC_VBI_0_CORE_7_SEL            0x206e801c /* [RW] Core select for VBI_0_CORE_7 */
-#define BCHP_VBI_ENC_VBI_1_CORE_0_SEL            0x206e8020 /* [RW] Core select for VBI_1_CORE_0 */
-#define BCHP_VBI_ENC_VBI_1_CORE_1_SEL            0x206e8024 /* [RW] Core select for VBI_1_CORE_1 */
-#define BCHP_VBI_ENC_VBI_1_CORE_2_SEL            0x206e8028 /* [RW] Core select for VBI_1_CORE_2 */
-#define BCHP_VBI_ENC_VBI_1_CORE_3_SEL            0x206e802c /* [RW] Core select for VBI_1_CORE_3 */
-#define BCHP_VBI_ENC_VBI_1_CORE_4_SEL            0x206e8030 /* [RW] Core select for VBI_1_CORE_4 */
-#define BCHP_VBI_ENC_VBI_1_CORE_5_SEL            0x206e8034 /* [RW] Core select for VBI_1_CORE_5 */
-#define BCHP_VBI_ENC_VBI_1_CORE_6_SEL            0x206e8038 /* [RW] Core select for VBI_1_CORE_6 */
-#define BCHP_VBI_ENC_VBI_1_CORE_7_SEL            0x206e803c /* [RW] Core select for VBI_1_CORE_7 */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL      0x206e8040 /* [RW] Core select for VBI_ANCIL_0_CORE_0 */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_1_SEL      0x206e8044 /* [RW] Core select for VBI_ANCIL_0_CORE_1 */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_2_SEL      0x206e8048 /* [RW] Core select for VBI_ANCIL_0_CORE_2 */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_3_SEL      0x206e804c /* [RW] Core select for VBI_ANCIL_0_CORE_3 */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_4_SEL      0x206e8050 /* [RW] Core select for VBI_ANCIL_0_CORE_4 */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_5_SEL      0x206e8054 /* [RW] Core select for VBI_ANCIL_0_CORE_5 */
-#define BCHP_VBI_ENC_VBI_0_INTR_CTRL             0x206e8058 /* [RW] for Interrupt control for VBI_0 */
-#define BCHP_VBI_ENC_VBI_0_PEDESTAL              0x206e805c /* [RW] Pedestal Value Register  for VBI_0 */
-#define BCHP_VBI_ENC_VBI_0_PASS_THROUGH          0x206e8060 /* [RW] Video Encoder VBI_0  Pass through Control for Top Field */
-#define BCHP_VBI_ENC_VBI_1_INTR_CTRL             0x206e8064 /* [RW] for Interrupt control for VBI_1 */
-#define BCHP_VBI_ENC_VBI_1_PEDESTAL              0x206e8068 /* [RW] Pedestal Value Register  for VBI_1 */
-#define BCHP_VBI_ENC_VBI_1_PASS_THROUGH          0x206e806c /* [RW] Video Encoder VBI_1  Pass through Control for Top Field */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_INTR_CTRL       0x206e8070 /* [RW] for Interrupt control for VBI_ANCIL_0 */
-#define BCHP_VBI_ENC_VBI_ANCIL_0_PASS_THROUGH    0x206e8074 /* [RW] Video Encoder VBI_ANCIL_0  Pass through Control for Top Field */
+#define BCHP_VBI_ENC_VBI_0_CORE_0_SEL            0x206e8000 /* [RW][32] Core select for VBI_0_CORE_0 */
+#define BCHP_VBI_ENC_VBI_0_CORE_1_SEL            0x206e8004 /* [RW][32] Core select for VBI_0_CORE_1 */
+#define BCHP_VBI_ENC_VBI_0_CORE_2_SEL            0x206e8008 /* [RW][32] Core select for VBI_0_CORE_2 */
+#define BCHP_VBI_ENC_VBI_0_CORE_3_SEL            0x206e800c /* [RW][32] Core select for VBI_0_CORE_3 */
+#define BCHP_VBI_ENC_VBI_0_CORE_4_SEL            0x206e8010 /* [RW][32] Core select for VBI_0_CORE_4 */
+#define BCHP_VBI_ENC_VBI_0_CORE_5_SEL            0x206e8014 /* [RW][32] Core select for VBI_0_CORE_5 */
+#define BCHP_VBI_ENC_VBI_0_CORE_6_SEL            0x206e8018 /* [RW][32] Core select for VBI_0_CORE_6 */
+#define BCHP_VBI_ENC_VBI_0_CORE_7_SEL            0x206e801c /* [RW][32] Core select for VBI_0_CORE_7 */
+#define BCHP_VBI_ENC_VBI_1_CORE_0_SEL            0x206e8020 /* [RW][32] Core select for VBI_1_CORE_0 */
+#define BCHP_VBI_ENC_VBI_1_CORE_1_SEL            0x206e8024 /* [RW][32] Core select for VBI_1_CORE_1 */
+#define BCHP_VBI_ENC_VBI_1_CORE_2_SEL            0x206e8028 /* [RW][32] Core select for VBI_1_CORE_2 */
+#define BCHP_VBI_ENC_VBI_1_CORE_3_SEL            0x206e802c /* [RW][32] Core select for VBI_1_CORE_3 */
+#define BCHP_VBI_ENC_VBI_1_CORE_4_SEL            0x206e8030 /* [RW][32] Core select for VBI_1_CORE_4 */
+#define BCHP_VBI_ENC_VBI_1_CORE_5_SEL            0x206e8034 /* [RW][32] Core select for VBI_1_CORE_5 */
+#define BCHP_VBI_ENC_VBI_1_CORE_6_SEL            0x206e8038 /* [RW][32] Core select for VBI_1_CORE_6 */
+#define BCHP_VBI_ENC_VBI_1_CORE_7_SEL            0x206e803c /* [RW][32] Core select for VBI_1_CORE_7 */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL      0x206e8040 /* [RW][32] Core select for VBI_ANCIL_0_CORE_0 */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_1_SEL      0x206e8044 /* [RW][32] Core select for VBI_ANCIL_0_CORE_1 */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_2_SEL      0x206e8048 /* [RW][32] Core select for VBI_ANCIL_0_CORE_2 */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_3_SEL      0x206e804c /* [RW][32] Core select for VBI_ANCIL_0_CORE_3 */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_4_SEL      0x206e8050 /* [RW][32] Core select for VBI_ANCIL_0_CORE_4 */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_CORE_5_SEL      0x206e8054 /* [RW][32] Core select for VBI_ANCIL_0_CORE_5 */
+#define BCHP_VBI_ENC_VBI_0_INTR_CTRL             0x206e8058 /* [RW][32] for Interrupt control for VBI_0 */
+#define BCHP_VBI_ENC_VBI_0_PEDESTAL              0x206e805c /* [RW][32] Pedestal Value Register  for VBI_0 */
+#define BCHP_VBI_ENC_VBI_0_PASS_THROUGH          0x206e8060 /* [RW][32] Video Encoder VBI_0  Pass through Control for Top Field */
+#define BCHP_VBI_ENC_VBI_1_INTR_CTRL             0x206e8064 /* [RW][32] for Interrupt control for VBI_1 */
+#define BCHP_VBI_ENC_VBI_1_PEDESTAL              0x206e8068 /* [RW][32] Pedestal Value Register  for VBI_1 */
+#define BCHP_VBI_ENC_VBI_1_PASS_THROUGH          0x206e806c /* [RW][32] Video Encoder VBI_1  Pass through Control for Top Field */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_INTR_CTRL       0x206e8070 /* [RW][32] for Interrupt control for VBI_ANCIL_0 */
+#define BCHP_VBI_ENC_VBI_ANCIL_0_PASS_THROUGH    0x206e8074 /* [RW][32] Video Encoder VBI_ANCIL_0  Pass through Control for Top Field */
 
 /***************************************************************************
  *VBI_0_CORE_0_SEL - Core select for VBI_0_CORE_0

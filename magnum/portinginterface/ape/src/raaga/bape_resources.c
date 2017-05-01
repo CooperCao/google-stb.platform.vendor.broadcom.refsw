@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -264,7 +264,7 @@ static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourc
                     {
                         if ( pResourceArray[i-j] )
                         {
-                            BDBG_MSG(("  resource[%d] allocated", pResourceArray[i-j]));
+                            BDBG_MSG(("  resource[%d] already used", i - j));
                             success = false;
                             break;
                         }
@@ -272,6 +272,7 @@ static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourc
                     if ( success )
                     {
                         base = i + 1 - numRequired;
+                        BDBG_MSG(("  resource[%d] (base + %d) free. claiming", base, numRequired));
                         break;
                     }
                 }
@@ -285,15 +286,15 @@ static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourc
                     {
                         if ( pResourceArray[i+j] )
                         {
-                            BDBG_MSG(("  resource[%d] allocated", pResourceArray[i+j]));
+                            BDBG_MSG(("  resource[%d] already used", i+j));
                             success = false;
                             break;
                         }
                     }
                     if ( success )
                     {
-                        BDBG_MSG(("  resource base %d", i));
                         base = i;
+                        BDBG_MSG(("  resource[%d] (base + %d) free. claiming", base, numRequired));
                         break;
                     }
                 }
@@ -320,9 +321,16 @@ static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourc
                 {
                     /* We found an available resource.  Mark it as used. */
                     pResourceArray[i] = true;
+                    BDBG_MSG(("  resource[%d] free. claiming", i));
                     *pFirstResource = i;
                     return BERR_SUCCESS;
                 }
+                #if BDBG_DEBUG_BUILD
+                else
+                {
+                    BDBG_MSG(("  resource[%d] already used", i));
+                }
+                #endif
             }
         }
 

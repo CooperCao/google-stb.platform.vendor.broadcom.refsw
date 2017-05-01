@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_PLATFORM_H
 #define EGL_PLATFORM_H
 #include <EGL/egl.h>
@@ -83,9 +77,15 @@ struct egl_platform_fns
     * Sets *used to true if attrib was recognized.
     *
     * Can be NULL.
+    *
+    * The uses of return value and pointer arg are swapped compared with
+    * eglGetConfigAttrib because it's more useful this way around-- often you
+    * already know the attrib is valid so can just pass NULL to valid.
+    *
+    * Matches egl_config_get_attrib()
     */
-   EGLint      (*config_get_attrib)(const EGL_CONFIG_T *config,
-                  EGLint attrib, bool *used);
+   bool      (*config_get_attrib)(const EGL_CONFIG_T *config,
+                  EGLint attrib, EGLint *value);
 
    /*
     * Return true if attrib is an attribute specific to this platform and value
@@ -158,8 +158,15 @@ extern bool egl_platform_match_pixmap(EGLNativePixmapType pixmap,
 /* See eglWaitNative */
 extern bool egl_platform_wait_native(EGLint engine);
 
-extern EGLint egl_platform_config_get_attrib(const EGL_CONFIG_T *config,
-      EGLint attrib, bool *used);
+/*
+ * The uses of return value and pointer arg are swapped compared with
+ * eglGetConfigAttrib because it's more useful this way around-- often you
+ * already know the attrib is valid so can just pass NULL to valid.
+ *
+ * Matches egl_config_get_attrib()
+*/
+extern bool egl_platform_config_get_attrib(const EGL_CONFIG_T *config,
+      EGLint attrib, EGLint *value);
 extern bool egl_platform_config_check_attrib(EGLint attrib, EGLint value);
 extern bool egl_platform_config_match_attrib(EGLint attrib,
       EGLint requested, EGLint actual);

@@ -46,11 +46,6 @@
 #include "bhdm_edid_3d.h"
 #endif
 
-#if BHDM_CONFIG_MHL_SUPPORT
-#include "bhdm_mhl_priv.h"
-#endif
-
-
 /*=************************ Module Overview ********************************
   The EDID (Enhanced Display Identification Data) functions provide support
   for reading/interpretting the EDID prom contained in the DVI/HDMI Receiver.
@@ -63,114 +58,60 @@
 BDBG_MODULE(BHDM_EDID) ;
 
 
-/******************************************************************************
-Summary:
-Enumeration containing Audio Formats specified in CEA Short Audio Descriptors
-*******************************************************************************/
-typedef enum BHDM_EDID_P_AudioFormat
-{
-	BHDM_EDID_P_AudioFormat_eReserved,
-	BHDM_EDID_P_AudioFormat_ePCM,
-	BHDM_EDID_P_AudioFormat_eAC3,
-	BHDM_EDID_P_AudioFormat_eMPEG1,
-	BHDM_EDID_P_AudioFormat_eMP3,
-	BHDM_EDID_P_AudioFormat_eMPEG2,
-	BHDM_EDID_P_AudioFormat_eAAC,
-	BHDM_EDID_P_AudioFormat_eDTS,
-	BHDM_EDID_P_AudioFormat_eATRAC,
-	BHDM_EDID_P_AudioFormat_eOneBit,
-	BHDM_EDID_P_AudioFormat_eDDPlus,
-	BHDM_EDID_P_AudioFormat_eDTSHD,
-	BHDM_EDID_P_AudioFormat_eMATMLP,
-	BHDM_EDID_P_AudioFormat_eDST,
-	BHDM_EDID_P_AudioFormat_eWMAPro,
-	BHDM_EDID_P_AudioFormat_eMaxCount
-} BHDM_EDID_P_AudioFormat ;
-
-
-
-/******************************************************************************
-Summary:
-Enumeration containing Sample Rates specified in CEA Short Audio Descriptors
-*******************************************************************************/
-typedef enum BHDM_EDID_P_AudioSampleRate
-{
-	BHDM_EDID_P_AudioSampleRate_e32KHz  =  1,
-	BHDM_EDID_P_AudioSampleRate_e44KHz  =  2,
-	BHDM_EDID_P_AudioSampleRate_e48KHz  =  4,
-	BHDM_EDID_P_AudioSampleRate_e88KHz  =  8,
-	BHDM_EDID_P_AudioSampleRate_e96KHz  = 16,
-	BHDM_EDID_P_AudioSampleRate_e176KHz = 32,
-	BHDM_EDID_P_AudioSampleRate_e192KHz = 64
-} BHDM_EDID_P_AudioSampleRate;
-
-
-
-typedef struct _BHDM_EDID_P_CEA_861B_VIDEO_FORMAT_
-{
-	uint8_t            CeaVideoCode ;      /* Short Descriptor */
-	uint16_t           HorizontalPixels ;  /* Horiz Active Pixels */
-	uint16_t           VerticalPixels ;	  /* Vertical Active Pixels */
-	BAVC_ScanType      eScanType ;         /* Progressive, Interlaced */
-	BAVC_FrameRateCode eFrameRateCode ;    /* Vertical Frequency */
-	BFMT_AspectRatio   eAspectRatio ;      /* Horiz  to Vertical Ratio */
-} BHDM_EDID_P_CEA_861B_VIDEO_FORMAT ;
-
-
-const BHDM_EDID_P_CEA_861B_VIDEO_FORMAT BHDM_EDID_P_Cea861bFormats[] =
+static const BHDM_EDID_P_CEA_861B_VIDEO_FORMAT BHDM_EDID_P_Cea861bFormats[] =
 {
 /* Video	Horizontal	Vertical */
 /* Codes	(pixels)	(pixels)		  i/p	                Vertical Freq				Aspect Ratio			Remark */
 
-	{ 1,	640,		480, 	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3}, 	/* Default format */
-	{ 2,	720,		480, 	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3}, 	/* EDTV */
+	{ 1,	640,		480,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3}, 	/* Default format */
+	{ 2,	720,		480, 	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},		/* EDTV */
 	{ 3,	720,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* EDTV */
 	{ 4,	1280,		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* HDTV */
 	{ 5,	1920,		1080,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* HDTV */
-	{ 6,    /*720*/1440,	480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3}, 	/* Optional Double clock for 720x480i */
-	{ 7, 	/*720*/1440,	480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* Optional Double clock for 720x480i */
-	{10,	2880,		480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},		/* Game Console */
-	{11,	2880,		480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* Game Console */
-	{14,	1440,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},		/* high-end DVD */
-	{15,	1440,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* high-end DVD */
+	{ 6,    /*720*/1440,	480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},	/* Optional Double clock for 720x480i */
+	{ 7,	/*720*/1440,	480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* Optional Double clock for 720x480i */
+	{10,	2880,		480,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},		/* Game Console */
+	{11,	2880,		480,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* Game Console */
+	{14,	1440,		480,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},		/* high-end DVD */
+	{15,	1440,		480,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* high-end DVD */
 	{16,	1920,		1080,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* Optional HDTV */
 
-	{17,	720,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* EDTV */
-	{18,	720,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* EDTV */
-	{19,	1280,		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* HDTV */
+	{17,	720,		576,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* EDTV */
+	{18,	720,		576,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* EDTV */
+	{19,	1280,		720,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* HDTV */
 	{20,	1920,		1080,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* HDTV */
-	{21,	/*720*/1440,	576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* Optional Double clock for 720x576i */
-	{22,	/*720*/1440,	576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* Optional Double clock for 720x576i */
-	{25,	2880,		576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* Game Console */
-	{26,	2880,		576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* Game Console */
-	{29,	1440,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* high-end DVD */
-	{30,	1440,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* high-end DVD */
+	{21,	/*720*/1440,	576,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* Optional Double clock for 720x576i */
+	{22,	/*720*/1440,	576,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* Optional Double clock for 720x576i */
+	{25,	2880,		576,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* Game Console */
+	{26,	2880,		576,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* Game Console */
+	{29,	1440,		576,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e4_3},		/* high-end DVD */
+	{30,	1440,		576,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* high-end DVD */
 	{31,	1920,		1080,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* Optional HDTV */
 
 	{32,	1920,		1080,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e23_976, BFMT_AspectRatio_e16_9},	/* Optional HDTV */
 	{33,	1920,		1080,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e25,     BFMT_AspectRatio_e16_9},	/* Optional HDTV */
 	{34,	1920,		1080,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e30,	BFMT_AspectRatio_e16_9},	       /* Optional HDTV */
-	{35,	2880,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},		/* 4x Pixel Rep */
-	{36,	2880,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* 4x Pixel Rep */
-	{37,	2880,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,   	BFMT_AspectRatio_e4_3},		/* 4x Pixel Rep */
-	{38,	2880,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,   	BFMT_AspectRatio_e16_9},	/* 4x Pixel Rep */
+	{35,	2880,		480,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e4_3},		/* 4x Pixel Rep */
+	{36,	2880,		480,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_e16_9},	/* 4x Pixel Rep */
+	{37,	2880,		576,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,   	BFMT_AspectRatio_e4_3},		/* 4x Pixel Rep */
+	{38,	2880,		576,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,   	BFMT_AspectRatio_e16_9},	/* 4x Pixel Rep */
 
-	{60,	1280,		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e24,   	BFMT_AspectRatio_e16_9},
-	{61,	1280,		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e25,   	BFMT_AspectRatio_e16_9},
-	{62,	1280,		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e30,   	BFMT_AspectRatio_e16_9},
+	{60,	1280,		720,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e24,   	BFMT_AspectRatio_e16_9},
+	{61,	1280,		720,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e25,   	BFMT_AspectRatio_e16_9},
+	{62,	1280,		720,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e30,   	BFMT_AspectRatio_e16_9},
 
 #if BHDM_CONFIG_4Kx2K_30HZ_SUPPORT
 	{63,	1920,		1080,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e119_88,	BFMT_AspectRatio_e16_9},	/* Optional HDTV */
 	{64,	1920,		1080,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e100,		BFMT_AspectRatio_e16_9},	/* Optional HDTV */
 
-	{93, 3840, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e24, 		BFMT_AspectRatio_e16_9},
-	{94, 3840, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e25, 		BFMT_AspectRatio_e16_9},
-	{95, 3840, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e30, 		BFMT_AspectRatio_e16_9},
+	{93, 3840, 		2160,	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e24, 		BFMT_AspectRatio_e16_9},
+	{94, 3840, 		2160,	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e25, 		BFMT_AspectRatio_e16_9},
+	{95, 3840, 		2160,	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e30, 		BFMT_AspectRatio_e16_9},
 #endif
 
 #if BHDM_CONFIG_4Kx2K_60HZ_SUPPORT
-	{96, 3840, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e50, BFMT_AspectRatio_e16_9},
-	{97, 3840, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e59_94, BFMT_AspectRatio_e16_9},
+	{96, 3840, 		2160,	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e50, BFMT_AspectRatio_e16_9},
+	{97, 3840, 		2160,	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e59_94, BFMT_AspectRatio_e16_9},
 #endif
 
 
@@ -185,46 +126,47 @@ const BHDM_EDID_P_CEA_861B_VIDEO_FORMAT BHDM_EDID_P_Cea861bFormats[] =
 	{28,	(2880),		288,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_e16_9},	/* Game Console */
 
 	/* UnSupported Frame Rates */
-	{39, 1920, 		1080, /*(1250 total)*/BAVC_ScanType_eInterlaced, BAVC_FrameRateCode_e50 BFMT_AspectRatio_e16_9},
-	{40, 1920, 		1080,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
-	{41, 1280, 		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
-	{42, 720, 		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e4_3},
-	{43, 720, 		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
-	{44, 720(1440), 	576,  	BAVC_ScanType_eInterlaced, 	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e4_3},
-	{45, 720(1440), 	576,  	BAVC_ScanType_eInterlaced, 	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
-	{46, 1920, 		1080,  	BAVC_ScanType_eInterlaced, 	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
-	{47, 1280, 		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
-	{48, 720, 		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e4_3},
-	{49, 720, 		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
-	{50, 720(1440), 	480,  	BAVC_ScanType_eInterlaced, 	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e4_3},
-	{51, 720(1440), 	480,  	BAVC_ScanType_eInterlaced, 	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
-	{52, 720, 		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e4_3},
-	{53, 720, 		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e16_9},
-	{54, 720(1440), 	576,  	BAVC_ScanType_eInterlaced, 	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e4_3},
-	{55, 720(1440), 	576,  	BAVC_ScanType_eInterlaced, 	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e16_9},
-	{56, 720, 		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e4_3},
-	{57, 720, 		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e16_9},
-	{58, 720(1440), 	480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e4_3},
-	{59, 720(1440), 	480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e16_9},
+	{39, 1920,		1080, /*(1250 total)*/BAVC_ScanType_eInterlaced, BAVC_FrameRateCode_e50 BFMT_AspectRatio_e16_9},
+	{40, 1920,		1080,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
+	{41, 1280,		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
+	{42, 720,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e4_3},
+	{43, 720,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
+	{44, 720(1440),	576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e4_3},
+	{45, 720(1440),	576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e100, BFMT_AspectRatio_e16_9},
+	{46, 1920,		1080,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
+	{47, 1280,		720,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
+	{48, 720,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e4_3},
+	{49, 720,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
+	{50, 720(1440), 480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e4_3},
+	{51, 720(1440),	480,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e120, BFMT_AspectRatio_e16_9},
+	{52, 720,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e4_3},
+	{53, 720,		576,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e16_9},
+	{54, 720(1440),	576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e4_3},
+	{55, 720(1440),	576,  	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e200,  BFMT_AspectRatio_e16_9},
+	{56, 720,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e4_3},
+	{57, 720,		480,  	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e16_9},
+	{58, 720(1440),	480,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e4_3},
+	{59, 720(1440),	480,	BAVC_ScanType_eInterlaced,	BAVC_FrameRateCode_e240, BFMT_AspectRatio_e16_9},
 
 
-	{98, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e23_976, 		BFMT_AspectRatio_eUnknown},
-	{99, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e25, 		BFMT_AspectRatio_eUnknown},
-	{100, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e29_97, 	BFMT_AspectRatio_eUnknown},
-	{101, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e50, 		BFMT_AspectRatio_eUnknown},
+	{98, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e23_976,		BFMT_AspectRatio_eUnknown},
+	{99, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e25,		BFMT_AspectRatio_eUnknown},
+	{100, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e29_97,	BFMT_AspectRatio_eUnknown},
+	{101, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_eUnknown},
 
-	{102, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e59_94, 	BFMT_AspectRatio_eUnknown},
-	{103, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e23_976, 		BFMT_AspectRatio_eUnknown}
-	{104, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e25, 		BFMT_AspectRatio_eUnknown},
-	{105, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e29_97, 	BFMT_AspectRatio_eUnknown},
-	{106, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e50, 		BFMT_AspectRatio_eUnknown},
-	{107, 4096, 		2160, 	BAVC_ScanType_eProgressive, 	BAVC_FrameRateCode_e59_94, 	BFMT_AspectRatio_eUnknown},
+	{102, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94,	BFMT_AspectRatio_eUnknown},
+	{103, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e23_976,	BFMT_AspectRatio_eUnknown}
+	{104, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e25,		BFMT_AspectRatio_eUnknown},
+	{105, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e29_97, 	BFMT_AspectRatio_eUnknown},
+	{106, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e50,		BFMT_AspectRatio_eUnknown},
+	{107, 4096,	2160,	BAVC_ScanType_eProgressive,	BAVC_FrameRateCode_e59_94, 	BFMT_AspectRatio_eUnknown},
 
 #endif
 
 /*  0 No Video Code Available (Used with AVI InfoFrame only) */
 /*	{35,-127 Reserved for the Future */
 } ;
+
 
 
 typedef struct _BHDM_EDID_P_ALT_PREFERRED_VIDEOFMT
@@ -364,63 +306,26 @@ static const char * const ExtendedCeaTagName[] =
 	/* "InfoFrame Data Block" */
 } ;
 
+
 static const char * const g_status[] = {"No", "Yes"} ;
 
 static const unsigned char EDIDByPassedText[] = "BYPASSED EDID" ;
 
 #endif
 
-
-#define BHDM_EDID_USE_DEBUG_EDID 0
-
-/* fix for backward compatibility of BHDM_CONFIG_DEBUG_EDID definition */
-#if BHDM_EDID_USE_DEBUG_EDID
-#undef BHDM_CONFIG_DEBUG_EDID_PROCESSING
-#define BHDM_CONFIG_DEBUG_EDID_PROCESSING 1
-#endif
-
-#if BHDM_CONFIG_DEBUG_EDID_PROCESSING
-
-/*
-the following EDID can be used to debug any Rx EDID that a BCMxxxx chip may have problems parsing.
-a copy of the EDID must first be obtained from the actual TV/Receiver and copied here;
-
-Enable the BHDM_EDID debug messages
-     # export msg_modules=BHDM_EDID
-to get a copy of the EDID; prior to running any app.
-
-NOTE: This following EDID is used for DEBUGGING ONLY! i.e. debugging the parsing of an EDID which
-you may not have the HDMI Rx.  Presumeably the EDID was provided by the user with the TV.
-
-The macro BHDM_EDID_USE_DEBUG_EDID should be reset to 0 when finished debugging
-*/
-
-uint8_t DebugRxEdid[] =
+static const char * const CeaAudioTypeText[] =
 {
-	0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x08, 0x6D, 0x48, 0x56, 0xA0, 0xA0, 0xA0, 0xA0,
-	0x14, 0x14, 0x01, 0x03, 0x81, 0x5D, 0x34, 0x78, 0x0A, 0x55, 0x50, 0xA7, 0x55, 0x46, 0x99, 0x24,
-	0x12, 0x49, 0x4B, 0x21, 0x08, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xE4, 0x57, 0x80, 0x18, 0x71, 0x38, 0x2D, 0x40, 0x58, 0x2C,
-	0x45, 0x00, 0xA2, 0x08, 0x32, 0x00, 0x00, 0x1E, 0xC0, 0x2B, 0x00, 0x72, 0x51, 0xD0, 0x1E, 0x20,
-	0x6E, 0x28, 0x55, 0x00, 0xA2, 0x08, 0x32, 0x00, 0x00, 0x1E, 0x00, 0x00, 0x00, 0xFC, 0x00, 0x42,
-	0x43, 0x4D, 0x33, 0x35, 0x34, 0x38, 0x5F, 0x35, 0x36, 0x20, 0x33, 0x44, 0x00, 0x00, 0x00, 0xFD,
-	0x00, 0x32, 0x4B, 0x0F, 0x50, 0x17, 0x00, 0x0A, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x01, 0x25,
-
-	0x02, 0x03, 0x3D, 0x71, 0x78, 0x03, 0x0C, 0x00, 0x10, 0x00, 0xB8, 0x2D, 0x20, 0xC0, 0x0E, 0x01,
-	0x01, 0x0F, 0x3F, 0x08, 0x00, 0x20, 0x40, 0x56, 0x16, 0x90, 0x88, 0x00, 0xE6, 0x52, 0x05, 0x04,
-	0x40, 0x02, 0x22, 0x20, 0x21, 0x1F, 0x13, 0x11, 0x14, 0x18, 0x15, 0x16, 0x1A, 0x07, 0x06, 0x01,
-	0x29, 0x09, 0x07, 0x07, 0x15, 0x50, 0xFF, 0x19, 0x50, 0xFF, 0x82, 0x01, 0x00, 0xE4, 0x57, 0x80,
-	0x18, 0x71, 0x38, 0x2D, 0x40, 0x58, 0x2C, 0x45, 0x00, 0x13, 0x8E, 0x21, 0x00, 0x00, 0x1E, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDE
+	"Reserved",	"PCM",
+	"AC3",		"MPEG1",
+	"MP3",		"MPEG2",
+	"AAC",		"DTS",
+	"ATRAC",		"One Bit Audio",
+	"DDP",		"DTS-HD",
+	"MAT (MLP)",	"DST",
+	"WMA Pro",	"Reserved15"
 } ;
-#endif
 
-static const struct  {
-	BHDM_EDID_P_AudioFormat EdidAudioFormat ;
-	BAVC_AudioFormat BcmAudioFormat ;
-} BHDM_EDID_P_BcmSupportedFormats [] =
+BHDM_EDID_P_AUDIO_FORMATS BcmSupportedAudioFormats [] =
 {
 	{BHDM_EDID_P_AudioFormat_ePCM,   BAVC_AudioFormat_ePCM},
 	{BHDM_EDID_P_AudioFormat_eAC3,   BAVC_AudioFormat_eAC3},
@@ -454,10 +359,7 @@ static const struct  {
 
  } ;
 
-static const struct {
-	BHDM_EDID_P_AudioSampleRate EdidAudioSampleRate ;
-	BAVC_AudioSamplingRate BcmAudioSampleRate ;
-} EdidAudioSampleRateTable[] =
+static const BHDM_EDID_P_AUDIO_SAMPLE_RATES BcmSupportedAudioSampleRates[] =
 {
 
 	{BHDM_EDID_P_AudioSampleRate_e32KHz, BAVC_AudioSamplingRate_e32k},
@@ -499,6 +401,10 @@ static const char * const CeaAudioSampleRateTypeText[] =
 #endif
 } ;
 #endif
+
+
+
+
 
 /******************************************************************************
 uint8_t BHDM_EDID_P_EdidCheckSum
@@ -615,16 +521,6 @@ BERR_Code BHDM_EDID_GetNthBlock(
 		EdidErrorRetryCount  = 1 ;
 		do
 		{
-#if BHDM_CONFIG_MHL_SUPPORT
-			if (hHDMI->bMhlMode)
-			{
-				BKNI_Memcpy((void *)pBuffer,
-							(void *)(hHDMI->hMhl->hDdcReq->pucEdidBlock + (BHDM_EDID_BLOCKSIZE * (BlockNumber % 2))),
-							sizeof(uint8_t) * BHDM_P_MHL_EDID_BLOCK_SIZE);
-				rc = BERR_SUCCESS;
-			}
-			else
-#endif
 			if (hHDMI->DeviceSettings.UseDebugEdid)
 			{
 				const uint8_t *DebugRxEdid ;
@@ -777,21 +673,6 @@ BERR_Code BHDM_EDID_GetBasicData(
 		BDBG_WRN(("No BCM Supported Detail/Preferred Timing Descriptors found; selecting an alternate...")) ;
 		BHDM_EDID_P_SelectAlternateFormat(hHDMI, &hHDMI->AttachedEDID.BasicData.eVideoFmt) ;
 	}
-
-#if BDBG_DEBUG_BUILD
-	{
-		const BFMT_VideoInfo *pVideoFormatInfo ;
-
-		pVideoFormatInfo =
-			(BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(hHDMI->AttachedEDID.BasicData.eVideoFmt) ;
-
-		BDBG_MSG(("BCM Supported Detail Timings Found: %d",
-			hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock)) ;
-		BDBG_MSG(("HDMI Rx Preferred Video Format: (%d) %s",
-			hHDMI->AttachedEDID.BasicData.eVideoFmt,
-			pVideoFormatInfo->pchFormatStr)) ;
-	}
-#endif
 
 
 	/* copy the EDID Basic Data */
@@ -1171,15 +1052,10 @@ static void BHDM_EDID_P_SelectAlternateFormat(const BHDM_Handle hHDMI, BFMT_Vide
 	{
 		if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BHDM_EDID_P_AltPreferredFormats[i].format])
 		{
-#if BHDM_CONFIG_MHL_SUPPORT
-			if (BHDM_MHL_P_ValidatePreferredFormat(hHDMI, BHDM_EDID_P_AltPreferredFormats[i].format) ==  BERR_SUCCESS)
-#endif
-			{
-				BDBG_WRN(("Selecting alternate supported BCM supported format: %s",
-					BHDM_EDID_P_AltPreferredFormats[i].formattext));
-				*alternateFormat  = BHDM_EDID_P_AltPreferredFormats[i].format;
-				break;
-			}
+			BDBG_WRN(("Selecting alternate supported BCM supported format: %s",
+				BHDM_EDID_P_AltPreferredFormats[i].formattext));
+			*alternateFormat  = BHDM_EDID_P_AltPreferredFormats[i].format;
+			break;
 		}
 	}
 }
@@ -1280,10 +1156,6 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 		rc = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI, pBHDM_EDID_DetailTiming, BCM_VideoFmt);
 		if (rc == BERR_SUCCESS)
 		{
-#if BHDM_CONFIG_MHL_SUPPORT
-			rc = BHDM_MHL_P_ValidatePreferredFormat(hHDMI,  *BCM_VideoFmt);
-			if (rc != BERR_SUCCESS) goto BcmSupportedFormatNotFound;
-#endif
 			goto BcmSupportedFormatFound;
 		}
 		else {
@@ -1388,15 +1260,6 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 				rc = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI, pBHDM_EDID_DetailTiming, BCM_VideoFmt);
 				if (rc != BERR_SUCCESS)
 					goto BcmSupportedFormatNotFound;
-
-#if BHDM_CONFIG_MHL_SUPPORT
-				else
-				{
-					rc = BHDM_MHL_P_ValidatePreferredFormat(hHDMI,  *BCM_VideoFmt);
-					if (rc != BERR_SUCCESS) goto BcmSupportedFormatNotFound;
-				}
-#endif
-
 
 				break ;  /* falls to BcmSupportedFormatFound: label */
 			}
@@ -1768,18 +1631,6 @@ static BERR_Code BHDM_EDID_P_ParseMonitorRange(const BHDM_Handle hHDMI, uint8_t 
 	BKNI_Memcpy(hHDMI->AttachedEDID.MonitorRange.SecondaryTimingParameters,
 		   &hHDMI->AttachedEDID.Block[offset + EDID_DESC_TIMING_FORMULA + 1], 7) ;
 
-#if BDBG_DEBUG_BUILD
-	/* Display DEBUG Messages */
-	BDBG_MSG(("Min - Max Vertical:   %d - %d Hz",
-		hHDMI->AttachedEDID.MonitorRange.MinVertical,
-		hHDMI->AttachedEDID.MonitorRange.MaxVertical)) ;
-
-	BDBG_MSG(("Min - Max Horizontal: %d - %d kHz",
-		hHDMI->AttachedEDID.MonitorRange.MinHorizontal,
-		hHDMI->AttachedEDID.MonitorRange.MaxHorizontal)) ;
-
-	BDBG_MSG(("Max Pixel Clock %d MHz", hHDMI->AttachedEDID.MonitorRange.MaxPixelClock)) ;
-
 #if 0
 	/* Display More DEBUG messages for Timing Support */
 	switch (hHDMI->AttachedEDID.MonitorRange.SecondaryTiming)
@@ -1788,8 +1639,6 @@ static BERR_Code BHDM_EDID_P_ParseMonitorRange(const BHDM_Handle hHDMI, uint8_t 
 	case 0x02 : BDBG_MSG(("Secondary GTF curve supported")) ; break ;
 	default :   BDBG_MSG(("Other secondary timing formula")) ;
 	}
-#endif
-	BDBG_MSG(("[END Monitor Range Descriptor]")) ; /* add a blank line */
 #endif
 
 	return rc ;
@@ -1991,10 +1840,10 @@ BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
 	/* convert the BAVC_AudioSampleRate to EdidAudioSampleRate */
 
 	EdidAudioSamplingRate = BAVC_AudioSamplingRate_eUnknown  ;
-	for (i = 0; i < sizeof(EdidAudioSampleRateTable) / sizeof(*EdidAudioSampleRateTable) ; i++)
-		if (eAudioSamplingRate == EdidAudioSampleRateTable[i].BcmAudioSampleRate)
+	for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates) ; i++)
+		if (eAudioSamplingRate == BcmSupportedAudioSampleRates[i].BcmAudioSampleRate)
 		{
-			EdidAudioSamplingRate = EdidAudioSampleRateTable[i].EdidAudioSampleRate ;
+			EdidAudioSamplingRate = BcmSupportedAudioSampleRates[i].EdidAudioSampleRate ;
 			break ;
 		}
 
@@ -2411,87 +2260,31 @@ static BERR_Code BHDM_EDID_P_ParseEstablishedTimingFormats(
 	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t EstablishedTimings ;
 
-#if BDBG_DEBUG_BUILD
- 	uint8_t i ;
-	 static const char * const EstablishedTimingsIText[8] =
-	{
-		 "800 x 600 @ 60Hz VESA",
-		 "800 x 600 @ 56Hz VESA",
-		 "640 x 480 @ 75Hz VESA",
-		 "640 x 480 @ 72Hz VESA",
-		 "640 x 480 @ 67Hz Apple, Mac II",
-		 "640 x 480 @ 60Hz IBM, VGA",
-		 "720 x 400 @ 88Hz IBM, XGA2",
-		 "720 x 400 @ 70Hz IBM, VGA"
-	 } ;
-
-	 static const char * const EstablishedTimingsIIText[8] =
-	{
-		 "1280 x 1024 @ 75Hz VESA",
-		 "1024 x 768 @ 75Hz VESA",
-		 "1024 x 768 @ 70Hz VESA",
-		 "1024 x 768 @ 60Hz VESA",
-		 "1024 x 768 @ 87Hz(I) IBM",
-		 "832 x 624 @ 75Hz Apple, Mac II",
-		 "800 x 600 @ 75Hz VESA",
-		"800 x 600 @ 72Hz VESA"
-	 } ;
-#endif
-
 	/* assumes current block is 0 */
 
 	/* ESTABLISHED #1 */
-
-
 	EstablishedTimings = hHDMI->AttachedEDID.Block[BHDM_EDID_ESTABLISHED_TIMINGS1] ;
-#if BDBG_DEBUG_BUILD
-      if (!EstablishedTimings)
-	  	goto CheckEstablishTiming2 ;
-
-	BDBG_MSG(("Monitor Established Timings  I (%#02x)", EstablishedTimings)) ;
-	for (i = 0 ;i  < 8; i++)
-	{
-		if (EstablishedTimings & (1 << i))
-			BDBG_MSG(("   %s", EstablishedTimingsIText[i])) ;
-	}
-#endif
 
 	if (EstablishedTimings & BHDM_EDID_ESTABLISHED_TIMINGS_1_640x480_60HZ)
 	{
-		BDBG_MSG(("Found BCM Supported 640x480p")) ;
 		hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_eDVI_640x480p] = true ;
 	}
 
 	if (EstablishedTimings & BHDM_EDID_ESTABLISHED_TIMINGS_1_800x600_60HZ)
 	{
-		BDBG_MSG(("Found BCM Supported 800x600p")) ;
 		hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_eDVI_800x600p] = true ;
 	}
-	BDBG_MSG((" ")) ;
 
 
-#if BDBG_DEBUG_BUILD
-CheckEstablishTiming2 :
-#endif
 	/* ESTABLISHED #2 */
 	EstablishedTimings = hHDMI->AttachedEDID.Block[BHDM_EDID_ESTABLISHED_TIMINGS2] ;
-      if (!EstablishedTimings)
-	  	goto done ;
-#if BDBG_DEBUG_BUILD
-	BDBG_MSG(("Monitor Established Timings II (%#02x)", EstablishedTimings)) ;
-	for (i = 0 ;i  < 8; i++)
-	{
-		if (EstablishedTimings & (1 << i))
-			BDBG_MSG(("   %s", EstablishedTimingsIIText[i])) ;
-	}
-#endif
+	if (!EstablishedTimings)
+		goto done ;
 
 	if (EstablishedTimings & BHDM_EDID_ESTABLISHED_TIMINGS_2_1024x768_60HZ)
 	{
-		BDBG_MSG(("Found BCM Supported 1024x768p")) ;
 		hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_eDVI_1024x768p] = true ;
 	}
-	BDBG_MSG((" ")) ;
 
 done:
 	/* indicate formats have been checked */
@@ -2543,9 +2336,6 @@ static BERR_Code BHDM_EDID_P_ParseVideoDB(
 #endif
 
 	/* for each CEA Video ID Code Found */
-	BDBG_MSG(("<%s> CEA-861 Supported Video Formats (%d):",
-		hHDMI->AttachedEDID.MonitorName, NumVideoDescriptors)) ;
-
 	for (j = 0 ; j < NumVideoDescriptors ; j++ )
 	{
 		/* get the supported Video Code ID; check if a native format */
@@ -2588,7 +2378,7 @@ static BERR_Code BHDM_EDID_P_ParseVideoDB(
 				continue ;
 
 			/* adjust pixel repeat formats if necessary */
-			if ((BHDM_EDID_P_Cea861bFormats[k].HorizontalPixels == 1440) ||
+			if ((	BHDM_EDID_P_Cea861bFormats[k].HorizontalPixels == 1440) ||
 				(BHDM_EDID_P_Cea861bFormats[k].HorizontalPixels == 2880))
 				tempH = 720 ;
 			else
@@ -2683,9 +2473,6 @@ static BERR_Code BHDM_EDID_P_ParseVideoDB(
 				hHDMI->AttachedEDID.BcmSupportedVideoFormats[l] = true ;
 				if (LastIdAdded != EdidVideoIDCode)
 				{
-					BDBG_MSG(("Video ID: %3d (%-27s) : SUPPORTED",
-						EdidVideoIDCode, (char *) BAVC_HDMI_AviInfoFrame_VideoIdCodeToStr(EdidVideoIDCode))) ;
-
 					pVideoDescriptor = (BHDM_EDID_P_VideoDescriptor  *)
 						BKNI_Malloc(sizeof(BHDM_EDID_P_VideoDescriptor )) ;
 					if (pVideoDescriptor == NULL)
@@ -2807,17 +2594,6 @@ static BERR_Code BHDM_EDID_P_ParseVideoCapablityDB(
 	hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleYCC =
 		VideoCapabilityByte & 0x80 ;
 
-#if BDBG_DEBUG_BUILD
-	BDBG_MSG(("Over/Under Scan Behaviors: CE= %d; IT= %d; PT= %d",
-		hHDMI->AttachedEDID.VideoCapabilityDB.eCeBehavior,
-		hHDMI->AttachedEDID.VideoCapabilityDB.eItBehavior,
-		hHDMI->AttachedEDID.VideoCapabilityDB.ePtBehavior)) ;
-	BDBG_MSG(("Quantization Selection: RGB= %s  YCC= %s",
-		g_status[hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleRGB],
-		g_status[hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleYCC])) ;
-
-#endif
-
 	return rc ;
 }
 
@@ -2840,6 +2616,7 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420VideoDB(
 	uint16_t tempH;
 	bool bVideoIdCodeFound ;
 
+	hHDMI->AttachedEDID.YCbCr420CapabilityVideDBFound = true ;
 
 	/* set the number of video descriptors to look at  */
 	NumVideoDescriptors = DataBlockLength - 1 ;
@@ -2990,10 +2767,12 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 	BERR_Code rc = BERR_SUCCESS ;
 	BFMT_VideoInfo *pVideoFormatInfo ;
 
-	BHDM_EDID_P_VideoDescriptor 	*pVideoDescriptor = NULL ;
+	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor = NULL ;
 	uint8_t CapabilityBitMask ;
 	uint8_t CapabilityByteOffset ;
 	uint8_t CapabilityByte ;
+
+	hHDMI->AttachedEDID.YCbCr420CapabilityMapDBFound = true ;
 
 	for (pVideoDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList);
 			pVideoDescriptor ; pVideoDescriptor = BLST_Q_NEXT(pVideoDescriptor, link))
@@ -3027,7 +2806,7 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 
 	hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked = 1 ;
 
-        BSTD_UNUSED(pVideoFormatInfo);
+	BSTD_UNUSED(pVideoFormatInfo);
 	return rc ;
 }
 
@@ -3046,21 +2825,6 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 
 	BERR_Code rc = BERR_SUCCESS ;
 
-#if BDBG_DEBUG_BUILD
-	static const char * const CeaAudioTypeText[] =
-	{
-		"Reserved",	"PCM",
-		"AC3",		"MPEG1",
-		"MP3",		"MPEG2",
-		"AAC",		"DTS",
-		"ATRAC",		"One Bit Audio",
-		"DDP",		"DTS-HD",
-		"MAT (MLP)",	"DST",
-		"WMA Pro",	"Reserved15"
-	} ;
-#endif
-
-
 	uint8_t
 		i, j, /* indexes */
 		NumAudioDescriptors,
@@ -3075,8 +2839,6 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 	NumAudioDescriptors = DataBlockLength / 3 ;
 
 	/* for each CEA Audio Format Code Found */
-	BDBG_MSG(("<%s> CEA-861 Supported audio format:",
-		hHDMI->AttachedEDID.MonitorName)) ;
 
 	for (j = 0 ; j < NumAudioDescriptors ; j++)
 	{
@@ -3091,12 +2853,14 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 		/************************************************/
 		/* 1st check if format is supported  */
 		BcmAudioFormat = BAVC_AudioFormat_eMaxCount ;
-		for (i = 0; i < sizeof(BHDM_EDID_P_BcmSupportedFormats) / sizeof(*BHDM_EDID_P_BcmSupportedFormats) ; i++)
-			if (EdidAudioFormat == BHDM_EDID_P_BcmSupportedFormats[i].EdidAudioFormat)
+		for (i = 0; i < sizeof(BcmSupportedAudioFormats) / sizeof(*BcmSupportedAudioFormats) ; i++)
+		{
+			if (EdidAudioFormat == BcmSupportedAudioFormats[i].EdidAudioFormat)
 			{
-				BcmAudioFormat = BHDM_EDID_P_BcmSupportedFormats[i].BcmAudioFormat;
+				BcmAudioFormat = BcmSupportedAudioFormats[i].BcmAudioFormat;
 				break ;
 			}
+		}
 
 		if (BcmAudioFormat == BAVC_AudioFormat_eMaxCount)
 		{
@@ -3116,13 +2880,15 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 		EdidAudioSampleRate &= 0x7F ; /* clear reserved bit */
 
 		SampleRateFound = 0 ;
-		for (i = 0; i < sizeof(EdidAudioSampleRateTable) / sizeof(*EdidAudioSampleRateTable); i++)
+		for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
+		{
 			/* check that at least one sample rate is supported */
-			if (EdidAudioSampleRate & EdidAudioSampleRateTable[i].EdidAudioSampleRate)
+			if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
 			{
 				SampleRateFound = 1 ;
 				break ;
 			}
+		}
 
 		if (!SampleRateFound)
 			continue ;
@@ -3132,11 +2898,14 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 		/* monitor supports for the requested Audio Format etc  */
 
 		/* get the number of bits supported by this format */
+
+
 		if (EdidAudioFormat != BHDM_EDID_P_AudioFormat_ePCM) /* compressed */
 		{										           /*  formats   */
 			/* Max Bit Rate = EdidAudioBits * 8 */
 			EdidAudioBits = EdidAudioBits /** 8*/ ;
 
+#if !BDBG_NO_LOG
 			/* display debug information */
 			BDBG_MSG(("Found BCM supported CEA-861 Audio: %s - %d Ch [%d max bit rate] ; [%02X %02X %02X]",
 				CeaAudioTypeText[EdidAudioFormat],
@@ -3145,14 +2914,15 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 3])) ;
 
-#if BDBG_DEBUG_BUILD
 			/* show the supported sample rates */
-			for (i = 0; i < sizeof(EdidAudioSampleRateTable) / sizeof(*EdidAudioSampleRateTable); i++)
+			for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
+			{
 				/* check that at least one sample rate is supported */
-				if (EdidAudioSampleRate & EdidAudioSampleRateTable[i].EdidAudioSampleRate)
+				if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
 				{
 					BDBG_MSG(("   Sample Rate %s", CeaAudioSampleRateTypeText[i])) ;
 				}
+			}
 #endif
 		} /* END if compressed formats */
 		else									 /* uncompressed */
@@ -3169,6 +2939,7 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 				continue ;
 			}
 
+#if !BDBG_NO_LOG
 			/* display debug information */
 			BDBG_MSG(("Found BCM supported CEA-861 Audio: %s - %d Ch [up to %d bits] ; [%02X %02X %02X]",
 				CeaAudioTypeText[EdidAudioFormat],
@@ -3177,12 +2948,10 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 3])) ;
 
-                        BSTD_UNUSED(uiAudioSampleSize);
-#if BDBG_DEBUG_BUILD
 			/* show the supported sample rates */
-			for (i = 0; i < sizeof(EdidAudioSampleRateTable) / sizeof(*EdidAudioSampleRateTable); i++)
+			for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
 				/* check that at least one sample rate is supported */
-				if (EdidAudioSampleRate & EdidAudioSampleRateTable[i].EdidAudioSampleRate)
+				if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
 				{
 					BDBG_MSG(("   Sample Rate %s", CeaAudioSampleRateTypeText[i])) ;
 				}
@@ -3365,12 +3134,8 @@ BERR_Code BHDM_EDID_GetSupportedVideoFormats(
 		goto done ;
 	}
 
-#if BHDM_CONFIG_MHL_SUPPORT
-	BHDM_MHL_P_GetSupportedVideoFormats(hHDMI, VideoFormats);
-#else
 	BKNI_Memcpy(VideoFormats, &hHDMI->AttachedEDID.BcmSupportedVideoFormats,
 		sizeof(hHDMI->AttachedEDID.BcmSupportedVideoFormats)) ;
-#endif
 
 done:
 	BDBG_LEAVE(BHDM_EDID_GetSupportedVideoFormats) ;
@@ -3472,6 +3237,8 @@ static void BHDM_EDID_P_ParseColorimetryDB(const BHDM_Handle hHDMI, uint8_t Data
 
 	/* Check for Colorimetry Support */
 	ColorimetrySupportByte = hHDMI->AttachedEDID.Block[DataBlockIndex+2] ;
+	hHDMI->AttachedEDID.uiColorimetryDBSupportByte = ColorimetrySupportByte ;
+
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC601]
 		= ColorimetrySupportByte & 0x01 ;
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC709]
@@ -3483,8 +3250,13 @@ static void BHDM_EDID_P_ParseColorimetryDB(const BHDM_Handle hHDMI, uint8_t Data
 
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eAdobeRGB]
 		= ColorimetrySupportByte & 0x10 ;
+#if DISABLED
+	/* Disabling BT2020 CL due to unreliable results observed on various DTV */
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC]
 		= ColorimetrySupportByte & 0x20 ;
+#else
+	BDBG_WRN(("Support for BT2020 CL is DISABLED")) ;
+#endif
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020YCC]
 		= ColorimetrySupportByte & 0x40 ;
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020RGB]
@@ -3493,6 +3265,8 @@ static void BHDM_EDID_P_ParseColorimetryDB(const BHDM_Handle hHDMI, uint8_t Data
 
 	/* Check for metadata support in colorimetry block	*/
 	MetaDataSupportByte = hHDMI->AttachedEDID.Block[DataBlockIndex+3] ;
+	hHDMI->AttachedEDID.uiColorimetryDBMetaDataSupportByte = MetaDataSupportByte ;
+
 	hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD0] =
 		MetaDataSupportByte & 0x01 ;
 
@@ -3505,41 +3279,6 @@ static void BHDM_EDID_P_ParseColorimetryDB(const BHDM_Handle hHDMI, uint8_t Data
 	hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD3] =
 		MetaDataSupportByte & 0x08 ;
 
-#if BDBG_DEBUG_BUILD
-	BDBG_MSG((" ")) ;
-	BDBG_MSG(("Colorimetry Data Block[3]= 0x%02X", ColorimetrySupportByte)) ;
-	BDBG_MSG(("Supported Standards")) ;
-	BDBG_MSG(("   xvYCC601 = %3s,  xvYCC709 =  %3s,  sYCC601 =  %s",
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC601]
-			? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC709]
-			? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_esYCC601]
-			? 1 : 0])) ;
-
-	BDBG_MSG(("   Adobe:  YCC601 = %3s;  RGB = %3s;",
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eAdobeYCC601]
-			? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eAdobeRGB]
-			? 1 : 0])) ;
-
-	BDBG_MSG(("   BT2020: cYCC   = %3s;  YCC = %3s;  RGB = %3s",
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC]
-			? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020YCC]
-			? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020RGB]
-			? 1 : 0])) ;
-
-	BDBG_MSG((" ")) ;
-	BDBG_MSG(("Colorimetry Data Block[4] = 0x%02X", MetaDataSupportByte)) ;
-	BDBG_MSG(("Supported Gamut Metadata profiles")) ;
-	BDBG_MSG(("   MD0: %s;  MD1: %s;  MD2: %s;  MD3: %s",
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD0] ? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD1] ? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD2] ? 1 : 0],
-		g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD3] ? 1 : 0])) ;
-#endif
 }
 
 static void BHDM_EDID_P_ParseHdmi_1_4VSDB(const BHDM_Handle hHDMI, uint8_t DataBlockIndex, uint8_t DataBlockLength)
@@ -3562,9 +3301,6 @@ static void BHDM_EDID_P_ParseHdmi_1_4VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 	hHDMI->AttachedEDID.RxVSDB.PhysAddr_B = (hHDMI->AttachedEDID.Block[DataBlockIndex+4] & 0x0F) ;
 	hHDMI->AttachedEDID.RxVSDB.PhysAddr_C = (hHDMI->AttachedEDID.Block[DataBlockIndex+5] & 0xF0) >> 4 ;
 	hHDMI->AttachedEDID.RxVSDB.PhysAddr_D = (hHDMI->AttachedEDID.Block[DataBlockIndex+5] & 0x0F) ;
-	BDBG_MSG(("my_address (CEC physical) = (%d.%d.%d.%d)",
-		hHDMI->AttachedEDID.RxVSDB.PhysAddr_A, hHDMI->AttachedEDID.RxVSDB.PhysAddr_B,
-		hHDMI->AttachedEDID.RxVSDB.PhysAddr_C, hHDMI->AttachedEDID.RxVSDB.PhysAddr_D)) ;
 
 #if BHDM_CONFIG_CEC_LEGACY_SUPPORT && BHDM_CEC_SUPPORT
 	BKNI_Memcpy(hHDMI->cecConfiguration.CecPhysicalAddr,
@@ -3576,7 +3312,6 @@ static void BHDM_EDID_P_ParseHdmi_1_4VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 	{
 		/* for HDMI 1.1 Check if Rx supports ACP or ISRC packets */
 		hHDMI->AttachedEDID.RxVSDB.SupportsAI = (hHDMI->AttachedEDID.Block[DataBlockIndex+6] & 0x80) >> 7 ;
-		BDBG_MSG(("Supports AI = %d", hHDMI->AttachedEDID.RxVSDB.SupportsAI)) ;
 
 		/* retrieve support for Deep Color modes	*/
 		hHDMI->AttachedEDID.RxVSDB.DeepColor_48bit = (hHDMI->AttachedEDID.Block[DataBlockIndex+6] & 0x40) >> 6;
@@ -3690,124 +3425,8 @@ static void BHDM_EDID_P_ParseHdmi_1_4VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 
 
 done:
-	if ((DataBlockLength >= 7)
-	&& (hHDMI->AttachedEDID.RxVSDB.DeepColor_48bit
-	||  hHDMI->AttachedEDID.RxVSDB.DeepColor_36bit
-	||  hHDMI->AttachedEDID.RxVSDB.DeepColor_30bit
-	||  hHDMI->AttachedEDID.RxVSDB.DeepColor_Y444
-	||  hHDMI->AttachedEDID.RxVSDB.DVI_Dual))
-	{
-		BDBG_MSG((" ")) ;
-		BDBG_MSG(("HDMI 1.3 Features")) ;
-		BDBG_MSG(("   Deep Color Support")) ;
-		BDBG_MSG(("      16bit: %s;   12bit: %s;   10bit: %s;  Y444: %s",
-			g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_48bit ? 1 : 0],
-			g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_36bit ? 1 : 0],
-			g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_30bit ? 1 : 0],
-			g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_Y444 ? 1 : 0])) ;
+	hHDMI->AttachedEDID.uiRxVendorSpecificDBLength = DataBlockLength ;
 
-		BDBG_MSG(("   DVI Dual Link Support: %s",
-			g_status[hHDMI->AttachedEDID.RxVSDB.DVI_Dual ? 1 : 0]));
-
-		BDBG_MSG(("   Max TMDS Clock Rate: %d",
-			hHDMI->AttachedEDID.RxVSDB.Max_TMDS_Clock_Rate));
-	}
-
-	BDBG_MSG(("   Video Latency Data Present:            %s",
-		g_status[hHDMI->AttachedEDID.RxVSDB.Latency_Fields_Present ? 1 : 0])) ;
-	if (hHDMI->AttachedEDID.RxVSDB.Latency_Fields_Present)
-	{
-		BDBG_MSG(("      Video: %d, Audio: %d",
-			hHDMI->AttachedEDID.RxVSDB.Video_Latency,
-			hHDMI->AttachedEDID.RxVSDB.Audio_Latency)) ;
-	}
-
-	BDBG_MSG(("   Interlaced Video Latency Data Present: %s",
-		g_status[hHDMI->AttachedEDID.RxVSDB.Interlaced_Latency_Fields_Present ? 1 : 0])) ;
-	if (hHDMI->AttachedEDID.RxVSDB.Interlaced_Latency_Fields_Present)
-	{
-		BDBG_MSG(("      Video: %d, Audio: %d",
-			hHDMI->AttachedEDID.RxVSDB.Interlaced_Video_Latency,
-			hHDMI->AttachedEDID.RxVSDB.Interlaced_Audio_Latency));
-	}
-
-	BDBG_MSG(("   HDMI Video Present: %s",
-		g_status[hHDMI->AttachedEDID.RxVSDB.HDMI_Video_Present ? 1 : 0])) ;
-
-#if BHDM_CONFIG_HDMI_3D_SUPPORT
-	if (hHDMI->AttachedEDID.RxVSDB.HDMI_Video_Present)
-	{
-		BDBG_MSG((" ")) ;
-		BDBG_MSG(("HDMI 1.4 Features")) ;
-		BDBG_MSG(("   Content Types Supported")) ;
-		BDBG_MSG(("      Graphics (Text): %s  Cinema: %s  Photo: %s  Game: %s",
-			g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypeGraphicsText ? 1 : 0],
-			g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypeCinema ? 1 : 0],
-			g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypePhoto ? 1 : 0],
-			g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypeGame ? 1 : 0])) ;
-
-		BDBG_MSG(("   HDMI 3D Present: %s;   Multi 3D Present (Optional): %#x",
-			g_status[hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Present ? 1 : 0],
-			hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Multi_Present)) ;
-
-
-		BDBG_MSG(("   HDMI VIC LEN: %d;  HDMI 3D LEN %d",
-			hHDMI->AttachedEDID.RxVSDB.HDMI_VIC_Len,
-			hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Len)) ;
-
-		BDBG_MSG(("   Image Size: %d",
-			hHDMI->AttachedEDID.RxVSDB.HDMI_Image_Size)) ;
-
-
-		if (hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Present)
-		{
-			uint8_t i;
-			BDBG_MSG(("   Broadcom 3D Formats Supported:")) ;
-			for (i = 0 ; i < BFMT_VideoFmt_eMaxCount; i++)
-			{
-				const BFMT_VideoInfo *pVideoFormatInfo ;
-				pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_FRAME_PACKING) {
-					BDBG_MSG(("   %s Frame Packing ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_FIELD_ALTERNATIVE) {
-					BDBG_MSG(("   %s FieldAlternative ",	pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LINE_ALTERNATIVE) {
-					BDBG_MSG(("   %s LineAlternative ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LDEPTH) {
-					BDBG_MSG(("   %s LDepth ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LDEPTH_GFX)	{
-					BDBG_MSG(("    %s LDepth+Graphics ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_TOP_BOTTOM) {
-					BDBG_MSG(("   %s TopAndBottom ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_FULL) {
-					BDBG_MSG(("   %s SideBySide_Full ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_HALF_HORIZ) {
-					BDBG_MSG(("   %s SideBySide_Half_Horizontal ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-
-				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_HALF_QUINC) {
-					BDBG_MSG(("   %s SideBySide_Half_QuincunxMatrix ", pVideoFormatInfo->pchFormatStr)) ;
-				}
-                                BSTD_UNUSED(pVideoFormatInfo);
-			}
-		}
-	}
-#endif
 }
 
 static void BHDM_EDID_P_ParseHdmi_HF_VSDB(const BHDM_Handle hHDMI, uint8_t DataBlockIndex, uint8_t DataBlockLength)
@@ -3864,34 +3483,6 @@ static void BHDM_EDID_P_ParseHdmi_HF_VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 #endif
 
 
-#if BDBG_DEBUG_BUILD
-
-	BDBG_MSG(("HDMI Forum VSDB Version %d",
-		hHDMI->AttachedEDID.RxHdmiForumVsdb.Version));
-	BDBG_MSG(("Max TMDS Character Rate: %d",
-		hHDMI->AttachedEDID.RxHdmiForumVsdb.Max_TMDS_Clock_Rate));
-
-
-	BDBG_MSG(("3D OSD Disparity: %s ",
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb._3D_OSD_Disparity ? 1 : 0])) ;
-	BDBG_MSG(("Dual View Support: %s ",
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DualView ? 1 : 0])) ;
-	BDBG_MSG(("Independent View Support: %s ",
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.IndependentView ? 1 : 0])) ;
-	BDBG_MSG(("Scrambling support for Pixel Clock < 340: %s ",
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.LTE_340MScrambleSupport ? 1 : 0])) ;
-	BDBG_MSG(("SCDC Read Initiation Support: %s ",
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.RRCapable ? 1 : 0])) ;
-	BDBG_MSG(("SCDC Support: %s ",
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport ? 1 : 0])) ;
-
-	BDBG_MSG(("HDMI Forum 4:2:0 Deep Color Support")) ;
-	BDBG_MSG(("    16 bit: %s;   12 bit: %s;   10 bit: %s;  ",
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_48bit ? 1 : 0],
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_36bit ? 1 : 0],
-		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_30bit ? 1 : 0])) ;
-
-#endif
 
 }
 
@@ -3932,14 +3523,6 @@ static BERR_Code BHDM_EDID_P_ProcessDetailedTimingBlock(const BHDM_Handle hHDMI,
 {
 	BERR_Code rc = BERR_SUCCESS ;
 	BHDM_EDID_ParseDetailedTimingDescriptor(pDescriptor, DetailTimingBlock) ;
-
-	BDBG_MSG(("%4d x %d (%4d%c)  %3d   %3d   %3d      %2d   %2d    %2d      %dMHz   %dx%d",
-		DetailTimingBlock->HorizActivePixels, DetailTimingBlock->VerticalActiveLines,
-		DetailTimingBlock->Mode ?
-			DetailTimingBlock->VerticalActiveLines * 2 : DetailTimingBlock->VerticalActiveLines, Mode[DetailTimingBlock->Mode],
-		DetailTimingBlock->HorizBlankingPixels, DetailTimingBlock->HSyncOffset, DetailTimingBlock->HSyncWidth,
-		DetailTimingBlock->VerticalBlankingLines, DetailTimingBlock->VSyncOffset, DetailTimingBlock->VSyncWidth,
-		DetailTimingBlock->PixelClock, DetailTimingBlock->HSize_mm, DetailTimingBlock->VSize_mm)) ;
 
 	/* convert the DetailTiming to BFMT_eVideoFmt type; */
 	rc = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI, DetailTimingBlock, eVideoFmt) ;
@@ -4012,45 +3595,6 @@ static BERR_Code BHDM_EDID_P_ParseHDRStaticMetadataDB(
 	default :
 		BDBG_ERR(("Invalid/Unsupported HDR Data Block length %d", DataBlockLength)) ;
 	}
-
-
-#if BDBG_DEBUG_BUILD
-	BDBG_MSG(("HDR DB Length: %d", DataBlockLength)) ;
-	BDBG_MSG(("Electro_Optical Transfer Function: ")) ;
-	BDBG_MSG(("   SDR Lumuinance: %s",
-		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSDR] ? 1 : 0])) ;
-	BDBG_MSG(("   HDR Lumuinance: %s",
-		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHDR] ? 1 : 0])) ;
-	BDBG_MSG(("   SMPTE ST 2084: %s",
-		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSMPTESt2084] ? 1 : 0])) ;
-	BDBG_MSG(("   Hybrid Log-Gamma: %s",
-		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHLG] ? 1 : 0])) ;
-
-	BDBG_MSG(("   META Data Type 1: %s",
-		g_status[hHDMI->AttachedEDID.HdrDB.bMetadataSupport[BHDM_EDID_HdrDbStaticMetadataSupport_eType1] ? 1 : 0])) ;
-
-
-	if (!hHDMI->AttachedEDID.HdrDB.MaxLuminanceValid) {
-		BDBG_MSG(("Max Luminance Not Present")) ;
-	}
-	else {
-		BDBG_MSG(("Max Luminance %d", hHDMI->AttachedEDID.HdrDB.MaxLuminance)) ;
-	}
-
-	if (!hHDMI->AttachedEDID.HdrDB.AverageLuminanceValid) {
-		BDBG_MSG(("Avg Luminance Not Present")) ;
-	}
-	else {
-		BDBG_MSG(("Avg Luminance %d", hHDMI->AttachedEDID.HdrDB.AverageLuminance)) ;
-	}
-
-	if (!hHDMI->AttachedEDID.HdrDB.MinLuminanceValid) {
-		BDBG_MSG(("Min Luminance Not Present")) ;
-	}
-	else {
-		BDBG_MSG(("Min Luminance %d", hHDMI->AttachedEDID.HdrDB.MinLuminance)) ;
-	}
-#endif
 
 	return rc ;
 }
@@ -4298,10 +3842,6 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 	hHDMI->AttachedEDID.RxVSDB.YCbCr444  = MonitorSupport & 0x20 ;
 	hHDMI->AttachedEDID.RxVSDB.YCbCr422  = MonitorSupport & 0x10 ;
 	hHDMI->AttachedEDID.RxVSDB.NativeFormatsInDescriptors = MonitorSupport & 0xF ;
-
-	BDBG_MSG(("Pixel Encodings Supported by Monitor: RGB Yes ; YCbCr 4:4:4 %s ; YCbCr 4:2:2 %s",
-		g_status[hHDMI->AttachedEDID.RxVSDB.YCbCr444 ? 1 : 0],
-		g_status[hHDMI->AttachedEDID.RxVSDB.YCbCr422 ? 1 : 0])) ;
 
 	/* check if there are any detailed timing descriptors. */
 	if (DataOffset > 0)
@@ -4620,71 +4160,26 @@ BERR_Code BHDM_EDID_Initialize(
 	BKNI_Memcpy(&hHDMI->AttachedEDID.BasicData.SerialNum,
 		&hHDMI->AttachedEDID.Block[BHDM_EDID_SERIAL_NO], 4) ;
 
-	 hHDMI->AttachedEDID.BasicData.ManufWeek=
-	 	hHDMI->AttachedEDID.Block[BHDM_EDID_MANUFACTURE_WEEK] ;
-	 hHDMI->AttachedEDID.BasicData.ManufYear =
-	 	hHDMI->AttachedEDID.Block[BHDM_EDID_MANUFACTURE_YEAR] ;
-	 hHDMI->AttachedEDID.BasicData.features =
-	 	hHDMI->AttachedEDID.Block[BHDM_EDID_FEATURE_SUPPORT] ;
+	hHDMI->AttachedEDID.BasicData.ManufWeek=
+		hHDMI->AttachedEDID.Block[BHDM_EDID_MANUFACTURE_WEEK] ;
+	hHDMI->AttachedEDID.BasicData.ManufYear =
+		hHDMI->AttachedEDID.Block[BHDM_EDID_MANUFACTURE_YEAR] ;
+	hHDMI->AttachedEDID.BasicData.features =
+		hHDMI->AttachedEDID.Block[BHDM_EDID_FEATURE_SUPPORT] ;
 
-
-	BDBG_MSG(("Version %d.%d  Number of Extensions: %d",
-		hHDMI->AttachedEDID.BasicData.EdidVersion,
-		hHDMI->AttachedEDID.BasicData.EdidRevision, hHDMI->AttachedEDID.BasicData.Extensions)) ;
 
 	hHDMI->AttachedEDID.BasicData.MaxHorizSize = hHDMI->AttachedEDID.Block[BHDM_EDID_MAX_HORIZ_SIZE] ;
 	hHDMI->AttachedEDID.BasicData.MaxVertSize  = hHDMI->AttachedEDID.Block[BHDM_EDID_MAX_VERT_SIZE] ;
-	BDBG_MSG(("H x V Size (cm): %d x %d",
-		hHDMI->AttachedEDID.BasicData.MaxHorizSize,
-		hHDMI->AttachedEDID.BasicData.MaxVertSize)) ;
 
-	/*
-	** Additional Information for Display Purposes only
-	** Add to EDID Data structure if desired...
-	*/
-	BDBG_MSG(("Manufacture Week / Year: %d / %d",
-		hHDMI->AttachedEDID.Block[BHDM_EDID_MANUFACTURE_WEEK],
-		hHDMI->AttachedEDID.Block[BHDM_EDID_MANUFACTURE_YEAR] + 1990)) ;
 
-	/* Serial Number may also be placed in a Descriptor Tag */
-	BDBG_MSG(("Serial Number: %02X %02X %02X %02X",
-		hHDMI->AttachedEDID.Block[BHDM_EDID_SERIAL_NO], hHDMI->AttachedEDID.Block[BHDM_EDID_SERIAL_NO+1],
-		hHDMI->AttachedEDID.Block[BHDM_EDID_SERIAL_NO+2], hHDMI->AttachedEDID.Block[BHDM_EDID_SERIAL_NO+3])) ;
-
-#if BDBG_DEBUG_BUILD
-	{
-		 static const char * const DisplayType[] =
-		 {
-		 	"Monochrome Display",
-		 	"RGB Display",
-		 	"Non-RGB Display",
-		 	"Undefined"
-		 } ;
-		 BDBG_MSG(("Feature Support: <%#x>", hHDMI->AttachedEDID.BasicData.features)) ;
-		 BDBG_MSG(("   Standby Supported: %s",
-		 	g_status[(hHDMI->AttachedEDID.BasicData.features & 0x80) ? 1 : 0])) ;
-		 BDBG_MSG(("   Suspend Supported: %s",
-			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x40) ? 1 : 0])) ;
-		 BDBG_MSG(("   Active Off Supported: %s",
-			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x20) ? 1 : 0])) ;
-		 BDBG_MSG(("   Display Type: %s",
-		 	DisplayType[ (hHDMI->AttachedEDID.BasicData.features & 0x18) >> 3])) ;
-		 BDBG_MSG(("   sRGB Colorspace Supported: %s",
-			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x04) ? 1 : 0])) ;
-		 BDBG_MSG(("   Preferred Timing in Block 1 (must always be set): %s",
-			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x02) ? 1 : 0])) ;
-		 BDBG_MSG(("   Default GTF Supported: %s",
-			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x01) ? 1 : 0])) ;
-	}
-#endif
 
 	/*************************************************************************
-	 Parse the 4 Detailed Timing Blocks contained in this EDID Block.
-	 Should contain:
-	 	 1 Monitor Name,
-	 	 1 Monitor Range,
-	 	 and 1 to 2 Detailed Timing Descriptors
-	 EDID Version 1.3 and up
+	Parse the 4 Detailed Timing Blocks contained in this EDID Block.
+	Should contain:
+		1 Monitor Name,
+		1 Monitor Range,
+		and 1 to 2 Detailed Timing Descriptors
+	EDID Version 1.3 and up
 	**************************************************************************/
 
 	BKNI_Memset((void *) &hHDMI->AttachedEDID.DescriptorHeader, 0x0, BHDM_EDID_DESC_HEADER_LEN);
@@ -4756,10 +4251,6 @@ BERR_Code BHDM_EDID_Initialize(
 	}
 
 
-	/* now process the timing descriptors */
-	BDBG_MSG(("Detailed Timing (Preferred) Formats:")) ;
-	BDBG_MSG(("Format             HBlnk HOfst HWidth  VBlnk VOfst VWidth  PxlClk  ScrSz")) ;
-
 	for (i = 0 ; i < 4 ; i++)
 	{
 		offset = BHDM_EDID_MONITOR_DESC_1 + BHDM_EDID_MONITOR_DESC_SIZE * i ;
@@ -4779,8 +4270,6 @@ BERR_Code BHDM_EDID_Initialize(
 				/* unable to process Detailed Timing Block continue to next descriptor */
 				continue ;
 			}
-
-			BDBG_MSG((" ")) ;
 
 			/* keep a copy of first two supported detailed timings for quick retrieval */
 			if (SupportedTimingsFound < 2)
@@ -4850,12 +4339,16 @@ BERR_Code BHDM_EDID_Initialize(
 	hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
 
 done:
-
-#if BDBG_DEBUG_BUILD
-	/* print raw EDID info */
-	BHDM_EDID_DumpRawEDID(hHDMI);
-#endif
-	BDBG_LEAVE(BHDM_EDID_Initialize) ;
+	{
+	    BDBG_Level level ;
+	    /* save the current debug level */
+	    BDBG_GetModuleLevel("BHDM_EDID", &level) ;
+		if (level == BDBG_eMsg)
+		{
+			BHDM_EDID_DEBUG_PrintData(hHDMI) ;
+		}
+		BDBG_LEAVE(BHDM_EDID_Initialize) ;
+	}
 	return rc ;
 } /* BHDM_EDID_Initialize */
 
@@ -5283,5 +4776,518 @@ BERR_Code BHDM_EDID_GetHdrStaticMetadatadb(
 
 done:
 	BDBG_LEAVE(BHDM_EDID_GetHdmiHdrdb) ;
-	return 	rc ;
+	return rc ;
+}
+
+
+void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
+{
+#if !BDBG_NO_LOG
+	BERR_Code rc ;
+	uint8_t i, j ;
+	static char const ucDataBlockHeaderFormat[] = "[%s Data Block]" ;
+	static char const ucDataBlockSeparator[] = "_______________________________________" ;
+
+	BDBG_LOG(("EDID Information from Rx <%s>  (%s %d)",
+		hHDMI->AttachedEDID.MonitorName,
+		BHDM_P_GetVersion(), BCHP_CHIP)) ;
+
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		BDBG_LOG(("*************************************************")) ;
+		BDBG_LOG(("!!!EDID is BYPASSED!!!")) ;
+		BDBG_LOG(("STB will attempt to display all formats in HDMI mode")) ;
+		BDBG_LOG(("ByPassed Mode should only be used for debugging")) ;
+		BDBG_LOG(("*************************************************")) ;
+	}
+
+	BDBG_LOG(("Version %d.%d  Number of Extensions: %d",
+		hHDMI->AttachedEDID.BasicData.EdidVersion,
+		hHDMI->AttachedEDID.BasicData.EdidRevision, hHDMI->AttachedEDID.BasicData.Extensions)) ;
+
+
+	BDBG_LOG(("H x V Size (cm): %d x %d",
+		hHDMI->AttachedEDID.BasicData.MaxHorizSize,
+		hHDMI->AttachedEDID.BasicData.MaxVertSize)) ;
+
+	/*
+	** Information for Display Purposes only
+	** Add to EDID Data structure if desired...
+	*/
+	BDBG_LOG(("Manufacture Week / Year: %d / %d",
+		hHDMI->AttachedEDID.BasicData.ManufWeek,
+		hHDMI->AttachedEDID.BasicData.ManufYear + 1990)) ;
+
+	/* Serial Number may also be placed in a Descriptor Tag */
+	BDBG_LOG(("Serial Number: %02X %02X %02X %02X",
+		hHDMI->AttachedEDID.BasicData.SerialNum[3], hHDMI->AttachedEDID.BasicData.SerialNum[2],
+		hHDMI->AttachedEDID.BasicData.SerialNum[1], hHDMI->AttachedEDID.BasicData.SerialNum[0])) ;
+
+
+	{
+		 static const char * const DisplayType[] =
+		 {
+			"Monochrome Display",
+			"RGB Display",
+			"Non-RGB Display",
+			"Undefined"
+		 } ;
+		 BDBG_LOG(("Feature Support: <%#x>", hHDMI->AttachedEDID.BasicData.features)) ;
+		 BDBG_LOG(("   Standby Supported: %s",
+			g_status[(hHDMI->AttachedEDID.BasicData.features & 0x80) ? 1 : 0])) ;
+		 BDBG_LOG(("   Suspend Supported: %s",
+			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x40) ? 1 : 0])) ;
+		 BDBG_LOG(("   Active Off Supported: %s",
+			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x20) ? 1 : 0])) ;
+		 BDBG_LOG(("   Display Type: %s",
+			DisplayType[ (hHDMI->AttachedEDID.BasicData.features & 0x18) >> 3])) ;
+		 BDBG_LOG(("   sRGB Colorspace Supported: %s",
+			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x04) ? 1 : 0])) ;
+		 BDBG_LOG(("   Preferred Timing in Block 1 (must always be set): %s",
+			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x02) ? 1 : 0])) ;
+		 BDBG_LOG(("   Default GTF Supported: %s",
+			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x01) ? 1 : 0])) ;
+	}
+
+	BDBG_LOG(("Pixel Encodings Supported:")) ;
+	BDBG_LOG(("   RGB Yes ;  YCbCr 4:4:4 %s ;  YCbCr 4:2:2 %s",
+		g_status[hHDMI->AttachedEDID.RxVSDB.YCbCr444 ? 1 : 0],
+		g_status[hHDMI->AttachedEDID.RxVSDB.YCbCr422 ? 1 : 0])) ;
+
+
+	BDBG_LOG(("EDID Descriptors:")) ;
+	if ( hHDMI->AttachedEDID.MonitorName)
+	{
+		BDBG_LOG(("   Monitor Name: %s", hHDMI->AttachedEDID.MonitorName)) ;
+	}
+	else
+	{
+		BDBG_WRN(("   Monitor Name: Invalid/Missing")) ;
+	}
+	BDBG_LOG(("   Monitor Range")) ;
+	BDBG_LOG(("      Min - Max Vertical:   %d - %d Hz",
+		hHDMI->AttachedEDID.MonitorRange.MinVertical,
+		hHDMI->AttachedEDID.MonitorRange.MaxVertical)) ;
+
+	BDBG_LOG(("      Min - Max Horizontal: %d - %d kHz",
+		hHDMI->AttachedEDID.MonitorRange.MinHorizontal,
+		hHDMI->AttachedEDID.MonitorRange.MaxHorizontal)) ;
+
+	BDBG_LOG(("      Max Pixel Clock %d MHz", hHDMI->AttachedEDID.MonitorRange.MaxPixelClock)) ;
+	BDBG_LOG((" ")) ; /* add a blank line */
+
+
+	BDBG_LOG(("   Detailed Timing (Preferred) Formats:")) ;
+	BDBG_LOG(("   Format	    HBlnk HOfst HWidth  VBlnk VOfst VWidth  PxlClk  ScrSz")) ;
+
+	for (i = 0 ; i < hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock ; i++)
+	{
+		BHDM_EDID_DetailTiming *DetailTimingBlock ;
+
+		DetailTimingBlock = &hHDMI->AttachedEDID.SupportedDetailTimings[i] ;
+
+		BDBG_LOG(("    %4d x %d (%4d%c)  %3d   %3d   %3d      %2d   %2d    %2d      %dMHz   %dx%d",
+			DetailTimingBlock->HorizActivePixels, DetailTimingBlock->VerticalActiveLines,
+			DetailTimingBlock->Mode ?
+				DetailTimingBlock->VerticalActiveLines * 2 : DetailTimingBlock->VerticalActiveLines, Mode[DetailTimingBlock->Mode],
+			DetailTimingBlock->HorizBlankingPixels, DetailTimingBlock->HSyncOffset, DetailTimingBlock->HSyncWidth,
+			DetailTimingBlock->VerticalBlankingLines, DetailTimingBlock->VSyncOffset, DetailTimingBlock->VSyncWidth,
+			DetailTimingBlock->PixelClock, DetailTimingBlock->HSize_mm, DetailTimingBlock->VSize_mm)) ;
+	}
+	BDBG_LOG((" ")) ;
+
+	BDBG_LOG(("*** V3 Timing Extension Data ***")) ;
+	BDBG_LOG(("CEA/HDMI Data Blocks:")) ;
+	BDBG_LOG((ucDataBlockSeparator)) ;
+	{
+		BHDM_EDID_P_VideoDescriptor *pVideoDescriptor = NULL ;
+
+		BDBG_LOG((ucDataBlockHeaderFormat, "Video")) ;
+		BDBG_LOG(("CEA-861 Supported Video Formats (%d):",
+			hHDMI->AttachedEDID.NumBcmSupportedVideoDescriptors)) ;
+
+		for (pVideoDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList);
+				pVideoDescriptor ; pVideoDescriptor = BLST_Q_NEXT(pVideoDescriptor, link))
+		{
+			BDBG_LOG(("Video ID: %3d (%-27s) : SUPPORTED",
+				pVideoDescriptor->VideoIdCode,
+				(char *) BAVC_HDMI_AviInfoFrame_VideoIdCodeToStr(pVideoDescriptor->VideoIdCode))) ;
+
+		}
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	{
+		BAVC_AudioFormat BcmAudioFormat ;
+		uint8_t EdidAudioFormat ;
+		uint8_t EdidAudioSampleRate ;
+		uint8_t uiAudioSampleSize ;
+		uint8_t EdidAudioBits ;
+
+
+		BDBG_LOG((ucDataBlockHeaderFormat, "Audio")) ;
+		BDBG_LOG(("Supported audio formats:")) ;
+
+		for (BcmAudioFormat = 0 ; BcmAudioFormat < BAVC_AudioFormat_eMaxCount ; BcmAudioFormat++)
+		{
+			if (hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].Supported)
+			{
+				EdidAudioFormat = BHDM_EDID_P_AudioFormat_eMaxCount ;
+
+				for (j = 0; j < sizeof(BcmSupportedAudioFormats) / sizeof(BHDM_EDID_P_AUDIO_FORMATS) ; j++)
+				{
+					if (BcmAudioFormat == BcmSupportedAudioFormats[j].BcmAudioFormat)
+					{
+						EdidAudioFormat = BcmSupportedAudioFormats[j].EdidAudioFormat ;
+						break ;
+					}
+				}
+
+				if (EdidAudioFormat == BHDM_EDID_P_AudioFormat_eMaxCount)
+				{
+					BDBG_WRN(("Error printing Audio DB formats; Unknown Audio Format")) ;
+					continue ;
+				}
+
+				if (BcmAudioFormat != BAVC_AudioFormat_ePCM)  /* COMPRESSED */
+				{
+					BDBG_LOG(("   %s - %d Ch [up to %d bits]",
+						CeaAudioTypeText[EdidAudioFormat],
+						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels ,
+						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaNBits_BitRate * 8)) ;
+				}
+				else                                    /* UNCOMPRESSED PCM */
+				{
+					EdidAudioBits =
+						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaNBits_BitRate ;
+
+					if        (EdidAudioBits & 0x04) uiAudioSampleSize = 24 ;
+					else if (EdidAudioBits & 0x02) uiAudioSampleSize = 20 ;
+					else if (EdidAudioBits & 0x01) uiAudioSampleSize = 16 ;
+					else
+					{
+						BDBG_WRN(("Error printing Audio DB formats; Unknown/Un-Supported Bit Rate")) ;
+						rc = BHDM_EDID_HDMI_UNKNOWN_BIT_RATE ;
+						continue ;
+					}
+
+					BDBG_LOG(("   %s - %d Ch [up to %d bits]",
+						CeaAudioTypeText[EdidAudioFormat],
+						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels,
+						uiAudioSampleSize)) ;
+				}
+
+				EdidAudioSampleRate =
+					hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaSampleRates ;
+
+				for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
+				{
+					/* check that at least one sample rate is supported */
+					if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
+					{
+						BDBG_LOG(("      Sample Rate %s", BHDM_EDID_DEBUG_CeaAudioSampleRateToStr(i))) ;
+					}
+				}
+			}
+		}
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	{
+		BDBG_LOG((ucDataBlockHeaderFormat, "HDMI 1.x Vendor Specific")) ;
+
+		BDBG_LOG(("my_address (CEC physical) = (%d.%d.%d.%d)",
+			hHDMI->AttachedEDID.RxVSDB.PhysAddr_A, hHDMI->AttachedEDID.RxVSDB.PhysAddr_B,
+			hHDMI->AttachedEDID.RxVSDB.PhysAddr_C, hHDMI->AttachedEDID.RxVSDB.PhysAddr_D)) ;
+
+		BDBG_LOG(("Supports AI = %d", hHDMI->AttachedEDID.RxVSDB.SupportsAI)) ;
+
+		if ((hHDMI->AttachedEDID.uiRxVendorSpecificDBLength >= 7)
+		&& (hHDMI->AttachedEDID.RxVSDB.DeepColor_48bit
+		||	hHDMI->AttachedEDID.RxVSDB.DeepColor_36bit
+		||	hHDMI->AttachedEDID.RxVSDB.DeepColor_30bit
+		||	hHDMI->AttachedEDID.RxVSDB.DeepColor_Y444
+		||	hHDMI->AttachedEDID.RxVSDB.DVI_Dual))
+		{
+			BDBG_LOG((" ")) ;
+			BDBG_LOG(("HDMI 1.3 Features")) ;
+			BDBG_LOG(("   Deep Color Support")) ;
+			BDBG_LOG(("      16bit: %s;   12bit: %s;   10bit: %s;  Y444: %s",
+				g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_48bit ? 1 : 0],
+				g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_36bit ? 1 : 0],
+				g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_30bit ? 1 : 0],
+				g_status[hHDMI->AttachedEDID.RxVSDB.DeepColor_Y444 ? 1 : 0])) ;
+
+			BDBG_LOG(("   DVI Dual Link Support: %s",
+				g_status[hHDMI->AttachedEDID.RxVSDB.DVI_Dual ? 1 : 0]));
+
+			BDBG_LOG(("   Max TMDS Clock Rate: %d",
+				hHDMI->AttachedEDID.RxVSDB.Max_TMDS_Clock_Rate));
+		}
+
+		BDBG_LOG(("   Video Latency Data Present:			 %s",
+			g_status[hHDMI->AttachedEDID.RxVSDB.Latency_Fields_Present ? 1 : 0])) ;
+		if (hHDMI->AttachedEDID.RxVSDB.Latency_Fields_Present)
+		{
+			BDBG_LOG(("      Video: %d, Audio: %d",
+				hHDMI->AttachedEDID.RxVSDB.Video_Latency,
+				hHDMI->AttachedEDID.RxVSDB.Audio_Latency)) ;
+		}
+
+		BDBG_LOG(("   Interlaced Video Latency Data Present: %s",
+			g_status[hHDMI->AttachedEDID.RxVSDB.Interlaced_Latency_Fields_Present ? 1 : 0])) ;
+		if (hHDMI->AttachedEDID.RxVSDB.Interlaced_Latency_Fields_Present)
+		{
+			BDBG_LOG(("      Video: %d, Audio: %d",
+				hHDMI->AttachedEDID.RxVSDB.Interlaced_Video_Latency,
+				hHDMI->AttachedEDID.RxVSDB.Interlaced_Audio_Latency));
+		}
+
+		BDBG_LOG(("   HDMI Video Present: %s",
+			g_status[hHDMI->AttachedEDID.RxVSDB.HDMI_Video_Present ? 1 : 0])) ;
+
+#if BHDM_CONFIG_HDMI_3D_SUPPORT
+		if (hHDMI->AttachedEDID.RxVSDB.HDMI_Video_Present)
+		{
+			BDBG_LOG((" ")) ;
+			BDBG_LOG(("HDMI 1.4 Features")) ;
+			BDBG_LOG(("   Content Types Supported")) ;
+			BDBG_LOG(("      Graphics (Text): %s  Cinema: %s  Photo: %s  Game: %s",
+				g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypeGraphicsText ? 1 : 0],
+				g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypeCinema ? 1 : 0],
+				g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypePhoto ? 1 : 0],
+				g_status[hHDMI->AttachedEDID.RxVSDB.SupportedContentTypeGame ? 1 : 0])) ;
+
+			BDBG_LOG(("   HDMI 3D Present: %s;	 Multi 3D Present (Optional): %#x",
+				g_status[hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Present ? 1 : 0],
+				hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Multi_Present)) ;
+
+
+			BDBG_LOG(("   HDMI VIC LEN: %d;  HDMI 3D LEN %d",
+				hHDMI->AttachedEDID.RxVSDB.HDMI_VIC_Len,
+				hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Len)) ;
+
+			BDBG_LOG(("   Image Size: %d",
+				hHDMI->AttachedEDID.RxVSDB.HDMI_Image_Size)) ;
+
+
+			if (hHDMI->AttachedEDID.RxVSDB.HDMI_3D_Present)
+			{
+				uint8_t i;
+				BDBG_LOG(("   Broadcom 3D Formats Supported:")) ;
+				for (i = 0 ; i < BFMT_VideoFmt_eMaxCount; i++)
+				{
+					const BFMT_VideoInfo *pVideoFormatInfo ;
+					pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_FRAME_PACKING) {
+						BDBG_LOG(("   %s Frame Packing ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_FIELD_ALTERNATIVE) {
+						BDBG_LOG(("   %s FieldAlternative ",	pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LINE_ALTERNATIVE) {
+						BDBG_LOG(("   %s LineAlternative ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LDEPTH) {
+						BDBG_LOG(("   %s LDepth ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LDEPTH_GFX)	{
+						BDBG_LOG(("    %s LDepth+Graphics ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_TOP_BOTTOM) {
+						BDBG_LOG(("   %s TopAndBottom ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_FULL) {
+						BDBG_LOG(("   %s SideBySide_Full ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_HALF_HORIZ) {
+						BDBG_LOG(("   %s SideBySide_Half_Horizontal ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+
+					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_HALF_QUINC) {
+						BDBG_LOG(("   %s SideBySide_Half_QuincunxMatrix ", pVideoFormatInfo->pchFormatStr)) ;
+					}
+									BSTD_UNUSED(pVideoFormatInfo);
+				}
+			}
+		}
+#endif
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	if (hHDMI->AttachedEDID.RxHdmiForumVsdb.exists)
+	{
+		BDBG_LOG((ucDataBlockHeaderFormat, "HDMI 2.0 Forum Vendor Specific")) ;
+
+		BDBG_LOG(("HDMI Forum VSDB Version %d",
+			hHDMI->AttachedEDID.RxHdmiForumVsdb.Version));
+		BDBG_LOG(("Max TMDS Character Rate: %d",
+			hHDMI->AttachedEDID.RxHdmiForumVsdb.Max_TMDS_Clock_Rate));
+
+
+		BDBG_LOG(("3D OSD Disparity: %s ",
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb._3D_OSD_Disparity ? 1 : 0])) ;
+		BDBG_LOG(("Dual View Support: %s ",
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DualView ? 1 : 0])) ;
+		BDBG_LOG(("Independent View Support: %s ",
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.IndependentView ? 1 : 0])) ;
+		BDBG_LOG(("Scrambling support for Pixel Clock < 340: %s ",
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.LTE_340MScrambleSupport ? 1 : 0])) ;
+		BDBG_LOG(("SCDC Read Initiation Support: %s ",
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.RRCapable ? 1 : 0])) ;
+		BDBG_LOG(("SCDC Support: %s ",
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport ? 1 : 0])) ;
+
+		BDBG_LOG(("HDMI Forum 4:2:0 Deep Color Support")) ;
+		BDBG_LOG(("    16 bit: %s;	 12 bit: %s;   10 bit: %s;	",
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_48bit ? 1 : 0],
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_36bit ? 1 : 0],
+			g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_30bit ? 1 : 0])) ;
+
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	if (hHDMI->AttachedEDID.uiColorimetryDBSupportByte)
+	{
+		BDBG_LOG((ucDataBlockHeaderFormat, "Colorimetry")) ;
+		BDBG_LOG(("Supported Standards")) ;
+		BDBG_LOG(("   xvYCC601 = %3s,  xvYCC709 =  %3s,  sYCC601 =	%s",
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC601]
+				? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC709]
+				? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_esYCC601]
+				? 1 : 0])) ;
+
+		BDBG_LOG(("   Adobe:  YCC601 = %3s;  RGB = %3s;",
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eAdobeYCC601]
+				? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eAdobeRGB]
+				? 1 : 0])) ;
+
+		BDBG_LOG(("   BT2020: cYCC	 = %3s;  YCC = %3s;  RGB = %3s",
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC]
+				? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020YCC]
+				? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020RGB]
+				? 1 : 0])) ;
+
+		BDBG_LOG((" ")) ;
+		BDBG_LOG(("Supported Gamut Metadata profiles")) ;
+		BDBG_LOG(("   MD0: %s;	MD1: %s;  MD2: %s;	MD3: %s",
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD0] ? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD1] ? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD2] ? 1 : 0],
+			g_status[hHDMI->AttachedEDID.ColorimetryDB.bMetadataProfile[BHDM_EDID_ColorimetryDbMetadataProfile_eMD3] ? 1 : 0])) ;
+
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+
+	if (hHDMI->AttachedEDID.VideoCapabilityDB.valid)
+	{
+		BDBG_LOG((ucDataBlockHeaderFormat, "Video Capability")) ;
+		BDBG_LOG(("Over/Under Scan Behaviors: CE= %d; IT= %d; PT= %d",
+			hHDMI->AttachedEDID.VideoCapabilityDB.eCeBehavior,
+			hHDMI->AttachedEDID.VideoCapabilityDB.eItBehavior,
+			hHDMI->AttachedEDID.VideoCapabilityDB.ePtBehavior)) ;
+		BDBG_LOG(("Quantization Selection: RGB= %s  YCC= %s",
+			g_status[hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleRGB],
+			g_status[hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleYCC])) ;
+
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	if (hHDMI->AttachedEDID.YCbCr420CapabilityVideDBFound)
+	{
+		uint8_t EdidSvdCode ;
+
+		BDBG_LOG((ucDataBlockHeaderFormat, "YCbCr 4:2:0 Video")) ;
+		for (i = 0; i < BFMT_VideoFmt_eMaxCount; i++)
+		{
+			if (hHDMI->AttachedEDID.BcmSupported420VideoFormats[(BFMT_VideoFmt) i])
+			{
+				EdidSvdCode = BHDM_EDID_P_Cea861bFormats[i].CeaVideoCode ;
+				BDBG_LOG(("CEA-861 Video ID: %3d (%-27s) : SUPPORTED",
+					EdidSvdCode,
+					(char *) BAVC_HDMI_AviInfoFrame_VideoIdCodeToStr(EdidSvdCode))) ;
+			}
+		}
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	if (hHDMI->AttachedEDID.YCbCr420CapabilityMapDBFound)
+	{
+		BHDM_EDID_P_VideoDescriptor	 *pVideoDescriptor = NULL ;
+
+		BDBG_LOG((ucDataBlockHeaderFormat, "YCbCr 4:2:0 Capability Map")) ;
+		for (pVideoDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList);
+		pVideoDescriptor ; pVideoDescriptor = BLST_Q_NEXT(pVideoDescriptor, link))
+		{
+			if (hHDMI->AttachedEDID.BcmSupported420VideoFormats[pVideoDescriptor->eVideoFmt])
+			{
+				const BFMT_VideoInfo *pVideoFormatInfo ;
+
+				pVideoFormatInfo =
+					(BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(pVideoDescriptor->eVideoFmt) ;
+				BDBG_LOG(("YCbCr 4:2:0 %s ", pVideoFormatInfo->pchFormatStr)) ;
+			}
+		}
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	if (hHDMI->AttachedEDID.HdrDB.valid)
+	{
+		BDBG_LOG((ucDataBlockHeaderFormat, "HDR Static Metadata")) ;
+		BDBG_LOG(("Electro_Optical Transfer Function: ")) ;
+		BDBG_LOG(("   SDR Gamma: %s",
+			g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSDR] ? 1 : 0])) ;
+		BDBG_LOG(("   HDR Gamma: %s",
+			g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHDR] ? 1 : 0])) ;
+		BDBG_LOG(("   HDR10: %s",
+			g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSMPTESt2084] ? 1 : 0])) ;
+		BDBG_LOG(("   Hybrid Log-Gamma (HLG): %s",
+			g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHLG] ? 1 : 0])) ;
+
+		BDBG_LOG(("   Metadata Type 1: %s",
+			g_status[hHDMI->AttachedEDID.HdrDB.bMetadataSupport[BHDM_EDID_HdrDbStaticMetadataSupport_eType1] ? 1 : 0])) ;
+
+
+		if (!hHDMI->AttachedEDID.HdrDB.MaxLuminanceValid) {
+			BDBG_LOG(("Max Luminance Not Present")) ;
+		}
+		else {
+			BDBG_LOG(("Max Luminance %d", hHDMI->AttachedEDID.HdrDB.MaxLuminance)) ;
+		}
+
+		if (!hHDMI->AttachedEDID.HdrDB.AverageLuminanceValid) {
+			BDBG_LOG(("Avg Luminance Not Present")) ;
+		}
+		else {
+			BDBG_LOG(("Avg Luminance %d", hHDMI->AttachedEDID.HdrDB.AverageLuminance)) ;
+		}
+
+		if (!hHDMI->AttachedEDID.HdrDB.MinLuminanceValid) {
+			BDBG_LOG(("Min Luminance Not Present")) ;
+		}
+		else {
+			BDBG_LOG(("Min Luminance %d", hHDMI->AttachedEDID.HdrDB.MinLuminance)) ;
+		}
+		BDBG_LOG((ucDataBlockSeparator)) ;
+	}
+
+	/* print raw EDID info */
+	BHDM_EDID_DumpRawEDID(hHDMI);
+#else
+	BSTD_UNUSED(hHDMI) ;
+#endif
 }

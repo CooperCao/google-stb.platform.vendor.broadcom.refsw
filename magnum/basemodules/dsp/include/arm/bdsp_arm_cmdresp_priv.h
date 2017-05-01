@@ -570,10 +570,10 @@ typedef enum BDSP_ArmDspMsg
 
 typedef struct BDSP_ArmDspSystemInitParams
 {
-    uint32_t QueueHandleArryPhyAddr;
-    uint32_t ui32NumQueueHandle;
-    uint32_t cmdQueueHandlePhyAddr;
-    uint32_t genRspQueueHandlePhyAddr;
+    dramaddr_t QueueHandleArryPhyAddr;
+    dramaddr_t ui32NumQueueHandle;
+    dramaddr_t cmdQueueHandlePhyAddr;
+    dramaddr_t genRspQueueHandlePhyAddr;
 }BDSP_ArmDspSystemInitParams;
 
 typedef struct BDSP_ArmDspSystemInitParamsResp

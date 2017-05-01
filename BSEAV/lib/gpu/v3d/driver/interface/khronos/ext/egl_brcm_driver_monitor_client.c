@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  EGL Broadcom global image extension
-
-FILE DESCRIPTION
-Client-side implementation of EGL_BRCM_driver_monitor.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #define EGL_EGLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/common/khrn_int_common.h"
@@ -59,7 +51,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitDriverMonitorBRCM(EGLDisplay dpy, EGLint hw
 
 void egl_driver_monitor_term(CLIENT_PROCESS_STATE_T *process)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
 
    if (process->driver_monitor_inited)
    {

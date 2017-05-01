@@ -54,8 +54,8 @@ void glsl_print_dataflow(FILE *f, Dataflow *dataflow)
          }
          break;
 
-      case DATAFLOW_CONST_SAMPLER:
-         fprintf(f, " %d", dataflow->u.const_sampler.location);
+      case DATAFLOW_CONST_IMAGE:
+         fprintf(f, " %d", dataflow->u.const_image.location);
          break;
 
       case DATAFLOW_IN:

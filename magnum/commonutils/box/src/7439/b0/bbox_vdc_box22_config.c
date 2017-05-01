@@ -78,7 +78,8 @@ static const BBOX_MemConfig stBoxMemConfig_7439B0_box22 =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 6 */
       }
    },
-   BBOX_INVALID_NUM_MEMC
+   BBOX_INVALID_NUM_MEMC,
+   BBOX_MK_DRAM_REFRESH_RATE(2x)
 };
 
 void BBOX_P_Vdc_SetBox22SourceCapabilities
@@ -92,10 +93,10 @@ void BBOX_P_Vdc_SetBox22DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display2, 1080p_30Hz, 1080p_30Hz, 1, 0, 1, Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display2, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display2, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
 
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display3, 1080p_30Hz, 1080p_30Hz, 0, 0, 0, Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display3, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
 }
 
 void BBOX_P_Vdc_SetBox22DeinterlacerCapabilities

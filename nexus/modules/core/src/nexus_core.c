@@ -44,14 +44,8 @@
 #include "nexus_base_statistics.h"
 #include "bkni_metrics.h"
 #include "priv/nexus_core_preinit.h"
-
-#if NEXUS_AVS_MONITOR
-/* These aren't needed anymore since the AVS info moved to bchp.h */
-#if BCHP_CHIP == 7468
-#include "bchp_7468.h"
-#elif BCHP_CHIP == 7408
-#include "bchp_7408.h"
-#endif
+#if NEXUS_HAS_SAGE
+#include "bchp_cmp_0.h"
 #endif
 
 BDBG_MODULE(nexus_core);
@@ -230,10 +224,6 @@ static unsigned NEXUS_hextoi(const char *s)
 }
 #endif
 
-#if NEXUS_HAS_SAGE
-/* Use the following API in order to reset SAGE. */
-BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
-#endif
 NEXUS_ModuleHandle
 NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_PreInitState *preInitState, const BINT_Settings *pIntSettings)
 {
@@ -250,6 +240,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 #if !BMMA_USE_STUB
     BMMA_CreateSettings mmaSettings;
 #endif
+    bool skipInitialReset = false;
 
 #if NEXUS_NUM_MEMC
     /* verify API macros aren't below nexus_platform_features.h. NEXUS_NUM_MEMC is no longer used inside nexus. */
@@ -301,6 +292,18 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     g_NexusCore.publicHandles.tee = pSettings->teeHandle;
     g_NexusCore.publicHandles.memoryLayout = pSettings->memoryLayout;
 
+#if NEXUS_HAS_SAGE
+    /* If SAGE is enabled but not started, then this is a fresh boot. */
+    if (!BCHP_SAGE_IsStarted(g_NexusCore.publicHandles.reg)) {
+        /* If GFD0 is enabled, it is splash. */
+        uint32_t val = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_CMP_0_G0_SURFACE_CTRL);
+        skipInitialReset = BCHP_GET_FIELD_DATA(val,CMP_0_G0_SURFACE_CTRL,ENABLE);
+        if (skipInitialReset) {
+            BDBG_LOG(("skipping initial reset to extend splash across SAGE boot"));
+        }
+    }
+#endif
+
 #if BCHP_UNIFIED_IMPL
     {
     BCHP_OpenSettings openSettings;
@@ -309,6 +312,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     openSettings.reg = g_NexusCore.publicHandles.reg;
     openSettings.memoryLayout = pSettings->memoryLayout;
     openSettings.pMapId = preInitState->pMapId;
+    openSettings.skipInitialReset = skipInitialReset;
     if (str) {
         openSettings.productId = NEXUS_hextoi(str);
     }
@@ -324,10 +328,18 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 
     g_NexusCore.publicHandles.boxConfig = &preInitState->boxConfig;
 
-    rc = BBOX_LoadRts(g_NexusCore.publicHandles.box, g_NexusCore.publicHandles.reg);
+    {
+    const char *str = NEXUS_GetEnv("B_REFSW_DRAM_REFRESH_RATE");
+    BBOX_LoadRtsSettings loadRtsSettings;
+    BBOX_GetDefaultLoadRtsSettings(&loadRtsSettings);
+    if (str) {
+        loadRtsSettings.eRefreshRate = NEXUS_atoi(str);
+    }
+    rc = BBOX_LoadRts(g_NexusCore.publicHandles.box, g_NexusCore.publicHandles.reg, &loadRtsSettings);
     if(rc!=BERR_SUCCESS) {
         rc = BERR_TRACE(rc);
         goto err_boxloadrts;
+    }
     }
 
 #if NEXUS_HAS_SAGE
@@ -336,11 +348,6 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
         rc = BERR_TRACE(rc);
         goto err_mem_cfg;
     }
-#endif
-#if NEXUS_POWER_MANAGEMENT
-    /* BCHP_Open will initialize (i.e. power down) all MAGNUM_CONTROLLED nodes.
-       This will initialize the rest */
-    BCHP_PWR_InitAllHwResources(g_NexusCore.publicHandles.chp);
 #endif
 
 #if !BMEM_DEPRECATED
@@ -377,11 +384,6 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
         /* successful heap is stored in g_pCoreHandles->heap[i] */
     }
 
-    rc = NEXUS_Core_P_Profile_Init();
-    if(rc!=BERR_SUCCESS) {
-        rc = BERR_TRACE(rc);
-        goto err_profile;
-    }
 
     g_NexusCore.publicHandles.bint_map = pIntSettings->pIntMap;
 #ifdef BCHP_PWR_RESOURCE_BINT_OPEN
@@ -441,6 +443,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
                 BDBG_MSG(("MEMC%u " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "", memStatus.memcIndex, BDBG_UINT64_ARG(memcOffset), BDBG_UINT64_ARG(memcSize)));
 
                 BDBG_ASSERT(memcOffset+memcSize >= memcOffset); /* check that addresses wouldn't wrap */
+                mrcMonitorSettings.startDisabled = skipInitialReset;
                 rc = BMRC_Monitor_Open(&g_NexusCore.publicHandles.memc[memStatus.memcIndex].rmm, g_NexusCore.publicHandles.reg, g_NexusCore.publicHandles.bint, g_NexusCore.publicHandles.chp,
                         g_NexusCore.publicHandles.memc[memStatus.memcIndex].mrc, memcOffset, memcOffset+memcSize, &mrcMonitorSettings);
                 if (rc!=BERR_SUCCESS) {
@@ -477,6 +480,12 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
         BDBG_WRN(("************************************************"));
         BDBG_WRN(("************************************************"));
         BMRC_PrintBlockingArcs(g_NexusCore.publicHandles.reg);
+    }
+
+    rc = NEXUS_Core_P_Profile_Init();
+    if(rc!=BERR_SUCCESS) {
+        rc = BERR_TRACE(rc);
+        goto err_profile;
     }
 
     rc = BTMR_GetDefaultSettings(&tmr_settings);
@@ -544,6 +553,8 @@ err_coretimer:
     BTMR_Close(g_NexusCore.publicHandles.tmr);
 err_tmr:
 err_tmr_cfg:
+    NEXUS_Core_P_Profile_Uninit();
+err_profile:
 err_mrc:
     for(i=0;i<NEXUS_MAX_HEAPS;i++) {
         if (g_NexusCore.publicHandles.memc[i].rmm) {
@@ -555,8 +566,6 @@ err_mrc:
     }
     BINT_Close(g_NexusCore.publicHandles.bint);
 err_int:
-    NEXUS_Core_P_Profile_Uninit();
-err_profile:
 err_heap:
     for(i=0;i<NEXUS_MAX_HEAPS;i++) {
         if (g_NexusCore.publicHandles.heap[i].nexus) {
@@ -585,7 +594,23 @@ err_heap_handle_pool:
 err_module:
 err_params:
     return NULL;
-    goto err_mem_cfg; /* never reaches, silences warning about unused label */
+    /* coverity[unreachable] */
+    goto err_mem_cfg; /* never reached, silences compiler warning about unused label */
+}
+
+void NEXUS_CoreModule_PostInit(void)
+{
+    unsigned i;
+#if NEXUS_POWER_MANAGEMENT
+    /* BCHP_Open will initialize (i.e. power down) all MAGNUM_CONTROLLED nodes.
+       This will initialize the rest */
+    BCHP_PWR_InitAllHwResources(g_NexusCore.publicHandles.chp);
+#endif
+    for(i=0;i<NEXUS_MAX_MEMC;i++) {
+        if (g_NexusCore.publicHandles.memc[i].rmm) {
+            BMRC_Monitor_SetEnabled(g_NexusCore.publicHandles.memc[i].rmm, true);
+        }
+    }
 }
 
 void

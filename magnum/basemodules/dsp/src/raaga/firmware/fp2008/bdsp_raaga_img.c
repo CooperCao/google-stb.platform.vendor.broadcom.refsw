@@ -567,6 +567,11 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eFadeCtrlPostProc):       return BDSP_IMG_fadectrl_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eFadeCtrlPostProc):      return BDSP_IMG_fadectrl_inter_frame;
 #endif
+#ifdef BDSP_TSMCORRECTION_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eTsmCorrectionPostProc):        return BDSP_IMG_tsmcorrection_code;
+    case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eTsmCorrectionPostProc):       return BDSP_IMG_tsmcorrection_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eTsmCorrectionPostProc):      return BDSP_IMG_tsmcorrection_inter_frame;
+#endif
     /* End of postprocessing */
 
     /* Start of postprocessing framesync */

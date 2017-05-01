@@ -205,6 +205,7 @@ static const char * const algoidname[]=
     "BDSP_AF_P_AlgoId_eOutputFormatterPostProc",
     "BDSP_AF_P_AlgoId_eVocalPostProc",
     "BDSP_AF_P_AlgoId_eFadeCtrlPostProc",
+	"BDSP_AF_P_AlgoId_eTsmCorrectionPostProc",
     "BDSP_AF_P_AlgoId_eEndOfPpAlgos",
 
     /*  All algo Ids for post proc frame sync */

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1206,7 +1206,7 @@ See Also:
     NEXUS_FrontendProbeResults
  ***************************************************************************/
 NEXUS_Error NEXUS_FrontendDevice_Probe(
-    const NEXUS_FrontendDeviceOpenSettings *pSettings,
+    const NEXUS_FrontendDeviceOpenSettings *pSettings, /* attr{pragma=ClearCallbacks} */
     NEXUS_FrontendProbeResults *pResults    /* [out] */
     );
 
@@ -1292,6 +1292,16 @@ See Also:
 NEXUS_Error NEXUS_FrontendDevice_SetWakeupSettings(
     NEXUS_FrontendDeviceHandle handle,
     const NEXUS_TransportWakeupSettings *pSettings
+    );
+
+typedef struct NEXUS_FrontendModuleStatistics
+{
+    unsigned maxTunedFrontends; /* max frontend channels which have been tuned at least once since NEXUS_Platform_Init,
+                                   excludes OutOfBand, Upstream and Analog. */
+} NEXUS_FrontendModuleStatistics;
+
+void NEXUS_FrontendModule_GetStatistics(
+    NEXUS_FrontendModuleStatistics *pStats
     );
 
 #ifdef __cplusplus

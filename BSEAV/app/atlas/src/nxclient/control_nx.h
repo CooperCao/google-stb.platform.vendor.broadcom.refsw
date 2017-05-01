@@ -50,20 +50,22 @@ class CControlNx : public CControl
 public:
     CControlNx(const char * strName);
 
-    virtual eRet    setOptimalVideoFormat(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode);
-    virtual eRet    setVideoFormat(NEXUS_VideoFormat videoFormat);
-    virtual eRet    setDeinterlacer(bool bDeinterlacer);
-    virtual eRet    setContentMode(NEXUS_VideoWindowContentMode contentMode);
-    virtual eRet    setColorSpace(NEXUS_ColorSpace colorSpace);
-    virtual eRet    setColorDepth(uint8_t colorDepth);
-    virtual eRet    setMpaaDecimation(bool bMpaaDecimation);
-    virtual eRet    swapPip(void);
-    virtual eRet    showPip(bool bShow = true);
-    virtual int32_t getVolume(void);
-    virtual eRet    setVolume(int32_t level);
-    virtual bool    getMute(void);
-    virtual eRet    setMute(bool muted);
-    virtual eRet    connectDecoders(
+    virtual eRet        setOptimalVideoFormat(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode);
+    virtual eRet        setVideoFormat(NEXUS_VideoFormat videoFormat);
+    virtual eRet        setDeinterlacer(bool bDeinterlacer);
+    virtual eRet        setContentMode(NEXUS_VideoWindowContentMode contentMode);
+    virtual eRet        setColorSpace(NEXUS_ColorSpace colorSpace);
+    virtual eRet        setColorDepth(uint8_t colorDepth);
+    virtual eRet        setMpaaDecimation(bool bMpaaDecimation);
+    virtual eRet        setPowerMode(ePowerMode mode);
+    virtual ePowerMode  getPowerMode(void);
+    virtual eRet        swapPip(void);
+    virtual eRet        showPip(bool bShow = true);
+    virtual int32_t     getVolume(void);
+    virtual eRet        setVolume(int32_t level);
+    virtual bool        getMute(void);
+    virtual eRet        setMute(bool muted);
+    virtual eRet        connectDecoders(
             CSimpleVideoDecode * pVideoDecode,
             CSimpleAudioDecode * pAudioDecode,
             uint32_t             width,
@@ -71,6 +73,7 @@ public:
             CPid *               pVideoPid,
             eWindowType          windowType);
     virtual void disconnectDecoders(eWindowType winType);
+    virtual bool checkPower(void);
 };
 
 #ifdef __cplusplus

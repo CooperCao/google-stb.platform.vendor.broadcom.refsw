@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_TMU_BLIT_H
 #define GLXX_TMU_BLIT_H
 
@@ -42,7 +36,7 @@ extern void glxx_blitframebuffer_shutdown(void);
 #ifndef NDEBUG
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-extern void glxx_debug_save_image(const char *fname, const KHRN_IMAGE_T *img);
+extern void glxx_debug_save_image(const char *fname, const khrn_image *img);
 #endif
 
 void glxx_tmu_blit_framebuffer(

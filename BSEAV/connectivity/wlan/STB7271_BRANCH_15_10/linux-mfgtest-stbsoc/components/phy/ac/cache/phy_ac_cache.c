@@ -1143,7 +1143,7 @@ wlc_phy_cal_dump_acphy(phy_type_cache_ctx_t * cache_ctx, struct bcmstrbuf *b)
 	int8 lesiInpSc3 = 0;
 	int16  a_reg, b_reg, a_int, b_int;
 	int32 slope;
-	uint16 ab_int[2], d_reg;
+	uint16 ab_int[2], d_reg[2]; /* STB-7271 C116960 */
 	uint16 coremask;
 	phy_stf_data_t *stf_shdata = phy_stf_get_data(pi->stfi);
 
@@ -1164,13 +1164,13 @@ wlc_phy_cal_dump_acphy(phy_type_cache_ctx_t * cache_ctx, struct bcmstrbuf *b)
 	FOREACH_ACTV_CORE(pi, stf_shdata->phytxchain, core) {
 		wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ, ab_int,
 			TB_OFDM_COEFFS_AB, core);
-		wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ, &d_reg,
+		wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ, d_reg,
 			TB_OFDM_COEFFS_D, core);
 		if (TINY_RADIO(pi)) {
 			bcm_bprintf(b, "   core-%d: a/b: (%4d,%4d), d: (%3d,%3d)\n",
 				core, (int16) ab_int[0], (int16) ab_int[1],
-				(int8)((d_reg & 0xFF00) >> 8), /* di */
-				(int8)((d_reg & 0x00FF)));     /* dq */
+				(int8)((d_reg[0] & 0xFF00) >> 8), /* di */
+				(int8)((d_reg[0] & 0x00FF)));     /* dq */
 		} else {
 			uint16 eir, eqr, fir, fqr;
 			if (ACMAJORREV_40(pi->pubpi->phy_rev)) {
@@ -1187,8 +1187,8 @@ wlc_phy_cal_dump_acphy(phy_type_cache_ctx_t * cache_ctx, struct bcmstrbuf *b)
 			bcm_bprintf(b, "   core-%d: a/b: (%4d,%4d), d: (%3d,%3d),"
 				" e: (%3d,%3d), f: (%3d,%3d)\n",
 				core, (int16) ab_int[0], (int16) ab_int[1],
-				(int8)((d_reg & 0xFF00) >> 8), /* di */
-				(int8)((d_reg & 0x00FF)),      /* dq */
+				(int8)((d_reg[0] & 0xFF00) >> 8), /* di */
+				(int8)((d_reg[0] & 0x00FF)),      /* dq */
 				(int8)(-((eir & 0xF0) >> 4) + ((eir & 0xF))), /* ei */
 				(int8)(-((eqr & 0xF0) >> 4) + ((eqr & 0xF))), /* eq */
 				(int8)(-((fir & 0xF0) >> 4) + ((fir & 0xF))), /* fi */

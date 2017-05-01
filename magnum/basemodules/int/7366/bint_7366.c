@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -225,6 +225,10 @@
 #include "bchp_xpt_rave_cdb_lower_thresh_cx32_47_l2_intr.h"
 #include "bchp_xpt_rave_itb_lower_thresh_cx00_31_l2_intr.h"
 #include "bchp_xpt_rave_itb_lower_thresh_cx32_47_l2_intr.h"
+#include "bchp_xpt_rave_cdb_min_depth_thresh_cx00_31_l2_intr.h"
+#include "bchp_xpt_rave_cdb_min_depth_thresh_cx32_47_l2_intr.h"
+#include "bchp_xpt_rave_itb_min_depth_thresh_cx00_31_l2_intr.h"
+#include "bchp_xpt_rave_itb_min_depth_thresh_cx32_47_l2_intr.h"
 
 #if BCHP_VER >= BCHP_VER_B0
 #include "bchp_xpt_tsio_intr_l2.h"
@@ -654,6 +658,10 @@ static const BINT_P_IntMap bint_7366[] =
     BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_CDB_LOWER_THRESH_INTR, "_CX32_47", XPT_RAVE_CDB_LOWER_THRESH_CX32_47_L2_INTR_CPU_STATUS_32_47, STANDARD, ALL, 0),
     BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_ITB_LOWER_THRESH_INTR, "_CX00_31", XPT_RAVE_ITB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
     BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_ITB_LOWER_THRESH_INTR, "_CX32_47", XPT_RAVE_ITB_LOWER_THRESH_CX32_47_L2_INTR_CPU_STATUS_32_47, STANDARD, ALL, 0),
+    BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_CDB_MIN_DEPTH_THRESH_INTR, "_CX00_31", XPT_RAVE_CDB_MIN_DEPTH_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
+    BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_CDB_MIN_DEPTH_THRESH_INTR, "_CX32_47", XPT_RAVE_CDB_MIN_DEPTH_THRESH_CX32_47_L2_INTR_CPU_STATUS_32_47, STANDARD, ALL, 0),
+    BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_ITB_MIN_DEPTH_THRESH_INTR, "_CX00_31", XPT_RAVE_ITB_MIN_DEPTH_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
+    BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_ITB_MIN_DEPTH_THRESH_INTR, "_CX32_47", XPT_RAVE_ITB_MIN_DEPTH_THRESH_CX32_47_L2_INTR_CPU_STATUS_32_47, STANDARD, ALL, 0),
 
     /* these two only exist in B0 or above */
     BINT_MAP_L3(3, XPT_RAV, XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0, RAVE_TSIO_DMA_END_INTR, "_CX00_31", XPT_RAVE_TSIO_DMA_END_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),

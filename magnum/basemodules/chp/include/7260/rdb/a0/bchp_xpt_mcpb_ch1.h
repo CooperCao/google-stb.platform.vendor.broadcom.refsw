@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,94 +70,94 @@
 /***************************************************************************
  *XPT_MCPB_CH1 - MCPB Channel 1 Configuration
  ***************************************************************************/
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_CONTROL       0x20a70e00 /* [RW] MCPB Channel x Descriptor control information */
-#define BCHP_XPT_MCPB_CH1_DMA_DATA_CONTROL       0x20a70e04 /* [RW] MCPB Channel x Data control information */
-#define BCHP_XPT_MCPB_CH1_DMA_CURR_DESC_ADDRESS  0x20a70e08 /* [RW] MCPB Channel x Current Descriptor address information */
-#define BCHP_XPT_MCPB_CH1_DMA_NEXT_DESC_ADDRESS  0x20a70e0c /* [RW] MCPB Channel x Next Descriptor address information */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_BASE_ADDRESS_UPPER 0x20a70e10 /* [RW] MCPB Channel x Data Buffer Base address */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_BASE_ADDRESS_LOWER 0x20a70e14 /* [RW] MCPB Channel x Data Buffer Base address */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_END_ADDRESS_UPPER 0x20a70e18 /* [RW] MCPB Channel x Data Buffer End address */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_END_ADDRESS_LOWER 0x20a70e1c /* [RW] MCPB Channel x Data Buffer End address */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_CURR_RD_ADDRESS_UPPER 0x20a70e20 /* [RW] MCPB Channel x Current Data Buffer Read address */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_CURR_RD_ADDRESS_LOWER 0x20a70e24 /* [RW] MCPB Channel x Current Data Buffer Read address */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_WRITE_ADDRESS_UPPER 0x20a70e28 /* [RW] MCPB Channel x Data Buffer Write address */
-#define BCHP_XPT_MCPB_CH1_DMA_BUFF_WRITE_ADDRESS_LOWER 0x20a70e2c /* [RW] MCPB Channel x Data Buffer Write address */
-#define BCHP_XPT_MCPB_CH1_DMA_STATUS_0           0x20a70e30 /* [RW] MCPB Channel x Status information */
-#define BCHP_XPT_MCPB_CH1_DMA_STATUS_1           0x20a70e34 /* [RW] MCPB Channel x CRC value */
-#define BCHP_XPT_MCPB_CH1_DMA_STATUS_2           0x20a70e38 /* [RW] MCPB Channel x Manual mode status */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_STATUS_0 0x20a70e3c /* [RW] MCPB channel x Descriptor Slot 0 status information */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_STATUS_1 0x20a70e40 /* [RW] MCPB channel x Descriptor Slot 0 status information */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_CURR_DESC_ADDR 0x20a70e44 /* [RW] MCPB Channel x  Descriptor Slot 0 Current Descriptor Address */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_CURR_DATA_ADDR_UPPER 0x20a70e48 /* [RW] MCPB Channel x  Descriptor Slot 0 Current Data Address */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_CURR_DATA_ADDR_LOWER 0x20a70e4c /* [RW] MCPB Channel x  Descriptor Slot 0 Current Data Address */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_NEXT_TIMESTAMP 0x20a70e50 /* [RW] MCPB Channel x Descriptor Slot 0 Next Packet Timestamp */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_PKT2PKT_TIMESTAMP_DELTA 0x20a70e54 /* [RW] MCPB Channel x Descriptor Slot 0 Packet to packet Timestamp delta */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_STATUS_0 0x20a70e58 /* [RW] MCPB channel x Descriptor Slot 1 status information */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_STATUS_1 0x20a70e5c /* [RW] MCPB channel x Descriptor Slot 1 status information */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_CURR_DESC_ADDR 0x20a70e60 /* [RW] MCPB Channel x  Descriptor Slot 1 Current Descriptor Address */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_CURR_DATA_ADDR_UPPER 0x20a70e64 /* [RW] MCPB Channel x  Descriptor Slot 1 Current Data Address */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_CURR_DATA_ADDR_LOWER 0x20a70e68 /* [RW] MCPB Channel x  Descriptor Slot 1 Current Data Address */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_NEXT_TIMESTAMP 0x20a70e6c /* [RW] MCPB Channel x Descriptor Slot 1 Next Packet Timestamp */
-#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_PKT2PKT_TIMESTAMP_DELTA 0x20a70e70 /* [RW] MCPB Channel x Descriptor Slot 1 Packet to packet Timestamp delta */
-#define BCHP_XPT_MCPB_CH1_SP_PKT_LEN             0x20a70e74 /* [RW] MCPB Channel x Packet length control */
-#define BCHP_XPT_MCPB_CH1_SP_PARSER_CTRL         0x20a70e78 /* [RW] MCPB Channel x Parser control */
-#define BCHP_XPT_MCPB_CH1_SP_PARSER_CTRL1        0x20a70e7c /* [RW] MCPB Channel x Parser control 1 */
-#define BCHP_XPT_MCPB_CH1_SP_TS_CONFIG           0x20a70e80 /* [RW] MCPB Channel x TS Configuration */
-#define BCHP_XPT_MCPB_CH1_SP_PES_ES_CONFIG       0x20a70e84 /* [RW] MCPB Channel x PES and ES Configuration */
-#define BCHP_XPT_MCPB_CH1_SP_PES_SYNC_COUNTER    0x20a70e88 /* [RW] MCPB Channel x PES Sync counter */
-#define BCHP_XPT_MCPB_CH1_SP_ASF_CONFIG          0x20a70e8c /* [RW] MCPB Channel x ASF Configuration */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_0         0x20a70e90 /* [RW] MCPB Channel x Stream Processor State Register 0 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_1         0x20a70e94 /* [RW] MCPB Channel x Stream Processor State Register 1 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_2         0x20a70e98 /* [RW] MCPB Channel x Stream Processor State Register 2 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_3         0x20a70e9c /* [RW] MCPB Channel x Stream Processor State Register 3 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_4         0x20a70ea0 /* [RW] MCPB Channel x Stream Processor State Register 4 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_5         0x20a70ea4 /* [RW] MCPB Channel x Stream Processor State Register 5 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_6         0x20a70ea8 /* [RW] MCPB Channel x Stream Processor State Register 6 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_7         0x20a70eac /* [RW] MCPB Channel x Stream Processor State Register 7 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_8         0x20a70eb0 /* [RW] MCPB Channel x Stream Processor State Register 8 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_9         0x20a70eb4 /* [RW] MCPB Channel x Stream Processor State Register 9 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_10        0x20a70eb8 /* [RW] MCPB Channel x Stream Processor State Register 10 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_11        0x20a70ebc /* [RW] MCPB Channel x Stream Processor State Register 11 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_12        0x20a70ec0 /* [RW] MCPB Channel x Stream Processor State Register 12 */
-#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_13        0x20a70ec4 /* [RW] MCPB Channel x Stream Processor State Register 13 */
-#define BCHP_XPT_MCPB_CH1_DMA_BBUFF_CTRL         0x20a70ec8 /* [RW] MCPB Channel x Burst buffer control */
-#define BCHP_XPT_MCPB_CH1_DMA_BBUFF_CRC          0x20a70ecc /* [RW] MCPB Channel x Current CRC value */
-#define BCHP_XPT_MCPB_CH1_DMA_BBUFF0_RW_STATUS   0x20a70ed0 /* [RW] MCPB Channel x Burst buffer 0 data specific information */
-#define BCHP_XPT_MCPB_CH1_DMA_BBUFF0_RO_STATUS   0x20a70ed4 /* [RW] MCPB Channel x Burst buffer 0 control specific information */
-#define BCHP_XPT_MCPB_CH1_DMA_BBUFF1_RW_STATUS   0x20a70ed8 /* [RW] MCPB Channel x Burst buffer 1 data specific information */
-#define BCHP_XPT_MCPB_CH1_DMA_BBUFF1_RO_STATUS   0x20a70edc /* [RW] MCPB Channel x Burst buffer 1 control specific information */
-#define BCHP_XPT_MCPB_CH1_TMEU_BLOCKOUT_CTRL     0x20a70ee0 /* [RW] MCPB Channel x Blockout control information */
-#define BCHP_XPT_MCPB_CH1_TMEU_NEXT_BO_MON       0x20a70ee4 /* [RW] MCPB Channel x next Blockout monitor information */
-#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_CTRL       0x20a70ee8 /* [RW] MCPB Channel x next Blockout monitor information */
-#define BCHP_XPT_MCPB_CH1_TMEU_REF_DIFF_VALUE_TS_MBOX 0x20a70eec /* [RW] MCPB Channel x reference difference value and next Timestamp information */
-#define BCHP_XPT_MCPB_CH1_TMEU_TS_ERR_BOUND_EARLY 0x20a70ef0 /* [RW] MCPB Channel x TS error bound early information */
-#define BCHP_XPT_MCPB_CH1_TMEU_TS_ERR_BOUND_LATE 0x20a70ef4 /* [RW] MCPB Channel x TS error bound late information */
-#define BCHP_XPT_MCPB_CH1_TMEU_NEXT_GPC_MON      0x20a70ef8 /* [RW] MCPB Channel x next Global Pacing Counter and Timestamp monitor information */
-#define BCHP_XPT_MCPB_CH1_TMEU_REF_DIFF_VALUE_SIGN 0x20a70efc /* [RW] MCPB Channel x reference difference value sign information */
-#define BCHP_XPT_MCPB_CH1_TMEU_PES_PACING_CTRL   0x20a70f00 /* [RW] MCPB Channel x PES pacing control information */
-#define BCHP_XPT_MCPB_CH1_TMEU_SLOT_STATUS       0x20a70f04 /* [RW] MCPB Channel x Slot 0 and Slot 1 information */
-#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT0_REG1 0x20a70f08 /* [RW] MCPB Channel x timing information for Slot 0 */
-#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT0_REG2 0x20a70f0c /* [RW] MCPB Channel x timing information for Slot 0 */
-#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT1_REG1 0x20a70f10 /* [RW] MCPB Channel x timing information for Slot 1 */
-#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT1_REG2 0x20a70f14 /* [RW] MCPB Channel x timing information for Slot 1 */
-#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_LAST_TIMESTAMP_DELTA 0x20a70f18 /* [RW] MCPB Channel x last TS delta value */
-#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_LAST_NEXT_TIMESTAMP 0x20a70f1c /* [RW] MCPB Channel x last NEXT TS value */
-#define BCHP_XPT_MCPB_CH1_DCPM_STATUS            0x20a70f20 /* [RW] MCPB Channel x DCPM status information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DESC_ADDR         0x20a70f24 /* [RW] MCPB Channel x DCPM descriptor address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DESC_DONE_INT_ADDR 0x20a70f28 /* [RW] MCPB Channel x DCPM descriptor done interrupt address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_PAUSE_AFTER_GROUP_PACKETS_CTRL 0x20a70f2c /* [RW] MCPB Channel x Pause after group of packets control information */
-#define BCHP_XPT_MCPB_CH1_DCPM_PAUSE_AFTER_GROUP_PACKETS_PKT_COUNTER 0x20a70f30 /* [RW] MCPB Channel x Pause after group of packets local packet counter */
-#define BCHP_XPT_MCPB_CH1_DCPM_LOCAL_PACKET_COUNTER 0x20a70f34 /* [RW] MCPB Channel x local packet counter */
-#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_UPPER   0x20a70f38 /* [RW] MCPB Channel x DCPM data address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_LOWER   0x20a70f3c /* [RW] MCPB Channel x DCPM data address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_CURR_DESC_ADDR    0x20a70f40 /* [RW] MCPB Channel x DCPM current descriptor address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_SLOT_STATUS       0x20a70f44 /* [RW] MCPB Channel x DCPM slot status information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DESC_ADDR_SLOT_0  0x20a70f48 /* [RW] MCPB Channel x DCPM completed slot 0 descriptor address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_0_UPPER 0x20a70f4c /* [RW] MCPB Channel x DCPM completed slot 0 data address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_0_LOWER 0x20a70f50 /* [RW] MCPB Channel x DCPM completed slot 0 data address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DESC_ADDR_SLOT_1  0x20a70f54 /* [RW] MCPB Channel x DCPM completed slot 1 descriptor address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_1_UPPER 0x20a70f58 /* [RW] MCPB Channel x DCPM completed slot 1 data address information */
-#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_1_LOWER 0x20a70f5c /* [RW] MCPB Channel x DCPM completed slot 1 data address information */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_CONTROL       0x20a70e00 /* [RW][32] MCPB Channel x Descriptor control information */
+#define BCHP_XPT_MCPB_CH1_DMA_DATA_CONTROL       0x20a70e04 /* [RW][32] MCPB Channel x Data control information */
+#define BCHP_XPT_MCPB_CH1_DMA_CURR_DESC_ADDRESS  0x20a70e08 /* [RW][32] MCPB Channel x Current Descriptor address information */
+#define BCHP_XPT_MCPB_CH1_DMA_NEXT_DESC_ADDRESS  0x20a70e0c /* [RW][32] MCPB Channel x Next Descriptor address information */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_BASE_ADDRESS_UPPER 0x20a70e10 /* [RW][32] MCPB Channel x Data Buffer Base address */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_BASE_ADDRESS_LOWER 0x20a70e14 /* [RW][32] MCPB Channel x Data Buffer Base address */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_END_ADDRESS_UPPER 0x20a70e18 /* [RW][32] MCPB Channel x Data Buffer End address */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_END_ADDRESS_LOWER 0x20a70e1c /* [RW][32] MCPB Channel x Data Buffer End address */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_CURR_RD_ADDRESS_UPPER 0x20a70e20 /* [RW][32] MCPB Channel x Current Data Buffer Read address */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_CURR_RD_ADDRESS_LOWER 0x20a70e24 /* [RW][32] MCPB Channel x Current Data Buffer Read address */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_WRITE_ADDRESS_UPPER 0x20a70e28 /* [RW][32] MCPB Channel x Data Buffer Write address */
+#define BCHP_XPT_MCPB_CH1_DMA_BUFF_WRITE_ADDRESS_LOWER 0x20a70e2c /* [RW][32] MCPB Channel x Data Buffer Write address */
+#define BCHP_XPT_MCPB_CH1_DMA_STATUS_0           0x20a70e30 /* [RW][32] MCPB Channel x Status information */
+#define BCHP_XPT_MCPB_CH1_DMA_STATUS_1           0x20a70e34 /* [RW][32] MCPB Channel x CRC value */
+#define BCHP_XPT_MCPB_CH1_DMA_STATUS_2           0x20a70e38 /* [RW][32] MCPB Channel x Manual mode status */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_STATUS_0 0x20a70e3c /* [RW][32] MCPB channel x Descriptor Slot 0 status information */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_STATUS_1 0x20a70e40 /* [RW][32] MCPB channel x Descriptor Slot 0 status information */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_CURR_DESC_ADDR 0x20a70e44 /* [RW][32] MCPB Channel x  Descriptor Slot 0 Current Descriptor Address */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_CURR_DATA_ADDR_UPPER 0x20a70e48 /* [RW][32] MCPB Channel x  Descriptor Slot 0 Current Data Address */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_CURR_DATA_ADDR_LOWER 0x20a70e4c /* [RW][32] MCPB Channel x  Descriptor Slot 0 Current Data Address */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_NEXT_TIMESTAMP 0x20a70e50 /* [RW][32] MCPB Channel x Descriptor Slot 0 Next Packet Timestamp */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT0_PKT2PKT_TIMESTAMP_DELTA 0x20a70e54 /* [RW][32] MCPB Channel x Descriptor Slot 0 Packet to packet Timestamp delta */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_STATUS_0 0x20a70e58 /* [RW][32] MCPB channel x Descriptor Slot 1 status information */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_STATUS_1 0x20a70e5c /* [RW][32] MCPB channel x Descriptor Slot 1 status information */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_CURR_DESC_ADDR 0x20a70e60 /* [RW][32] MCPB Channel x  Descriptor Slot 1 Current Descriptor Address */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_CURR_DATA_ADDR_UPPER 0x20a70e64 /* [RW][32] MCPB Channel x  Descriptor Slot 1 Current Data Address */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_CURR_DATA_ADDR_LOWER 0x20a70e68 /* [RW][32] MCPB Channel x  Descriptor Slot 1 Current Data Address */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_NEXT_TIMESTAMP 0x20a70e6c /* [RW][32] MCPB Channel x Descriptor Slot 1 Next Packet Timestamp */
+#define BCHP_XPT_MCPB_CH1_DMA_DESC_SLOT1_PKT2PKT_TIMESTAMP_DELTA 0x20a70e70 /* [RW][32] MCPB Channel x Descriptor Slot 1 Packet to packet Timestamp delta */
+#define BCHP_XPT_MCPB_CH1_SP_PKT_LEN             0x20a70e74 /* [RW][32] MCPB Channel x Packet length control */
+#define BCHP_XPT_MCPB_CH1_SP_PARSER_CTRL         0x20a70e78 /* [RW][32] MCPB Channel x Parser control */
+#define BCHP_XPT_MCPB_CH1_SP_PARSER_CTRL1        0x20a70e7c /* [RW][32] MCPB Channel x Parser control 1 */
+#define BCHP_XPT_MCPB_CH1_SP_TS_CONFIG           0x20a70e80 /* [RW][32] MCPB Channel x TS Configuration */
+#define BCHP_XPT_MCPB_CH1_SP_PES_ES_CONFIG       0x20a70e84 /* [RW][32] MCPB Channel x PES and ES Configuration */
+#define BCHP_XPT_MCPB_CH1_SP_PES_SYNC_COUNTER    0x20a70e88 /* [RW][32] MCPB Channel x PES Sync counter */
+#define BCHP_XPT_MCPB_CH1_SP_ASF_CONFIG          0x20a70e8c /* [RW][32] MCPB Channel x ASF Configuration */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_0         0x20a70e90 /* [RW][32] MCPB Channel x Stream Processor State Register 0 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_1         0x20a70e94 /* [RW][32] MCPB Channel x Stream Processor State Register 1 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_2         0x20a70e98 /* [RW][32] MCPB Channel x Stream Processor State Register 2 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_3         0x20a70e9c /* [RW][32] MCPB Channel x Stream Processor State Register 3 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_4         0x20a70ea0 /* [RW][32] MCPB Channel x Stream Processor State Register 4 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_5         0x20a70ea4 /* [RW][32] MCPB Channel x Stream Processor State Register 5 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_6         0x20a70ea8 /* [RW][32] MCPB Channel x Stream Processor State Register 6 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_7         0x20a70eac /* [RW][32] MCPB Channel x Stream Processor State Register 7 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_8         0x20a70eb0 /* [RW][32] MCPB Channel x Stream Processor State Register 8 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_9         0x20a70eb4 /* [RW][32] MCPB Channel x Stream Processor State Register 9 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_10        0x20a70eb8 /* [RW][32] MCPB Channel x Stream Processor State Register 10 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_11        0x20a70ebc /* [RW][32] MCPB Channel x Stream Processor State Register 11 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_12        0x20a70ec0 /* [RW][32] MCPB Channel x Stream Processor State Register 12 */
+#define BCHP_XPT_MCPB_CH1_SP_STATE_REG_13        0x20a70ec4 /* [RW][32] MCPB Channel x Stream Processor State Register 13 */
+#define BCHP_XPT_MCPB_CH1_DMA_BBUFF_CTRL         0x20a70ec8 /* [RW][32] MCPB Channel x Burst buffer control */
+#define BCHP_XPT_MCPB_CH1_DMA_BBUFF_CRC          0x20a70ecc /* [RW][32] MCPB Channel x Current CRC value */
+#define BCHP_XPT_MCPB_CH1_DMA_BBUFF0_RW_STATUS   0x20a70ed0 /* [RW][32] MCPB Channel x Burst buffer 0 data specific information */
+#define BCHP_XPT_MCPB_CH1_DMA_BBUFF0_RO_STATUS   0x20a70ed4 /* [RW][32] MCPB Channel x Burst buffer 0 control specific information */
+#define BCHP_XPT_MCPB_CH1_DMA_BBUFF1_RW_STATUS   0x20a70ed8 /* [RW][32] MCPB Channel x Burst buffer 1 data specific information */
+#define BCHP_XPT_MCPB_CH1_DMA_BBUFF1_RO_STATUS   0x20a70edc /* [RW][32] MCPB Channel x Burst buffer 1 control specific information */
+#define BCHP_XPT_MCPB_CH1_TMEU_BLOCKOUT_CTRL     0x20a70ee0 /* [RW][32] MCPB Channel x Blockout control information */
+#define BCHP_XPT_MCPB_CH1_TMEU_NEXT_BO_MON       0x20a70ee4 /* [RW][32] MCPB Channel x next Blockout monitor information */
+#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_CTRL       0x20a70ee8 /* [RW][32] MCPB Channel x next Blockout monitor information */
+#define BCHP_XPT_MCPB_CH1_TMEU_REF_DIFF_VALUE_TS_MBOX 0x20a70eec /* [RW][32] MCPB Channel x reference difference value and next Timestamp information */
+#define BCHP_XPT_MCPB_CH1_TMEU_TS_ERR_BOUND_EARLY 0x20a70ef0 /* [RW][32] MCPB Channel x TS error bound early information */
+#define BCHP_XPT_MCPB_CH1_TMEU_TS_ERR_BOUND_LATE 0x20a70ef4 /* [RW][32] MCPB Channel x TS error bound late information */
+#define BCHP_XPT_MCPB_CH1_TMEU_NEXT_GPC_MON      0x20a70ef8 /* [RW][32] MCPB Channel x next Global Pacing Counter and Timestamp monitor information */
+#define BCHP_XPT_MCPB_CH1_TMEU_REF_DIFF_VALUE_SIGN 0x20a70efc /* [RW][32] MCPB Channel x reference difference value sign information */
+#define BCHP_XPT_MCPB_CH1_TMEU_PES_PACING_CTRL   0x20a70f00 /* [RW][32] MCPB Channel x PES pacing control information */
+#define BCHP_XPT_MCPB_CH1_TMEU_SLOT_STATUS       0x20a70f04 /* [RW][32] MCPB Channel x Slot 0 and Slot 1 information */
+#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT0_REG1 0x20a70f08 /* [RW][32] MCPB Channel x timing information for Slot 0 */
+#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT0_REG2 0x20a70f0c /* [RW][32] MCPB Channel x timing information for Slot 0 */
+#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT1_REG1 0x20a70f10 /* [RW][32] MCPB Channel x timing information for Slot 1 */
+#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_SLOT1_REG2 0x20a70f14 /* [RW][32] MCPB Channel x timing information for Slot 1 */
+#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_LAST_TIMESTAMP_DELTA 0x20a70f18 /* [RW][32] MCPB Channel x last TS delta value */
+#define BCHP_XPT_MCPB_CH1_TMEU_TIMING_INFO_LAST_NEXT_TIMESTAMP 0x20a70f1c /* [RW][32] MCPB Channel x last NEXT TS value */
+#define BCHP_XPT_MCPB_CH1_DCPM_STATUS            0x20a70f20 /* [RW][32] MCPB Channel x DCPM status information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DESC_ADDR         0x20a70f24 /* [RW][32] MCPB Channel x DCPM descriptor address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DESC_DONE_INT_ADDR 0x20a70f28 /* [RW][32] MCPB Channel x DCPM descriptor done interrupt address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_PAUSE_AFTER_GROUP_PACKETS_CTRL 0x20a70f2c /* [RW][32] MCPB Channel x Pause after group of packets control information */
+#define BCHP_XPT_MCPB_CH1_DCPM_PAUSE_AFTER_GROUP_PACKETS_PKT_COUNTER 0x20a70f30 /* [RW][32] MCPB Channel x Pause after group of packets local packet counter */
+#define BCHP_XPT_MCPB_CH1_DCPM_LOCAL_PACKET_COUNTER 0x20a70f34 /* [RW][32] MCPB Channel x local packet counter */
+#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_UPPER   0x20a70f38 /* [RW][32] MCPB Channel x DCPM data address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_LOWER   0x20a70f3c /* [RW][32] MCPB Channel x DCPM data address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_CURR_DESC_ADDR    0x20a70f40 /* [RW][32] MCPB Channel x DCPM current descriptor address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_SLOT_STATUS       0x20a70f44 /* [RW][32] MCPB Channel x DCPM slot status information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DESC_ADDR_SLOT_0  0x20a70f48 /* [RW][32] MCPB Channel x DCPM completed slot 0 descriptor address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_0_UPPER 0x20a70f4c /* [RW][32] MCPB Channel x DCPM completed slot 0 data address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_0_LOWER 0x20a70f50 /* [RW][32] MCPB Channel x DCPM completed slot 0 data address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DESC_ADDR_SLOT_1  0x20a70f54 /* [RW][32] MCPB Channel x DCPM completed slot 1 descriptor address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_1_UPPER 0x20a70f58 /* [RW][32] MCPB Channel x DCPM completed slot 1 data address information */
+#define BCHP_XPT_MCPB_CH1_DCPM_DATA_ADDR_SLOT_1_LOWER 0x20a70f5c /* [RW][32] MCPB Channel x DCPM completed slot 1 data address information */
 
 #endif /* #ifndef BCHP_XPT_MCPB_CH1_H__ */
 

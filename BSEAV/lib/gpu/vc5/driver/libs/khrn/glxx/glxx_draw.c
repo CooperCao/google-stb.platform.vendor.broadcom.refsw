@@ -3,7 +3,7 @@
  ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 #include "../common/khrn_counters.h"
 #include "../common/khrn_render_state.h"
 #include "../common/khrn_fmem.h"
@@ -24,15 +24,19 @@
 
 LOG_DEFAULT_CAT("glxx_draw")
 
-static bool attrib_handles_and_offsets(GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
-                                       uint32_t attribs_live,
-                                       GLXX_VERTEX_BUFFER_CONFIG_T *vb_config,
-                                       GLXX_VERTEX_POINTERS_T *vertex_pointers);
-static bool get_server_attribs_max(const GLXX_VAO_T *vao, uint32_t attribs_live,
-                                   GLXX_ATTRIBS_MAX *attribs_max, unsigned base_instance);
+#if !V3D_HAS_ATTR_MAX_INDEX
+static bool calc_attribs_max(glxx_attribs_max *attribs_max,
+      const GLXX_VAO_T *vao, uint32_t attribs_live, unsigned base_instance);
+#endif
 
-static bool index_stuff(GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T * vao,
-      const GLXX_DRAW_T *draw, GLXX_STORAGE_T *indices);
+static bool get_indices(glxx_hw_indices *indices,
+   GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
+   const glxx_hw_draw *draw, const void *raw_indices);
+
+static bool get_vbs(bool *skip, glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
+   GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
+   const glxx_hw_draw *draw, const void *raw_indices,
+   bool prim_restart, uint32_t attribs_live);
 
 static inline GLboolean is_index_type(GLenum type)
 {
@@ -136,18 +140,24 @@ static bool check_raw_draw_params(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_RA
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
          return false;
       }
+
+      if ((uintptr_t)draw->indirect > (v3d_size_t)-1)
+      {
+         // Buffer offset is way out of range. Can't even fit in glxx_hw_draw field.
+         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+         return false;
+      }
    }
 
    return true;
 }
 
-static void draw_params_from_raw(GLXX_DRAW_T *draw, const GLXX_DRAW_RAW_T *raw)
+static void hw_draw_params_from_raw(glxx_hw_draw *draw, const GLXX_DRAW_RAW_T *raw)
 {
    draw->mode = (GLXX_PRIMITIVE_T)raw->mode;
    draw->count = raw->count;
    draw->is_draw_arrays = raw->is_draw_arrays;
    draw->index_type = (GLXX_INDEX_T)raw->index_type;
-   draw->indices = raw->indices;
    draw->first = raw->first;
    draw->instance_count = raw->instance_count;
    draw->basevertex = raw->basevertex;
@@ -155,7 +165,7 @@ static void draw_params_from_raw(GLXX_DRAW_T *draw, const GLXX_DRAW_RAW_T *raw)
    draw->is_indirect = raw->is_indirect;
    draw->num_indirect = raw->num_indirect;
    draw->indirect_stride = raw->indirect_stride;
-   draw->indirect_offset = (uintptr_t)raw->indirect;
+   draw->indirect_offset = (v3d_size_t)(uintptr_t)raw->indirect;
 }
 
 /* Return whether any currently active attribute has no buffer bound */
@@ -175,47 +185,53 @@ static bool have_client_vertex_pointers(const GLXX_VAO_T *vao, uint32_t attribs_
    return false;
 }
 
-static gmem_handle_t alloc_and_copy_data(size_t size, size_t align, const void* data)
+static gmem_handle_t alloc_and_sync_dynamic_read(khrn_fmem *fmem,
+   size_t size, size_t align,
+   v3d_barrier_flags bin_rw_flags, v3d_barrier_flags render_rw_flags,
+   const char *desc)
 {
-   gmem_handle_t handle = gmem_alloc_and_map(
-      size,
-      align,
-      GMEM_USAGE_V3D_READ | GMEM_USAGE_HINT_DYNAMIC,
-      "client side data");
+   gmem_handle_t handle = gmem_alloc_and_map(size, align,
+      GMEM_USAGE_V3D_READ | GMEM_USAGE_HINT_DYNAMIC, desc);
    if (!handle)
       return NULL;
 
-   memcpy(gmem_get_ptr(handle), data, size);
-   gmem_flush_mapped_buffer(handle);
+   if (!khrn_fmem_record_handle(fmem, handle))
+   {
+      gmem_free(handle);
+      return NULL;
+   }
+
+   khrn_fmem_sync(fmem, handle, bin_rw_flags, render_rw_flags);
+
    return handle;
 }
 
-static bool has_client_side_indices(const GLXX_VAO_T *vao, bool is_draw_arrays)
+static v3d_addr_t dynamic_read_copy(khrn_fmem *fmem,
+   size_t size, size_t align, const void* data,
+   v3d_barrier_flags bin_rw_flags, v3d_barrier_flags render_rw_flags,
+   const char *desc)
 {
-   if (is_draw_arrays || vao->element_array_binding.buffer != 0)
-      return false;
-   return true;
+   // Try to put ver small allocations in fmem blocks first.
+   if (size < 1024)
+   {
+      void* ptr = khrn_fmem_data(fmem, size, align);
+      if (ptr)
+      {
+         memcpy(ptr, data, size);
+         return khrn_fmem_hw_address(fmem, ptr);
+      }
+   }
+
+   gmem_handle_t handle = alloc_and_sync_dynamic_read(fmem, size, align, bin_rw_flags, render_rw_flags, desc);
+   if (!handle)
+      return 0;
+   memcpy(gmem_get_ptr(handle), data, size);
+   gmem_flush_mapped_buffer(handle);
+   return gmem_get_addr(handle);
 }
 
-static bool store_client_indices(const GLXX_VAO_T *vao,
-      const GLXX_DRAW_T *draw, GLXX_STORAGE_T *indices)
-{
-   assert(has_client_side_indices(vao, draw->is_draw_arrays));
-   assert(!draw->is_indirect);
-
-   int size = draw->count * glxx_get_index_type_size(draw->index_type);
-   indices->handle = alloc_and_copy_data(size, V3D_INDICES_REC_ALIGN, draw->indices);
-   if (indices->handle == GMEM_HANDLE_INVALID)
-      return false;
-   indices->offset = 0;
-   indices->needs_freeing = true;
-   indices->size = size;
-   return true;
-}
-
-static bool find_max_index(uint32_t *max, bool *any, const GLXX_VAO_T * vao, const GLXX_DRAW_T *draw, bool primitive_restart,
-                          // Only used for client side indices.
-                          GLXX_STORAGE_T *indices)
+static bool find_max_index(uint32_t *max, bool *any, const GLXX_VAO_T * vao,
+   const glxx_hw_draw *draw, const void *raw_indices, bool primitive_restart)
 {
    assert(!draw->is_indirect);
 
@@ -229,29 +245,24 @@ static bool find_max_index(uint32_t *max, bool *any, const GLXX_VAO_T * vao, con
    unsigned per_index_size = glxx_get_index_type_size(draw->index_type);
    if (vao->element_array_binding.buffer == 0)
    {
-      // This code appears to be making an assumption that as the buffer has previously
-      // been mapped then this call can't fail.
-      void* mapped_indices_copied_from_client = gmem_map_and_invalidate_range(indices->handle, 0, indices->size);
-      assert(mapped_indices_copied_from_client);
-
       /* client side indices */
-      *any = find_max(max, draw->count, per_index_size, mapped_indices_copied_from_client,
-            primitive_restart);
+      *any = find_max(max, draw->count, per_index_size, raw_indices, primitive_restart);
    }
    else
    {
       GLXX_BUFFER_T *buffer = vao->element_array_binding.obj;
       assert(buffer != NULL);
       if (!glxx_buffer_find_max(max, any, buffer, draw->count, per_index_size,
-            (uintptr_t)draw->indices, primitive_restart))
+            (v3d_size_t)(uintptr_t)raw_indices, primitive_restart))
          return false;
    }
    return true;
 }
 
-static bool store_client_vertex_pointers(const GLXX_VAO_T *vao, unsigned int attribs_live,
-                                         unsigned int instance_count, unsigned base_instance,
-                                         unsigned max_index, GLXX_VERTEX_POINTERS_T *vertex_pointers)
+static bool get_client_vb_addrs(glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
+   khrn_fmem *fmem,
+   const GLXX_VAO_T *vao, unsigned int attribs_live,
+   unsigned int instance_count, unsigned base_instance, unsigned max_index)
 {
    struct arr_pointer {
       char *start;
@@ -284,7 +295,7 @@ static bool store_client_vertex_pointers(const GLXX_VAO_T *vao, unsigned int att
       /* The draw call should be cancelled */
       if (attr->pointer == NULL)
       {
-         log_warn("%s: active and enabled attrib without storage or buffer bound", VCOS_FUNCTION);
+         log_warn("%s: active and enabled attrib without storage or buffer bound", __FUNCTION__);
          return false;
       }
 
@@ -304,9 +315,8 @@ static bool store_client_vertex_pointers(const GLXX_VAO_T *vao, unsigned int att
 
          if ((curr->start + curr->length >= existing->start) && (existing->start + existing->length >= curr->start))
          {
-            char *start, *end;
-            start = GFX_MIN(curr->start, existing->start);
-            end = GFX_MAX(curr->start + curr->length, existing->start + existing->length);
+            char *start = GFX_MIN(curr->start, existing->start);
+            char *end = GFX_MAX(curr->start + curr->length, existing->start + existing->length);
             /* set the new start and end and make invalid the existing element so it doesn't matter anymore */
             curr->start = start;
             curr->length = end - start;
@@ -317,28 +327,25 @@ static bool store_client_vertex_pointers(const GLXX_VAO_T *vao, unsigned int att
    }
 
    /* we need to store only the merged arrays (length != 0) */
-   bool res = true;
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
       if (pointers[i].length != 0)
       {
          struct arr_pointer *curr = &pointers[i];
-         GLXX_STORAGE_T *arr = &vertex_pointers->array[i];
 
-         arr->handle = alloc_and_copy_data(curr->length, V3D_ATTR_REC_ALIGN, curr->start);
-         if (arr->handle == GMEM_HANDLE_INVALID)
-         {
-            res = false;
-            break;
-         }
+         vbs[i].addr = dynamic_read_copy(fmem,
+            curr->length, V3D_ATTR_REC_ALIGN, curr->start,
+            V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ,
+            "client-side vertex data");
+         if (!vbs[i].addr)
+            return false;
+
          assert(curr->start <= curr->orig_start);
-         arr->offset = curr->orig_start - curr->start;
-         arr->needs_freeing = true;
-         arr->size = curr->length;
+         vbs[i].addr += curr->orig_start - curr->start;
       }
    }
 
-   /* update the arrays that where merged into other array */
+   /* update the arrays that were merged into other array */
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
       if (pointers[i].index_merged != -1)
@@ -349,17 +356,34 @@ static bool store_client_vertex_pointers(const GLXX_VAO_T *vao, unsigned int att
          while (pointers[j].index_merged != -1)
             j = pointers[j].index_merged;
 
-         assert(vertex_pointers->array[j].handle != GMEM_HANDLE_INVALID);
-         vertex_pointers->array[i].handle = vertex_pointers->array[j].handle;
-         assert(pointers[j].start <= pointers[i].orig_start);
-         vertex_pointers->array[i].offset = pointers[i].orig_start - pointers[j].start;
-         vertex_pointers->array[i].size = vertex_pointers->array[j].size;
+         assert(vbs[j].addr);
+         vbs[i].addr = vbs[j].addr + (pointers[i].orig_start - pointers[j].orig_start);
       }
    }
-   return res;
+
+   return true;
 }
 
-GLXX_PRIMITIVE_T glxx_get_used_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIMITIVE_T draw_mode)
+static GLXX_PRIMITIVE_T glxx_get_gs_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIMITIVE_T input_mode)
+{
+#if GLXX_HAS_TNG
+   if (glsl_program_has_stage(p, SHADER_TESS_EVALUATION))
+   {
+      assert(input_mode == GL_PATCHES);
+
+      if(p->ir->tess_point_mode)
+         return GL_POINTS;
+      else if (p->ir->tess_mode == TESS_ISOLINES)
+         return GL_LINES;
+      else
+         return GL_TRIANGLES;
+   }
+   else
+#endif
+      return input_mode;
+}
+
+GLXX_PRIMITIVE_T glxx_get_rast_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIMITIVE_T input_mode)
 {
 #if GLXX_HAS_TNG
    if (glsl_program_has_stage(p, SHADER_GEOMETRY))
@@ -376,41 +400,24 @@ GLXX_PRIMITIVE_T glxx_get_used_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIMITIVE
          unreachable();
       }
    }
-   else if (glsl_program_has_stage(p, SHADER_TESS_EVALUATION))
-   {
-      assert(draw_mode == GL_PATCHES);
-
-      if(p->ir->tess_point_mode)
-         return GL_POINTS;
-      else if (p->ir->tess_mode == TESS_ISOLINES)
-         return GL_LINES;
-      else
-         return GL_TRIANGLES;
-   }
    else
-      return draw_mode;
-#else
-   return draw_mode;
 #endif
+      return glxx_get_gs_draw_mode(p, input_mode);
 }
 
-static bool check_valid_tf_draw(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_T *draw)
+static bool check_valid_tf_draw(GLXX_SERVER_STATE_T *state, const glxx_hw_draw *draw)
 {
    assert(state->transform_feedback.in_use);
    assert(gl20_program_common_get(state)->transform_feedback.varying_count > 0);
 
 #if !GLXX_HAS_TNG
-   if(draw->is_indirect)
-      return false;
-
-   /* Prior to geometry shading it was an error to use DrawElements here */
-   if (!draw->is_draw_arrays)
+   if(draw->is_indirect || !draw->is_draw_arrays)
       return false;
 #endif
 
    const GLXX_TRANSFORM_FEEDBACK_T *tf = state->transform_feedback.bound;
    const GLSL_PROGRAM_T *program = gl20_program_common_get(state)->linked_glsl_program;
-   GLXX_PRIMITIVE_T used_draw_mode = glxx_get_used_draw_mode(program, draw->mode);
+   GLXX_PRIMITIVE_T used_draw_mode = glxx_get_rast_draw_mode(program, draw->mode);
 
    if (!glxx_tf_draw_mode_allowed(tf, used_draw_mode))
       return false;
@@ -469,9 +476,33 @@ static bool check_valid_advanced_blend(const GLXX_SERVER_STATE_T *state, const G
    return true;
 }
 
+#if GLXX_HAS_TNG
+static bool check_gs_input_mode(GLXX_PRIMITIVE_T draw_mode, const GLSL_PROGRAM_T *program)
+{
+   if (!glsl_program_has_stage(program, SHADER_GEOMETRY))
+      return true;
+
+   GLXX_PRIMITIVE_T gs_input = glxx_get_gs_draw_mode(program, draw_mode);
+   switch (program->ir->gs_in) {
+      case GS_IN_POINTS:
+         return gs_input == GL_POINTS;
+      case GS_IN_LINES:
+         return gs_input == GL_LINES || gs_input == GL_LINE_STRIP || gs_input == GL_LINE_LOOP;
+      case GS_IN_TRIANGLES:
+         return gs_input == GL_TRIANGLES || gs_input == GL_TRIANGLE_STRIP || gs_input == GL_TRIANGLE_FAN;
+      case GS_IN_LINES_ADJ:
+         return gs_input == GL_LINES_ADJACENCY || gs_input == GL_LINE_STRIP_ADJACENCY;
+      case GS_IN_TRIS_ADJ:
+         return gs_input == GL_TRIANGLES_ADJACENCY || gs_input == GL_TRIANGLE_STRIP_ADJACENCY;
+      default:
+         unreachable(); return false;
+   }
+}
+#endif
+
 /* check that we have everything we need to proceed with the draw call
  * (framebuffer complete, vertex attrib enabled for es11, etc) */
-static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *draw)
+static bool check_draw_state(GLXX_SERVER_STATE_T * state, const glxx_hw_draw *draw)
 {
    GLXX_VAO_T *vao = state->vao.bound;
 
@@ -490,7 +521,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
       {
          log_info(
             "%s: GL11 without position attribute enabled",
-            VCOS_FUNCTION);
+            __FUNCTION__);
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
          return false;
       }
@@ -530,7 +561,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
          return false;
       }
 
-      size_t indirect_bufsize = glxx_buffer_get_size(indirect_buffer);
+      v3d_size_t indirect_bufsize = glxx_buffer_get_size(indirect_buffer);
 
       if (vao->name == 0 ||
           indirect_bufsize < draw->indirect_offset ||
@@ -547,14 +578,6 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
       }
    }
 
-   /* Check for transform feedback errors */
-   if (state->transform_feedback.in_use &&
-         !check_valid_tf_draw(state, draw))
-   {
-      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      return false;
-   }
-
    /* Validate the program last because not having a valid program is not an
     * error and we can't exit before error checks.
     */
@@ -568,7 +591,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
       GL20_PROGRAM_COMMON_T* program_common = &state->current_program->common;
       if (!gl20_validate_program(state, program_common))
       {
-         log_info("%s: program validate failed", VCOS_FUNCTION);
+         log_info("%s: program validate failed", __FUNCTION__);
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          return false;
       }
@@ -605,7 +628,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
 
    if (!check_valid_advanced_blend(state, linked_program))
    {
-      log_info("%s: advanced blend validation failed", VCOS_FUNCTION);
+      log_info("%s: advanced blend validation failed", __FUNCTION__);
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       return false;
    }
@@ -620,69 +643,44 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       return false;
    }
+
+   if (!check_gs_input_mode(draw->mode, linked_program))
+   {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      return false;
+   }
 #endif
+
+   if (state->transform_feedback.in_use)
+   {
+      if (!check_valid_tf_draw(state, draw))
+      {
+         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+         return false;
+      }
+   }
 
    assert(glsl_program_has_stage(linked_program, SHADER_VERTEX));
    return true;
 }
 
-static void storage_init(GLXX_STORAGE_T *storage)
-{
-   storage->handle = GMEM_HANDLE_INVALID;
-   storage->offset = 0;
-   storage->needs_freeing = false;
-   storage->size = 0;
-}
-
-static void storage_destroy(GLXX_STORAGE_T *storage)
-{
-   if (storage->needs_freeing)
-   {
-      assert(storage->handle != GMEM_HANDLE_INVALID);
-      gmem_free(storage->handle);
-      storage_init(storage);
-   }
-}
-
-static void vertex_pointers_init(GLXX_VERTEX_POINTERS_T *vertex_pointers)
-{
-   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
-   {
-      GLXX_STORAGE_T *v = vertex_pointers->array + i;
-      storage_init(v);
-   }
-}
-
-static void vertex_pointers_destroy(GLXX_VERTEX_POINTERS_T *vertex_pointers)
-{
-   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
-   {
-      GLXX_STORAGE_T *v = vertex_pointers->array + i;
-      storage_destroy(v);
-   }
-}
-
+#if !V3D_HAS_ATTR_MAX_INDEX
 /* Clamp draw parameters to make sure we never exceed buffer bounds */
-static bool clamp_indices_and_instances(GLXX_DRAW_T *draw,
-                                        const GLXX_VAO_T *vao,
-                                        const GLXX_ATTRIBS_MAX *attribs_max)
+static bool clamp_draw_count(glxx_hw_draw *draw, const void *raw_indices,
+      const GLXX_VAO_T *vao, unsigned int max_index)
 {
    /* We should use V3D_CL_INDIRECT_PRIMITIVE_LIMITS for indirect draws */
    assert(!draw->is_indirect);
-
-   assert(draw->instance_count > 0);
-   if (draw->instance_count - 1 > attribs_max->instance)
-      draw->instance_count = attribs_max->instance + 1;
 
    if (draw->is_draw_arrays)
    {
       /* For DrawArrays clamp the (implicit) indices to fit in the array buffers */
       /* Abandon the draw if all the indices are outside the buffer */
-      if (draw->first > attribs_max->index) return false;
+      if (draw->first > max_index) return false;
 
       assert(draw->count > 0);
-      if ((draw->count - 1) > (attribs_max->index - draw->first)) {
-         draw->count = attribs_max->index - draw->first + 1;
+      if ((draw->count - 1) > (max_index - draw->first)) {
+         draw->count = max_index - draw->first + 1;
       }
    }
    else
@@ -690,21 +688,25 @@ static bool clamp_indices_and_instances(GLXX_DRAW_T *draw,
       /* For DrawElements clamp the count to the size of the element buffer */
       GLXX_BUFFER_T *buffer = vao->element_array_binding.obj;
       if (buffer != NULL) {
-         int type_size = glxx_get_index_type_size(draw->index_type);
-         uint32_t buffer_size = glxx_buffer_get_size(buffer);
+         uint32_t type_size = glxx_get_index_type_size(draw->index_type);
+         v3d_size_t buffer_size = glxx_buffer_get_size(buffer);
+         v3d_size_t offset = (v3d_size_t)(uintptr_t)raw_indices;
+         v3d_size_t max_indices = (offset < buffer_size) ?
+            ((buffer_size - offset) / type_size) : 0;
 
-         /* Abandon the draw call entirely if we can't fetch a single index */
-         if ((size_t)draw->indices > buffer_size)
+         /* Skip the draw call entirely if we can't fetch a single index */
+         if (max_indices == 0)
             return false;
 
          /* Clamp to the last full index that we can fetch */
-         if (((size_t)draw->indices + draw->count * type_size) > buffer_size)
-            draw->count = (buffer_size - (size_t)draw->indices) / type_size;
+         if (draw->count > max_indices)
+            draw->count = max_indices;
       }
    }
 
    return true;
 }
+#endif
 
 static bool has_possible_self_write_conflicting_preprocess_read(
    glxx_hw_render_state const* rs,
@@ -722,12 +724,11 @@ static bool has_possible_self_write_conflicting_preprocess_read(
       for (unsigned b = block_index_start; b != block_index_end; ++b)
       {
          unsigned binding_point = program_common->ubo_binding_point[b];
-         GLXX_BUFFER_T* buffer = state->uniform_block.binding_points[binding_point].buffer.obj;
-         if (buffer->last_tf_write_count > 0)
+         khrn_resource* res = state->uniform_block.binding_points[binding_point].buffer.obj->resource;
+         if ((khrn_resource_get_write_stages(res, (khrn_render_state *)rs) & KHRN_STAGE_BIN) &&
+            (res->last_tf_write_count > 0))
          {
-            KHRN_RES_INTERLOCK_T* res = glxx_buffer_get_res_interlock(buffer);
-            if (khrn_interlock_is_writer(&res->interlock, (KHRN_RENDER_STATE_T*)rs))
-               return true;
+            return true;
          }
       }
    }
@@ -737,37 +738,31 @@ static bool has_possible_self_write_conflicting_preprocess_read(
 /* All GL error have been raised before calling. It is safe to mutate any state
  * but the only error that can be raised is GL_OUT_OF_MEMORY.
  */
-static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *draw)
+static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state,
+   glxx_hw_draw *draw, const void *raw_indices)
 {
-   GLXX_HW_RENDER_STATE_T *rs = NULL;
-   GLXX_VERTEX_BUFFER_CONFIG_T vb_config[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
-   GLXX_VERTEX_POINTERS_T vertex_pointers;
-   GLXX_STORAGE_T indices;
-
-   assert(draw->is_indirect ? (draw->num_indirect > 0) :
-      (draw->count > 0 && draw->instance_count > 0));
+   if (draw->is_indirect ?
+         (draw->num_indirect == 0) :
+         (draw->instance_count == 0 || draw->count == 0))
+      /* Early out, not an error */
+      return;
 
    khrn_driver_incr_counters(KHRN_PERF_DRAW_CALLS);
-
-   memset(vb_config, 0, sizeof(vb_config));
-   vertex_pointers_init(&vertex_pointers);
-   storage_init(&indices);
-
-   GLXX_VAO_T *vao = state->vao.bound;
 
    GLXX_HW_FRAMEBUFFER_T hw_fb;
    if (!glxx_init_hw_framebuffer(state->bound_draw_framebuffer, &hw_fb))
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-      goto end;
+      return;
    }
 
+   GLXX_HW_RENDER_STATE_T *rs = NULL;
    for (; ;)
    {
-      if (!(rs = glxx_install_rs(state, &hw_fb, false)))
+      bool existing;
+      if (!(rs = glxx_install_rs(state, &hw_fb, &existing, false)))
       {
-         log_warn("%s: installing framebuffer failed", VCOS_FUNCTION);
-         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+         log_warn("%s: installing framebuffer failed", __FUNCTION__);
          break;
       }
 
@@ -783,7 +778,7 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
       // If this render state is already reading from the buffers written to by TF,
       // then we will flush and get a new one.
       bool requires_flush = false;
-      if (glxx_tf_add_interlock_writes(state->transform_feedback.bound,
+      if (glxx_tf_add_resource_writes(state->transform_feedback.bound,
                &gl20_program_common_get(state)->transform_feedback,
                rs, &requires_flush))
          break;
@@ -791,7 +786,6 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
       // If didn't require a flush, then ran out of memory.
       if (!requires_flush)
       {
-         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
          glxx_hw_discard_frame(rs);
          rs = NULL;
          break;
@@ -803,10 +797,15 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
 
    glxx_destroy_hw_framebuffer(&hw_fb);
 
-   if(!rs)
-      goto end;
+   if (!rs)
+   {
+      glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+      return;
+   }
 
-   khrn_render_state_disallow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_disallow_flush((khrn_render_state*)rs);
+
+   GLXX_VAO_T *vao = state->vao.bound;
 
    if (IS_GL_11(state) && khrn_render_state_set_contains(state->dirty.stuff, rs))
    {
@@ -827,113 +826,71 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
       gl11_cache_uniforms(state, &rs->fmem);
    }
 
-   if (has_client_side_indices(vao, draw->is_draw_arrays))
-   {
-      if (!store_client_indices(vao, draw, &indices))
-      {
-         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-         goto end;
-      }
-   }
-
    uint32_t attribs_live = glxx_get_attribs_live(state);
 
-   // this is pretty horrible; cached_server_attribs_max is valid if any bits in dirty.stuff are clear
-   if (state->dirty.stuff == KHRN_RENDER_STATE_SET_ALL)
+#if !V3D_HAS_ATTR_MAX_INDEX
+   glxx_attribs_max attribs_max;
+   if (!calc_attribs_max(&attribs_max, vao, attribs_live, draw->baseinstance))
+      goto end; //nothing to do
+
+   if (!draw->is_indirect)
    {
-      if (!get_server_attribs_max(vao, attribs_live, &state->cached_server_attribs_max, draw->baseinstance))
-         goto end;
+      // clamp instance count
+      assert(draw->instance_count > 0);
+      if (draw->instance_count - 1 > attribs_max.instance)
+        draw->instance_count = attribs_max.instance + 1;
+
+      if (!clamp_draw_count(draw, raw_indices, vao , attribs_max.index))
+         goto end; //nothing to do
    }
-   GLXX_ATTRIBS_MAX attribs_max = state->cached_server_attribs_max;
+#endif
 
-   bool have_client_vertices = have_client_vertex_pointers(vao, attribs_live);
-   /* We only upload client-side vertices if the default VAO is bound.
-    * Otherwise we know the client-side pointers are NULL and the attributes
-    * will be ignored anyway.
-    */
-   if (have_client_vertices && vao->name == 0)
-   {
-      assert(!draw->is_indirect);
-
-      uint32_t max_index;
-      bool any_nonrestart_indices;
-      if (!find_max_index(&max_index, &any_nonrestart_indices, vao, draw, state->caps.primitive_restart, &indices))
-      {
-         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-         goto end;
-      }
-      if (!any_nonrestart_indices)
-         goto end; // No indices no drawing
-
-      if (!store_client_vertex_pointers(vao, attribs_live,
-            draw->instance_count, draw->baseinstance, max_index, &vertex_pointers))
-      {
-         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-         goto end;
-      }
-
-      attribs_max.index = gfx_umin(attribs_max.index, max_index);
-      attribs_max.instance = gfx_umin(attribs_max.instance, draw->instance_count - 1);
-   }
-
-   if (!glxx_calculate_and_hide(state, rs, draw->mode))
+   glxx_hw_indices indices;
+   if (!draw->is_draw_arrays && !get_indices(&indices, rs, vao, draw, raw_indices))
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
       goto end;
    }
 
-   if (!attrib_handles_and_offsets(rs, vao, attribs_live, vb_config, &vertex_pointers))
-   {
-      log_warn("%s: attrib stuff fail", VCOS_FUNCTION);
-      glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-      goto end;
-   }
-
-   // If draw indirect is used, HW does limit checking using CLE 44
-   if (!draw->is_indirect && !clamp_indices_and_instances(draw, vao, &attribs_max))
-      goto end;
-
-   if (!draw->is_draw_arrays && !index_stuff(rs, vao, draw, &indices))
+   bool skip;
+   glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   if (!get_vbs(&skip, vbs, rs, vao, draw, raw_indices,
+            state->caps.primitive_restart, attribs_live))
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
       goto end;
    }
+   if (skip)
+      goto end;
 
-   if (!glxx_hw_draw_triangles(state, rs, draw,
-            state->vao.bound->attrib_config,
-            &attribs_max, vb_config,
-            &indices, &vertex_pointers))
+   if (!glxx_hw_draw_triangles(state, rs, draw, &indices,
+            state->vao.bound->attrib_config, vbs
+#if !V3D_HAS_ATTR_MAX_INDEX
+            ,&attribs_max
+#endif
+      ))
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
       rs = NULL; // frame was discarded.
-      goto end;
+      return;
    }
 
 end:
-   storage_destroy(&indices);
-   vertex_pointers_destroy(&vertex_pointers);
-   if (rs) khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_allow_flush((khrn_render_state*)rs);
 }
 
 void glintDrawArraysOrElements(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_RAW_T *draw_raw)
 {
-   GLXX_DRAW_T draw;
-
    if (!check_raw_draw_params(state, draw_raw))
       return;
 
-   draw_params_from_raw(&draw, draw_raw);
+   glxx_hw_draw draw;
+   hw_draw_params_from_raw(&draw, draw_raw);
 
    if (!check_draw_state(state, &draw))
       return; /* Error set by check_draw_state */
 
-   if (draw.is_indirect ?
-         (draw.num_indirect == 0) :
-         (draw.instance_count == 0 || draw.count == 0))
-      /* Early out, not an error */
-      return;
-
-   draw_arrays_or_elements(state, &draw);
+   draw_arrays_or_elements(state, &draw, draw_raw->indices);
 }
 
 GL_API void GL_APIENTRY glDrawArrays(GLenum mode, GLint first, GLsizei count)
@@ -1101,100 +1058,42 @@ GL_APICALL void GL_APIENTRY glDrawElementsIndirect(GLenum mode, GLenum index_typ
 
 #endif
 
-static int get_max_buffer_index(GLXX_BUFFER_T *buffer, size_t offset, uint32_t attrib_size, uint32_t actual_stride)
+/* return false if the buffer does not have enough space to fit one vertex */
+static bool get_max_buffer_index(uint32_t *max_index,
+      const GLXX_BUFFER_T *buffer, size_t offset, uint32_t attrib_size, uint32_t actual_stride)
 {
    size_t buffer_size = glxx_buffer_get_size(buffer);
 
    assert(attrib_size > 0);
 
-   int result;
    if ((attrib_size > buffer_size) || (offset > (buffer_size - attrib_size)))
-      result = -1;    //Not even the first vertex will fit in the buffer
+      return false;    //Not even the first vertex will fit in the buffer
    else if(actual_stride == 0)
    {
+#if V3D_HAS_ATTR_MAX_INDEX
+      //hw ignores max_index if stride is 0
+      *max_index = 0;
+#else
       /* Any index is valid with a stride of zero */
-      return INT_MAX;
+      *max_index = UINT32_MAX;
+#endif
    }
    else
    {
-      size_t max_index = (buffer_size - offset - attrib_size) / actual_stride;
-      assert(offset +  max_index    * actual_stride + attrib_size <= buffer_size);
-      assert(offset + (max_index+1) * actual_stride + attrib_size >  buffer_size);
-
-      assert(max_index <= INT_MAX);
-      result = (int)max_index;
+      *max_index = (buffer_size - offset - attrib_size) / actual_stride;
+      assert(offset +  (*max_index)    * actual_stride + attrib_size <= buffer_size);
+      assert(offset + (*max_index+1) * actual_stride + attrib_size >  buffer_size);
    }
-
-   return result;
-}
-
-static bool attrib_handles_and_offsets(GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
-                                       uint32_t attribs_live,
-                                       GLXX_VERTEX_BUFFER_CONFIG_T* vb_config,
-                                       GLXX_VERTEX_POINTERS_T *vertex_pointers)
-{
-   KHRN_FMEM_T *fmem = &rs->fmem;
-
-   for (unsigned i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
-   {
-      const GLXX_ATTRIB_CONFIG_T *attr = &vao->attrib_config[i];
-      const GLXX_VBO_BINDING_T *vbo = &vao->vbos[attr->vbo_index];
-      GLXX_STORAGE_T *vertex_p = &vertex_pointers->array[i];
-      GLXX_BUFFER_T *buffer;
-
-      if ( ! (attribs_live & (1<<i) && attr->enabled) )
-         continue;
-
-      buffer = vbo->buffer;
-      vb_config[i].divisor = vbo->divisor;
-
-      if (buffer != NULL)
-      {
-         vb_config[i].stride = vbo->stride;
-
-         KHRN_RES_INTERLOCK_T *res_i;
-         res_i = glxx_buffer_get_tf_aware_res_interlock(rs, buffer);
-         if (res_i == NULL) return false;
-
-         if (!khrn_fmem_record_res_interlock_read(fmem, res_i, KHRN_INTERLOCK_STAGES_BIN_RENDER))
-            return false;
-
-         vertex_p->handle = res_i->handle;
-         vertex_p->offset = vbo->offset + attr->relative_offset;
-         vertex_p->size = glxx_buffer_get_size(buffer);
-      }
-      else
-      {
-         /* this is some client side vertex that we have already stored in
-          * vertex_attribs.array[i] */
-         assert(vertex_p->handle != GMEM_HANDLE_INVALID);
-
-         vb_config[i].stride = attr->stride;
-
-         if (vertex_p->needs_freeing)
-         {
-            /* we need to add this buffer to the fmem so it gets freed when we are
-             * done with this fmem */
-            if (!khrn_fmem_record_handle(fmem, vertex_p->handle))
-               return false;
-
-            /* this handle is not ours to free anymore */
-            vertex_p->needs_freeing = false;
-         }
-      }
-   }
-
    return true;
 }
 
-/* Return the max index and instance before reading attributes would overrun
- * a buffer
- */
-static bool get_server_attribs_max(const GLXX_VAO_T *vao, uint32_t attribs_live,
-                                   GLXX_ATTRIBS_MAX *attribs_max, unsigned base_instance)
+#if !V3D_HAS_ATTR_MAX_INDEX
+static bool calc_attribs_max(glxx_attribs_max *attribs_max,
+      const GLXX_VAO_T *vao, uint32_t attribs_live, unsigned base_instance)
 {
-   unsigned int max_index = GLXX_CONFIG_MAX_ELEMENT_INDEX;
-   unsigned int max_instance = UINT_MAX;
+
+   unsigned max_index = GLXX_CONFIG_MAX_ELEMENT_INDEX;
+   unsigned max_instance = UINT_MAX;
 
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
@@ -1208,64 +1107,135 @@ static bool get_server_attribs_max(const GLXX_VAO_T *vao, uint32_t attribs_live,
       GLXX_BUFFER_T *buffer = vbo->buffer;
       if (buffer == NULL) continue;
 
-      int buffer_max_index = get_max_buffer_index(buffer,
-               vbo->offset + attr->relative_offset, attr->total_size, vbo->stride);
-
-      if (buffer_max_index == -1) return false;
-
-      assert(buffer_max_index >= 0);
-      if (vbo->divisor == 0)
-         max_index = gfx_umin(max_index, buffer_max_index);
-      else if (base_instance > (unsigned)buffer_max_index)
+      uint32_t attr_max_index;
+      if (!get_max_buffer_index(&attr_max_index, buffer, vbo->offset +
+               attr->relative_offset, attr->total_size, vbo->stride))
          return false;
+
+      if (vbo->divisor == 0)
+         max_index = gfx_umin(max_index, attr_max_index);
       else
       {
-         unsigned int buffer_max_instance = ((unsigned)buffer_max_index - base_instance + 1) * vbo->divisor - 1;
-         max_instance = gfx_umin(max_instance, buffer_max_instance);
+         if (base_instance > attr_max_index)
+            return false;
+         unsigned attr_max_instance = (attr_max_index - base_instance + 1) * vbo->divisor - 1;
+         max_instance = gfx_umin(max_instance, attr_max_instance);
       }
    }
 
    attribs_max->index = max_index;
    attribs_max->instance = max_instance;
+   attribs_max->base_instance = base_instance;
 
    return true;
 }
+#endif
 
-/* Fills in the indices struct with the indices handle and offset*/
-static bool index_stuff(GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T * vao,
-                        const GLXX_DRAW_T *draw, GLXX_STORAGE_T *indices)
+static bool get_indices(glxx_hw_indices *indices,
+   GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
+   const glxx_hw_draw *draw, const void *raw_indices)
 {
    assert(!draw->is_draw_arrays);
 
-   KHRN_FMEM_T *fmem = &rs->fmem;
    GLXX_BUFFER_T *buffer = vao->element_array_binding.obj;
-
-   if (buffer != NULL)
+   if (buffer)
    {
-      KHRN_RES_INTERLOCK_T *res_i = glxx_buffer_get_tf_aware_res_interlock(rs, buffer);
-      if (res_i == NULL)
+      /* Server-side indices */
+      if (!glxx_hw_tf_aware_sync_res(rs,
+            buffer->resource, V3D_BARRIER_CLE_PRIMIND_READ, V3D_BARRIER_NO_ACCESS))
          return false;
-
-      indices->handle = res_i->handle;
-      indices->offset = (size_t)draw->indices;
+      indices->addr = gmem_get_addr(buffer->resource->handle);
       indices->size = glxx_buffer_get_size(buffer);
-
-      if (!khrn_fmem_record_res_interlock_read(fmem, res_i, KHRN_INTERLOCK_STAGES_BIN_RENDER))
-         return false;
+      indices->offset = (v3d_size_t)(uintptr_t)raw_indices;
    }
    else
    {
-      /* this was filled in by store_client_indices */
-      assert(indices->handle != GMEM_HANDLE_INVALID &&
-             indices->needs_freeing == true);
+      /* Client-side indices */
+      assert(!draw->is_indirect);
+      indices->size = draw->count * glxx_get_index_type_size(draw->index_type);
+      indices->addr = dynamic_read_copy(&rs->fmem,
+         indices->size, V3D_INDICES_REC_ALIGN, raw_indices,
+         V3D_BARRIER_CLE_PRIMIND_READ, V3D_BARRIER_NO_ACCESS,
+         "client-side indices");
+      if (!indices->addr)
+         return false;
+      indices->offset = 0;
+   }
 
-      /* we need to add this handle to the fmem so it gets freed when we are
-       * done with this fmem */
-     if (!khrn_fmem_record_handle(fmem, indices->handle))
-        return false;
+#if !V3D_HAS_ATTR_MAX_INDEX
+   if (!draw->is_indirect)
+      assert(indices->offset < indices->size); //checked by clamp_draw_count
+#endif
+   return true;
+}
 
-     /* this handle is not ours to free anymore */
-     indices->needs_freeing = false;
+static bool get_vbs(bool *skip, glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
+   GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
+   const glxx_hw_draw *draw, const void *raw_indices,
+   bool prim_restart, uint32_t attribs_live)
+{
+   *skip = false;
+   memset(vbs, 0, GLXX_CONFIG_MAX_VERTEX_ATTRIBS * sizeof(glxx_hw_vb));
+
+   /* We only upload client-side vertices if the default VAO is bound.
+    * Otherwise we know the client-side pointers are NULL and the attributes
+    * will be ignored anyway.
+    */
+   uint32_t max_index;
+   bool max_index_set = false;
+   if ((vao->name == 0) && have_client_vertex_pointers(vao, attribs_live))
+   {
+      assert(!draw->is_indirect);
+
+      bool any_nonrestart_indices;
+      if (!find_max_index(&max_index, &any_nonrestart_indices, vao, draw, raw_indices, prim_restart))
+         return false;
+      if (!any_nonrestart_indices)
+      {
+         *skip = true; // No indices no drawing
+         return true;
+      }
+
+      max_index_set = true;
+      if (!get_client_vb_addrs(vbs, &rs->fmem, vao, attribs_live,
+            draw->instance_count, draw->baseinstance, max_index))
+         return false;
+   }
+
+   for (unsigned i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   {
+      const GLXX_ATTRIB_CONFIG_T *attr = &vao->attrib_config[i];
+      if ((attribs_live & (1u << i)) && attr->enabled)
+      {
+         const GLXX_VBO_BINDING_T *vbo = &vao->vbos[attr->vbo_index];
+         GLXX_BUFFER_T *buffer = vbo->buffer;
+         if (buffer != NULL)
+         {
+            if (!glxx_hw_tf_aware_sync_res(rs, buffer->resource, V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ))
+               return false;
+            vbs[i].addr = gmem_get_addr(buffer->resource->handle) + vbo->offset + attr->relative_offset;
+            vbs[i].stride = vbo->stride;
+#if V3D_HAS_ATTR_MAX_INDEX
+            if (!get_max_buffer_index(&vbs[i].max_index, buffer, vbo->offset +
+                     attr->relative_offset, attr->total_size, vbo->stride))
+            {
+               *skip = true; // No enough data for one attribute, skip the draw call
+               return true;
+            }
+#endif
+         }
+         else
+         {
+            assert(vbs[i].addr); // Should have been set by get_client_vb_addrs
+            vbs[i].stride = attr->stride;
+            assert(max_index_set);// max_index should have been set by find_max_index above;
+#if V3D_HAS_ATTR_MAX_INDEX
+            assert(draw->instance_count > 0);
+            vbs[i].max_index = (vbo->divisor == 0) ? max_index : ((draw->instance_count - 1) / vbo->divisor + draw->baseinstance);
+#endif
+         }
+         vbs[i].divisor = vbo->divisor;
+      }
    }
 
    return true;
@@ -1282,105 +1252,92 @@ struct screen_rect
 };
 
 static bool create_and_record_drawtex_attribs(
-      KHRN_FMEM_T *fmem,
+      khrn_fmem *fmem,
       const struct screen_rect *screen, float z_w,
       const struct tex_rect tex_rects[GL11_CONFIG_MAX_TEXTURE_UNITS],
-      GLXX_VERTEX_POINTERS_T *vertex_pointers,
-      GLXX_VERTEX_BUFFER_CONFIG_T *vb_config,
-      GLXX_ATTRIB_CONFIG_T attrib_config[GLXX_CONFIG_MAX_VERTEX_ATTRIBS])
+      GLXX_ATTRIB_CONFIG_T attribs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
+      glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS])
 {
-   void *storage = NULL;
-   float *p;
-   GLXX_ATTRIB_CONFIG_T *v_cfg;
-   GLXX_STORAGE_T *v_arr = NULL;
-   unsigned n_valid_textures, prec_txt_enabled, t_size, v_size, i;
-   size_t size, stride;
-
-   n_valid_textures = 0;
-   for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   unsigned n_valid_textures = 0;
+   for (unsigned i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if (tex_rects[i].valid)
          n_valid_textures++;
    }
 
-   v_size = 3 ; /* number of coordinates per vertex */
-   t_size = 2; /* number of coordinates per array element for texture */
+   unsigned v_size = 3 ; /* number of coordinates per vertex */
+   unsigned t_size = 2; /* number of coordinates per array element for texture */
 
-   stride = sizeof(float) * (v_size + n_valid_textures * t_size);
+   size_t stride = sizeof(float) * (v_size + n_valid_textures * t_size);
    /* we draw a rectangle */
-   size = 4 * stride;
+   size_t vertex_count = 4;
+   size_t size = vertex_count * stride;
 
-   v_arr = &vertex_pointers->array[GL11_IX_VERTEX];
-   v_arr->handle = gmem_alloc_and_map(size, V3D_ATTR_REC_ALIGN, GMEM_USAGE_V3D_READ | GMEM_USAGE_HINT_DYNAMIC, "drawtex vertices");
-   if (v_arr->handle == GMEM_HANDLE_INVALID)
+   gmem_handle_t v_handle = alloc_and_sync_dynamic_read(fmem,
+      size, V3D_ATTR_REC_ALIGN,
+      V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ,
+      "drawtex vertices");
+   if (!v_handle)
       return false;
-   v_arr->offset = 0;
-   v_arr->needs_freeing = true;
-   v_arr->size = size;
-   vb_config[GL11_IX_VERTEX].stride = stride;
-   vb_config[GL11_IX_VERTEX].divisor = 0;
 
-   /* we need to add the vertex handle to the fmem so it gets freed when we are
-    * done with this fmem */
-   if (!khrn_fmem_record_handle(fmem, v_arr->handle))
-      return false;
-   /* this handle is not ours to free anymore */
-   v_arr->needs_freeing = false;
+   /* glVertexPointer(v_size, GL_FLOAT, stride, v_handle) */
+   {
+      GLXX_ATTRIB_CONFIG_T *attrib = &attribs[GL11_IX_VERTEX];
+      memset(attrib, 0, sizeof(GLXX_ATTRIB_CONFIG_T));
+      attrib->gl_type = GL_FLOAT;
+      attrib->v3d_type = V3D_ATTR_TYPE_FLOAT;
+      attrib->is_signed = false;
+      attrib->norm = false;
+      attrib->size = v_size;
+      attrib->total_size =  sizeof(float) * v_size;
+      attrib->enabled = true;
 
-   storage = gmem_get_ptr(v_arr->handle);
+      glxx_hw_vb *vb = &vbs[GL11_IX_VERTEX];
+      vb->addr = gmem_get_addr(v_handle);
+      vb->stride = stride;
+      vb->divisor = 0;
+#if V3D_HAS_ATTR_MAX_INDEX
+      assert(vertex_count > 0);
+      vb->max_index = (vertex_count -1);
+#endif
+   }
 
-   v_cfg = &attrib_config[GL11_IX_VERTEX];
-   /* glVertexPointer(3, GL_FLOAT, (3 + n_valid_texture * 2) *sizeof(GL_FLOAT), storage) */
-   memset(v_cfg, 0, sizeof(GLXX_ATTRIB_CONFIG_T));
-   v_cfg->gl_type = GL_FLOAT;
-   v_cfg->v3d_type = V3D_ATTR_TYPE_FLOAT;
-   v_cfg->is_signed = false;
-   v_cfg->norm = false;
-   v_cfg->size = v_size;
-   v_cfg->total_size =  sizeof(float) * v_size;
-   v_cfg->enabled = true;
-
-   /* glTexCoordPointer(size, GL_FLOAT,(3 + n_valid_texture * 2)
-    * *sizeof(GL_FLOAT), (float*)storage + 3 + 2 * preceding_tex_units_enabled)
-    * */
-   prec_txt_enabled = 0;
-   for (i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   /* glTexCoordPointer(t_size, GL_FLOAT, stride, (float*)v_handle + v_size + t_size * preceding_tex_units_enabled) */
+   unsigned prec_txt_enabled = 0;
+   for (unsigned i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if (tex_rects[i].valid)
       {
-         GLXX_STORAGE_T *t_arr;
-         GLXX_ATTRIB_CONFIG_T *t_cfg;
-         GLXX_VERTEX_BUFFER_CONFIG_T *b_cfg;
-         t_cfg = &attrib_config[GL11_IX_TEXTURE_COORD + i];
-         b_cfg = &vb_config[GL11_IX_TEXTURE_COORD + i];
-         memset(t_cfg, 0, sizeof(GLXX_ATTRIB_CONFIG_T));
-         t_cfg->gl_type = GL_FLOAT;
-         t_cfg->v3d_type = V3D_ATTR_TYPE_FLOAT;
-         t_cfg->is_signed = false;
-         t_cfg->norm = false;
-         t_cfg->size = t_size;
-         t_cfg->total_size =  sizeof(float) * t_size;
-         t_cfg->enabled = true;
+         GLXX_ATTRIB_CONFIG_T *attrib = &attribs[GL11_IX_TEXTURE_COORD + i];
+         memset(attrib, 0, sizeof(GLXX_ATTRIB_CONFIG_T));
+         attrib->gl_type = GL_FLOAT;
+         attrib->v3d_type = V3D_ATTR_TYPE_FLOAT;
+         attrib->is_signed = false;
+         attrib->norm = false;
+         attrib->size = t_size;
+         attrib->total_size =  sizeof(float) * t_size;
+         attrib->enabled = true;
 
-         b_cfg->stride = stride;
-         b_cfg->divisor = 0;
+         glxx_hw_vb *vb = &vbs[GL11_IX_TEXTURE_COORD + i];
+         vb->addr = gmem_get_addr(v_handle) + (sizeof(float) * (v_size + prec_txt_enabled * t_size));
+         vb->stride = stride;
+         vb->divisor = 0;
+#if V3D_HAS_ATTR_MAX_INDEX
+         assert(vertex_count > 0);
+         vb->max_index = (vertex_count -1);
+#endif
 
-         t_arr = &vertex_pointers->array[GL11_IX_TEXTURE_COORD + i];
-         t_arr->handle = v_arr->handle;
-         t_arr->offset = sizeof(float) * (v_size + prec_txt_enabled * t_size);
-         t_arr->size = size;
-         t_arr->needs_freeing = false;
          prec_txt_enabled++;
       }
    }
 
    /* Just fill in the vertex coordinates intersperesed with the texture
     * coordinates (2 for each texture unit */
-   p = storage;
+   float *p = gmem_get_ptr(v_handle);
    *p++ = screen->x;
    *p++ = screen->y;
    *p++ = z_w;
-   for (i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   for (unsigned i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if (tex_rects[i].valid)
       {
@@ -1392,7 +1349,7 @@ static bool create_and_record_drawtex_attribs(
    *p++ = screen->x + screen->dw;
    *p++ = screen->y;
    *p++ = z_w;
-   for (i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   for (unsigned i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if(tex_rects[i].valid)
       {
@@ -1404,7 +1361,7 @@ static bool create_and_record_drawtex_attribs(
    *p++ = screen->x + screen->dw;
    *p++ = screen->y + screen->dh;
    *p++ = z_w;
-   for (i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   for (unsigned i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if(tex_rects[i].valid)
       {
@@ -1416,7 +1373,7 @@ static bool create_and_record_drawtex_attribs(
    *p++ = screen->x;
    *p++ = screen->y + screen->dh;
    *p++ = z_w;
-   for(i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   for(unsigned i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if(tex_rects[i].valid)
       {
@@ -1425,7 +1382,7 @@ static bool create_and_record_drawtex_attribs(
       }
    }
 
-   gmem_flush_mapped_buffer(v_arr->handle);
+   gmem_flush_mapped_buffer(v_handle);
 
    return true;
 }
@@ -1435,7 +1392,7 @@ static void calculate_tex_rect(const GLXX_SERVER_STATE_T *state, unsigned
 {
    const GL11_TEXUNIT_T *texunit = &state->gl11.texunits[tex_unit];
    GLXX_TEXTURE_T *texture;
-   KHRN_IMAGE_T *img;
+   khrn_image *img;
    unsigned img_width, img_height;
    enum glxx_tex_target tex_target;
 
@@ -1465,40 +1422,30 @@ static void calculate_tex_rect(const GLXX_SERVER_STATE_T *state, unsigned
 bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float x_s, float y_s, float z_w,
                   float w_s, float h_s)
 {
-   bool ok = false;
-   GLXX_VERTEX_POINTERS_T vertex_pointers;
-   GLXX_VERTEX_BUFFER_CONFIG_T vb_config[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
-   GLXX_ATTRIB_CONFIG_T attrib_config[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
-   struct tex_rect tex_rects[GL11_CONFIG_MAX_TEXTURE_UNITS];
-
    assert(IS_GL_11(state));
-
-   vertex_pointers_init(&vertex_pointers);
-   memset(vb_config, 0, sizeof(vb_config));
-   memset(attrib_config, 0, sizeof attrib_config);
-   memset(tex_rects, 0, sizeof(struct tex_rect) * GL11_CONFIG_MAX_TEXTURE_UNITS);
 
    GLXX_HW_RENDER_STATE_T* rs = NULL;
    {
       GLXX_HW_FRAMEBUFFER_T hw_fb;
       if (glxx_init_hw_framebuffer(state->bound_draw_framebuffer, &hw_fb))
       {
-         rs = glxx_install_rs(state, &hw_fb, false);
+         bool existing;
+         rs = glxx_install_rs(state, &hw_fb, &existing, false);
          glxx_destroy_hw_framebuffer(&hw_fb);
       }
    }
    if (rs == NULL)
-      goto end;
+      return false;
 
-   khrn_render_state_disallow_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
    GLXX_DRAW_RAW_T draw_raw = {
       GLXX_DRAW_RAW_DEFAULTS,
       .mode = GL_TRIANGLE_FAN,
       .count = 4,
       .is_draw_arrays = true};
-   GLXX_DRAW_T draw;
-   draw_params_from_raw(&draw, &draw_raw);
+   glxx_hw_draw draw;
+   hw_draw_params_from_raw(&draw, &draw_raw);
 
    {
       GL11_STATE_T *s = &state->gl11;
@@ -1514,12 +1461,14 @@ bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float x_s, float y_s, float z_w,
       gl11_cache_uniforms(state, &rs->fmem);
    }
 
-   if (!glxx_calculate_and_hide(state, rs, draw.mode))
-      goto end;
+#if !V3D_HAS_ATTR_MAX_INDEX
+   glxx_attribs_max attribs_max = {
+      .index = GLXX_CONFIG_MAX_ELEMENT_INDEX,
+      .instance = INT_MAX };
+#endif
 
-   GLXX_ATTRIBS_MAX attribs_max = { .index = GLXX_CONFIG_MAX_ELEMENT_INDEX,
-                                    .instance = INT_MAX };
-
+   struct tex_rect tex_rects[GL11_CONFIG_MAX_TEXTURE_UNITS];
+   memset(tex_rects, 0, sizeof(tex_rects));
    for (unsigned i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if (state->gl11.shaderkey.texture[i] & GL11_TEX_ENABLE)
@@ -1533,24 +1482,27 @@ bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float x_s, float y_s, float z_w,
                                  .dw = 2.0f * w_s/state->viewport.width,
                                  .dh = 2.0f * h_s/state->viewport.height };
 
-   ok = create_and_record_drawtex_attribs(&rs->fmem, &s_rect, z_w, tex_rects,
-         &vertex_pointers, vb_config, attrib_config);
-   if (!ok)
-      goto end;
-
-   ok = glxx_hw_draw_triangles(state, rs, &draw, attrib_config, &attribs_max,
-        vb_config, NULL, &vertex_pointers);
-   if (!ok)
+   GLXX_ATTRIB_CONFIG_T attribs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   memset(attribs, 0, sizeof(attribs));
+   memset(vbs, 0, sizeof(vbs));
+   if (!create_and_record_drawtex_attribs(&rs->fmem, &s_rect, z_w, tex_rects, attribs, vbs))
    {
-      rs = NULL; // frame was discarded.
-      goto end;
+      khrn_render_state_allow_flush((khrn_render_state*)rs);
+      return false;
    }
+
+   if (!glxx_hw_draw_triangles(state, rs, &draw, NULL, attribs, vbs
+#if !V3D_HAS_ATTR_MAX_INDEX
+         , &attribs_max
+#endif
+         ))
+      return false; // frame was discarded, rs no longer valid, so no cleanup to do...
 
    /* The shaderkey will be set up wrong, if nothing else */
    khrn_render_state_set_add(&state->dirty.stuff, rs);
 
-end:
-   if (rs) khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);
-   vertex_pointers_destroy(&vertex_pointers);
-   return ok;
+   khrn_render_state_allow_flush((khrn_render_state*)rs);
+
+   return true;
 }

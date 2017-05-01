@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __PRIVATE_NEXUS_H__
 #define __PRIVATE_NEXUS_H__
 
@@ -63,27 +61,6 @@ typedef struct
    BEGL_BufferFormat          format;
    bool                       secure;
 } NXPL_Surface;
-
-typedef void (*NXPL_SurfaceOffDisplay)(void *context, NEXUS_SurfaceHandle surface);
-
-typedef struct
-{
-   /* Thread data and mutex */
-   pthread_t                  displayThread;
-   pthread_barrier_t          barrier;
-
-   void                      *displayQueue;
-   void                      *fenceQueue;
-
-   /* data copied through from the owner */
-   BEGL_SchedInterface       *schedIface;
-   NXPL_NativeWindowInfoEXT   windowInfo;
-   BEGL_BufferFormat          format;
-   unsigned int               numSurfaces;
-
-   /* opaque, do not access in the thread */
-   void                      *nw;
-} NXPL_NativeWindow_priv;
 
 typedef struct
 {

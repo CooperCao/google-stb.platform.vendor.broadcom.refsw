@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:25:14 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:42:43 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                unknown
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 generate_int_id.pl         1.0
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/generate_int_id.pl
  *                 DVTSWVER                   n/a
@@ -71,7 +73,13 @@
 #define BCHP_INT_ID_AVD_MBOX_INTR             BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_MBOX_INTR_SHIFT)
 #define BCHP_INT_ID_AVD_PFRI_INTR             BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_PFRI_INTR_SHIFT)
 #define BCHP_INT_ID_AVD_RGR_BRIDGE_INTR       BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RGR_BRIDGE_INTR_SHIFT)
-#define BCHP_INT_ID_AVD_RSVD_HW_INTR          BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT)
+#define BCHP_INT_ID_AVD_RSVD_HW_INTR_0        BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT + 0)
+#define BCHP_INT_ID_AVD_RSVD_HW_INTR_1        BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT + 1)
+#define BCHP_INT_ID_AVD_RSVD_HW_INTR_2        BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT + 2)
+#define BCHP_INT_ID_AVD_RSVD_HW_INTR_3        BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT + 3)
+#define BCHP_INT_ID_AVD_RSVD_HW_INTR_4        BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT + 4)
+#define BCHP_INT_ID_AVD_RSVD_HW_INTR_5        BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT + 5)
+#define BCHP_INT_ID_AVD_RSVD_HW_INTR_6        BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_RSVD_HW_INTR_SHIFT + 6)
 #define BCHP_INT_ID_AVD_SW_INTR0              BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_SW_INTR0_SHIFT)
 #define BCHP_INT_ID_AVD_SW_INTR1              BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_SW_INTR1_SHIFT)
 #define BCHP_INT_ID_AVD_SW_INTR10             BCHP_INT_ID_CREATE(BCHP_HVD_INTR2_0_CPU_STATUS, BCHP_HVD_INTR2_0_CPU_STATUS_AVD_SW_INTR10_SHIFT)

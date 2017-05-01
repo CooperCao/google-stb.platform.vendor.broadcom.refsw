@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
@@ -53,7 +50,6 @@ BDBG_MODULE(bast_g3_priv_tuner);
 
 #define BAST_TUNER_LO_TABLE_SIZE 8
 #define BAST_TUNER_CAP_CNTL_TABLE_SIZE 5
-#define BAST_TUNER_KVCO_CAL_TABLE_SIZE 8
 
 /* #define BAST_TUNER_BYPASS_AGC */
 /* #define BAST_TUNER_BYPASS_IFAGC */
@@ -72,31 +68,27 @@ BDBG_MODULE(bast_g3_priv_tuner);
 #endif
 
 /* local routines */
-BERR_Code BAST_g3_P_TunerInit1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerVcSearch_isr(BAST_ChannelHandle h, uint32_t *Vc);
-BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerGetFddfs_isrsafe(BAST_ChannelHandle h, uint32_t *Fddfs);
-BERR_Code BAST_g3_P_TunerSetLoParams_isr(BAST_ChannelHandle h, int8_t step);
-BERR_Code BAST_g3_P_TunerUpdateActualTunerFreq_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerGetLoDivider_isrsafe(BAST_ChannelHandle h, uint32_t *tunerLoDivider);
-BERR_Code BAST_g3_P_TunerSetFcw_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerBinaryCapScan_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerLinearCapScan_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerSetCapCntl_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerSetFreq1(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerGetCutoff_isr(BAST_ChannelHandle h, uint8_t *lpfCal);
-BERR_Code BAST_g3_P_TunerWaitForDcoConverge_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerSetFreq2(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerCalFilter_isr(BAST_ChannelHandle h, uint8_t cutoff);
-BERR_Code BAST_g3_P_TunerSetFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t bwCode);
-BERR_Code BAST_g3_P_TunerCalFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t cutoff, uint8_t *calBw);
-BERR_Code BAST_g3_P_TunerSetTestTone_isr(BAST_ChannelHandle h, uint8_t mhz);
-BERR_Code BAST_g3_P_TunerGetAvgPower_isr(BAST_ChannelHandle h, uint32_t *avg);
-BERR_Code BAST_g3_P_TunerQuickTune1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerSetFreq1_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TunerSetFreq2_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerInit1_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerVcSearch_isr(BAST_ChannelHandle h, uint32_t *Vc);
+static BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerGetFddfs_isrsafe(BAST_ChannelHandle h, uint32_t *Fddfs);
+static BERR_Code BAST_g3_P_TunerSetLoParams_isr(BAST_ChannelHandle h, int8_t step);
+static BERR_Code BAST_g3_P_TunerGetLoDivider_isrsafe(BAST_ChannelHandle h, uint32_t *tunerLoDivider);
+static BERR_Code BAST_g3_P_TunerSetFcw_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerBinaryCapScan_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerLinearCapScan_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerSetCapCntl_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerGetCutoff_isr(BAST_ChannelHandle h, uint8_t *lpfCal);
+static BERR_Code BAST_g3_P_TunerWaitForDcoConverge_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TunerCalFilter_isr(BAST_ChannelHandle h, uint8_t cutoff);
+static BERR_Code BAST_g3_P_TunerSetFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t bwCode);
+static BERR_Code BAST_g3_P_TunerCalFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t cutoff, uint8_t *calBw);
+static BERR_Code BAST_g3_P_TunerSetTestTone_isr(BAST_ChannelHandle h, uint8_t mhz);
+static BERR_Code BAST_g3_P_TunerGetAvgPower_isr(BAST_ChannelHandle h, uint32_t *avg);
+static BERR_Code BAST_g3_P_TunerQuickTune1_isr(BAST_ChannelHandle h);
+
 
 #ifdef BAST_TUNER_TOGGLE_DCO_WORKAROUND
 BERR_Code BAST_g3_P_TunerToggleDcoClock_isr(BAST_ChannelHandle h);
@@ -126,10 +118,6 @@ static const uint8_t tuner_lpf_bw[36] =
    26, 28, 29, 30, 32, 33, 35, 36, 37,
    38, 40, 42, 43, 44, 46, 47, 48, 49
 };
-
-
-uint16_t tuner_kvco_cal_capcntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE] = {0, 0, 0, 0, 0, 0, 0, 0};
-uint8_t tuner_kvco_cal_kvcocntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 
 /* shared private functions */
@@ -579,7 +567,7 @@ BERR_Code BAST_g3_P_TunerIndirectRead_isrsafe(BAST_ChannelHandle h, BAST_TunerIn
 /******************************************************************************
  BAST_g3_P_TunerInit1_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerInit1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerInit1_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    bool bRefPllLocked, bMixPllLocked;
@@ -700,7 +688,7 @@ BERR_Code BAST_g3_P_TunerInit1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TunerVcSearch_isr() - binary search for VcRef scaled by 4
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerVcSearch_isr(BAST_ChannelHandle h, uint32_t *Vc)
+static BERR_Code BAST_g3_P_TunerVcSearch_isr(BAST_ChannelHandle h, uint32_t *Vc)
 {
    uint32_t i, val;
    uint8_t mask, vcRef, popcount;
@@ -752,7 +740,7 @@ BERR_Code BAST_g3_P_TunerVcSearch_isr(BAST_ChannelHandle h, uint32_t *Vc)
 /******************************************************************************
  BAST_g3_P_TunerCalibrateKvco_isr() - Kvco calibration to generate LUT - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -762,7 +750,7 @@ BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h)
       BDBG_MSG(("cap_cntl|kvco_cntl"));
       for (hChn->count2 = 0; hChn->count2 < 8; hChn->count2++)
       {
-         BDBG_MSG(("%d|%03X", tuner_kvco_cal_capcntl_table[hChn->count2], tuner_kvco_cal_kvcocntl_table[hChn->count2]));
+         BDBG_MSG(("%d|%03X", hChn->tuner_kvco_cal_capcntl_table[hChn->count2], hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2]));
       }
    #endif
 
@@ -802,7 +790,7 @@ BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h)
 ******************************************************************************/
 #define BAST_KVCO_LO_THRESH 130
 #define BAST_KVCO_HI_THRESH 180
-BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t Kvco, vc1, vc2, val;
@@ -846,8 +834,8 @@ BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
    if (((Kvco > BAST_KVCO_LO_THRESH) && (Kvco < BAST_KVCO_HI_THRESH)) || (hChn->tunerKvcoCntl >= 0x7))
    {
       /* save cap_cntl and calibrated kvco_cntl */
-      tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
-      tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
+      hChn->tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
+      hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
       hChn->count2++;
 
       return BAST_g3_P_TunerCalibrateKvco_isr(h);
@@ -861,13 +849,13 @@ BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
       if (hChn->count2 > 0)
       {
          /* check if kvco_cntl greater than previous entry */
-         if (hChn->tunerKvcoCntl > tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1])
-            hChn->tunerKvcoCntl = tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1];
+         if (hChn->tunerKvcoCntl > hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1])
+            hChn->tunerKvcoCntl = hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1];
       }
 
       /* save cap_cntl and calibrated kvco_cntl */
-      tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
-      tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
+      hChn->tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
+      hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
       hChn->count2++;
 
       return BAST_g3_P_TunerCalibrateKvco_isr(h);
@@ -917,7 +905,7 @@ BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TunerGetFddfs_isrsafe()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerGetFddfs_isrsafe(BAST_ChannelHandle h, uint32_t *Fddfs)
+static BERR_Code BAST_g3_P_TunerGetFddfs_isrsafe(BAST_ChannelHandle h, uint32_t *Fddfs)
 {
    BAST_ChannelHandle hChn0 = (BAST_ChannelHandle)(h->pDevice->pChannels[0]);
    uint32_t val;
@@ -934,7 +922,7 @@ BERR_Code BAST_g3_P_TunerGetFddfs_isrsafe(BAST_ChannelHandle h, uint32_t *Fddfs)
  BAST_g3_P_TunerSetLoParams_isr() - this function programs div23_sel, IQGEN_seldivn,
                          mixsel, IsetSR, QsetSR, and fb_divn
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetLoParams_isr(BAST_ChannelHandle h, int8_t step)
+static BERR_Code BAST_g3_P_TunerSetLoParams_isr(BAST_ChannelHandle h, int8_t step)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -1033,7 +1021,7 @@ BERR_Code BAST_g3_P_TunerUpdateActualTunerFreq_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TunerGetLoDivider_isrsafe() - calculates N/M ratio, tunerLoDivider scaled 2^6
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerGetLoDivider_isrsafe(BAST_ChannelHandle h, uint32_t *tunerLoDivider)
+static BERR_Code BAST_g3_P_TunerGetLoDivider_isrsafe(BAST_ChannelHandle h, uint32_t *tunerLoDivider)
 {
    uint32_t val;
 
@@ -1068,7 +1056,7 @@ BERR_Code BAST_g3_P_TunerGetLoDivider_isrsafe(BAST_ChannelHandle h, uint32_t *tu
 /******************************************************************************
  BAST_g3_P_TunerSetFcw_isr() - computes and programs frequency control word
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetFcw_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerSetFcw_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
@@ -1086,6 +1074,89 @@ BERR_Code BAST_g3_P_TunerSetFcw_isr(BAST_ChannelHandle h)
    /* program fcw[36:5] */
    BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_TUNER_LODDFS_R02, &Q_lo);
    return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BAST_g3_P_TunerSetFreq1_isr()
+******************************************************************************/
+static BERR_Code BAST_g3_P_TunerSetFreq1_isr(BAST_ChannelHandle h)
+{
+   BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
+   bool bRefPllLocked = false, bMixPllLocked = false;
+   BERR_Code retCode;
+   uint32_t val;
+
+   BAST_CHK_RETCODE(BAST_g3_P_TunerGetLockStatus_isrsafe(h, &bRefPllLocked, &bMixPllLocked));
+   if (!bRefPllLocked)
+   {
+      BDBG_ERR(("refpll NOT locked"));
+   }
+   if (!bMixPllLocked)
+   {
+      BDBG_WRN(("mixpll NOT locked"));
+
+      /* disable hw state machine */
+      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_LO_R05, ~0xC0000400);
+
+      /* retry cap search */
+      hChn->funct_state = 0;
+      hChn->bCalibrateKvco = false;
+      hChn->bOverrideKvco = false;
+      return BAST_g3_P_TunerBinaryCapScan_isr(h);
+   }
+
+#if 0
+   /* TBD turn on testport for debug */
+   BAST_g3_P_OrRegister_isrsafe(h, BCHP_SDS_TUNER_IFPGA_R01, 0x20);
+   BAST_DEBUG_TUNER(BDBG_MSG(("mixPLL LOCKED!")));
+#endif
+
+   if (hChn->acqState == BAST_AcqState_eTuning)
+   {
+      BAST_CHK_RETCODE(BAST_g3_P_LogTraceBuffer_isr(h, BAST_TraceEvent_eTuneMixPllLock));
+
+      /* SDS DCO init */
+      val = 0x00030B00;    /* unfreeze SDS DCO */
+      BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_DCOCTL, &val);
+      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_FE_DCOCTL, ~0x00000300);  /* release DCO resets */
+      val = 0x00000000;    /* clear SDS DCO integrator */
+      BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_DCOI, &val);
+
+   #if ((BCHP_CHIP != 7344) && (BCHP_CHIP != 7346)) || (BCHP_VER > BCHP_VER_A0)
+      /* clear pre/post DCO integrators */
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoI, 0x4, 0x0);
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoQ, 0x4, 0x0);
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoI, 0x4, 0x0);
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoQ, 0x4, 0x0);
+   #endif
+
+      /* reset and enable BB AGC */
+      val = ((hChn->tunerAgcAmpThresh & 0x1F00) << 5) | 0x00000050;     /* set amplitude threshold, reset */
+      BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_TUNER_BBAGC_R01, &val);
+      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_BBAGC_R01, ~0x00000010);  /* release reset */
+
+      /* initialize BB AGC settings */
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x0, 0x00004019);   /* invert k, bypass sign function and gray stepper, bb_rf_out_sel=01 for BB AGC */
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x1, hChn->tunerAgcThreshold & 0xFFFF0000);    /* PD threshold for BB AGC */
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x2, hChn->tunerAgcWinLength >> 16);           /* PD window size for BB AGC */
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x4, hChn->tunerAgcLoopCoeff >> 8);            /* loop coeff value */
+      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x5, 0x80000000);   /* loop integrator init to midpoint */
+
+      /* calculate tracking bw */
+      BAST_g3_P_TunerGetCutoff_isr(h, &(hChn->tunerLpfToCalibrate));
+
+      /* wait for DCO convergence */
+      hChn->count1 = 0;
+      hChn->funct_state = 0;
+      return BAST_g3_P_TunerWaitForDcoConverge_isr(h);
+   }
+
+   if (hChn->postTuneFunct != NULL)
+      return hChn->postTuneFunct(h);
+
+   done:
+   return retCode;
 }
 
 
@@ -1150,7 +1221,7 @@ BERR_Code BAST_g3_P_TunerAutoTune_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TunerBinaryCapScan_isr() - binary capacitor scan - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerBinaryCapScan_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerBinaryCapScan_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1260,7 +1331,7 @@ BERR_Code BAST_g3_P_TunerBinaryCapScan_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TunerLinearCapScan_isr() - linear capacitor scan - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerLinearCapScan_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerLinearCapScan_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1406,7 +1477,7 @@ BERR_Code BAST_g3_P_TunerLinearCapScan_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TunerSetCapCntl_isr() - this function programs cap_cntl,  i_cntl
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetCapCntl_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerSetCapCntl_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint16_t cap_cntl = hChn->tunerCapCntl;
@@ -1424,7 +1495,7 @@ BERR_Code BAST_g3_P_TunerSetCapCntl_isr(BAST_ChannelHandle h)
  BAST_g3_P_TunerSetCapCntlLoopParams_isr() - this function programs wben_lf, nbr_lf,
                                     QPbiasCNT2, Kvco_cntl
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -1472,13 +1543,13 @@ BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h)
       for (idx = 1; idx < BAST_TUNER_KVCO_CAL_TABLE_SIZE - 1; idx++)
       {
          /* interval boundaries at CAP[1..6] + 1 */
-         if (hChn->tunerCapCntl > tuner_kvco_cal_capcntl_table[idx])
+         if (hChn->tunerCapCntl > hChn->tuner_kvco_cal_capcntl_table[idx])
             break;
       }
 
       sval = 0x4240;    /* nbr_lf = b'01, wben_lf=0, QPbiasCNT2=b'01001 */
-      hChn->tunerKvcoCntl = tuner_kvco_cal_kvcocntl_table[idx-1];
-      /* BDBG_MSG(("cap=%d: kvco_cntl=%d\n", hChn->tunerCapCntl, tuner_kvco_cal_kvcocntl_table[idx])); */
+      hChn->tunerKvcoCntl = hChn->tuner_kvco_cal_kvcocntl_table[idx-1];
+      /* BDBG_MSG(("cap=%d: kvco_cntl=%d\n", hChn->tunerCapCntl, hChn->tuner_kvco_cal_kvcocntl_table[idx])); */
    }
 
    BAST_g3_P_ReadRegister_isrsafe(h, BCHP_SDS_TUNER_LO_R01, &val);
@@ -1498,92 +1569,9 @@ BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h)
 
 
 /******************************************************************************
- BAST_g3_P_TunerSetFreq1_isr()
-******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetFreq1_isr(BAST_ChannelHandle h)
-{
-   BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
-   bool bRefPllLocked = false, bMixPllLocked = false;
-   BERR_Code retCode;
-   uint32_t val;
-
-   BAST_CHK_RETCODE(BAST_g3_P_TunerGetLockStatus_isrsafe(h, &bRefPllLocked, &bMixPllLocked));
-   if (!bRefPllLocked)
-   {
-      BDBG_ERR(("refpll NOT locked"));
-   }
-   if (!bMixPllLocked)
-   {
-      BDBG_WRN(("mixpll NOT locked"));
-
-      /* disable hw state machine */
-      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_LO_R05, ~0xC0000400);
-
-      /* retry cap search */
-      hChn->funct_state = 0;
-      hChn->bCalibrateKvco = false;
-      hChn->bOverrideKvco = false;
-      return BAST_g3_P_TunerBinaryCapScan_isr(h);
-   }
-
-#if 0
-   /* TBD turn on testport for debug */
-   BAST_g3_P_OrRegister_isrsafe(h, BCHP_SDS_TUNER_IFPGA_R01, 0x20);
-   BAST_DEBUG_TUNER(BDBG_MSG(("mixPLL LOCKED!")));
-#endif
-
-   if (hChn->acqState == BAST_AcqState_eTuning)
-   {
-      BAST_CHK_RETCODE(BAST_g3_P_LogTraceBuffer_isr(h, BAST_TraceEvent_eTuneMixPllLock));
-
-      /* SDS DCO init */
-      val = 0x00030B00;    /* unfreeze SDS DCO */
-      BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_DCOCTL, &val);
-      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_FE_DCOCTL, ~0x00000300);  /* release DCO resets */
-      val = 0x00000000;    /* clear SDS DCO integrator */
-      BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_DCOI, &val);
-
-   #if ((BCHP_CHIP != 7344) && (BCHP_CHIP != 7346)) || (BCHP_VER > BCHP_VER_A0)
-      /* clear pre/post DCO integrators */
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoI, 0x4, 0x0);
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoQ, 0x4, 0x0);
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoI, 0x4, 0x0);
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoQ, 0x4, 0x0);
-   #endif
-
-      /* reset and enable BB AGC */
-      val = ((hChn->tunerAgcAmpThresh & 0x1F00) << 5) | 0x00000050;     /* set amplitude threshold, reset */
-      BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_TUNER_BBAGC_R01, &val);
-      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_BBAGC_R01, ~0x00000010);  /* release reset */
-
-      /* initialize BB AGC settings */
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x0, 0x00004019);   /* invert k, bypass sign function and gray stepper, bb_rf_out_sel=01 for BB AGC */
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x1, hChn->tunerAgcThreshold & 0xFFFF0000);    /* PD threshold for BB AGC */
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x2, hChn->tunerAgcWinLength >> 16);           /* PD window size for BB AGC */
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x4, hChn->tunerAgcLoopCoeff >> 8);            /* loop coeff value */
-      BAST_g3_P_TunerIndirectWrite_isrsafe(h, BAST_TunerIndirectRegGroup_eBbagc, 0x5, 0x80000000);   /* loop integrator init to midpoint */
-
-      /* calculate tracking bw */
-      BAST_g3_P_TunerGetCutoff_isr(h, &(hChn->tunerLpfToCalibrate));
-
-      /* wait for DCO convergence */
-      hChn->count1 = 0;
-      hChn->funct_state = 0;
-      return BAST_g3_P_TunerWaitForDcoConverge_isr(h);
-   }
-
-   if (hChn->postTuneFunct != NULL)
-      return hChn->postTuneFunct(h);
-
-   done:
-   return retCode;
-}
-
-
-/******************************************************************************
  BAST_g3_P_TunerGetCutoff_isr() - compute required tracking bandwidth in MHz
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerGetCutoff_isr(BAST_ChannelHandle h, uint8_t *lpfCal)
+static BERR_Code BAST_g3_P_TunerGetCutoff_isr(BAST_ChannelHandle h, uint8_t *lpfCal)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t Fb, val, P_hi, P_lo, Q_hi, Q_lo;
@@ -1619,90 +1607,9 @@ BERR_Code BAST_g3_P_TunerGetCutoff_isr(BAST_ChannelHandle h, uint8_t *lpfCal)
 
 
 /******************************************************************************
- BAST_g3_P_TunerWaitForDcoConverge_isr() - check and wait for dco lock detect
-******************************************************************************/
-BERR_Code BAST_g3_P_TunerWaitForDcoConverge_isr(BAST_ChannelHandle h)
-{
-   BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
-   BERR_Code retCode;
-   uint32_t val;
-
-#ifdef BAST_TUNER_TOGGLE_DCO_WORKAROUND
-   /* TBD skip DCO converge since DCO indirect access failure */
-   hChn->funct_state = 2;
-#endif
-
-   while (1)
-   {
-      switch (hChn->funct_state)
-      {
-         case 0:
-            /* check lock bit for all DCOs */
-            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoI, 0x6, &val));
-            if ((val & 0x1) == 0)
-            {
-               hChn->funct_state = 1;
-               break;
-            }
-            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoQ, 0x6, &val));
-            if ((val & 0x1) == 0)
-            {
-               hChn->funct_state = 1;
-               break;
-            }
-            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoI, 0x6, &val));
-            if ((val & 0x1) == 0)
-            {
-               hChn->funct_state = 1;
-               break;
-            }
-            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoQ, 0x6, &val));
-            if ((val & 0x1) == 0)
-            {
-               hChn->funct_state = 1;
-               break;
-            }
-
-            /* proceed if all DCOs locked */
-            hChn->funct_state = 2;
-            break;
-
-         case 1:
-         #ifdef EMU
-            /* fast track dco wait for emulation */
-            hChn->count1 += 50;
-         #endif
-            if (hChn->count1++ < 100)
-            {
-               /* wait for convergence */
-               hChn->funct_state = 0;
-               return BAST_g3_P_EnableTimer_isr(h, BAST_TimerSelect_eBaudUsec, 100, BAST_g3_P_TunerWaitForDcoConverge_isr);
-            }
-
-            /* proceed after retries exceeded */
-            hChn->funct_state = 2;
-            break;
-
-         case 2:
-            /* proceed to filter calibration */
-            return BAST_g3_P_TunerSetFreq2_isr(h);
-
-         default:
-            BDBG_ERR(("invalid state"));
-            BERR_TRACE(retCode = BAST_ERR_AP_IRQ);
-            break;
-      }
-   }
-
-   done:
-   return retCode;
-}
-
-
-/******************************************************************************
  BAST_g3_P_TunerSetFreq2_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetFreq2_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerSetFreq2_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1782,9 +1689,90 @@ BERR_Code BAST_g3_P_TunerSetFreq2_isr(BAST_ChannelHandle h)
 
 
 /******************************************************************************
+ BAST_g3_P_TunerWaitForDcoConverge_isr() - check and wait for dco lock detect
+******************************************************************************/
+static BERR_Code BAST_g3_P_TunerWaitForDcoConverge_isr(BAST_ChannelHandle h)
+{
+   BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode;
+   uint32_t val;
+
+#ifdef BAST_TUNER_TOGGLE_DCO_WORKAROUND
+   /* TBD skip DCO converge since DCO indirect access failure */
+   hChn->funct_state = 2;
+#endif
+
+   while (1)
+   {
+      switch (hChn->funct_state)
+      {
+         case 0:
+            /* check lock bit for all DCOs */
+            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoI, 0x6, &val));
+            if ((val & 0x1) == 0)
+            {
+               hChn->funct_state = 1;
+               break;
+            }
+            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePreDcoQ, 0x6, &val));
+            if ((val & 0x1) == 0)
+            {
+               hChn->funct_state = 1;
+               break;
+            }
+            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoI, 0x6, &val));
+            if ((val & 0x1) == 0)
+            {
+               hChn->funct_state = 1;
+               break;
+            }
+            BAST_CHK_RETCODE(BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_ePostDcoQ, 0x6, &val));
+            if ((val & 0x1) == 0)
+            {
+               hChn->funct_state = 1;
+               break;
+            }
+
+            /* proceed if all DCOs locked */
+            hChn->funct_state = 2;
+            break;
+
+         case 1:
+         #ifdef EMU
+            /* fast track dco wait for emulation */
+            hChn->count1 += 50;
+         #endif
+            if (hChn->count1++ < 100)
+            {
+               /* wait for convergence */
+               hChn->funct_state = 0;
+               return BAST_g3_P_EnableTimer_isr(h, BAST_TimerSelect_eBaudUsec, 100, BAST_g3_P_TunerWaitForDcoConverge_isr);
+            }
+
+            /* proceed after retries exceeded */
+            hChn->funct_state = 2;
+            break;
+
+         case 2:
+            /* proceed to filter calibration */
+            return BAST_g3_P_TunerSetFreq2_isr(h);
+
+         default:
+            BDBG_ERR(("invalid state"));
+            BERR_TRACE(retCode = BAST_ERR_AP_IRQ);
+            break;
+      }
+   }
+
+   done:
+   return retCode;
+}
+
+
+/******************************************************************************
  BAST_g3_P_TunerCalFilter_isr() - calibrate and set LPF and FGA bandwidths
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerCalFilter_isr(BAST_ChannelHandle h, uint8_t cutoff)
+static BERR_Code BAST_g3_P_TunerCalFilter_isr(BAST_ChannelHandle h, uint8_t cutoff)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1871,7 +1859,7 @@ BERR_Code BAST_g3_P_TunerCalFilter_isr(BAST_ChannelHandle h, uint8_t cutoff)
 /******************************************************************************
  BAST_g3_P_TunerSetFgaLpf_isr() - set FGA or LPF bandwidths
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t bwCode)
+static BERR_Code BAST_g3_P_TunerSetFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t bwCode)
 {
    if (calType == BAST_TunerCalType_eFga)
    {
@@ -1891,7 +1879,7 @@ BERR_Code BAST_g3_P_TunerSetFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType c
 /******************************************************************************
  BAST_g3_P_TunerCalFgaLpf_isr() - calibrate FGA or LPF bandwidths
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerCalFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t cutoff, uint8_t *calBw)
+static BERR_Code BAST_g3_P_TunerCalFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType calType, uint8_t cutoff, uint8_t *calBw)
 {
    BERR_Code retCode = BERR_SUCCESS;
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
@@ -2076,7 +2064,7 @@ BERR_Code BAST_g3_P_TunerCalFgaLpf_isr(BAST_ChannelHandle h, BAST_TunerCalType c
 /******************************************************************************
  BAST_g3_P_TunerSetTestTone_isr() - generate test tone used for LPF calibration
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerSetTestTone_isr(BAST_ChannelHandle h, uint8_t mhz)
+static BERR_Code BAST_g3_P_TunerSetTestTone_isr(BAST_ChannelHandle h, uint8_t mhz)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
@@ -2093,7 +2081,7 @@ BERR_Code BAST_g3_P_TunerSetTestTone_isr(BAST_ChannelHandle h, uint8_t mhz)
 /******************************************************************************
  BAST_g3_P_TunerGetAvgPower_isr() - this function averages 128 samples of AGCLI
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerGetAvgPower_isr(BAST_ChannelHandle h, uint32_t *avg)
+static BERR_Code BAST_g3_P_TunerGetAvgPower_isr(BAST_ChannelHandle h, uint32_t *avg)
 {
    uint32_t val, acc = 0;
    uint8_t i;
@@ -2112,7 +2100,7 @@ BERR_Code BAST_g3_P_TunerGetAvgPower_isr(BAST_ChannelHandle h, uint32_t *avg)
 /******************************************************************************
  BAST_g3_P_TunerQuickTune1_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerQuickTune1_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerQuickTune1_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    bool bRefPllLocked, bMixPllLocked;

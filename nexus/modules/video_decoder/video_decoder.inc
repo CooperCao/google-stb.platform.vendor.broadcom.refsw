@@ -1,5 +1,5 @@
 ##############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -113,10 +113,6 @@ NEXUS_VIDEO_DECODER_PRIVATE_INCLUDES += \
     $(NEXUS_TOP)/modules/video_decoder/src $(NEXUS_SYNCTHUNK_DIR)
 
 NEXUS_VIDEO_DECODER_SOURCES += $(NEXUS_SYNCTHUNK_DIR)/nexus_video_decoder_thunks.c
-
-ifeq ($(NEXUS_CRC_CAPTURE),y)
-NEXUS_VIDEO_DECODER_DEFINES += NEXUS_CRC_CAPTURE=1
-endif
 
 ifeq ($(NEXUS_VIDEO_DECODER_GARBAGE_FIFO_WATCHDOG_SUPPORT),y)
 NEXUS_VIDEO_DECODER_DEFINES += NEXUS_VIDEO_DECODER_GARBAGE_FIFO_WATCHDOG_SUPPORT=1

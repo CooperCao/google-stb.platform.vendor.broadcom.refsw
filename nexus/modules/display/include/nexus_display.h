@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -372,9 +372,13 @@ typedef struct NEXUS_GraphicsSettings
         int rightViewOffset; /* offset of the right view */
     } graphics3DSettings;
 
-    /* with hdr display, sdr gfx pixel values are always adjusted lower to avoid being too bright / too saturated */
+    /*
+     * With hdr display, sdr gfx pixel values are always adjusted lower to avoid being too bright / too saturated.
+     * The following settings allow linear adjustment of gfx pixel values to approximate an sdr to hdr conversion.
+     * These settings have no effect on PLM-capable platforms.
+     */
     struct {
-        int16_t y, cb, cr; /* 32767 to -32768. default is 0. The smaller this number, the dimmer / less saturated */
+        int16_t y, cb, cr; /* valid range: 32767 to -32768. default is 0. The smaller this number, the dimmer / less saturated */
     } sdrToHdr;
     bool secure;
 } NEXUS_GraphicsSettings;
@@ -667,6 +671,9 @@ typedef struct NEXUS_DisplayCapabilities
             unsigned width, height; /* if 0, graphics is not usable */
             NEXUS_GraphicsCompression compression;
         } graphics; /* max capability */
+        struct {
+            unsigned maxWidthPercentage, maxHeightPercentage;
+        } window[NEXUS_MAX_VIDEO_WINDOWS];
     } display[NEXUS_MAX_DISPLAYS];
     bool displayFormatSupported[NEXUS_VideoFormat_eMax]; /* is NEXUS_DisplaySettings.format supported by any display in the system? */
     unsigned numLetterBoxDetect; /* see NEXUS_VideoWindowSettings.letterBoxDetect */

@@ -53,6 +53,7 @@
 #include "bkni.h"
 
 #include "bchp_clkgen.h"
+#include "bchp_hdmi_tx_phy.h"
 
 BDBG_MODULE(BCHP_PWR_IMPL);
 
@@ -329,6 +330,26 @@ static void BCHP_PWR_P_HW_XPT_WAKEUP_Control(BCHP_Handle handle, bool activate)
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PM_PLL_ALIVE_SEL, mask, activate?mask:0);
 }
 
+static void BCHP_PWR_P_HW_HDMI_TX_PHY_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_HDMI_TX_PHY: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_HDMI_TX_PHY_POWERDOWN_CTL);
+    mask = ( BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, RNDGEN_PWRDN) |
+             BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, PLL_PWRDN)  |
+             BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, BIAS_PWRDN) |
+             BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, PHY_PWRDN));
+    if (activate) {
+        reg &= ~mask;
+    }
+    else {
+        reg |= mask;
+    }
+    BREG_Write32(handle->regHandle, BCHP_HDMI_TX_PHY_POWERDOWN_CTL, reg) ;
+}
+
 static void BCHP_PWR_P_HW_HDMI_TX_CLK_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask;
@@ -338,7 +359,10 @@ static void BCHP_PWR_P_HW_HDMI_TX_CLK_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_DVP_HT_ENABLE_DVPHT_CLK_MAX_ENABLE_MASK;
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_ENABLE, mask, activate?mask:0);
 
-    mask = BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_108_CLOCK_ENABLE_MASK;
+    mask =  (BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_108_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_216_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_216_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK );
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE, mask, activate?mask:0);
 }
 
@@ -358,32 +382,6 @@ static void BCHP_PWR_P_HW_HDMI_TX_SRAM_Control(BCHP_Handle handle, bool activate
     } else {
 	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY, mask, mask);
     }
-}
-
-static void BCHP_PWR_P_HW_HDMI_TX_108M_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask;
-
-    BDBG_MSG(("HW_HDMI_TX_108M: %s", activate?"on":"off"));
-
-    mask = (BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_216_CLOCK_ENABLE_MASK |
-	    BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_216_CLOCK_ENABLE_MASK |
-	    BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK );
-    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE, mask, activate?mask:0);
-}
-
-static void BCHP_PWR_P_HW_HDMI_TX_CEC_Control(BCHP_Handle handle, bool activate)
-{
-    BDBG_MSG(("HW_HDMI_TX_CEC: %s", activate?"on":"off"));
-
-    BSTD_UNUSED(handle);
-
-#if 0 /* Edit the register read/modify/write below */
-    BREG_AtomicUpdate32(handle->regHandle, BCHP_REGISTERNAME,
-        BCHP_REGISTERNAME_HDMI_TX_CEC_MASK,
-        activate ? 0 : 0xFFFFFFFFFF);
-#endif
-    BSTD_UNUSED(activate);
 }
 
 static void BCHP_PWR_P_HW_M2MC_Control(BCHP_Handle handle, bool activate)

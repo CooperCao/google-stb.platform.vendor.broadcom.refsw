@@ -45,6 +45,8 @@
 #include "nexus_types.h"
 #include "nexus_security_datatypes.h"
 #include "nexus_region_verification.h"
+#include "bhsm.h"
+#include "bsp_s_mem_auth.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -58,6 +60,16 @@ extern "C"
 #define NEXUS_SECURITY_REGION_NOT_OTP_ENABLED      NEXUS_MAKE_ERR_CODE(0x109, (NEXUS_SECURITY_ERROR_OFFSET_REGION_VERIFICATION | 1))
 #define NEXUS_SECURITY_VERIFICATION_ENABLE_FAILED  NEXUS_MAKE_ERR_CODE(0x109, (NEXUS_SECURITY_ERROR_OFFSET_REGION_VERIFICATION | 2))
 #define NEXUS_SECURITY_FAILED_TO_LOAD_REGVER_KEY   NEXUS_MAKE_ERR_CODE(0x109, (NEXUS_SECURITY_ERROR_OFFSET_REGION_VERIFICATION | 3))
+
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_SVP_REL_VER    (1)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_CPU_TYPE       (2)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID      (4)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK (8)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_EPOCH_SELECT   (13)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_EPOCH_MASK     (14)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_EPOCH          (15)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_SIG_VERSION    (16)
+#define NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_SIG_TYPE       (17)
 
 
 /*
@@ -213,7 +225,33 @@ typedef struct NEXUS_SecurityRegionModuleSettings{
     bool enforceAuthentication[NEXUS_SecurityFirmwareType_eMax];
 }NEXUS_SecurityRegionModuleSettings;
 
+/*
+    Verification data and state for one region.
+*/
+typedef struct {
+    bool verificationSupported;               /* Region verifcation is supported for this component. */
+    NEXUS_SecurityRegverRegionID regionId;    /* The Id of this region. */
+    bool verificationRequired;                /* OTP requires region to be verifed. */
+    bool verified;                            /* Region has been verifed. */
 
+    uint8_t* pSignature;                      /* points to signature of region. Includes header at end. */
+    NEXUS_SecuritySignedAtrributes signedAttributes; /* paramters that the signature is signed against */
+
+    unsigned rsaKeyIndex;                     /* The RSA key index */
+    bool useManagedRsaKey;                    /* if true, use the RSA key managed by NEXUS. */
+    bool enableInstructionChecker;            /* Required for SAGE/BHSM_SUPPORT_HDDTA */
+    bool enableBackgroundChecker;             /* Required for SAGE */
+    unsigned scmVersion;                      /* Required for BHSM_SUPPORT_HDDTA */
+
+    uint8_t epochSelect;                      /* todo ... will be read from signature file */
+
+    NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Requried for SCPU FSBL region */
+    NEXUS_SecurityKeySource           keyLadderLayer;  /* Requried for SCPU FSBL region*/
+
+    char description[30];                     /* textual description of region. */
+    bool enforceAuthentication;               /* force verification */
+
+}regionData_t;
 
 void  NEXUS_Security_GetDefaultRegionVerificationModuleSettings( NEXUS_SecurityRegionModuleSettings *pSettings );
 
@@ -269,6 +307,15 @@ NEXUS_Error NEXUS_Security_RegionQueryInformation_priv( NEXUS_SecurityRegionInfo
 **/
 bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverRegionID regionId );
 
+
+regionData_t* NEXUS_Security_GetRegionData_priv( NEXUS_SecurityRegverRegionID regionId );
+NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region );
+
+#if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
+void NEXUS_Security_DumpFirmwareBinary_priv( NEXUS_SecurityRegverRegionID regionId,
+                                             NEXUS_Addr regionAddress,
+                                             unsigned regionSize );
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

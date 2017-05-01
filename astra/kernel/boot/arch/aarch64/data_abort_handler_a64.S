@@ -38,44 +38,25 @@
 #include "config.h"
 #include "arm.h"
 
-
 .global tz_secure_data_abort_handler
 
 .section ".text"
 
- tz_secure_data_abort_handler:
-	/* push corruptable registers x0-x18, x30 on to stack */
+tz_secure_data_abort_handler:
+
 	stp x0, x1, [sp, #-16]!
 	stp x2, x3, [sp, #-16]!
-	stp x4, x5, [sp, #-16]!
-	stp x6, x7, [sp, #-16]!
-	stp x8, x9, [sp, #-16]!
-	stp x10, x11, [sp, #-16]!
-	stp x12, x13, [sp, #-16]!
-	stp x14, x15, [sp, #-16]!
-	stp x16, x17, [sp, #-16]!
-	stp x18, x19, [sp, #-16]!
-	stp x30, xzr, [sp, #-16]!
-	mov x0, #0x01
-	mrs		x1, SPSR_EL1
-	and     x1, x1, #0x1f
+	stp x4, x30, [sp, #-16]!
+	bl get_regbase
 
-	bl	 	excYieldCurrentTask
-	/* x0 now points to the array where we should save register context */
+	/* save Neon registers */
+	bl save_neonregs
 
-	/* pop registers from stack */
-	ldp x30, xzr, [sp], #16
-	ldp x18, x19, [sp], #16
-	ldp x16, x17, [sp], #16
-	ldp x14, x15, [sp],#16
-	ldp x12, x13, [sp], #16
-	ldp x10, x11, [sp],#16
-	ldp x8, x9, [sp], #16
-	ldp x6, x7, [sp],#16
-	ldp x4, x5, [sp], #16
-	ldp x2, x3, [sp],#16
+	mov x0, x2
+	ldp x4, x30, [sp], #16
+	ldp x2, x3,  [sp], #16
 
-	/* save all registers */
+	/* save CPU registers */
 	stp x30, xzr, [x0, #16]
 	stp x28, x29, [x0, #32]
 	mrs x28, elr_el1
@@ -101,23 +82,10 @@
 	ldp x0, x1, [sp], #16
 	stp x0, x1, [x2]
 
-	/* Figure out our CPU number in the multicore complex: Read MPIDR */
-	mrs     x0, mpidr_el1
-	and     x0, x0, #0x3
-
-	/* setup the interrupt stack */
-    ldr		x6, =dabt_exc_stack_start
-	mov		x7, #INIT_STACK_SIZE
-	mul		x7, x7, x0
-	sub		x6, x6, x7
-	add		x6, x6, #INIT_STACK_SIZE
-	mov		sp, x6
+	mov     x0, #01
+	mrs     x1, spsr_el1
+	bl      yieldCurrentTask
 
 	bl	serviceDataAbort
 
 	b schedule
-
-.section ".data"
-	.align 5
-	.space   INIT_STACK_SIZE*MAX_NUM_CPUS
-dabt_exc_stack_start:

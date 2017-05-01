@@ -88,7 +88,7 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
     {BAVC_AudioCompressionStd_eDtsExpress,  BDSP_Algorithm_eDtsLbrDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "DTS-Express",  BAPE_MultichannelFormat_e5_1, true,  false, true,          true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eWmaStd,      BDSP_Algorithm_eWmaStdDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "WMA Std",      BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eWmaStdTs,    BDSP_Algorithm_eWmaStdDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "WMA Std TS",   BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  false,   false,   false},
-    {BAVC_AudioCompressionStd_eWmaPro,      BDSP_Algorithm_eWmaProDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "WMA Pro",      BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eWmaPro,      BDSP_Algorithm_eWmaProDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "WMA Pro",      BAPE_MultichannelFormat_e5_1, true,  true,  false,         true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eMlp,         BDSP_Algorithm_eMlpDecode,            BDSP_Algorithm_eMlpPassthrough,       BDSP_Algorithm_eMax,              "MLP",          BAPE_MultichannelFormat_e7_1, true,  true,  true,          true,   false,   false,   true},
     {BAVC_AudioCompressionStd_ePcm,         BDSP_Algorithm_ePcmDecode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "PCM",          BAPE_MultichannelFormat_e7_1, false, true,  false,         false,  false,   false,   false},
     {BAVC_AudioCompressionStd_ePcmWav,      BDSP_Algorithm_ePcmWavDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "PCM WAV",      BAPE_MultichannelFormat_e7_1, false, true,  false,         false,  true,    false,   false},
@@ -177,6 +177,11 @@ BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void)
             /* Limited - Only Ac3 encode supported */
             return BAPE_DolbyMs12Config_eC;
         }
+        else if ( !dspCaps.dolbyMs.dapv2 )
+        {
+            /* Limited - ddp encode is supported, but no dapv2 */
+            return BAPE_DolbyMs12Config_eD;
+        }
         else
         {
             /* Default - 5.1 DDP encode supported */
@@ -185,6 +190,44 @@ BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void)
     }
 
     return BAPE_DolbyMs12Config_eNone;
+}
+
+bool BAPE_P_DolbyCapabilities_Ac3Encode_isrsafe(void)
+{
+    BDSP_CodecCapabilities dspCaps;
+    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    return dspCaps.dolbyMs.ddEncode;
+}
+
+bool BAPE_P_DolbyCapabilities_DdpEncode_isrsafe(BAPE_MultichannelFormat format)
+{
+    BDSP_CodecCapabilities dspCaps;
+    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    if ( format == BAPE_MultichannelFormat_e7_1 )
+    {
+        return dspCaps.dolbyMs.ddpEncode71;
+    }
+
+    return dspCaps.dolbyMs.ddpEncode51;
+}
+
+BAPE_MultichannelFormat BAPE_P_DolbyCapabilities_MultichannelPcmFormat_isrsafe(void)
+{
+    BDSP_CodecCapabilities dspCaps;
+    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    if ( dspCaps.dolbyMs.pcm71 )
+    {
+        return BAPE_MultichannelFormat_e7_1;
+    }
+
+    return BAPE_MultichannelFormat_e5_1;
+}
+
+bool BAPE_P_DolbyCapabilities_Dapv2_isrsafe(void)
+{
+    BDSP_CodecCapabilities dspCaps;
+    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    return dspCaps.dolbyMs.dapv2;
 }
 
 BAPE_ChannelMode BAPE_DSP_P_GetChannelMode(BAVC_AudioCompressionStd codec, BAPE_ChannelMode outputMode, bool multichannelOutput, BAPE_MultichannelFormat maxFormat)

@@ -374,11 +374,23 @@ endif
 
 ifneq ($(MINIAP),1)
 	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_ac.c
-	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20691.c
-	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20693.c
-	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20694.c
-	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20695.c
 	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_ac_gains.c
+	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20694.c
+
+ifeq ($(RADIO_ID),1)
+ifeq ($(RADIO_BCM20691),1)
+	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20691.c
+endif
+
+ifeq ($(RADIO_BCM20693),1)
+	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20693.c
+endif
+
+ifeq ($(RADIO_BCM20695),1)
+	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_20695.c
+endif
+endif
+
 ifneq ($(STB_SOC_WIFI),1)
 	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phy_ht.c
 	PHY_SRC += $(PHY_TOP_DIR)/old/wlc_phytbl_ht.c

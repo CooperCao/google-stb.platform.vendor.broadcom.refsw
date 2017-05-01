@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,37 +70,37 @@
 /***************************************************************************
  *AUD_FMM_IOP_IN_HDMI_0
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_REVISION      0x20cb2020 /* [RO] HDMI receiver revision ID */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CONFIG        0x20cb2024 /* [RW] HDMI receiver configuration */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_DEBUG         0x20cb2028 /* [RW] Debug information */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_STATUS        0x20cb202c /* [RO] Input status */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT    0x20cb2030 /* [RO] MAI format word from HDMI input */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_CTRL 0x20cb2034 /* [RW] Channel status control */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_MASK0 0x20cb2038 /* [RW] Channel status mask 0 to 31 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_MASK1 0x20cb203c /* [RW] Channel status mask 32 to 63 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_MASK2 0x20cb2040 /* [RW] Channel status mask 64 to 91 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_L0  0x20cb2044 /* [RO] Left channel status 0 to 31 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_R0  0x20cb2048 /* [RO] Right channel status 0 to 31 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_L1  0x20cb204c /* [RO] Left channel status 32 to 63 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_R1  0x20cb2050 /* [RO] Right channel status 32 to 63 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_L2  0x20cb2054 /* [RO] Left channel status 64 to 91 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_R2  0x20cb2058 /* [RO] Right channel status 64 to 91 */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_PBIT_MISMATCH 0x20cb205c /* [RW] Parity mismatch count */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_VBIT_MISMATCH 0x20cb2060 /* [RW] Validity bit mismatch count */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CBIT_MISMATCH 0x20cb2064 /* [RW] Channel status mismatch count */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL 0x20cb2068 /* [RW] FIFO threshold control */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CLKS_PER_SAMP 0x20cb206c /* [RW] FIFO threshold control */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT_CNTR 0x20cb2070 /* [RO] MAI Format Change Counter */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT_CNTR_RETURN 0x20cb2074 /* [RW] MAI Format Change Return Counter */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0    0x20cb2080 /* [RW] HDMI Input MCLK configuration */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_STATUS    0x20cb2090 /* [RO] Error Status Register */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_STATUS_SET 0x20cb2094 /* [WO] Error Set Register */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_STATUS_CLEAR 0x20cb2098 /* [WO] Error Clear Register */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_MASK      0x20cb209c /* [RO] Mask Status Register */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_MASK_SET  0x20cb20a0 /* [WO] Mask Set Register */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_MASK_CLEAR 0x20cb20a4 /* [WO] Mask Clear Register */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CAPTURE_FCI_ID_TABLE 0x20cb20a8 /* [RO] HDMI_IN Capture FCI_ID table */
-#define BCHP_AUD_FMM_IOP_IN_HDMI_0_DIAG          0x20cb20ac /* [RO] Diagnostics */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_REVISION      0x20cb2020 /* [RO][32] HDMI receiver revision ID */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CONFIG        0x20cb2024 /* [RW][32] HDMI receiver configuration */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_DEBUG         0x20cb2028 /* [RW][32] Debug information */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_STATUS        0x20cb202c /* [RO][32] Input status */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT    0x20cb2030 /* [RO][32] MAI format word from HDMI input */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_CTRL 0x20cb2034 /* [RW][32] Channel status control */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_MASK0 0x20cb2038 /* [RW][32] Channel status mask 0 to 31 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_MASK1 0x20cb203c /* [RW][32] Channel status mask 32 to 63 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_MASK2 0x20cb2040 /* [RW][32] Channel status mask 64 to 91 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_L0  0x20cb2044 /* [RO][32] Left channel status 0 to 31 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_R0  0x20cb2048 /* [RO][32] Right channel status 0 to 31 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_L1  0x20cb204c /* [RO][32] Left channel status 32 to 63 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_R1  0x20cb2050 /* [RO][32] Right channel status 32 to 63 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_L2  0x20cb2054 /* [RO][32] Left channel status 64 to 91 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CHAN_STAT_R2  0x20cb2058 /* [RO][32] Right channel status 64 to 91 */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_PBIT_MISMATCH 0x20cb205c /* [RW][32] Parity mismatch count */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_VBIT_MISMATCH 0x20cb2060 /* [RW][32] Validity bit mismatch count */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CBIT_MISMATCH 0x20cb2064 /* [RW][32] Channel status mismatch count */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL 0x20cb2068 /* [RW][32] FIFO threshold control */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CLKS_PER_SAMP 0x20cb206c /* [RW][32] FIFO threshold control */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT_CNTR 0x20cb2070 /* [RO][32] MAI Format Change Counter */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT_CNTR_RETURN 0x20cb2074 /* [RW][32] MAI Format Change Return Counter */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0    0x20cb2080 /* [RW][32] HDMI Input MCLK configuration */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_STATUS    0x20cb2090 /* [RO][32] Error Status Register */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_STATUS_SET 0x20cb2094 /* [WO][32] Error Set Register */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_STATUS_CLEAR 0x20cb2098 /* [WO][32] Error Clear Register */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_MASK      0x20cb209c /* [RO][32] Mask Status Register */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_MASK_SET  0x20cb20a0 /* [WO][32] Mask Set Register */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_ESR_MASK_CLEAR 0x20cb20a4 /* [WO][32] Mask Clear Register */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_CAPTURE_FCI_ID_TABLE 0x20cb20a8 /* [RO][32] HDMI_IN Capture FCI_ID table */
+#define BCHP_AUD_FMM_IOP_IN_HDMI_0_DIAG          0x20cb20ac /* [RO][32] Diagnostics */
 
 /***************************************************************************
  *CAP_STREAM_CFG_%i - Capture Stream configuration

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,36 +70,36 @@
 /***************************************************************************
  *XPT_BUS_IF - Data Transport Configuration Registers
  ***************************************************************************/
-#define BCHP_XPT_BUS_IF_MISC_CTRL0               0x20a00080 /* [RW] Data Transport Misc Control 0 Register */
-#define BCHP_XPT_BUS_IF_TEST_MODE                0x20a00084 /* [RW] Data transport test register */
-#define BCHP_XPT_BUS_IF_REVISION                 0x20a00088 /* [RO] Data Transport Revision Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS_REG          0x20a0008c /* [RW] Interrupt Status Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS_REG_EN       0x20a00090 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS2_REG         0x20a00094 /* [RW] Interrupt Status2 Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS2_REG_EN      0x20a00098 /* [RW] Interrupt Status2 Enable Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS3_REG         0x20a0009c /* [RW] Interrupt Status3 Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS3_REG_EN      0x20a000a0 /* [RW] Interrupt Status3 Enable Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS4_REG         0x20a000a4 /* [RW] Interrupt Status4 Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS4_REG_EN      0x20a000a8 /* [RW] Interrupt Status4 Enable Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS5_REG         0x20a000ac /* [RW] Interrupt Status5 Register */
-#define BCHP_XPT_BUS_IF_INTR_STATUS5_REG_EN      0x20a000b0 /* [RW] Interrupt Status5 Enable Register */
-#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_SET 0x20a000b4 /* [WO] Software initialization control for XPT sub-blocks */
-#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_CLEAR 0x20a000b8 /* [WO] Software initialization control for XPT sub-blocks */
-#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_STATUS 0x20a000bc /* [RO] Software initialization control for XPT sub-blocks */
-#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_DO_MEM_INIT 0x20a000c0 /* [RW] Software initialization control for XPT sub-blocks */
-#define BCHP_XPT_BUS_IF_XMEMIF_RD_LC_DEBUG_REG_0 0x20a000cc /* [RW] LCIF to XMEMIF Debug Registers */
-#define BCHP_XPT_BUS_IF_XMEMIF_WR_LC_DEBUG_REG   0x20a000d0 /* [RW] LCIF to XMEMIF Debug Registers */
-#define BCHP_XPT_BUS_IF_MAX_PLAYBACKS            0x20a000d4 /* [RO] Data Transport max number of playbacks supported */
-#define BCHP_XPT_BUS_IF_MAX_PID_PARSERS          0x20a000d8 /* [RO] Data Transport max number of PID parsers supported */
-#define BCHP_XPT_BUS_IF_MAX_PID_CHANNELS         0x20a000dc /* [RO] Data Transport max number of PID channels supported excluding MEMDMA */
-#define BCHP_XPT_BUS_IF_MEMDMA_MAX_PID_CHANNELS  0x20a000e0 /* [RO] Data Transport max number of PID channels supported for MEMDMA */
-#define BCHP_XPT_BUS_IF_MAX_INPUT_BANDS          0x20a000e4 /* [RO] Data Transport max number of input bands supported */
-#define BCHP_XPT_BUS_IF_MAX_PCRS                 0x20a000e8 /* [RO] Data Transport max number of PCRs supported */
-#define BCHP_XPT_BUS_IF_MAX_TPIT_CHANNELS        0x20a000ec /* [RO] Data Transport max number of TPIT channels supported */
-#define BCHP_XPT_BUS_IF_MAX_RAVE_CONTEXTS        0x20a000f0 /* [RO] Data Transport max number of RAVE contexts supported */
-#define BCHP_XPT_BUS_IF_MAX_RMX_CHANNELS         0x20a000f4 /* [RO] Data Transport max number of RMX channels supported */
-#define BCHP_XPT_BUS_IF_MAX_MSG_BUFFERS          0x20a000f8 /* [RO] Data Transport max number of MSG buffers supported */
-#define BCHP_XPT_BUS_IF_MAX_SCDS                 0x20a000fc /* [RO] Data Transport max number of SCDs supported */
+#define BCHP_XPT_BUS_IF_MISC_CTRL0               0x20a00080 /* [RW][32] Data Transport Misc Control 0 Register */
+#define BCHP_XPT_BUS_IF_TEST_MODE                0x20a00084 /* [RW][32] Data transport test register */
+#define BCHP_XPT_BUS_IF_REVISION                 0x20a00088 /* [RO][32] Data Transport Revision Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS_REG          0x20a0008c /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS_REG_EN       0x20a00090 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS2_REG         0x20a00094 /* [RW][32] Interrupt Status2 Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS2_REG_EN      0x20a00098 /* [RW][32] Interrupt Status2 Enable Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS3_REG         0x20a0009c /* [RW][32] Interrupt Status3 Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS3_REG_EN      0x20a000a0 /* [RW][32] Interrupt Status3 Enable Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS4_REG         0x20a000a4 /* [RW][32] Interrupt Status4 Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS4_REG_EN      0x20a000a8 /* [RW][32] Interrupt Status4 Enable Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS5_REG         0x20a000ac /* [RW][32] Interrupt Status5 Register */
+#define BCHP_XPT_BUS_IF_INTR_STATUS5_REG_EN      0x20a000b0 /* [RW][32] Interrupt Status5 Enable Register */
+#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_SET 0x20a000b4 /* [WO][32] Software initialization control for XPT sub-blocks */
+#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_CLEAR 0x20a000b8 /* [WO][32] Software initialization control for XPT sub-blocks */
+#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_STATUS 0x20a000bc /* [RO][32] Software initialization control for XPT sub-blocks */
+#define BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_DO_MEM_INIT 0x20a000c0 /* [RW][32] Software initialization control for XPT sub-blocks */
+#define BCHP_XPT_BUS_IF_XMEMIF_RD_LC_DEBUG_REG_0 0x20a000cc /* [RW][32] LCIF to XMEMIF Debug Registers */
+#define BCHP_XPT_BUS_IF_XMEMIF_WR_LC_DEBUG_REG   0x20a000d0 /* [RW][32] LCIF to XMEMIF Debug Registers */
+#define BCHP_XPT_BUS_IF_MAX_PLAYBACKS            0x20a000d4 /* [RO][32] Data Transport max number of playbacks supported */
+#define BCHP_XPT_BUS_IF_MAX_PID_PARSERS          0x20a000d8 /* [RO][32] Data Transport max number of PID parsers supported */
+#define BCHP_XPT_BUS_IF_MAX_PID_CHANNELS         0x20a000dc /* [RO][32] Data Transport max number of PID channels supported excluding MEMDMA */
+#define BCHP_XPT_BUS_IF_MEMDMA_MAX_PID_CHANNELS  0x20a000e0 /* [RO][32] Data Transport max number of PID channels supported for MEMDMA */
+#define BCHP_XPT_BUS_IF_MAX_INPUT_BANDS          0x20a000e4 /* [RO][32] Data Transport max number of input bands supported */
+#define BCHP_XPT_BUS_IF_MAX_PCRS                 0x20a000e8 /* [RO][32] Data Transport max number of PCRs supported */
+#define BCHP_XPT_BUS_IF_MAX_TPIT_CHANNELS        0x20a000ec /* [RO][32] Data Transport max number of TPIT channels supported */
+#define BCHP_XPT_BUS_IF_MAX_RAVE_CONTEXTS        0x20a000f0 /* [RO][32] Data Transport max number of RAVE contexts supported */
+#define BCHP_XPT_BUS_IF_MAX_RMX_CHANNELS         0x20a000f4 /* [RO][32] Data Transport max number of RMX channels supported */
+#define BCHP_XPT_BUS_IF_MAX_MSG_BUFFERS          0x20a000f8 /* [RO][32] Data Transport max number of MSG buffers supported */
+#define BCHP_XPT_BUS_IF_MAX_SCDS                 0x20a000fc /* [RO][32] Data Transport max number of SCDs supported */
 
 /***************************************************************************
  *MISC_CTRL0 - Data Transport Misc Control 0 Register

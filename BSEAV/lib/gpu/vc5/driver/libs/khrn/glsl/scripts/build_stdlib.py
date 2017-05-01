@@ -88,9 +88,9 @@ uint64_t glsl_stdlib_get_property_mask(ShaderFlavour flavour, int version);
 
 /* Query functions */
 const Symbol *glsl_stdlib_get_function(glsl_stdlib_function_index_t index);
-Symbol       *glsl_stdlib_get_variable(glsl_stdlib_variable_index_t index);
+const Symbol *glsl_stdlib_get_variable(glsl_stdlib_variable_index_t index);
 bool glsl_stdlib_is_stdlib_symbol(const Symbol *sym);
-glsl_stdlib_function_index_t glsl_stdlib_function_index(Symbol *sym);
+glsl_stdlib_function_index_t glsl_stdlib_function_index(const Symbol *sym);
 """, file=outf)
 
 def print_api(outf):
@@ -149,7 +149,7 @@ uint64_t glsl_stdlib_get_property_mask(ShaderFlavour flavour, int version) {
 const Symbol *glsl_stdlib_get_function(glsl_stdlib_function_index_t index) {
    return &glsl_stdlib_functions[index];
 }
-Symbol *glsl_stdlib_get_variable(glsl_stdlib_variable_index_t index) {
+const Symbol *glsl_stdlib_get_variable(glsl_stdlib_variable_index_t index) {
    return &glsl_stdlib_variables[index];
 }
 bool glsl_stdlib_is_stdlib_symbol(const Symbol *sym) {
@@ -161,7 +161,7 @@ bool glsl_stdlib_is_stdlib_symbol(const Symbol *sym) {
    }
    return false;
 }
-glsl_stdlib_function_index_t glsl_stdlib_function_index(Symbol *sym) {
+glsl_stdlib_function_index_t glsl_stdlib_function_index(const Symbol *sym) {
    return (glsl_stdlib_function_index_t)(sym - glsl_stdlib_functions);
 }
 """, file=outf)
@@ -445,8 +445,11 @@ def memory_qualifiers(vtype):
 def storage_qualifier(vtype):       # TODO: Allowing 'inout' here is a hack from the GLSL grammar
     return qual_from_set(vtype, set([ "const", "uniform", "in", "out", "inout" ]))
 
-def type_qualifier(vtype):
-    return qual_from_set(vtype, set([ "centroid", "flat", "patch", "sample" ]))
+def interp_qualifier(vtype):
+    return qual_from_set(vtype, set([ "noperspective", "flat" ]))
+
+def aux_qualifier(vtype):
+    return qual_from_set(vtype, set([ "centroid", "patch", "sample" ]))
 
 def type_precision(vtype):
     return qual_from_set(vtype, set([ "mediump", "lowp", "highp"]))
@@ -488,9 +491,10 @@ def typesymbolenumname(typet):
 def make_type(var_name, var_type):
     storage_qual = storage_qualifier(var_type)
     memory_quals = memory_qualifiers(var_type)
-    type_qual = type_qualifier(var_type)
+    interp_qual = interp_qualifier(var_type)
+    aux_qual = aux_qualifier(var_type)
     precision = type_precision(var_type)
-    residual = [a for a in var_type if (a != type_qual) and (a != storage_qual) and (a not in memory_quals) and (a != precision)]
+    residual = [a for a in var_type if (a != interp_qual) and (a != aux_qual) and (a != storage_qual) and (a not in memory_quals) and (a != precision)]
     tname = None
     array_levels = []
     for r in residual:
@@ -513,14 +517,18 @@ def make_type_from_var(var):
 def var_index(var):
     var_name, var_type, rhs = var
     var_name = safe_name(var_name)
-    t_qual = type_qualifier(var_type)
+    i_qual = interp_qualifier(var_type)
+    a_qual = aux_qualifier(var_type)
     s_qual = storage_qualifier(var_type)
     precision = type_precision(var_type)
     tname = make_type_from_var(var)
-    if (t_qual == "None"):
-        q_str = [s_qual]
-    else:
-        q_str = ["__".join([t_qual] + [s_qual])]
+    q = []
+    if (i_qual != "None"):
+        q = q + [i_qual]
+    if (a_qual != "None"):
+        q = q + [a_qual]
+    q = q + [s_qual]
+    q_str = ["__".join(q)]
     if precision == "None":
         precision = []
     else:
@@ -654,6 +662,10 @@ def output_var_struct(outf, var, primtypemap, structmap, struct=None):
     else:
         invariant_str = "false"
 
+    interp = interp_qualifier(var_type)
+    if interp == "None":
+       interp = "smooth"
+
     assert((is_const and len(rhs_values) > 0) or not is_const)
 
     outf.write("   /* %s */\n" % var_name)
@@ -661,7 +673,8 @@ def output_var_struct(outf, var, primtypemap, structmap, struct=None):
     outf.write("      Qualifiers q = { .invariant = " + invariant_str + ",\n")
     outf.write("                       .lq        = NULL,\n")
     outf.write("                       .sq        = STORAGE_"   + storage_qualifier(var_type).upper() + ",\n")
-    outf.write("                       .tq        = TYPE_QUAL_" + type_qualifier(var_type).upper()    + ",\n")
+    outf.write("                       .iq        = INTERP_"    + interp.upper()                      + ",\n")
+    outf.write("                       .aq        = AUXILIARY_" + aux_qualifier(var_type).upper()     + ",\n")
     outf.write("                       .pq        = PREC_"      + type_precision(var_type).upper()    + ",\n")
     outf.write("                       .mq        = "           + mem_quals(memory_qualifiers(var_type)) + " };\n")
 

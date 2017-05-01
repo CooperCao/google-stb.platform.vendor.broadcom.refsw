@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glxx
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_HW_FRAMEBUFFER_H
 #define GLXX_HW_FRAMEBUFFER_H
 
@@ -24,14 +17,13 @@ typedef struct
    /* all the color images from the fb are stored here, irrespective of enabled
     * draw buffers */
    uint32_t rt_count; /* Index of highest used RT + 1 or 1 if no used RTs */
-   KHRN_IMAGE_PLANE_T color[GLXX_MAX_RENDER_TARGETS]; // Always downsampled
-   KHRN_IMAGE_PLANE_T color_ms[GLXX_MAX_RENDER_TARGETS]; // Always multisampled
-   v3d_rt_bpp_t color_internal_bpp[GLXX_MAX_RENDER_TARGETS];
-   v3d_rt_type_t color_internal_type[GLXX_MAX_RENDER_TARGETS];
+   khrn_image_plane color[GLXX_MAX_RENDER_TARGETS]; // Always downsampled
+   khrn_image_plane color_ms[GLXX_MAX_RENDER_TARGETS]; // Always multisampled
+   V3D_RT_FORMAT_T color_rt_format[GLXX_MAX_RENDER_TARGETS];
 
    /* if ms = true, depth and stencil are multisampled images */
-   KHRN_IMAGE_PLANE_T depth;
-   KHRN_IMAGE_PLANE_T stencil;
+   khrn_image_plane depth;
+   khrn_image_plane stencil;
 
    unsigned width; /* min width of all images */
    unsigned height; /* min height of all images */

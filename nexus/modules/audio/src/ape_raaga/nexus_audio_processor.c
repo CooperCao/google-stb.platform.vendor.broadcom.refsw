@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,7 @@ BDBG_MODULE(nexus_audio_processor);
 typedef struct NEXUS_AudioProcessor
 {
     NEXUS_OBJECT(NEXUS_AudioProcessor);
-    NEXUS_AudioInputObject connector;
+    NEXUS_AudioInputObject connectors[NEXUS_AudioConnectorType_eMax];
     NEXUS_AudioPostProcessing type;
     NEXUS_AudioProcessorSettings settings;
     NEXUS_AudioInputHandle input;
@@ -65,18 +65,6 @@ void NEXUS_AudioProcessor_GetDefaultOpenSettings(
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     BAPE_Processor_GetDefaultCreateSettings(&piSettings);
-    switch ( piSettings.type )
-    {
-    case BAPE_PostProcessorType_eKaraokeVocal:
-        pSettings->type = NEXUS_AudioPostProcessing_eKaraokeVocal;
-        break;
-    case BAPE_PostProcessorType_eFade:
-        pSettings->type = NEXUS_AudioPostProcessing_eFade;
-        break;
-    default:
-        BDBG_ERR(("PI returned unsupported Processor type %d", piSettings.type));
-        break;
-    }
 }
 
 static NEXUS_Error NEXUS_AudioProcessor_P_GetPiSettings(
@@ -103,6 +91,9 @@ static NEXUS_Error NEXUS_AudioProcessor_P_GetPiSettings(
         pSettings->settings.fade.duration = piSettings.settings.fade.duration;
         pSettings->settings.fade.level = piSettings.settings.fade.level;
         break;
+    case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        pSettings->settings.advancedTsm.mode = piSettings.settings.advTsm.mode;
+        break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", handle->type));
         errCode = BERR_NOT_SUPPORTED;
@@ -111,6 +102,21 @@ static NEXUS_Error NEXUS_AudioProcessor_P_GetPiSettings(
     pSettings->type = handle->type;
 
     return BERR_TRACE(errCode);
+}
+
+static bool NEXUS_AudioProcessor_P_SupportsMultichannelOutput(NEXUS_AudioPostProcessing type)
+{
+    switch ( type )
+    {
+    default:
+    case NEXUS_AudioPostProcessing_eKaraokeVocal:
+    case NEXUS_AudioPostProcessing_eFade:
+        break;
+    case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        return true;
+        break; /* unreachable */
+    }
+    return false;
 }
 
 NEXUS_AudioProcessorHandle NEXUS_AudioProcessor_Open(
@@ -150,6 +156,10 @@ NEXUS_AudioProcessorHandle NEXUS_AudioProcessor_Open(
         name = "FADE";
         piSettings.type = BAPE_PostProcessorType_eFade;
         break;
+    case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        name = "ADVANCEDTSM";
+        piSettings.type = BAPE_PostProcessorType_eAdvancedTsm;
+        break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", pSettings->type));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -164,8 +174,6 @@ NEXUS_AudioProcessorHandle NEXUS_AudioProcessor_Open(
         goto err_ape_handle;
     }
     handle->apeHandle = (void*) piHandle;
-    BAPE_Processor_GetConnector((BAPE_ProcessorHandle)handle->apeHandle, &connector);
-
     handle->type = pSettings->type;
     errCode = NEXUS_AudioProcessor_P_GetPiSettings(handle, &handle->settings);
     if ( errCode )
@@ -175,11 +183,21 @@ NEXUS_AudioProcessorHandle NEXUS_AudioProcessor_Open(
     }
 
     BKNI_Snprintf(handle->name, sizeof(handle->name), name);
-    NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eAudioProcessor, handle);
-    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
-    handle->connector.pName = handle->name;
-    handle->connector.format = NEXUS_AudioInputFormat_eNone;    /* Inherit from parent */
-    handle->connector.port = (size_t)connector;
+    NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eStereo], NEXUS_AudioInputType_eAudioProcessor, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eStereo], Open);
+    handle->connectors[NEXUS_AudioConnectorType_eStereo].pName = handle->name;
+    handle->connectors[NEXUS_AudioConnectorType_eStereo].format = NEXUS_AudioInputFormat_eNone;    /* Inherit from parent */
+    BAPE_Processor_GetConnector((BAPE_ProcessorHandle)handle->apeHandle, BAPE_ConnectorFormat_eStereo, &connector);
+    handle->connectors[NEXUS_AudioConnectorType_eStereo].port = (size_t)connector;
+    if ( NEXUS_AudioProcessor_P_SupportsMultichannelOutput(pSettings->type) )
+    {
+        NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], NEXUS_AudioInputType_eAudioProcessor, handle);
+        NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eMultichannel], Open);
+        handle->connectors[NEXUS_AudioConnectorType_eMultichannel].pName = handle->name;
+        handle->connectors[NEXUS_AudioConnectorType_eMultichannel].format = NEXUS_AudioInputFormat_eNone;    /* Inherit from parent */
+        BAPE_Processor_GetConnector((BAPE_ProcessorHandle)handle->apeHandle, BAPE_ConnectorFormat_eMultichannel, &connector);
+        handle->connectors[NEXUS_AudioConnectorType_eMultichannel].port = (size_t)connector;
+    }
 
     /*
     errCode = NEXUS_AudioProcessor_SetSettings(handle, pSettings);
@@ -207,7 +225,11 @@ static void NEXUS_AudioProcessor_P_Finalizer(
     )
 {
     NEXUS_OBJECT_ASSERT(NEXUS_AudioProcessor, handle);
-    NEXUS_AudioInput_Shutdown(&handle->connector);
+    NEXUS_AudioInput_Shutdown(&handle->connectors[NEXUS_AudioConnectorType_eStereo]);
+    if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].port )
+    {
+        NEXUS_AudioInput_Shutdown(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel]);
+    }
     BAPE_Processor_Destroy((BAPE_ProcessorHandle)handle->apeHandle);
     NEXUS_OBJECT_DESTROY(NEXUS_AudioProcessor, handle);
     BKNI_Free(handle);
@@ -215,7 +237,11 @@ static void NEXUS_AudioProcessor_P_Finalizer(
 
 static void NEXUS_AudioProcessor_P_Release(NEXUS_AudioProcessorHandle handle)
 {
-    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eStereo], Close);
+    if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].port )
+    {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eMultichannel], Close);
+    }
     return;
 }
 
@@ -252,6 +278,9 @@ NEXUS_Error NEXUS_AudioProcessor_SetSettings(
         piSettings.settings.fade.type = pSettings->settings.fade.type;
         piSettings.settings.fade.duration = pSettings->settings.fade.duration;
         piSettings.settings.fade.level = pSettings->settings.fade.level;
+        break;
+    case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        piSettings.settings.advTsm.mode = pSettings->settings.advancedTsm.mode;
         break;
     default:
         /* it should be impossible to get here - would indicate a bug in _Open() */
@@ -297,6 +326,33 @@ void NEXUS_AudioProcessor_GetStatus(
         {
         case NEXUS_AudioPostProcessing_eKaraokeVocal:
             break;
+        case NEXUS_AudioPostProcessing_eAdvancedTsm:
+            BDBG_CASSERT((int)NEXUS_AudioAdvancedTsmMode_eMax == (int)BAPE_AdvancedTsmMode_eMax);
+            pStatus->status.advancedTsm.mode = (NEXUS_AudioAdvancedTsmMode)piStatus.status.advTsm.mode;
+            if ( piStatus.status.advTsm.ptsValid )
+            {
+                pStatus->status.advancedTsm.pts = piStatus.status.advTsm.pts;
+                switch ( piStatus.status.advTsm.ptsType )
+                {
+                default:
+                case BAPE_PtsType_eOriginal:
+                    pStatus->status.advancedTsm.ptsType = NEXUS_PtsType_eCoded;
+                    break;
+                case BAPE_PtsType_eInterpolated:
+                    pStatus->status.advancedTsm.ptsType = NEXUS_PtsType_eInterpolatedFromValidPTS;
+                    break;
+                case BAPE_PtsType_eInterpolatedFromInvalid:
+                    pStatus->status.advancedTsm.ptsType = NEXUS_PtsType_eInterpolatedFromInvalidPTS;
+                    break;
+                }
+            }
+            else
+            {
+                pStatus->status.advancedTsm.pts = 0;
+                pStatus->status.advancedTsm.ptsType = NEXUS_PtsType_eInterpolatedFromInvalidPTS;
+            }
+            pStatus->status.advancedTsm.correction = piStatus.status.advTsm.correction;
+            break;
         case NEXUS_AudioPostProcessing_eFade:
             pStatus->status.fade.active = piStatus.status.fade.active;
             pStatus->status.fade.level = piStatus.status.fade.level;
@@ -311,12 +367,56 @@ void NEXUS_AudioProcessor_GetStatus(
     }
 }
 
+NEXUS_AudioInputHandle NEXUS_AudioProcessor_GetConnectorByType(
+    NEXUS_AudioProcessorHandle handle,
+    NEXUS_AudioConnectorType type
+    )
+{
+    NEXUS_AudioInputHandle input = NULL;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioProcessor);
+    switch ( type )
+    {
+    case NEXUS_AudioConnectorType_eStereo:
+        switch ( handle->type )
+        {
+        case NEXUS_AudioPostProcessing_eKaraokeVocal:
+        case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        case NEXUS_AudioPostProcessing_eFade:
+            input = &handle->connectors[NEXUS_AudioConnectorType_eStereo];
+            break;
+        default:
+            break;
+        }
+        break;
+    case NEXUS_AudioConnectorType_eMultichannel:
+        switch ( handle->type )
+        {
+        case NEXUS_AudioPostProcessing_eAdvancedTsm:
+            input = &handle->connectors[NEXUS_AudioConnectorType_eMultichannel];
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }
+
+    if ( input == NULL )
+    {
+        BDBG_ERR(("NEXUS_AudioProcessor type %d does not support connector format %d", handle->type, type));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return input;
+}
+
 NEXUS_AudioInputHandle NEXUS_AudioProcessor_GetConnector(
     NEXUS_AudioProcessorHandle handle
     )
 {
-    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioProcessor);
-    return &handle->connector;
+    return NEXUS_AudioProcessor_GetConnectorByType(handle, NEXUS_AudioConnectorType_eStereo);
 }
 
 NEXUS_Error NEXUS_AudioProcessor_AddInput(
@@ -339,12 +439,21 @@ NEXUS_Error NEXUS_AudioProcessor_AddInput(
     {
         return BERR_TRACE(errCode);
     }
-
-    errCode = NEXUS_AudioInput_P_AddInput(&handle->connector, input);
+    errCode = NEXUS_AudioInput_P_AddInput(&handle->connectors[NEXUS_AudioConnectorType_eStereo], input);
     if ( errCode )
     {
         (void)BAPE_Processor_RemoveInput((BAPE_ProcessorHandle)handle->apeHandle, (BAPE_Connector)input->port);
         return BERR_TRACE(errCode);
+    }
+    if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].port )
+    {
+        errCode = NEXUS_AudioInput_P_AddInput(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], input);
+        if ( errCode )
+        {
+            NEXUS_AudioInput_P_RemoveInput(&handle->connectors[NEXUS_AudioConnectorType_eStereo], input);
+            (void)BAPE_Processor_RemoveInput((BAPE_ProcessorHandle)handle->apeHandle, (BAPE_Connector)input->port);
+            return BERR_TRACE(errCode);
+        }
     }
     handle->input = input;
     return BERR_SUCCESS;
@@ -369,10 +478,18 @@ NEXUS_Error NEXUS_AudioProcessor_RemoveInput(
     {
         return BERR_TRACE(errCode);
     }
-    errCode = NEXUS_AudioInput_P_RemoveInput(&handle->connector, input);
+    errCode = NEXUS_AudioInput_P_RemoveInput(&handle->connectors[NEXUS_AudioConnectorType_eStereo], input);
     if ( errCode )
     {
         return BERR_TRACE(errCode);
+    }
+    if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].port )
+    {
+        errCode = NEXUS_AudioInput_P_RemoveInput(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], input);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
     }
     handle->input = NULL;
     return BERR_SUCCESS;

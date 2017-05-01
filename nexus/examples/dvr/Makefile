@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,19 +35,9 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# Module Description:
-#
 ############################################################
-# Nexus examples
-B_THIS_DIR:=nexus/examples/dvr
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
-THEAPPS = \
+APPS = \
 	codec_probe \
 	dqt_trick \
 	index_audio \
@@ -89,9 +79,11 @@ THEAPPS = \
 
 # The following app can't be build in prebuilt binary mode
 ifneq ($(NEXUS_PREBUILT_BINARY),y)
-THEAPPS += record_append
+APPS += record_append
 endif
 CLEAN_APPS += record_append
+
+include ../Makefile.inc
 
 CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/netaccel/include
 BCMPLAYER_DIR=$(NEXUS_TOP)/../BSEAV/lib/bcmplayer
@@ -99,18 +91,10 @@ CFLAGS += -I$(BCMPLAYER_DIR)/include
 
 codec_probe: CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/media -I$(NEXUS_TOP)/../BSEAV/lib/utils
 
-
-include ${NEXUS_TOP}/examples/Makefile.inc
-
-
-ifeq ($(B_REFSW_REAL_MAKE),1)
 CFLAGS += -I${NEXUS_TOP}/../BSEAV/lib/subtitle_sync
 vpath %.c ${NEXUS_TOP}/../BSEAV/lib/subtitle_sync
-playback_message_paced_pes: sync_manager.c
+$(BINDIR)/playback_message_paced_pes: sync_manager.c
+
 CFLAGS += -I$(BCMPLAYER_DIR)/utils
 vpath %.c $(BCMPLAYER_DIR)/utils
-playback_customfile: playback_customfile.c b_customfile.c b_playback.c
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(LDFLAGS) $(CFLAGS)
-	cp -f $@ $(NEXUS_BIN_DIR)
-endif # B_REFSW_REAL
+$(BINDIR)/playback_customfile: b_customfile.c b_playback.c

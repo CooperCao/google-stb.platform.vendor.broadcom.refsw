@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:28 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,32 +70,32 @@
 /***************************************************************************
  *V3D_CTL_0 - V3D Global Control Registers
  ***************************************************************************/
-#define BCHP_V3D_CTL_0_IDENT0                    0x21308000 /* [RO] V3D Identification 0 (V3D block identity) */
-#define BCHP_V3D_CTL_0_IDENT1                    0x21308004 /* [RO] V3D Identification 1 (V3D Configuration A) */
-#define BCHP_V3D_CTL_0_IDENT2                    0x21308008 /* [RO] V3D Identification 1 (V3D Configuration B) */
-#define BCHP_V3D_CTL_0_IDENT3                    0x2130800c /* [RO] V3D Identification 3 */
-#define BCHP_V3D_CTL_0_SCRATCH                   0x21308010 /* [RW] Scratch Register */
-#define BCHP_V3D_CTL_0_AXICFG                    0x21308014 /* [RW] AXI configuration */
-#define BCHP_V3D_CTL_0_MISCCFG                   0x21308018 /* [RW] Misc configuration */
-#define BCHP_V3D_CTL_0_L2CACTL                   0x21308020 /* [RW] L2 Cache Control */
-#define BCHP_V3D_CTL_0_SLCACTL                   0x21308024 /* [WO] Slices Cache Control */
-#define BCHP_V3D_CTL_0_L2TCACTL                  0x21308030 /* [RW] L2T Cache Control */
-#define BCHP_V3D_CTL_0_L2TFLSTA                  0x21308034 /* [RW] L2T Flush Start Address */
-#define BCHP_V3D_CTL_0_L2TFLEND                  0x21308038 /* [RW] L2T Flush End Address */
-#define BCHP_V3D_CTL_0_ENDSWP                    0x21308040 /* [RO] Swap Endian Behaviour */
-#define BCHP_V3D_CTL_0_UIFCFG                    0x21308044 /* [RW] UIF Image Format Configuration */
-#define BCHP_V3D_CTL_0_INT_STS                   0x21308050 /* [RO] V3D Interrupt Status */
-#define BCHP_V3D_CTL_0_INT_SET                   0x21308054 /* [WO] V3D Interrupt Set */
-#define BCHP_V3D_CTL_0_INT_CLR                   0x21308058 /* [WO] V3D Interrupt Clear */
-#define BCHP_V3D_CTL_0_INT_MSK_STS               0x2130805c /* [RO] V3D Interrupt Mask Status */
-#define BCHP_V3D_CTL_0_INT_MSK_SET               0x21308060 /* [WO] V3D Interrupt Mask Set */
-#define BCHP_V3D_CTL_0_INT_MSK_CLR               0x21308064 /* [WO] V3D Interrupt Mask Clear */
-#define BCHP_V3D_CTL_0_INT_STS_PCI               0x21308068 /* [RO] Duplicate V3D Interrupt Status, reads 0 when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_CTL_0_INT_SET_PCI               0x2130806c /* [WO] Duplicate V3D Interrupt Set, write has no effect when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_CTL_0_INT_CLR_PCI               0x21308070 /* [WO] Duplicate V3D Interrupt Clear, write has no effect when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_CTL_0_INT_MSK_STS_PCI           0x21308074 /* [RO] Duplicate V3D Interrupt Mask Status, reads 0 when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_CTL_0_INT_MSK_SET_PCI           0x21308078 /* [WO] Duplicate V3D Interrupt Mask Set, write has no effect when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_CTL_0_INT_MSK_CLR_PCI           0x2130807c /* [WO] Duplicate V3D Interrupt Mask Clear, write has noeffect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_CTL_0_IDENT0                    0x21308000 /* [RO][32] V3D Identification 0 (V3D block identity) */
+#define BCHP_V3D_CTL_0_IDENT1                    0x21308004 /* [RO][32] V3D Identification 1 (V3D Configuration A) */
+#define BCHP_V3D_CTL_0_IDENT2                    0x21308008 /* [RO][32] V3D Identification 1 (V3D Configuration B) */
+#define BCHP_V3D_CTL_0_IDENT3                    0x2130800c /* [RO][32] V3D Identification 3 */
+#define BCHP_V3D_CTL_0_SCRATCH                   0x21308010 /* [RW][32] Scratch Register */
+#define BCHP_V3D_CTL_0_AXICFG                    0x21308014 /* [RW][32] AXI configuration */
+#define BCHP_V3D_CTL_0_MISCCFG                   0x21308018 /* [RW][32] Misc configuration */
+#define BCHP_V3D_CTL_0_L2CACTL                   0x21308020 /* [RW][32] L2 Cache Control */
+#define BCHP_V3D_CTL_0_SLCACTL                   0x21308024 /* [WO][32] Slices Cache Control */
+#define BCHP_V3D_CTL_0_L2TCACTL                  0x21308030 /* [RW][32] L2T Cache Control */
+#define BCHP_V3D_CTL_0_L2TFLSTA                  0x21308034 /* [RW][32] L2T Flush Start Address */
+#define BCHP_V3D_CTL_0_L2TFLEND                  0x21308038 /* [RW][32] L2T Flush End Address */
+#define BCHP_V3D_CTL_0_ENDSWP                    0x21308040 /* [RO][32] Swap Endian Behaviour */
+#define BCHP_V3D_CTL_0_UIFCFG                    0x21308044 /* [RW][32] UIF Image Format Configuration */
+#define BCHP_V3D_CTL_0_INT_STS                   0x21308050 /* [RO][32] V3D Interrupt Status */
+#define BCHP_V3D_CTL_0_INT_SET                   0x21308054 /* [WO][32] V3D Interrupt Set */
+#define BCHP_V3D_CTL_0_INT_CLR                   0x21308058 /* [WO][32] V3D Interrupt Clear */
+#define BCHP_V3D_CTL_0_INT_MSK_STS               0x2130805c /* [RO][32] V3D Interrupt Mask Status */
+#define BCHP_V3D_CTL_0_INT_MSK_SET               0x21308060 /* [WO][32] V3D Interrupt Mask Set */
+#define BCHP_V3D_CTL_0_INT_MSK_CLR               0x21308064 /* [WO][32] V3D Interrupt Mask Clear */
+#define BCHP_V3D_CTL_0_INT_STS_PCI               0x21308068 /* [RO][32] Duplicate V3D Interrupt Status, reads 0 when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_CTL_0_INT_SET_PCI               0x2130806c /* [WO][32] Duplicate V3D Interrupt Set, write has no effect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_CTL_0_INT_CLR_PCI               0x21308070 /* [WO][32] Duplicate V3D Interrupt Clear, write has no effect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_CTL_0_INT_MSK_STS_PCI           0x21308074 /* [RO][32] Duplicate V3D Interrupt Mask Status, reads 0 when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_CTL_0_INT_MSK_SET_PCI           0x21308078 /* [WO][32] Duplicate V3D Interrupt Mask Set, write has no effect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_CTL_0_INT_MSK_CLR_PCI           0x2130807c /* [WO][32] Duplicate V3D Interrupt Mask Clear, write has noeffect when BCG_INT in IDENT2 is 0 */
 
 /***************************************************************************
  *IDENT0 - V3D Identification 0 (V3D block identity)

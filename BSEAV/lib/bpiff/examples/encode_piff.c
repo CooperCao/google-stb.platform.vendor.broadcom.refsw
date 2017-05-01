@@ -206,27 +206,12 @@ int main(int argc, char* argv[])
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
 
-    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
-    if (secure_video)
-    {
-        int i, j;
+#ifdef NEXUS_EXPORT_HEAP
+    /* Configure export heap since it's not allocated by nexus by default */
+    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024*1024;
+#endif
 
-        /* Request secure picture buffers, i.e. URR
-        * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
-        /* For now default to SVP2.0 type configuration (i.e. ALL buffers are
-        * secure ONLY */
-        for (i = 0; i < NEXUS_NUM_VIDEO_DECODERS; i++)
-        {
-            memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eSecure;
-        }
-        for (i = 0; i < NEXUS_NUM_DISPLAYS; i++)
-        {
-            for (j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++)
-            {
-                memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
-            }
-        }
-    }
+    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
 
     if (NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings)) {
         fprintf(stderr, "NEXUS_Platform_Init failed\n");
@@ -410,7 +395,6 @@ int main(int argc, char* argv[])
         NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
-
     {
         NEXUS_AudioMuxOutputStartSettings audioMuxStartSettings;
         NEXUS_AudioEncoderSettings encoderSettings;

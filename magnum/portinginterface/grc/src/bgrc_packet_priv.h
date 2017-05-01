@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,8 +44,6 @@
 
 #include "bdbg.h"
 #include "bchp.h"
-#include "bmem.h"
-#include "bsur.h"
 #include "bint.h"
 #include "bkni.h"
 #include "breg_mem.h"
@@ -162,6 +160,15 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #define BGRC_P_64BITS_ADDR    1
 #else
 #define BGRC_P_64BITS_ADDR    0
+#endif
+
+#if BGRC_PACKET_P_BLIT_WORKAROUND
+typedef enum
+{
+    BGRC_P_List_eFinished = 0,
+    BGRC_P_List_eReadytoSubmit,
+    BGRC_P_List_eSubmitted
+} BGRC_P_ListStatus;
 #endif
 
 #if BGRC_P_64BITS_ADDR
@@ -670,7 +677,6 @@ BGRC_P_PacketContext;
 
 /***************************************************************************/
 void BGRC_P_CheckTableMismach( void );
-void BGRC_PACKET_P_PrintRegisters( BGRC_Handle hGrc );
 
 void BGRC_PACKET_P_Isr( void *pvParam1, int iParam2 );
 void BGRC_PACKET_P_ResetState( BGRC_PacketContext_Handle hContext );

@@ -948,7 +948,7 @@ BERR_Code BDSP_Arm_P_GetAlgorithmSettings(
     if ( settingsBufferSize != pInfo->userConfigSize )
     {
         BDBG_ERR(("Settings buffer size provided (%u) does not match expected size (%u) for algorithm %u (%s)",
-                  settingsBufferSize, pInfo->userConfigSize, eAlgorithm, pInfo->pName));
+                  (unsigned int)settingsBufferSize, (unsigned int)pInfo->userConfigSize, eAlgorithm, pInfo->pName));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -984,7 +984,7 @@ BERR_Code BDSP_Arm_P_SetAlgorithmSettings(
     if ( settingsBufferSize != pInfo->userConfigSize )
     {
         BDBG_ERR(("Settings buffer size provided (%u) does not match expected size (%u) for algorithm %u (%s)",
-                  settingsBufferSize, pInfo->userConfigSize, eAlgorithm, pInfo->pName));
+                  (unsigned int)settingsBufferSize, (unsigned int)pInfo->userConfigSize, eAlgorithm, pInfo->pName));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1023,7 +1023,7 @@ BERR_Code BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
     if ( settingsBufferSize != pInfo->idsConfigSize )
     {
         BDBG_ERR(("Datasync settings buffer size provided (%u) does not match expected size (%u) for algorithm %u (%s)",
-                  settingsBufferSize, pInfo->userConfigSize, eAlgorithm, pInfo->pName));
+                  (unsigned int)settingsBufferSize, (unsigned int)pInfo->userConfigSize, eAlgorithm, pInfo->pName));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1058,7 +1058,7 @@ BERR_Code BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
     if ( settingsBufferSize != pInfo->idsConfigSize )
     {
         BDBG_ERR(("Datasync settings buffer size provided (%u) does not match expected size (%u) for algorithm %u (%s)",
-                  settingsBufferSize, pInfo->userConfigSize, eAlgorithm, pInfo->pName));
+                  (unsigned int)settingsBufferSize, (unsigned int)pInfo->userConfigSize, eAlgorithm, pInfo->pName));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 

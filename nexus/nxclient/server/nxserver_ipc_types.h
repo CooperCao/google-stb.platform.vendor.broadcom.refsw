@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,5 +50,10 @@ typedef struct nxclient_p_teletext_data {
 typedef struct nxclient_p_closecaption_data {
     NEXUS_ClosedCaptionData entries[4];
 } nxclient_p_closecaption_data;
+
+typedef struct nxclient_p_set_cgms_b_data {
+    uint32_t data[5];
+    unsigned size;
+} nxclient_p_set_cgms_b_data;
 
 #endif /* NXSERVER_IPC_TYPES_H__ */

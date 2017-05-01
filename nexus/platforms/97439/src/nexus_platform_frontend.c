@@ -641,10 +641,10 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
      BDBG_ERR(("3461 tuner not found"));
      rc = BERR_NOT_INITIALIZED; goto done;
     }
-    BDBG_ERR(("chip.familyId = 0x%x", results.chip.familyId));
-    BDBG_ERR(("chip.id = 0x%x", results.chip.id));
-    BDBG_ERR(("version.major = 0x%x", results.chip.version.major ));
-    BDBG_ERR(("version.minor = 0x%x", results.chip.version.minor ));
+    BDBG_WRN(("chip.familyId = 0x%x", results.chip.familyId));
+    BDBG_WRN(("chip.id = 0x%x", results.chip.id));
+    BDBG_WRN(("version.major = 0x%x", results.chip.version.major ));
+    BDBG_WRN(("version.minor = 0x%x", results.chip.version.minor ));
 
     parentDevice = NEXUS_FrontendDevice_Open3461(0, &deviceOpenSettings);
     if (NULL == parentDevice)
@@ -672,19 +672,19 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     }
 
     NEXUS_Frontend_GetType(pConfig->frontend[0], &type);
-    BDBG_ERR(("familyId = 0x%x", type.chip.familyId));
-    BDBG_ERR(("chipId = 0x%x", type.chip.id));
-    BDBG_ERR(("version.major = 0x%x", type.chip.version.major ));
-    BDBG_ERR(("version.major = 0x%x", type.chip.version.minor ));
-    BDBG_ERR(("version.buildType = 0x%x", type.chip.version.buildType ));
-    BDBG_ERR(("version.buildId = 0x%x", type.chip.version.buildId ));
-    BDBG_ERR(("bondoutOptions[0] = 0x%x", type.chip.bondoutOptions[0] ));
-    BDBG_ERR(("bondoutOptions[1] = 0x%x", type.chip.bondoutOptions[1] ));
+    BDBG_WRN(("familyId = 0x%x", type.chip.familyId));
+    BDBG_WRN(("chipId = 0x%x", type.chip.id));
+    BDBG_WRN(("version.major = 0x%x", type.chip.version.major ));
+    BDBG_WRN(("version.major = 0x%x", type.chip.version.minor ));
+    BDBG_WRN(("version.buildType = 0x%x", type.chip.version.buildType ));
+    BDBG_WRN(("version.buildId = 0x%x", type.chip.version.buildId ));
+    BDBG_WRN(("bondoutOptions[0] = 0x%x", type.chip.bondoutOptions[0] ));
+    BDBG_WRN(("bondoutOptions[1] = 0x%x", type.chip.bondoutOptions[1] ));
 
-    BDBG_ERR(("firmwareVersion.major = 0x%x", type.firmwareVersion.major ));
-    BDBG_ERR(("firmwareVersion.major = 0x%x", type.firmwareVersion.minor ));
-    BDBG_ERR(("firmwareVersion.buildType = 0x%x", type.firmwareVersion.buildType ));
-    BDBG_ERR(("firmwareVersion.buildId = 0x%x", type.firmwareVersion.buildId ));
+    BDBG_WRN(("firmwareVersion.major = 0x%x", type.firmwareVersion.major ));
+    BDBG_WRN(("firmwareVersion.major = 0x%x", type.firmwareVersion.minor ));
+    BDBG_WRN(("firmwareVersion.buildType = 0x%x", type.firmwareVersion.buildType ));
+    BDBG_WRN(("firmwareVersion.buildId = 0x%x", type.firmwareVersion.buildId ));
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[0], &userParams);
     userParams.param1 = NEXUS_InputBand_e0;
@@ -1053,7 +1053,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     {
         BDBG_ERR(("Unable to open GPIO for tuner %d", 0));
     }
-    BDBG_ERR(("tunerGpio = 0x%x", tunerGpio));
+    BDBG_WRN(("tunerGpio = 0x%x", tunerGpio));
     st3128DeviceOpenSettings.gpioInterrupt = tunerGpio;
     st3128DeviceOpenSettings.isrNumber = 0;
     st3128DeviceOpenSettings.outOfBand.ifFrequency = 0;

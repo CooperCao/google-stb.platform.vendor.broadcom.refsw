@@ -46,6 +46,8 @@
 #include "nxclient.h"
 #include "nexus_types.h"
 #include "nexus_hdmi_types.h"
+#include "nexus_hdmi_output_extra.h"
+#include "nexus_video_decoder.h"
 
 typedef struct Platform
 {
@@ -56,10 +58,11 @@ typedef struct Platform
     PlatformInputHandle input;
     PlatformSchedulerHandle scheduler;
     NxClient_CallbackThreadSettings callbackThreadSettings;
+    NEXUS_VideoDecoderCapabilities videoCaps;
 } Platform;
 
-NEXUS_VideoEotf platform_p_dynamic_range_to_nexus(PlatformDynamicRange eotf);
-PlatformDynamicRange platform_p_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf);
+void platform_p_dynamic_range_to_nexus(PlatformDynamicRange dynrng, NEXUS_VideoEotf * pEotf, NEXUS_HdmiOutputDolbyVisionMode * pDolbyVision);
+PlatformDynamicRange platform_p_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf, NEXUS_HdmiOutputDolbyVisionMode dolbyVision);
 NEXUS_MatrixCoefficients platform_p_colorimetry_to_nexus(PlatformColorimetry colorimetry);
 PlatformColorimetry platform_p_colorimetry_from_nexus(NEXUS_MatrixCoefficients nxColorimetry);
 NEXUS_ColorSpace platform_p_color_space_to_nexus(PlatformColorSpace colorSpace);
@@ -67,5 +70,6 @@ PlatformColorSpace platform_p_color_space_from_nexus(NEXUS_ColorSpace nxColorSpa
 unsigned platform_p_frame_rate_from_nexus(NEXUS_VideoFrameRate frameRate);
 void platform_p_hotplug_handler(void * context, int param);
 void platform_receiver_p_hotplug_handler(PlatformReceiverHandle rx);
+bool platform_display_p_is_dolby_vision_supported(PlatformDisplayHandle display);
 
 #endif /* PLATFORM_PRIV_H__ */

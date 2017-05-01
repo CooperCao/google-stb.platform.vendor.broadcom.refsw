@@ -40,6 +40,11 @@
 use strict;
 use warnings;
 
+use Cwd;
+use Cwd 'abs_path';
+use Sys::Hostname;
+use File::Basename;
+
 use Data::Dumper;
 $Data::Dumper::Sortkeys  = 1;
 $Data::Dumper::Useqq    = 1;
@@ -81,6 +86,7 @@ my @div_functions = (
         "HVD", "HVD0", "HVD1", "HVD2",
         "RAAGA", "RAAGA0", "RAAGA1",
         "M2MC", "M2MC0", "M2MC1",
+        "MM_M2MC", "MM_M2MC0",
         "V3D", "V3D0", "V3D1",
         "VICE2", "VICE20", "VICE21",
         "SID", "SID0", "SID1",
@@ -198,10 +204,9 @@ sub rename_function {
 }
 
 sub parse_rdb_file {
-	my ($file, $clk_tree) = @_;
+	my ($file, $clk_tree, $featuredef) = @_;
 	my ($reg, $field, $resource, $default, $case);
     my $coreprefix;
-    my %featuredef;
     my $disabled = 0;
 
     open(INFILE,"$file") or die "Can't open input file $file";
@@ -226,11 +231,11 @@ sub parse_rdb_file {
         }
 
         if (/^featuredef\s*(.*?)\s*(\d+)/) {
-            $featuredef{$1} = $2;
+            $featuredef->{$1} = $2;
         } elsif (/^feature\s*(.*)/) {
             my $feature = $1;
-            if(exists $featuredef{$1}) {
-               if ($featuredef{$1} == 0) {
+            if(exists $featuredef->{$1}) {
+               if ($featuredef->{$1} == 0) {
                    $disabled = 1;
                }
             }
@@ -668,8 +673,19 @@ sub generate_nexus_nodes {
     trim_dv_nodes($nodes, $hw_desc);
 }
 
+sub has_feature {
+    my ($featuredef, $feature) = @_;
+    if(exists $featuredef->{$feature} && $featuredef->{$feature} == 1) {
+        print "$feature exists\n";
+        return 1;
+    } else {
+        print "$feature does not exists\n";
+        return 0;
+    }
+}
+
 sub generate_user_defined_nodes {
-    my $nodes = shift;
+    my ($nodes, $featuredef) = @_;
 
     foreach my $node (keys %$nodes) {
         if($node =~ /(HDMI_)(TX|RX)(\d*)_CLK/) {
@@ -696,12 +712,12 @@ sub generate_user_defined_nodes {
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1."_PHY"}++;
         } elsif($node =~ /AIO_CLK/) {
             $nodes->{"AUD_AIO"}{_list}{"$node"}++;
-            $nodes->{"AUD_DAC"}{_list}{"HW_AUD_DAC"}++;
+            $nodes->{"AUD_DAC"}{_list}{"HW_AUD_DAC"}++ if(has_feature($featuredef, "AUDIO_DAC"));
             $nodes->{"AUD_PLL0"}{_list}{"HW_AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
             $nodes->{"AUD_PLL1"}{_list}{"HW_AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
             foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
                 if($hw_node !~ /VCXO/) {
-                    $nodes->{"HW_AUD_DAC"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node};
+                    $nodes->{"HW_AUD_DAC"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} if(has_feature($featuredef, "AUDIO_DAC"));
                     $nodes->{"HW_AUD_PLL0"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}; # TODO : Remove when fixed in rdb
                     $nodes->{"HW_AUD_PLL1"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}; # TODO : Remove when fixed in rdb
                 }
@@ -709,11 +725,17 @@ sub generate_user_defined_nodes {
 
             $nodes->{"BINT_OPEN"}{_list}{"AUD_AIO"}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_AIO"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_DAC"}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_DAC"}++ if(has_feature($featuredef, "AUDIO_DAC"));
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
         } elsif($node =~ /AIO_SRAM/) {
             $nodes->{"AUD_AIO"}{_list}{"$node"}++;
+        } elsif($node =~ /^(BVN|VDC_VEC|VIP)_SRAM/) {
+            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
+                $nodes->{$1}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node};
+                push(@{$nodes->{$1}{_order}}, $hw_node);
+                delete($nodes->{$node});
+            }
         } elsif($node =~ /^(AVD|VICE)(\d*)(.*?)$/) {
             if($3 eq "_CPU") {
                 foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
@@ -878,11 +900,9 @@ sub generate_brcm_copyright_header
 }
 
 sub generate_bchp_resources_txt_file {
-    my ($nodes, $chip) = @_;
+    my ($nodes, $file) = @_;
     my @resource_list;
     my (@magnum_nodes, @bint_nodes);
-    my $file = "bchp_pwr_resources_".$chip.".txt";
-
 
     open(my $fh, ">$file") or die "Can't open output file $file";
 
@@ -896,6 +916,8 @@ sub generate_bchp_resources_txt_file {
     }
 
     close($fh);
+
+    print "Output: $file\n";
 }
 
 sub generate_bchp_impl_string {
@@ -1034,9 +1056,9 @@ sub generate_bchp_impl_string {
 }
 
 sub generate_bchp_impl_c_file {
-    my $hw_desc = shift;
+    my ($hw_desc, $file) = @_;
 
-    open(my $fh, ">bchp_pwr_impl.c") or die "Can't open output file bchp_pwr_impl.c";
+    open(my $fh, ">$file") or die "Can't open output file $file";
 
     my @lines = generate_brcm_copyright_header();
     print $fh @lines;
@@ -1118,10 +1140,12 @@ sub generate_bchp_impl_c_file {
     }
 
     close($fh);
+
+    print "Output: $file\n";
 }
 
 sub generate_bchp_resources_priv_h_file {
-    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv, $nonleafsmx, $leafsmx) = @_;
+    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv, $nonleafsmx, $leafsmx, $file) = @_;
     my @nonleafshw = keys %$nonleafshw;
     my @leafs = keys %$leafs;
     my @hw_all = (@nonleafshw, @leafs);
@@ -1132,7 +1156,7 @@ sub generate_bchp_resources_priv_h_file {
     my @leafsmx = keys %$leafsmx;
     my @MX_all = (@nonleafsmx, @leafsmx);
 
-    open(my $fh, ">bchp_pwr_resources_priv.h") or die "Can't open output file bchp_pwr_resources_priv.h";
+    open(my $fh, ">$file") or die "Can't open output file $file";
 
     my @lines = generate_brcm_copyright_header();
     print $fh @lines;
@@ -1194,12 +1218,14 @@ sub generate_bchp_resources_priv_h_file {
     print $fh "#endif\n";
 
     close($fh);
+
+    print "Output: $file\n";
 }
 
 sub generate_bchp_resources_h_file {
-    my $nonleafs = shift;
+    my ($nonleafs, $file) = @_;
 
-    open(my $fh, ">bchp_pwr_resources.h") or die "Can't open output file bchp_pwr_resources.h";
+    open(my $fh, ">$file") or die "Can't open output file $file";
 
     my @lines = generate_brcm_copyright_header();
     print $fh @lines;
@@ -1235,6 +1261,8 @@ sub generate_bchp_resources_h_file {
     print $fh "#endif\n";
 
     close $fh;
+
+    print "Output: $file\n";
 }
 
 sub generate_resource_string
@@ -1403,7 +1431,6 @@ sub generate_dv_table
     my (@lines1, @lines2, @lines);
     my ($mult, $prediv, $postdiv);
     my %div_table;
-    #my $num_profiles = scalar @profiles;
     push @lines, "\n";
     push @lines2, "const ${prefix3} ${prefix3}List[BCHP_PWR_P_NUM_DIVS] = {\n";
 
@@ -1415,12 +1442,13 @@ sub generate_dv_table
             foreach my $type (keys %{$hw_desc->{$_}{$reg}{_field}}) {
                 foreach my $field (keys %{$hw_desc->{$_}{$reg}{_field}{$type}}) {
                     if($field eq "_pmap") {next;}
+                    if($field eq "_shared") {next;}
                     if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}) {
                         my $entries = scalar keys %{$hw_desc->{$_}{$reg}{_field}{$type}{_pmap}};
                         if($num_profiles < $entries) {
                             print "Mismatch between PMPowerProfile tag and number of profiles profiles found for $reg:$type\n";
                         }
-                        foreach my $profile (0..$num_profiles) {
+                        foreach my $profile (0..$num_profiles-1) {
                             if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}) {
                                 if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}{_pstate}{0}) {
                                     push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}{_pstate}{0});
@@ -1445,7 +1473,7 @@ sub generate_dv_table
                         } elsif ($type eq "POSTDIV") {
                             $postdiv = 0;
                         }
-                        foreach my $profile (0..$num_profiles) {
+                        foreach my $profile (0..$num_profiles-1) {
                             push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{$field});
                         }
                     }
@@ -1489,7 +1517,7 @@ sub generate_dv_table
 
         if (exists $div_table{$_}{MULT} && exists $div_table{$_}{PREDIV} && exists $div_table{$_}{POSTDIV}) {
             push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {";
-            foreach my $profile (0..$num_profiles) {
+            foreach my $profile (0..$num_profiles-1) {
                 push @lines1, "{$div_table{$_}{MULT}[$profile],$div_table{$_}{PREDIV}[$profile],$div_table{$_}{POSTDIV}[$profile]},";
             }
             push @lines1, "};\n";
@@ -1524,6 +1552,7 @@ sub generate_mx_table
         foreach my $reg (sort keys %{$hw_desc->{$_}}) {
                 foreach my $elem (keys %{$hw_desc->{$_}{$reg}{_field}{_mux}}) {
                     if($elem eq "_pmap") {next;}
+                    if($elem eq "_shared") {next;}
                     if(exists $hw_desc->{$_}{$reg}{_field}{_mux}{_pmap}) {
                         my $entries = scalar keys %{$hw_desc->{$_}{$reg}{_field}{_mux}{_pmap}};
                         if($num_profiles < $entries) {
@@ -1538,7 +1567,7 @@ sub generate_mx_table
                             }
                         }
                     } else {
-                        print "No PMap found for $reg:$elem\n";
+                        #print "No PMap found for $reg:$elem\n";
                         foreach my $profile (0..$num_profiles-1) {
                             push(@{$mux_table{$_}}, $hw_desc->{$_}{$reg}{_field}{_mux}{$elem});
                         }
@@ -1574,7 +1603,7 @@ sub generate_mx_table
 }
 
 sub generate_bchp_resources_c_file {
-    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv, $nonleafsmx, $leafsmx, $nodes, $hw_desc) = @_;
+    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv, $nonleafsmx, $leafsmx, $nodes, $hw_desc, $file) = @_;
     my @nonleafs = sort keys %$nonleafs;
     my @nonleafshw = sort keys %$nonleafshw;
     my @leafs = sort keys %$leafs;
@@ -1589,7 +1618,7 @@ sub generate_bchp_resources_c_file {
     @DV_all = sort @DV_all;
     @MX_all = sort @MX_all;
 
-    open(my $fh, ">bchp_pwr_resources.c") or die "Can't open output file bchp_pwr_resources.c";
+    open(my $fh, ">$file") or die "Can't open output file $file";
 
     my @lines = generate_brcm_copyright_header();
     print $fh @lines;
@@ -1676,10 +1705,32 @@ sub generate_bchp_resources_c_file {
     print $fh @lines;
 
     close $fh;
+
+    print "Output: $file\n";
+}
+
+sub get_bchp_path {
+    my ($chp, $ver) = @_;
+    my $cur_dir = abs_path(getcwd);
+    my $src_dir = ".";
+    my $inc_dir = ".";
+    if ($cur_dir =~ /(BSEAV|nexus|magnum|rockford)/) {
+        my $top_dir = substr($cur_dir, 0, rindex($cur_dir, $1));
+        if (-e ($top_dir."BSEAV") &&
+            -e ($top_dir."nexus") &&
+            -e ($top_dir."magnum") &&
+            -e ($top_dir."rockford")) {
+            my $ver_lc = lc $ver;
+            $src_dir = $top_dir."magnum/basemodules/chp/src/".$chp."/pwr/".$ver_lc;
+            $inc_dir = $top_dir."magnum/basemodules/chp/include/".$chp."/common/pwr/".$ver_lc;
+        }
+    }
+
+    return ($src_dir, $inc_dir);
 }
 
 sub generate_bchp_files {
-    my ($nodes, $hw_desc, $chp) = @_;
+    my ($nodes, $hw_desc, $chp, $ver) = @_;
     my (%nonleafs, %nonleafshw, %leafs, %nonleafsdv, %leafsdv, %nonleafsmx, %leafsmx);
 
     foreach my $node (keys %$nodes) {
@@ -1721,15 +1772,46 @@ sub generate_bchp_files {
         }
     }
 
-    generate_bchp_resources_txt_file($nodes, $chp);
-    generate_bchp_impl_c_file($hw_desc);
-    generate_bchp_resources_priv_h_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx);
-    generate_bchp_resources_h_file(\%nonleafs);
-    generate_bchp_resources_c_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx, $nodes, $hw_desc);
+    my ($src_dir, $inc_dir) = get_bchp_path($chp, $ver);
+    generate_bchp_resources_txt_file($nodes, $src_dir."/bchp_pwr_resources_".$chp.".txt");
+    generate_bchp_impl_c_file($hw_desc, $src_dir."/bchp_pwr_impl.c");
+    generate_bchp_resources_priv_h_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx, $src_dir."/bchp_pwr_resources_priv.h");
+    generate_bchp_resources_h_file(\%nonleafs, $inc_dir."/bchp_pwr_resources.h");
+    generate_bchp_resources_c_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx, $nodes, $hw_desc, $src_dir."/bchp_pwr_resources.c");
+}
+
+sub get_rdb_path {
+    my ($chp, $ver) = @_;
+    my $cnt = 0;
+    my $prefix = "projects";
+    my $cur_dir = getcwd;
+    my $dir;
+
+    if (hostname =~ /stbirv-bld-1/) {
+        $prefix = "project_it";
+    }
+
+    $dir = "/".$prefix."/BCM".$chp."/".$ver."/snapshot";
+
+    while ( -l $dir ) {
+        my($filename, $directory, $suffix) = fileparse($dir);
+
+        chdir($directory);
+
+        $dir = readlink($filename) ;
+        $dir =~ s/projects/$prefix/;
+
+        $cnt++;
+        if ($cnt > 10) { last; }
+    }
+
+    chdir($cur_dir);
+
+    return $dir;
 }
 
 sub main {
-	my (%clk_tree, %functions, %nodes, %hw_desc);
+	my (%clk_tree, %functions, %nodes, %hw_desc, %featuredef);
     my ($chp, $ver, $dir, $perf, $dbg);
     my @files;
 
@@ -1760,7 +1842,7 @@ sub main {
         return;
     }
     if(not defined $dir) {
-        $dir = "/projects/BCM".$chp."/".$ver."/snapshot";
+        $dir = get_rdb_path($chp, $ver);
     }
 
     print "\n\n";
@@ -1776,12 +1858,14 @@ sub main {
     my $clkgen_dir = $dir."/design/clkgen/rdb/*.rdb" if -e $dir."/design/clkgen/rdb/clkgen.rdb";
     my $avstop_dir = $dir."/design/avs_top/rdb/avs_top_ctrl.rdb" if -e $dir."/design/avs_top/rdb/avs_top_ctrl.rdb";
     my $sysctrl_dir = $dir."/design/sys_ctrl/rdb/sram_pda.rdb" if -e $dir."/design/sys_ctrl/rdb/sram_pda.rdb";
+    my $audiop_dir = $dir."/design/brahms/iop/rdb/aud_iop_top.rdb" if -e $dir."/design/brahms/iop/rdb/aud_iop_top.rdb";
 
     push(@files, glob("$clkgen_dir")) if ($clkgen_dir);
     push(@files, glob("$avstop_dir")) if ($avstop_dir);
     push(@files, glob("$sysctrl_dir")) if ($sysctrl_dir);
+    push(@files, glob("$audiop_dir")) if ($audiop_dir);
 
-	parse_rdb_file($_, \%clk_tree)  foreach (@files);
+	parse_rdb_file($_, \%clk_tree, \%featuredef)  foreach (@files);
 
 	verify_tree(\%clk_tree);
 
@@ -1790,9 +1874,9 @@ sub main {
     if(not defined $perf) {
         generate_nexus_nodes(\%clk_tree, \%functions, \%nodes, \%hw_desc);
 
-        generate_user_defined_nodes(\%nodes);
+        generate_user_defined_nodes(\%nodes, \%featuredef);
 
-        generate_bchp_files(\%nodes, \%hw_desc, $chp);
+        generate_bchp_files(\%nodes, \%hw_desc, $chp, $ver);
 
         if(defined $dbg) {
             my $fh;

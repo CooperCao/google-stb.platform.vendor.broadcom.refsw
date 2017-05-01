@@ -157,10 +157,7 @@ void NEXUS_SimpleVideoDecoderModule_CheckCache(
     NEXUS_VideoDecoderHandle videoDecoder /* attr{null_allowed=y} */
     );
 
-/**
-Summary:
-Allow simple decoder to load default settings from a freshly opened handle
-**/
+/* deprecated */
 void NEXUS_SimpleVideoDecoderModule_LoadDefaultSettings(
     NEXUS_VideoDecoderHandle video
     );

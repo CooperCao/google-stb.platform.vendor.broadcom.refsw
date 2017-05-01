@@ -44,11 +44,17 @@
 BDBG_MODULE(nexus_xpt_dma);
 #define BDBG_MSG_TRACE(x) /* BDBG_MSG(x) */
 
+typedef struct NEXUS_P_DmaPidChannel {
+    BLST_S_ENTRY(NEXUS_P_DmaPidChannel) link;
+    NEXUS_P_HwPidChannel *pid_channel;
+} NEXUS_P_DmaPidChannel;
+
 typedef struct NEXUS_DmaJob
 {
     NEXUS_OBJECT(NEXUS_DmaJob);
     BLST_S_ENTRY(NEXUS_DmaJob) jobNode;
     BLST_SQ_ENTRY(NEXUS_DmaJob) activeNode;
+    BLST_S_HEAD(NEXUS_P_DmaPidList, NEXUS_P_DmaPidChannel) pid_list;
 
     BXPT_Dma_ContextHandle ctx;
     NEXUS_DmaHandle parent;
@@ -63,7 +69,11 @@ typedef struct NEXUS_DmaJob
         NEXUS_DmaJob_P_StateIdle,
         NEXUS_DmaJob_P_StateQueued /* job is queued in activeNode */
     } state;
-    BKNI_EventHandle nexusEvent; /* event that is used to notify nexus module */
+
+    struct {
+        void (*function)(void*);
+        void *context;
+    } cryptoCallback;
     NEXUS_DmaJobSettings settings;
     unsigned numBlocks;
     bool flushAfter; /* true if ANY NEXUS_DmaJobBlockSettings[].cached is true. i.e. flushAfter is per-job, while .cached is per-jobBlock */
@@ -139,7 +149,14 @@ static NEXUS_Error NEXUS_Dma_P_ApplySettings(
 
 static void NEXUS_Dma_P_Finalizer(NEXUS_DmaHandle handle)
 {
+    NEXUS_DmaJob *pJob;
     NEXUS_OBJECT_ASSERT(NEXUS_Dma, handle);
+
+    while ((pJob = BLST_S_FIRST(&handle->jobList))) {
+        BDBG_WRN(("NEXUS_Dma_Close: stale job %#lx", (unsigned long)pJob));
+        NEXUS_OBJECT_UNREGISTER(NEXUS_DmaJob, pJob, Destroy);
+        NEXUS_DmaJob_Destroy(pJob);
+    }
 
     BLST_S_REMOVE(&pTransport->dmaChannel[handle->index].dmaHandles, handle, NEXUS_Dma, link);
     if (BLST_S_EMPTY(&pTransport->dmaChannel[handle->index].dmaHandles)) {
@@ -152,17 +169,8 @@ static void NEXUS_Dma_P_Finalizer(NEXUS_DmaHandle handle)
 
 static void NEXUS_Dma_P_Release(NEXUS_DmaHandle handle)
 {
-    NEXUS_DmaJob *pJob;
-
     NEXUS_OBJECT_ASSERT(NEXUS_Dma, handle);
     NEXUS_CLIENT_RESOURCES_RELEASE(dma,Count,NEXUS_ANY_ID);
-
-    /* forcefully close jobs, this among other things would release reference counter for NEXUS_Dma, so NEXUS_Dma_Close would get called */
-    while ((pJob = BLST_S_FIRST(&handle->jobList))) {
-        BDBG_WRN(("NEXUS_Dma_Close: stale job %#lx", (unsigned long)pJob));
-        NEXUS_OBJECT_UNREGISTER(NEXUS_DmaJob, pJob, Destroy);
-        NEXUS_DmaJob_Destroy(pJob);
-    }
     return;
 }
 
@@ -411,13 +419,50 @@ error:
     return rc;
 }
 
+NEXUS_Error
+NEXUS_DmaJob_P_HwPidChannel_Disconnect(NEXUS_DmaJobHandle handle, NEXUS_P_HwPidChannel *pidChannel)
+{
+    BERR_Code rc;
+    NEXUS_P_DmaPidChannel *dma_pid;
+    unsigned index = pidChannel->status.pidChannelIndex - BXPT_P_MEMDMA_PID_CHANNEL_START;
+
+    BLST_S_DICT_FIND(&handle->pid_list, dma_pid, pidChannel, pid_channel, link);
+    if(dma_pid==NULL) {
+        BDBG_WRN(("NEXUS_ClosePidChannel: %#lx can't find pid:%#lx", (unsigned long)handle, (unsigned long)pidChannel));
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto err_not_found;
+    }
+    BLST_S_DICT_REMOVE(&handle->pid_list, dma_pid, pidChannel, NEXUS_P_DmaPidChannel, pid_channel, link);
+    BKNI_Free(dma_pid);
+
+    BXPT_Dma_Context_ConfigurePidChannel(handle->ctx, pidChannel->status.pidChannelIndex, 0, false);
+
+    if (pidChannel->status.pidChannelIndex < BXPT_P_MEMDMA_PID_CHANNEL_START) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    if (pTransport->hwDmaPidChannelRefCnt[index]) {
+        pTransport->hwDmaPidChannelRefCnt[index]--;
+    }
+
+    pTransport->hwDmaPidChannelRefCnt[index]++;
+    return 0;
+
+err_not_found:
+    return rc;
+}
+
 static void NEXUS_DmaJob_P_Finalizer(NEXUS_DmaJobHandle handle)
 {
+    NEXUS_P_DmaPidChannel *next_dma_pid;
     NEXUS_OBJECT_ASSERT(NEXUS_DmaJob, handle);
+    for (next_dma_pid = BLST_S_FIRST(&handle->pid_list); next_dma_pid;) {
+        NEXUS_P_DmaPidChannel *dma_pid = next_dma_pid;
+        next_dma_pid = BLST_S_NEXT(dma_pid, link);
+        NEXUS_PidChannel_Close(BLST_S_FIRST(&dma_pid->pid_channel->swPidChannels));
+    }
     BXPT_Dma_Context_Destroy(handle->ctx);
 
     BLST_S_REMOVE(&handle->parent->jobList, handle, NEXUS_DmaJob, jobNode);
-    NEXUS_OBJECT_RELEASE(handle, NEXUS_Dma, handle->parent);
     NEXUS_UnregisterEvent(handle->completionEventHandler);
     BKNI_DestroyEvent(handle->completionEvent);
     NEXUS_TaskCallback_Destroy(handle->completionCallback);
@@ -463,6 +508,7 @@ NEXUS_DmaJobHandle NEXUS_DmaJob_Create(
 
     BKNI_Memset(pJob, 0, sizeof(*pJob)+sizeof(BXPT_Dma_ContextBlockSettings)*(pSettings->numBlocks));
     NEXUS_OBJECT_INIT(NEXUS_DmaJob, pJob);
+    BLST_S_INIT(&pJob->pid_list);
 
     pJob->memory = BKNI_Malloc(sizeof(*pJob->memory)*pSettings->numBlocks);
     if (NULL == pJob->memory) {
@@ -470,7 +516,6 @@ NEXUS_DmaJobHandle NEXUS_DmaJob_Create(
         goto error;
     }
     BKNI_Memset(pJob->memory, 0, sizeof(*pJob->memory)*pSettings->numBlocks);
-    pJob->nexusEvent = NULL;
     pJob->parent = dmaHandle;
     pJob->settings = *pSettings;
     pJob->completionCallback = NEXUS_TaskCallback_Create(pJob, NULL);
@@ -498,12 +543,18 @@ NEXUS_DmaJobHandle NEXUS_DmaJob_Create(
 
     /* in XPT_DMA, certain settings are per-channel, not per-context.
        new jobs must match old jobs' settings */
-    pFirstJob = BLST_S_FIRST(&dmaHandle->jobList);
-    if (pFirstJob) {
-        if ((pFirstJob->settings.dataFormat != pSettings->dataFormat) || pFirstJob->settings.timestampType != pSettings->timestampType) {
-            rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
-            BXPT_Dma_Context_Destroy(pJob->ctx);
-            goto error;
+    {
+        NEXUS_DmaHandle d;
+        for (d=BLST_S_FIRST(&pTransport->dmaChannel[dmaHandle->index].dmaHandles); d; d=BLST_S_NEXT(d, link)) {
+            pFirstJob = BLST_S_FIRST(&d->jobList);
+            if (pFirstJob) {
+                if ((pFirstJob->settings.dataFormat != pSettings->dataFormat) || pFirstJob->settings.timestampType != pSettings->timestampType) {
+                    BDBG_ERR(("NEXUS_DmaDataFormat and TimestampType must match for all jobs created against channel %u", dmaHandle->index));
+                    rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                    BXPT_Dma_Context_Destroy(pJob->ctx);
+                    goto error;
+                }
+            }
         }
     }
 
@@ -512,9 +563,6 @@ NEXUS_DmaJobHandle NEXUS_DmaJob_Create(
         BXPT_Dma_Context_Destroy(pJob->ctx);
         goto error;
     }
-
-    NEXUS_OBJECT_ACQUIRE(pJob, NEXUS_Dma, dmaHandle); /* acquire parent when job added, so if job is used inside nexus it's parent wouldn't get released */
-    
     BLST_S_INSERT_HEAD(&dmaHandle->jobList, pJob, jobNode);
     return pJob;
 
@@ -640,9 +688,13 @@ static void NEXUS_Dma_P_CompleteEvent(void* context)
             NEXUS_FlushCache(handle->memory[i].dstAddrPtr, pSettings->size);
         }
         handle->flushAfter = false;
-     }
+    }
 
-     NEXUS_TaskCallback_Fire(handle->completionCallback);
+    if (handle->cryptoCallback.function) {
+        handle->cryptoCallback.function(handle->cryptoCallback.context);
+        handle->cryptoCallback.function = NULL;
+    }
+    NEXUS_TaskCallback_Fire(handle->completionCallback);
 }
 
 static void NEXUS_Dma_P_CompleteCallback_isr(void *pParam, int iParam)
@@ -654,9 +706,6 @@ static void NEXUS_Dma_P_CompleteCallback_isr(void *pParam, int iParam)
     BSTD_UNUSED(iParam);
 
     BSTD_UNUSED(i);
-    if (handle->nexusEvent) {
-        BKNI_SetEvent_isr(handle->nexusEvent);
-    }
     BKNI_SetEvent_isr(handle->completionEvent);
 }
 
@@ -844,14 +893,73 @@ NEXUS_DmaJob_ProcessBlocksOffset(
 
 /* used by nexus_playpump_crypto.c, nexus_recpump.c, etc */
 NEXUS_Error
-NEXUS_DmaJob_ProcessBlocks_priv(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockSettings *pSettings, unsigned nBlocks, BKNI_EventHandle event)
+NEXUS_DmaJob_ProcessBlocks_priv(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockSettings *pSettings, unsigned nBlocks, void (*callback)(void *), void *context)
 {
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(handle, NEXUS_DmaJob);
     BDBG_ASSERT(NULL != pSettings);
 
-    handle->nexusEvent = event;
+    handle->cryptoCallback.function = callback;
+    handle->cryptoCallback.context = context;
     return NEXUS_DmaJob_P_ProcessBlocks(handle, pSettings, nBlocks);
+}
+
+NEXUS_PidChannelHandle NEXUS_DmaJob_OpenPidChannel(NEXUS_DmaJobHandle handle, unsigned pid, const NEXUS_PidChannelSettings *pSettings)
+{
+    NEXUS_PidChannelSettings pidSettings;
+    NEXUS_PidChannelHandle pidChannel;
+    NEXUS_P_DmaPidChannel *dma_pid = NULL;
+    BERR_Code rc;
+
+    if (handle->settings.dataFormat!=NEXUS_DmaDataFormat_eMpeg) {
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return NULL;
+    }
+    if (handle->settings.keySlot || handle->settings.bypassKeySlot) {
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return NULL;
+    }
+
+    if (pSettings==NULL) {
+        NEXUS_PidChannel_GetDefaultSettings(&pidSettings);
+    }
+    else {
+        pidSettings = *pSettings;
+    }
+    if (pidSettings.pidChannelIndex!=NEXUS_PID_CHANNEL_OPEN_ANY) {
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return NULL;
+    }
+
+    pidChannel = NEXUS_PidChannel_OpenDma_Priv(pid, &pidSettings);
+    if (pidChannel==NULL) {
+        goto error;
+    }
+    NEXUS_OBJECT_REGISTER(NEXUS_PidChannel, pidChannel, Open);
+
+    pidChannel->hwPidChannel->dma = handle;
+    rc = BXPT_Dma_Context_ConfigurePidChannel(handle->ctx, pidChannel->hwPidChannel->status.pidChannelIndex, pid, true);
+    if (rc) {
+        goto error;
+    }
+
+    dma_pid = BKNI_Malloc(sizeof(*dma_pid));
+    if (!dma_pid) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto error; }
+    BKNI_Memset(dma_pid, 0, sizeof(*dma_pid));
+    dma_pid->pid_channel = pidChannel->hwPidChannel;
+    BLST_S_DICT_ADD(&handle->pid_list, dma_pid, NEXUS_P_DmaPidChannel, pid_channel, link, error);
+
+    BDBG_MSG(("Allocate DMA pidchannel %u,%p:%p", pidChannel->hwPidChannel->status.pidChannelIndex, (void*)pidChannel, (void*)pidChannel->hwPidChannel));
+    return pidChannel;
+
+error:
+    if (dma_pid) {
+        BKNI_Free(dma_pid);
+    }
+    if (pidChannel) {
+        NEXUS_PidChannel_Close(pidChannel);
+    }
+    return 0;
 }
 
 unsigned NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot bypassKeySlot)
@@ -868,79 +976,57 @@ unsigned NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot bypa
     }
 }
 
-/* 
-TODO: this code needs to be refactored when NEXUS_Security_AddPidChannelToKeySlot() is refactored 
-to take a NEXUS_KeySlot and NEXUS_PidChannel.
-for now, we create a fake NEXUS_PidChannel object for maintaining the pool of dma pid channels, 
-and for communicating the pidchannel number to nexus_security.
-note, we cannot call NEXUS_P_HwPidChannel_Open() without refactoring that function because 
-regular pidchannels and dma pidchannels are currently maintained separately.
-*/
-NEXUS_PidChannelHandle 
-NEXUS_PidChannel_OpenDma_Priv(void)
+NEXUS_PidChannelHandle NEXUS_PidChannel_OpenDma_Priv(unsigned pid, const NEXUS_PidChannelSettings *pSettings)
 {
-    NEXUS_PidChannelHandle pidChannel;
-    NEXUS_P_HwPidChannel *hwPidChannel;
     unsigned index;
     bool found = false;
+    NEXUS_PidChannelHandle pidChannel = NULL;
+    NEXUS_P_HwPidChannel *hwPidChannel = NULL;
     unsigned lowestReservedPidChannel = NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eMax-1);
+    unsigned highestReservedPidChannel = NEXUS_NUM_DMA_CHANNELS + 1; /* +1 for SAGE-reserved channel */
+    BSTD_UNUSED(pSettings);
 
-    for (index=0; index<lowestReservedPidChannel; index++) {
+    for (index=highestReservedPidChannel; index<lowestReservedPidChannel; index++) {
         if (pTransport->hwDmaPidChannelRefCnt[index] == 0) {
             found = true;
             break;
         }
     }
-
     if (!found) {
         BDBG_ERR(("No more DMA pid channels available"));
         return NULL;
     }
 
-    pidChannel = BKNI_Malloc(sizeof(*pidChannel));
-    if (!pidChannel) {
-        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-        return NULL;
-    }    
     hwPidChannel = BKNI_Malloc(sizeof(*hwPidChannel));
     if (!hwPidChannel) {
         BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-        BKNI_Free(pidChannel);
         return NULL;
     }
-    NEXUS_OBJECT_INIT(NEXUS_PidChannel, pidChannel);
     NEXUS_OBJECT_INIT(NEXUS_P_HwPidChannel, hwPidChannel);
-    pidChannel->hwPidChannel = hwPidChannel;
-    hwPidChannel->status.pidChannelIndex = BXPT_P_MEMDMA_PID_CHANNEL_START + index;    
+    BLST_S_INIT(&hwPidChannel->swPidChannels);
+    hwPidChannel->playpump = NULL;
+    hwPidChannel->parserBand = NULL;
+    hwPidChannel->status.pid = pid;
+    hwPidChannel->status.pidChannelIndex = BXPT_P_MEMDMA_PID_CHANNEL_START + index;
+    hwPidChannel->settingsPrivValid = false;
+    pidChannel = NEXUS_PidChannel_P_Create(hwPidChannel);
+    if (!pidChannel) {
+        BKNI_Free(hwPidChannel);
+    }
     pTransport->hwDmaPidChannelRefCnt[index]++;
-    BKNI_EnterCriticalSection();
-    BLST_S_INSERT_HEAD(&pTransport->dmaPidChannels, pidChannel, link);
-    BKNI_LeaveCriticalSection();
-
     return pidChannel;
-
 }
 
 void NEXUS_PidChannel_CloseDma_Priv(NEXUS_PidChannelHandle pidChannel)
 {
-    NEXUS_PidChannelHandle pidCh = NULL;
-    bool found = false;
-    for (pidCh = BLST_S_FIRST(&pTransport->dmaPidChannels); pidCh; pidCh = BLST_S_NEXT(pidCh, link)) {
-        if (pidCh==pidChannel) {
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) {
-        BDBG_ERR(("Could not find DMA pid channel %p", (void *)pidChannel));
+    unsigned index = pidChannel->hwPidChannel->status.pidChannelIndex-BXPT_P_MEMDMA_PID_CHANNEL_START;
+    if (pidChannel->hwPidChannel->status.pidChannelIndex < BXPT_P_MEMDMA_PID_CHANNEL_START) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
-
-    BKNI_EnterCriticalSection();
-    BLST_S_REMOVE(&pTransport->dmaPidChannels, pidChannel, NEXUS_PidChannel, link);
-    BKNI_LeaveCriticalSection();
-    pTransport->hwDmaPidChannelRefCnt[pidChannel->hwPidChannel->status.pidChannelIndex-BXPT_P_MEMDMA_PID_CHANNEL_START]--;
+    if (pTransport->hwDmaPidChannelRefCnt[index]) {
+        pTransport->hwDmaPidChannelRefCnt[index]--;
+    }
     BKNI_Free(pidChannel->hwPidChannel);
     BKNI_Free(pidChannel);
 }

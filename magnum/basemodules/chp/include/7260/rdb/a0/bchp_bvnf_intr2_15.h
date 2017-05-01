@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,18 +70,18 @@
 /***************************************************************************
  *BVNF_INTR2_15 - BVN Front Interrupt Controller 15 (RDC Triggers _63_32_ to RAAGA) Registers
  ***************************************************************************/
-#define BCHP_BVNF_INTR2_15_RAAGA0_STATUS         0x20604f00 /* [RO] RAAGA0 interrupt Status Register */
-#define BCHP_BVNF_INTR2_15_RAAGA0_SET            0x20604f04 /* [WO] RAAGA0 interrupt Set Register */
-#define BCHP_BVNF_INTR2_15_RAAGA0_CLEAR          0x20604f08 /* [WO] RAAGA0 interrupt Clear Register */
-#define BCHP_BVNF_INTR2_15_RAAGA0_MASK_STATUS    0x20604f0c /* [RO] RAAGA0 interrupt Mask Status Register */
-#define BCHP_BVNF_INTR2_15_RAAGA0_MASK_SET       0x20604f10 /* [WO] RAAGA0 interrupt Mask Set Register */
-#define BCHP_BVNF_INTR2_15_RAAGA0_MASK_CLEAR     0x20604f14 /* [WO] RAAGA0 interrupt Mask Clear Register */
-#define BCHP_BVNF_INTR2_15_RAAGA1_STATUS         0x20604f18 /* [RO] RAAGA1 interrupt Status Register */
-#define BCHP_BVNF_INTR2_15_RAAGA1_SET            0x20604f1c /* [WO] RAAGA1 interrupt Set Register */
-#define BCHP_BVNF_INTR2_15_RAAGA1_CLEAR          0x20604f20 /* [WO] RAAGA1 interrupt Clear Register */
-#define BCHP_BVNF_INTR2_15_RAAGA1_MASK_STATUS    0x20604f24 /* [RO] RAAGA1 interrupt Mask Status Register */
-#define BCHP_BVNF_INTR2_15_RAAGA1_MASK_SET       0x20604f28 /* [WO] RAAGA1 interrupt Mask Set Register */
-#define BCHP_BVNF_INTR2_15_RAAGA1_MASK_CLEAR     0x20604f2c /* [WO] RAAGA1 interrupt Mask Clear Register */
+#define BCHP_BVNF_INTR2_15_RAAGA0_STATUS         0x20604f00 /* [RO][32] RAAGA0 interrupt Status Register */
+#define BCHP_BVNF_INTR2_15_RAAGA0_SET            0x20604f04 /* [WO][32] RAAGA0 interrupt Set Register */
+#define BCHP_BVNF_INTR2_15_RAAGA0_CLEAR          0x20604f08 /* [WO][32] RAAGA0 interrupt Clear Register */
+#define BCHP_BVNF_INTR2_15_RAAGA0_MASK_STATUS    0x20604f0c /* [RO][32] RAAGA0 interrupt Mask Status Register */
+#define BCHP_BVNF_INTR2_15_RAAGA0_MASK_SET       0x20604f10 /* [WO][32] RAAGA0 interrupt Mask Set Register */
+#define BCHP_BVNF_INTR2_15_RAAGA0_MASK_CLEAR     0x20604f14 /* [WO][32] RAAGA0 interrupt Mask Clear Register */
+#define BCHP_BVNF_INTR2_15_RAAGA1_STATUS         0x20604f18 /* [RO][32] RAAGA1 interrupt Status Register */
+#define BCHP_BVNF_INTR2_15_RAAGA1_SET            0x20604f1c /* [WO][32] RAAGA1 interrupt Set Register */
+#define BCHP_BVNF_INTR2_15_RAAGA1_CLEAR          0x20604f20 /* [WO][32] RAAGA1 interrupt Clear Register */
+#define BCHP_BVNF_INTR2_15_RAAGA1_MASK_STATUS    0x20604f24 /* [RO][32] RAAGA1 interrupt Mask Status Register */
+#define BCHP_BVNF_INTR2_15_RAAGA1_MASK_SET       0x20604f28 /* [WO][32] RAAGA1 interrupt Mask Set Register */
+#define BCHP_BVNF_INTR2_15_RAAGA1_MASK_CLEAR     0x20604f2c /* [WO][32] RAAGA1 interrupt Mask Clear Register */
 
 /***************************************************************************
  *RAAGA0_STATUS - RAAGA0 interrupt Status Register

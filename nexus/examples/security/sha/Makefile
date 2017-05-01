@@ -1,5 +1,5 @@
 #############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,20 +36,8 @@
 #  ANY LIMITED REMEDY.
 ############################################################
 
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP ?= $(shell cd ../../.. && cd)
-else
-NEXUS_TOP ?= $(shell cd ../../.. ; pwd)
-endif
+APPS = security_sha
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include ../../Makefile.inc
 
 include ${NEXUS_TOP}/examples/security/utils/utils.in
-
-THEAPPS = security_sha
-
-include ${NEXUS_TOP}/examples/Makefile.inc

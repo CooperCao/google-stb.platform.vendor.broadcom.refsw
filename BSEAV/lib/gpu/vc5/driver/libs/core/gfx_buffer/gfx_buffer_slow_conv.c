@@ -1,8 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2014 Broadcom.
- All rights reserved.
-==============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gfx_buffer_slow_conv.h"
 
 #include "libs/core/lfmt/lfmt_fmt_detail.h"
@@ -638,7 +636,7 @@ void gfx_buffer_blit_func(
    if (log_trace_enabled())
    {
       GFX_BUFFER_SPRINT_XFORM_SEQ(seq_desc, xform_seq);
-      log_trace("%s: %s", VCOS_FUNCTION, seq_desc);
+      log_trace("%s: %s", __FUNCTION__, seq_desc);
    }
 
    check_blit_rect_within_buffer(dst, width, height, depth);

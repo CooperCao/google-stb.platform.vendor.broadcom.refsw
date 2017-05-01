@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+* Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -556,7 +556,7 @@ NEXUS_Error NEXUS_P_ClientCall_InVarArg(NEXUS_P_ClientCall_State *state, unsigne
             return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         }
         /* field is the pointer into the state->data, so adjust it if data was relocated */
-        /* freed pointer only used in the pointer math, it is not dereferenced */
+        /* freed pointer ('old_data') only used in the pointer math, it is not dereferenced */
         /* coverity[use_after_free: FALSE] */
         field = (void *)((uint8_t *)state->data + ((uint8_t *)field - (uint8_t *)old_data));
         *field = (uint8_t *)data - (uint8_t *)state->data - state->header;
@@ -571,14 +571,16 @@ NEXUS_Error NEXUS_P_ClientCall_InVarArg(NEXUS_P_ClientCall_State *state, unsigne
 NEXUS_Error NEXUS_P_ClientCall_InVarArg_AddrField(NEXUS_P_ClientCall_State *state, unsigned struct_size, unsigned field_offset, unsigned count, int varArg, int *varArgField)
 {
     if(varArg!=-1) {
-        const void *varArgData = (uint8_t *)state->data  + varArg + state->header;
         void *old_data = state->data;
         NEXUS_Addr *dataAddr = NEXUS_P_ClientCall_InVarArg_Alloc(state, count*sizeof(NEXUS_Addr));
+        const void *varArgData = (uint8_t *)state->data  + varArg + state->header;
         unsigned i;
         if(dataAddr==NULL) {
             return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         }
         /* varArgField is the pointer into the state->data, so adjust it if data was relocated */
+        /* freed pointer only used in the pointer math, it is not dereferenced */
+        /* coverity[use_after_free: FALSE] */
         varArgField = (void *)((uint8_t *)state->data + ((uint8_t *)varArgField - (uint8_t *)old_data));
         *varArgField= (uint8_t *)dataAddr - (uint8_t *)state->data - state->header;
         for(i=0;i<count;i++) {
@@ -597,11 +599,6 @@ static void *NEXUS_P_ClientCall_OutVarArg_Ptr(NEXUS_P_ClientCall_State *state, u
 {
     void *data;
 
-    if(vararg_offset < 0) {
-        (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return NULL;
-    }
-
     vararg_size = B_IPC_DATA_ALIGN(vararg_size);
     if(vararg_size + vararg_offset + state->header > state->size) {
         (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -613,9 +610,11 @@ static void *NEXUS_P_ClientCall_OutVarArg_Ptr(NEXUS_P_ClientCall_State *state, u
 
 void NEXUS_P_ClientCall_OutVarArg(NEXUS_P_ClientCall_State *state, unsigned vararg_size, void *dest, int vararg_offset)
 {
-    void *src = NEXUS_P_ClientCall_OutVarArg_Ptr(state, vararg_size, vararg_offset);
-    if(src && dest) {
-        BKNI_Memcpy(dest, src, vararg_size);
+    if(vararg_offset >= 0) {
+        void *src = NEXUS_P_ClientCall_OutVarArg_Ptr(state, vararg_size, vararg_offset);
+        if(src && dest) {
+            BKNI_Memcpy(dest, src, vararg_size);
+        }
     }
     return;
 }

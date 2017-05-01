@@ -42,6 +42,7 @@
 #include "board.h"
 
 #include "graphics_nx.h"
+#include "power_nx.h"
 #include "band_nx.h"
 #include "remote_nx.h"
 

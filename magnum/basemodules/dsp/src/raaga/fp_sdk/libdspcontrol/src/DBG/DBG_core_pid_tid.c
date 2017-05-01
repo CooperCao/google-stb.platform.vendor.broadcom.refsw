@@ -247,6 +247,7 @@ DBG_core_pid_info_alloc(dbg_pid_t pid, uint8_t u8_core,
     p_pid_info->process_state  = process_state;
     p_pid_info->u8_process_attach = 0;
     p_pid_info->u8_kill_pending = 0;
+    p_pid_info->u8_process_created = 0;
 
     if(p_thread_list != NULL && u16_num_threads != 0)
     {
@@ -526,6 +527,18 @@ uint8_t
 DBG_core_is_process_attached(dbg_core_pid_info_t *p_pid_info)
 {
     return p_pid_info->u8_process_attach;
+}
+
+void
+DBG_core_process_created(dbg_core_pid_info_t *p_pid_info)
+{
+    p_pid_info->u8_process_created = 1;
+}
+
+uint8_t
+DBG_core_is_process_created(dbg_core_pid_info_t *p_pid_info)
+{
+    return p_pid_info->u8_process_created;
 }
 
 bool

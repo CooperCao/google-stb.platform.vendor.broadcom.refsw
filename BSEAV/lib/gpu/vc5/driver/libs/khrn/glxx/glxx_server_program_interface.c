@@ -1,14 +1,6 @@
-/*=============================================================================
- * Broadcom Proprietary and Confidential. (c)2015 Broadcom.
- * All rights reserved.
- *
- * Project  :  khronos
- * Module   :  Header file
- *
- * FILE DESCRIPTION
- * Program interface API functions for ES3.1
- * =============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "libs/util/log/log.h"
 #include "../common/khrn_int_common.h"
@@ -33,7 +25,7 @@ static size_t strzncpy(char *dst, const char *src, size_t len)
 {
    // strncpy zero pads to len, but dEQP expects that we don't overrun
    // our src length, so clamp to that too.
-   len = vcos_min(len, strlen(src) + 1);
+   len = gfx_zmin(len, strlen(src) + 1);
    if (dst && len > 0)
    {
       strncpy(dst, src, len);
@@ -73,31 +65,6 @@ static int get_basename_length(const char *name)
    return len;
 }
 
-static int count_indices(const char *name)
-{
-   int len = strlen(name) - 1;
-   int count = 0;
-
-   if (len >= 0)
-      if (name[len] != ']')
-         return 0;
-
-   while (len >= 0)
-   {
-      if (name[len] == '[')
-      {
-         count++;
-
-         // Early exit if possible
-         if (len > 0 && name[len - 1] != ']')
-            return count;
-      }
-      len--;
-   }
-
-   return count;
-}
-
 static int get_array_offset(const char *name, int32_t pos)
 {
    int len = strlen(name);
@@ -127,13 +94,13 @@ static int get_array_offset(const char *name, int32_t pos)
    return off;
 }
 
-static GLSL_BLOCK_MEMBER_T *get_block_member(GLSL_BLOCK_T *blocks, unsigned block_count, unsigned index, int *block_index)
+static const GLSL_BLOCK_MEMBER_T *get_block_member(const GLSL_BLOCK_T *blocks, unsigned block_count, unsigned index, int *block_index)
 {
    if (block_index) *block_index = -1;
 
    for (uint32_t b = 0; b < block_count; b++)
    {
-      GLSL_BLOCK_T *block = &blocks[b];
+      const GLSL_BLOCK_T *block = &blocks[b];
 
       if (index < block->num_members) {
          if (block_index) *block_index = block->index;
@@ -146,176 +113,70 @@ static GLSL_BLOCK_MEMBER_T *get_block_member(GLSL_BLOCK_T *blocks, unsigned bloc
    return NULL;
 }
 
-static GLSL_BLOCK_MEMBER_T *get_indexed_buffer(GLSL_PROGRAM_T *p, GLuint index, GLint *blockIndex)
+static const GLSL_BLOCK_MEMBER_T *get_indexed_buffer(const GLSL_PROGRAM_T *p, unsigned index, int *block_index)
 {
-   return get_block_member(p->buffer_blocks, p->num_buffer_blocks, index, blockIndex);
+   return get_block_member(p->buffer_blocks, p->num_buffer_blocks, index, block_index);
 }
 
-static GLSL_BLOCK_MEMBER_T *get_indexed_uniform(GLSL_PROGRAM_T *p, GLuint index, GLint *blockIndex)
+static const GLSL_BLOCK_MEMBER_T *get_indexed_uniform(const GLSL_PROGRAM_T *p, unsigned index, int *block_index)
 {
-   if (blockIndex)
-      *blockIndex = -1;
+   if (block_index)
+      *block_index = -1;
 
    if (index < p->default_uniforms.num_members)
       return &p->default_uniforms.members[index];
 
    index -= p->default_uniforms.num_members;
 
-   return get_block_member(p->uniform_blocks, p->num_uniform_blocks, index, blockIndex);
+   return get_block_member(p->uniform_blocks, p->num_uniform_blocks, index, block_index);
 }
 
-static bool inner_names_match(const char *in_name, const char *unif_name)
+static bool names_match(const char *name, const char *internal_name, bool is_array, int *array_offset)
 {
-   /* Names match if they're the same, or if appending '[0]' to in_name would make them the same */
-   if (!strcmp(in_name, unif_name))
-      return true; // Exact match
-
-   int unif_name_len = strlen(unif_name);
-   int in_name_len = strlen(in_name);
-
-   if (unif_name_len == in_name_len + 3)
-   {
-      if (!strncmp(in_name, unif_name, in_name_len) &&
-          !strncmp(unif_name + in_name_len, "[0]", 3))
-          return true;
+   /* If the name matches exactly, then this matches the start of the resource */
+   if (!strcmp(name, internal_name)) {
+      if (array_offset)
+         *array_offset = 0;
+      return true;
    }
 
-   return false;
-}
+   if (!is_array)
+      return false;
 
-typedef enum
-{
-   ARRAY,
-   NOT_ARRAY,
-   INTERNAL_NAME_IMPLIES_ARRAY
-} ARRAY_TYPE;
-
-// name is the name passed via the APIs
-// internal_name is the name stored internally
-// array_offset is filled with the array offset given in name
-//   if array_offset is NULL, array offsets other than 0 will not match
-//
-// array_type determines how we detect if internal_name is an array type:
-//    ARRAY     = internal_name is an array type, but won't have [0] as a suffix
-//    NOT_ARRAY = internal_name is not an array type
-//    INTERNAL_NAME_IMPLIES_ARRAY = if name ends with [0], it is an array, otherwise not
-//
-static bool names_match(const char *name, const char *internal_name, ARRAY_TYPE array_type, int *array_offset)
-{
-   const char *match_internal_name = NULL;
-   char *extended = NULL;
-   bool ret = false;
-
-   if (array_type == ARRAY)
-   {
-      // internal_name is an array type, but doesn't have [0] at the end.
-      // Add the [0] to make the remaining matching code the same for all cases.
-      char *extended = malloc(strlen(internal_name) + 3 + 1);
-      if (extended == NULL)
-         goto end2;
-      strcpy(extended, internal_name);
-      strcat(extended, "[0]");
-      match_internal_name = extended;
-   }
-   else
-      match_internal_name = internal_name;
-
-   // NOT_ARRAY and INTERNAL_NAME_IMPLIES_ARRAY are both covered by this code
+   int internal_len = strlen(internal_name);
    int len = get_basename_length(name);
    int off = get_array_offset(name, len);
 
    if (off < 0 || len < 0)
-   {
-      if (array_offset)
-         *array_offset = -1;
-      ret = false;  /* Invalid array offset specified */
-      goto end;
-   }
-
-   // name may or may not have a final array index attached
-   // a[0] or a[0][0] should both match with internal name a[0][0] for example
-   // a[0][1] should match with uniform a[0][0] and give an array_offset of 1
-
-   // So, we actually need to count the number of indices to decide what to do
-   int unif_index_count = count_indices(match_internal_name);
-   int name_index_count = count_indices(name);
+      return false;
+   if (len != internal_len || strncmp(name, internal_name, len))
+      return false;
 
    if (array_offset)
-   {
-      if (unif_index_count == name_index_count)
-         *array_offset = off;
-      else
-         *array_offset = 0;
-   }
-
-   // If neither name has array indexing, or if our name has one more element
-   // than the given name, do a standard name match.
-   if ((unif_index_count == 0 && name_index_count == 0) ||
-        unif_index_count == name_index_count + 1)
-   {
-      ret = inner_names_match(name, match_internal_name);
-   }
-   else if (unif_index_count == name_index_count)
-   {
-      // Both names have the same number of array indices.
-      // Strip the last index from the passed name and compare with our internal
-      // uniform. This effectively zeros the last index during the compare so it
-      // will match the internal name correctly.
-      GLchar *stripped = strdup(name);
-      if (stripped != NULL)
-      {
-         GLchar *s = stripped + strlen(stripped) - 1;
-         while (s > stripped && *s != '[')
-            s--;
-         *s = '\0';
-
-         ret = inner_names_match(stripped, match_internal_name);
-         free(stripped);
-      }
-   }
-
-end:
-   if (array_offset == NULL && off != 0)
-      ret = false;
-
-end2:
-   if (extended != NULL)
-      free(extended);
-
-   return ret;
+      *array_offset = off;
+   return true;
 }
 
-static int get_inout_location(GLSL_INOUT_T *vars, unsigned n_vars, const char *name) {
+static int get_inout_location(const GLSL_INOUT_T *vars, unsigned n_vars, const char *name) {
    for (unsigned i = 0; i < n_vars; i++) {
-      GLSL_INOUT_T *v = &vars[i];
-      int           off;
+      const GLSL_INOUT_T *v = &vars[i];
+      int off;
 
-      if (names_match(name, v->name, v->is_array ? ARRAY : NOT_ARRAY, &off) &&
-                      off < (int)v->array_size)
+      if (names_match(name, v->name, v->is_array, &off) && off < (int)v->array_size)
          return v->index + off;
    }
 
    return -1;
 }
 
-static GLint get_input_location(GLSL_PROGRAM_T *p, const GLchar *name)
-{
-   return get_inout_location(p->inputs, p->num_inputs, name);
-}
-
-static GLint get_output_location(GLSL_PROGRAM_T *p, const GLchar *name)
-{
-   return get_inout_location(p->outputs, p->num_outputs, name);
-}
-
-static GLint get_uniform_location(GLSL_PROGRAM_T *p, const GLchar *name)
+static int get_uniform_location(const GLSL_PROGRAM_T *p, const GLchar *name)
 {
    for (unsigned i = 0; i < p->default_uniforms.num_members; i++)
    {
-      GLSL_BLOCK_MEMBER_T *info = &p->default_uniforms.members[i];
+      const GLSL_BLOCK_MEMBER_T *info = &p->default_uniforms.members[i];
       int offset;
 
-      if (names_match(name, info->name, INTERNAL_NAME_IMPLIES_ARRAY, &offset) &&
+      if (names_match(name, info->name, info->is_array, &offset) &&
                       offset < (int)info->array_length)
          return info->offset + offset;
    }
@@ -323,7 +184,7 @@ static GLint get_uniform_location(GLSL_PROGRAM_T *p, const GLchar *name)
    return -1;
 }
 
-static GLSL_BLOCK_MEMBER_T *get_named_block_var(GLSL_BLOCK_T *blocks, int num_blocks, const char *name, unsigned *index)
+static const GLSL_BLOCK_MEMBER_T *get_named_block_var(const GLSL_BLOCK_T *blocks, int num_blocks, const char *name, unsigned *index)
 {
    *index = 0;
 
@@ -331,9 +192,9 @@ static GLSL_BLOCK_MEMBER_T *get_named_block_var(GLSL_BLOCK_T *blocks, int num_bl
    {
       for (unsigned u = 0; u < blocks[b].num_members; u++)
       {
-         GLSL_BLOCK_MEMBER_T *unif = &blocks[b].members[u];
+         const GLSL_BLOCK_MEMBER_T *unif = &blocks[b].members[u];
          int offset;
-         if (names_match(name, unif->name, INTERNAL_NAME_IMPLIES_ARRAY, &offset))
+         if (names_match(name, unif->name, unif->is_array, &offset))
          {
             if (offset == 0)  // We don't match indexed array items here
                return unif;
@@ -350,10 +211,9 @@ end:
    return NULL;
 }
 
-static GLSL_BLOCK_MEMBER_T *get_named_uniform(GL20_PROGRAM_T *prog, const GLchar *name, GLuint *index)
+static const GLSL_BLOCK_MEMBER_T *get_named_uniform(const GLSL_PROGRAM_T *p, const GLchar *name, GLuint *index)
 {
-   GLSL_PROGRAM_T *p = prog->common.linked_glsl_program;
-   GLSL_BLOCK_MEMBER_T *ret = get_named_block_var(&p->default_uniforms, 1, name, index);
+   const GLSL_BLOCK_MEMBER_T *ret = get_named_block_var(&p->default_uniforms, 1, name, index);
    if (ret) return ret;
 
    ret = get_named_block_var(p->uniform_blocks, p->num_uniform_blocks, name, index);
@@ -366,9 +226,8 @@ static GLSL_BLOCK_MEMBER_T *get_named_uniform(GL20_PROGRAM_T *prog, const GLchar
    return NULL;
 }
 
-static GLSL_BLOCK_MEMBER_T *get_named_buffer_var(GL20_PROGRAM_T *prog, const GLchar *name, GLuint *index)
+static const GLSL_BLOCK_MEMBER_T *get_named_buffer_var(const GLSL_PROGRAM_T *p, const GLchar *name, GLuint *index)
 {
-   GLSL_PROGRAM_T *p = prog->common.linked_glsl_program;
    return get_named_block_var(p->buffer_blocks, p->num_buffer_blocks, name, index);
 }
 
@@ -392,7 +251,7 @@ static bool is_program_interface(GLenum programInterface)
 
 #if KHRN_GLES31_DRIVER
 
-static int get_active_resources(GLSL_PROGRAM_T *p, GLenum programInterface)
+static int get_active_resources(const GLSL_PROGRAM_T *p, GLenum programInterface)
 {
    switch (programInterface)
    {
@@ -440,78 +299,68 @@ static int get_active_resources(GLSL_PROGRAM_T *p, GLenum programInterface)
    }
 }
 
-static GLenum get_max_name_length(GLSL_PROGRAM_T *p, GLenum programInterface, GLint *len)
-{
-   *len = 0;
+#endif
 
-   switch (programInterface)
+/* Return name length, adding '[0]' for an array, and including NULL terminator */
+static unsigned nonblock_name_len(const char *name, bool is_array) {
+   return strlen(name) + (is_array ? 3 : 0) + 1;
+}
+
+/* Same as for non-block, but block arrays get '[idx]' appended */
+static unsigned block_name_len(const char *name, bool is_array, unsigned idx) {
+   return strlen(name) + (is_array ? 3 + (int)log10(idx) : 0) + 1;
+}
+
+int glxx_get_max_name_length(const GLSL_PROGRAM_T *p, GLenum interface)
+{
+   int len = 0;
+
+   switch (interface)
    {
    case GL_UNIFORM:
       for (unsigned i = 0; i < p->default_uniforms.num_members; i++)
-         *len = vcos_max(*len, (GLint)strlen(p->default_uniforms.members[i].name));
+         len = gfx_smax(len, (int)nonblock_name_len(p->default_uniforms.members[i].name, p->default_uniforms.members[i].is_array));
 
       for (unsigned j = 0; j < p->num_uniform_blocks; j++)
          for (unsigned i = 0; i < p->uniform_blocks[j].num_members; i++)
-            *len = vcos_max(*len, (GLint)strlen(p->uniform_blocks[j].members[i].name));
+            len = gfx_smax(len, (int)nonblock_name_len(p->uniform_blocks[j].members[i].name, p->uniform_blocks[j].members[i].is_array));
       break;
    case GL_UNIFORM_BLOCK:
-      for (unsigned i = 0; i < p->num_uniform_blocks; i++)
-      {
-         GLSL_BLOCK_T *block = &p->uniform_blocks[i];
-         GLint l = strlen(block->name);
-         if (block->is_array)
-            l += 3 + (GLint)log10(block->array_length);
-         *len = vcos_max(*len, l);
-      }
-      break;
    case GL_SHADER_STORAGE_BLOCK:
-      for (unsigned i = 0; i < p->num_buffer_blocks; i++)
-      {
-         GLSL_BLOCK_T *block = &p->buffer_blocks[i];
-         GLint l = strlen(block->name);
-         if (block->is_array)
-            l += 3 + (GLint)log10(block->array_length);
-         *len = vcos_max(*len, l);
-      }
+   {
+      unsigned count             = interface == GL_UNIFORM_BLOCK ? p->num_uniform_blocks : p->num_buffer_blocks;
+      const GLSL_BLOCK_T *blocks = interface == GL_UNIFORM_BLOCK ? p->uniform_blocks     : p->buffer_blocks;
+
+      for (unsigned i = 0; i < count; i++)
+         len = gfx_smax(len, block_name_len(blocks[i].name, blocks[i].is_array, blocks[i].array_length));
       break;
+   }
    case GL_PROGRAM_INPUT:
    case GL_PROGRAM_OUTPUT:
    {
-      unsigned count     = programInterface == GL_PROGRAM_INPUT ? p->num_inputs : p->num_outputs;
-      GLSL_INOUT_T *info = programInterface == GL_PROGRAM_INPUT ? p->inputs : p->outputs;
+      unsigned count        = interface == GL_PROGRAM_INPUT ? p->num_inputs : p->num_outputs;
+      const GLSL_INOUT_T *v = interface == GL_PROGRAM_INPUT ? p->inputs     : p->outputs;
       for (unsigned i = 0; i < count; i++)
-      {
-         GLSL_INOUT_T *v = &info[i];
-
-         int l = strlen(v->name);
-         if (v->is_array)
-            l += 3 + (int)log10(v->array_size);
-         *len = vcos_max(*len, l);
-      }
+         len = gfx_smax(len, (int)nonblock_name_len(v[i].name, v[i].is_array));
       break;
    }
    case GL_TRANSFORM_FEEDBACK_VARYING:
       for (unsigned i = 0; i < p->num_tf_captures; i++)
-         *len = vcos_max(*len, (GLint)strlen(p->tf_capture[i].name));
+         len = gfx_smax(len, (int)strlen(p->tf_capture[i].name) + 1);
       break;
    case GL_BUFFER_VARIABLE:
       for (unsigned j = 0; j < p->num_buffer_blocks; j++)
          for (unsigned i = 0; i < p->buffer_blocks[j].num_members; i++)
-            *len = vcos_max(*len, (int)strlen(p->buffer_blocks[j].members[i].name));
+            len = gfx_smax(len, (int)nonblock_name_len(p->buffer_blocks[j].members[i].name, p->buffer_blocks[j].members[i].is_array));
       break;
    default:
-      return GL_INVALID_OPERATION;
+      unreachable();
    }
 
-   if (*len > 0)
-      *len += 1;  // One extra for the null terminator, which strlen doesn't count
-
-   return GL_NO_ERROR;
+   return len;
 }
 
-#endif
-
-static int get_atomic_num_active_vars(GLSL_PROGRAM_T *p, unsigned index)
+static unsigned get_atomic_num_active_vars(const GLSL_PROGRAM_T *p, unsigned index)
 {
    unsigned count = 0;
    for (unsigned i=0; i<p->default_uniforms.num_members; i++)
@@ -524,93 +373,89 @@ static int get_atomic_num_active_vars(GLSL_PROGRAM_T *p, unsigned index)
 
 #if KHRN_GLES31_DRIVER
 
-static GLenum get_max_num_active_variables(GL20_PROGRAM_T *prog, GLenum programInterface, GLint *len)
-{
-   *len = 0;
+static bool interface_valid_for_max_num_active(GLenum interface) {
+   return interface == GL_UNIFORM_BLOCK || interface == GL_SHADER_STORAGE_BLOCK || interface == GL_ATOMIC_COUNTER_BUFFER;
+}
 
-   switch (programInterface)
+static int get_max_num_active_variables(const GL20_PROGRAM_T *prog, GLenum interface)
+{
+   unsigned n = 0;
+
+   switch (interface)
    {
    case GL_UNIFORM_BLOCK:
       for (unsigned i = 0; i < prog->common.linked_glsl_program->num_uniform_blocks; i++)
-         *len = vcos_max(*len, (GLint)prog->common.linked_glsl_program->uniform_blocks[i].num_members);
+         n = gfx_umax(n, prog->common.linked_glsl_program->uniform_blocks[i].num_members);
       break;
    case GL_SHADER_STORAGE_BLOCK:
       for (unsigned i = 0; i < prog->common.linked_glsl_program->num_buffer_blocks; i++)
-         *len = vcos_max(*len, (GLint)prog->common.linked_glsl_program->buffer_blocks[i].num_members);
+         n = gfx_umax(n, prog->common.linked_glsl_program->buffer_blocks[i].num_members);
       break;
    case GL_ATOMIC_COUNTER_BUFFER:
       for (unsigned i=0; i<prog->common.linked_glsl_program->num_atomic_buffers; i++)
-         *len = vcos_max(*len, get_atomic_num_active_vars(prog->common.linked_glsl_program, i));
+         n = gfx_umax(n, get_atomic_num_active_vars(prog->common.linked_glsl_program, i));
       break;
    default:
-      return GL_INVALID_OPERATION;
+      unreachable();
    }
 
-   return GL_NO_ERROR;
+   return n;
 }
 
 #endif
 
-static GLuint get_program_resource_index(GL20_PROGRAM_T *prog, GLenum programInterface, const GLchar *name)
+static unsigned get_program_resource_index(const GLSL_PROGRAM_T *p, GLenum interface, const char *name)
 {
-   GLuint i = GL_INVALID_INDEX;
-
-   switch (programInterface)
+   switch (interface)
    {
    case GL_UNIFORM:
-      if (get_named_uniform(prog, name, &i) != NULL)
-         return i;
-      break;
+   {
+      unsigned i;
+      get_named_uniform(p, name, &i);
+      return i;
+   }
+   case GL_BUFFER_VARIABLE:
+   {
+      unsigned i;
+      get_named_buffer_var(p, name, &i);
+      return i;
+   }
    case GL_UNIFORM_BLOCK:
-      for (unsigned i = 0; i < prog->common.linked_glsl_program->num_uniform_blocks; i++)
-      {
-         GLSL_BLOCK_T *block = &prog->common.linked_glsl_program->uniform_blocks[i];
-         int           offset;
-
-         if (names_match(name, block->name, block->is_array ? ARRAY : NOT_ARRAY, &offset))
-         {
-            if (offset < block->array_length)
-               return block->index + offset;
-         }
-      }
-      break;
    case GL_SHADER_STORAGE_BLOCK:
-      for (unsigned i = 0; i < prog->common.linked_glsl_program->num_buffer_blocks; i++)
-      {
-         GLSL_BLOCK_T *block = &prog->common.linked_glsl_program->buffer_blocks[i];
-         int           offset;
+   {
+      unsigned count           = interface == GL_UNIFORM_BLOCK ? p->num_uniform_blocks : p->num_buffer_blocks;
+      const GLSL_BLOCK_T *base = interface == GL_UNIFORM_BLOCK ? p->uniform_blocks     : p->buffer_blocks;
 
-         if (names_match(name, block->name, block->is_array ? ARRAY : NOT_ARRAY, &offset))
+      for (unsigned i = 0; i < count; i++)
+      {
+         const GLSL_BLOCK_T *block = &base[i];
+         int                 offset;
+
+         if (names_match(name, block->name, block->is_array, &offset))
          {
             if (offset < block->array_length)
                return block->index + offset;
          }
       }
       break;
+   }
    case GL_PROGRAM_INPUT:
-      for (i = 0; i < prog->common.linked_glsl_program->num_inputs; i++) {
-         GLSL_INOUT_T *in = &prog->common.linked_glsl_program->inputs[i];
-         if (names_match(name, in->name, in->is_array ? ARRAY : NOT_ARRAY, NULL))
-            return i;
-      }
-      break;
    case GL_PROGRAM_OUTPUT:
-      for (i = 0; i < prog->common.linked_glsl_program->num_outputs; i++)
-      {
-         GLSL_INOUT_T *out = &prog->common.linked_glsl_program->outputs[i];
-         if (names_match(name, out->name, out->is_array ? ARRAY : NOT_ARRAY, NULL))
+   {
+      unsigned count        = interface == GL_PROGRAM_INPUT ? p->num_inputs : p->num_outputs;
+      const GLSL_INOUT_T *v = interface == GL_PROGRAM_INPUT ? p->inputs     : p->outputs;
+
+      for (unsigned i = 0; i < count; i++) {
+         if (names_match(name, v[i].name, v[i].is_array, NULL))
             return i;
       }
       break;
+   }
    case GL_TRANSFORM_FEEDBACK_VARYING:
       /* TF Varyings are an exception to the name matching rules. Names must match exactly */
-      for (i = 0; i < prog->common.linked_glsl_program->num_tf_captures; i++)
-         if (strcmp(name, prog->common.linked_glsl_program->tf_capture[i].name) == 0)
+      for (unsigned i = 0; i < p->num_tf_captures; i++)
+         if (strcmp(name, p->tf_capture[i].name) == 0)
             return i;
-      break;
-   case GL_BUFFER_VARIABLE:
-      if (get_named_buffer_var(prog, name, &i) != NULL)
-         return i;
       break;
    default:
       unreachable();
@@ -619,12 +464,14 @@ static GLuint get_program_resource_index(GL20_PROGRAM_T *prog, GLenum programInt
    return GL_INVALID_INDEX;
 }
 
-static bool index_valid_for_interface(GLSL_PROGRAM_T *p, GLenum program_interface, unsigned index)
+static bool index_valid_for_interface(const GLSL_PROGRAM_T *p, GLenum interface, unsigned index)
 {
-   switch (program_interface)
+   switch (interface)
    {
    case GL_UNIFORM:
       return (get_indexed_uniform(p, index, NULL) != NULL);
+   case GL_BUFFER_VARIABLE:
+      return (get_indexed_buffer(p, index, NULL) != NULL);
    case GL_UNIFORM_BLOCK:
       return (gl20_get_ubo_from_index(p, index) != NULL);
    case GL_SHADER_STORAGE_BLOCK:
@@ -635,8 +482,6 @@ static bool index_valid_for_interface(GLSL_PROGRAM_T *p, GLenum program_interfac
       return (index < p->num_outputs);
    case GL_TRANSFORM_FEEDBACK_VARYING:
       return (index < p->num_tf_captures);
-   case GL_BUFFER_VARIABLE:
-      return (get_indexed_buffer(p, index, NULL) != NULL);
    case GL_ATOMIC_COUNTER_BUFFER:
       return (index < p->num_atomic_buffers);
    default:
@@ -645,47 +490,46 @@ static bool index_valid_for_interface(GLSL_PROGRAM_T *p, GLenum program_interfac
    }
 }
 
-static void get_program_resource_name(GLSL_PROGRAM_T *prog, GLenum programInterface, GLuint index,
-                                      GLsizei bufSize, GLsizei *length, GLchar *name)
+static void get_program_resource_name(const GLSL_PROGRAM_T *prog, GLenum interface, unsigned index,
+                                      unsigned buf_size, GLsizei *length, char *name)
 {
-   switch (programInterface)
+   switch (interface)
    {
    case GL_UNIFORM:
+   case GL_BUFFER_VARIABLE:
       {
-         GLSL_BLOCK_MEMBER_T *uniform = get_indexed_uniform(prog, index, NULL);
-         strzncpy(name, uniform->name, bufSize);
+         const GLSL_BLOCK_MEMBER_T *v = interface == GL_UNIFORM ? get_indexed_uniform(prog, index, NULL) :
+                                                                  get_indexed_buffer (prog, index, NULL);
+         if (v->is_array)
+            strzncpy_with_array(name, v->name, buf_size, 0);
+         else
+            strzncpy(name, v->name, buf_size);
       }
       break;
    case GL_UNIFORM_BLOCK:
    case GL_SHADER_STORAGE_BLOCK:
       {
-         GLSL_BLOCK_T *block = (programInterface == GL_UNIFORM_BLOCK) ? gl20_get_ubo_from_index(prog, index) :
-                                                                        gl20_get_ssbo_from_index(prog, index);
+         const GLSL_BLOCK_T *block = (interface == GL_UNIFORM_BLOCK) ? gl20_get_ubo_from_index(prog, index) :
+                                                                       gl20_get_ssbo_from_index(prog, index);
          if (block->is_array)
-            strzncpy_with_array(name, block->name, bufSize, index - block->index);
+            strzncpy_with_array(name, block->name, buf_size, index - block->index);
          else
-            strzncpy(name, block->name, bufSize);
+            strzncpy(name, block->name, buf_size);
       }
       break;
    case GL_PROGRAM_INPUT:
    case GL_PROGRAM_OUTPUT:
       {
-         GLSL_INOUT_T *v = (programInterface == GL_PROGRAM_INPUT) ? &prog->inputs[index] :
-                                                                    &prog->outputs[index];
+         const GLSL_INOUT_T *v = (interface == GL_PROGRAM_INPUT) ? &prog->inputs[index] :
+                                                                   &prog->outputs[index];
          if (v->is_array)
-            strzncpy_with_array(name, v->name, bufSize, 0);
+            strzncpy_with_array(name, v->name, buf_size, 0);
          else
-            strzncpy(name, v->name, bufSize);
+            strzncpy(name, v->name, buf_size);
       }
       break;
    case GL_TRANSFORM_FEEDBACK_VARYING:
-      strzncpy(name, prog->tf_capture[index].name, bufSize);
-      break;
-   case GL_BUFFER_VARIABLE:
-      {
-         GLSL_BLOCK_MEMBER_T *buffer = get_indexed_buffer(prog, index, NULL);
-         strzncpy(name, buffer->name, bufSize);
-      }
+      strzncpy(name, prog->tf_capture[index].name, buf_size);
       break;
    default:
       unreachable();
@@ -693,23 +537,23 @@ static void get_program_resource_name(GLSL_PROGRAM_T *prog, GLenum programInterf
 
    if (length != NULL)
    {
-      if (bufSize <= 0)
+      if (buf_size <= 0)
          *length = 0;
       else
          *length = strlen(name);
    }
 }
 
-static GLint get_program_resource_location(GLSL_PROGRAM_T *p, GLenum programInterface, const GLchar *name)
+static int get_program_resource_location(const GLSL_PROGRAM_T *p, GLenum interface, const GLchar *name)
 {
-   switch (programInterface)
+   switch (interface)
    {
    case GL_UNIFORM:
       return get_uniform_location(p, name);
    case GL_PROGRAM_INPUT:
-      return get_input_location(p, name);
+      return get_inout_location(p->inputs, p->num_inputs, name);
    case GL_PROGRAM_OUTPUT:
-      return get_output_location(p, name);
+      return get_inout_location(p->outputs, p->num_outputs, name);
    default:
       unreachable();
    }
@@ -718,7 +562,7 @@ static GLint get_program_resource_location(GLSL_PROGRAM_T *p, GLenum programInte
 }
 
 // Generated from Table 7.2 in ES3.1 spec (April 29, 2015)
-static GLenum valid_uniform_props[] =
+const static GLenum valid_uniform_props[] =
 {
    GL_NAME_LENGTH,
    GL_ARRAY_SIZE,
@@ -740,7 +584,7 @@ static GLenum valid_uniform_props[] =
 #endif
 };
 
-static GLenum valid_uniform_block_props[] =
+const static GLenum valid_uniform_block_props[] =
 {
    GL_NAME_LENGTH,
    GL_ACTIVE_VARIABLES,
@@ -757,7 +601,7 @@ static GLenum valid_uniform_block_props[] =
 #endif
 };
 
-static GLenum valid_atomic_props[] =
+const static GLenum valid_atomic_props[] =
 {
    GL_ACTIVE_VARIABLES,
    GL_BUFFER_BINDING,
@@ -773,7 +617,7 @@ static GLenum valid_atomic_props[] =
 #endif
 };
 
-static GLenum valid_input_props[] =
+const static GLenum valid_input_props[] =
 {
    GL_NAME_LENGTH,
    GL_ARRAY_SIZE,
@@ -790,7 +634,7 @@ static GLenum valid_input_props[] =
 #endif
 };
 
-static GLenum valid_output_props[] =
+const static GLenum valid_output_props[] =
 {
    GL_NAME_LENGTH,
    GL_ARRAY_SIZE,
@@ -807,14 +651,14 @@ static GLenum valid_output_props[] =
 #endif
 };
 
-static GLenum valid_tfv_props[] =
+const static GLenum valid_tfv_props[] =
 {
    GL_NAME_LENGTH,
    GL_ARRAY_SIZE,
    GL_TYPE
 };
 
-static GLenum valid_buffer_var_props[] =
+const static GLenum valid_buffer_var_props[] =
 {
    GL_NAME_LENGTH,
    GL_ARRAY_SIZE,
@@ -836,7 +680,7 @@ static GLenum valid_buffer_var_props[] =
 #endif
 };
 
-static GLenum valid_ssb_props[] =
+const static GLenum valid_ssb_props[] =
 {
    GL_NAME_LENGTH,
    GL_ACTIVE_VARIABLES,
@@ -853,15 +697,8 @@ static GLenum valid_ssb_props[] =
 #endif
 };
 
-#define USE_ARRAY(a)\
-   propsArray = (a);\
-   num = sizeof(a) / sizeof(GLenum);
-
-static GLenum valid_props_combination(GLenum programInterface, GLenum prop)
+static GLenum valid_props_combination(GLenum interface, GLenum prop)
 {
-   GLenum   *propsArray = NULL;
-   unsigned num;
-
    // Check for valid prop
    switch (prop)
    {
@@ -895,7 +732,13 @@ static GLenum valid_props_combination(GLenum programInterface, GLenum prop)
       return GL_INVALID_ENUM;
    }
 
-   switch (programInterface)
+#define USE_ARRAY(a)\
+   propsArray = (a);\
+   num = sizeof(a) / sizeof(GLenum);
+
+   const GLenum *propsArray = NULL;
+   unsigned num;
+   switch (interface)
    {
    case GL_UNIFORM:                     USE_ARRAY(valid_uniform_props); break;
    case GL_UNIFORM_BLOCK:               USE_ARRAY(valid_uniform_block_props); break;
@@ -909,6 +752,8 @@ static GLenum valid_props_combination(GLenum programInterface, GLenum prop)
       return GL_INVALID_ENUM;
    }
 
+#undef USE_ARRAY
+
    for (unsigned i = 0; i < num; i++)
    {
       if (propsArray[i] == prop)
@@ -919,127 +764,88 @@ static GLenum valid_props_combination(GLenum programInterface, GLenum prop)
    return GL_INVALID_OPERATION;
 }
 
-// Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static GLint get_uniform_resource_prop(GLSL_PROGRAM_T *prog, GLuint index,
-                                       GLenum prop, GLint *params, GLint space)
+static int get_block_member_prop(const GLSL_BLOCK_MEMBER_T *v, int block_index, GLenum prop)
 {
-   GLint block_index = -1;
-   assert(space > 0);
-
-   GLSL_BLOCK_MEMBER_T *uniform = get_indexed_uniform(prog, index, &block_index);
-   if (uniform == NULL)
-      return 0;
-
    switch (prop)
    {
-   case GL_NAME_LENGTH:
-      params[0] = strlen(uniform->name) + 1;
-      break;
-   case GL_ARRAY_SIZE:
-      params[0] = uniform->array_length;
-      break;
-   case GL_ARRAY_STRIDE:
-      params[0] = uniform->array_stride;
-      break;
-   case GL_BLOCK_INDEX:
-      params[0] = block_index;
-      break;
-   case GL_IS_ROW_MAJOR:
-      params[0] = uniform->column_major ? 0 : 1;
-      break;
-   case GL_MATRIX_STRIDE:
-      params[0] = uniform->matrix_stride;
-      break;
-   case GL_ATOMIC_COUNTER_BUFFER_INDEX:
-      params[0] = uniform->atomic_idx;
-      break;
-   case GL_LOCATION:
-      if (block_index == -1 && uniform->atomic_idx == -1)
-         params[0] = uniform->offset;
-      else
-         params[0] = -1;
-      break;
-   case GL_OFFSET:
-      if (block_index == -1 && uniform->atomic_idx == -1)
-         params[0] = -1;
-      else
-         params[0] = uniform->offset;
-      break;
-   case GL_REFERENCED_BY_VERTEX_SHADER:
-      params[0] = uniform->used_in_vs ? 1 : 0;
-      break;
-   case GL_REFERENCED_BY_FRAGMENT_SHADER:
-      params[0] = uniform->used_in_fs ? 1 : 0;
-      break;
-   case GL_REFERENCED_BY_COMPUTE_SHADER:
-      params[0] = uniform->used_in_cs ? 1 : 0;
-      break;
-   case GL_TYPE:
-      params[0] = uniform->type;
-      break;
+   case GL_NAME_LENGTH:                   return nonblock_name_len(v->name, v->is_array);
+   case GL_TYPE:                          return v->type;
+   case GL_ARRAY_SIZE:                    return v->array_length;
+   case GL_ARRAY_STRIDE:                  return v->array_stride;
+   case GL_TOP_LEVEL_ARRAY_SIZE:          return v->top_level_size;
+   case GL_TOP_LEVEL_ARRAY_STRIDE:        return v->top_level_stride;
+   case GL_BLOCK_INDEX:                   return block_index;
+   case GL_IS_ROW_MAJOR:                  return v->column_major ? 0 : 1;
+   case GL_MATRIX_STRIDE:                 return v->matrix_stride;
+   case GL_ATOMIC_COUNTER_BUFFER_INDEX:   return v->atomic_idx;
 
+   case GL_LOCATION:
+      if (block_index == -1 && v->atomic_idx == -1)
+         return v->offset;
+      else
+         return -1;
+   case GL_OFFSET:
+      if (block_index == -1 && v->atomic_idx == -1)
+         return -1;
+      else
+         return v->offset;
+
+   case GL_REFERENCED_BY_VERTEX_SHADER:          return v->used_in_vs;
+   case GL_REFERENCED_BY_FRAGMENT_SHADER:        return v->used_in_fs;
+   case GL_REFERENCED_BY_COMPUTE_SHADER:         return v->used_in_cs;
 #if GLXX_HAS_TNG
-   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
-      params[0] = uniform->used_in_tcs;
-      break;
-   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
-      params[0] = uniform->used_in_tes;
-      break;
-   case GL_REFERENCED_BY_GEOMETRY_SHADER:
-      params[0] = uniform->used_in_gs;
-      break;
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:    return v->used_in_tcs;
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER: return v->used_in_tes;
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:        return v->used_in_gs;
 #endif
 
    default:
       unreachable();
    }
-
-   return 1;   // All the props above will have filled in one entry in params
 }
 
 // Common properties of UBO and SSBOs.
-static void get_block_resource_prop(const GLSL_BLOCK_T *block, GLenum prop, int *params)
+static int get_block_resource_prop(const GLSL_BLOCK_T *block, GLenum prop)
 {
    switch (prop)
    {
-   case GL_NAME_LENGTH:
-      params[0] = strlen(block->name) + 1;
-      if (block->is_array)
-         params[0] += 3 + (int)log10(block->array_length);
-      break;
-   case GL_NUM_ACTIVE_VARIABLES:
-      params[0] = block->num_members;
-      break;
-   case GL_BUFFER_DATA_SIZE:
-      params[0] = block->size;
-      break;
-   case GL_REFERENCED_BY_VERTEX_SHADER:
-      params[0] = block->used_in_vs ? 1 : 0;
-      break;
-   case GL_REFERENCED_BY_FRAGMENT_SHADER:
-      params[0] = block->used_in_fs ? 1 : 0;
-      break;
-   case GL_REFERENCED_BY_COMPUTE_SHADER:
-      params[0] = block->used_in_cs ? 1 : 0;
-      break;
+   case GL_NAME_LENGTH:                          return block_name_len(block->name, block->is_array, block->array_length);
+   case GL_NUM_ACTIVE_VARIABLES:                 return block->num_members;
+   case GL_BUFFER_DATA_SIZE:                     return block->size;
+   case GL_REFERENCED_BY_VERTEX_SHADER:          return block->used_in_vs;
+   case GL_REFERENCED_BY_FRAGMENT_SHADER:        return block->used_in_fs;
+   case GL_REFERENCED_BY_COMPUTE_SHADER:         return block->used_in_cs;
 #if GLXX_HAS_TNG
-   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
-      params[0] = block->used_in_tcs;
-      break;
-   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
-      params[0] = block->used_in_tes;
-      break;
-   case GL_REFERENCED_BY_GEOMETRY_SHADER:
-      params[0] = block->used_in_gs;
-      break;
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:    return block->used_in_tcs;
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER: return block->used_in_tes;
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:        return block->used_in_gs;
 #endif
    default:
       unreachable();
    }
 }
 
+static int active_variables(const GLSL_BLOCK_T *base, unsigned idx_offset, const GLSL_BLOCK_T *block, int *params, unsigned space)
+{
+   unsigned count = block->num_members;
+   unsigned index = idx_offset;
+
+   /* Loop over previous blocks */
+   for (unsigned j = 0; base[j].index < block->index; j++)
+      index += base[j].num_members;
+
+   if (space < count)
+      count = space;
+
+   /* Write out the index array */
+   for (unsigned j = 0; j < count; j++)
+      params[j] = index++;
+
+   return count;
+}
+
 // Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static unsigned get_uniform_block_resource_prop(GL20_PROGRAM_T *prog, unsigned index,
+static unsigned get_uniform_block_resource_prop(const GL20_PROGRAM_T *prog, unsigned index,
                                                 GLenum prop, int *params, unsigned space)
 {
    const GLSL_BLOCK_T *block = gl20_get_ubo_from_index(prog->common.linked_glsl_program, index);
@@ -1048,56 +854,52 @@ static unsigned get_uniform_block_resource_prop(GL20_PROGRAM_T *prog, unsigned i
    switch (prop)
    {
    case GL_ACTIVE_VARIABLES:
-      {
-         GLSL_BLOCK_T *base = prog->common.linked_glsl_program->uniform_blocks;
-         unsigned      uniform_count = block->num_members;
-         unsigned      uniform_index;
-
-         /* Loop over previous blocks */
-         uniform_index = prog->common.linked_glsl_program->default_uniforms.num_members;
-         for (unsigned j = 0; base[j].index < block->index; j++)
-            uniform_index += base[j].num_members;
-
-         if (space < uniform_count)
-            uniform_count = space;
-
-         /* Write out the index array */
-         for (unsigned j = 0; j < uniform_count; j++)
-            params[j] = uniform_index++;
-
-         return uniform_count;
-      }
+      return active_variables(prog->common.linked_glsl_program->uniform_blocks,
+                              prog->common.linked_glsl_program->default_uniforms.num_members,
+                              block, params, space);
    case GL_BUFFER_BINDING:
       params[0] = prog->common.ubo_binding_point[index];
-      break;
+      return 1;
    default:
-      get_block_resource_prop(block, prop, params);
-      break;
+      params[0] = get_block_resource_prop(block, prop);
+      return 1;
    }
+}
 
-   return 1;
+// Returns how many entries it wrote into params. Must never write more than 'space' entries.
+static unsigned get_shader_storage_block_resource_prop(const GL20_PROGRAM_T *prog, unsigned index,
+                                                       GLenum prop, int *params, unsigned space)
+{
+   const GLSL_BLOCK_T *block = gl20_get_ssbo_from_index(prog->common.linked_glsl_program, index);
+   assert(block != NULL);
+
+   switch (prop)
+   {
+   case GL_ACTIVE_VARIABLES:
+      return active_variables(prog->common.linked_glsl_program->buffer_blocks, 0, block, params, space);
+   case GL_BUFFER_BINDING:
+      params[0] = prog->common.ssbo_binding_point[index];
+      return 1;
+   default:
+      params[0] = get_block_resource_prop(block, prop);
+      return 1;
+   }
 }
 
 static int inout_var_resource_prop(GLSL_INOUT_T *v, GLenum prop) {
    switch (prop) {
-   case GL_NAME_LENGTH:
-   {
-      int len = strlen(v->name) + 1;
-      if (v->is_array)
-         len += 3 + (int)log10(v->array_size);
-      return len;
-   }
+   case GL_NAME_LENGTH:                   return nonblock_name_len(v->name, v->is_array);
    case GL_ARRAY_SIZE:                    return v->array_size;
    case GL_LOCATION:                      return v->index;
+   case GL_TYPE:                          return v->type;
    case GL_REFERENCED_BY_VERTEX_SHADER:   return v->used_in_vs;
    case GL_REFERENCED_BY_FRAGMENT_SHADER: return v->used_in_fs;
    case GL_REFERENCED_BY_COMPUTE_SHADER:  return v->used_in_cs;
-   case GL_TYPE:                          return v->type;
 #if GLXX_HAS_TNG
-   case GL_IS_PER_PATCH:                         return v->is_per_patch;
    case GL_REFERENCED_BY_TESS_CONTROL_SHADER:    return v->used_in_tcs;
    case GL_REFERENCED_BY_TESS_EVALUATION_SHADER: return v->used_in_tes;
    case GL_REFERENCED_BY_GEOMETRY_SHADER:        return v->used_in_gs;
+   case GL_IS_PER_PATCH:                         return v->is_per_patch;
 #endif
    default:
       unreachable();
@@ -1106,26 +908,8 @@ static int inout_var_resource_prop(GLSL_INOUT_T *v, GLenum prop) {
 }
 
 // Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static GLint get_prog_input_resource_prop(GLSL_PROGRAM_T *prog, GLuint index,
-                                          GLenum prop, GLint *params, GLint space)
-{
-   GLSL_INOUT_T *input = &prog->inputs[index];
-   params[0] = inout_var_resource_prop(input, prop);
-   return 1;
-}
-
-// Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static GLint get_prog_output_resource_prop(GLSL_PROGRAM_T *prog, GLuint index,
-                                           GLenum prop, GLint *params, GLint space)
-{
-   GLSL_INOUT_T *output = &prog->outputs[index];
-   params[0] = inout_var_resource_prop(output, prop);
-   return 1;
-}
-
-// Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static GLint get_atomic_counter_buffer_resource_prop(GLSL_PROGRAM_T *p, GLuint index,
-                                                     GLenum prop, GLint *params, GLint space)
+static int get_atomic_counter_buffer_resource_prop(const GLSL_PROGRAM_T *p, unsigned index,
+                                                   GLenum prop, GLint *params, int space)
 {
    assert(space > 0);
 
@@ -1178,153 +962,35 @@ static GLint get_atomic_counter_buffer_resource_prop(GLSL_PROGRAM_T *p, GLuint i
    }
 }
 
-// Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static GLint get_transform_feedback_resource_prop(GLSL_PROGRAM_T *p, GLuint index,
-                                                  GLenum prop, GLint *params, GLint space)
+static int get_transform_feedback_resource_prop(const GLSL_TF_CAPTURE_T *tff, GLenum prop)
 {
-   assert(space > 0);
-
-   const GLSL_TF_CAPTURE_T *tff = &p->tf_capture[index];
-
    switch (prop)
    {
-   case GL_NAME_LENGTH:
-      params[0] = strlen(tff->name) + 1;
-      break;
-   case GL_ARRAY_SIZE:
-      params[0] = tff->array_length;
-      break;
-   case GL_TYPE:
-      params[0] = tff->type;
-      break;
-   default:
-      unreachable();
+   case GL_NAME_LENGTH:    return strlen(tff->name) + 1;
+   case GL_ARRAY_SIZE:     return tff->array_length;
+   case GL_TYPE:           return tff->type;
+   default: unreachable(); return 0;
    }
-
-   return 1;
 }
 
 // Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static GLint get_buffer_variable_resource_prop(GLSL_PROGRAM_T *p, GLuint index,
-                                               GLenum prop, GLint *params, GLint space)
-{
-   GLint block_index = -1;
-   assert(space > 0);
-
-   const GLSL_BLOCK_MEMBER_T *v = get_indexed_buffer(p, index, &block_index);
-
-   if (v == NULL)
-      return 0;
-
-   switch (prop)
-   {
-   case GL_NAME_LENGTH:
-      params[0] = strlen(v->name) + 1;
-      break;
-   case GL_ARRAY_SIZE:
-      params[0] = v->array_length;
-      break;
-   case GL_ARRAY_STRIDE:
-      params[0] = v->array_stride;
-      break;
-   case GL_BLOCK_INDEX:
-      params[0] = block_index;
-      break;
-   case GL_IS_ROW_MAJOR:
-      params[0] = v->column_major ? 0 : 1;
-      break;
-   case GL_MATRIX_STRIDE:
-      params[0] = v->matrix_stride;
-      break;
-   case GL_OFFSET:
-      params[0] = v->offset;
-      break;
-   case GL_REFERENCED_BY_VERTEX_SHADER:
-      params[0] = v->used_in_vs ? 1 : 0;
-      break;
-   case GL_REFERENCED_BY_FRAGMENT_SHADER:
-      params[0] = v->used_in_fs ? 1 : 0;
-      break;
-   case GL_REFERENCED_BY_COMPUTE_SHADER:
-      params[0] = v->used_in_cs ? 1 : 0;
-      break;
-   case GL_TOP_LEVEL_ARRAY_SIZE:
-      params[0] = v->top_level_size;
-      break;
-   case GL_TOP_LEVEL_ARRAY_STRIDE:
-      params[0] = v->top_level_stride;
-      break;
-   case GL_TYPE:
-      params[0] = v->type;
-      break;
-#if GLXX_HAS_TNG
-   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
-      params[0] = v->used_in_tcs;
-      break;
-   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
-      params[0] = v->used_in_tes;
-      break;
-   case GL_REFERENCED_BY_GEOMETRY_SHADER:
-      params[0] = v->used_in_gs;
-      break;
-#endif
-   default:
-      unreachable();
-   }
-
-   return 1;   // All the props above will have filled in one entry in params
-}
-
-// Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static unsigned get_shader_storage_block_resource_prop(GL20_PROGRAM_T *prog, unsigned index,
-                                                       GLenum prop, int *params, unsigned space)
-{
-   const GLSL_BLOCK_T *block = gl20_get_ssbo_from_index(prog->common.linked_glsl_program, index);
-   assert(block != NULL);
-
-   switch (prop)
-   {
-   case GL_ACTIVE_VARIABLES:
-      {
-         GLSL_BLOCK_T *base = prog->common.linked_glsl_program->buffer_blocks;
-         unsigned      count = block->num_members;
-         unsigned      index = 0;
-
-         /* Loop over previous blocks */
-         for (unsigned j = 0; base[j].index < block->index; j++)
-            index += base[j].num_members;
-
-         if (space < count)
-            count = space;
-
-         /* Write out the index array */
-         for (unsigned j = 0; j < count; j++)
-            params[j] = index++;
-
-         return count;
-      }
-   case GL_BUFFER_BINDING:
-      params[0] = prog->common.ssbo_binding_point[index];
-      break;
-   default:
-      get_block_resource_prop(block, prop, params);
-      break;
-   }
-
-   return 1;
-}
-
-// Returns how many entries it wrote into params. Must never write more than 'space' entries.
-static unsigned get_program_resource_prop(GL20_PROGRAM_T *program, GLenum programInterface, unsigned index,
+static unsigned get_program_resource_prop(const GL20_PROGRAM_T *program, GLenum interface, unsigned index,
                                           GLenum prop, int *params, unsigned space)
 {
    unsigned added = 0;
 
-   switch (programInterface)
+   switch (interface)
    {
    case GL_UNIFORM:
-      added = get_uniform_resource_prop(program->common.linked_glsl_program, index, prop, params, space);
-      break;
+   case GL_BUFFER_VARIABLE:
+   {
+      int block_index = -1;
+      const GLSL_PROGRAM_T *p = program->common.linked_glsl_program;
+      const GLSL_BLOCK_MEMBER_T *v = interface == GL_UNIFORM ? get_indexed_uniform(p, index, &block_index) :
+                                                               get_indexed_buffer (p, index, &block_index);
+      params[0] = get_block_member_prop(v, block_index, prop);
+      return 1;
+   }
    case GL_UNIFORM_BLOCK:
       added = get_uniform_block_resource_prop(program, index, prop, params, space);
       break;
@@ -1332,19 +998,16 @@ static unsigned get_program_resource_prop(GL20_PROGRAM_T *program, GLenum progra
       added = get_shader_storage_block_resource_prop(program, index, prop, params, space);
       break;
    case GL_PROGRAM_INPUT:
-      added = get_prog_input_resource_prop(program->common.linked_glsl_program, index, prop, params, space);
-      break;
+      params[0] = inout_var_resource_prop(&program->common.linked_glsl_program->inputs[index], prop);
+      return 1;
    case GL_PROGRAM_OUTPUT:
-      added = get_prog_output_resource_prop(program->common.linked_glsl_program, index, prop, params, space);
-      break;
+      params[0] = inout_var_resource_prop(&program->common.linked_glsl_program->outputs[index], prop);
+      return 1;
+   case GL_TRANSFORM_FEEDBACK_VARYING:
+      params[0] = get_transform_feedback_resource_prop(&program->common.linked_glsl_program->tf_capture[index], prop);
+      return 1;
    case GL_ATOMIC_COUNTER_BUFFER:
       added = get_atomic_counter_buffer_resource_prop(program->common.linked_glsl_program, index, prop, params, space);
-      break;
-   case GL_TRANSFORM_FEEDBACK_VARYING:
-      added = get_transform_feedback_resource_prop(program->common.linked_glsl_program, index, prop, params, space);
-      break;
-   case GL_BUFFER_VARIABLE:
-      added = get_buffer_variable_resource_prop(program->common.linked_glsl_program, index, prop, params, space);
       break;
    default:
       unreachable();
@@ -1356,18 +1019,42 @@ static unsigned get_program_resource_prop(GL20_PROGRAM_T *program, GLenum progra
 
 #if KHRN_GLES31_DRIVER
 
+static bool interface_valid_for_max_name_length(GLenum interface) {
+   return interface == GL_UNIFORM       || interface == GL_BUFFER_VARIABLE      ||
+          interface == GL_UNIFORM_BLOCK || interface == GL_SHADER_STORAGE_BLOCK ||
+          interface == GL_PROGRAM_INPUT || interface == GL_PROGRAM_OUTPUT       ||
+          interface == GL_TRANSFORM_FEEDBACK_VARYING;
+}
+
 GL_APICALL void GL_APIENTRY glGetProgramInterfaceiv(GLuint p, GLenum programInterface, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state;
-   GLenum error = GL_NO_ERROR;
-
-   state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
-   if (!state)
-      return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
+   if (!state) return;
 
    if (!is_program_interface(programInterface))
    {
-      error = GL_INVALID_ENUM;
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   switch (pname)
+   {
+   case GL_ACTIVE_RESOURCES:
+      break;
+   case GL_MAX_NAME_LENGTH:
+      if (!interface_valid_for_max_name_length(programInterface)) {
+         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+         goto end;
+      }
+      break;
+   case GL_MAX_NUM_ACTIVE_VARIABLES:
+      if (!interface_valid_for_max_num_active(programInterface)) {
+         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+         goto end;
+      }
+      break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
       goto end;
    }
 
@@ -1385,40 +1072,31 @@ GL_APICALL void GL_APIENTRY glGetProgramInterfaceiv(GLuint p, GLenum programInte
    switch (pname)
    {
    case GL_ACTIVE_RESOURCES:
-      if (params)
-         params[0] = get_active_resources(program->common.linked_glsl_program, programInterface);
+      params[0] = get_active_resources(program->common.linked_glsl_program, programInterface);
       break;
    case GL_MAX_NAME_LENGTH:
-      error = get_max_name_length(program->common.linked_glsl_program, programInterface, params);
-      if (error != GL_NO_ERROR)
-         goto end;
+      params[0] = glxx_get_max_name_length(program->common.linked_glsl_program, programInterface);
       break;
    case GL_MAX_NUM_ACTIVE_VARIABLES:
-      error = get_max_num_active_variables(program, programInterface, params);
-      if (error != GL_NO_ERROR)
-         goto end;
+      params[0] = get_max_num_active_variables(program, programInterface);
       break;
    default:
-      error = GL_INVALID_ENUM;
-      goto end;
+      unreachable();
    }
 
 end:
-   if (error != GL_NO_ERROR)
-      glxx_server_state_set_error(state, error);
-
    glxx_unlock_server_state();
 }
 
 #endif
 
-GLuint glxx_get_program_resource_index(GLXX_SERVER_STATE_T *state,
-                                       GLuint p, GLenum programInterface, const GLchar *name)
+unsigned glxx_get_program_resource_index(GLXX_SERVER_STATE_T *state,
+                                         unsigned p, GLenum interface, const char *name)
 {
-   GLenum error = GL_NO_ERROR;
-   GLuint indx  = GL_INVALID_INDEX;
+   GLenum   error = GL_NO_ERROR;
+   unsigned indx  = GL_INVALID_INDEX;
 
-   if (!is_program_interface(programInterface) || programInterface == GL_ATOMIC_COUNTER_BUFFER)
+   if (!is_program_interface(interface) || interface == GL_ATOMIC_COUNTER_BUFFER)
    {
       error = GL_INVALID_ENUM;
       goto end;
@@ -1437,7 +1115,7 @@ GLuint glxx_get_program_resource_index(GLXX_SERVER_STATE_T *state,
    if (name == NULL || name[0] == '\0')
       goto end;
 
-   indx = get_program_resource_index(program, programInterface, name);
+   indx = get_program_resource_index(program->common.linked_glsl_program, interface, name);
 
 end:
    if (error != GL_NO_ERROR)
@@ -1466,18 +1144,18 @@ GL_APICALL GLuint GL_APIENTRY glGetProgramResourceIndex(GLuint p, GLenum program
 #endif
 
 void glxx_get_program_resource_name(GLXX_SERVER_STATE_T *state,
-                                    GLuint p, GLenum programInterface, GLuint index, GLsizei bufSize,
-                                    GLsizei *length, GLchar *name)
+                                    unsigned p, GLenum interface, unsigned index, GLsizei buf_size,
+                                    GLsizei *length, char *name)
 {
    GLenum error = GL_NO_ERROR;
 
-   if (!is_program_interface(programInterface) || programInterface == GL_ATOMIC_COUNTER_BUFFER)
+   if (!is_program_interface(interface) || interface == GL_ATOMIC_COUNTER_BUFFER)
    {
       error = GL_INVALID_ENUM;
       goto end;
    }
 
-   if (bufSize < 0)
+   if (buf_size < 0)
    {
       error = GL_INVALID_VALUE;
       goto end;
@@ -1493,13 +1171,13 @@ void glxx_get_program_resource_name(GLXX_SERVER_STATE_T *state,
       goto end;
    }
 
-   if (!index_valid_for_interface(program->common.linked_glsl_program, programInterface, index))
+   if (!index_valid_for_interface(program->common.linked_glsl_program, interface, index))
    {
       error = GL_INVALID_VALUE;
       goto end;
    }
 
-   get_program_resource_name(program->common.linked_glsl_program, programInterface, index, bufSize, length, name);
+   get_program_resource_name(program->common.linked_glsl_program, interface, index, buf_size, length, name);
 
 end:
    if (error != GL_NO_ERROR)
@@ -1522,19 +1200,19 @@ GL_APICALL void GL_APIENTRY glGetProgramResourceName(GLuint p, GLenum programInt
 
 #endif
 
-bool glxx_get_program_resourceiv(GLXX_SERVER_STATE_T *state,
-                                 GLuint p, GLenum programInterface, GLuint index, GLsizei propCount,
-                                 const GLenum *props, GLsizei bufSize, GLsizei *length, GLint *params)
+bool glxx_get_program_resourceiv(GLXX_SERVER_STATE_T *state, unsigned p, GLenum interface,
+                                 unsigned index, GLsizei propCount, const GLenum *props,
+                                 GLsizei buf_size, GLsizei *length, int *params)
 {
    GLenum error = GL_NO_ERROR;
 
-   if (!is_program_interface(programInterface))
+   if (!is_program_interface(interface))
    {
       error = GL_INVALID_ENUM;
       goto end;
    }
 
-   if (propCount <= 0 || bufSize < 0)
+   if (propCount <= 0 || buf_size < 0)
    {
       error = GL_INVALID_VALUE;
       goto end;
@@ -1551,7 +1229,7 @@ bool glxx_get_program_resourceiv(GLXX_SERVER_STATE_T *state,
       goto end;
    }
 
-   if (!index_valid_for_interface(program->common.linked_glsl_program, programInterface, index))
+   if (!index_valid_for_interface(program->common.linked_glsl_program, interface, index))
    {
       error = GL_INVALID_VALUE;
       goto end;
@@ -1560,22 +1238,22 @@ bool glxx_get_program_resourceiv(GLXX_SERVER_STATE_T *state,
    // Check for more argument error conditions
    for (GLsizei p = 0; p < propCount; p++)
    {
-      error = valid_props_combination(programInterface, props[p]);
+      error = valid_props_combination(interface, props[p]);
       if (error != GL_NO_ERROR)
          goto end;
    }
 
-   unsigned space = bufSize;
+   unsigned space = buf_size;
 
    for (GLsizei p = 0; p < propCount && space > 0; p++)
    {
-      unsigned added = get_program_resource_prop(program, programInterface, index, props[p], params, space);
+      unsigned added = get_program_resource_prop(program, interface, index, props[p], params, space);
       space = space - added;
       params += added;
    }
 
    if (length)
-      *length = bufSize - space;
+      *length = buf_size - space;
 
 end:
    if (error != GL_NO_ERROR)
@@ -1600,13 +1278,13 @@ GL_APICALL void GL_APIENTRY glGetProgramResourceiv(GLuint p, GLenum programInter
 
 #endif
 
-GLint glxx_get_program_resource_location(GLXX_SERVER_STATE_T *state,
-                                         GLuint p, GLenum programInterface, const GLchar *name)
+int glxx_get_program_resource_location(GLXX_SERVER_STATE_T *state, unsigned p,
+                                       GLenum interface, const char *name)
 {
    GLenum error = GL_NO_ERROR;
    GLint  location = -1;
 
-   switch (programInterface)
+   switch (interface)
    {
    case GL_UNIFORM:
    case GL_PROGRAM_INPUT:
@@ -1630,7 +1308,7 @@ GLint glxx_get_program_resource_location(GLXX_SERVER_STATE_T *state,
    if (name == NULL || name[0] == '\0')
       goto end;
 
-   location = get_program_resource_location(program->common.linked_glsl_program, programInterface, name);
+   location = get_program_resource_location(program->common.linked_glsl_program, interface, name);
 
 end:
    if (error != GL_NO_ERROR)

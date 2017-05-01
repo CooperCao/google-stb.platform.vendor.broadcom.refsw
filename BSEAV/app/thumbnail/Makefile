@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2008 Broadcom Corporation
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 NEXUS_TOP := $(shell cd ../../../nexus; pwd)
@@ -47,19 +46,15 @@ endif
 
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+BINDIR := $(B_REFSW_OBJ_ROOT)/BSEAV/app/thumbnail
 
 # single app Makefile
 APP = thumbnail
 
-.PHONY: nexus
+.PHONY: thumbnail nexus
 
 all: $(APP)
 $(APP): nexus
-
-# For linux builds, link to the correct libraries
-ifneq ($(findstring linux,$(B_REFSW_OS)),)
-LDFLAGS := -lnexus -L${NEXUS_BIN_DIR} -lpthread
-endif
 
 nexus:
 	$(MAKE) -C $(NEXUS_TOP)/build
@@ -73,28 +68,27 @@ clean_app:
 
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
-
-# Always build with debug
 CFLAGS += -g
+LDFLAGS := $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 
-OBJS += main.o thumbnail_demo.o
+OBJS += $(BINDIR)/main.o $(BINDIR)/thumbnail_demo.o
 
 include $(NEXUS_TOP)/nxclient/apps/utils/nxutils.inc
-OBJS += $(foreach src,$(NXUTILS_SINGLE_SOURCES), $(patsubst %.c,%.o,$(notdir $(src))))
+OBJS += $(addprefix $(BINDIR)/,$(foreach src,$(NXUTILS_SINGLE_SOURCES), $(patsubst %.c,%.o,$(notdir $(src)))))
 CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES))
 vpath %.c $(foreach src,$(NXUTILS_SINGLE_SOURCES), $(dir $(src)))
 
-# remove implicit rule
-%: %.c
+thumbnail: $(BINDIR)/thumbnail
+	$(CP) $(BINDIR)/thumbnail $(NEXUS_BIN_DIR)
 
-%.o: %.c
-	@echo [Compile... $<]
-	$(Q_)$(CC) -c -o $@ $^ $(CFLAGS)
+$(BINDIR)/thumbnail: $(OBJS)
+	$(Q_)echo [link $@]
+	@mkdir -p $(dir $@)
+	$(Q_)$(CC) -o $@ $(LDFLAGS) $(filter %.o,$^)
 
-# link app
-$(APP): $(OBJS)
-	@echo [Link... $<]
-	$(Q_)$(CC) -o $@ $(OBJS) $(LDFLAGS)
-	$(CP) $@ ${NEXUS_BIN_DIR}
+$(BINDIR)/%.o: %.c
+	$(Q_)echo [compile $@]
+	@mkdir -p $(dir $@)
+	$(Q_)$(Q_)$(CC) -c -o $@ $(CFLAGS) $^
 
 install: all

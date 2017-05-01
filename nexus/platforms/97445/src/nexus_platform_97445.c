@@ -80,7 +80,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     /**** For 7445 ****/
     case 1:
     case 3:
-    case 7:
     case 8:
     case 12:
     case 13:
@@ -92,6 +91,13 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     case 1000:
     default:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size =  208*1024*1024; /*decoder FW+general,xpt playback,audio other general purpose */
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 168*1024 *1024; /* CABACs(28)for 3 decoders + RAVE CDB(6+15) */
+        pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memcIndex = 1;
+        pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = (0x00400000*2);
+        pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].size = 5*1024*1024;  /* RDC heap plus margin for possible VCE fw/debug/output descriptors heap */
+        break;
+	case 7:
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size =  256*1024*1024; /*decoder FW+general,xpt playback,audio other general purpose */
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 168*1024 *1024; /* CABACs(28)for 3 decoders + RAVE CDB(6+15) */
         pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memcIndex = 1;
         pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = (0x00400000*2);
@@ -125,6 +131,11 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
             pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;
             break;
     case 7:
+            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 256*1024*1024;
+            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
+            pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].size = 256*1024*1024;
+            pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;
+            break;
     case 8:
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 16*1024*1024;
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;

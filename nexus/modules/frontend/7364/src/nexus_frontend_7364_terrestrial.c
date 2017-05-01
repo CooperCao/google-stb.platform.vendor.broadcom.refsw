@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -247,6 +247,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_7364_Hab(NEXUS_7364Device *pDevice, cons
             unsigned code_size = 0;
             unsigned num_chunks, chunk_size = MAX_CTFE_IMG_CHUNK_SIZE;
             unsigned chunk;
+            NEXUS_MemoryAllocationSettings allocSettings;
 
             rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_7364, &pImgContext, &imgInterface);
             if (rc) { BERR_TRACE(rc); goto done; }
@@ -256,7 +257,9 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_7364_Hab(NEXUS_7364Device *pDevice, cons
             if (rc) { BERR_TRACE(rc); goto done; }
             code_size = (pImage[72] << 24) | (pImage[73] << 16) | (pImage[74] << 8) | pImage[75];
             fw_size = code_size + header_size;
-            rc = NEXUS_Memory_Allocate(fw_size, NULL, (void **)&fw);
+            NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+            allocSettings.heap = g_pCoreHandles->heap[0].nexus;
+            rc = NEXUS_Memory_Allocate(fw_size, &allocSettings, (void **)&fw);
             if (rc) { BERR_TRACE(rc); goto done; }
 
             num_chunks = fw_size / chunk_size;

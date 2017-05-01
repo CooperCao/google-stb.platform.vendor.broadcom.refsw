@@ -1,16 +1,8 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
-#ifndef __PACKET_H__
-#define __PACKET_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -36,6 +28,7 @@ typedef void (GL_APIENTRY  *GLDEBUGPROC)(GLenum source,GLenum type,GLuint id,GLe
 
 #include <vector>
 #include <string>
+#include <memory>
 
 enum eDataType
 {
@@ -49,11 +42,11 @@ enum eDataType
    eFLOAT,
    eVOID_PTR,
    eCHAR_PTR,
-   eBYTE_ARRAY
+   eBYTE_ARRAY,
+   eLAST_ITEM_TYPE /* Insert new ones before this */
 };
 
-class Remote;
-class Comms;
+class DataSink;
 
 class PacketItem
 {
@@ -70,6 +63,7 @@ public:
     *         sizeof(void*).
     */
    static bool SetPointerSize(size_t size);
+   static size_t GetPointerSize() { return s_pointerSize; }
 
    PacketItem(eDataType t, uintptr_t data, uint32_t numBytes);
    PacketItem(GLbyte b);
@@ -88,8 +82,7 @@ public:
    PacketItem(const char *c);
    PacketItem(void *a, uint32_t numBytes);
 
-   void Send(Remote *rem);
-   void Send(Comms *comms);
+   void Send(DataSink *sink);
 
    eDataType Type() const { return m_type; }
 
@@ -188,12 +181,12 @@ public:
    Packet(ePacketType type = eUNKNOWN) : m_type(type) {}
    ~Packet() {}
 
-   void Reset() { m_type = eUNKNOWN; m_items.clear(); }
+   void Reset() { m_type = eUNKNOWN; m_items.clear(); m_buffers.clear(); }
    bool IsValid() const { return m_type != eUNKNOWN; }
 
+   std::shared_ptr<uint8_t> AddBuffer(size_t size);
    void AddItem(const PacketItem &item) { m_items.push_back(item); }
-   void Send(Remote *rem);
-   void Send(Comms *comms);
+   void Send(DataSink *sink);
 
    void SetType(ePacketType t) { m_type = t; }
    ePacketType Type() const { return m_type; }
@@ -205,6 +198,5 @@ public:
 private:
    ePacketType             m_type;
    std::vector<PacketItem> m_items;
+   std::vector<std::shared_ptr<uint8_t>> m_buffers;
 };
-
-#endif /* __PACKET_H__ */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1941,8 +1941,12 @@ static BERR_Code BVDC_P_Feeder_SetDither_isr
         if(!hFeeder->hSource->bIs10BitCore)
         {
             bool bDitherEn =
+#if BVDC_DITHER_OFF
+                false;
+#else
                 (BAVC_VideoBitDepth_e8Bit != pFieldData->eBitDepth) ?
                 true : false;
+#endif
 
             if(bDitherEn != hFeeder->bPrevDitherEn)
             {

@@ -1,13 +1,6 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Miscellaneous glxx functions
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"

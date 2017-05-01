@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)20014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-asynchronous query opengles API implementation
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "../common/khrn_int_common.h"
 #include "glxx_query.h"
@@ -400,7 +393,7 @@ static bool occlusion_query_install(GLXX_SERVER_STATE_T *state,
    struct glxx_queries_of_type *qot = &queries->queries[GLXX_Q_OCCLUSION];
    if (qot->active)
    {
-      ok = khrn_timeline_record(&qot->timeline, (KHRN_RENDER_STATE_T*) rs);
+      ok = khrn_timeline_record(&qot->timeline, (khrn_render_state*) rs);
       if (!ok)
          return false;
    }
@@ -421,7 +414,7 @@ static bool prim_counts_queries_install(GLXX_SERVER_STATE_T *state,
       struct glxx_queries_of_type *qot = &state->queries.queries[type];
       if (qot->active)
       {
-         if (!khrn_timeline_record(&qot->timeline, (KHRN_RENDER_STATE_T*) rs))
+         if (!khrn_timeline_record(&qot->timeline, (khrn_render_state*) rs))
             return false;
       }
       type = GLXX_Q_PRIM_WRITTEN;

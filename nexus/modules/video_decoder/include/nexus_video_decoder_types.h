@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -789,6 +789,7 @@ typedef struct NEXUS_VideoDecoderStreamInformation
     uint32_t lowDelayFlag;       /* delay flag from the sequence extension */
     uint32_t fixedFrameRateFlag; /* fixed_frame_rate_flag from AVC VUI (video usability info) */
 
+    bool dolbyVision;
     NEXUS_VideoEotf eotf; /* the source's color grading / expected electro-optical transfer function; indicates the highest level of transfer function the source supports */
     NEXUS_ContentLightLevel contentLightLevel;
     NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume;
@@ -874,8 +875,8 @@ the current STC that satisfies a tolerance.
 **/
 typedef struct NEXUS_VideoDecoderPrimerSettings
 {
-    unsigned ptsOffset;
-
+    unsigned ptsOffset; /* Add an offset to the primer's TSM equation. Measured in 45Hz PTS units.
+                           A separate ptsOffset must be applied to VideoDecoder if desired. */
     unsigned pastTolerance;   /* time (in PTS units, typically 45KHz for MPEG2TS) between the current STC and the past, within which
                                  Nexus will look for a RAP to start decode from */
     unsigned futureTolerance; /* time (in PTS units, typically 45KHz for MPEG2TS) between the current STC and the future, within which
@@ -1010,6 +1011,15 @@ typedef struct NEXUS_VideoDecoderModuleSettings
     bool deferInit; /* if set to true, HW and FW initialization will be deferred until actually used */
     unsigned debugLogBufferSize; /* required for NEXUS_VideoDecoderModule_SetDebugLog or export avd_monitor=# */
 } NEXUS_VideoDecoderModuleSettings;
+
+/**
+Summary:
+**/
+typedef struct NEXUS_VideoDecoderPrimerCreateSettings
+{
+    unsigned fifoSize;
+    unsigned maximumGops; /* unused */
+} NEXUS_VideoDecoderPrimerCreateSettings;
 
 #ifdef __cplusplus
 }

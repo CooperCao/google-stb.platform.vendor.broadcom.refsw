@@ -1,45 +1,6 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "menu_carousel.h"
 #include "bsg_application.h"
 #include "bsg_image_png.h"
@@ -51,7 +12,7 @@
 
 using namespace bsg;
 
-MenuCarousel::MenuCarousel(float radius, uint32_t numNodes, 
+MenuCarousel::MenuCarousel(float radius, uint32_t numNodes,
                            float angleStep, float zDistSel, float zDistOthers,
                            FontHandle font, const Vec2 &textPos, const Vec2 &descPos,
                            float startAngle, float yOffset) :
@@ -89,7 +50,7 @@ MenuCarousel::MenuCarousel(float radius, uint32_t numNodes,
    uint32_t sideNodes = (numNodes - 1) / 2;
 
    float startAng = startAngle - angleStep * sideNodes;
-   
+
    std::vector<Transform>  positions;
 
    // Make the lower nodes
@@ -137,7 +98,7 @@ MenuCarousel::~MenuCarousel()
 void MenuCarousel::FadeOut(Text &text, Time start, Time animationTime)
 {
    AnimBindingLerpFloat *fadeOut = new AnimBindingLerpFloat;
-   fadeOut->Init(text.Params().GetOpacity(), start, 
+   fadeOut->Init(text.Params().GetOpacity(), start,
                             AnimatableFloat(0.0f), start + animationTime);
    fadeOut->Bind(&text.Params().GetOpacity());
    m_animList.Append(fadeOut);
@@ -146,7 +107,7 @@ void MenuCarousel::FadeOut(Text &text, Time start, Time animationTime)
 void MenuCarousel::FadeIn(Text &text, Time start, Time animationTime)
 {
    AnimBindingLerpFloat *fadeIn = new AnimBindingLerpFloat;
-   fadeIn->Init(text.Params().GetOpacity(), start, 
+   fadeIn->Init(text.Params().GetOpacity(), start,
                            AnimatableFloat(1.0f), start + animationTime);
    fadeIn->Bind(&text.Params().GetOpacity());
    m_animList.Append(fadeIn);
@@ -157,14 +118,14 @@ void MenuCarousel::AnimateOut(Text &descText, Time start, Time animationTime)
    AnimatableVec2 outP(Vec2(-0.55f, m_descPos[1]));
 
    AnimBindingHermiteVec2 *scrollOut = new AnimBindingHermiteVec2;
-   scrollOut->Init(descText.Params().GetPosition(), start, 
+   scrollOut->Init(descText.Params().GetPosition(), start,
       outP, start + animationTime);
 
    scrollOut->Bind(&descText.Params().GetPosition());
    m_animList.Append(scrollOut);
 
    AnimBindingHermiteFloat *fout = new AnimBindingHermiteFloat;
-   fout->Init(AnimatableFloat(0.0f), start, 
+   fout->Init(AnimatableFloat(0.0f), start,
       AnimatableFloat(1.0f), start + animationTime);
 
    fout->Bind(&m_scrollOutValue);
@@ -176,14 +137,14 @@ void MenuCarousel::AnimateIn(Text &descText, Time start, Time animationTime)
    AnimatableVec2 outP(m_descPos);
 
    AnimBindingHermiteVec2 *scrollIn = new AnimBindingHermiteVec2;
-   scrollIn->Init(descText.Params().GetPosition(), start, 
+   scrollIn->Init(descText.Params().GetPosition(), start,
       outP, start + animationTime);
 
    scrollIn->Bind(&descText.Params().GetPosition());
    m_animList.Append(scrollIn);
 
    AnimBindingHermiteFloat *fout = new AnimBindingHermiteFloat;
-   fout->Init(AnimatableFloat(0.0f), start, 
+   fout->Init(AnimatableFloat(0.0f), start,
       AnimatableFloat(1.0f), start + animationTime);
 
    fout->Bind(&m_scrollInValue);
@@ -254,7 +215,7 @@ void MenuCarousel::Prev(Time now, Time animationTime)
    m_curText = !m_curText;
 }
 
-void MenuCarousel::AddEntry(const std::string &textureFile, const std::string &quickText, 
+void MenuCarousel::AddEntry(const std::string &textureFile, const std::string &quickText,
    const std::string &descText, bool enabled)
 {
    TextureHandle texture(New);

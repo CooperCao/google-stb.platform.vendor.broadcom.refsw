@@ -1258,28 +1258,9 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
         }
         if((heap->memoryType&NEXUS_MEMORY_TYPE_SECURE)==NEXUS_MEMORY_TYPE_SECURE && info ) {
             for(j=0;j<(unsigned)info->lowmem.count;j++) {
-                if(NEXUS_Platform_P_RangeTestIntersect(&info->lowmem.range[j], region->offset, region->length)) {
+                if(NEXUS_Platform_P_RangeTestIntersect(&info->lowmem.range[j], region->offset, region->length) && !NEXUS_Platform_P_IsOs64()) {
                     BDBG_ERR(("SECURE heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " intersects with lowmem %uMBytes(%u) at " BDBG_UINT64_FMT "", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), (unsigned)(info->lowmem.range[j].size/(1024*1024)), (unsigned)info->lowmem.range[j].size, BDBG_UINT64_ARG(info->lowmem.range[j].addr)));
-#if !NEXUS_CPU_ARM64
-                    /* for 64-bit kernel lowmem is all available memory, presumably A-53 not so aggressive in pre-fetching, so it shouldn't access affected memory */
-#if !B_REFSW_SYSTEM_MODE_CLIENT
-#if NEXUS_BASE_OS_linuxuser
-                    { /* we could run Aarch32 user mode nexus with 64-bit kernel */
-                        bcmdriver_os_config os_cfg;
-                        int rc = ioctl(g_CmaFd, BRCM_IOCTL_GET_OS_CONFIG, &os_cfg);
-                        if(rc==0) {
-                            if(os_cfg.os_64bit) {
-                                /* do nothing, see above */
-                            } else {
-                                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-                            }
-                        }
-                    }
-#else
                     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-#endif /* NEXUS_BASE_OS_linuxuser */
-#endif /* B_REFSW_SYSTEM_MODE_CLIENT */
-#endif /* NEXUS_CPU_ARM64 */
                 }
             }
         }

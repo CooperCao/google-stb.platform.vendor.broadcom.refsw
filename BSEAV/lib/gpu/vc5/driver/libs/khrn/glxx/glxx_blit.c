@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl_public_api.h"
 #include "glxx_tlb_blit.h"
 #include "glxx_tmu_blit.h"
@@ -16,7 +14,7 @@ static bool is_int_or_uint(GFX_LFMT_T lfmt) {
    return gfx_lfmt_contains_int(lfmt);
 }
 
-static bool is_bstc_or_888(const KHRN_IMAGE_T *img)
+static bool is_bstc_or_888(const khrn_image *img)
 {
    GFX_LFMT_T lfmts[GFX_BUFFER_MAX_PLANES];
    unsigned num_planes;
@@ -35,7 +33,7 @@ static GLenum validate_blit_color(GLXX_FRAMEBUFFER_T *src_fb,
                                   bool *color_is_int)
 {
    bool src_ms;
-   KHRN_IMAGE_T *src_img = NULL, *dst_img = NULL;
+   khrn_image *src_img = NULL, *dst_img = NULL;
    GLenum error = GL_NO_ERROR;
 
    if (!glxx_fb_acquire_read_image(src_fb, GLXX_PREFER_DOWNSAMPLED, &src_img,
@@ -103,7 +101,7 @@ end:
 static GLenum validate_aux_buffer(const GLXX_ATTACHMENT_T *src_att,
                                   const GLXX_ATTACHMENT_T *dst_att)
 {
-   KHRN_IMAGE_T *src_img = NULL, *dst_img = NULL;
+   khrn_image *src_img = NULL, *dst_img = NULL;
    GLenum error = GL_NO_ERROR;
 
    if (!glxx_attachment_acquire_image(src_att, GLXX_PREFER_DOWNSAMPLED, &src_img,

@@ -75,3 +75,12 @@ static inline void glxx_hw_render_state_end_cle(GLXX_HW_RENDER_STATE_T *rs, glxx
       khrn_fmem_end_cle_exact(&rs->fmem, instr);
    }
 }
+
+static inline unsigned glxx_hw_render_state_max_bin_subjobs(const GLXX_HW_RENDER_STATE_T *rs)
+{
+   if (!GLXX_MULTICORE_BIN_ENABLED ||
+      rs->has_tcs_barriers || // See GFXH-1434
+      (rs->tf.waited_count != 0)) // Can't enable multi-core binning if we have transform feedback waits in CL
+      return 1;
+   return khrn_get_num_bin_subjobs();
+}

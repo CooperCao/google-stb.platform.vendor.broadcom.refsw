@@ -71,6 +71,11 @@ typedef struct ratesel_txs {
 extern ratesel_info_t *wlc_ratesel_attach(wlc_info_t *wlc);
 extern void wlc_ratesel_detach(ratesel_info_t *rsi);
 
+#ifdef BCMINTDBG
+extern int wlc_ratesel_scbdump(rcb_t *state, struct bcmstrbuf *b);
+extern int wlc_ratesel_get_fixrate(rcb_t *state, int ac, struct bcmstrbuf *b);
+extern int wlc_ratesel_set_fixrate(rcb_t *state, int ac, uint8 val);
+#endif
 extern void wlc_ratesel_dump_rateset(rcb_t *state, struct bcmstrbuf *b);
 extern bool wlc_ratesel_set_alert(ratesel_info_t *rsi, uint8 mode);
 

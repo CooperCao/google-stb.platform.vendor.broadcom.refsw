@@ -1,5 +1,5 @@
 ###############################################################################
- # Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ # Broadcom Proprietary and Confidential. (c) 2017 Broadcom. All rights reserved.
  #
  # This program is the proprietary software of Broadcom and/or its
  # licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -60,7 +60,7 @@ NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 
 ifeq ($(B_REFSW_REAL_MAKE),)
 
-.PHONY=app clean_app
+.PHONY:	app clean_app
 
 all install:
 	$(MAKE) -C . ${APP}
@@ -74,10 +74,10 @@ app:
 	$(MAKE) -C . ${APP}
 
 clean_app:
-	$(MAKE) -C . clean_${APP}
+	-$(RM) -r $(BINDIR)
 
 ifeq ($(DYNRNG_PLATFORM),nxclient)
-.PHONY += server clean_server
+.PHONY:	server clean_server
 
 SERVER := ${NEXUS_TOP}/nxclient/server
 
@@ -101,13 +101,10 @@ B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 ifeq ($(NEXUS_MODE),)
 NEXUS_MODE:=$(MODE)
 endif
-BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/nxclient/apps.$(NEXUS_MODE)
+BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/nxclient/$(B_REFSW_ARCH)/dynrng.$(NEXUS_MODE)
 
 ${APP}: ${BINDIR}/exists
 	@${MAKE} -C ${BINDIR} BINDIR=${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile
-
-clean_${APP}: ${BINDIR}/exists
-	@${MAKE} -C ${BINDIR} BINDIR=${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile clean
 
 ${BINDIR}/exists:
 	@mkdir -p $@
@@ -125,6 +122,7 @@ APP_DEPENDENCIES = \
 	platform_receiver.c \
 	platform_scheduler.c \
 	app.c \
+	app_shell.c \
 	args.c \
 	bwt.c \
 	file_switcher.c \
@@ -133,6 +131,7 @@ APP_DEPENDENCIES = \
 	plm.c \
 	pwl.c \
 	scenario_player.c \
+	shell.c \
 	stream_player.c \
 	util.c \
 	nl2l.c
@@ -141,7 +140,7 @@ APP_OBJS = $(APP_DEPENDENCIES:c=o)
 
 install: all
 
-all: $(APP) copy_files
+all: $(EXTRA_BUILD_RULES) $(APP) copy_files
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 # do "make nexus" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
@@ -153,7 +152,7 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
 
 # NEXUS flags
-CFLAGS += -g $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+CFLAGS += -g $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 
 CFLAGS += -MMD
 
@@ -167,13 +166,33 @@ ifeq ($(DYNRNG_QUIT_SUPPORT),y)
 CFLAGS += -DDYNRNG_QUIT_SUPPORT=1
 endif
 
+# nxclient version
+ifeq ($(DYNRNG_PLATFORM),nxclient)
+
+NXCLIENT_P_SHARED_LIB := $(BINDIR)/libnxclient.so
+
+include $(NEXUS_TOP)/nxclient/include/nxclient.inc
+CFLAGS += $(NXCLIENT_CFLAGS)
+
+ifeq ($(B_REFSW_ANDROID),y)
+include $(NEXUS_TOP)/build/android.inc
+LDFLAGS := $(ANDROID_LDFLAGS) $(NXCLIENT_LDFLAGS)
+else
+LDFLAGS += $(NXCLIENT_LDFLAGS)
+endif
+LDFLAGS += -g
+
+$(NXCLIENT_P_SHARED_LIB):
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server B_REFSW_REAL_MAKE=
+
 B_LIB_TOP = $(NEXUS_TOP)/lib
 
 #
 # playback_ip additions
 #
 ifeq ($(PLAYBACK_IP_SUPPORT),y)
-EXTRA_BUILD_RULES += $(NEXUS_BIN_DIR)/libb_playback_ip.so
+.PHONY: playback_ip clean_playback_ip
+EXTRA_BUILD_RULES += playback_ip
 EXTRA_CLEAN_RULES += clean_playback_ip
 include $(B_LIB_TOP)/playback_ip/b_playback_ip_lib.inc
 CFLAGS += $(PLAYBACK_IP_CFLAGS)
@@ -183,7 +202,7 @@ include $(NEXUS_TOP)/lib/bip/bip_lib.inc
 CFLAGS += $(BIP_ALL_LIB_CFLAGS)
 LDFLAGS += $(BIP_ALL_LIB_LDFLAGS)
 
-$(NEXUS_BIN_DIR)/libb_playback_ip.so:
+playback_ip:
 	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build B_NEXUS_API_BUILD_COMPLETED=y install
 	$(Q_)$(MAKE) -C $(B_LIB_TOP)/playback_ip/apps B_NEXUS_API_BUILD_COMPLETED=y install
 clean_playback_ip:
@@ -206,34 +225,6 @@ clean_tr69c:
 	$(Q_)$(MAKE) -C $(NEXUS_TOP)/../BSEAV/app/tr69c clean
 endif
 
-$(APP): $(EXTRA_BUILD_RULES)
-
-ifeq ($(FREETYPE_SUPPORT),y)
-EXTRA_BUILD_RULES += freetype
-EXTRA_CLEAN_RULES += clean_freetype
-FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/lib/freetype-2.1.5
-CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_DIR)/include
-FREETYPE_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/freetype-2.1.5
-LDFLAGS += -L$(FREETYPE_ODIR) -lfreetype
-freetype:
-	$(MAKE) -C $(FREETYPE_DIR)
-clean_freetype:
-	$(MAKE) -C $(FREETYPE_DIR) clean
-endif
-
-ifeq ($(DYNRNG_PLATFORM),nxclient)
-# nxclient version
-
-include $(NEXUS_TOP)/nxclient/include/nxclient.inc
-CFLAGS += $(NXCLIENT_CFLAGS)
-
-ifeq ($(B_REFSW_ANDROID),y)
-include $(NEXUS_TOP)/build/android.inc
-LDFLAGS := $(ANDROID_LDFLAGS) $(NXCLIENT_LDFLAGS)
-else
-LDFLAGS += $(NXCLIENT_LDFLAGS)
-endif
-
 ifeq ($(NXCLIENT_LOCAL),y)
 # Don't link with -lnxclient.
 # Instead, client will link with nxclient_local.c which will init the server with default params.
@@ -241,23 +232,33 @@ ifeq ($(NXCLIENT_LOCAL),y)
 LDFLAGS = $(NEXUS_LD_LIBRARIES) -lnxserver
 endif
 
-$(APP): $(NXCLIENT_SHARED_LIB)
-
-$(NXCLIENT_SHARED_LIB):
-	$(MAKE) -C $(NEXUS_TOP)/nxclient/build B_REFSW_REAL_MAKE=
-
 # for faster compilation, archive nexus/nxclient/apps/utils
-NXCLIENT_APPS_UTILS_LIB := nxclient_apps_utils.a
+NXCLIENT_APPS_UTILS_LIB := $(BINDIR)/nxclient_apps_utils.a
 include $(NEXUS_TOP)/nxclient/apps/utils/nxutils.inc
 NXCLIENT_APPS_UTILS_SRC := $(foreach src,$(NXUTILS_SOURCES), $(notdir $(src)))
+NXCLIENT_APPS_UTILS_OBJS := $(addprefix $(BINDIR)/,$(patsubst %.c,%.o,$(NXCLIENT_APPS_UTILS_SRC)))
 CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES)) -I$(BINDIR)
 vpath %.c $(foreach src,$(NXUTILS_SOURCES), $(dir $(src)))
-DYNRNG_PLATFORM_LIBS += $(NXCLIENT_APPS_UTILS_LIB)
 
+ifeq ($(FREETYPE_SUPPORT),y)
+FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype
+include $(FREETYPE_DIR)/b_freetype_targets.inc
+EXTRA_BUILD_RULES += freetype
+EXTRA_CLEAN_RULES += clean_freetype
+CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_SOURCE_PATH)/include
+LDFLAGS += -L$(FREETYPE_LIB_FOLDER) -lfreetype
+freetype: b_freetype_target_build
+clean_freetype: b_freetype_target_clean_all
+endif
+
+$(NXCLIENT_APPS_UTILS_OBJS): $(EXTRA_BUILD_RULES)
+
+$(BINDIR)/$(APP): $(NXCLIENT_P_SHARED_LIB) $(EXTRA_BUILD_RULES)
+
+DYNRNG_PLATFORM_LIBS += $(NXCLIENT_APPS_UTILS_LIB)
 vpath %.c $(NEXUS_TOP)/../rockford/applications/dynrng/src/nxclient
 
-$(NXCLIENT_APPS_UTILS_LIB): $(EXTRA_BUILD_RULES)
-$(NXCLIENT_APPS_UTILS_LIB): $(patsubst %.c,%.o,$(NXCLIENT_APPS_UTILS_SRC))
+$(NXCLIENT_APPS_UTILS_LIB): $(NXCLIENT_APPS_UTILS_OBJS)
 	@echo [Archive... $@]
 	$(Q_)$(AR) rcs $@ $(filter %.o, $^)
 
@@ -266,23 +267,31 @@ copy_platform_files:
 	$(CP) $(NEXUS_TOP)/nxclient/apps/resources/* ${NEXUS_BIN_DIR}/nxclient
 
 clean_platform:
-	B_REFSW_REAL_MAKE= $(MAKE) -C $(NEXUS_TOP)/nxclient/build clean
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server clean
 
-endif
+endif # nxclient version
 
+# rule for nxclient utils and such
+$(BINDIR)/%.o: %.c
+	@echo [Compile... $(notdir $<)]
+	${Q_}$(CC) -c -o $@ $< $(CFLAGS)
+
+# rule for app objects
 %.o: %.c
 	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -c -o $@ $< $(CFLAGS)
+	${Q_}$(CC) -c -o $@ $< $(CFLAGS)
 
-$(APP): %: %.c $(APP_OBJS) $(DYNRNG_PLATFORM_LIBS)
+$(BINDIR)/$(APP): %: $(APP).c $(APP_OBJS) $(DYNRNG_PLATFORM_LIBS)
 	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
+	${Q_}$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
 	$(CP) $@ ${NEXUS_BIN_DIR}
+
+$(APP): $(BINDIR)/$(APP)
+	@test 1
 
 clean: clean_app $(EXTRA_CLEAN_RULES)
 
 clean_app: clean_platform
-	-$(RM) $(APP) $(DYNRNG_PLATFORM_LIBS) *.d *.o *.out $(OTHER_CLEANS)
 
 copy_files: copy_platform_files
 	$(MKDIR) ${NEXUS_BIN_DIR}/../etc/dynrng
@@ -292,6 +301,7 @@ copy_files: copy_platform_files
 	$(MKDIR) ${NEXUS_BIN_DIR}/../share/dynrng/streams/hdr
 	$(MKDIR) ${NEXUS_BIN_DIR}/../share/dynrng/streams/hlg
 	$(MKDIR) ${NEXUS_BIN_DIR}/../share/dynrng/streams/mix
+	$(MKDIR) ${NEXUS_BIN_DIR}/../share/dynrng/streams/dvs
 	$(CP) -ar $(NEXUS_TOP)/../rockford/applications/dynrng/etc/* ${NEXUS_BIN_DIR}/../etc/dynrng
 
 endif # B_REFSW_REAL_MAKE

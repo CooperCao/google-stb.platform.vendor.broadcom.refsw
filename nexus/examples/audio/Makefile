@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,16 +35,8 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #############################################################################
-# Nexus examples
-B_THIS_DIR:=nexus/examples/audio
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
-THEAPPS = \
+APPS = \
     ac3_encode \
     audio_capture \
     audio_crc \
@@ -70,8 +62,6 @@ THEAPPS = \
     convert_ac3plus_to_ac3 \
     btsc_encode \
     atsc_a85 \
-    ms11_dual \
-    ms12_dual \
     audio_mux_playback encode_audio \
     audio_nonrealtime_transcode \
     ancillary_data \
@@ -93,4 +83,11 @@ THEAPPS = \
     audio_mixer_input \
     audio_mixer_samplerate_test
 
-include ${NEXUS_TOP}/examples/Makefile.inc
+ifeq ($(shell test -f ms11_dual.c && echo y),y)
+APPS += ms11_dual
+endif
+ifeq ($(shell test -f ms12_dual.c && echo y),y)
+APPS += ms12_dual
+endif
+
+include ../Makefile.inc

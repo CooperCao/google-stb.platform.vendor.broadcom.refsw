@@ -61,9 +61,9 @@ NEXUS_HDMI_OUTPUT_SOURCES :=  \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_hdcp.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_format_validation.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_control.c \
-                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_mhl_priv.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_extra.c \
-                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_drm.c
+                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_drm.c \
+                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_debug.c
 
 
 ##################
@@ -132,4 +132,13 @@ ifeq ($(findstring SECURITY, $(NEXUS_MODULES)),SECURITY)
 	BHSM_KEYLADDER=ON
 	BHDCPLIB_HDCP_SUPPORT=y
 	endif
+endif
+
+NEXUS_HDMI_DBV_IMPL=$(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_dbv.c
+ifneq ("$(wildcard $(NEXUS_HDMI_DBV_IMPL))","")
+NEXUS_DBV_SUPPORT?=y
+endif
+ifeq ($(NEXUS_DBV_SUPPORT),y)
+NEXUS_HDMI_OUTPUT_DEFINES += NEXUS_DBV_SUPPORT=1
+NEXUS_HDMI_OUTPUT_SOURCES += $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_dbv.c
 endif

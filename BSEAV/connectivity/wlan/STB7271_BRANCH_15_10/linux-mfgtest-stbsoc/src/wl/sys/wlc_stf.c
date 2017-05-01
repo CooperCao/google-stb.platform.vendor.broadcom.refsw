@@ -1387,6 +1387,24 @@ wlc_stf_doiovar(void *hdl, uint32 actionid,
 				err = BCME_UNSUPPORTED;
 			break;
 		}
+#if defined(BCMINTDBG)
+		case IOV_SVAL(IOV_STF_OCL_COREMASK):
+		{
+			if (OCL_ENAB(wlc->pub))
+				phy_ocl_coremask_change(WLC_PI(wlc), int_val & 0x3);
+			else
+				err = BCME_UNSUPPORTED;
+			break;
+		}
+		case IOV_GVAL(IOV_STF_OCL_COREMASK):
+		{
+			if (OCL_ENAB(wlc->pub))
+				*ret_int_ptr = phy_ocl_get_coremask(WLC_PI(wlc));
+			else
+				err = BCME_UNSUPPORTED;
+			break;
+		}
+#endif /* BCMINTDBG */
 #endif /* OCL */
 
 		default:
@@ -3983,8 +4001,10 @@ wlc_stf_rxchain_set(wlc_info_t* wlc, int32 int_val, bool update)
 #endif /* WL_BEAMFORMING */
 
 	/* if changing to/from 1 rxstream, update MIMOPS mode */
-	if (wlc->pub->hw_up)
+	if (wlc->pub->hw_up) {
+		wlc_bmac_radio_read_hwdisabled(wlc->hw);
 		wlc_suspend_mac_and_wait(wlc);
+	}
 	if (rxchain_cnt != old_rxchain_cnt &&
 	    (rxchain_cnt == 1 || old_rxchain_cnt == 1)) {
 		mimops_mode = (rxchain_cnt == 1) ? HT_CAP_MIMO_PS_ON : HT_CAP_MIMO_PS_OFF;

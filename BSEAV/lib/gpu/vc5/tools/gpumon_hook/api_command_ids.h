@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  GPUMonitor Hook
-Module   :  API command ids
-
-FILE DESCRIPTION
-API command ids
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __COMMAND_IDS_H__
 #define __COMMAND_IDS_H__
 

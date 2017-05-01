@@ -53,7 +53,7 @@ typedef struct coredump_memregion {
 
 static int buf_offset;
 
-static inline void printblk(struct ttblk_t *cb, uint32_t va,void *mem)
+static inline void printblk(struct ttblk_t *cb, uint32_t va, void *mem)
 {
     if(mem)
     {
@@ -85,22 +85,25 @@ static inline void printblk(struct ttblk_t *cb, uint32_t va,void *mem)
 }
 
 
-static void handle_block_valid(struct ttblk_t *cb, uint32_t va, int sw, int attr,
-                               int ap, int nx,void *mem)
+static void handle_block_valid(struct ttblk_t *cb, uint32_t va,
+                               int sw, int attr, int ap, int nx, void *mem)
 {
     if ((cb->start_addr == 0xFFFFFFFFFFFFFFFF) ||
-        (cb->mem_attr != attr) || (cb->access_perms != ap) || (cb->sw_bits != sw)) {
+        (cb->mem_attr != attr) ||
+        (cb->access_perms != ap) ||
+        (cb->sw_bits != sw) ||
+        (cb->no_execute != nx)) {
         if (cb->start_addr != 0xFFFFFFFFFFFFFFFF)
             printblk(cb, va, mem);
-        cb->sw_bits = sw;
         cb->start_addr = va;
         cb->mem_attr = attr;
         cb->access_perms = ap;
-        cb->no_execute = (nx == 1);
+        cb->sw_bits = sw;
+        cb->no_execute = nx;
     }
 }
 
-static void handle_block_invalid(struct ttblk_t *cb, uint32_t va,void *mem)
+static void handle_block_invalid(struct ttblk_t *cb, uint32_t va, void *mem)
 {
     if (cb->start_addr != 0xFFFFFFFFFFFFFFFF) {
         printblk(cb, va, mem);
@@ -108,125 +111,118 @@ static void handle_block_invalid(struct ttblk_t *cb, uint32_t va,void *mem)
     }
 }
 
-
 void PageTable::DumpPageTableInfo(void * mem)
 {
-
-	const uint64_t *l0pt = topLevelDir;
+    const uint64_t *l0pt = topLevelDir;
     struct ttblk_t curblk;
 
     memset(&curblk, 0, sizeof(ttblk_t));
     curblk.start_addr = 0xFFFFFFFFFFFFFFFF;
 
     printf("Dumping page table @ %p\n", l0pt);
-	for (int l0_idx = 0; l0_idx <= L0_PAGE_TABLE_SLOT(0xFFFFFFFFFFFFFFFF); l0_idx++) {
-		uint64_t l0e = l0pt[l0_idx];
-		uint64_t l0va = ((uint64_t)l0_idx << 39);
-		switch (l0e & 0x3) {
-			case 0x3:
-				{
-					uint64_t l0pa = l0e & L1_BLOCK_ADDR_MASK;
-					uint32_t l0pa_u8 = (uint32_t) (l0pa >> 32);
-					uint64_t l0pa_l32 = (uint64_t) (l0pa & 0xFFFFFFFFFFFFFFFF);
-					//int l1mattr = (l1e >> 2) & 0xF;
-					//int l1ap = (l1e >> 6) & 0x3;
-					uint64_t *l1_block;
-					printf("Found L0 table entry %3d VA: %016zx, PA: 0x%08x%08zx\n",l0_idx, l0va, l0pa_u8, l0pa_l32);
-					l1_block = (uint64_t *) (TzMem::physToVirt((void *)(uintptr_t) l0pa_l32));
-					for (int l1_idx = 0; l1_idx <= L1_PAGE_TABLE_SLOT(0xFFFFFFFFFFFFFFFF); l1_idx++) {
-						uint64_t l1e = l1_block[l1_idx];
-						uint64_t l1va = ((uint64_t)l1_idx << 30);
-						switch (l1e & 0x3) {
-							case 0x3:
-								{
-									uint64_t l1pa = l1e & L2_BLOCK_ADDR_MASK;
-									uint64_t l1pa_l32 = (uint64_t) (l1pa & 0xFFFFFFFFFFFFFFFF);
-									//int l1mattr = (l1e >> 2) & 0xF;
-									//int l1ap = (l1e >> 6) & 0x3;
-									uint64_t *l2_block;
-									/* printf("Found L1 table entry %3d VA: %08x, PA: 0x%02x%08x\n", */
-									/*        l1_idx, l1va, l1pa_u8, l1pa_l32); */
-									l2_block = (uint64_t *) (TzMem::physToVirt((void *)(uintptr_t) l1pa_l32));
-									for (int l2_idx = 0; l2_idx < L2_PAGE_NUM_ENTRIES; l2_idx++) {
-										uint64_t l2e = l2_block[l2_idx];
-										uint32_t l2va = l1va | (l2_idx << L2_BLOCK_SHIFT);
-										uint64_t l2pa = l2e & L3_BLOCK_ADDR_MASK;
-										uint32_t l2pa_u8 = (uint32_t) (l2pa >> 32);
-										uint32_t l2pa_l32 = (uint32_t) (l2pa & 0xFFFFFFFFFFFFFFFF);
-										int l2mattr = (l2e >> 2) & 0xF;
-										int l2ap = (l2e >> 6) & 0x3;
-										int l2nx = (l2e >> 54) & 0x1;
-										int l2sw = (l2e >> 55) & 0xF;
-										if (!(l2e & 1)) {
-											handle_block_invalid(&curblk, l2va, mem);
+    for (int l0_idx = 0; l0_idx <= L0_PAGE_TABLE_SLOT(0xFFFFFFFFFFFFFFFF); l0_idx++) {
+        uint64_t l0e = l0pt[l0_idx];
+        uint64_t l0va = ((uint64_t)l0_idx << 39);
+        switch (l0e & 0x3) {
+        case 0x3:
+            {
+                uint64_t l0pa = l0e & L1_BLOCK_ADDR_MASK;
+                uint32_t l0pa_u8 = (uint32_t) (l0pa >> 32);
+                uint64_t l0pa_l32 = (uint64_t) (l0pa & 0xFFFFFFFFFFFFFFFF);
+                //int l1mattr = (l1e >> 2) & 0xF;
+                //int l1ap = (l1e >> 6) & 0x3;
+                uint64_t *l1_block;
+                printf("Found L0 table entry %3d VA: %016zx, PA: 0x%08x%08zx\n",l0_idx, l0va, l0pa_u8, l0pa_l32);
+                l1_block = (uint64_t *) (TzMem::physToVirt((void *)(uintptr_t) l0pa_l32));
+                for (int l1_idx = 0; l1_idx <= L1_PAGE_TABLE_SLOT(0xFFFFFFFFFFFFFFFF); l1_idx++) {
+                    uint64_t l1e = l1_block[l1_idx];
+                    uint64_t l1va = ((uint64_t)l1_idx << 30);
+                    switch (l1e & 0x3) {
+                    case 0x3:
+                        {
+                            uint64_t l1pa = l1e & L2_BLOCK_ADDR_MASK;
+                            uint64_t l1pa_l32 = (uint64_t) (l1pa & 0xFFFFFFFFFFFFFFFF);
+                            //int l1mattr = (l1e >> 2) & 0xF;
+                            //int l1ap = (l1e >> 6) & 0x3;
+                            uint64_t *l2_block;
+                            /* printf("Found L1 table entry %3d VA: %08x, PA: 0x%02x%08x\n", */
+                            /*        l1_idx, l1va, l1pa_u8, l1pa_l32); */
+                            l2_block = (uint64_t *) (TzMem::physToVirt((void *)(uintptr_t) l1pa_l32));
+                            for (int l2_idx = 0; l2_idx < L2_PAGE_NUM_ENTRIES; l2_idx++) {
+                                uint64_t l2e = l2_block[l2_idx];
+                                uint32_t l2va = l1va | (l2_idx << L2_BLOCK_SHIFT);
+                                uint64_t l2pa = l2e & L3_BLOCK_ADDR_MASK;
+                                uint32_t l2pa_u8 = (uint32_t) (l2pa >> 32);
+                                uint32_t l2pa_l32 = (uint32_t) (l2pa & 0xFFFFFFFFFFFFFFFF);
+                                int l2mattr = (l2e >> 2) & 0xF;
+                                int l2ap = (l2e >> 6) & 0x3;
+                                int l2nx = (l2e >> 54) & 0x1;
+                                int l2sw = (l2e >> 55) & 0xF;
+                                if (!(l2e & 1)) {
+                                    handle_block_invalid(&curblk, l2va, mem);
+                                    continue;
+                                }
+                                if (l2pa_u8) {
+                                    printf("WARNING: Found 40-bit L2 entry %3ld VA: %08lx, PA: 0x%02lx%08lx but ",
+                                           (long)l2_idx, (long)l2va, (long)l2pa_u8, (long)l2pa_l32);
+                                    break;
+                                }
+                                if (l2e & 0x2) {
+                                    uint64_t *l3_block =
+                                        (uint64_t *) (TzMem::physToVirt((void *)(uintptr_t)l2pa_l32));
+                                    for (int l3_idx = 0; l3_idx < L3_PAGE_NUM_ENTRIES;
+                                         l3_idx++) {
+                                        uint64_t l3e = l3_block[l3_idx];
+                                        uint32_t l3va =
+                                            l2va | (l3_idx << L3_BLOCK_SHIFT);
+                                        uint64_t l3pa = l3e & L3_PHYS_ADDR_MASK;
+                                        uint32_t l3pa_u8 = (uint32_t) (l3pa >> 32);
+                                        int l3mattr = (l3e >> 2) & 0xF;
+                                        int l3ap = (l3e >> 6) & 0x3;
+                                        int l3nx = (l3e >> 54) & 0x1;
+                                        int sw = (l3e >> 55) & 0xF;
+                                        /* uint32_t l3pa_l32 = (uint32_t)(l3pa & 0xFFFFFFFFFFFFFFFF); */
+                                        if (!(l3e & 1)) {
+                                            handle_block_invalid(&curblk, l3va, mem);
+                                            continue;
+                                        }
+                                        /* printf("Found L3 block entry %3d VA: %08x, PA: 0x%02x%08x\n", */
+                                        /*        l3_idx, l3va, l3pa_u8, l3pa_l32); */
+                                        handle_block_valid(&curblk, l3va, sw, l3mattr, l3ap, l3nx, mem);
+                                        if (l3pa_u8) {
+                                            printf("Warning! Can't handle 40-bit addresses yet!\n");
+                                            break;
+                                        }
+                                        if (!(l3e & 0x2)) {
+                                            printf("ERROR: Unexpected L3 entry %3d val=0x%08x%08x!\n",
+                                                   l1_idx, (unsigned int)(uint32_t) (l3e >> 32),
+                                                   (unsigned int)(uint32_t) (l3e & 0xffffffff));
+                                        }
+                                    }
+                                }
+                                else {
+                                    /* printf("Found L2 block entry %3d VA: %08x, PA: 0x%02x%08x\n", */
+                                    /*        l2_idx, l2va, l2pa_u8, l2pa_l32); */
+                                    handle_block_valid(&curblk, l2va, l2sw, l2mattr, l2ap, l2nx, mem);
+                                }
+                            }
+                        }
+                        break;
 
-											continue;
-										}
-										if (l2pa_u8) {
-											printf
-												("WARNING: Found 40-bit L2 entry %3ld VA: %08lx, PA: 0x%02lx%08lx but ",
-												 (long)l2_idx, (long)l2va, (long)l2pa_u8, (long)l2pa_l32);
-											break;
-										}
-										if (l2e & 0x2) {
-											uint64_t *l3_block =
-												(uint64_t *) (TzMem::physToVirt((void *)(uintptr_t)l2pa_l32));
-											for (int l3_idx = 0; l3_idx < L3_PAGE_NUM_ENTRIES;
-												 l3_idx++) {
-												uint64_t l3e = l3_block[l3_idx];
-												uint32_t l3va =
-													l2va | (l3_idx << L3_BLOCK_SHIFT);
-												uint64_t l3pa = l3e & L3_PHYS_ADDR_MASK;
-												uint32_t l3pa_u8 = (uint32_t) (l3pa >> 32);
-												int l3mattr = (l3e >> 2) & 0xF;
-												int l3ap = (l3e >> 6) & 0x3;
-												int l3nx = (l3e >> 54) & 0x1;
-												int sw = (l3e >> 55) & 0xF;
-												/* uint32_t l3pa_l32 = (uint32_t)(l3pa & 0xFFFFFFFFFFFFFFFF); */
-												if (!(l3e & 1)) {
-													handle_block_invalid(&curblk, l3va, mem);
-													continue;
-												}
-												/* printf("Found L3 block entry %3d VA: %08x, PA: 0x%02x%08x\n", */
-												/*        l3_idx, l3va, l3pa_u8, l3pa_l32); */
-												handle_block_valid(&curblk, l3va, sw, l3mattr, l3ap,
-																   l3nx, mem);
-												if (l3pa_u8) {
-													printf
-														("Warning! Can't handle 40-bit addresses yet!\n");
-													break;
-												}
-												if (!(l3e & 0x2)) {
-													printf
-														("ERROR: Unexpected L3 entry %3d val=0x%08x%08x!\n",
-														 l1_idx, (unsigned int)(uint32_t) (l3e >> 32),
-														 (unsigned int)(uint32_t) (l3e & 0xffffffff));
-												}
-											}
-										} else {
-											/* printf("Found L2 block entry %3d VA: %08x, PA: 0x%02x%08x\n", */
-											/*        l2_idx, l2va, l2pa_u8, l2pa_l32); */
-											handle_block_valid(&curblk, l2va, l2sw, l2mattr, l2ap,
-															   l2nx, mem);
-										}
-									}
-								}
-								break;
+                    case 0x0:
+                        handle_block_invalid(&curblk, l1va, mem);
+                        break;
 
-							case 0x0:
-								handle_block_invalid(&curblk, l1va, mem);
-								break;
-
-							default:
-								printf("Unexpected L1 entry %3d VA: %08x val=0x%016x%016x\n",
-									   l1_idx, (unsigned int)l1va, (unsigned int)(uint32_t) (l1e >> 32),
-									   (unsigned int)(uint32_t) (l1e & 0xffffffff));
-								break;
-						}
-					}
-				}
-		}
-	}
+                    default:
+                        printf("Unexpected L1 entry %3d VA: %08x val=0x%016x%016x\n",
+                               l1_idx, (unsigned int)l1va, (unsigned int)(uint32_t) (l1e >> 32),
+                               (unsigned int)(uint32_t) (l1e & 0xffffffff));
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void PageTable::dump()

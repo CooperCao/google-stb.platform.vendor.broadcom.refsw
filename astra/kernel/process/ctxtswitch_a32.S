@@ -51,6 +51,7 @@ contextSwitch:
     bne 2b
 #endif
 
+    mov r0, r1
     ldr r1, [r0, #4]
     ldr r2, [r0, #8]
     ldr r3, [r0, #12]

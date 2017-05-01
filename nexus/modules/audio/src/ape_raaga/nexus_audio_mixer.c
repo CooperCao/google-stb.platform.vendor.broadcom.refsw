@@ -416,21 +416,18 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
          handle->settings.intermediate != pSettings->intermediate )
     {
         BDBG_ERR(("mixUsingDsp/intermediate can only be set when a mixer is opened.  It cannot be changed on-the-fly."));
-        BDBG_ASSERT(0);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if ( handle->settings.fixedOutputFormatEnabled != pSettings->fixedOutputFormatEnabled )
     {
         BDBG_ERR(("fixedOutputFormatEnabled can only be set when a mixer is opened.  It cannot be changed on-the-fly."));
-        BDBG_ASSERT(0);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if ( handle->settings.fixedOutputFormat != pSettings->fixedOutputFormat )
     {
         BDBG_ERR(("fixedOutputFormat can only be set when a mixer is opened.  It cannot be changed on-the-fly."));
-        BDBG_ASSERT(0);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -675,6 +672,7 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
         BAPE_MixerInputVolume inputVolume;
         BAPE_MixerHandle mixer;
         BAPE_MixerInputVolume piVolume;
+        BAPE_MixerInputSettings piSettings;
         bool master;
         int i;
 
@@ -709,6 +707,11 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
         pInputNode->inputSettings.fade.level = piVolume.fade.level;
         pInputNode->inputSettings.fade.duration = piVolume.fade.duration;
         pInputNode->inputSettings.fade.type = piVolume.fade.type;
+        if ( handle->settings.intermediate )
+        {
+            BAPE_Mixer_GetInputSettings(mixer, (BAPE_Connector)input->port, &piSettings);
+            pInputNode->inputSettings.sampleRateConversionEnabled = piSettings.srcEnabled;
+        }
         BLST_Q_INSERT_TAIL(&handle->inputList, pInputNode, inputNode);
 
         /* Because APE mixers default to unity with add input keep nexus in line
@@ -760,15 +763,6 @@ NEXUS_Error NEXUS_AudioMixer_RemoveAllInputs(
 {
     NEXUS_AudioMixerInputNode *pInputNode;
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
-
-    #if 0
-    /* Check if I'm running */
-    if ( NEXUS_AudioInput_P_IsRunning(&handle->connector) || handle->started )
-    {
-        BDBG_ERR(("Mixer %p is running.  Stop all inputs first.", (void *)handle));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-    #endif
 
     if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
@@ -920,6 +914,8 @@ NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
         }
         if (pInputNode != NULL)
         {
+            BAPE_MixerInputSettings inputSettings;
+
             pInputNode->inputSettings = *pSettings;
             NEXUS_AudioInput_P_GetVolume(input, &inputVolume);
             inputVolume.fade.level = pSettings->fade.level;
@@ -929,6 +925,22 @@ NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
             if ( rc )
             {
                 return BERR_TRACE(rc);
+            }
+
+            if ( handle->settings.intermediate )
+            {
+                BAPE_MixerHandle mixer = handle->imMixer;
+                rc = BAPE_Mixer_GetInputSettings(mixer, (BAPE_Connector)input->port, &inputSettings);
+                if ( rc )
+                {
+                    return BERR_TRACE(rc);
+                }
+                inputSettings.srcEnabled = pSettings->sampleRateConversionEnabled;
+                rc = BAPE_Mixer_SetInputSettings(mixer, (BAPE_Connector)input->port, &inputSettings);
+                if ( rc )
+                {
+                    return BERR_TRACE(rc);
+                }
             }
         }
         else

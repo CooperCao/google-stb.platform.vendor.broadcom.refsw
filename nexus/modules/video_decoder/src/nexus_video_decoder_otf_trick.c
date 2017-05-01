@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
  * Revision History:
  *
  * $brcm_Log: $
- * 
+ *
  **************************************************************************/
 
 #include "nexus_video_decoder_module.h"
@@ -185,6 +185,8 @@ NEXUS_VideoDecoder_P_OtfPvr_Activate(NEXUS_VideoDecoderHandle videoDecoder, cons
     {
         NEXUS_RaveOpenSettings rave2_cfg;
         NEXUS_RaveStatus raveStatus2;
+        NEXUS_MemoryStatus memoryStatus;
+
         LOCK_TRANSPORT();
         NEXUS_Rave_GetDefaultOpenSettings_priv(&rave2_cfg);
         rave2_cfg.config.Cdb.Length = 8192; /* XPT now requires a minimum CDB size */
@@ -197,10 +199,16 @@ NEXUS_VideoDecoder_P_OtfPvr_Activate(NEXUS_VideoDecoderHandle videoDecoder, cons
         if (rc) {return BERR_TRACE(rc);}
         if(!videoDecoder->otfPvr.rave) {return BERR_TRACE(NEXUS_NOT_SUPPORTED);}
         Params.outputContext = raveStatus2.xptContextMap;
-        Params.hBMem = NEXUS_Heap_GetMemHandle(raveStatus2.heap); /* OTF PVR needs heap for RAVE */ 
+        Params.mma = NEXUS_Heap_GetMmaHandle(raveStatus2.heap); /* OTF PVR needs heap for RAVE */
         if (!NEXUS_P_CpuAccessibleHeap(raveStatus2.heap)) {rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);goto err_otf;} /* and it must be CPU-accessible. */
         videoDecoder->otfPvr.xptContextMap = raveStatus2.xptContextMap;
         xvdCfg->pContextMap = &videoDecoder->otfPvr.xptContextMap;
+        rc = NEXUS_Heap_GetStatus(raveStatus2.heap, &memoryStatus);
+        if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_otf;}
+        Params.itb_heap.addr = memoryStatus.offset;
+        Params.itb_heap.cached_ptr = memoryStatus.addr;
+        Params.itb_heap.size = memoryStatus.size;
+        Params.itb_heap.FlushCache = NEXUS_FlushCache;
     }
     Params.bUsePtsAsTag = false;
     rc = BOTF_Open(&Params, &videoDecoder->otfPvr.otf);

@@ -168,7 +168,6 @@ BCMD_XptSecKeySlot_e NEXUS_Security_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKe
 BCMD_KeyRamBuf_e NEXUS_Security_P_mapNexus2Hsm_KeyLayer( NEXUS_SecurityKeyLayer keyLayer );
 
 
-
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_RegionVerify);
 /* Init/Uninit functions for region Verification */
 NEXUS_Error NEXUS_RegionVerify_Init( void );

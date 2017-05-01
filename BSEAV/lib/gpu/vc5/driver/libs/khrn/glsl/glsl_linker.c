@@ -30,7 +30,16 @@
 
 #include "../glxx/glxx_int_config.h"
 
-static GLenum get_gl_type(const SymbolType* type)
+static void ATTRIBUTE_FORMAT(printf, 2, 3) link_error(unsigned err_no, const char *clarification, ...) {
+   va_list ap;
+   va_start(ap, clarification);
+   glsl_compile_verror(ERROR_LINKER, err_no, -1, clarification, ap);
+   va_end(ap);
+
+   glsl_compiler_exit();
+}
+
+static GLenum get_gl_type(const SymbolType *type)
 {
    switch (type->flavour)
    {
@@ -86,7 +95,7 @@ static int pack_sampler_array(pack_uniform_t *ctx, const int **ids, int **maps, 
 
       if (location >= GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
          /* Too many combined samplers */
-         glsl_compile_error(ERROR_LINKER, 10, -1, "Too many samplers, max %d", GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+         link_error(10, "Too many samplers, max %d", GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
          return -1;
       }
 
@@ -124,15 +133,10 @@ static int pack_image_array(pack_uniform_t *ctx, const int **ids, int **maps, in
          if (s_used[j]) maps[j][ids[j][i]] = location;
 
       if (in_vertex_pipeline)
-      {
-         glsl_compile_error(ERROR_LINKER, 5, -1, "Image uniforms are not allowed in the vertex pipeline");
-         return -1;
-      }
+         link_error(5, "Image uniforms are not allowed in the vertex pipeline");
 
-      if (location >= GLXX_CONFIG_MAX_IMAGE_UNITS) {
-         glsl_compile_error(ERROR_LINKER, 10, -1, "Too many images, max %d", GLXX_CONFIG_MAX_IMAGE_UNITS);
-         return -1;
-      }
+      if (location >= GLXX_CONFIG_MAX_IMAGE_UNITS)
+         link_error(10, "Too many images, max %d", GLXX_CONFIG_MAX_IMAGE_UNITS);
 
       ctx->program->images[location].location    = unif_loc + i;
       ctx->program->images[location].type        = get_gl_type(type);
@@ -182,15 +186,26 @@ static int update_uniform_link_map(const int **ids, int **maps, int n_stages, un
 }
 
 struct if_var_t {
-   const char *name;
-   const SymbolType *type;
-   const MemLayout *layout;
-   unsigned offset;
-   unsigned array_length;
-   unsigned top_level_size;
-   unsigned top_level_stride;
-   TypeQualifier type_qual;
+   const char            *name;
+   const SymbolType      *type;
+   const MemLayout       *layout;
+   unsigned               offset;
+   unsigned               top_level_size;
+   unsigned               top_level_stride;
+   PrecisionQualifier     prec_qual;
+   InterpolationQualifier interp_qual;
+   AuxiliaryQualifier     aux_qual;
 };
+
+static const SymbolType *if_var_prim_type(const struct if_var_t *v) {
+   if (v->type->flavour == SYMBOL_ARRAY_TYPE) return v->type->u.array_type.member_type;
+   else                                       return v->type;
+}
+
+static unsigned if_var_array_length(const struct if_var_t *v) {
+   if (v->type->flavour == SYMBOL_ARRAY_TYPE) return v->type->u.array_type.member_count;
+   else                                       return 1;
+}
 
 static void record_var(GLSL_BLOCK_MEMBER_T *unif, const struct if_var_t *var, int offset,
                        const bool *used, bool default_block, int atomic_idx)
@@ -198,7 +213,8 @@ static void record_var(GLSL_BLOCK_MEMBER_T *unif, const struct if_var_t *var, in
    unif->type          = get_gl_type(var->type);
    unif->name          = strdup(var->name);
    unif->offset        = offset;
-   unif->array_length  = var->array_length;
+   unif->is_array      = var->type->flavour == SYMBOL_ARRAY_TYPE;
+   unif->array_length  = if_var_array_length(var);
 
    unif->top_level_size   = var->top_level_size;
    unif->top_level_stride = var->top_level_stride;
@@ -212,7 +228,7 @@ static void record_var(GLSL_BLOCK_MEMBER_T *unif, const struct if_var_t *var, in
    unif->used_in_fs    = used[SHADER_FRAGMENT];
    unif->used_in_cs    = used[SHADER_COMPUTE];
 
-   if(!unif->name) glsl_compile_error(ERROR_LINKER, 2, -1, NULL);
+   if(!unif->name) link_error(2, NULL);
 
    unif->column_major  = true;
 
@@ -233,7 +249,7 @@ static void record_var(GLSL_BLOCK_MEMBER_T *unif, const struct if_var_t *var, in
          layout = layout->u.array_layout.member_layout;
       }
 
-      bool is_matrix = !!(primitiveTypeFlags[var->type->u.primitive_type.index] & PRIM_MATRIX_TYPE);
+      bool is_matrix = !!(primitiveTypeFlags[if_var_prim_type(var)->u.primitive_type.index] & PRIM_MATRIX_TYPE);
       if (is_matrix) {
          unif->matrix_stride = layout->u.prim_matrix_layout.stride;
          unif->column_major  = !layout->u.prim_matrix_layout.row_major;
@@ -246,38 +262,39 @@ static bool used_in_vertex_pipeline(const bool *used) {
           used[SHADER_TESS_EVALUATION] || used[SHADER_GEOMETRY];
 }
 
-/* If this is an array then 'type' tells us the type of array members */
 static void pack_var_default(pack_uniform_t *context, int offset, const int **ids, int **maps, int n_stages, const bool *used, const struct if_var_t *var) {
+   const SymbolType *t = if_var_prim_type(var);
+   unsigned array_length = if_var_array_length(var);
+
    /* Now update the dataflow and, if required, the programs sampler info */
-   if (glsl_prim_is_prim_sampler_type(var->type)) {
+   if (glsl_prim_is_prim_sampler_type(t)) {
       context->max_offset = pack_sampler_array(context, ids, maps, n_stages,
-                                               var->array_length, var->type,
+                                               array_length, t,
                                                offset, used_in_vertex_pipeline(used));
    }
-   else if (glsl_prim_is_prim_image_type(var->type)) {
+   else if (glsl_prim_is_prim_image_type(t)) {
       context->max_offset = pack_image_array(context, ids, maps, n_stages,
-                                             var->array_length, var->type,
+                                             array_length, t,
                                              offset, used_in_vertex_pipeline(used));
    }
    else {
-      context->max_offset = update_uniform_link_map(ids, maps, n_stages, var->array_length, var->type, offset);
+      context->max_offset = update_uniform_link_map(ids, maps, n_stages, array_length, t, offset);
    }
 
    for (int i=0; i<n_stages; i++) {
-      ids[i] += var->array_length * var->type->scalar_count;
+      ids[i] += array_length * t->scalar_count;
    }
 }
 
 static void enumerate(struct if_var_t *var, const char *name, const SymbolType *type,
-                      unsigned int array_length, const MemLayout *layout, unsigned offset)
+                      const MemLayout *layout, unsigned offset)
 {
-   var->name = name;
-   var->type = type;
-   var->layout = layout;
-   var->array_length = array_length;
-   var->offset = offset;
+   var->name             = name;
+   var->type             = type;
+   var->layout           = layout;
+   var->offset           = offset;
    /* Fill in defaults. This is written at the top-level */
-   var->top_level_size = 1;
+   var->top_level_size   = 1;
    var->top_level_stride = 0;
 }
 
@@ -286,7 +303,7 @@ static int enumerate_members(struct if_var_t *vars, const char *name, const Symb
    switch (type->flavour)
    {
       case SYMBOL_PRIMITIVE_TYPE:
-         enumerate(vars, name, type, 1, layout, offset);
+         enumerate(vars, name, type, layout, offset);
          return 1;
 
       case SYMBOL_STRUCT_TYPE:
@@ -303,14 +320,13 @@ static int enumerate_members(struct if_var_t *vars, const char *name, const Symb
 
       case SYMBOL_ARRAY_TYPE:
       {
-         unsigned int array_length = type->u.array_type.member_count;
          SymbolType  *member_type  = type->u.array_type.member_type;
-
          if(member_type->flavour==SYMBOL_PRIMITIVE_TYPE) {
             /* Since we pack the whole array, pass layout, not member_layout */
-            enumerate(vars, asprintf_fast("%s[0]", name), member_type, array_length, layout, offset);
+            enumerate(vars, name, type, layout, offset);
             return 1;
          } else {
+            unsigned int array_length = type->u.array_type.member_count;
             int n = 0;
             for (unsigned i = 0; i < array_length; i++)
                n += enumerate_members(&vars[n], asprintf_fast("%s[%d]", name, i), member_type, layout->u.array_layout.member_layout, offset + i * layout->u.array_layout.stride);
@@ -368,26 +384,26 @@ static unsigned max_combined_block_types(StorageQualifier sq) {
 
 static void enumerate_in_out_var(struct if_var_t *var, const char *name,
                                  const SymbolType *type, PrecisionQualifier prec,
-                                 TypeQualifier qual)
+                                 InterpolationQualifier iq, AuxiliaryQualifier aq)
 {
    var->name = name;
    var->type = type;
-   /* TODO: What a terrible hack: */
-   var->array_length = prec;
+   var->prec_qual   = prec;
+   var->interp_qual = iq;
+   var->aux_qual    = aq;
    /* Not used: */
    var->layout = NULL;
    var->top_level_size = 0;
    var->top_level_stride = 0;
-   var->type_qual = qual;
 }
 
 static int enumerate_ins_outs(struct if_var_t *vars, const char *name, const SymbolType *type,
-                              PrecisionQualifier prec, TypeQualifier type_qual)
+                              PrecisionQualifier prec, InterpolationQualifier iq, AuxiliaryQualifier aq)
 {
    switch (type->flavour)
    {
       case SYMBOL_PRIMITIVE_TYPE:
-         enumerate_in_out_var(vars, name, type, prec, type_qual);
+         enumerate_in_out_var(vars, name, type, prec, iq, aq);
          return 1;
 
       case SYMBOL_STRUCT_TYPE:
@@ -396,23 +412,22 @@ static int enumerate_ins_outs(struct if_var_t *vars, const char *name, const Sym
          for (unsigned i = 0; i < type->u.struct_type.member_count; i++)
          {
             const char *member_name = asprintf_fast("%s.%s", name, type->u.struct_type.member[i].name);
-            n += enumerate_ins_outs(&vars[n], member_name, type->u.struct_type.member[i].type, type->u.struct_type.member[i].prec, type_qual);
+            n += enumerate_ins_outs(&vars[n], member_name, type->u.struct_type.member[i].type, type->u.struct_type.member[i].prec, iq, aq);
          }
          return n;
       }
 
       case SYMBOL_ARRAY_TYPE:
       {
-         unsigned int array_length = type->u.array_type.member_count;
-         SymbolType  *member_type  = type->u.array_type.member_type;
-
+         SymbolType *member_type  = type->u.array_type.member_type;
          if(member_type->flavour==SYMBOL_PRIMITIVE_TYPE) {
-            enumerate_in_out_var(vars, name, type, prec, type_qual);
+            enumerate_in_out_var(vars, name, type, prec, iq, aq);
             return 1;
          } else {
+            unsigned int array_length = type->u.array_type.member_count;
             int n = 0;
             for (unsigned i = 0; i < array_length; i++)
-               n += enumerate_ins_outs(&vars[n], asprintf_fast("%s[%d]", name, i), member_type, prec, type_qual);
+               n += enumerate_ins_outs(&vars[n], asprintf_fast("%s[%d]", name, i), member_type, prec, iq, aq);
             return n;
          }
       }
@@ -460,9 +475,9 @@ static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int
    if(!active) return;
 
    if (ctx->n_records == max_combined_block_types(b->u.interface_block.sq))
-      glsl_compile_error(ERROR_LINKER, 5, -1, "Too many %s blocks, max %d",
-                         glsl_storage_qual_string(b->u.interface_block.sq),
-                         max_combined_block_types(b->u.interface_block.sq));
+      link_error(5, "Too many %s blocks, max %d",
+                    glsl_storage_qual_string(b->u.interface_block.sq),
+                    max_combined_block_types(b->u.interface_block.sq));
 
    GLSL_BLOCK_T *block  = &(ctx->records[ctx->n_records]);
    MemLayout    *layout = malloc_fast(sizeof(MemLayout));
@@ -470,9 +485,9 @@ static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int
    glsl_mem_calculate_block_layout(layout, type);
 
    if (layout->u.struct_layout.size > max_buffer_size(b->u.interface_block.sq))
-      glsl_compile_error(ERROR_LINKER, 5, -1, "%s block %s too large: %d",
-                         glsl_storage_qual_string(b->u.interface_block.sq),
-                         b->name, layout->u.struct_layout.size);
+      link_error(5, "%s block %s too large: %d",
+                    glsl_storage_qual_string(b->u.interface_block.sq),
+                    b->name, layout->u.struct_layout.size);
 
    struct if_var_t *vars = glsl_safemem_malloc(deep_member_count(type) * sizeof(struct if_var_t));
    int n_members = enumerate_block_members(vars, b->name, type, layout, (b->u.interface_block.sq == STORAGE_BUFFER));
@@ -496,7 +511,7 @@ static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int
    block->used_in_cs   = used[SHADER_COMPUTE];
 
    if( !block->name || (!block->members && block->num_members > 0)) {
-      glsl_compile_error(ERROR_LINKER, 2, -1, NULL);
+      link_error(2, NULL);
    }
 
    ctx->n_records++;
@@ -566,7 +581,7 @@ static void validate_uniforms_match(ShaderInterface **uniforms, int n_stages, in
 
             // Global variables must have the same type.
             if (!match)
-               glsl_compile_error(ERROR_LINKER, 1, -1, "%s", u1->name);
+               link_error(1, "%s", u1->name);
 
             bool bound1, bound2;
             int binding1, binding2;
@@ -583,11 +598,10 @@ static void validate_uniforms_match(ShaderInterface **uniforms, int n_stages, in
             }
 
             if (bound1 != bound2)
-               glsl_compile_error(ERROR_LINKER, 1, -1, "%s: binding qualification must match", u1->name);
+               link_error(1, "%s: binding qualification must match", u1->name);
 
             if (bound1 && binding1 != binding2)
-               glsl_compile_error(ERROR_LINKER, 1, -1, "%s: binding mismatch (%d and %d)", u1->name,
-                                                                                           binding1, binding2);
+               link_error(1, "%s: binding mismatch (%d and %d)", u1->name, binding1, binding2);
 
             /* We only check the first subsequent declaration */
             break;
@@ -613,11 +627,9 @@ static int record_atomic(GLSL_PROGRAM_T *program, const Symbol *counters, const 
    }
 
    int idx = program->num_atomic_buffers++;
-   if (program->num_atomic_buffers > GLXX_CONFIG_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS) {
-      glsl_compile_error(ERROR_LINKER, 11, -1, "Too many atomic counter buffers, max %d",
-                                               GLXX_CONFIG_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS);
-      return -1;
-   }
+   if (program->num_atomic_buffers > GLXX_CONFIG_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS)
+      link_error(11, "Too many atomic counter buffers, max %d",
+                     GLXX_CONFIG_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS);
 
    GLSL_ATOMIC_BUF_T *buf = &program->atomic_buffers[idx];
    buf->binding = counters->u.var_instance.layout_binding;
@@ -697,7 +709,7 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
             enumerate_members(vars, uniform->symbol->name, uniform->symbol->type, layout, 0);
 
             unsigned locations_required = 0;
-            for (int i=0; i<num_members; i++) locations_required += vars[i].array_length;
+            for (int i=0; i<num_members; i++) locations_required += if_var_array_length(&vars[i]);
 
             unsigned base_loc;
             if (has_location) {
@@ -705,14 +717,14 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
                if (base_loc + locations_required > GLXX_CONFIG_MAX_UNIFORM_LOCATIONS ||
                    !location_valid(loc_used, base_loc, locations_required))
                {
-                  glsl_compile_error(ERROR_LINKER, 5, -1, "Invalid location for %s", uniform->symbol->name);
+                  link_error(5, "Invalid location for %s", uniform->symbol->name);
                }
             } else {
                for (base_loc=0; base_loc<=GLXX_CONFIG_MAX_UNIFORM_LOCATIONS - locations_required; base_loc++) {
                   if (location_valid(loc_used, base_loc, locations_required)) break;
                }
                if (base_loc > GLXX_CONFIG_MAX_UNIFORM_LOCATIONS - locations_required)
-                  glsl_compile_error(ERROR_LINKER, 5, -1, "No implicit location available for %s", uniform->symbol->name);
+                  link_error(5, "No implicit location available for %s", uniform->symbol->name);
             }
             for (unsigned i=base_loc; i<base_loc + locations_required; i++) loc_used[i] = true;
 
@@ -724,7 +736,7 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
 
                int base_offset = gfx_uround_up_p2(context->max_offset + 1, layout->base_alignment/4);
                if (program->default_uniforms.num_members + num_members > GLXX_CONFIG_MAX_UNIFORM_VECTORS)
-                  glsl_compile_error(ERROR_LINKER, 5, -1, NULL);
+                  link_error(5, NULL);
 
                int atomic_idx = -1;
                if (glsl_type_contains(uniform->symbol->type, PRIM_ATOMIC_TYPE)) {
@@ -752,8 +764,8 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
                   record_var(unif, &vars[j], offset, used, /*default_block=*/true, atomic_idx);
 
                   pack_var_default(context, real_offset, ids, maps, var_n_stages, used, &vars[j]);
-                  if (context->binding != -1) context->binding += vars[j].array_length;
-                  loc += vars[j].array_length;
+                  if (context->binding != -1) context->binding += if_var_array_length(&vars[j]);
+                  loc += if_var_array_length(&vars[j]);
                }
             }
             glsl_safemem_free(vars);
@@ -793,14 +805,14 @@ void pack_uniforms(GLSL_PROGRAM_T *program, ShaderFlavour *stages, ShaderInterfa
       GLSL_BLOCK_MEMBER_T *unif = &program->default_uniforms.members[i];
       if (unif->atomic_idx != -1) {
          if (atomic_slot_used[unif->atomic_idx][unif->offset/4])
-            glsl_compile_error(ERROR_LINKER, 5, -1, "Overlapping atomic counters");
+            link_error(5, "Overlapping atomic counters");
          atomic_slot_used[unif->atomic_idx][unif->offset/4] = true;
       }
    }
 
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
       if (ubo_ctx.num_blocks[i] > GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS)
-         glsl_compile_error(ERROR_LINKER, 5, -1, "Too many uniform blocks");
+         link_error(5, "Too many uniform blocks");
    }
 
    program->num_uniform_blocks = ubo_ctx.n_records;
@@ -827,9 +839,9 @@ static void pack_shader_buffers(ShaderFlavour flavour, GLSL_PROGRAM_T *program, 
    }
 
    if (ctx.num_blocks[SHADER_FRAGMENT] > GLXX_CONFIG_MAX_SHADER_STORAGE_BLOCKS)
-      glsl_compile_error(ERROR_LINKER, 5, -1, "Too many fragment buffer blocks");
+      link_error(5, "Too many fragment buffer blocks");
    if (ctx.num_blocks[SHADER_COMPUTE] > GLXX_CONFIG_MAX_SHADER_STORAGE_BLOCKS)
-      glsl_compile_error(ERROR_LINKER, 5, -1, "Too many compute buffer blocks");
+      link_error(5, "Too many compute buffer blocks");
 
    program->num_buffer_blocks = ctx.n_records;
    program->num_ssbo_bindings = ctx.n_bindings;
@@ -901,7 +913,7 @@ static void validate_attribute_loc(const Symbol *attribute, int binding, uint32_
    if (binding + get_attribute_blocks(attribute->type) > GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
    {
       // Too many attribs or explicit binding too high for matrix
-      glsl_compile_error(ERROR_LINKER, 3, -1, "%s", attribute->name);
+      link_error(3, "%s", attribute->name);
    }
 
    // Fill in scalar value mask
@@ -909,48 +921,39 @@ static void validate_attribute_loc(const Symbol *attribute, int binding, uint32_
    if (link_version == GLSL_SHADER_VERSION(3, 0, 1)) {
       /* For #version 300 es attribute aliasing is an error */
       if ((*used_mask & attrib_mask) != 0)
-         glsl_compile_error(ERROR_LINKER, 3, -1, "Aliasing: %s", attribute->name);
+         link_error(3, "Aliasing: %s", attribute->name);
    }
    (*used_mask) |= attrib_mask;
 }
 
 static void record_inout(unsigned *count, GLSL_INOUT_T *info, const struct if_var_t *v, int index, const bool *used) {
-   int  array_size;
-   bool is_array;
-
-   if (v->type->flavour == SYMBOL_ARRAY_TYPE) {
-      array_size = v->type->u.array_type.member_count;
-      is_array = true;
-   } else {
-      array_size = 1;
-      is_array = false;
-   }
-
    const unsigned i = (*count)++;
-   info[i].index        = index;
-   info[i].name         = strdup(v->name);
-   info[i].type         = get_gl_type(v->type);
-   info[i].is_array     = is_array;
-   info[i].array_size   = array_size;
-   info[i].used_in_vs   = used[SHADER_VERTEX];
-   info[i].used_in_tcs  = used[SHADER_TESS_CONTROL];
-   info[i].used_in_tes  = used[SHADER_TESS_EVALUATION];
-   info[i].used_in_gs   = used[SHADER_GEOMETRY];
-   info[i].used_in_fs   = used[SHADER_FRAGMENT];
-   info[i].used_in_cs   = used[SHADER_COMPUTE];
-   info[i].precision    = v->array_length;           /* TODO: What a terrible hack... */
-   info[i].flat         = v->type_qual == TYPE_QUAL_FLAT;
-   info[i].centroid     = v->type_qual == TYPE_QUAL_CENTROID;
-   info[i].is_per_patch = v->type_qual == TYPE_QUAL_PATCH;
+   info[i].index         = index;
+   info[i].name          = strdup(v->name);
+   info[i].type          = get_gl_type(v->type);
+   info[i].is_array      = (v->type->flavour == SYMBOL_ARRAY_TYPE);
+   info[i].array_size    = if_var_array_length(v);;
+   info[i].used_in_vs    = used[SHADER_VERTEX];
+   info[i].used_in_tcs   = used[SHADER_TESS_CONTROL];
+   info[i].used_in_tes   = used[SHADER_TESS_EVALUATION];
+   info[i].used_in_gs    = used[SHADER_GEOMETRY];
+   info[i].used_in_fs    = used[SHADER_FRAGMENT];
+   info[i].used_in_cs    = used[SHADER_COMPUTE];
+   info[i].precision     = v->prec_qual;
+   info[i].flat          = v->interp_qual == INTERP_FLAT;
+   info[i].noperspective = v->interp_qual == INTERP_NOPERSPECTIVE;
+   info[i].centroid      = v->aux_qual    == AUXILIARY_CENTROID;
+   info[i].is_per_patch  = v->aux_qual    == AUXILIARY_PATCH;
    if(!info[i].name)
-      glsl_compile_error(ERROR_LINKER, 2, -1, NULL);
+      link_error(2, NULL);
 }
 
 static void record_input(GLSL_PROGRAM_T *program, const InterfaceVar *attribute, int index) {
    bool used[SHADER_FLAVOUR_COUNT] = { true, false, false, false, false, false };
    struct if_var_t v;
    enumerate_in_out_var(&v, attribute->symbol->name, attribute->symbol->type,
-                            attribute->symbol->u.var_instance.prec_qual, attribute->symbol->u.var_instance.type_qual);
+                            attribute->symbol->u.var_instance.prec_qual,
+                            attribute->symbol->u.var_instance.interp_qual, attribute->symbol->u.var_instance.aux_qual);
    record_inout(&program->num_inputs, program->inputs, &v, index, used);
 }
 
@@ -958,7 +961,8 @@ static void record_output(GLSL_PROGRAM_T *program, const InterfaceVar *out, int 
    bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, true, false };
    struct if_var_t v;
    enumerate_in_out_var(&v, out->symbol->name, out->symbol->type,
-                            out->symbol->u.var_instance.prec_qual, out->symbol->u.var_instance.type_qual);
+                            out->symbol->u.var_instance.prec_qual,
+                            out->symbol->u.var_instance.interp_qual, out->symbol->u.var_instance.aux_qual);
    record_inout(&program->num_outputs, program->outputs, &v, index, used);
 }
 
@@ -977,8 +981,7 @@ static void bind_attribute(InterfaceVar *attribute, int binding, int *id_ptr)
    }
 }
 
-static bool is_hidden_builtin(const Symbol *s)
-{
+static bool is_hidden_builtin(const Symbol *s) {
    if (!strncmp(s->name, "$$", 2)) return true;
    /* TODO: Name __brcm_LineCoord better so that we don't have to do this */
    if (!strncmp(s->name, "__brcm", 6)) return true;
@@ -1021,8 +1024,8 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
       binding = get_binding(source, attribute->symbol);
 
       if (binding >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
-         glsl_compile_error(ERROR_LINKER, 3, -1, "Invalid explicit binding %s: %d",
-                                                 attribute->symbol->name, binding);
+         link_error(3, "Invalid explicit binding %s: %d",
+                       attribute->symbol->name, binding);
 
       if (binding >= 0) {
          validate_attribute_loc(attribute->symbol, binding, &attribs_used_mask, link_version);
@@ -1045,7 +1048,7 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
       }
 
       if (binding == GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
-         glsl_compile_error(ERROR_LINKER, 3, -1, "%s", attribute->symbol->name);
+         link_error(3, "%s", attribute->symbol->name);
 
       validate_attribute_loc(attribute->symbol, binding, &attribs_used_mask, link_version);
       attr_locs[i].handled = true;
@@ -1087,117 +1090,96 @@ typedef struct {
    GLSL_TF_CAPTURE_T *tf_capture;
 } pack_tf_t;
 
+static void pack_f_in(pack_varying_t *context, const InterfaceVar *f_in)
+{
+   VARYING_INFO_T *vary_info = context->varying_info;
+   unsigned int row = context->num_scalar_varyings;
+
+   for (unsigned i = 0; i < f_in->symbol->type->scalar_count; i++) {
+      if (f_in->ids[i] != -1) {
+         // Update the fragment shader link map
+         context->f_id_ptr[f_in->ids[i]] = row + i;
+
+         // record varying interpolation information
+         switch (f_in->symbol->u.var_instance.interp_qual) {
+            case INTERP_NOPERSPECTIVE:
+               vary_info[row + i].noperspective = true; break;
+            case INTERP_FLAT:
+               vary_info[row + i].flat          = true; break;
+            default:
+               /* No action */ break;
+         }
+         switch (f_in->symbol->u.var_instance.aux_qual) {
+            case AUXILIARY_CENTROID:
+               vary_info[row + i].centroid     = true; break;
+            case AUXILIARY_SAMPLE:
+               context->any_varying_per_sample = true; break;
+            default:
+               /* No action */ break;
+         }
+      }
+   }
+}
+
 /* Record a varying as output from a vertex program. If the varying is also in
  * the fragment program, f_in points to it. If not (because of transform
  * feedback) then f_in is null
  */
 static void pack_in_out(pack_varying_t *context, const InterfaceVar *f_in, const InterfaceVar *v_out)
 {
+   // Too many varyings.
    if (context->num_scalar_varyings + v_out->symbol->type->scalar_count > GLXX_CONFIG_MAX_VARYING_SCALARS)
-   {
-      // Too many varyings.
-      glsl_compile_error(ERROR_LINKER, 4, -1, "%s", v_out->symbol->name);
-      return;
-   }
+      link_error(4, "%s", v_out->symbol->name);
 
-   // For every scalar...
    for (unsigned i = 0; i < v_out->symbol->type->scalar_count; i++)
-   {
-      VARYING_INFO_T *vary_info = context->varying_info;
-      unsigned int scalar_row = context->num_scalar_varyings;
+      context->scalar_varyings[context->num_scalar_varyings + i] = v_out->ids[i];
 
-      // Record this varying in the output arrays
-      context->scalar_varyings[context->num_scalar_varyings] = v_out->ids[i];
+   if (f_in != NULL) pack_f_in(context, f_in);
 
-      if (f_in != NULL && f_in->ids[i] != -1) {
-         // Update the fragment shader link map
-         context->f_id_ptr[f_in->ids[i]] = scalar_row;
-
-         // record whether varying is centroid or flat based on type qual
-         switch (f_in->symbol->u.var_instance.type_qual) {
-            case TYPE_QUAL_CENTROID:
-               vary_info[context->num_scalar_varyings].centroid = true; break;
-            case TYPE_QUAL_FLAT:
-               vary_info[context->num_scalar_varyings].flat = true; break;
-            case TYPE_QUAL_SAMPLE:
-               context->any_varying_per_sample = true; break;
-            default:
-               /* No action */ break;
-         }
-      }
-
-      context->num_scalar_varyings++;
-   }
+   context->num_scalar_varyings += v_out->symbol->type->scalar_count;
 }
 
 static void copy_out(pack_varying_t *context, const InterfaceVar *v_out)
 {
+   // Too many varyings.
    if (context->num_scalar_varyings + v_out->symbol->type->scalar_count > GLXX_CONFIG_MAX_VARYING_SCALARS)
-   {
-      // Too many varyings.
-      glsl_compile_error(ERROR_LINKER, 4, -1, "%s", v_out->symbol->name);
-      return;
-   }
+      link_error(4, "%s", v_out->symbol->name);
 
    // For every scalar...
    for (unsigned i = 0; i < v_out->symbol->type->scalar_count; i++)
-   {
-      unsigned int scalar_row = context->num_scalar_varyings;
+      context->scalar_varyings[context->num_scalar_varyings + i] = v_out->ids[i];
 
-      // Record this varying in the output arrays
-      context->scalar_varyings[scalar_row] = v_out->ids[i];
-      context->num_scalar_varyings++;
-   }
+   context->num_scalar_varyings += v_out->symbol->type->scalar_count;
 }
 
 static void copy_in(pack_varying_t *context, const InterfaceVar *f_in)
 {
+   // Too many varyings.
    if (context->num_scalar_varyings + f_in->symbol->type->scalar_count > GLXX_CONFIG_MAX_VARYING_SCALARS)
-   {
-      // Too many varyings.
-      glsl_compile_error(ERROR_LINKER, 4, -1, "%s", f_in->symbol->name);
-      return;
-   }
+      link_error(4, "%s", f_in->symbol->name);
 
-   // For every scalar...
-   for (unsigned i = 0; i < f_in->symbol->type->scalar_count; i++)
-   {
-      unsigned int scalar_row = context->num_scalar_varyings;
+   pack_f_in(context, f_in);
 
-      if (f_in->ids[i] != -1) {
-         // Update the fragment shader link map
-         context->f_id_ptr[f_in->ids[i]] = scalar_row;
-
-         // record whether varying is centroid or flat based on type qual
-         switch (f_in->symbol->u.var_instance.type_qual) {
-            case TYPE_QUAL_CENTROID:
-               context->varying_info[context->num_scalar_varyings].centroid = true; break;
-            case TYPE_QUAL_FLAT:
-               context->varying_info[context->num_scalar_varyings].flat = true; break;
-            default:
-               /* No action */ break;
-         }
-      }
-
-      context->num_scalar_varyings++;
-   }
+   context->num_scalar_varyings += f_in->symbol->type->scalar_count;
 }
 
 static void validate_arrayness(ShaderInterface *iface) {
    for (int i=0; i<iface->n_vars; i++) {
       const Symbol *s = iface->var[i].symbol;
-      bool patch = (s->flavour == SYMBOL_VAR_INSTANCE    && s->u.var_instance.type_qual == TYPE_QUAL_PATCH) ||
-                   (s->flavour == SYMBOL_INTERFACE_BLOCK && s->u.interface_block.tq     == TYPE_QUAL_PATCH);
+      bool patch = (s->flavour == SYMBOL_VAR_INSTANCE    && s->u.var_instance.aux_qual == AUXILIARY_PATCH) ||
+                   (s->flavour == SYMBOL_INTERFACE_BLOCK && s->u.interface_block.aq    == AUXILIARY_PATCH);
       if (s->type->flavour != SYMBOL_ARRAY_TYPE && !patch && !is_builtin(s))
-         glsl_compile_error(ERROR_LINKER, 1, -1, "arrayed interface requires array type for %s", s->name);
+         link_error(1, "arrayed interface requires array type for %s", s->name);
    }
 }
 
 /* Outputs must have matching smooth/flat, but need not have matching centroid */
-static bool type_quals_compatible(TypeQualifier a, TypeQualifier b) {
-   if ( (a == TYPE_QUAL_FLAT)  != (b == TYPE_QUAL_FLAT)  ) return false;
-   if ( (a == TYPE_QUAL_PATCH) != (b == TYPE_QUAL_PATCH) ) return false;
-   return true;
+static bool interp_quals_compatible(InterpolationQualifier a, InterpolationQualifier b) {
+   return a == b;
+}
+
+static bool aux_quals_compatible(AuxiliaryQualifier a, AuxiliaryQualifier b) {
+   return ( (a == AUXILIARY_PATCH) == (b == AUXILIARY_PATCH) );
 }
 
 static const InterfaceVar *interface_var_find_by_location(const ShaderInterface *iface, unsigned location) {
@@ -1232,7 +1214,7 @@ static void validate_outs_ins_match(ShaderInterface *outs, ShaderInterface *ins,
       if (out == NULL) {
          /* ... then it must be unused in the consuming shader (or a builtin). */
          if (in->static_use && !is_builtin(in->symbol))
-            glsl_compile_error(ERROR_LINKER, 7, -1, "%s", in->symbol->name);
+            link_error(7, "%s", in->symbol->name);
 
          continue;
       }
@@ -1245,15 +1227,15 @@ static void validate_outs_ins_match(ShaderInterface *outs, ShaderInterface *ins,
       }
 
       /* ... If it is declared then type and qualifiers must match. */
-      if (!glsl_deep_match_nonfunction_types(input_type, out->symbol->type, false)) {
-         // Global variables must have the same type.
-         glsl_compile_error(ERROR_LINKER, 1, -1, "%s", in->symbol->name);
-         return;
-      }
+      if (!glsl_deep_match_nonfunction_types(input_type, out->symbol->type, false))
+         link_error(1, "%s", in->symbol->name);
 
       /* Global variables must have the correct type qualifiers */
-      if (!type_quals_compatible(out->symbol->u.var_instance.type_qual, in->symbol->u.var_instance.type_qual))
-         glsl_compile_error(ERROR_LINKER, 1, -1, "%s", in->symbol->name);
+      if (!interp_quals_compatible(out->symbol->u.var_instance.interp_qual, in->symbol->u.var_instance.interp_qual) ||
+          !aux_quals_compatible   (out->symbol->u.var_instance.aux_qual,    in->symbol->u.var_instance.aux_qual))
+      {
+         link_error(1, "%s", in->symbol->name);
+      }
    }
 }
 
@@ -1275,7 +1257,8 @@ static void validate_tf_varyings(const GLSL_PROGRAM_SOURCE_T *source, ShaderInte
    int used = 0;
    for (int i=0; i<outs->n_vars; i++) {
       const Symbol *s = outs->var[i].symbol;
-      used += enumerate_ins_outs(&resources[used], s->name, s->type, s->u.var_instance.prec_qual, s->u.var_instance.type_qual);
+      used += enumerate_ins_outs(&resources[used], s->name, s->type, s->u.var_instance.prec_qual,
+                                 s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
    }
 
    for (unsigned i=0; i<source->num_tf_varyings; i++) {
@@ -1287,12 +1270,12 @@ static void validate_tf_varyings(const GLSL_PROGRAM_SOURCE_T *source, ShaderInte
          const char *rbr = strrchr(name, ']');
          const char *lbr = strrchr(name, '[');
          if (!rbr || !lbr)
-            glsl_compile_error(ERROR_LINKER, 9, -1, "%s not a vertex output", source->tf_varyings[i]);
+            link_error(9, "%s not a vertex output", source->tf_varyings[i]);
 
          char *endptr;
          int offset = strtol(lbr + 1, &endptr, 10);
          if (endptr != rbr)
-            glsl_compile_error(ERROR_LINKER, 9, -1, "Malformed array suffix %s", lbr);
+            link_error(9, "Malformed array suffix %s", lbr);
 
          /* XXX It's important that no errors are thrown while the memory is held. Otherwise we need safemem alternatives */
          char *reduced_name = strdup(name);
@@ -1304,15 +1287,15 @@ static void validate_tf_varyings(const GLSL_PROGRAM_SOURCE_T *source, ShaderInte
          free(reduced_name);
 
          if (v == NULL)
-            glsl_compile_error(ERROR_LINKER, 9, -1, "%s not a vertex output", source->tf_varyings[i]);
+            link_error(9, "%s not a vertex output", source->tf_varyings[i]);
 
          if (v->type->flavour != SYMBOL_ARRAY_TYPE || offset < 0 || (unsigned)offset > v->type->u.array_type.member_count)
-            glsl_compile_error(ERROR_LINKER, 9, -1, "Array suffix out of bounds %d", offset);
+            link_error(9, "Array suffix out of bounds %d", offset);
       }
 
       for (unsigned j=i+1; j<source->num_tf_varyings; j++) {
          if (strcmp(source->tf_varyings[i], source->tf_varyings[j]) == 0)
-            glsl_compile_error(ERROR_LINKER, 9, -1, "%s specified twice", source->tf_varyings[i]);
+            link_error(9, "%s specified twice", source->tf_varyings[i]);
       }
    }
    glsl_safemem_free(resources);
@@ -1403,7 +1386,8 @@ static void pack_tf(pack_tf_t *tf_ctx, const pack_varying_t *vary_ctx, const GLS
    for (int i=0; i<outs->n_vars; i++) {
       var_starts[i] = used;
       const Symbol *s = outs->var[i].symbol;
-      used += enumerate_ins_outs(&resources[used], s->name, s->type, s->u.var_instance.prec_qual, s->u.var_instance.type_qual);
+      used += enumerate_ins_outs(&resources[used], s->name, s->type, s->u.var_instance.prec_qual,
+                                 s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
    }
 
    /* Go through the vertex outputs extracting TF information */
@@ -1441,7 +1425,7 @@ static void pack_tf(pack_tf_t *tf_ctx, const pack_varying_t *vary_ctx, const GLS
       tf_ctx->tf_capture[idx].array_length = (whole_array && v->type->flavour == SYMBOL_ARRAY_TYPE) ? v->type->u.array_type.member_count : 1;
 
       if (tf_ctx->tf_capture[idx].name == NULL)
-         glsl_compile_error(ERROR_LINKER, 2, -1, NULL);
+         link_error(2, NULL);
 
       if (!strcmp(source->tf_varyings[i], "gl_Position")) continue;
 
@@ -1487,10 +1471,10 @@ static void validate_fragment_location(const Symbol *s, int loc, uint32_t *used)
    int usage_mask = ((1 << array_size) - 1) << loc;
 
    if (loc + array_size > GLXX_MAX_RENDER_TARGETS)
-      glsl_compile_error(ERROR_LINKER, 4, -1, "Fragment output layout qualifier too large");
+      link_error(4, "Fragment output layout qualifier too large");
 
    if ((*used & usage_mask) != 0)
-      glsl_compile_error(ERROR_LINKER, 4, -1, "Conflicting fragment output locations");
+      link_error(4, "Conflicting fragment output locations");
 
    *used |= usage_mask;
 }
@@ -1550,7 +1534,7 @@ static void validate_f_out(const ShaderInterface *f_outs) {
    }
 
    if (n > 1 && n_non_loc_qualed != 0)
-      glsl_compile_error(ERROR_LINKER, 4, -1, "Mix of location qualified and unqualified fragment outputs");
+      link_error(4, "Mix of location qualified and unqualified fragment outputs");
 }
 
 /* Extract sampler information that is needed by the driver */
@@ -1559,18 +1543,18 @@ static void extract_sampler_info(GLSL_PROGRAM_T *program, IRShader *sh, int *uni
       for (int j=0; j<sh->blocks[i].num_dataflow; j++) {
          Dataflow *d = &sh->blocks[i].dataflow[j];
 
-         if (d->flavour == DATAFLOW_CONST_SAMPLER) {
+         if (d->flavour == DATAFLOW_CONST_IMAGE) {
             int sampler_loc = unif_map[d->u.linkable_value.row];
 
             bool is_image = (d->type == DF_FIMAGE || d->type == DF_IIMAGE || d->type == DF_UIMAGE);
             if (is_image)
             {
-               program->images[sampler_loc].is_32bit = d->u.const_sampler.is_32bit;
-               assert(d->u.const_sampler.format_valid);
-               program->images[sampler_loc].internalformat = glsl_fmt_qualifier_to_gl_enum(d->u.const_sampler.format);
+               program->images[sampler_loc].is_32bit = d->u.const_image.is_32bit;
+               assert(d->u.const_image.format_valid);
+               program->images[sampler_loc].internalformat = glsl_fmt_qualifier_to_gl_enum(d->u.const_image.format);
             }
             else
-               program->samplers[sampler_loc].is_32bit = d->u.const_sampler.is_32bit;
+               program->samplers[sampler_loc].is_32bit = d->u.const_image.is_32bit;
          }
       }
    }
@@ -1581,13 +1565,16 @@ static void record_inout_interface(unsigned *count, GLSL_INOUT_T *info, const Sh
       if (iface->var[i].static_use) {
          const Symbol *s = iface->var[i].symbol;
 
+         if (is_hidden_builtin(s))
+            continue;
+
          int n = deep_member_count(s->type);
          struct if_var_t *v = glsl_safemem_malloc(n * sizeof(struct if_var_t));
          int loc = -1;
          if (s->u.var_instance.layout_loc_specified)
             loc = s->u.var_instance.layout_location;
 
-         enumerate_ins_outs(v, s->name, s->type, s->u.var_instance.prec_qual, s->u.var_instance.type_qual);
+         enumerate_ins_outs(v, s->name, s->type, s->u.var_instance.prec_qual, s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
 
          for (int i=0; i<n; i++) {
             record_inout(count, info, &v[i], loc, used);
@@ -1632,17 +1619,18 @@ GLSL_PROGRAM_T *glsl_link_compute_program(CompiledShader *csh) {
                                          GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
 
    for (int i=0; i<3; i++) {
-      if (csh->wg_size[i] == 0 || csh->wg_size[i] > max_size[i])
-         glsl_compile_error(ERROR_LINKER, 10, -1, "local size %d should be in the range (0, %d]", csh->wg_size[i], max_size[i]);
+      if (csh->cs_wg_size[i] == 0 || csh->cs_wg_size[i] > max_size[i])
+         link_error(10, "local size %d should be in the range (0, %d]", csh->cs_wg_size[i], max_size[i]);
 
-      program->wg_size[i] = csh->wg_size[i];
+      ir->cs_wg_size[i] = csh->cs_wg_size[i];
    }
-   if (csh->wg_size[0] * csh->wg_size[1] * csh->wg_size[2] > GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS)
-      glsl_compile_error(ERROR_LINKER, 10, -1, "Compute invocations %d exceeds maximum %d",
-                                               csh->wg_size[0] * csh->wg_size[1] * csh->wg_size[2],
+   if (csh->cs_wg_size[0] * csh->cs_wg_size[1] * csh->cs_wg_size[2] > GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS)
+      link_error(10, "Compute invocations %d exceeds maximum %d",
+                                               csh->cs_wg_size[0] * csh->cs_wg_size[1] * csh->cs_wg_size[2],
                                                GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS);
 
-   program->shared_block_size = csh->shared_block_size;
+   program->cs_shared_block_size = csh->cs_shared_block_size;
+   program->cs_has_barrier = csh->cs_has_barrier;
 
    /* Pack uniforms and samplers. */
    ShaderFlavour f = SHADER_COMPUTE;
@@ -1702,20 +1690,22 @@ static bool stages_valid(CompiledShader **sh, bool separable) {
    bool tess_valid = ( sh[SHADER_TESS_CONTROL] &&  sh[SHADER_TESS_EVALUATION]) ||
                      (!sh[SHADER_TESS_CONTROL] && !sh[SHADER_TESS_EVALUATION]   );
    bool vf_valid = sh[SHADER_VERTEX] && sh[SHADER_FRAGMENT];
-   bool any_stage_valid = sh[SHADER_VERTEX]       || sh[SHADER_FRAGMENT] ||
-                          sh[SHADER_TESS_CONTROL] || sh[SHADER_GEOMETRY];
-   return any_stage_valid && tess_valid && (separable || vf_valid);
+   bool any_stage_valid = sh[SHADER_VERTEX]       || sh[SHADER_FRAGMENT]        ||
+                          sh[SHADER_TESS_CONTROL] || sh[SHADER_TESS_EVALUATION] ||
+                          sh[SHADER_GEOMETRY];
+   return any_stage_valid && ((tess_valid && vf_valid) || separable);
 }
 
 static void validate_tess_geom_match(enum tess_mode tes_mode, bool tes_points, enum gs_in_type gs_mode) {
    if (tes_points) {
       if (gs_mode != GS_IN_POINTS)
-         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'points' mode in geometry shader");
+         link_error(6, "Tessellation mode requires 'points' mode in geometry shader");
    } else {
-      if (tes_mode == TESS_ISOLINES && gs_mode != GS_IN_LINES)
-         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'lines' mode in geometry shader");
-      else if (gs_mode != GS_IN_TRIANGLES)
-         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'triangles' mode in geometry shader");
+      if (tes_mode == TESS_ISOLINES) {
+         if (gs_mode != GS_IN_LINES)
+            link_error(6, "Tessellation mode requires 'lines' mode in geometry shader");
+      } else if (gs_mode != GS_IN_TRIANGLES)
+         link_error(6, "Tessellation mode requires 'triangles' mode in geometry shader");
    }
 }
 
@@ -1736,14 +1726,14 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    }
 
    if (!stages_valid(sh, separable))
-      glsl_compile_error(ERROR_LINKER, 6, -1, NULL);
+      link_error(6, NULL);
 
    int link_version = 0;
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
       if (sh[i] != NULL) {
          if (link_version == 0) link_version = sh[i]->version;
          if (link_version != sh[i]->version)
-            glsl_compile_error(ERROR_LINKER, 8, -1, NULL);
+            link_error(8, NULL);
       }
    }
 
@@ -1797,17 +1787,17 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
 
    for (int i=0; i<SHADER_FRAGMENT; i++) {
       if (sh[i] && sh[i]->buffer.n_vars > 0)
-         glsl_compile_error(ERROR_LINKER, 5, -1, "Buffer variables are not allowed in the vertex pipeline");
+         link_error(5, "Buffer variables are not allowed in the vertex pipeline");
    }
 
    if (sh[SHADER_TESS_EVALUATION]) {
       if (sh[SHADER_TESS_EVALUATION]->tess_mode == TESS_INVALID)
-         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation evaluation shader must specify a valid mode");
-   }
+         link_error(6, "Tessellation evaluation shader must specify a valid mode");
 
-   if (sh[SHADER_TESS_EVALUATION] && sh[SHADER_GEOMETRY]) {
-      CompiledShader *te = sh[SHADER_TESS_EVALUATION], *gs = sh[SHADER_GEOMETRY];
-      validate_tess_geom_match(te->tess_mode, te->tess_point_mode, gs->gs_in);
+      if (sh[SHADER_GEOMETRY]) {
+         CompiledShader *te = sh[SHADER_TESS_EVALUATION], *gs = sh[SHADER_GEOMETRY];
+         validate_tess_geom_match(te->tess_mode, te->tess_point_mode, gs->gs_in);
+      }
    }
 
    IR_PROGRAM_T *ir = program->ir;
@@ -1916,7 +1906,9 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
       bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, false, false };
       used[first->flavour] = true;
       record_inout_interface(&program->num_inputs, program->inputs, &first->in, used);
-   } else if (last->flavour != SHADER_FRAGMENT) {
+   }
+
+   if (last->flavour != SHADER_FRAGMENT) {
       bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, false, false};
       used[last->flavour] = true;
       record_inout_interface(&program->num_outputs, program->outputs, &last->out, used);

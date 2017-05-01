@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_graphicsv3d_module.h"
 #include "nexus_graphicsv3d_init.h"
 #include "priv/nexus_core.h"
@@ -872,6 +861,28 @@ NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(
       piFence);
 
    BDBG_LEAVE(NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyJob(
+   NEXUS_Graphicsv3dHandle                   hGfx,
+   const NEXUS_Graphicsv3dSchedDependencies *pCompletedDeps,
+   const NEXUS_Graphicsv3dSchedDependencies *pFinalizedDeps,
+   int                                      *piFence
+   )
+{
+   BERR_Code berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_MakeFenceForAnyJob);
+
+   berr = BVC5_MakeFenceForAnyJob(
+      g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId,
+      (const BVC5_SchedDependencies *)pCompletedDeps,
+      (const BVC5_SchedDependencies *)pFinalizedDeps,
+      piFence);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_MakeFenceForAnyJob);
 
    return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }

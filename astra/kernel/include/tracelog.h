@@ -79,6 +79,7 @@ private:
     static bool enabled;
 
     static uintptr_t tracelogBase;
+    static uintptr_t tracelogSize;
     static uintptr_t commandReg;
 
     static uintptr_t sentinelBase;

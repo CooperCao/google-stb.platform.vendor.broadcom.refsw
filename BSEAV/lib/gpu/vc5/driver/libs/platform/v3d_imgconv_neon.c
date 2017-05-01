@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image conversion using neon code
-
-FILE DESCRIPTION
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_imgconv_internal.h"
 #include "v3d_parallel.h"
 
@@ -647,11 +641,11 @@ static void generic_rso_to_uif_internal(
             // There is scope to optimize runs
             // or to copy utiles if complete
             //////////////////////////////////
-            int32_t   x_begin = vcos_max(block_pix_x, dst->x) - block_pix_x;
-            int32_t   y_begin = vcos_max(block_pix_y, dst->y) - block_pix_y;
+            int32_t   x_begin = gfx_umax(block_pix_x, dst->x) - block_pix_x;
+            int32_t   y_begin = gfx_umax(block_pix_y, dst->y) - block_pix_y;
             // End is first invalid pixel
-            int32_t   x_end   = vcos_min(block_pix_x + block_width,  dst->x + width)  - block_pix_x;
-            int32_t   y_end   = vcos_min(block_pix_y + block_height, dst->y + height) - block_pix_y;
+            int32_t   x_end   = gfx_umin(block_pix_x + block_width,  dst->x + width)  - block_pix_x;
+            int32_t   y_end   = gfx_umin(block_pix_y + block_height, dst->y + height) - block_pix_y;
 
             uint8_t   *src_ptr = src_origin_ptr + (block_pix_y - dst->y + y_begin) * src_pitch +
                                                   (block_pix_x - dst->x + x_begin) * src_bytes_pp;
@@ -759,11 +753,11 @@ static void generic_uif_to_rso(
                                       block_pix_x, block_pix_y, 0,
                                       src->desc.height);
 
-         int32_t   x_begin = vcos_max(block_pix_x, src->x) - block_pix_x;
-         int32_t   y_begin = vcos_max(block_pix_y, src->y) - block_pix_y;
+         int32_t   x_begin = gfx_umax(block_pix_x, src->x) - block_pix_x;
+         int32_t   y_begin = gfx_umax(block_pix_y, src->y) - block_pix_y;
          // End is first invalid pixel
-         int32_t   x_end   = vcos_min(block_pix_x + block_width,  src->x + width)  - block_pix_x;
-         int32_t   y_end   = vcos_min(block_pix_y + block_height, src->y + height) - block_pix_y;
+         int32_t   x_end   = gfx_umin(block_pix_x + block_width,  src->x + width)  - block_pix_x;
+         int32_t   y_end   = gfx_umin(block_pix_y + block_height, src->y + height) - block_pix_y;
 
          uint8_t   *dst_ptr = dst_origin_ptr + (block_pix_y - src->y + y_begin) * dst_pitch +
                                                (block_pix_x - src->x + x_begin) * dst_bytes_pp;

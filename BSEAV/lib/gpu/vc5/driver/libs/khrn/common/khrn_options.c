@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "khrn_options.h"
 #include "libs/util/gfx_options/gfx_options.h"
@@ -11,8 +11,11 @@
 
 LOG_DEFAULT_CAT("khrn_options")
 
-KHRN_OPTIONS_T khrn_options;
+struct khrn_options khrn_options;
 static GFX_RAND_STATE_T random_centroid_state;
+#if V3D_HAS_VARY_NO_PERSP
+static GFX_RAND_STATE_T random_noperspective_state;
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
 static GFX_RAND_STATE_T random_sample_rate_shading_state;
 #endif
@@ -78,22 +81,31 @@ void khrn_init_options(void)
    khrn_options.random_centroid              = gfx_options_bool(  "KHRN_RANDOM_CENTROID",          false);
    khrn_options.random_centroid_seed         = gfx_options_uint32("KHRN_RANDOM_CENTROID_SEED",     42);
 
+#if V3D_HAS_VARY_NO_PERSP
+   khrn_options.force_noperspective          = gfx_options_bool(  "KHRN_FORCE_NOPERSPECTIVE",      false);
+   khrn_options.random_noperspective         = gfx_options_bool(  "KHRN_RANDOM_NOPERSPECTIVE",     false);
+   khrn_options.random_noperspective_seed    = gfx_options_uint32("KHRN_RANDOM_NOPERSPECTIVE_SEED",42);
+#endif
+
 #if V3D_VER_AT_LEAST(4,0,2,0)
    khrn_options.force_sample_rate_shading    = gfx_options_bool(  "KHRN_FORCE_SAMPLE_RATE_SHADING", false);
    khrn_options.random_sample_rate_shading   = gfx_options_bool(  "KHRN_RANDOM_SAMPLE_RATE_SHADING", false);
    khrn_options.random_sample_rate_shading_seed = gfx_options_uint32("KHRN_RANDOM_SAMPLE_RATE_SHADING_SEED", 42);
 #endif
 
-   khrn_options.gl_error_assist              = gfx_options_bool(  "V3D_GL_ERROR_ASSIST",           false);
    khrn_options.force_dither_off             = gfx_options_bool(  "V3D_FORCE_DITHER_OFF",          false);
    khrn_options.early_z                      = gfx_options_bool(  "GL_EARLY_Z",                    true);
    khrn_options.max_worker_threads           = gfx_options_uint32( "KHRN_MAX_WORKER_THREADS",      3);
 
-   khrn_options.force_ustream_jobs = gfx_options_bool("GL_FORCE_USTREAM_JOBS", false);
-   khrn_options.no_ustream_jobs = gfx_options_bool("GL_NO_USTREAM_JOBS", false);
+   khrn_options.no_async_host_reads    = gfx_options_bool("KHRN_NO_ASYNC_HOST_READS", false);
+   khrn_options.force_async_host_reads = gfx_options_bool("KHRN_FORCE_ASYNC_HOST_READS", false);
 
    if (khrn_options.random_centroid)
       gfx_rand_init(&random_centroid_state, khrn_options.random_centroid_seed);
+#if V3D_HAS_VARY_NO_PERSP
+   if (khrn_options.random_noperspective)
+      gfx_rand_init(&random_noperspective_state, khrn_options.random_noperspective_seed);
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
    if (khrn_options.random_sample_rate_shading)
       gfx_rand_init(&random_sample_rate_shading_state, khrn_options.random_sample_rate_shading_seed);
@@ -111,6 +123,19 @@ bool khrn_options_make_centroid(void)
    return false;
 }
 
+#if V3D_HAS_VARY_NO_PERSP
+bool khrn_options_make_noperspective(void)
+{
+   if (khrn_options.force_noperspective)
+      return true;
+
+   if (khrn_options.random_noperspective)
+      return gfx_rand_with_prob(&random_noperspective_state, 0.5f);
+
+   return false;
+}
+#endif
+
 #if V3D_VER_AT_LEAST(4,0,2,0)
 bool khrn_options_make_sample_rate_shaded(void)
 {
@@ -123,19 +148,3 @@ bool khrn_options_make_sample_rate_shaded(void)
    return false;
 }
 #endif
-
-/* TODO Why is this here? */
-void khrn_error_assist(GLenum error, const char *func, const char *file, int line)
-{
-   if (khrn_options.gl_error_assist && error != GL_NO_ERROR)
-   {
-      switch (error)
-      {
-      case GL_INVALID_ENUM      : log_warn("V3D ERROR ASSIST : GL_INVALID_ENUM in %s (%s, %d)", func, file, line); break;
-      case GL_INVALID_VALUE     : log_warn("V3D ERROR ASSIST : GL_INVALID_VALUE in %s (%s, %d)", func, file, line); break;
-      case GL_INVALID_OPERATION : log_warn("V3D ERROR ASSIST : GL_INVALID_OPERATION in %s (%s, %d)", func, file, line); break;
-      case GL_OUT_OF_MEMORY     : log_warn("V3D ERROR ASSIST : GL_OUT_OF_MEMORY in %s (%s, %d)", func, file, line); break;
-      default                   : log_warn("V3D ERROR ASSIST : ERROR CODE %d in %s (%s, %d)", (int)error, func, file, line); break;
-      }
-   }
-}

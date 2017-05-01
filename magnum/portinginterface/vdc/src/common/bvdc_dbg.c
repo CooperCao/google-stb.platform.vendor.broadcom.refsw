@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,11 +34,8 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *   This module print out helpful information to debug BVN
- *
- ***************************************************************************/
+ ******************************************************************************/
+
 #include "bstd.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -145,6 +142,11 @@ BERR_Code BVDC_P_CreateErrCb
             continue;
 #endif
 
+#if (BVDC_P_MASK_GFD_BSTC_MIN_GT_MAX)
+         if((hVdc->stBoxConfig.stVdc.astSource[BAVC_SourceId_eGfx0].bCompressed)
+            &&(pIntCb->ulBase == BCHP_GFD_0_REG_START))
+            continue;
+#endif
         BDBG_MSG(("Install IntId %s(%d) L2Reg=0x%x Mask=0x%x",
             pIntCb->pchInterruptName, i, pIntCb->ulL2ClearReg, pIntCb->ulL2ClearMask));
         eStatus = BINT_CreateCallback(&hVdc->ahBvnErrHandlerCb[i], hVdc->hInterrupt,

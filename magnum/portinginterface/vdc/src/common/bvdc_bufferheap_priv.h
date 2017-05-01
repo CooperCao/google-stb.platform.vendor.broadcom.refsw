@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -97,6 +97,7 @@ BDBG_OBJECT_ID_DECLARE(BVDC_VDC);
  ***************************************************************************/
 #define BVDC_P_HEAP_MEMORY_ALIGNMENT       (8)
 #define BVDC_P_HEAP_ALIGN_BYTES            (256)
+#define BVDC_P_HEAP_INVAID_BUF_INDEX       (0xffff)
 
 /***************************************************************************
  * Enums
@@ -118,35 +119,31 @@ typedef enum BVDC_P_BufferHeapId
 } BVDC_P_BufferHeapId;
 
 /***************************************************************************
- * BVDC_P_BufferHeap_Head
- ***************************************************************************/
-typedef struct BVDC_P_BufferHeap_Head  BVDC_P_BufferHeap_Head;
-BLST_Q_HEAD(BVDC_P_BufferHeap_Head, BVDC_P_BufferHeapNode);
-
-
-/***************************************************************************
  * BVDC_P_BufferHeapNode
  ***************************************************************************/
 typedef struct BVDC_P_BufferHeapNode
 {
-    /* Node info: linked-list bookeeping */
-    BLST_Q_ENTRY(BVDC_P_BufferHeapNode)  link;
-
     BVDC_P_HeapInfoPtr                   pHeapInfo;      /* heap the node belongs to */
-    uint32_t                             ulBlockOffset;  /* offset from MMA block's base address */
+    /* offset from MMA block's base address.
+     *      Primary node: real block offset
+     *      Splitted child node: the offset from the original parent node.
+     *                           Both hMmaBlock and block offset are calculated in
+     *                           BVDC_P_Window_CapturePicture_isr.
+     */
+    uint32_t                             ulBlockOffset;
 
     BMMA_DeviceOffset                    ullDeviceOffset; /* Device offset */
-    uint32_t                             ulBufIndex;  /* index to heap's bufferlist */
+    uint16_t                             uiBufIndex;  /* index to heap's bufferlist */
     BVDC_P_BufferHeapId                  eOrigBufHeapId; /* which primary heap the node came from */
 
     bool                                 bUsed;       /* node is used or not */
     bool                                 bContinous;  /* continuous with prev node in bufferlist */
 
-    uint32_t                             ulParentNodeBufIndex; /* parent node */
-    uint32_t                             ulFirstChildNodeBufIndex; /* first child node */
+    uint16_t                             uiParentNodeBufIndex; /* parent node */
+    uint16_t                             uiFirstChildNodeBufIndex; /* first child node */
 
-    uint32_t                             ulNumChildNodeUsed; /* num of child nodes used */
-    uint32_t                             ulNumChildNodeSplit; /* num of child nodes this node split into */
+    uint8_t                              ucNumChildNodeUsed; /* num of child nodes used */
+    uint8_t                              ucNumChildNodeSplit; /* num of child nodes this node split into */
 
 } BVDC_P_BufferHeapNode;
 
@@ -165,10 +162,10 @@ typedef struct BVDC_P_BufferHeap_Info
     uint32_t                   ulBufSize;
     /* size by format without alignment, only used to decide how to split buffers */
     uint32_t                   ulBufSizeByFmt;
-    uint32_t                   ulPrimaryBufCnt;
-    uint32_t                   ulTotalBufCnt;
-    uint32_t                   ulBufUsed;
-    uint32_t                   ulNodeCntPerParent; /* # nodes = 1 parent node */
+    uint16_t                   uiPrimaryBufCnt;
+    uint16_t                   uiTotalBufCnt;
+    uint16_t                   uiBufUsed;
+    uint8_t                    ucNodeCntPerParent; /* # nodes = 1 parent node */
     BVDC_P_HeapInfoPtr         pParentHeapInfo;
     BVDC_P_HeapInfoPtr         pChildHeapInfo;
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,7 +61,9 @@ BDBG_FILE_MODULE(BVCE_DBG_TR1);
 BDBG_FILE_MODULE(BVCE_DBG_CDO);
 BDBG_FILE_MODULE(BVCE_DBG_ITO);
 
-unsigned BVCE_Debug_P_CommandIndexLUT(
+static
+unsigned
+BVCE_Debug_S_CommandIndexLUT(
    uint32_t uiCommand
    )
 {
@@ -533,14 +535,14 @@ dbg_itb_done:
          {
             unsigned i;
 
-            for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stCommand.data[0])].uiCommandSize; i++ )
+            for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stCommand.data[0])].uiCommandSize; i++ )
             {
                BDBG_MODULE_MSG( BVCE_DBG_CMD, ("(%10u)[%u][%u] %08x - %s",
                   pstEntry->stMetadata.uiTimestamp,
                   pstEntry->stMetadata.uiInstance,
                   pstEntry->stMetadata.uiChannel,
                   pstEntry->data.stCommand.data[i],
-                  BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stCommand.data[0])].szCommandParameterName[i]
+                  BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stCommand.data[0])].szCommandParameterName[i]
                ));
             }
          }
@@ -549,14 +551,14 @@ dbg_itb_done:
       case BVCE_DebugFifo_EntryType_eResponse:
          {
             unsigned i;
-            for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stResponse.data[0])].uiResponseSize; i++ )
+            for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stResponse.data[0])].uiResponseSize; i++ )
             {
                BDBG_MODULE_MSG( BVCE_DBG_RSP, ("(%10u)[%u][%u] %08x - %s",
                   pstEntry->stMetadata.uiTimestamp,
                   pstEntry->stMetadata.uiInstance,
                   pstEntry->stMetadata.uiChannel,
                   pstEntry->data.stCommand.data[i],
-                  BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stResponse.data[0])].szResponseParameterName[i]
+                  BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stResponse.data[0])].szResponseParameterName[i]
                ));
             }
          }
@@ -1028,11 +1030,11 @@ BVCE_Debug_FormatLogMessage(
             {
                unsigned i;
 
-               for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stCommand.data[0])].uiCommandSize; i++ )
+               for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stCommand.data[0])].uiCommandSize; i++ )
                {
                   iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                      ",%s=%08x",
-                     BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stCommand.data[0])].szCommandParameterName[i],
+                     BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stCommand.data[0])].szCommandParameterName[i],
                      pstEntry->data.stCommand.data[i]
                   );
                   if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
@@ -1044,11 +1046,11 @@ BVCE_Debug_FormatLogMessage(
             {
                 unsigned i;
 
-                for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stResponse.data[0])].uiResponseSize; i++ )
+                for ( i = 0; i < BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stResponse.data[0])].uiResponseSize; i++ )
                 {
                    iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                       ",%s=%08x",
-                      BVCE_P_CommandLUT[BVCE_Debug_P_CommandIndexLUT(pstEntry->data.stResponse.data[0])].szResponseParameterName[i],
+                      BVCE_P_CommandLUT[BVCE_Debug_S_CommandIndexLUT(pstEntry->data.stResponse.data[0])].szResponseParameterName[i],
                       pstEntry->data.stCommand.data[i]
                    );
                    if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }

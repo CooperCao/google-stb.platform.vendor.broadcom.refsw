@@ -671,7 +671,7 @@ void BDSP_Raaga_GetCodecCapabilities(BDSP_CodecCapabilities *pSetting)
             break;
         case 'C':
             BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'C' "));
-            pSetting->dolbyMs.dapv2 = true;
+            pSetting->dolbyMs.dapv2 = false;
             pSetting->dolbyMs.ddEncode = true;
             pSetting->dolbyMs.ddpEncode51 = false;
             pSetting->dolbyMs.ddpEncode71 = false;

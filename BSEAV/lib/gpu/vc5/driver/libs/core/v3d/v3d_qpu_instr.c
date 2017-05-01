@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_common.h"
 #include "v3d_qpu_instr.h"
 #include "v3d_limits.h"
@@ -41,7 +39,10 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_R4:
       return V3D_QPU_MAGIC_WADDR_CLASS_ACC;
    case V3D_QPU_MAGIC_WADDR_R5QUAD:
-      return V3D_QPU_MAGIC_WADDR_CLASS_R5QUAD;
+#if V3D_HAS_R5REP
+   case V3D_QPU_MAGIC_WADDR_R5REP:
+#endif
+      return V3D_QPU_MAGIC_WADDR_CLASS_R5;
    case V3D_QPU_MAGIC_WADDR_NOP:
       return V3D_QPU_MAGIC_WADDR_CLASS_NOP;
    case V3D_QPU_MAGIC_WADDR_TLB:
@@ -88,6 +89,10 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_RSQRT2:
 #endif
       return V3D_QPU_MAGIC_WADDR_CLASS_SFU;
+#if V3D_HAS_LDUNIFRF
+   case V3D_QPU_MAGIC_WADDR_UNIFA:
+      return V3D_QPU_MAGIC_WADDR_CLASS_UNIF;
+#endif
    default:
       unreachable();
       return V3D_QPU_MAGIC_WADDR_CLASS_INVALID;
@@ -113,11 +118,34 @@ static uint32_t bits32_repl(bool* overflow, uint32_t curbits, uint32_t bits, uin
    return (curbits & ~(gfx_mask(nbits) << pos)) | (uint32_t)bits_at(overflow, bits, pos, nbits);
 }
 
-#if V3D_VER_AT_LEAST(3,4,0,0)
-static bool sig_uses_cond(const struct v3d_qpu_sig *sig) {
-   const v3d_qpu_sigbits_t uses_cond = V3D_QPU_SIG_LDTLB | V3D_QPU_SIG_LDTLBU |
-                                       V3D_QPU_SIG_LDVARY | V3D_QPU_SIG_LDTMU;
-   return (sig->sigbits & uses_cond) != 0;
+const static v3d_qpu_sigbits_t result_write_mask =
+                            V3D_QPU_SIG_LDTLB  | V3D_QPU_SIG_LDTLBU |
+                            V3D_QPU_SIG_LDVARY | V3D_QPU_SIG_LDTMU
+#if V3D_HAS_LDUNIFRF
+                          | V3D_QPU_SIG_LDUNIFRF | V3D_QPU_SIG_LDUNIFARF
+#endif
+                           ;
+
+bool v3d_qpu_sig_has_result_write(v3d_qpu_sigbits_t sigbits) {
+   return (sigbits & result_write_mask) != 0;
+}
+
+#if !V3D_HAS_SIG_TO_MAGIC
+/* Provide default registers for those signals that can use registers but have defaults */
+uint32_t v3d_qpu_sig_default_reg(v3d_qpu_sigbits_t sigbits) {
+   uint32_t bit = sigbits & result_write_mask;
+
+   switch (bit) {
+      case V3D_QPU_SIG_LDVARY: return 3;
+      case V3D_QPU_SIG_LDTLB:  return 3;
+      case V3D_QPU_SIG_LDTLBU: return 3;
+      case V3D_QPU_SIG_LDTMU:  return 4;
+#if V3D_HAS_LDUNIFRF
+      case V3D_QPU_SIG_LDUNIFRF:  return 5;
+      case V3D_QPU_SIG_LDUNIFARF: return 5;
+#endif
+      default: unreachable();  return 0;
+   }
 }
 #endif
 
@@ -130,8 +158,8 @@ uint64_t v3d_qpu_instr_unused_mask(const struct v3d_qpu_instr *in)
          {
             return gfx_mask64(2) << 4;
          }
-#if V3D_VER_AT_LEAST(4,0,2,0)
-         else if (sig_uses_cond(&in->u.alu.sig) && !in->u.alu.sig.sig_reg)
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_SIG_TO_MAGIC
+         else if (v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits) && !in->u.alu.sig.sig_reg)
          {
             return gfx_mask64(6) << 46;
          }
@@ -380,6 +408,9 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
          case 5:  op->opcode = V3D_QPU_OP_TMUWT; break;
 #if V3D_VER_AT_LEAST(4,0,2,0)
          case 6:  op->opcode = V3D_QPU_OP_VPMWT; break;
+#endif
+#if V3D_HAS_FLAFIRST
+         case 7: op->opcode = V3D_QPU_OP_FLAFIRST; break;
 #endif
          default: return false;
          }
@@ -779,6 +810,9 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 #else
       case V3D_QPU_OP_VPMSETUP: *op_add = 187; *add_b = 3; return true;
 #endif
+#if V3D_HAS_FLAFIRST
+      case V3D_QPU_OP_FLAFIRST: *op_add = 187; *add_b = 2; *add_a = 7; return true;
+#endif
 
       default: return false;
    }
@@ -907,108 +941,93 @@ static bool encode_mul_op(struct v3d_qpu_op const* op, uint32_t* op_mul,
    }
 }
 
+static const v3d_qpu_sigbits_t valid_sigs[] = {
+#define S(SIG) (V3D_QPU_SIG_##SIG)
+/*  0 */   0,
+/*  1 */   S(THRSW),
+/*  2 */                                             S(LDUNIF),
+/*  3 */   S(THRSW) |                                S(LDUNIF),
+/*  4 */                                S(LDTMU),
+/*  5 */   S(THRSW) |                   S(LDTMU),
+/*  6 */                                S(LDTMU) |   S(LDUNIF),
+/*  7 */   S(THRSW) |                   S(LDTMU) |   S(LDUNIF),
+/*  8 */                   S(LDVARY),
+/*  9 */   S(THRSW) |      S(LDVARY),
+/* 10 */                   S(LDVARY) |               S(LDUNIF),
+/* 11 */   S(THRSW) |      S(LDVARY) |               S(LDUNIF),
+#if V3D_HAS_LDUNIFRF
+/* 12 */                                             S(LDUNIFRF),
+/* 13 */   S(THRSW) |                                S(LDUNIFRF),
+#elif !V3D_VER_AT_LEAST(4,0,2,0)
+/* 12 */                   S(LDVARY) |  S(LDTMU),
+/* 13 */   S(THRSW) |      S(LDVARY) |  S(LDTMU),
+#else
+/* 12 */   ~0u,
+/* 13 */   ~0u,
+#endif
+/* 14 */   S(SMALL_IMM) |  S(LDVARY),
+/* 15 */   S(SMALL_IMM),
+/* 16 */                   S(LDTLB),
+/* 17 */                   S(LDTLBU),
+#if V3D_VER_AT_LEAST(4,0,2,0)
+/* 18 */                                             S(WRTMUC),
+/* 19 */   S(THRSW) |                                S(WRTMUC),
+/* 20 */                   S(LDVARY) |               S(WRTMUC),
+/* 21 */   S(THRSW) |      S(LDVARY) |               S(WRTMUC),
+#else
+/* 18 */   ~0u,
+/* 19 */   ~0u,
+/* 20 */   ~0u,
+/* 21 */   ~0u,
+#endif
+/* 22 */   S(UCB),
+/* 23 */   S(ROTATE),
+#if V3D_HAS_LDUNIFRF
+/* 24 */                                             S(LDUNIFA),
+/* 25 */                                             S(LDUNIFARF),
+/* 26 */   ~0u,
+/* 27 */   ~0u,
+/* 28 */   ~0u,
+/* 29 */   ~0u,
+/* 30 */   ~0u,
+#elif !V3D_VER_AT_LEAST(4,0,2,0)
+/* 24 */                  S(LDVPM),
+/* 25 */   S(THRSW) |     S(LDVPM),
+/* 26 */                  S(LDVPM) |                 S(LDUNIF),
+/* 27 */   S(THRSW) |     S(LDVPM) |                 S(LDUNIF),
+/* 28 */                  S(LDVPM) |    S(LDTMU),
+/* 29 */   S(THRSW) |     S(LDVPM) |    S(LDTMU),
+/* 30 */   S(SMALL_IMM) | S(LDVPM),
+#else
+/* 24 */   ~0u,
+/* 25 */   ~0u,
+/* 26 */   ~0u,
+/* 27 */   ~0u,
+/* 28 */   ~0u,
+/* 29 */   ~0u,
+/* 30 */   ~0u,
+#endif
+/* 31 */   S(SMALL_IMM) |               S(LDTMU),
+#undef S
+};
+
 static v3d_qpu_sigbits_t decode_sig(uint32_t bits)
 {
-   v3d_qpu_sigbits_t ret = 0;
-   switch (bits)
-   {
-   #define S(SIGNAL) do { ret |= V3D_QPU_SIG_##SIGNAL; } while (0)
-   /*       Misc           r3          r4          r5/tmuc */
-   case 0:                                                     break;
-   case 1:  S(THRSW);                                          break;
-   case 2:                                         S(LDUNIF);  break;
-   case 3:  S(THRSW);                              S(LDUNIF);  break;
-   case 4:                             S(LDTMU);               break;
-   case 5:  S(THRSW);                  S(LDTMU);               break;
-   case 6:                             S(LDTMU);   S(LDUNIF);  break;
-   case 7:  S(THRSW);                  S(LDTMU);   S(LDUNIF);  break;
-   case 8:                 S(LDVARY);                          break;
-   case 9:  S(THRSW);      S(LDVARY);                          break;
-   case 10:                S(LDVARY);              S(LDUNIF);  break;
-   case 11: S(THRSW);      S(LDVARY);              S(LDUNIF);  break;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case 12:                S(LDVARY);  S(LDTMU);               break;
-   case 13: S(THRSW);      S(LDVARY);  S(LDTMU);               break;
-#else
-   /* 12, 13 reserved */
-#endif
-   case 14: S(SMALL_IMM);  S(LDVARY);                          break;
-   case 15: S(SMALL_IMM);                                      break;
-   case 16:                S(LDTLB);                           break;
-   case 17:                S(LDTLBU);                          break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case 18:                                        S(WRTMUC);  break;
-   case 19: S(THRSW);                              S(WRTMUC);  break;
-   case 20:                S(LDVARY);              S(WRTMUC);  break;
-   case 21: S(THRSW);      S(LDVARY);              S(WRTMUC);  break;
-#else
-   /* 18..21 reserved */
-#endif
-   case 22: S(UCB);                                            break;
-   case 23: S(ROTATE);                                         break;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case 24:                S(LDVPM);                           break;
-   case 25: S(THRSW);      S(LDVPM);                           break;
-   case 26:                S(LDVPM);               S(LDUNIF);  break;
-   case 27: S(THRSW);      S(LDVPM);               S(LDUNIF);  break;
-   case 28:                S(LDVPM);   S(LDTMU);               break;
-   case 29: S(THRSW);      S(LDVPM);   S(LDTMU);               break;
-   case 30: S(SMALL_IMM);  S(LDVPM);                           break;
-#endif
-   case 31: S(SMALL_IMM);              S(LDTMU);               break;
-   #undef S
-   default: return ~0u;
-   }
-
-   return ret;
+   assert(bits < countof(valid_sigs));
+   return valid_sigs[bits];
 }
 
 bool v3d_qpu_try_encode_sigbits(v3d_qpu_sigbits_t sig, uint32_t* encoded)
 {
-   switch((uint32_t)sig)
-   {
-      case 0:                                                           *encoded = 0;  return true;
-      case V3D_QPU_SIG_THRSW:                                           *encoded = 1;  return true;
-      case V3D_QPU_SIG_LDUNIF:                                          *encoded = 2;  return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDUNIF:                    *encoded = 3;  return true;
-      case V3D_QPU_SIG_LDTMU:                                           *encoded = 4;  return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDTMU:                     *encoded = 5;  return true;
-      case V3D_QPU_SIG_LDTMU|    V3D_QPU_SIG_LDUNIF:                    *encoded = 6;  return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDTMU| V3D_QPU_SIG_LDUNIF: *encoded = 7;  return true;
-      case V3D_QPU_SIG_LDVARY:                                          *encoded = 8;  return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDVARY:                    *encoded = 9;  return true;
-      case V3D_QPU_SIG_LDVARY|   V3D_QPU_SIG_LDUNIF:                    *encoded = 10; return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDVARY|V3D_QPU_SIG_LDUNIF: *encoded = 11; return true;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-      case V3D_QPU_SIG_LDVARY|   V3D_QPU_SIG_LDTMU:                     *encoded = 12; return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDVARY|V3D_QPU_SIG_LDTMU:  *encoded = 13; return true;
-#endif
+   assert(sig != ~0u);
 
-      case V3D_QPU_SIG_SMALL_IMM|V3D_QPU_SIG_LDVARY:                    *encoded = 14; return true;
-      case V3D_QPU_SIG_SMALL_IMM:                                       *encoded = 15; return true;
-      case V3D_QPU_SIG_LDTLB:                                           *encoded = 16; return true;
-      case V3D_QPU_SIG_LDTLBU:                                          *encoded = 17; return true;
-#if V3D_VER_AT_LEAST(4,0,2,0)
-      case V3D_QPU_SIG_WRTMUC:                                          *encoded = 18; return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_WRTMUC:                    *encoded = 19; return true;
-      case V3D_QPU_SIG_LDVARY|   V3D_QPU_SIG_WRTMUC:                    *encoded = 20; return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDVARY|V3D_QPU_SIG_WRTMUC: *encoded = 21; return true;
-#endif
-      case V3D_QPU_SIG_UCB:                                             *encoded = 22; return true;
-      case V3D_QPU_SIG_ROTATE:                                          *encoded = 23; return true;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-      case V3D_QPU_SIG_LDVPM:                                           *encoded = 24; return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDVPM:                     *encoded = 25; return true;
-      case V3D_QPU_SIG_LDVPM|    V3D_QPU_SIG_LDUNIF:                    *encoded = 26; return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDVPM| V3D_QPU_SIG_LDUNIF: *encoded = 27; return true;
-      case V3D_QPU_SIG_LDVPM|    V3D_QPU_SIG_LDTMU:                     *encoded = 28; return true;
-      case V3D_QPU_SIG_THRSW|    V3D_QPU_SIG_LDVPM| V3D_QPU_SIG_LDTMU:  *encoded = 29; return true;
-      case V3D_QPU_SIG_SMALL_IMM|V3D_QPU_SIG_LDVPM:                     *encoded = 30; return true;
-#endif
-      case V3D_QPU_SIG_SMALL_IMM|V3D_QPU_SIG_LDTMU:                     *encoded = 31; return true;
-
-      default: return false;
+   for (int i=0; i<countof(valid_sigs); i++) {
+      if (valid_sigs[i] == sig) {
+         *encoded = i;
+         return true;
+      }
    }
+   return false;
 }
 
 void v3d_qpu_encode_sigbits(v3d_qpu_sigbits_t sig, uint32_t* encoded)
@@ -1143,9 +1162,21 @@ bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
          set_err(err, "Unrecognised signal %u", sig);
          return false;
       }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_HAS_SIG_TO_MAGIC
+      if (v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits)) {
+         uint32_t cond = (i1 >> 14) & 0x7f;
+         in->u.alu.sig.magic = (cond & 0x40);
+         in->u.alu.sig.waddr = (cond & 0x3F);
+         if (in->u.alu.sig.magic && !v3d_is_valid_qpu_magic_waddr(in->u.alu.sig.waddr))
+         {
+            set_err(err, "Unrecognised magic write addr %u (sig pipe)",
+                         in->u.alu.sig.waddr);
+            return false;
+         }
+      }
+#elif V3D_VER_AT_LEAST(4,0,2,0)
       in->u.alu.sig.sig_reg = false;
-      if(sig_uses_cond(&in->u.alu.sig)) {
+      if(v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits)) {
          uint32_t cond = (i1 >> 14) & 0x7f;
          if (cond & 0x40) {
             in->u.alu.sig.sig_reg = true;
@@ -1248,7 +1279,7 @@ bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
 
       uint32_t cond = (i1 >> 14) & 0x7f;
 #if V3D_VER_AT_LEAST(4,0,2,0)
-      if(in->type == V3D_QPU_INSTR_TYPE_ALU && sig_uses_cond(&in->u.alu.sig) )
+      if(in->type == V3D_QPU_INSTR_TYPE_ALU && v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits) )
       {
          cond = 0;
       }
@@ -1417,14 +1448,18 @@ bool v3d_qpu_instr_try_pack(struct v3d_qpu_instr const* in, uint64_t* bits)
          }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-         if(sig_uses_cond(&in->u.alu.sig))
+         if(v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits))
          {
             if (cond != 0)
             {
                return false;
             }
+# if V3D_HAS_SIG_TO_MAGIC
+            cond = (in->u.alu.sig.magic ? 0x40 : 0) | in->u.alu.sig.waddr;
+# else
             if (in->u.alu.sig.sig_reg)
                cond = 0x40 | in->u.alu.sig.waddr;
+# endif
          }
 #endif
 
@@ -1591,6 +1626,9 @@ v3d_qpu_res_type_t v3d_qpu_res_type_from_opcode(v3d_qpu_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_QPU_OP_VPMWT:
    case V3D_QPU_OP_PATCHID:
+#endif
+#if V3D_HAS_FLAFIRST
+   case V3D_QPU_OP_FLAFIRST:
 #endif
       return V3D_QPU_RES_TYPE_32I;
    case V3D_QPU_OP_FADD:

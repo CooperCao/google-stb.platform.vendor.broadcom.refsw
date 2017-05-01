@@ -2706,7 +2706,8 @@ wlc_phy_papd_set_rfpwrlut_tiny(phy_info_t *pi)
 	phy_ac_papdcal_info_t *papdcal_info = aci->papdcali;
 	int16 radiogainqdb;
 	uint8 idx;
-	uint16 txgain[1], bbmult;
+	/* Fix 48-bit txgain */
+	uint16 txgain[3], bbmult;
 	int16 temp, temp1, temp2, qQ, qQ1, qQ2, shift;
 	uint8 scale_factor = 1;
 	int8 papd_rf_pwr_scale = 32; /* Q5 format */
@@ -2891,7 +2892,7 @@ phy_ac_papd_cal(phy_info_t *pi, uint16 num_iter, uint8 core, uint16 startindex,
 	}
 
 	/* Calculate epsilon offset, for tiny radio */
-	if (TINY_RADIO(pi))
+	if (TINY_RADIO(pi) && (core < 3))
 		phy_ac_papd_cal_eps_calc_tiny(pi, core, &bbmult);
 	else if (ACMAJORREV_36(pi->pubpi->phy_rev)) {
 		uint16 eps_offset;
@@ -4425,6 +4426,12 @@ phy_ac_papd_cal_mode2(phy_info_t *pi, acphy_papdCalParams_t *calParams, uint8 pa
 					epsilon_table_id, 1, next_index_write - 2,
 					32, &dst[index], core);
 			} else {
+				if (index >= sizeof(dst)/sizeof(dst[0])) {
+					ASSERT(0);
+					PHY_ERROR(("%s: PAPD cal index(%d) out of bounds\n",
+						__FUNCTION__, index));
+					break;
+				}
 				dst[index] = dst_tmp;
 			}
 		}

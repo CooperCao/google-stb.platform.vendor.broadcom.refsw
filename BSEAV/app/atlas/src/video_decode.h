@@ -47,6 +47,8 @@
 #include "bwidgets.h"
 #include "widget_engine.h"
 #include "model.h"
+#include "mgeom.h"
+#include "video_decode_types.h"
 
 #include "nexus_video_input.h"
 #include "nexus_video_decoder_types.h"
@@ -72,7 +74,8 @@ public:
     virtual eRet   open(CWidgetEngine * pWidgetEngine, CStc * pStc);
     virtual CStc * close(void);
     virtual bool   isCodecSupported(NEXUS_VideoCodec codec);
-    virtual void   videoDecodeCallback(void);
+    virtual void   videoDecodeSourceChangedCallback(void);
+    virtual void   videoDecodeStreamChangedCallback(void);
 
     CPid *                   getPid(void)                         { return(_pPid); }
     CStc *                   getStc(void)                         { return(_pStc); }
@@ -82,6 +85,8 @@ public:
     CWidgetEngine *          getWidgetEngine(void)                { return(_pWidgetEngine); }
     bool                     isSourceChanged(void)                { return(_sourceChanged); }
     void                     setSourceChanged(bool sourceChanged) { _sourceChanged = sourceChanged; }
+    bool                     isStreamChanged(void)                { return(_streamChanged); }
+    void                     setStreamChanged(bool streamChanged) { _streamChanged = streamChanged; }
     NEXUS_VideoInputHandle   getConnector(void);
     eRet                     getStatus(NEXUS_VideoDecoderStatus * pStatus);
     eRet                     getStreamInfo(NEXUS_VideoDecoderStreamInformation * pStream);
@@ -93,6 +98,7 @@ protected:
     CWidgetEngine *          _pWidgetEngine;
     bool                     _started;
     bool                     _sourceChanged;
+    bool                     _streamChanged;
     uint16_t                 _maxWidth;
     uint16_t                 _maxHeight;
 };
@@ -116,7 +122,9 @@ public:
     virtual bool                           isOpened()         { return(_simpleDecoder ? true : false); }
     virtual NEXUS_SimpleVideoDecoderHandle getSimpleDecoder() { return(_simpleDecoder); }
     virtual bool                           isCodecSupported(NEXUS_VideoCodec codec);
-    virtual void                           videoDecodeCallback(void);
+    virtual void                           videoDecodeSourceChangedCallback(void);
+    virtual void                           videoDecodeStreamChangedCallback(void);
+    virtual eRet                           setVideoWindowGeometryPercent(MRect * pRectGeomPercent = NULL) { return(eRet_Ok); };
 
     ENUM_TO_MSTRING_DECLARE(noiseReductionModeToString, NEXUS_VideoWindowFilterMode)
 
@@ -146,10 +154,15 @@ public:
     NEXUS_VideoWindowFilterMode getDnrContourMode(void);
     eRet                        setAnrMode(NEXUS_VideoWindowFilterMode mode);
     NEXUS_VideoWindowFilterMode getAnrMode(void);
-    void                        videoDecodeSourceChangedCallback(void);
     void                        setWindowType(eWindowType windowType) { _windowType = windowType; }
     eWindowType                 getWindowType(void)                   { return(_windowType); }
     NEXUS_SimpleVideoDecoderStartSettings * getStartSettings(void) { return(&_startSettings); }
+    void                        setChannel(CChannel * pChannel) { _pChannel = pChannel; }
+    CChannel *                  getChannel(void) { return(_pChannel); }
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    eDynamicRange               getDynamicRange(void);
+    eRet                        updatePlm(void);
+#endif
 
 protected:
     NEXUS_SimpleVideoDecoderHandle        _simpleDecoder;
@@ -160,6 +173,7 @@ protected:
     CVideoWindow *                        _pVideoWindow;
     eWindowType                           _windowType;
     CModel * _pModel;
+    CChannel * _pChannel;
 };
 
 #ifdef __cplusplus

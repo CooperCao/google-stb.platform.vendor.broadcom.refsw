@@ -117,17 +117,19 @@
 #define B_IPC_CALLBACK_FIELD_OUT(api, arg, field, handle, id) if(__rc==NEXUS_SUCCESS && arg) { NEXUS_DRIVER_CALLBACK_TO_CLIENT(&(arg->field), handle, id);}
 #define B_IPC_CALLBACK_FIELD_IN_PREPARE(api, arg, field, handle, id) if(arg) { NEXUS_DRIVER_CALLBACK_TO_DRIVER(&B_IPC_FIELD(api, in, pointer.arg.field), handle, id);}
 #define B_IPC_CALLBACK_FIELD_IN_FINALIZE(api, arg, field, handle, id) if(arg) { if(__rc==NEXUS_SUCCESS) { NEXUS_DRIVER_CALLBACK_TO_DRIVER_COMMIT(&B_IPC_FIELD(api, in, pointer.arg.field), handle, id);} else {NEXUS_DRIVER_CALLBACK_TO_DRIVER_CANCEL(&B_IPC_FIELD(api, in, pointer.arg.field), handle, id);}}
-#define B_IPC_CALLBACK_ENUM_FIELD_IN_PREPARE(api, arg, field, first_arg, id) if(arg) { NEXUS_DRIVER_CALLBACK_TO_DRIVER(&B_IPC_FIELD(api, in, pointer.arg.field), (unsigned long)((id<<9) + (first_arg<<2)+1), id);}
-#define B_IPC_CALLBACK_ENUM_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) if(arg) { if(__rc==NEXUS_SUCCESS) { NEXUS_DRIVER_CALLBACK_TO_DRIVER_COMMIT(&B_IPC_FIELD(api, in, pointer.arg.field), (unsigned long)((id<<9) + (first_arg<<2)+1), id);} else {NEXUS_DRIVER_CALLBACK_TO_DRIVER_CANCEL(&B_IPC_FIELD(api, in, pointer.arg.field), (unsigned long)((id<<9) + (first_arg<<2)+1), id);}}
+#define B_IPC_CALLBACK_ENUM_FIELD_IN_PREPARE(api, arg, field, first_arg, id)  BDBG_CASSERT(0);  /* NOT SUPPORTED */
+#define B_IPC_CALLBACK_ENUM_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) BDBG_CASSERT(0);  /* NOT SUPPORTED */
 #define B_IPC_CALLBACK_IN_PREPARE(api, arg, first_arg, id) if(arg) {NEXUS_DRIVER_CALLBACK_TO_DRIVER(&B_IPC_FIELD(api, in, pointer.arg), first_arg, id);}
 #define B_IPC_CALLBACK_IN_FINALIZE(api, arg, first_arg, id) if(arg) { if(__rc==NEXUS_SUCCESS) { NEXUS_DRIVER_CALLBACK_TO_DRIVER_COMMIT(&B_IPC_FIELD(api, in, pointer.arg), first_arg, id);} else {NEXUS_DRIVER_CALLBACK_TO_DRIVER_CANCEL(&B_IPC_FIELD(api, in, pointer.arg), first_arg, id);}}
 #define B_IPC_CALLBACK_INIT_FIELD_OUT(api, arg, field, first_arg, id) /* DO NOTHING, NEXUS_XXX_GetDefaultSettings */
 #define B_IPC_CALLBACK_ENUM_FIELD_OUT(api, arg, field, first_arg, id) /* DO NOTHING, NEXUS_XXX_GetDefaultSettings */
-#define B_IPC_CALLBACK_UNKNOWN_FIELD_IN_PREPARE(api, arg, field, first_arg, id) if(arg) { /* clear callback */B_IPC_FIELD(api, in, pointer.arg.field.callback)=NULL;}
-#define B_IPC_CALLBACK_UNKNOWN_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) /* DO NOTHING */
-#define B_IPC_CALLBACK_INIT_FIELD_IN_PREPARE(api, arg, field, first_arg, id) /* BDBG_CASSERT(0); */ /* NOT SUPPORTED */
-#define B_IPC_CALLBACK_INIT_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) /* BDBG_CASSERT(0); */ /* NOT SUPPORTED */
+#define B_IPC_CALLBACK_UNKNOWN_FIELD_IN_PREPARE(api, arg, field, first_arg, id)  BDBG_CASSERT(0);  /* NOT SUPPORTED */
+#define B_IPC_CALLBACK_UNKNOWN_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) BDBG_CASSERT(0);  /* NOT SUPPORTED */
+#define B_IPC_CALLBACK_INIT_FIELD_IN_PREPARE(api, arg, field, first_arg, id) BDBG_CASSERT(0);  /* NOT SUPPORTED */
+#define B_IPC_CALLBACK_INIT_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) BDBG_CASSERT(0);  /* NOT SUPPORTED */
 #define B_IPC_CALLBACK_UNKNOWN_FIELD_OUT(api, arg, field, first_arg, id)  /* DO NOTHING */
+#define B_IPC_CALLBACK_CLEAR_FIELD_IN_PREPARE(api, arg, field, first_arg, id) if(arg) { /* clear callback */B_IPC_FIELD(api, in, pointer.arg.field.callback)=NULL;}
+#define B_IPC_CALLBACK_CLEAR_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) /* DO NOTHING */
 
 #define B_IPC_SERVER_FAKE_HANDLE_NULL(api, arg, type) if(B_IPC_FIELD(api, in, args.arg) != NULL) {__rc = NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto api##_done;} /* FAKE handles if passed to function that allows NULL handles, must be NULL */
 #define B_IPC_SERVER_FAKE_HANDLE(api, arg, type) BDBG_CASSERT(0); /* If functions can not access NULL as argument, it can't accept FAKE handles */

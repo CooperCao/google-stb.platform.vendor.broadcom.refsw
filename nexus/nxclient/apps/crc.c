@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "nxclient.h"
@@ -51,8 +50,10 @@ static void print_usage(void)
         "Usage: crc OPTIONS\n"
         "-cmp DISPLAYINDEX       0=HD,1=SD,2=encode. ctrl-c to exit.\n"
         "-hdmi                   ctrl-c to exit.\n"
-        "-avd FILE               play file once and exit\n"
-        "-mfd FILE               play file once and exit\n"
+        "-avd FILE[:PROGRAM] ...\n"
+        "-mfd FILE[:PROGRAM] ...\n"
+        "\n"
+        "PROGRAM defaults to 0. If more than one FILE[:PROGRAM] is listed, mosaic decode will be used and CRC's will print to crc#.txt\n"
         );
 }
 
@@ -65,16 +66,27 @@ enum crc_type
     crc_type_mfd
 };
 
+#define MAX_DECODES 12
+
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
     int rc;
     enum crc_type crc_type = crc_type_none;
     int curarg = 1;
-    const char *filename = NULL;
-    media_player_t player = NULL;
+    struct {
+        const char *filename;
+        bool done;
+        FILE *file;
+        unsigned program;
+    } decoder[MAX_DECODES];
+    media_player_t player[MAX_DECODES];
+    unsigned num_decodes = 0;
+    unsigned num_done = 0;
     unsigned displayIndex;
+    unsigned i;
 
+    memset(decoder, 0, sizeof(decoder));
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
             print_usage();
@@ -87,23 +99,44 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-hdmi")) {
             crc_type = crc_type_hdmi;
         }
-        else if (!strcmp(argv[curarg], "-avd") && curarg+1 < argc) {
+        else if (!strcmp(argv[curarg], "-avd")) {
             crc_type = crc_type_avd;
-            filename = argv[++curarg];
         }
-        else if (!strcmp(argv[curarg], "-mfd") && curarg+1 < argc) {
+        else if (!strcmp(argv[curarg], "-mfd")) {
             crc_type = crc_type_mfd;
-            filename = argv[++curarg];
         }
         else {
-            print_usage();
-            return -1;
+            if (num_decodes == MAX_DECODES) {
+                BDBG_ERR(("too many mosaics"));
+            }
+            else {
+                char *program = strchr(argv[curarg], ':');
+                if (program) {
+                    *program = 0; /* just modify argv storage */
+                    decoder[num_decodes].program = atoi(++program);
+                }
+                decoder[num_decodes++].filename = argv[curarg];
+            }
         }
         curarg++;
     }
-    if (crc_type == crc_type_none) {
+    switch (crc_type) {
+    case crc_type_none:
         print_usage();
         return -1;
+    case crc_type_avd:
+    case crc_type_mfd:
+        if (num_decodes == 0) {
+            print_usage();
+            return -1;
+        }
+        break;
+    default:
+        if (num_decodes) {
+            print_usage();
+            return -1;
+        }
+        break;
     }
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
@@ -111,17 +144,50 @@ int main(int argc, const char **argv)
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
 
-    if (filename) {
-        media_player_start_settings start_settings;
+    if (num_decodes) {
+        if (num_decodes == 1) {
+            player[0] = media_player_create(NULL);
+            if (!player[0]) return -1;
+            decoder[0].file = stdout;
+        }
+        else {
+            rc = media_player_create_mosaics(player, num_decodes, NULL);
+            if (rc) return -1;
+        }
 
-        player = media_player_create(NULL);
-        if (!player) return -1;
+        for (i=0;i<num_decodes;i++) {
+            media_player_start_settings start_settings;
 
-        media_player_get_default_start_settings(&start_settings);
-        start_settings.stream_url = filename;
-        start_settings.loopMode = NEXUS_PlaybackLoopMode_ePause; /* once */
-        rc = media_player_start(player, &start_settings);
-        if (rc) return rc;
+            {
+                /* TEMP disable CC for mosaics */
+                NEXUS_SimpleVideoDecoderHandle videoDecoder = media_player_get_video_decoder(player[i]);
+                NEXUS_SimpleVideoDecoderClientSettings settings;
+                NEXUS_SimpleVideoDecoder_GetClientSettings(videoDecoder, &settings);
+                settings.closedCaptionRouting = false;
+                NEXUS_SimpleVideoDecoder_SetClientSettings(videoDecoder, &settings);
+            }
+
+            media_player_get_default_start_settings(&start_settings);
+            start_settings.stream_url = decoder[i].filename;
+            start_settings.program = decoder[i].program;
+            start_settings.loopMode = NEXUS_PlaybackLoopMode_ePause; /* once */
+            start_settings.stcTrick = false;
+            start_settings.crcMode = (crc_type == crc_type_mfd);
+            start_settings.sync = NEXUS_SimpleStcChannelSyncMode_eOff;
+            rc = media_player_start(player[i], &start_settings);
+            if (rc) return rc;
+
+            if (num_decodes > 1) {
+                char buf[32];
+                sprintf(buf, "crc%u.txt", i);
+                decoder[i].file = fopen(buf, "w");
+                if (!decoder[i].file) {
+                    BDBG_ERR(("unable to open %s", buf));
+                    return -1;
+                }
+                BDBG_LOG(("writing CRCs for %s, program %u to %s", decoder[i].filename, decoder[i].program, buf));
+            }
+        }
     }
 
     switch (crc_type) {
@@ -159,49 +225,46 @@ int main(int argc, const char **argv)
         }
         break;
 #endif
-    case crc_type_avd:
-        if (!player) {
-            BERR_TRACE(NEXUS_NOT_SUPPORTED);
-            break;
-        }
-        for (;;) {
-            NEXUS_VideoDecoderCrc data[16];
-            unsigned num;
-            NEXUS_SimpleVideoDecoderHandle videoDecoder = media_player_get_video_decoder(player);
-
-            rc = NEXUS_SimpleVideoDecoder_GetCrcData(videoDecoder, data, sizeof(data)/sizeof(data[0]), &num);
-            BDBG_ASSERT(!rc);
-            if (!num) {
-                BKNI_Sleep(10);
-            }
-            else {
-                unsigned i;
-                for (i=0;i<num;i++) {
-                    printf("AVD CRC %x %x %x; %x %x %x\n", data[i].top.luma, data[i].top.cr, data[i].top.cb, data[i].bottom.luma, data[i].bottom.cr, data[i].bottom.cb);
-                }
-            }
-        }
-        break;
     case crc_type_mfd:
-        if (!player) {
-            BERR_TRACE(NEXUS_NOT_SUPPORTED);
-            break;
-        }
-        for (;;) {
-            NEXUS_VideoInputCrcData data[16];
-            unsigned num;
-            NEXUS_SimpleVideoDecoderHandle videoDecoder = media_player_get_video_decoder(player);
+    case crc_type_avd:
+        while (num_done < num_decodes) {
+            unsigned j;
+            for (j=0;j<num_decodes;j++) {
+                NEXUS_PlaybackStatus status;
+                NEXUS_SimpleVideoDecoderHandle videoDecoder;
 
-            rc = NEXUS_SimpleVideoDecoder_GetVideoInputCrcData(videoDecoder, data, sizeof(data)/sizeof(data[0]), &num);
-            BDBG_ASSERT(!rc);
-            if (!num) {
-                BKNI_Sleep(10);
-            }
-            else {
-                unsigned i;
-                for (i=0;i<num;i++) {
-                    printf("MFD CRC %u,%u %u,%u right=%u,%u, field=%c\n", data[i].idrPictureId, data[i].pictureOrderCount,
-                        data[i].crc[0], data[i].crc[1], data[i].crc[3], data[i].crc[4], data[i].isField?'y':'n');
+                if (decoder[j].done) continue;
+                videoDecoder = media_player_get_video_decoder(player[j]);
+
+                if (crc_type == crc_type_avd) {
+                    NEXUS_VideoDecoderCrc data[16];
+                    unsigned num;
+                    rc = NEXUS_SimpleVideoDecoder_GetCrcData(videoDecoder, data, sizeof(data)/sizeof(data[0]), &num);
+                    BDBG_ASSERT(!rc);
+                    if (num) {
+                        unsigned i;
+                        for (i=0;i<num;i++) {
+                            fprintf(decoder[j].file, "AVD CRC %x %x %x; %x %x %x\n", data[i].top.luma, data[i].top.cr, data[i].top.cb, data[i].bottom.luma, data[i].bottom.cr, data[i].bottom.cb);
+                        }
+                    }
+                }
+                else {
+                    NEXUS_VideoInputCrcData data[16];
+                    unsigned num;
+                    rc = NEXUS_SimpleVideoDecoder_GetVideoInputCrcData(videoDecoder, data, sizeof(data)/sizeof(data[0]), &num);
+                    BDBG_ASSERT(!rc);
+                    if (num) {
+                        unsigned i;
+                        for (i=0;i<num;i++) {
+                            fprintf(decoder[j].file, "MFD CRC %u,%u %u,%u right=%u,%u, field=%c\n", data[i].idrPictureId, data[i].pictureOrderCount,
+                                data[i].crc[0], data[i].crc[1], data[i].crc[3], data[i].crc[4], data[i].isField?'y':'n');
+                        }
+                    }
+                }
+                media_player_get_playback_status(player[j], &status);
+                if (status.state == NEXUS_PlaybackState_ePaused) {
+                    decoder[j].done = true;
+                    num_done++;
                 }
             }
         }
@@ -211,9 +274,17 @@ int main(int argc, const char **argv)
     }
 
 done:
-    if (filename) {
-        media_player_stop(player);
-        media_player_destroy(player);
+    if (num_decodes) {
+        for (i=0;i<num_decodes;i++) {
+            media_player_stop(player[i]);
+            if (num_decodes > 1) fclose(decoder[i].file);
+        }
+        if (num_decodes == 1) {
+            media_player_destroy(player[0]);
+        }
+        else {
+            media_player_destroy_mosaics(player, num_decodes);
+        }
     }
     NxClient_Uninit();
     return 0;

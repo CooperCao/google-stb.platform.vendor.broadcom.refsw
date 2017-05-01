@@ -891,13 +891,14 @@ eRet CDisplay::updateVideoWindowGeometry()
     {
         if (winTypeFull == pVideoWindow->getType())
         {
-            ret = pVideoWindow->setGeometry(rectVideoFormat);
+            ret = pVideoWindow->setGeometryPercent(rectVideoFormat);
             CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
         }
         else
         if (winTypePip == pVideoWindow->getType())
         {
-            ret = pVideoWindow->setGeometry(rectVideoFormat,
+            ret = pVideoWindow->setGeometryPercent(
+                    rectVideoFormat,
                     GET_INT(_pCfg, PIP_PERCENTAGE),
                     (eWinArea)GET_INT(_pCfg, PIP_POSITION),
                     GET_INT(_pCfg, PIP_BORDER_PERCENTAGE),
@@ -1004,4 +1005,35 @@ bool CDisplay::isStandardDef()
     }
 
     return(bSD);
+}
+
+eDynamicRange CDisplay::getOutputDynamicRange()
+{
+    COutputHdmi * pOutput = (COutputHdmi *)getOutput(eBoardResource_outputHdmi);
+    eDynamicRange dynamicRange = eDynamicRange_Unknown;
+
+    if (NULL != pOutput)
+    {
+        dynamicRange = pOutput->getDynamicRange();
+    }
+
+    return(dynamicRange);
+}
+
+eRet CDisplay::setOutputDynamicRange(eDynamicRange dynamicRange)
+{
+    eRet          ret     = eRet_Ok;
+    COutputHdmi * pOutput = (COutputHdmi *)getOutput(eBoardResource_outputHdmi);
+
+    if (NULL != pOutput)
+    {
+        ret = pOutput->setDynamicRange(dynamicRange);
+        CHECK_ERROR_GOTO("unable to set hdmi output dynamic range", ret, error);
+
+        waitForDisplaySettingsApply();
+        _pModel->setLastDynamicRange(dynamicRange);
+    }
+
+error:
+    return(ret);
 }

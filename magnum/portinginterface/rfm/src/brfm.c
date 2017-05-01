@@ -373,7 +373,7 @@ static void BRFM_P_SysclkReset(BRFM_Handle hDev)
 
 BERR_Code BRFM_P_CRC_BIST(BREG_Handle hRegister, BRFM_EncoderType enc);
 
-void BRFM_P_SetTopLevelClock(BREG_Handle hReg, bool enable)
+static void BRFM_P_SetTopLevelClock(BREG_Handle hReg, bool enable)
 {
 #if (BRFM_REVID<40) /* No PM registers */
     BSTD_UNUSED(hReg);
@@ -383,7 +383,7 @@ void BRFM_P_SetTopLevelClock(BREG_Handle hReg, bool enable)
 #endif
 }
 
-bool BRFM_P_GetTopLevelClock(BREG_Handle hReg)
+static bool BRFM_P_GetTopLevelClock(BREG_Handle hReg)
 {
 #if (BRFM_REVID<40)
     BSTD_UNUSED(hReg);
@@ -712,7 +712,7 @@ static const uint16_t dB2Volume2000_Nicam[] =
 };
 #endif
 
-void BRFM_P_CalculateVolume (
+static void BRFM_P_CalculateVolume (
     int volume,         /* [in] requested audio volume */
     uint16_t *uLeftVal, /* [out] calculated value for L audio channel */
     uint16_t *uRightVal /* [out] calculated value for R audio channel */
@@ -740,7 +740,7 @@ void BRFM_P_CalculateVolume (
 }
 
 #if (BRFM_REVID>=40)
-void BRFM_P_CalculateNicamVolume(int volume, uint16_t *uVal)
+static void BRFM_P_CalculateNicamVolume(int volume, uint16_t *uVal)
 {
     int idx = volume - BRFM_MIN_VOLUME_NICAM;
 #if (BRFM_REVID<50)

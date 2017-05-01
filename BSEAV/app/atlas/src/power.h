@@ -102,11 +102,13 @@ public:
             const uint16_t   number,
             CConfiguration * pCfg
             );
-    ~CPower(void);
+    virtual ~CPower(void);
+
+    virtual eRet       setMode(ePowerMode mode, CGraphics * pGraphics = NULL);
+    virtual ePowerMode getMode(void) { return((ePowerMode)_eMode); }
+    virtual bool       checkPower(void) { return false;}
 
     eRet       mountDrives(bool bMount, uint32_t nRetries);
-    eRet       setMode(ePowerMode mode, CGraphics * pGraphics = NULL);
-    ePowerMode getMode(void) { return((ePowerMode)_settings.mode); }
 
     eRet enableMoca(bool bEnable);
     eRet enableEthernet(bool bEnable);
@@ -119,6 +121,7 @@ protected:
     NEXUS_PlatformStandbySettings _settings;
     void *                _pPmLib; /* linux power management library context */
     MAutoList<CMountData> _mountList;
+    ePowerMode            _eMode;
 };
 
 #ifdef __cplusplus

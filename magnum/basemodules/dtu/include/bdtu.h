@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -68,15 +68,27 @@ void BDTU_Destroy(
     BDTU_Handle handle
     );
 
+#define BDTU_REMAP_LIST_TOTAL 32
+typedef struct BDTU_RemapSettings
+{
+    struct {
+        BSTD_DeviceOffset devAddr; /* DA (device address). Starts from 0 on every MEMC. Must be 2MB aligned and within actual populated DRAM. */
+        BSTD_DeviceOffset fromPhysAddr; /* current BA (bus address). Must be within BDTU_CreateSettings.physAddr range and be 2MB aligned. */
+        BSTD_DeviceOffset toPhysAddr; /* new BA (bus address). Must be within BDTU_CreateSettings.physAddr range and be 2MB aligned. */
+    } list[BDTU_REMAP_LIST_TOTAL]; /* list terminates at first entry with devAddr == 0 */
+} BDTU_RemapSettings;
+
+void BDTU_GetDefaultRemapSettings(
+    BDTU_RemapSettings *pSettings
+    );
+
 /*
 All memory begins with identity map, where BA == DA.
 Remapping means unmapping DA from BA0 then mapping it to BA1.
 */
 BERR_Code BDTU_Remap(
     BDTU_Handle handle,
-    BSTD_DeviceOffset devAddr, /* DA (device address). Starts from 0 on every MEMC. Must be 2MB aligned and within actual populated DRAM. */
-    BSTD_DeviceOffset fromPhysAddr, /* current BA (bus address). Must be within BDTU_CreateSettings.physAddr range and be 2MB aligned. */
-    BSTD_DeviceOffset toPhysAddr /* new BA (bus address). Must be within BDTU_CreateSettings.physAddr range and be 2MB aligned. */
+    const BDTU_RemapSettings *pSettings
     );
 
 /* returns the DA of BA.

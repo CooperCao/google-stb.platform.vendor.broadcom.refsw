@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -100,6 +100,7 @@ typedef unsigned NEXUS_VideoEncoderModuleSettings;
 
 #ifndef NEXUS_HAS_STREAM_MUX
 typedef void *NEXUS_StreamMuxHandle;
+typedef unsigned NEXUS_StreamMuxSystemData;
 #endif
 
 #ifndef NEXUS_HAS_VIDEO_DECODER

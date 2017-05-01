@@ -1,16 +1,16 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Module   :  Implementation of KHR_debug extension
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl_public_api.h"
 #include "glxx_server.h"
 #include "glxx_server_internal.h"
 #include "glxx_server_pipeline.h"
 #include "../gl20/gl20_program.h"
 #include "../gl20/gl20_shader.h"
+
+#include "libs/util/dglenum/dglenum.h"
+
+LOG_DEFAULT_CAT("glxx_debug")
 
 // Does the given id match the list in the node?
 // If the node has no list, it will also match.
@@ -119,9 +119,9 @@ static bool clone_filters(GLXX_KHR_DEBUG_STACK_DATA_T *dst, GLXX_KHR_DEBUG_STACK
 
 // All message logging goes via this function.
 // This is where they are filtered out as required.
-static void debug_message_internal(GLXX_KHR_DEBUG_STATE_T *dbg,
-                                   GLenum source, GLenum type, GLenum severity,
-                                   GLuint id, const char *msg, int32_t msg_len)
+void glxx_debug_message(GLXX_KHR_DEBUG_STATE_T *dbg,
+                        GLenum source, GLenum type, GLenum severity,
+                        unsigned id, const char *msg, size_t msg_len)
 {
    if (!dbg->debug_output || msg == NULL)
       return;
@@ -375,7 +375,7 @@ static void debug_message_insert(GLenum source, GLenum type, GLuint id,
       goto end;
    }
 
-   debug_message_internal(&state->khr_debug, source, type, severity, id, buf, length);
+   glxx_debug_message(&state->khr_debug, source, type, severity, id, buf, length);
 
 end:
    glxx_unlock_server_state();
@@ -531,15 +531,6 @@ static void push_debug_group(GLenum source, GLuint id, GLsizei length, const GLc
       goto end;
    }
 
-   // Strictly adhering to the spec would need this code, but the CTS checks for
-   // a condition matching the spec of glDebugMessageInsert here, so we'll do that
-   // instead as it also seems more correct.
-   // if (length < 0 && strlen(message) >= GLXX_CONFIG_MAX_DEBUG_MESSAGE_LENGTH)
-   // {
-   //    glxx_server_state_set_error(state, GL_INVALID_VALUE);
-   //    goto end;
-   // }
-
    if (length < 0)
       length = strlen(message);
 
@@ -574,8 +565,7 @@ static void push_debug_group(GLenum source, GLuint id, GLsizei length, const GLc
    // Fill the data in this new stack level
    data->id = id;
    data->source = source;
-   data->message_len = length;
-   data->message = calloc(length, sizeof(GLchar));
+   data->message = malloc(length + 1);    // Space for NULL terminator
    if (data->message == NULL)
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
@@ -583,6 +573,7 @@ static void push_debug_group(GLenum source, GLuint id, GLsizei length, const GLc
    }
 
    strncpy(data->message, message, length);
+   data->message[length] = '\0';
 
    // Clone the current filters into the new stack level
    if (!clone_filters(data, data->prev))
@@ -592,8 +583,9 @@ static void push_debug_group(GLenum source, GLuint id, GLsizei length, const GLc
    }
 
    // Fire the push message
-   glxx_debug_message(state, data->source, GL_DEBUG_TYPE_PUSH_GROUP_KHR,
-                      GL_DEBUG_SEVERITY_NOTIFICATION_KHR, data->id, data->message);
+   glxx_debug_message(&state->khr_debug, data->source, GL_DEBUG_TYPE_PUSH_GROUP_KHR,
+                      GL_DEBUG_SEVERITY_NOTIFICATION_KHR, data->id, data->message,
+                      strlen(data->message));
 
    glxx_unlock_server_state();
    return;
@@ -639,8 +631,8 @@ static void pop_debug_group(void)
 
    // Fire the message we saved during push
    assert(msg != NULL);
-   glxx_debug_message(state, data->source, GL_DEBUG_TYPE_POP_GROUP_KHR,
-                      GL_DEBUG_SEVERITY_NOTIFICATION_KHR, data->id, msg);
+   glxx_debug_message(&state->khr_debug, data->source, GL_DEBUG_TYPE_POP_GROUP_KHR,
+                      GL_DEBUG_SEVERITY_NOTIFICATION_KHR, data->id, msg, strlen(msg));
 
    dbg->active_stack_level--;
 
@@ -853,9 +845,9 @@ GL_API void GL_APIENTRY glObjectLabel(GLenum identifier, GLuint name, GLsizei le
 }
 #endif
 
-static void copy_sanitised_outputs(GLsizei bufSize, GLsizei *length, GLchar *label, GLchar *inLab)
+static void copy_sanitised_outputs(unsigned buf_size, GLsizei *length, char *label, const char *inLab)
 {
-   GLsizei        inLen = 0;
+   unsigned inLen = 0;
 
    // Deal with not finding a label
    if (inLab == NULL)
@@ -867,14 +859,14 @@ static void copy_sanitised_outputs(GLsizei bufSize, GLsizei *length, GLchar *lab
    if (label == NULL && length != NULL)
       *length = inLen;
 
-   if (inLen >= bufSize)
-      inLen = vcos_max(0, bufSize - 1);
+   if (inLen >= buf_size)
+      inLen = gfx_umax(1, buf_size) - 1;
 
    // If there is a label, fill the length we'll use
    if (label != NULL && length != NULL)
       *length = inLen;
 
-   if (label != NULL && bufSize > 0)
+   if (label != NULL && buf_size > 0)
    {
       if (inLen > 0)
          strncpy(label, inLab, inLen);
@@ -891,6 +883,11 @@ static void get_object_label(GLenum identifier, GLuint name, GLsizei bufSize,
 
    if (!state)
       return;
+
+   if (bufSize < 0) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
 
    switch (identifier)
    {
@@ -1083,19 +1080,19 @@ static void get_object_ptr_label(const void *ptr, GLsizei bufSize,
                                  GLsizei *length, GLchar *label)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
-   GLchar              *lab = NULL;
 
    if (!state)
       return;
 
    GLXX_FENCESYNC_T *fsync = glxx_shared_get_fencesync(state->shared, (GLsync)ptr);
 
-   if (fsync != NULL)
-      lab = fsync->debug_label;
-   else
+   if (fsync == NULL)
       goto invalid_value;
 
-   copy_sanitised_outputs(bufSize, length, label, lab);
+   if (bufSize < 0)
+      goto invalid_value;
+
+   copy_sanitised_outputs(bufSize, length, label, fsync->debug_label);
 
    goto end;
 
@@ -1153,7 +1150,7 @@ bool glxx_init_khr_debug_state(GLXX_KHR_DEBUG_STATE_T *state)
    return true;
 }
 
-extern void glxx_destroy_khr_debug_state(GLXX_KHR_DEBUG_STATE_T *state)
+void glxx_destroy_khr_debug_state(GLXX_KHR_DEBUG_STATE_T *state)
 {
    // Destroy any remaining push/pop stack entries
    GLXX_KHR_DEBUG_STACK_DATA_T *entry = state->group_stack_top;
@@ -1176,27 +1173,12 @@ extern void glxx_destroy_khr_debug_state(GLXX_KHR_DEBUG_STATE_T *state)
    }
 }
 
-// If you are inside an API call and have access to a GLXX_SERVER_STATE_T, call this
-// function for synchronous message behavior.
-void glxx_debug_message(GLXX_SERVER_STATE_T *state, GLenum source, GLenum type,
-                        GLenum severity, GLuint id, const char *msg)
+void glxx_debug_log_error(GLXX_KHR_DEBUG_STATE_T *state, GLenum error, const char *func, const char *file, int line)
 {
-   if (msg != NULL)
-      debug_message_internal(&state->khr_debug, source, type, severity, id, msg, strlen(msg));
-}
+   log_trace("GL error: %s From: %s:%d (%s)", khrn_glenum_to_str(error), file, line, func ? func : "NULL");
 
-// If you are inside an API call and have access to a GLXX_SERVER_STATE_T, call this
-// function for synchronous message behavior. This variant looks up the message string
-// in a table based on the id.
-void glxx_debug_message_preset(GLXX_SERVER_STATE_T *state, GLenum source, GLenum type,
-                               GLenum severity, GLuint id)
-{
-   const char *msg = glxx_lookup_preset_debug_message(id);
-   if (msg != NULL)
-      debug_message_internal(&state->khr_debug, source, type, severity, id, msg, strlen(msg));
-}
-
-extern bool glxx_debug_enabled(GLXX_SERVER_STATE_T *state)
-{
-   return state->khr_debug.debug_output;
+   if (state->debug_output) {
+      glxx_debug_message(state, GL_DEBUG_SOURCE_API_KHR, GL_DEBUG_TYPE_ERROR_KHR, GL_DEBUG_SEVERITY_HIGH_KHR,
+                         (GLuint)error, khrn_glenum_to_str(error), strlen(khrn_glenum_to_str(error)));
+   }
 }

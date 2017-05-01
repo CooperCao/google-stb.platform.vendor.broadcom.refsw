@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -78,8 +78,9 @@ BERR_Code BBOX_P_Xvd_SetBoxMode
      BBOX_Xvd_Config *pBoxXvd );
 
 BERR_Code BBOX_P_LoadRts
-    ( const BREG_Handle      hReg,
-      const uint32_t         ulBoxId );
+    ( const BREG_Handle          hReg,
+      const uint32_t             ulBoxId,
+      const BBOX_DramRefreshRate eRefreshRate );
 
 BERR_Code BBOX_P_GetMemConfig
     ( uint32_t               ulBoxId,

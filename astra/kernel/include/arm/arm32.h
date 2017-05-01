@@ -133,7 +133,11 @@
 #define SAVED_REG_SP_USR   17
 #define SAVED_REG_LR_USR   18
 
+/* neon registers */
+#define NUM_SAVED_NEON_REGS 0
+
 /* LPAE table and block descriptors. */
+#define PAGE_TABLE_SELECTION_MASK 0x80000000
 #define L1_PAGE_TABLE_SLOT(x)  (uint32_t)( (uint32_t)(x) >> 30)
 #define L1_PHYS_ADDR_MASK       0xC0000000
 
@@ -409,10 +413,11 @@ static inline unsigned int read_mpidr(void)
 
 #define ARCH_SPECIFIC_GET_SPSR(spsr) asm volatile("mrs %[rt], cpsr" : [rt] "=r" (spsr) : :)
 
-#define ARCH_SPECIFIC_SAVE_STATE(idx) \
+#define ARCH_SPECIFIC_SAVE_STATE(neonReg, cpuReg) \
 	asm volatile ( \
 			"cpsid if\r\n" \
-			"mov r0, %[rt]\r\n" \
+			"mov r0, %[rt0]\r\n" \
+			"mov r0, %[rt1]\r\n" \
 			"str lr, [r0]\r\n" \
 			"str r1, [r0, #4]\r\n" \
 			"str r2, [r0, #8]\r\n" \
@@ -435,7 +440,7 @@ static inline unsigned int read_mpidr(void)
 			"b schedule\r\n" \
 			"resumption:\r\n" \
 			"mov lr, r0\r\n" \
-			: :[rt] "r" (idx) :)
+			: :[rt0] "r" (neonReg), [rt1] "r" (cpuReg) :)
 
 #define ARCH_SPECIFIC_DATA_ABORT_EXCEPTION(dfsr, dfar, align) \
 	asm volatile("MRC p15, 0, %[rt], c5, c0, 0": [rt] "=r" (dfsr)::); \

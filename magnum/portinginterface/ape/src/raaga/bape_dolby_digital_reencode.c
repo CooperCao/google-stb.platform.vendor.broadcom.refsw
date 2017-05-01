@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,7 +62,6 @@ typedef struct BAPE_DolbyDigitalReencode
     BAPE_DecoderHandle masterDecoder;
     BDSP_StageHandle hRendererStage, hTranscodeStage;
     BAPE_DolbyMSVersion version;
-    BAPE_DolbyMs12Config config;
     BAPE_Handle deviceHandle;
 
     /* multi-device architecture */
@@ -129,11 +128,7 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     pSettings->dolbySurround = (BAPE_Ac3DolbySurround)encodeStageSettings.ui32DolbySurroundMode;
     pSettings->fixedEncoderFormat = (rendererStageSettings.ui32ChannelLockModeEnable == 1) ? true : false;
     pSettings->dialogLevel = encodeStageSettings.ui32DialNorm;
-    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
-         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
-    {
-        pSettings->multichannelFormat = BAPE_MultichannelFormat_e7_1;
-    }
+    pSettings->multichannelFormat = BAPE_P_DolbyCapabilities_MultichannelPcmFormat();
     pSettings->encodeSettings.certificationMode = (encodeStageSettings.ui32DolbyCertificationFlag)?false:true;
     pSettings->encodeSettings.spdifHeaderEnabled = true;
     #else
@@ -204,21 +199,17 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
     }
 
     /* MS12 Config A check */
-    if ( pSettings->multichannelFormat == BAPE_MultichannelFormat_e7_1 )
+    if ( pSettings->multichannelFormat == BAPE_MultichannelFormat_e7_1 &&
+         BAPE_P_DolbyCapabilities_MultichannelPcmFormat() != BAPE_MultichannelFormat_e7_1 )
     {
-        if ( BAPE_P_GetDolbyMSVersion() != BAPE_DolbyMSVersion_eMS12 ||
-             BAPE_P_GetDolbyMS12Config() != BAPE_DolbyMs12Config_eA )
-        {
-            BDBG_WRN(("MS12 Config A is required for 7.1ch DDRE support"));
-            return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        }
+        BDBG_WRN(("export BDSP_MS12_SUPPORT=A is required for 7.1ch DDRE support"));
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
     BKNI_Memset(handle, 0, sizeof(BAPE_DolbyDigitalReencode));
     BDBG_OBJECT_SET(handle, BAPE_DolbyDigitalReencode);
     handle->deviceHandle = deviceHandle;
     handle->version = BAPE_P_GetDolbyMSVersion();
-    handle->config = BAPE_P_GetDolbyMS12Config();
     handle->settings = *pSettings;
     BAPE_P_InitPathNode(&handle->node, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 4, deviceHandle, handle);
     handle->node.pName = "DDRE";
@@ -269,8 +260,7 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
     BAPE_FMT_P_EnableSource(&caps, BAPE_DataSource_eDspBuffer);
     BAPE_FMT_P_EnableType(&caps, BAPE_DataType_ePcmStereo);
     BAPE_FMT_P_EnableType(&caps, BAPE_DataType_ePcm5_1);
-    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
-         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
+    if ( BAPE_P_DolbyCapabilities_MultichannelPcmFormat() == BAPE_MultichannelFormat_e7_1 )
     {
         BAPE_FMT_P_EnableType(&caps, BAPE_DataType_ePcm7_1);
     }
@@ -493,10 +483,9 @@ void BAPE_DolbyDigitalReencode_GetConnector(
         break;
     case BAPE_ConnectorFormat_eCompressed4x:
         {
-            if (handle->version != BAPE_DolbyMSVersion_eMS12 ||
-                handle->config == BAPE_DolbyMs12Config_eC )
+            if ( !BAPE_P_DolbyCapabilities_DdpEncode(BAPE_MultichannelFormat_e5_1) )
             {
-                BDBG_ERR(("Connector format %u is only supported by MS12 Config A or B BAPE_DolbyDigitalReencode", format));
+                BDBG_ERR(("Connector format %u is only supported by MS12 Config A or B BAPE_DolbyDigitalReencode (export BDSP_MS12_SUPPORT=A/B)", format));
                 *pConnector = NULL;
                 return;
             }
@@ -1056,8 +1045,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32ChannelLockModeEnable, ddreSettings->fixedEncoderFormat? 1 : 0);
 
     /* if Config A MS12, but the encoder only has legacy compressed consumer, limit PCMR output to 6 chs */
-    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
-         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA &&
+    if ( BAPE_P_DolbyCapabilities_DdpEncode(BAPE_MultichannelFormat_e7_1) &&
          BAPE_DolbyDigitalReencode_P_Has4xCompressedOutput(handle) )
     {
         BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumRawMcChannels, 8);
@@ -1104,8 +1092,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     }
     else
     {
-        BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
-        BERR_TRACE(BERR_INVALID_PARAMETER);
+        BDBG_MSG(("%s, No Valid Output Port found!", __FUNCTION__));
         return;
     }
 
@@ -1318,7 +1305,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
             {
                 BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(handle, &localRendererSettings, &decoderSettings.codecSettings.ac4);
             }
-            if ( codec == BAVC_AudioCompressionStd_eAc3 )
+            else if ( codec == BAVC_AudioCompressionStd_eAc3 )
             {
                 BAPE_DolbyDigitalReencode_P_ApplyAc3DecoderSettings(handle, &localRendererSettings, &decoderSettings.codecSettings.ac3);
             }
@@ -1461,13 +1448,18 @@ BERR_Code BAPE_DolbyDigitalReencode_P_SettingsChanged(
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_DolbyDigitalReencode);
-    BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
-    BDBG_ASSERT(decoder->ddre == handle);
-    if ( decoder->fwMixer && !decoder->fwMixerMaster )
+
+    if ( decoder != NULL )
     {
-        /* We only care about the master's settings */
-        return BERR_SUCCESS;
+        BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
+        BDBG_ASSERT(decoder->ddre == handle);
+        if ( decoder->fwMixer && !decoder->fwMixerMaster )
+        {
+            /* We only care about the master's settings */
+            return BERR_SUCCESS;
+        }
     }
+
     BDBG_MSG(("Master decoder input settings have changed"));
     handle->masterDecoder = decoder;
     errCode = BAPE_DolbyDigitalReencode_P_ApplyDspSettings(handle);

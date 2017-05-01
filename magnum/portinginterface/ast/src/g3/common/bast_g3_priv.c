@@ -1,5 +1,5 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/***************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,10 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *
+ * [File Description:]
+ *
+ ***************************************************************************/
 #include "bstd.h"
 #include "bast.h"
 #include "bast_priv.h"
@@ -140,10 +143,6 @@ BERR_Code BAST_g3_P_Open(
    const BAST_Settings *pDefSettings /* [in] default settings */
 )
 {
-#ifndef BAST_EXCLUDE_FTM
-   extern BAST_g3_Ftm_P_InterruptCbTable BAST_Ftm_Interrupts[];
-#endif
-
    BERR_Code retCode;
    BAST_Handle hDev;
    BAST_g3_P_Handle *hG3Dev;
@@ -183,9 +182,11 @@ BERR_Code BAST_g3_P_Open(
    BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    /* create ftm callbacks */
+   retCode = BAST_g3_P_InitCbInfo(hDev);
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
    for(i = 0; i < 32 ; i++)
    {
-      retCode = BINT_CreateCallback(&(hG3Dev->hFtmDev.hCallback[i]), hInterrupt, BAST_Ftm_Interrupts[i].IntrId, BAST_g3_Ftm_P_HandleInterrupt_isr, (void*)hDev, i);
+      retCode = BINT_CreateCallback(&(hG3Dev->hFtmDev.cbInfo[i].hCb), hInterrupt, hG3Dev->hFtmDev.cbInfo[i].intID, BAST_g3_Ftm_P_HandleInterrupt_isr, (void*)hDev, i);
       BDBG_ASSERT(retCode == BERR_SUCCESS);
    }
 #endif
@@ -228,7 +229,7 @@ BERR_Code BAST_g3_P_Close(BAST_Handle h)
    /* destroy ftm callbacks */
    BAST_g3_Ftm_P_EnableFtmInterrupts(h, false);
    for(i = 0; i < 32 ; i++)
-      BINT_DestroyCallback(hG3Dev->hFtmDev.hCallback[i]);
+      BINT_DestroyCallback(hG3Dev->hFtmDev.cbInfo[i].hCb);
 
    BKNI_DestroyEvent(((BAST_g3_P_Handle *)(h->pImpl))->hFtmEvent);
 #endif
@@ -554,7 +555,7 @@ BERR_Code BAST_g3_P_GetDevice(
 /******************************************************************************
  BAST_g3_P_DisableInterrupts() - Non-ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_DisableInterrupts(
+static BERR_Code BAST_g3_P_DisableInterrupts(
    BAST_Handle h   /* [in] BAST handle */
 )
 {
@@ -1253,7 +1254,7 @@ BERR_Code BAST_g3_P_PowerDown(
 /******************************************************************************
  BAST_g3_P_TunerInitDone_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TunerInitDone_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TunerInitDone_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -2154,6 +2155,7 @@ BERR_Code BAST_g3_P_PeakScan(BAST_ChannelHandle h, uint32_t tunerFreq)
 }
 
 
+#if 0
 /******************************************************************************
  BAST_g3_P_DumpBins() - Non-ISR context
 ******************************************************************************/
@@ -2207,6 +2209,7 @@ BERR_Code BAST_g3_P_DumpBins(BAST_ChannelHandle h, uint32_t tunerFreq)
    return BERR_NOT_SUPPORTED;
 #endif
 }
+#endif
 
 
 /******************************************************************************

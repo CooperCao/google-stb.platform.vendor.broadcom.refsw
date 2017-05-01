@@ -1,25 +1,40 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
 #include "glsl_dataflow.h"
 #include "glsl_fastmem.h"
-#include "glsl_list.h"
 #include "glsl_ir_shader.h"
 #include "glsl_binary_shader.h"
 #include "libs/core/v3d/v3d_qpu_instr.h"
+#include "glsl_backend_uniforms.h"
 #include "glsl_backend_reg.h"
 
 typedef struct backflow_s Backflow;
 
-/* Declare backflow chains */
-DECLARE_NODE_LIST(Backflow,malloc_fast)
+/* Declare BackflowChain */
+#define C_LIST_MALLOC malloc_fast
+#define C_LIST_FREE(p)
+#define C_LIST glsl_backflow_chain
+#define C_LIST_VALUE_TYPE Backflow*
+#include "libs/util/c_list.h"
+typedef glsl_backflow_chain      BackflowChain;
+typedef glsl_backflow_chain_node BackflowChainNode;
 
-void glsl_backflow_chain_init(BackflowChain *chain);
-void glsl_backflow_chain_append(BackflowChain *chain, Backflow *backflow);
-void glsl_backflow_chain_remove(BackflowChain *chain, Backflow *backflow);
-bool glsl_backflow_chain_contains(BackflowChain *chain, Backflow *backflow);
+/* Declare BackflowIODepChain */
+typedef struct BackflowIODep
+{
+   Backflow* dep;
+   int io_timestamp_offset;   // offset relative to Backflow.io_timestamp
+} BackflowIODep;
+#define C_LIST_MALLOC malloc_fast
+#define C_LIST_FREE(p)
+#define C_LIST glsl_backflow_iodep_chain
+#define C_LIST_VALUE_TYPE BackflowIODep
+#include "libs/util/c_list.h"
+typedef glsl_backflow_iodep_chain      BackflowIODepChain;
+typedef glsl_backflow_iodep_chain_node BackflowIODepChainNode;
 
 /* TODO: Consider separating the backend shader gen functions into their own lib */
 typedef enum {
@@ -114,8 +129,7 @@ typedef enum {
    BACKFLOW_FLAVOUR_COUNT
 } BackflowFlavour;
 
-typedef enum
-{
+typedef enum {
    ALU_M, ALU_A,
    SIG,
    SPECIAL_THRSW,
@@ -125,9 +139,9 @@ typedef enum
 } SchedNodeType;
 
 typedef enum {
-   VARYING_DEFAULT    = 1,
-   VARYING_LINE_COORD = 2,
-   VARYING_FLAT       = 3
+   VARYING_DEFAULT = 1,
+   VARYING_NOPERSP = 2,
+   VARYING_FLAT    = 3
 } VaryingType;
 
 typedef enum {
@@ -174,13 +188,13 @@ struct backflow_s {
    backend_reg magic_write;
    uint32_t cond_setf;
 
-   uint32_t unif_type;
+   BackendUniformFlavour unif_type;
    uint32_t unif;
 
    struct backflow_s *dependencies[BACKFLOW_DEP_COUNT];
    BackflowChain data_dependents;
 
-   BackflowChain io_dependencies;
+   BackflowIODepChain io_dependencies;
    bool any_io_dependents;
 };
 
@@ -262,6 +276,8 @@ typedef struct {
 
    /* These are filled in during translation and used for scheduling */
    struct tmu_lookup_s *tmu_lookups;
+
+   bool accesses_shared;
 
    /* These are also needed by the scheduler for iodeps */
    Backflow *first_tlb_read;

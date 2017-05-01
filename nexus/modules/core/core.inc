@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# Module Description:
-#
 ############################################################
 
 #
@@ -123,11 +120,9 @@ NEXUS_CORE_MAGNUM_MODULES :=  \
     $(MAGNUM)/commonutils/mrc/bmrc.inc \
     $(MAGNUM)/commonutils/mth/bmth.inc \
     $(MAGNUM)/commonutils/pxl/bpxl.inc \
-    $(MAGNUM)/commonutils/sur/bsur.inc \
     $(MAGNUM)/commonutils/img/bimg.inc \
     $(MAGNUM)/commonutils/vlc/bvlc.inc \
     $(MAGNUM)/commonutils/box/bbox.inc \
-    $(MAGNUM)/commonutils/tee/btee.inc \
     $(MAGNUM)/syslib/framework/bsyslib_framework.inc
 
 BMMA_USE_STUB?=n
@@ -140,13 +135,19 @@ ifeq ($(BMEM_DEPRECATED), y)
 NEXUS_CORE_DEFINES += BMEM_DEPRECATED=1
 endif
 
+# TEE Support for ARM audio
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+NEXUS_CORE_MAGNUM_MODULES += $(MAGNUM)/commonutils/tee/btee.inc
+endif
+
 # Optional profiler support
 ifneq ($(NEXUS_MODE),client)
 ifeq ($(BPROFILE_SUPPORT),y)
 NEXUS_CORE_MAGNUM_MODULES += \
     $(BSEAV)/lib/bprofile/bprofile.inc
 # BSEAV makefiles don't include their module names into MAGNUM_MODULES
-NEXUS_EXTRA_MODULES += BPROFILE
+NEXUS_EXTRA_MODULES += B_PROFILE_CORE B_PROFILE_TRACE B_PROFILE_PERFCOUNTER
+NEXUS_CORE_SOURCES += bsymbols.c bsymtable.c
 NEXUS_CORE_DEFINES +=B_HAS_SYMTABLE
 ifneq ($(BPROFILE_COUNTERS),)
 NEXUS_CORE_DEFINES += BPROFILE_CFG_PERF_COUNTER=$(BPROFILE_COUNTERS)

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "lfmt_translate_v3d.h"
 #include "libs/core/v3d/v3d_tmu.h"
 
@@ -96,7 +89,7 @@ GFX_LFMT_T gfx_lfmt_translate_from_tfu_oformat(
 
 /** TLB pixel format (for color buffers) */
 
-v3d_pixel_format_t gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt)
+static v3d_pixel_format_t maybe_translate_pixel_format_canonical(GFX_LFMT_T lfmt)
 {
    switch (lfmt & GFX_LFMT_FORMAT_MASK & ~GFX_LFMT_PRE_MASK)
    {
@@ -159,14 +152,7 @@ v3d_pixel_format_t gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt)
    }
 }
 
-v3d_pixel_format_t gfx_lfmt_translate_pixel_format(GFX_LFMT_T lfmt)
-{
-   v3d_pixel_format_t pixel_format = gfx_lfmt_maybe_translate_pixel_format(lfmt);
-   assert(pixel_format != V3D_PIXEL_FORMAT_INVALID);
-   return pixel_format;
-}
-
-GFX_LFMT_T gfx_lfmt_translate_from_pixel_format(v3d_pixel_format_t pixel_format)
+static GFX_LFMT_T translate_canonical_from_pixel_format(v3d_pixel_format_t pixel_format)
 {
    switch (pixel_format)
    {
@@ -226,6 +212,124 @@ GFX_LFMT_T gfx_lfmt_translate_from_pixel_format(v3d_pixel_format_t pixel_format)
    }
 }
 
+#if V3D_HAS_TLB_SWIZZLE
+GFX_LFMT_T swizzle_lfmt(GFX_LFMT_T lfmt, bool reverse, bool rb_swap) {
+   if (reverse) lfmt = gfx_lfmt_reverse_channels(gfx_lfmt_reverse_type(lfmt));
+   if (rb_swap) {
+      switch (gfx_lfmt_get_channels(&lfmt)) {
+         case GFX_LFMT_CHANNELS_RGBA: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_BGRA); break;
+         case GFX_LFMT_CHANNELS_RGBX: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_BGRX); break;
+         case GFX_LFMT_CHANNELS_BGRA: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_RGBA); break;
+         case GFX_LFMT_CHANNELS_BGRX: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_RGBX); break;
+         case GFX_LFMT_CHANNELS_ARGB: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_ABGR); break;
+         case GFX_LFMT_CHANNELS_XRGB: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_XBGR); break;
+         case GFX_LFMT_CHANNELS_ABGR: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_ARGB); break;
+         case GFX_LFMT_CHANNELS_XBGR: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_XRGB); break;
+         default: assert(0);     /* Only valid for RGBA/X images */
+      }
+   }
+   return lfmt;
+}
+
+bool gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt, v3d_pixel_format_t *pf, bool *reverse, bool *rb_swap)
+{
+   bool rev  = false;
+   bool rb_s = false;
+   switch (gfx_lfmt_get_channels(&lfmt))
+   {
+      case GFX_LFMT_CHANNELS_RGBA: rev = false; rb_s = false; break;
+      case GFX_LFMT_CHANNELS_ABGR: rev = true;  rb_s = false; break;
+      case GFX_LFMT_CHANNELS_BGRA: rev = false; rb_s = true;  break;
+      case GFX_LFMT_CHANNELS_ARGB: rev = true;  rb_s = true;  break;
+
+      case GFX_LFMT_CHANNELS_RGBX: rev = false; rb_s = false; break;
+      case GFX_LFMT_CHANNELS_XBGR: rev = true;  rb_s = false; break;
+      case GFX_LFMT_CHANNELS_BGRX: rev = false; rb_s = true;  break;
+      case GFX_LFMT_CHANNELS_XRGB: rev = true;  rb_s = true;  break;
+
+      case GFX_LFMT_CHANNELS_BGR:  rev = true; break;
+
+      case GFX_LFMT_CHANNELS_GR:   rev = true; break;
+
+      default: /* Do nothing */ break;
+   }
+
+   /* The canonical LFMT for these is in non-RGBA order in the TLB formats list */
+   switch(lfmt & GFX_LFMT_BASE_MASK) {
+   case GFX_LFMT_BASE_C1C5C5C5: rev = !rev; break; /* TODO a1_bgr5_am? */
+   case GFX_LFMT_BASE_C4C4C4C4: rev = !rev; break;
+   case GFX_LFMT_BASE_C5C6C5:   rev = !rev; break;
+   default: /* Do nothing */ break;
+   }
+
+   *reverse = rev;
+   *rb_swap = rb_s;
+   *pf = maybe_translate_pixel_format_canonical(swizzle_lfmt(lfmt, rev, rb_s));
+   return *pf != V3D_PIXEL_FORMAT_INVALID;
+}
+
+void gfx_lfmt_translate_pixel_format(GFX_LFMT_T lfmt, v3d_pixel_format_t *pf, bool *reverse, bool *rb_swap)
+{
+   bool ok = gfx_lfmt_maybe_translate_pixel_format(lfmt, pf, reverse, rb_swap);
+   assert(ok);
+}
+
+GFX_LFMT_T gfx_lfmt_translate_from_pixel_format(v3d_pixel_format_t fmt, bool reverse, bool rb_swap) {
+   GFX_LFMT_T lfmt = translate_canonical_from_pixel_format(fmt);
+   return swizzle_lfmt(lfmt, reverse, rb_swap);
+}
+
+#else
+
+v3d_pixel_format_t gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt)
+{
+   return maybe_translate_pixel_format_canonical(lfmt);
+}
+
+v3d_pixel_format_t gfx_lfmt_translate_pixel_format(GFX_LFMT_T lfmt)
+{
+   v3d_pixel_format_t pixel_format = gfx_lfmt_maybe_translate_pixel_format(lfmt);
+   assert(pixel_format != V3D_PIXEL_FORMAT_INVALID);
+   return pixel_format;
+}
+
+GFX_LFMT_T gfx_lfmt_translate_from_pixel_format(v3d_pixel_format_t fmt) {
+   return translate_canonical_from_pixel_format(fmt);
+}
+
+#endif
+
+bool gfx_lfmt_maybe_translate_rt_format(V3D_RT_FORMAT_T *rt_format, GFX_LFMT_T lfmt)
+{
+   bool ok;
+#if V3D_HAS_TLB_SWIZZLE
+   bool ignored1, ignored2;
+   v3d_pixel_format_t pixel_format;
+   ok = gfx_lfmt_maybe_translate_pixel_format(lfmt, &pixel_format, &ignored1, &ignored2);
+#else
+   v3d_pixel_format_t pixel_format = gfx_lfmt_maybe_translate_pixel_format(lfmt);
+   ok = (pixel_format != V3D_PIXEL_FORMAT_INVALID);
+#endif
+   if (!ok)
+   {
+      rt_format->type = V3D_RT_TYPE_INVALID;
+      rt_format->bpp = V3D_RT_BPP_INVALID;
+#if V3D_HAS_RT_CLAMP
+      rt_format->clamp = V3D_RT_CLAMP_INVALID;
+#endif
+      return false;
+   }
+
+   v3d_pixel_format_to_rt_format(rt_format, pixel_format);
+   return true;
+}
+
+void gfx_lfmt_translate_rt_format(V3D_RT_FORMAT_T *rt_format, GFX_LFMT_T lfmt)
+{
+   bool ok = gfx_lfmt_maybe_translate_rt_format(rt_format, lfmt);
+   assert(ok);
+}
+
 #if !V3D_VER_AT_LEAST(4,0,2,0)
 
 GFX_LFMT_T gfx_lfmt_translate_internal_raw_mode(GFX_LFMT_T output_lfmt)
@@ -274,7 +378,7 @@ GFX_LFMT_T gfx_lfmt_translate_from_depth_format(v3d_depth_format_t depth_format)
 
 /** TLB internal depth type */
 
-v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T depth_lfmt)
+v3d_depth_type_t gfx_lfmt_maybe_translate_depth_type(GFX_LFMT_T depth_lfmt)
 {
    GFX_LFMT_T fmt = gfx_lfmt_fmt(depth_lfmt);
 
@@ -285,8 +389,15 @@ v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T depth_lfmt)
    case GFX_LFMT_S8D24_UINT_UNORM:     return V3D_DEPTH_TYPE_24;
    case GFX_LFMT_D32_FLOAT:            return V3D_DEPTH_TYPE_32F;
    case GFX_LFMT_D32_S8X24_FLOAT_UINT: return V3D_DEPTH_TYPE_32F;
-   default:                            unreachable(); return V3D_DEPTH_TYPE_INVALID;
+   default:                            return V3D_DEPTH_TYPE_INVALID;
    }
+}
+
+v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T depth_lfmt)
+{
+   v3d_depth_type_t depth_type = gfx_lfmt_maybe_translate_depth_type(depth_lfmt);
+   assert(depth_type != V3D_DEPTH_TYPE_INVALID);
+   return depth_type;
 }
 
 /** TMU */
@@ -756,11 +867,6 @@ GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb)
    return lfmt;
 }
 
-GFX_LFMT_DIMS_T gfx_lfmt_translate_from_tmu_ltype(v3d_tmu_ltype_t ltype)
-{
-   return gfx_lfmt_dims_to_enum(v3d_tmu_ltype_num_dims(ltype));
-}
-
 /** TFU */
 
 static void reorder_tfu_fmts(
@@ -916,7 +1022,8 @@ void gfx_lfmt_translate_from_tfu_type(
       rgbord = v3d_tfu_reverse_rgbord(rgbord);
    reorder_tfu_fmts(*num_planes, fmts, tfu_type, rgbord, srgb);
 
-   *yuv_col_space = v3d_yuv_col_space_from_tfu_type(tfu_type);
+   if (yuv_col_space)
+      *yuv_col_space = v3d_yuv_col_space_from_tfu_type(tfu_type);
 }
 
 static bool swizzles_eq_or_inv(v3d_tmu_swizzle_t a, v3d_tmu_swizzle_t b)
@@ -976,11 +1083,12 @@ static v3d_tfu_rgbord_t maybe_get_rgbord(uint32_t num_channels,
    return V3D_TFU_RGBORD_INVALID;
 }
 
-/* The TFU does not support the integer types but the equivalent normalised
- * types will do considering the only operations the TFU can do are copying and
- * subsampling. */
 static GFX_LFMT_T fudge_lfmt_for_tfu(GFX_LFMT_T lfmt)
 {
+   // TMU translation only understands R/G/B/A. Map D/S->R/G to allow D/S->D/S
+   // copies.
+   lfmt = gfx_lfmt_ds_to_rg(lfmt);
+
    switch (gfx_lfmt_get_base(&lfmt))
    {
    case GFX_LFMT_BASE_C32:
@@ -990,6 +1098,9 @@ static GFX_LFMT_T fudge_lfmt_for_tfu(GFX_LFMT_T lfmt)
       gfx_lfmt_set_type(&lfmt, GFX_LFMT_TYPE_FLOAT);
       return lfmt;
    default:
+      /* The TFU does not support the integer types but the equivalent
+       * normalised types will do considering the only operations the TFU can
+       * do are copying and subsampling. */
       return gfx_lfmt_int_to_norm(lfmt);
    }
 }

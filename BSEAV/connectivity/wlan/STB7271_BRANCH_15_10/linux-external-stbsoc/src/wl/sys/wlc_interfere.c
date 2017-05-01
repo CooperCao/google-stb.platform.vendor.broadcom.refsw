@@ -196,7 +196,7 @@ static void itfr_identify_source(itfr_info_t *itfr, itfr_sample_t *itfr_sample);
 static void itfr_stats_watchdog(void *ctx);
 static int wlc_itfr_doiovar(void *ctx, uint32 actionid,
         void *params, uint p_len, void *arg, uint len, uint val_size, struct wlc_if *wlcif);
-#if defined(BCMDBG_DUMP)
+#if defined(BCMINTDBG) || defined(BCMDBG_DUMP)
 static int wlc_itfr_dump(void *ctx, struct bcmstrbuf *b);
 #endif
 
@@ -269,7 +269,7 @@ BCMATTACHFN(wlc_itfr_attach)(wlc_info_t *wlc)
 
 	itfr_init_stats(itfr);
 
-#if defined(BCMDBG_DUMP)
+#if defined(BCMINTDBG) || defined(BCMDBG_DUMP)
 	if (wlc_dump_register(wlc->pub, ITFR_MODULE_NAME, wlc_itfr_dump, itfr) != BCME_OK) {
 		WL_ERROR(("wl%d: %s: wlc_dumpe_register() failed\n",
 			wlc->pub->unit, __FUNCTION__));
@@ -859,7 +859,7 @@ itfr_identify_source(itfr_info_t *itfr, itfr_sample_t *itfr_sample)
 			break;
 	}
 }
-#if defined(BCMDBG_DUMP)
+#if defined(BCMINTDBG) || defined(BCMDBG_DUMP)
 static int wlc_itfr_dump(void *ctx, struct bcmstrbuf *b)
 {
 	bcm_bprintf(b, "%s:  If I had something to say, it would go here\n",

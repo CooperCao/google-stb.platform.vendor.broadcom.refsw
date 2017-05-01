@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -181,7 +181,7 @@ void BVDC_P_Vfc_Destroy
  * {private}
  *
  */
-void BVDC_P_Vfc_Init_isr
+static void BVDC_P_Vfc_Init_isr
     ( BVDC_P_Vfc_Handle             hVfc )
 {
     BDBG_ENTER(BVDC_P_Vfc_Init_isr);
@@ -445,8 +445,12 @@ void BVDC_P_Vfc_SetInfo_isr
         if(!hWindow->bIs10BitCore)
         {
             bool bDitherEn =
+#if BVDC_DITHER_OFF
+                false;
+#else
                 (pPicture->bSrc10Bit || !hWindow->hCompositor->hDisplay->stCurInfo.bEnableStg) ?
                 true : false;
+#endif
             BDBG_MODULE_MSG(BVDC_DITHER,("VFC%d DITHER: %s", hVfc->eId,
                 (bDitherEn) ? "ENABLE" : "DISABLE"));
 
@@ -462,9 +466,12 @@ void BVDC_P_Vfc_SetInfo_isr
     }
 
     /* CFC adjust */
-    if(hWindow->bCfcAdjust) {
+    if(hVfc->bCfcDirty)
+    {
         BVDC_P_Cfc_UpdateCfg_isr(&hVfc->stCfc, false, true);
+        hVfc->bCfcDirty = false;
     }
+
     BDBG_LEAVE(BVDC_P_Vfc_SetInfo_isr);
     return;
 }
@@ -510,13 +517,6 @@ BERR_Code BVDC_P_Vfc_Create
 }
 
 void BVDC_P_Vfc_Destroy
-    ( BVDC_P_Vfc_Handle             hVfc )
-{
-    BSTD_UNUSED(hVfc);
-    return;
-}
-
-void BVDC_P_Vfc_Init_isr
     ( BVDC_P_Vfc_Handle             hVfc )
 {
     BSTD_UNUSED(hVfc);

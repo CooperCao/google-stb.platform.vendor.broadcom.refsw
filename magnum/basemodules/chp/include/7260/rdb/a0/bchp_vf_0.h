@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,59 +70,59 @@
 /***************************************************************************
  *VF_0 - Video Formatter VF_0
  ***************************************************************************/
-#define BCHP_VF_0_VF_REV_ID                      0x206e3000 /* [RO] Revision ID register */
-#define BCHP_VF_0_FORMAT_ADDER                   0x206e3008 /* [RW] Video formatter adder register */
-#define BCHP_VF_0_MISC                           0x206e300c /* [RW] Miscellaneous register */
-#define BCHP_VF_0_NEG_SYNC_VALUES                0x206e3010 /* [RW] Negative Sync and Blank amplitude register */
-#define BCHP_VF_0_POS_SYNC_VALUES                0x206e3014 /* [RW] Positive Sync amplitude register */
-#define BCHP_VF_0_SYNC_TRANS_0                   0x206e3018 /* [RW] Sync pulse transition 0 register */
-#define BCHP_VF_0_SYNC_TRANS_1                   0x206e301c /* [RW] Sync pulse transition 1 register */
-#define BCHP_VF_0_CH0_TAP1                       0x206e3020 /* [RW] Channel 0 band-limiting filter (taps 1  & 19) */
-#define BCHP_VF_0_CH0_TAP2                       0x206e3024 /* [RW] Channel 0 band-limiting filter (taps 2  & 18) */
-#define BCHP_VF_0_CH0_TAP3                       0x206e3028 /* [RW] Channel 0 band-limiting filter (taps 3  & 17) */
-#define BCHP_VF_0_CH0_TAP4                       0x206e302c /* [RW] Channel 0 band-limiting filter (taps 4  & 16) */
-#define BCHP_VF_0_CH0_TAP5                       0x206e3030 /* [RW] Channel 0 band-limiting filter (taps 5  & 15) */
-#define BCHP_VF_0_CH0_TAP6                       0x206e3034 /* [RW] Channel 0 band-limiting filter (taps 6  & 14) */
-#define BCHP_VF_0_CH0_TAP7                       0x206e3038 /* [RW] Channel 0 band-limiting filter (taps 7  & 13) */
-#define BCHP_VF_0_CH0_TAP8                       0x206e303c /* [RW] Channel 0 band-limiting filter (taps 8  & 12) */
-#define BCHP_VF_0_CH0_TAP9                       0x206e3040 /* [RW] Channel 0 band-limiting filter (taps 9  & 11) */
-#define BCHP_VF_0_CH0_TAP10                      0x206e3044 /* [RW] Channel 0 band-limiting filter (tap 10  ) */
-#define BCHP_VF_0_CH1_TAP1                       0x206e3048 /* [RW] Channel 1 band-limiting filter (taps 1  & 19) */
-#define BCHP_VF_0_CH1_TAP2                       0x206e304c /* [RW] Channel 1 band-limiting filter (taps 2  & 18) */
-#define BCHP_VF_0_CH1_TAP3                       0x206e3050 /* [RW] Channel 1 band-limiting filter (taps 3  & 17) */
-#define BCHP_VF_0_CH1_TAP4                       0x206e3054 /* [RW] Channel 1 band-limiting filter (taps 4  & 16) */
-#define BCHP_VF_0_CH1_TAP5                       0x206e3058 /* [RW] Channel 1 band-limiting filter (taps 5  & 15) */
-#define BCHP_VF_0_CH1_TAP6                       0x206e305c /* [RW] Channel 1 band-limiting filter (taps 6  & 14) */
-#define BCHP_VF_0_CH1_TAP7                       0x206e3060 /* [RW] Channel 1 band-limiting filter (taps 7  & 13) */
-#define BCHP_VF_0_CH1_TAP8                       0x206e3064 /* [RW] Channel 1 band-limiting filter (taps 8  & 12) */
-#define BCHP_VF_0_CH1_TAP9                       0x206e3068 /* [RW] Channel 1 band-limiting filter (taps 9  & 11) */
-#define BCHP_VF_0_CH1_TAP10                      0x206e306c /* [RW] Channel 1 band-limiting filter (tap 10  ) */
-#define BCHP_VF_0_CH2_TAP1                       0x206e3070 /* [RW] Channel 2 band-limiting filter (taps 1  & 19) */
-#define BCHP_VF_0_CH2_TAP2                       0x206e3074 /* [RW] Channel 2 band-limiting filter (taps 2  & 18) */
-#define BCHP_VF_0_CH2_TAP3                       0x206e3078 /* [RW] Channel 2 band-limiting filter (taps 3  & 17) */
-#define BCHP_VF_0_CH2_TAP4                       0x206e307c /* [RW] Channel 2 band-limiting filter (taps 4  & 16) */
-#define BCHP_VF_0_CH2_TAP5                       0x206e3080 /* [RW] Channel 2 band-limiting filter (taps 5  & 15) */
-#define BCHP_VF_0_CH2_TAP6                       0x206e3084 /* [RW] Channel 2 band-limiting filter (taps 6  & 14) */
-#define BCHP_VF_0_CH2_TAP7                       0x206e3088 /* [RW] Channel 2 band-limiting filter (taps 7  & 13) */
-#define BCHP_VF_0_CH2_TAP8                       0x206e308c /* [RW] Channel 2 band-limiting filter (taps 8  & 12) */
-#define BCHP_VF_0_CH2_TAP9                       0x206e3090 /* [RW] Channel 2 band-limiting filter (taps 9  & 11) */
-#define BCHP_VF_0_CH2_TAP10                      0x206e3094 /* [RW] Channel 2 band-limiting filter (tap 10  ) */
-#define BCHP_VF_0_BVB_STATUS                     0x206e3098 /* [RW] VEC's BVB Status Register */
-#define BCHP_VF_0_SHAPER                         0x206e309c /* [RW] VEC's Shaper Register */
-#define BCHP_VF_0_HSYNC_AMP                      0x206e3100 /* [RW] VEC's Hsync Amplitude Register */
-#define BCHP_VF_0_VIDEOBUS_SA_CONFIG             0x206e3104 /* [RW] VIDEO-BUS SA CONFIGURATION REGISTER */
-#define BCHP_VF_0_VIDEOBUS_SA_CH0_STATUS         0x206e3108 /* [RO] VIDEO-BUS CHANNEL0 SA  STATUS REGISTER */
-#define BCHP_VF_0_VIDEOBUS_SA_CH1_STATUS         0x206e310c /* [RO] VIDEO-BUS CHANNEL1 SA  STATUS REGISTER */
-#define BCHP_VF_0_VIDEOBUS_SA_CH2_STATUS         0x206e3110 /* [RO] VIDEO-BUS CHANNEL2 SA  STATUS REGISTER */
-#define BCHP_VF_0_CONTROLBUS_SA_CONFIG           0x206e3114 /* [RW] CONTROL-BUS SA CONFIGURATION REGISTER */
-#define BCHP_VF_0_CONTROLBUS_SA_STATUS           0x206e3118 /* [RO] CONTROL-BUS SA STATUS REGISTER */
-#define BCHP_VF_0_ENVELOPE_GENERATOR             0x206e311c /* [RW] ENVELOPE GENERATOR CONTROL REGISTER */
-#define BCHP_VF_0_NEG_SYNC_AMPLITUDE_EXTN        0x206e3120 /* [RW] Negative Sync amplitude extension register */
-#define BCHP_VF_0_POS_SYNC_AMPLITUDE_EXTN        0x206e3124 /* [RW] Positive Sync amplitude extension register */
-#define BCHP_VF_0_AV_SHIFT                       0x206e3128 /* [RW] AV Shift register */
-#define BCHP_VF_0_DRAIN_PIXELS_SCART             0x206e312c /* [RW] Drain Pixels register */
-#define BCHP_VF_0_NEGATIVE_LIMIT                 0x206e3130 /* [RW] Negative limit register */
-#define BCHP_VF_0_NEGATIVE_LIMIT_EXTN            0x206e3134 /* [RW] Negative limit register */
+#define BCHP_VF_0_VF_REV_ID                      0x206e3000 /* [RO][32] Revision ID register */
+#define BCHP_VF_0_FORMAT_ADDER                   0x206e3008 /* [RW][32] Video formatter adder register */
+#define BCHP_VF_0_MISC                           0x206e300c /* [RW][32] Miscellaneous register */
+#define BCHP_VF_0_NEG_SYNC_VALUES                0x206e3010 /* [RW][32] Negative Sync and Blank amplitude register */
+#define BCHP_VF_0_POS_SYNC_VALUES                0x206e3014 /* [RW][32] Positive Sync amplitude register */
+#define BCHP_VF_0_SYNC_TRANS_0                   0x206e3018 /* [RW][32] Sync pulse transition 0 register */
+#define BCHP_VF_0_SYNC_TRANS_1                   0x206e301c /* [RW][32] Sync pulse transition 1 register */
+#define BCHP_VF_0_CH0_TAP1                       0x206e3020 /* [RW][32] Channel 0 band-limiting filter (taps 1  & 19) */
+#define BCHP_VF_0_CH0_TAP2                       0x206e3024 /* [RW][32] Channel 0 band-limiting filter (taps 2  & 18) */
+#define BCHP_VF_0_CH0_TAP3                       0x206e3028 /* [RW][32] Channel 0 band-limiting filter (taps 3  & 17) */
+#define BCHP_VF_0_CH0_TAP4                       0x206e302c /* [RW][32] Channel 0 band-limiting filter (taps 4  & 16) */
+#define BCHP_VF_0_CH0_TAP5                       0x206e3030 /* [RW][32] Channel 0 band-limiting filter (taps 5  & 15) */
+#define BCHP_VF_0_CH0_TAP6                       0x206e3034 /* [RW][32] Channel 0 band-limiting filter (taps 6  & 14) */
+#define BCHP_VF_0_CH0_TAP7                       0x206e3038 /* [RW][32] Channel 0 band-limiting filter (taps 7  & 13) */
+#define BCHP_VF_0_CH0_TAP8                       0x206e303c /* [RW][32] Channel 0 band-limiting filter (taps 8  & 12) */
+#define BCHP_VF_0_CH0_TAP9                       0x206e3040 /* [RW][32] Channel 0 band-limiting filter (taps 9  & 11) */
+#define BCHP_VF_0_CH0_TAP10                      0x206e3044 /* [RW][32] Channel 0 band-limiting filter (tap 10  ) */
+#define BCHP_VF_0_CH1_TAP1                       0x206e3048 /* [RW][32] Channel 1 band-limiting filter (taps 1  & 19) */
+#define BCHP_VF_0_CH1_TAP2                       0x206e304c /* [RW][32] Channel 1 band-limiting filter (taps 2  & 18) */
+#define BCHP_VF_0_CH1_TAP3                       0x206e3050 /* [RW][32] Channel 1 band-limiting filter (taps 3  & 17) */
+#define BCHP_VF_0_CH1_TAP4                       0x206e3054 /* [RW][32] Channel 1 band-limiting filter (taps 4  & 16) */
+#define BCHP_VF_0_CH1_TAP5                       0x206e3058 /* [RW][32] Channel 1 band-limiting filter (taps 5  & 15) */
+#define BCHP_VF_0_CH1_TAP6                       0x206e305c /* [RW][32] Channel 1 band-limiting filter (taps 6  & 14) */
+#define BCHP_VF_0_CH1_TAP7                       0x206e3060 /* [RW][32] Channel 1 band-limiting filter (taps 7  & 13) */
+#define BCHP_VF_0_CH1_TAP8                       0x206e3064 /* [RW][32] Channel 1 band-limiting filter (taps 8  & 12) */
+#define BCHP_VF_0_CH1_TAP9                       0x206e3068 /* [RW][32] Channel 1 band-limiting filter (taps 9  & 11) */
+#define BCHP_VF_0_CH1_TAP10                      0x206e306c /* [RW][32] Channel 1 band-limiting filter (tap 10  ) */
+#define BCHP_VF_0_CH2_TAP1                       0x206e3070 /* [RW][32] Channel 2 band-limiting filter (taps 1  & 19) */
+#define BCHP_VF_0_CH2_TAP2                       0x206e3074 /* [RW][32] Channel 2 band-limiting filter (taps 2  & 18) */
+#define BCHP_VF_0_CH2_TAP3                       0x206e3078 /* [RW][32] Channel 2 band-limiting filter (taps 3  & 17) */
+#define BCHP_VF_0_CH2_TAP4                       0x206e307c /* [RW][32] Channel 2 band-limiting filter (taps 4  & 16) */
+#define BCHP_VF_0_CH2_TAP5                       0x206e3080 /* [RW][32] Channel 2 band-limiting filter (taps 5  & 15) */
+#define BCHP_VF_0_CH2_TAP6                       0x206e3084 /* [RW][32] Channel 2 band-limiting filter (taps 6  & 14) */
+#define BCHP_VF_0_CH2_TAP7                       0x206e3088 /* [RW][32] Channel 2 band-limiting filter (taps 7  & 13) */
+#define BCHP_VF_0_CH2_TAP8                       0x206e308c /* [RW][32] Channel 2 band-limiting filter (taps 8  & 12) */
+#define BCHP_VF_0_CH2_TAP9                       0x206e3090 /* [RW][32] Channel 2 band-limiting filter (taps 9  & 11) */
+#define BCHP_VF_0_CH2_TAP10                      0x206e3094 /* [RW][32] Channel 2 band-limiting filter (tap 10  ) */
+#define BCHP_VF_0_BVB_STATUS                     0x206e3098 /* [RW][32] VEC's BVB Status Register */
+#define BCHP_VF_0_SHAPER                         0x206e309c /* [RW][32] VEC's Shaper Register */
+#define BCHP_VF_0_HSYNC_AMP                      0x206e3100 /* [RW][32] VEC's Hsync Amplitude Register */
+#define BCHP_VF_0_VIDEOBUS_SA_CONFIG             0x206e3104 /* [RW][32] VIDEO-BUS SA CONFIGURATION REGISTER */
+#define BCHP_VF_0_VIDEOBUS_SA_CH0_STATUS         0x206e3108 /* [RO][32] VIDEO-BUS CHANNEL0 SA  STATUS REGISTER */
+#define BCHP_VF_0_VIDEOBUS_SA_CH1_STATUS         0x206e310c /* [RO][32] VIDEO-BUS CHANNEL1 SA  STATUS REGISTER */
+#define BCHP_VF_0_VIDEOBUS_SA_CH2_STATUS         0x206e3110 /* [RO][32] VIDEO-BUS CHANNEL2 SA  STATUS REGISTER */
+#define BCHP_VF_0_CONTROLBUS_SA_CONFIG           0x206e3114 /* [RW][32] CONTROL-BUS SA CONFIGURATION REGISTER */
+#define BCHP_VF_0_CONTROLBUS_SA_STATUS           0x206e3118 /* [RO][32] CONTROL-BUS SA STATUS REGISTER */
+#define BCHP_VF_0_ENVELOPE_GENERATOR             0x206e311c /* [RW][32] ENVELOPE GENERATOR CONTROL REGISTER */
+#define BCHP_VF_0_NEG_SYNC_AMPLITUDE_EXTN        0x206e3120 /* [RW][32] Negative Sync amplitude extension register */
+#define BCHP_VF_0_POS_SYNC_AMPLITUDE_EXTN        0x206e3124 /* [RW][32] Positive Sync amplitude extension register */
+#define BCHP_VF_0_AV_SHIFT                       0x206e3128 /* [RW][32] AV Shift register */
+#define BCHP_VF_0_DRAIN_PIXELS_SCART             0x206e312c /* [RW][32] Drain Pixels register */
+#define BCHP_VF_0_NEGATIVE_LIMIT                 0x206e3130 /* [RW][32] Negative limit register */
+#define BCHP_VF_0_NEGATIVE_LIMIT_EXTN            0x206e3134 /* [RW][32] Negative limit register */
 
 /***************************************************************************
  *VF_REV_ID - Revision ID register

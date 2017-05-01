@@ -145,6 +145,7 @@ See Also:
 *******************************************************************************/
 typedef struct   BHDM_SCDC_StatusControlData
 {
+	bool valid ;
 	uint8_t SinkVersion ;
 	uint8_t SourceVersion ;
 
@@ -157,6 +158,10 @@ typedef struct   BHDM_SCDC_StatusControlData
 	uint8_t Config_0 ;
 
 	uint8_t StatusFlags_0 ;
+		bool Clock_Detected;
+		bool Ch0_Locked ;
+		bool Ch1_Locked ;
+		bool Ch2_Locked ;
 	uint8_t StatusFlags_1 ;
 
 
@@ -270,6 +275,35 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
    BHDM_SCDC_ManufacturerData *pManufacturerData /* [out] pointer to structure to hold Manufacturer
                                             SCDC Data */
 ) ;
+
+
+/******************************************************************************
+Summary:
+	Get/return the basic Rx Status and Control Data (does not include Manufacturer Data which never changes)
+
+Input:
+	hHDMI - The HDMI device handle that the application created earlier
+	during the system initialization sequence.
+
+Output:
+	pStatusControlData - pointer to BHDM_SCDC Status and Control data structure to hold the SCDC status
+
+Returns:
+	BERR_SUCCESS            - SCDC Data successfully retrieved
+	BERR_INVALID_PARAMETER  - Invalid function parameter.
+	BHDM_SCDC_NOT_FOUND    - No SCDC Available
+
+See Also:
+	o BHDM_Handle
+	o BHDM_SCDC_Data
+	o BHDM_SCDC_StatusControlData
+
+*******************************************************************************/
+void BHDM_SCDC_GetStatusControlData(
+   const BHDM_Handle hHDMI,               /* [in] HDMI handle */
+   BHDM_SCDC_StatusControlData *pStatusControlData /* [out] pointer to structure to hold SCDC Data */
+) ;
+
 
 #ifdef __cplusplus
 }

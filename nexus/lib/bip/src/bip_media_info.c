@@ -2213,7 +2213,8 @@ static BIP_Status createMediaInfoTrackListFromProgramInfo(
        pMediaInfoStream->numberOfTracks++;
        /* Track added to track list.*/
 
-       addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pProgramInfo->program_number);
+       rc = addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pProgramInfo->program_number);
+       BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoTrackToTrackGroup failed" ), error, rc, rc );
    }
    /************** All Audio tracks collected ******************/
 
@@ -2241,8 +2242,8 @@ error:
     return rc;
 }
 
-#define BIP_MEDIAINFO_PAT_TIMEOUT 2000
-#define BIP_MEDIAINFO_PMT_TIMEOUT 2000
+#define BIP_MEDIAINFO_PAT_TIMEOUT 800
+#define BIP_MEDIAINFO_PMT_TIMEOUT 800
 /********************************************************
 * Probe tuner data to get media info meta data.
 *********************************************************/
@@ -2255,7 +2256,7 @@ BIP_Status BIP_MediaInfo_ProbeTunerForMediaInfo(
     BIP_MediaInfoStream  *pMediaInfoStream = NULL;
     int patTimeout = BIP_MEDIAINFO_PAT_TIMEOUT;
     int patTimeoutOrig = 0;
-    int pmtTimeout = BIP_MEDIAINFO_PAT_TIMEOUT;
+    int pmtTimeout = BIP_MEDIAINFO_PMT_TIMEOUT;
     int pmtTimeoutOrig = 0;
     CHANNEL_INFO_T *pChanInfo = NULL;
     uint8_t i = 0;
@@ -2268,8 +2269,8 @@ BIP_Status BIP_MediaInfo_ProbeTunerForMediaInfo(
 
     if (pMediaInfoCreateSettings && pMediaInfoCreateSettings->psiAcquireTimeoutInMs != 0)
     {
-      /* patTimeout = pMediaInfoCreateSettings->psiAcquireTimeoutInMs;
-       pmtTimeout = pMediaInfoCreateSettings->psiAcquireTimeoutInMs;*/
+       patTimeout = pMediaInfoCreateSettings->psiAcquireTimeoutInMs;
+       pmtTimeout = pMediaInfoCreateSettings->psiAcquireTimeoutInMs;
     }
 
     /* Populate MediaInfoStream structure */

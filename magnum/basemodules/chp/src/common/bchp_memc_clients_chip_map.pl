@@ -41,7 +41,7 @@ use warnings;
 
 sub usage {
     print "Usage\n";
-    print "$0 <src_global_map> <src_chip_table> <dest_chip_map>\n";
+    print "$0 <src_global_map> <src_chip_table> <dest_chip_map> [IO]\n";
     print "\nWhere:\n";
     print "\t<src_global map> - path to bchp_memc_clients_chip_map_all.h \n";
     print "\t<src_chip_table> - path to chip-specific bchp_memc_clients_chip.h \n";
@@ -53,6 +53,7 @@ usage () if(scalar @ARGV<3);
 my $global_map_file = $ARGV[0];
 my $chip_table_file = $ARGV[1];
 my $chip_map_file = $ARGV[2];
+my $mode = exists $ARGV[3] ? $ARGV[3] : 'MEMC';
 print "Processing '$global_map_file'  and '$chip_table_file' into  '$chip_map_file' \n";
 my $fin;
 
@@ -61,12 +62,12 @@ if( not open($fin, '<', $global_map_file)) {
 }
 my %map;
 while(<$fin>) {
-    if(/^\s*BCHP_P_MEMC_DEFINE_CLIENT_MAP\(\s*(.+)\s*,\s*(.+)\s*,\s*(.+)\s*\)/) {
+    if(/^\s*BCHP_P_${mode}_DEFINE_CLIENT_MAP\(\s*(\w+)\s*,\s*([^)]+)\)/) {
         if(exists($map{$1})) {
             my $old = $map{$1};
             die "duplicate mapping $1->$2 ,$1->$old already exist";
         }
-        $map{$1} = [$2,$3];
+        $map{$1} = $2;
     }
 }
 close($fin);
@@ -103,11 +104,9 @@ print $fout "perl $0 " . join(' ',@ARGV) . "\n";
 print $fout "*******/\n";
 print $fout "\n\n";
 while(<$fin>) {
-    if(/^\s*BCHP_P_MEMC_DEFINE_CLIENT\(\s*([^ ,]+)(.*)$/) {
+    if(/^\s*BCHP_P_${mode}_DEFINE_CLIENT\(\s*([^ ,]+)(.*)$/) {
         if(exists $map{$1}) {
-            my $mrc = $map{$1}[0];
-            my $svp = $map{$1}[1];
-            print $fout "BCHP_P_MEMC_DEFINE_CLIENT_MAP($1,$mrc, $svp)\n";
+            print $fout "BCHP_P_${mode}_DEFINE_CLIENT_MAP($1,$map{$1})\n";
         } else {
             my $hw = $1;
             my $rest  = $2;
@@ -117,7 +116,9 @@ while(<$fin>) {
             }
             $rest =~ s/\*\// * \//g;
             $rest =~ s/\/\*/ \/ */g;
-            print $fout "#error \"not mapped $hw\" /* BCHP_P_MEMC_DEFINE_CLIENT_MAP($hw,$block,NOT_MAP) */ /* $rest */\n";
+            my $svp = ",NOT_MAP";
+            $svp = '' if $mode eq 'IO';
+            print $fout "#error \"not mapped $hw\" /* BCHP_P_${mode}_DEFINE_CLIENT_MAP($hw,$block${svp}) */ /* $rest */\n";
         }
     }
 }

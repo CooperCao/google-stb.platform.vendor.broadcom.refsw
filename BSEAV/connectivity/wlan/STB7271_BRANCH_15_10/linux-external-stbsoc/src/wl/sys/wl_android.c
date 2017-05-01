@@ -166,9 +166,7 @@
 
 #define	CMD_HAPD_MAC_FILTER	"HAPD_MAC_FILTER"
 
-#ifdef CUSTOMER_HW4_PRIVATE_CMD
-
-#ifdef ROAM_API
+#if defined(STB_SOC_WIFI) || defined(ROAM_API)
 #define CMD_ROAMTRIGGER_SET "SETROAMTRIGGER"
 #define CMD_ROAMTRIGGER_GET "GETROAMTRIGGER"
 #define CMD_ROAMDELTA_SET "SETROAMDELTA"
@@ -177,6 +175,11 @@
 #define CMD_ROAMSCANPERIOD_GET "GETROAMSCANPERIOD"
 #define CMD_FULLROAMSCANPERIOD_SET "SETFULLROAMSCANPERIOD"
 #define CMD_FULLROAMSCANPERIOD_GET "GETFULLROAMSCANPERIOD"
+#endif /* STB_SOC_WIFI || ROAM_API */
+
+#ifdef CUSTOMER_HW4_PRIVATE_CMD
+
+#ifdef ROAM_API
 #define CMD_COUNTRYREV_SET "SETCOUNTRYREV"
 #define CMD_COUNTRYREV_GET "GETCOUNTRYREV"
 #endif /* ROAM_API */
@@ -554,6 +557,17 @@ extern int set_roamscan_channel_list(struct net_device *dev, unsigned char n,
 extern void wl_update_roamscan_cache_by_band(struct net_device *dev, int band);
 #endif /* ROAM_CHANNEL_CACHE */
 
+#if defined(STB_SOC_WIFI) || defined(ROAM_API)
+int wl_android_set_roam_trigger(struct net_device *dev, char* command, int total_len);
+static int wl_android_get_roam_trigger(struct net_device *dev, char *command, int total_len);
+int wl_android_set_roam_delta(	struct net_device *dev, char* command, int total_len);
+static int wl_android_get_roam_delta(struct net_device *dev, char *command, int total_len);
+int wl_android_set_roam_scan_period(	struct net_device *dev, char* command, int total_len);
+static int wl_android_get_roam_scan_period(struct net_device *dev, char *command, int total_len);
+int wl_android_set_full_roam_scan_period(struct net_device *dev, char* command, int total_len);
+static int wl_android_get_full_roam_scan_period(struct net_device *dev, char *command, int total_len);
+#endif /* defined(STB_SOC_WIFI) || defined(ROAM_API) */
+
 #ifdef ENABLE_4335BT_WAR
 extern int bcm_bt_lock(int cookie);
 extern void bcm_bt_unlock(int cookie);
@@ -706,7 +720,7 @@ static int wl_android_get_rssi_ant(struct net_device *dev, char *iovar, char *co
 	int error;
 	int bytes_written = 0;
 	int i;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	wl_rssi_ant_t *rssi_ant_p = (wl_rssi_ant_t *)smbuf;
 	error = wldev_iovar_getbuf(dev, iovar, NULL, 0, smbuf,
 		sizeof(smbuf), NULL);
@@ -910,7 +924,7 @@ wl_chspec_host_to_driver(chanspec_t chanspec);
 static int wl_android_set_csa(struct net_device *dev, char *command, int total_len)
 {
 	int error = 0;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	wl_chan_switch_t csa_arg;
 	u32 chnsp = 0;
 	int err = 0;
@@ -992,9 +1006,7 @@ static int wl_android_get_band(struct net_device *dev, char *command, int total_
 	return bytes_written;
 }
 
-
-#ifdef CUSTOMER_HW4_PRIVATE_CMD
-#ifdef ROAM_API
+#if defined(STB_SOC_WIFI) || defined(ROAM_API)
 int wl_android_set_roam_trigger(
 	struct net_device *dev, char* command, int total_len)
 {
@@ -1092,7 +1104,7 @@ int wl_android_set_full_roam_scan_period(
 {
 	int error = 0;
 	int full_roam_scan_period = 0;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 
 	sscanf(command+sizeof("SETFULLROAMSCANPERIOD"), "%d", &full_roam_scan_period);
 	WL_TRACE(("fullroamperiod = %d\n", full_roam_scan_period));
@@ -1128,14 +1140,17 @@ static int wl_android_get_full_roam_scan_period(
 
 	return bytes_written;
 }
+#endif /* defined(STB_SOC_WIFI) || defined(ROAM_API) */
 
+#ifdef CUSTOMER_HW4_PRIVATE_CMD
+#ifdef ROAM_API
 int wl_android_set_country_rev(
 	struct net_device *dev, char* command, int total_len)
 {
 	int error = 0;
 	wl_country_t cspec = {{0}, 0, {0} };
 	char country_code[WLC_CNTRY_BUF_SZ];
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	int rev = 0;
 
 	memset(country_code, 0, sizeof(country_code));
@@ -1166,7 +1181,7 @@ static int wl_android_get_country_rev(
 {
 	int error;
 	int bytes_written;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	wl_country_t cspec;
 
 	error = wldev_iovar_getbuf(dev, "country", NULL, 0, smbuf,
@@ -1698,7 +1713,7 @@ wl_android_set_pmk(struct net_device *dev, char *command, int total_len)
 {
 	uchar pmk[33];
 	int error = 0;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 #ifdef OKC_DEBUG
 	int i = 0;
 #endif
@@ -2083,7 +2098,7 @@ wl_android_set_cckm_krk(struct net_device *dev, char *command, int total_len)
 {
 	int error, key_len, skip_len;
 	unsigned char key[CCKM_KRK_LEN + CCKM_BTK_LEN];
-	char iovar_buf[WLC_IOCTL_SMLEN];
+	char iovar_buf[WLC_IOCTL_SMLEN] = {0};
 
 	WL_TRACE(("%s: wl_iw_set_cckm_krk\n", dev->name));
 
@@ -2399,7 +2414,7 @@ wl_chanim_stats(struct net_device *dev, u8 *chan_idle)
 	wl_chanim_stats_t *list;
 	/* Parameter _and_ returned buffer of chanim_stats. */
 	wl_chanim_stats_t param;
-	u8 result[WLC_IOCTL_SMLEN];
+	u8 result[WLC_IOCTL_SMLEN] = {0};
 	chanim_stats_t *stats;
 
 	memset(&param, 0, sizeof(param));
@@ -3594,7 +3609,7 @@ static int
 wl_android_rmc_set_leader(struct net_device *dev, const char* straddr)
 {
 	int error  = BCME_OK;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	wl_rmc_entry_t rmc_entry;
 	DHD_INFO(("%s: Set new RMC leader %s\n", __FUNCTION__, straddr));
 
@@ -3876,7 +3891,7 @@ static int
 wl_android_set_roampref(struct net_device *dev, char *command, int total_len)
 {
 	int error = 0;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	uint8 buf[MAX_BUF_SIZE];
 	uint8 *pref = buf;
 	char *pcmd;
@@ -4319,7 +4334,7 @@ static int wl_android_set_ibss_txfail_event(struct net_device *dev, char *comman
 	int retry = 0;
 	int pid = 0;
 	aibss_txfail_config_t txfail_config = {0, 0, 0, 0, 0};
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 
 	if (sscanf(command, CMD_SETIBSSTXFAILEVENT " %d %d", &retry, &pid) <= 0) {
 		WL_ERR(("Failed to get Parameter from : %s\n", command));
@@ -4542,7 +4557,7 @@ wl_android_set_ibss_ampdu(struct net_device *dev, char *command, int total_len)
 	char *pcmd = command;
 	char *str = NULL, *endptr = NULL;
 	struct ampdu_aggr aggr;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	int idx;
 	int err = 0;
 	int wme_AC2PRIO[AC_COUNT][2] = {
@@ -4717,7 +4732,7 @@ static int
 wl_tbow_teardown(struct net_device *dev, char *command, int total_len)
 {
 	int err = BCME_OK;
-	char buf[WLC_IOCTL_SMLEN];
+	char buf[WLC_IOCTL_SMLEN] = {0};
 	tbow_setup_netinfo_t netinfo;
 	memset(&netinfo, 0, sizeof(netinfo));
 	netinfo.opmode = TBOW_HO_MODE_TEARDOWN;
@@ -5051,7 +5066,7 @@ static int  wl_android_get_wowl_patterns(struct net_device *dev,
 	wl_wowl_pattern_list_t *list;
 	int error = BCME_OK;
 	int bytes_written = 0;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 
 	error = wldev_iovar_getbuf(dev, "wowl_pattern", NULL, 0, smbuf,
 		sizeof(smbuf), NULL);
@@ -5202,7 +5217,7 @@ static int wl_android_get_iovar(
 {
 	int error;
 	int bytes_written = 1;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 
 	error = wldev_iovar_getbuf(dev, iovar, NULL, 0, smbuf,
 		sizeof(smbuf), NULL);
@@ -5230,7 +5245,7 @@ static int wl_android_set_iovar(
 	struct net_device *dev, char *iovar, uint32 value, bool require_down)
 {
 	int error = 0;
-	char smbuf[WLC_IOCTL_SMLEN];
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
 	s32 val = 1;
 
 	WL_INFORM(("%s: %s = %d\n", __FUNCTION__, iovar, value));
@@ -5453,8 +5468,8 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		bytes_written = wl_android_get_iovar(net, "ver", command, priv_cmd.total_len, false);
 	}
 #endif /* WL_NEWCFG_PRIVCMD_SUPPORT */
-#ifdef CUSTOMER_HW4_PRIVATE_CMD
-#ifdef ROAM_API
+
+#if defined(STB_SOC_WIFI) || defined(ROAM_API)
 	else if (strnicmp(command, CMD_ROAMTRIGGER_SET,
 		strlen(CMD_ROAMTRIGGER_SET)) == 0) {
 		bytes_written = wl_android_set_roam_trigger(net, command,
@@ -5487,7 +5502,12 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		strlen(CMD_FULLROAMSCANPERIOD_GET)) == 0) {
 		bytes_written = wl_android_get_full_roam_scan_period(net, command,
 		priv_cmd.total_len);
-	} else if (strnicmp(command, CMD_COUNTRYREV_SET,
+	}
+#endif /* defined(STB_SOC_WIFI) || defined(ROAM_API) */
+
+#ifdef CUSTOMER_HW4_PRIVATE_CMD
+#ifdef ROAM_API
+	else if (strnicmp(command, CMD_COUNTRYREV_SET,
 		strlen(CMD_COUNTRYREV_SET)) == 0) {
 		bytes_written = wl_android_set_country_rev(net, command,
 		priv_cmd.total_len);

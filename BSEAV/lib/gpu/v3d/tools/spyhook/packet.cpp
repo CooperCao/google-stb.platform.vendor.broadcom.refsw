@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 #include "packet.h"
 
@@ -77,6 +76,22 @@ PacketItem::PacketItem(void *a, uint32_t numBytes) :
 PacketItem::PacketItem(long int s) :
    m_type(eINT32), m_data((uint32_t)s), m_numBytes(4)
 {
+}
+
+template<typename T>
+struct ArrayDeleter
+{
+   void operator ()(T const * p)
+   {
+      delete[] p;
+   }
+};
+
+std::shared_ptr<uint8_t> Packet::AddBuffer(size_t size)
+{
+   std::shared_ptr<uint8_t> buffer(new uint8_t[size], ArrayDeleter<uint8_t>());
+   m_buffers.push_back(buffer);
+   return buffer;
 }
 
 #ifndef BuildingSpyTool

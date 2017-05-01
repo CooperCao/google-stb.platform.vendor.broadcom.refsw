@@ -62,15 +62,6 @@ typedef struct BHDM_BAVC_Clock
  } BHDM_BAVC_Clock ;
 
 
-typedef struct _BHDM_P_AUDIO_CLK_VALUES_
- {
-	uint32_t NValue ;
-	uint32_t HW_NValue ;
-	uint32_t CTS_0 ;
-	uint32_t CTS_1 ;
-	uint32_t CTS_0_REPEAT ;
-	uint32_t CTS_1_REPEAT ;
- } BHDM_P_AUDIO_CLK_VALUES ;
 
 
 BERR_Code BHDM_PACKET_ACR_P_LookupTmdsClock_isrsafe(
@@ -86,7 +77,7 @@ BERR_Code BHDM_PACKET_ACR_P_LookupN_CTSValues_isrsafe(
 	BHDM_Handle hHDMI,
 	BAVC_AudioSamplingRate eAudioSamplingRate, BHDM_P_TmdsClock eTmdsClock,
 
-	BHDM_P_AUDIO_CLK_VALUES *stAcrPacket
+	BHDM_PACKET_ACR_CONFIG *stAcrPacket
 ) ;
 
 
@@ -96,5 +87,5 @@ BERR_Code BHDM_PACKET_ACR_P_TableLookup_isrsafe(
 	uint64_t ulPixelClkRate64BitMask, const BHDM_Video_Settings *stVideoSettings, BAVC_HDMI_PixelRepetition ePixelRepetition,
 
 	BHDM_P_TmdsClock *eTmdsClock,
-	BHDM_P_AUDIO_CLK_VALUES *stAcrPacket
+	BHDM_PACKET_ACR_CONFIG *stAcrPacket
 ) ;

@@ -2880,6 +2880,7 @@
 #define BCHP_GFD_0_LMR_LUTi_LMR_LUT_VAL_MASK                       0x000fffff
 #define BCHP_GFD_0_LMR_LUTi_LMR_LUT_VAL_SHIFT                      0
 
+
 #endif /* #ifndef BCHP_GFD_0_H__ */
 
 /* End of File */

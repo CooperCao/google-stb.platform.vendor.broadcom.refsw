@@ -53,6 +53,7 @@
 #include "bkni.h"
 
 #include "bchp_clkgen.h"
+#include "bchp_hdmi_tx_phy.h"
 
 BDBG_MODULE(BCHP_PWR_IMPL);
 
@@ -89,16 +90,16 @@ static void BCHP_PWR_P_HW_AVD0_SCB_108_CLK_Control(BCHP_Handle handle, bool acti
     if (activate) {
         /* AVD Core, CPU, SCB, 108M clock */
         mask = (BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_SCB_CLOCK_ENABLE_MASK |
-                BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_ALTERNATE_SCB_CLOCK_ENABLE_MASK |
-                BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_108_CLOCK_ENABLE_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE, mask, mask);
+		BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_ALTERNATE_SCB_CLOCK_ENABLE_MASK |
+		BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_108_CLOCK_ENABLE_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE, mask, mask);
     }
     else {
-        /* AVD Core, CPU, SCB, 108M clock */
-        mask = (BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_SCB_CLOCK_ENABLE_MASK |
-                BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_ALTERNATE_SCB_CLOCK_ENABLE_MASK |
-                BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_108_CLOCK_ENABLE_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE, mask, 0);
+	/* AVD Core, CPU, SCB, 108M clock */
+	mask = (BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_SCB_CLOCK_ENABLE_MASK |
+		BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_ALTERNATE_SCB_CLOCK_ENABLE_MASK |
+		BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE_SVD_108_CLOCK_ENABLE_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_CLOCK_ENABLE, mask, 0);
     }
 }
 
@@ -111,12 +112,12 @@ static void BCHP_PWR_P_HW_AVD0_PWR_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_AVD0_TOP_POWER_SWITCH_MEMORY_SVD_POWER_SWITCH_MEMORY_MASK;
 
     if(activate) {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_POWER_SWITCH_MEMORY, mask, 2);
-        BKNI_Delay(10);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_POWER_SWITCH_MEMORY, mask, 0);
-        BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_POWER_SWITCH_MEMORY, mask, 2);
+	BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_POWER_SWITCH_MEMORY, mask, 0);
+	BKNI_Delay(10);
     } else {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_POWER_SWITCH_MEMORY, mask, mask);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_AVD0_TOP_POWER_SWITCH_MEMORY, mask, mask);
     }
 }
 
@@ -127,12 +128,12 @@ static void BCHP_PWR_P_HW_VEC_AIO_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_VEC_AIO: %s", activate?"on":"off"));
 
     mask = (BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_ALTERNATE_SCB_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_ALTERNATE_216_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_ALTERNATE_108_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_ALTERNATE2_108_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_SCB_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_216_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_108_CLOCK_ENABLE_MASK);
+	    BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_ALTERNATE_216_CLOCK_ENABLE_MASK |
+	    BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_ALTERNATE_108_CLOCK_ENABLE_MASK |
+	    BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_ALTERNATE2_108_CLOCK_ENABLE_MASK |
+	    BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_SCB_CLOCK_ENABLE_MASK |
+	    BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_216_CLOCK_ENABLE_MASK |
+	    BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE_VEC_108_CLOCK_ENABLE_MASK);
 
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_CLOCK_ENABLE, mask, activate?mask:0);
 }
@@ -146,12 +147,12 @@ static void BCHP_PWR_P_HW_AIO_SRAM_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_B_AIO_POWER_SWITCH_MEMORY_B_MASK;
 
     if(activate) {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_B, mask, 2);
-        BKNI_Delay(10);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_B, mask, 0);
-        BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_B, mask, 2);
+	BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_B, mask, 0);
+	BKNI_Delay(10);
     } else {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_B, mask, mask);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_B, mask, mask);
     }
 }
 
@@ -214,7 +215,7 @@ static void BCHP_PWR_P_HW_BVN_108M_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_BVN_108M: %s", activate?"on":"off"));
 
     mask = (BCHP_CLKGEN_BVN_TOP_ENABLE_BVN_216_CLK_ENABLE_MASK |
-            BCHP_CLKGEN_BVN_TOP_ENABLE_BVN_108_CLK_ENABLE_MASK);
+	    BCHP_CLKGEN_BVN_TOP_ENABLE_BVN_108_CLK_ENABLE_MASK);
 
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_ENABLE, mask, activate?mask:0);
 }
@@ -228,12 +229,12 @@ static void BCHP_PWR_P_HW_BVN_SRAM_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_BVN_TOP_POWER_SWITCH_MEMORY_BVN_POWER_SWITCH_MEMORY_MASK;
 
     if(activate) {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_POWER_SWITCH_MEMORY, mask, 2);
-        BKNI_Delay(10);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_POWER_SWITCH_MEMORY, mask, 0);
-        BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_POWER_SWITCH_MEMORY, mask, 2);
+	BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_POWER_SWITCH_MEMORY, mask, 0);
+	BKNI_Delay(10);
     } else {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_POWER_SWITCH_MEMORY, mask, mask);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_POWER_SWITCH_MEMORY, mask, mask);
     }
 }
 
@@ -256,12 +257,12 @@ static void BCHP_PWR_P_HW_VEC_SRAM_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_A_VEC_POWER_SWITCH_MEMORY_A_MASK;
 
     if(activate) {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_A, mask, 2);
-        BKNI_Delay(10);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_A, mask, 0);
-        BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_A, mask, 2);
+	BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_A, mask, 0);
+	BKNI_Delay(10);
     } else {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_A, mask, mask);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_POWER_SWITCH_MEMORY_A, mask, mask);
     }
 }
 
@@ -281,7 +282,7 @@ static void BCHP_PWR_P_HW_XPT_XMEMIF_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_XPT_XMEMIF: %s", activate?"on":"off"));
 
     mask = (BCHP_CLKGEN_CORE_XPT_CLOCK_ENABLE_XPT_216_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_CORE_XPT_CLOCK_ENABLE_XPT_SCB_CLOCK_ENABLE_MASK);
+	    BCHP_CLKGEN_CORE_XPT_CLOCK_ENABLE_XPT_SCB_CLOCK_ENABLE_MASK);
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_CLOCK_ENABLE, mask, activate?mask:0);
 }
 
@@ -291,10 +292,10 @@ static void BCHP_PWR_P_HW_XPT_RMX_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_XPT_RMX: %s", activate?"on":"off"));
 
     mask = (BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_20P25_CLOCK_MASK |
-            BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_27_CLOCK_MASK |
-            BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_40P5_CLOCK_MASK |
-            BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_54_CLOCK_MASK |
-            BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_81_CLOCK_MASK);
+	    BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_27_CLOCK_MASK |
+	    BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_40P5_CLOCK_MASK |
+	    BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_54_CLOCK_MASK |
+	    BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE_DISABLE_XPT_81_CLOCK_MASK);
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_CLOCK_DISABLE, mask, activate?0:mask);
 }
 
@@ -307,12 +308,12 @@ static void BCHP_PWR_P_HW_XPT_SRAM_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_CORE_XPT_POWER_SWITCH_MEMORY_XPT_POWER_SWITCH_MEMORY_MASK;
 
     if(activate) {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_POWER_SWITCH_MEMORY, mask, 2);
-        BKNI_Delay(10);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_POWER_SWITCH_MEMORY, mask, 0);
-        BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_POWER_SWITCH_MEMORY, mask, 2);
+	BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_POWER_SWITCH_MEMORY, mask, 0);
+	BKNI_Delay(10);
     } else {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_POWER_SWITCH_MEMORY, mask, mask);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_CORE_XPT_POWER_SWITCH_MEMORY, mask, mask);
     }
 }
 
@@ -329,6 +330,26 @@ static void BCHP_PWR_P_HW_XPT_WAKEUP_Control(BCHP_Handle handle, bool activate)
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PM_PLL_ALIVE_SEL, mask, activate?mask:0);
 }
 
+static void BCHP_PWR_P_HW_HDMI_TX_PHY_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_HDMI_TX_PHY: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_HDMI_TX_PHY_POWERDOWN_CTL);
+    mask = ( BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, RNDGEN_PWRDN) |
+             BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, PLL_PWRDN)  |
+             BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, BIAS_PWRDN) |
+             BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, PHY_PWRDN));
+    if (activate) {
+        reg &= ~mask;
+    }
+    else {
+        reg |= mask;
+    }
+    BREG_Write32(handle->regHandle, BCHP_HDMI_TX_PHY_POWERDOWN_CTL, reg) ;
+}
+
 static void BCHP_PWR_P_HW_HDMI_TX_CLK_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask;
@@ -338,7 +359,10 @@ static void BCHP_PWR_P_HW_HDMI_TX_CLK_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_DVP_HT_ENABLE_DVPHT_CLK_MAX_ENABLE_MASK;
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_ENABLE, mask, activate?mask:0);
 
-    mask = BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_108_CLOCK_ENABLE_MASK;
+    mask =  (BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_108_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_216_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_216_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK );
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE, mask, activate?mask:0);
 }
 
@@ -351,39 +375,13 @@ static void BCHP_PWR_P_HW_HDMI_TX_SRAM_Control(BCHP_Handle handle, bool activate
     mask = BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY_DVPHT_POWER_SWITCH_MEMORY_MASK;
 
     if(activate) {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY, mask, 2);
-        BKNI_Delay(10);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY, mask, 0);
-        BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY, mask, 2);
+	BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY, mask, 0);
+	BKNI_Delay(10);
     } else {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY, mask, mask);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_POWER_SWITCH_MEMORY, mask, mask);
     }
-}
-
-static void BCHP_PWR_P_HW_HDMI_TX_108M_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask;
-
-    BDBG_MSG(("HW_HDMI_TX_108M: %s", activate?"on":"off"));
-
-    mask = (BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_216_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_ALTERNATE_216_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK );
-    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_CLOCK_ENABLE, mask, activate?mask:0);
-}
-
-static void BCHP_PWR_P_HW_HDMI_TX_CEC_Control(BCHP_Handle handle, bool activate)
-{
-    BDBG_MSG(("HW_HDMI_TX_CEC: %s", activate?"on":"off"));
-
-    BSTD_UNUSED(handle);
-
-#if 0 /* Edit the register read/modify/write below */
-    BREG_AtomicUpdate32(handle->regHandle, BCHP_REGISTERNAME,
-        BCHP_REGISTERNAME_HDMI_TX_CEC_MASK,
-        activate ? 0 : 0xFFFFFFFFFF);
-#endif
-    BSTD_UNUSED(activate);
 }
 
 static void BCHP_PWR_P_HW_M2MC_Control(BCHP_Handle handle, bool activate)
@@ -410,12 +408,12 @@ static void BCHP_PWR_P_HW_GFX_SRAM_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_GRAPHICS_POWER_SWITCH_MEMORY_GFX_POWER_SWITCH_MEMORY_MASK;
 
     if(activate) {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_GRAPHICS_POWER_SWITCH_MEMORY, mask, 2);
-        BKNI_Delay(10);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_GRAPHICS_POWER_SWITCH_MEMORY, mask, 0);
-        BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_GRAPHICS_POWER_SWITCH_MEMORY, mask, 2);
+	BKNI_Delay(10);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_GRAPHICS_POWER_SWITCH_MEMORY, mask, 0);
+	BKNI_Delay(10);
     } else {
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_GRAPHICS_POWER_SWITCH_MEMORY, mask, mask);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_GRAPHICS_POWER_SWITCH_MEMORY, mask, mask);
     }
 }
 
@@ -428,8 +426,8 @@ static void BCHP_PWR_P_HW_GFX_108M_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_GFX_108M: %s", activate?"on":"off"));
 
     mask = (BCHP_CLKGEN_GRAPHICS_CLOCK_ENABLE_GFX_108_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_GRAPHICS_CLOCK_ENABLE_GFX_SCB_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_GRAPHICS_CLOCK_ENABLE_GFX_ALTERNATE_108_CLOCK_ENABLE_MASK);
+	    BCHP_CLKGEN_GRAPHICS_CLOCK_ENABLE_GFX_SCB_CLOCK_ENABLE_MASK |
+	    BCHP_CLKGEN_GRAPHICS_CLOCK_ENABLE_GFX_ALTERNATE_108_CLOCK_ENABLE_MASK);
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_GRAPHICS_CLOCK_ENABLE, mask, activate ? mask : 0);
 }
 
@@ -467,13 +465,13 @@ static void BCHP_PWR_P_HW_SCD1_Control(BCHP_Handle handle, bool activate)
 static void BCHP_PWR_P_HW_MDM_Control(BCHP_Handle handle, bool activate)
 {
     BDBG_MSG(("HW_MDM: %s", activate?"on":"off"));
-        BSTD_UNUSED(handle);
-        BSTD_UNUSED(activate);
+	BSTD_UNUSED(handle);
 #if 0 /* Edit the register read/modify/write below */
     BREG_AtomicUpdate32(handle->regHandle, BCHP_REGISTERNAME,
         BCHP_REGISTERNAME_MDM_MASK,
         activate ? 0 : 0xFFFFFFFFFF);
 #endif
+    BSTD_UNUSED(activate);
 }
 
 static void BCHP_PWR_P_HW_PLL_AVD_CH1_Control(BCHP_Handle handle, bool activate)
@@ -515,28 +513,28 @@ static void BCHP_PWR_P_HW_PLL_AVD_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_PLL_AVD: %s", activate?"on":"off"));
 
     if (activate) {
-        uint32_t reg, cnt=50;
-        mask = BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN , mask, 0);
+	uint32_t reg, cnt=50;
+	mask = BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN , mask, 0);
 
-        mask = (BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET, mask, 0);
+	mask = (BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET, mask, 0);
 
-        /* Check for PLL lock */
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_LOCK_STATUS);
-            if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVD_MIPS_PLL_LOCK_STATUS, LOCK))
-                break;
-        }
+	/* Check for PLL lock */
+	while(cnt--) {
+	    BKNI_Delay(10);
+	    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_LOCK_STATUS);
+	    if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVD_MIPS_PLL_LOCK_STATUS, LOCK))
+		break;
+	}
     } else {
-        mask = (BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET, mask, mask);
+	mask = (BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_RESET, mask, mask);
 
-        mask = BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN , mask, mask);
+	mask = BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN , mask, mask);
     }
 #else
     BSTD_UNUSED(handle);
@@ -551,30 +549,30 @@ static void BCHP_PWR_P_HW_AUD_PLL0_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_AUD_PLL0: %s", activate?"on":"off"));
 
     if(activate) {
-        uint32_t reg, cnt=50;
-        mask = BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN, mask, 0);
+	uint32_t reg, cnt=50;
+	mask = BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN, mask, 0);
 
-        mask = (BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET, mask, 0);
+	mask = (BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET, mask, 0);
 
-        /* Check for PLL lock */
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_LOCK_STATUS);
-            if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AUDIO0_PLL_LOCK_STATUS, LOCK))
-                break;
-        }
-        if(!cnt)
-            BDBG_ERR(("Audio0 PLL Lock Timeout"));
+	/* Check for PLL lock */
+	while(cnt--) {
+	    BKNI_Delay(10);
+	    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_LOCK_STATUS);
+	    if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AUDIO0_PLL_LOCK_STATUS, LOCK))
+		break;
+	}
+	if(!cnt)
+	    BDBG_ERR(("Audio0 PLL Lock Timeout"));
     } else {
-        mask = (BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET, mask, mask);
+	mask = (BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET, mask, mask);
 
-        mask = BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN, mask, mask);
+	mask = BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRDN, mask, mask);
     }
 }
 
@@ -585,30 +583,30 @@ static void BCHP_PWR_P_HW_AUD_PLL1_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_AUD_PLL1: %s", activate?"on":"off"));
 
     if(activate) {
-        uint32_t reg, cnt=50;
-        mask = BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN, mask, 0);
+	uint32_t reg, cnt=50;
+	mask = BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN, mask, 0);
 
-        mask = (BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET, mask, 0);
+	mask = (BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET, mask, 0);
 
-        /* Check for PLL lock */
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_LOCK_STATUS);
-            if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AUDIO1_PLL_LOCK_STATUS, LOCK))
-                break;
-        }
-        if(!cnt)
-            BDBG_ERR(("Audio1 PLL Lock Timeout"));
+	/* Check for PLL lock */
+	while(cnt--) {
+	    BKNI_Delay(10);
+	    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_LOCK_STATUS);
+	    if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AUDIO1_PLL_LOCK_STATUS, LOCK))
+		break;
+	}
+	if(!cnt)
+	    BDBG_ERR(("Audio1 PLL Lock Timeout"));
     } else {
-        mask = (BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET, mask, mask);
+	mask = (BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET, mask, mask);
 
-        mask = BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN, mask, mask);
+	mask = BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRDN, mask, mask);
     }
 }
 
@@ -619,31 +617,31 @@ static void BCHP_PWR_P_HW_PLL_SCD_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_SCD_PLL: %s", activate?"on":"off"));
 
     if(activate) {
-        uint32_t reg, cnt=50;
-        mask = BCHP_CLKGEN_PLL_SC_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_PWRDN, mask, 0);
+	uint32_t reg, cnt=50;
+	mask = BCHP_CLKGEN_PLL_SC_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_PWRDN, mask, 0);
 
-        mask = (BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_RESET, mask, 0);
+	mask = (BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_RESET, mask, 0);
 
-        /* Check for PLL lock */
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_LOCK_STATUS);
-            if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_SC_PLL_LOCK_STATUS, LOCK))
-                break;
-        }
+	/* Check for PLL lock */
+	while(cnt--) {
+	    BKNI_Delay(10);
+	    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_LOCK_STATUS);
+	    if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_SC_PLL_LOCK_STATUS, LOCK))
+		break;
+	}
 
-        if(!cnt)
-            BDBG_ERR(("SmartCard PLL Lock Timeout"));
+	if(!cnt)
+	    BDBG_ERR(("SmartCard PLL Lock Timeout"));
     } else {
-        mask = (BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_RESET, mask, mask);
+	mask = (BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_SC_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_RESET, mask, mask);
 
-        mask = BCHP_CLKGEN_PLL_SC_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_PWRDN, mask, mask);
+	mask = BCHP_CLKGEN_PLL_SC_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_SC_PLL_PWRDN, mask, mask);
     }
 }
 
@@ -694,29 +692,29 @@ static void BCHP_PWR_P_HW_PLL_VCXO_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_PLL_VCXO: %s", activate?"on":"off"));
 
     if(activate) {
-        uint32_t reg, cnt=50;
-        mask = BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN, mask, 0);
+	uint32_t reg, cnt=50;
+	mask = BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN, mask, 0);
 
-        mask = (BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_RESET, mask, 0);
+	mask = (BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_RESET, mask, 0);
 
-        /* Check for PLL lock */
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_LOCK_STATUS);
-            if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_VCXO_PLL_LOCK_STATUS, LOCK))
-                break;
-        }
-        if(!cnt)
-            BDBG_ERR(("VCXO  PLL Lock Timeout"));
+	/* Check for PLL lock */
+	while(cnt--) {
+	    BKNI_Delay(10);
+	    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_LOCK_STATUS);
+	    if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_VCXO_PLL_LOCK_STATUS, LOCK))
+		break;
+	}
+	if(!cnt)
+	    BDBG_ERR(("VCXO  PLL Lock Timeout"));
     } else {
-        mask = (BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETD_MASK |
-                BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETA_MASK);
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_RESET, mask, mask);
+	mask = (BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETD_MASK |
+		BCHP_CLKGEN_PLL_VCXO_PLL_RESET_RESETA_MASK);
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_RESET, mask, mask);
 
-        mask = BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN_PWRDN_PLL_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN, mask, mask);
+	mask = BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN_PWRDN_PLL_MASK;
+	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO_PLL_PWRDN, mask, mask);
     }
 }

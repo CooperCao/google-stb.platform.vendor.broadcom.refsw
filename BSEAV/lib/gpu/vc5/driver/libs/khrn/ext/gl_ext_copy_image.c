@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_server.h"
 #include "../glxx/glxx_server_texture.h"
@@ -57,10 +55,10 @@ static GLenum get_operand(GLXX_SERVER_STATE_T *state, GLuint name,
    return result;
 }
 
-static KHRN_IMAGE_T* get_image(const struct operand *operand, unsigned face,
+static khrn_image* get_image(const struct operand *operand, unsigned face,
       unsigned level)
 {
-   KHRN_IMAGE_T* image;
+   khrn_image* image;
 
    switch (operand->type)
    {
@@ -85,7 +83,7 @@ static KHRN_IMAGE_T* get_image(const struct operand *operand, unsigned face,
 static GFX_LFMT_T get_format(const struct operand *operand)
 {
    /* assumption: all levels/faces have the same format */
-   const KHRN_IMAGE_T *img = get_image(operand, 0, 0);
+   const khrn_image *img = get_image(operand, 0, 0);
    return img ? khrn_image_get_lfmt(img, 0) : GFX_LFMT_NONE;
 }
 
@@ -224,7 +222,7 @@ static inline bool valid_end(unsigned end, unsigned size, unsigned align)
    return end == size || (end < size && end % align == 0);
 }
 
-static inline bool valid_region(const KHRN_IMAGE_T *img,
+static inline bool valid_region(const khrn_image *img,
       unsigned x, unsigned y, unsigned z, unsigned e,
       unsigned w, unsigned h, unsigned d, unsigned last_e)
 {
@@ -287,7 +285,7 @@ static GLenum check_texture(GLXX_TEXTURE_T *texture, GLint level,
    if (first.face >= MAX_FACES || last.face >= MAX_FACES)
          return GL_INVALID_VALUE;
 
-   KHRN_IMAGE_T *img = texture->img[first.face][level];
+   khrn_image *img = texture->img[first.face][level];
    assert(img);
    if (!valid_region(img, x, y, first.depth, first.elem,
          width, height, last.depth - first.depth + 1, last.elem))
@@ -343,7 +341,7 @@ static void copy_one_slice(GLXX_SERVER_STATE_T *state,
       unsigned dst_x, unsigned dst_y, unsigned dst_z,
       unsigned  src_width, unsigned src_height)
 {
-   KHRN_IMAGE_T *src_img, *dst_img;
+   khrn_image *src_img, *dst_img;
    struct selector src_sel, dst_sel;
 
    /* convert z coordinate into image selector (face,element,depth) */

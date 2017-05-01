@@ -128,6 +128,7 @@ typedef struct dbg_core_pid_info_t
     uint8_t                     u8_core;            /*core in which the process currently exists*/
     uint8_t                     u8_process_attach;  /*Indicates if the process is attached to the debugger*/
     uint8_t                     u8_kill_pending;    /*Indicates if a process kill request is pending*/
+    uint8_t                     u8_process_created; /*Indicates the process is created by the debugger*/
     dbg_process_state_t         process_state;      /*State of the process - we are on all-stop mode
                                                     The state of the process reflects the state of
                                                     all the  threads */
@@ -262,6 +263,14 @@ DBG_core_detach_process_1(dbg_core_pid_info_t *p_pid_info);
 /*@brief - Check if the process is attached*/
 uint8_t
 DBG_core_is_process_attached(dbg_core_pid_info_t *p_pid_info);
+
+/*@brief - Mark the process as created by the debugger*/
+void
+DBG_core_process_created(dbg_core_pid_info_t *p_pid_info);
+
+/*@brief - Check if the process is created by the debugger*/
+uint8_t
+DBG_core_is_process_created(dbg_core_pid_info_t *p_pid_info);
 
 /*@brief - Mark as the process termination request is pending in the target*/
 bool

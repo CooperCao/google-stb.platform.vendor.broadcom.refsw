@@ -47,6 +47,8 @@
 #if (BCHP_CHIP==lonestar)
    #include "bsrf_lonestar_priv.h"
    #define BSRF_SXM_OVERRIDE  /* sxm request to override default settings */
+#elif (BCHP_CHIP==89730)
+   #include "bsrf_89730_priv.h"
 #else
    #error "unsupported BCHP_CHIP"
 #endif

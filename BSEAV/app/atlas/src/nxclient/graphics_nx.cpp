@@ -101,6 +101,22 @@ error:
     return(ret);
 } /* open */
 
+
+void CGraphicsNx::setActive(bool bActive)
+{
+    eRet ret = eRet_Ok;
+
+    if (_bActive == bActive)
+    {
+        return;
+    }
+
+    _bActive = bActive;
+
+error:
+    return;
+} /* setActive */
+
 eRet CSurfaceClientNx::setBlend(
         NEXUS_BlendEquation * pBlendEquationAlpha,
         NEXUS_BlendEquation * pBlendEquationColor
@@ -141,6 +157,7 @@ eRet CSurfaceClientNx::setZOrder(uint16_t zOrder)
 error:
     return(ret);
 }
+
 
 CGraphicsNx::CGraphicsNx(
         const char *     name,

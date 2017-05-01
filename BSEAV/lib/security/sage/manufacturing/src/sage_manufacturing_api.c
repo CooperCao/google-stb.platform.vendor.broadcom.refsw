@@ -57,7 +57,13 @@
 
 BDBG_MODULE(sage_manufacturing);
 
+#define OTP_MSP0_VALUE_ZS (0x02)
+#define OTP_MSP1_VALUE_ZS (0x02)
+#define OTP_MSP0_VALUE_ZB (0x3E)
+#define OTP_MSP1_VALUE_ZB (0x3F)
+
 #define MFG_TA_BIN_FILENAME "sage_ta_manufacturing.bin"
+#define MFG_TA_DEV_BIN_FILENAME "sage_ta_manufacturing_dev.bin"
 
 /* defines */
 #define SIZEOF_DRM_BINFILE_HEADER    (192)
@@ -71,11 +77,14 @@ BDBG_MODULE(sage_manufacturing);
      ((uint32_t)(((uint8_t*)(pBuf))[2]) << 8)  | \
      ((uint8_t *)(pBuf))[3])
 
-/* static function definitions */
-static const char * _MapDrmEnumToString(uint32_t drm_type);
-static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index);
-static BERR_Code _P_TA_Install(void);
-static BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize);
+/* Chipset type */
+typedef enum
+{
+    ChipType_eZS = 0,
+    ChipType_eZB,
+    ChipType_eCustomer,
+    ChipType_eCustomer1
+} ChipType_e;
 
 /* create the table */
 typedef struct SAGE_Manufacturing_P_Settings {
@@ -85,6 +94,13 @@ typedef struct SAGE_Manufacturing_P_Settings {
     SRAI_PlatformHandle platformHandle;
     SRAI_ModuleHandle validationToolModuleHandle;
 } SAGE_Manufacturing_P_Settings;
+
+/* static function definitions */
+static const char * _MapDrmEnumToString(uint32_t drm_type);
+static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index);
+static ChipType_e _P_GetChipType(void);
+static BERR_Code _P_TA_Install(void);
+static BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize);
 
 static SAGE_Manufacturing_P_Settings SAGE_Private_Settings;
 
@@ -523,8 +539,8 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
            return "DTCP-IP";
     case BSAGElib_BinFileDrmType_ePlayready:
            return "PLAYREADY 2.5";
-    case BSAGElib_BinFileDrmType_eSecureSwRsa:
-           return "SECURE_SW_RSA";
+    case BSAGElib_BinFileDrmType_eSecureRsa:
+           return "SECURE_RSA";
     case BSAGElib_BinFileDrmType_eCustomPrivate:
            return "CUSTOM_PRIVATE";
     case BSAGElib_BinFileDrmType_eAdobeAxcess:
@@ -545,6 +561,16 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
            return "PLAYREADY 3.0";
     case BSAGElib_BinFileDrmType_eMediaroom:
            return "MEDIAROOM";
+    case BSAGElib_BinFileDrmType_eBp3:
+           return "BP3";
+    case BSAGElib_BinFileDrmType_eSecuremedia:
+           return "SECUREMEDIA";
+    case BSAGElib_BinFileDrmType_eHdcp14Rx:
+           return "HDCP 1.4 RX";
+    case BSAGElib_BinFileDrmType_eHdcp14Tx:
+           return "HDCP 1.4 TX";
+    case BSAGElib_BinFileDrmType_eMarlin:
+           return "MARLIN";
     case BSAGElib_BinFileDrmType_eMax:
            return NULL;
     default:
@@ -616,9 +642,33 @@ ErrorExit:
     return brc;
 }
 
+static ChipType_e _P_GetChipType(void)
+{
+    NEXUS_ReadMspParms     readMspParms;
+    NEXUS_ReadMspIO        readMsp0;
+    NEXUS_ReadMspIO        readMsp1;
+    NEXUS_Error rc =  NEXUS_SUCCESS;
+
+    readMspParms.readMspEnum = NEXUS_OtpCmdMsp_eReserved233;
+    rc = NEXUS_Security_ReadMSP(&readMspParms,&readMsp0);
+
+    readMspParms.readMspEnum = NEXUS_OtpCmdMsp_eReserved234;
+    rc = NEXUS_Security_ReadMSP(&readMspParms,&readMsp1);
+
+    BDBG_MSG(("OTP MSP0 %d %d %d %d OTP MSP0 %d %d %d %d",readMsp0.mspDataBuf[0], readMsp0.mspDataBuf[1], readMsp0.mspDataBuf[2], readMsp0.mspDataBuf[3],
+                                                          readMsp1.mspDataBuf[0], readMsp1.mspDataBuf[1], readMsp1.mspDataBuf[2], readMsp1.mspDataBuf[3]));
+
+    if((readMsp0.mspDataBuf[3] == OTP_MSP0_VALUE_ZS) && (readMsp1.mspDataBuf[3] == OTP_MSP1_VALUE_ZS)){
+        return ChipType_eZS;
+    }
+    return ChipType_eZB;
+}
+
+
 BERR_Code _P_TA_Install(void)
 {
     BERR_Code rc = BERR_SUCCESS;
+    char *ta_bin_filename;
     FILE * fptr = NULL;
     uint32_t file_size = 0;
     uint32_t read_size = 0;
@@ -627,9 +677,14 @@ BERR_Code _P_TA_Install(void)
 
     BDBG_ENTER(_P_TA_Install);
 
-    BDBG_MSG(("%s - Loadable TA filename '%s'", __FUNCTION__, MFG_TA_BIN_FILENAME));
+    if(_P_GetChipType() == ChipType_eZS)
+        ta_bin_filename = MFG_TA_DEV_BIN_FILENAME;
+    else
+        ta_bin_filename = MFG_TA_BIN_FILENAME;
 
-    rc = _P_GetFileSize(MFG_TA_BIN_FILENAME, &file_size);
+    BDBG_MSG(("%s - Loadable TA filename '%s'", __FUNCTION__, ta_bin_filename));
+
+    rc = _P_GetFileSize(ta_bin_filename, &file_size);
     if(rc != BERR_SUCCESS)
     {
         BDBG_LOG(("%s - Error determine file size of TA bin file", __FUNCTION__));
@@ -644,10 +699,10 @@ BERR_Code _P_TA_Install(void)
         goto ErrorExit;
     }
 
-    fptr = fopen(MFG_TA_BIN_FILENAME, "rb");
+    fptr = fopen(ta_bin_filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening TA bin file (%s)", __FUNCTION__, MFG_TA_BIN_FILENAME));
+        BDBG_ERR(("%s - Error opening TA bin file (%s)", __FUNCTION__, ta_bin_filename));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -663,13 +718,13 @@ BERR_Code _P_TA_Install(void)
     /* close file and set to NULL */
     if(fclose(fptr) != 0)
     {
-        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", __FUNCTION__, MFG_TA_BIN_FILENAME, strerror(errno)));
+        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", __FUNCTION__, ta_bin_filename, strerror(errno)));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
     fptr = NULL;
 
-    BDBG_MSG(("%s - TA 0x%08x Install file '%s'", __FUNCTION__, BSAGE_PLATFORM_ID_MANUFACTURING, MFG_TA_BIN_FILENAME));
+    BDBG_MSG(("%s - TA 0x%08x Install file '%s'", __FUNCTION__, BSAGE_PLATFORM_ID_MANUFACTURING, ta_bin_filename));
 
     sage_rc = SRAI_Platform_Install(BSAGE_PLATFORM_ID_MANUFACTURING, ta_bin_file_buff, file_size);
     if(sage_rc != BERR_SUCCESS)

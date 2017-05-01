@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -186,6 +186,15 @@ Returns the object ID
 NEXUS_Error NEXUS_Platform_GetIdFromObject(
     NEXUS_AnyObject object,
     NEXUS_BaseObjectId *id
+    );
+
+/*
+Summary:
+The server can make a client less restrictive even after it has joined
+*/
+NEXUS_Error NEXUS_Platform_SetClientMode(
+    NEXUS_ClientHandle client,
+    NEXUS_ClientMode mode
     );
 
 #ifdef __cplusplus

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,21 +70,21 @@
 /***************************************************************************
  *HEVD_OL_CTL_0
  ***************************************************************************/
-#define BCHP_HEVD_OL_CTL_0_CPU_ID                0x20014004 /* [RO] CPU ID Regsiter */
-#define BCHP_HEVD_OL_CTL_0_ENDIAN                0x20014008 /* [RO] Stream Endian Control Register */
-#define BCHP_HEVD_OL_CTL_0_BVN_INT               0x2001400c /* [RO] BVN Interrupt Register */
-#define BCHP_HEVD_OL_CTL_0_OL_CLK_GATE           0x20014010 /* [CFG] Clock Gate Register */
-#define BCHP_HEVD_OL_CTL_0_TIMER_REG             0x20014014 /* [RW] Timer */
-#define BCHP_HEVD_OL_CTL_0_SOFTSHUTDOWN_CTRL     0x20014018 /* [CFG] Soft Shutdown */
-#define BCHP_HEVD_OL_CTL_0_SHIM_DEBUG_CTL        0x2001401c /* [CFG] Shim Debug Control */
-#define BCHP_HEVD_OL_CTL_0_SHIM_DEBUG_READ       0x20014020 /* [RO] Shim Debug Read */
-#define BCHP_HEVD_OL_CTL_0_RM2_ARB_TIMEOUT       0x20014024 /* [CFG] RM2 ARBITER TIMEOUT Register */
-#define BCHP_HEVD_OL_CTL_0_RM2_ARB_TIMEOUT_SEEN  0x20014028 /* [RW] RM2 Timeout detected */
-#define BCHP_HEVD_OL_CTL_0_FIRMWARE_DEBUG        0x20014030 /* [RW] Spare register bits for firmware debug state tracing */
-#define BCHP_HEVD_OL_CTL_0_OTP_CTL_REG           0x20014034 /* [RO] OTP Control Bits */
-#define BCHP_HEVD_OL_CTL_0_SHIM_ERROR_REG        0x20014038 /* [RO] SCB Shim error register */
-#define BCHP_HEVD_OL_CTL_0_SOFTSHUTDOWN_STATUS   0x2001403c /* [RO] Soft Shutdown Status */
-#define BCHP_HEVD_OL_CTL_0_CLIENT_INIT_CONFIG    0x20014040 /* [CFG] Client Init Config */
+#define BCHP_HEVD_OL_CTL_0_CPU_ID                0x20014004 /* [RO][32] CPU ID Regsiter */
+#define BCHP_HEVD_OL_CTL_0_ENDIAN                0x20014008 /* [RO][32] Stream Endian Control Register */
+#define BCHP_HEVD_OL_CTL_0_BVN_INT               0x2001400c /* [RO][32] BVN Interrupt Register */
+#define BCHP_HEVD_OL_CTL_0_OL_CLK_GATE           0x20014010 /* [CFG][32] Clock Gate Register */
+#define BCHP_HEVD_OL_CTL_0_TIMER_REG             0x20014014 /* [RW][32] Timer */
+#define BCHP_HEVD_OL_CTL_0_SOFTSHUTDOWN_CTRL     0x20014018 /* [CFG][32] Soft Shutdown */
+#define BCHP_HEVD_OL_CTL_0_SHIM_DEBUG_CTL        0x2001401c /* [CFG][32] Shim Debug Control */
+#define BCHP_HEVD_OL_CTL_0_SHIM_DEBUG_READ       0x20014020 /* [RO][32] Shim Debug Read */
+#define BCHP_HEVD_OL_CTL_0_RM2_ARB_TIMEOUT       0x20014024 /* [CFG][32] RM2 ARBITER TIMEOUT Register */
+#define BCHP_HEVD_OL_CTL_0_RM2_ARB_TIMEOUT_SEEN  0x20014028 /* [RW][32] RM2 Timeout detected */
+#define BCHP_HEVD_OL_CTL_0_FIRMWARE_DEBUG        0x20014030 /* [RW][32] Spare register bits for firmware debug state tracing */
+#define BCHP_HEVD_OL_CTL_0_OTP_CTL_REG           0x20014034 /* [RO][32] OTP Control Bits */
+#define BCHP_HEVD_OL_CTL_0_SHIM_ERROR_REG        0x20014038 /* [RO][32] SCB Shim error register */
+#define BCHP_HEVD_OL_CTL_0_SOFTSHUTDOWN_STATUS   0x2001403c /* [RO][32] Soft Shutdown Status */
+#define BCHP_HEVD_OL_CTL_0_CLIENT_INIT_CONFIG    0x20014040 /* [CFG][32] Client Init Config */
 
 /***************************************************************************
  *CPU_ID - CPU ID Regsiter

@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "display_nexus_exclusive.h"
 
 #include "event.h"
@@ -223,6 +221,7 @@ static void SetVsyncCallback(NEXUS_DISPLAYHANDLE display,
       NEXUS_Callback callback, void *context)
 {
    NEXUS_CallbackDesc vsync;
+   NEXUS_CallbackDesc_Init(&vsync);
    /* vsync available, swap interval can be active */
    vsync.callback = callback;
    vsync.context = context;

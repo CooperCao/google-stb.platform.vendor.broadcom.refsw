@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 
 #ifndef NEXUS_REMUX_H__
@@ -71,6 +63,7 @@ Selects the clock source for the remux channel
 */
 typedef enum NEXUS_RemuxClock
 {
+    NEXUS_RemuxClock_e108Mhz,       /* 108 MHz. Not supported on all chips. See the Data Sheet. */
     NEXUS_RemuxClock_e81Mhz,        /* 81 MHz */
     NEXUS_RemuxClock_e54Mhz,        /* 54 MHz */
     NEXUS_RemuxClock_e40_5Mhz,      /* 40.5 MHz */
@@ -248,4 +241,3 @@ void NEXUS_Remux_GetSettings(
 #endif
 
 #endif /* NEXUS_REMUX_H__ */
-

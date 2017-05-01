@@ -125,20 +125,6 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 		hHDMI->rxSensePowerDetected = *RxSense ;
 		hHDMI->MonitorStatus.NumRxSenseChanges++ ;
 	}
-
-#if BHDM_CONFIG_MHL_SUPPORT
-	if (hHDMI->bMhlMode && *RxSense == false)
-	{
-		if (hHDMI->hMhl->hostState == BHDM_P_Mhl_HostCpuState_eActive)
-		{
-			BHDM_P_DisableDisplay_isr(hHDMI);
-
-			/* Go into S3 Mode */
-			BHDM_P_Mhl_HandleHandoverToMpm_isr(hHDMI->hMhl);
-		}
-	}
-#endif
-
 	return;
 }
 #endif
@@ -222,10 +208,8 @@ BERR_Code BHDM_Standby(
 
 	BDBG_ENTER(BHDM_Standby) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
 	if (hHDMI->standby) {
-		BDBG_ERR(("Tx%d: Already in standby", hHDMI->eCoreId));
-		rc = BERR_TRACE(BERR_UNKNOWN) ;
+		BDBG_LOG(("Tx%d: Already in standby", hHDMI->eCoreId));
 		goto done ;
 	}
 
@@ -238,7 +222,7 @@ BERR_Code BHDM_Standby(
 
 
 #if BHDM_CONFIG_HAS_HDCP22
-    BHDM_AUTO_I2C_P_DisableInterrupts(hHDMI);
+	BHDM_AUTO_I2C_P_DisableInterrupts(hHDMI);
 #endif
 	BHDM_P_DisableInterrupts(hHDMI) ;
 
@@ -253,9 +237,8 @@ BERR_Code BHDM_Standby(
 	hHDMI->enableWakeup = settings.bEnableWakeup;
 	hHDMI->standby = true;
 	rc = BHDM_DisableDisplay(hHDMI); /* this will release the HDMI_TX_TMDS resource */
-
-	BHDM_P_FreeTimers(hHDMI) ;
-
+	/* if error trace error and  continue */
+	if (rc) {rc = BERR_TRACE(rc) ;}
 
 #if BCHP_PWR_RESOURCE_HDMI_TX_CLK || BCHP_PWR_RESOURCE_HDMI_TX_1_CLK
 	BCHP_PWR_ReleaseResource(hHDMI->hChip, hHDMI->clkPwrResource[hHDMI->eCoreId]) ;
@@ -283,8 +266,7 @@ BERR_Code BHDM_Resume(
 
 	if (!hHDMI->standby)
 	{
-		BDBG_ERR(("Tx%d: Not in standby", hHDMI->eCoreId));
-		rc = BERR_TRACE(BERR_UNKNOWN) ;
+		BDBG_LOG(("Tx%d: Not in standby", hHDMI->eCoreId));
 		goto done ;
 	}
 
@@ -298,12 +280,6 @@ BERR_Code BHDM_Resume(
 	    BCHP_PWR_AcquireResource(hHDMI->hChip, BCHP_PWR_RESOURCE_HDMI_TX_CEC);
 #endif
 	}
-
-#if BHDM_CONFIG_BTMR_SUPPORT
-	/* re-create a hot plug countdown timer */
-	BHDM_P_AllocateTimers(hHDMI) ;
-#endif
-
 
 	hHDMI->standby = false;
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -5267,7 +5267,7 @@ B_PlaybackIp_HttpSessionSetup(
             (psi->psiValid && playback_ip->contentLength == 0) || /* PSI info is known in the response & content length is 0, no point in doing detailed media probing to build th index. */
             playback_ip->openSettings.u.http.rvuCompliant || /* RVU: it uses trickmodes similar to server side trickmodes */
             (setupSettings->u.http.skipPsiParsing && playback_ip->openSettings.useNexusPlaypump) || /* we only allow app to tell us to skip PSI parsing if app is going to use Nexus Playpump to feed IP stream */
-            (!setupSettings->u.http.dontFeedDataToPlaybackHw && psi->liveChannel) /* we skip Media probe for Live Channels if app doesn't want to playback ip to feed data to hw for two reasons: server provides all necessary info via HTTP response & we dont want to delay the live channels because of probing, saves 2-3 secs */
+            (psi->psiValid && !setupSettings->u.http.dontFeedDataToPlaybackHw && psi->liveChannel) /* we skip Media probe for Live Channels if app doesn't want to playback ip to feed data to hw for two reasons: server provides all necessary info via HTTP response & we dont want to delay the live channels because of probing, saves 2-3 secs */
        ){
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)

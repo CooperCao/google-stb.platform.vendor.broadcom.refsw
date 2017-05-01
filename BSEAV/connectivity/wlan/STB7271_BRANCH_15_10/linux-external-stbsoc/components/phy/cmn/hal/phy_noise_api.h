@@ -46,7 +46,8 @@ void wlc_phy_hwaci_mitigate_intr(wlc_phy_t *pih);
 
 /* Interference and Mitigation (ACI, Noise) Module */
 int phy_noise_interf_chan_stats_update(wlc_phy_t *pi, chanspec_t chanspec, uint32 crsglitch,
-	uint32 bphy_crsglitch, uint32 badplcp, uint32 bphy_badplcp, uint32 mbsstime);
+	uint32 bphy_crsglitch, uint32 badplcp,
+	uint32 bphy_badplcp, uint8 txop, uint32 mbsstime);
 int phy_noise_sched_set(wlc_phy_t *pih, phy_bgnoise_schd_mode_t reason, bool upd);
 bool phy_noise_sched_get(wlc_phy_t *pih);
 int phy_noise_pmstate_set(wlc_phy_t *pih, bool pmstate);

@@ -363,7 +363,9 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
                     BDBG_ERR(("BIP_Player_ProbeAsync Failed!"));
                     goto error;
                 }
-
+                /* SWSTB-3854: This is an issue in BIP , We must sleep to give BIP engouh time to get ready
+                   for Prepare. */
+                BKNI_Sleep(500);
                 BDBG_MSG(("Media Probe processing started.."));
                 setState(BMediaPlayerState_eWaitingForProbe);
             }
@@ -1339,7 +1341,16 @@ eRet CChannelBip::unTune(
     {
         _pidMgr.clearPids();
         _enableDynamicTrackSelection = true;
+
+        /* we must reset STC to ref count of pids when we do an untune */
+        if(_pStc != NULL )
+        {
+            NEXUS_SimpleStcChannelSettings settings;
+            _pStc->getDefaultSettings(&settings);
+            _pStc->setSettings(&settings);
+        }
     }
+
     _tuned = false;
     return(ret);
 } /* unTune */

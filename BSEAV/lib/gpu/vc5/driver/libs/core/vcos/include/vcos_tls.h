@@ -1,19 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  chip driver
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - thread local storage
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef VCOS_TLS_H
 #define VCOS_TLS_H
 
 #include "vcos_types.h"
 #include "vcos_platform.h"
+#include "libs/util/demand.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,10 +63,10 @@ class tls
 
 public:
 
-   tls() { throw_if_error(vcos_tls_create(&m_key, NULL)); }
+   tls() { demand(vcos_tls_create(&m_key, NULL) == VCOS_SUCCESS); }
    ~tls() { vcos_tls_delete(m_key); }
 
-   void set(void *value) { throw_if_error(vcos_tls_set(m_key, value)); }
+   void set(void *value) { demand(vcos_tls_set(m_key, value) == VCOS_SUCCESS); }
    void *get() const { return vcos_tls_get(m_key); }
 };
 

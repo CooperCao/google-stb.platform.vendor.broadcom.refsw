@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,28 +70,28 @@
 /***************************************************************************
  *CGMSAE_0 - CGMSAE_0 registers
  ***************************************************************************/
-#define BCHP_CGMSAE_0_Top_Control                0x206e8604 /* [RW] CGMS-A Top-Field Control Register */
-#define BCHP_CGMSAE_0_Bot_Control                0x206e8608 /* [RW] CGMS-A Bottom-Field Control Register */
-#define BCHP_CGMSAE_0_Top_Format                 0x206e860c /* [RW] CGMS-A Top-Field Format Register */
-#define BCHP_CGMSAE_0_Bot_Format                 0x206e8610 /* [RW] CGMS-A Bottom-Field Format Register */
-#define BCHP_CGMSAE_0_Top_Data                   0x206e8614 /* [RW] CGMS-A Top-Field Data Register */
-#define BCHP_CGMSAE_0_Bot_Data                   0x206e8618 /* [RW] CGMS-A Bottom-Field Data Register */
-#define BCHP_CGMSAE_0_RevID                      0x206e861c /* [RO] CGMS-A Encoder Revision ID Register */
-#define BCHP_CGMSAE_0_Top_Control_B              0x206e8620 /* [RW] CGMS-B Top-Field Control Register */
-#define BCHP_CGMSAE_0_Bot_Control_B              0x206e8624 /* [RW] CGMS-B Bottom-Field Control Register */
-#define BCHP_CGMSAE_0_Top_Format_B               0x206e8628 /* [RW] CGMS-B Top-Field Format Register */
-#define BCHP_CGMSAE_0_Bot_Format_B               0x206e862c /* [RW] CGMS-B Bottom-Field Format Register */
-#define BCHP_CGMSAE_0_Top_Data_B0                0x206e8630 /* [RW] CGMS-B Top-Field Data Register for 31:0 bits */
-#define BCHP_CGMSAE_0_Top_Data_B1                0x206e8634 /* [RW] CGMS-B Top-Field Data Register for 63:32 bits */
-#define BCHP_CGMSAE_0_Top_Data_B2                0x206e8638 /* [RW] CGMS-B Top-Field Data Register for 95:64 bits */
-#define BCHP_CGMSAE_0_Top_Data_B3                0x206e863c /* [RW] CGMS-B Top-Field Data Register for 127:96 bits */
-#define BCHP_CGMSAE_0_Top_Data_B4                0x206e8640 /* [RW] CGMS-B Top-Field Data Register for 159:128 bits */
-#define BCHP_CGMSAE_0_Bot_Data_B0                0x206e8644 /* [RW] CGMS-B Bottom-Field Data Register for 31:0 bits */
-#define BCHP_CGMSAE_0_Bot_Data_B1                0x206e8648 /* [RW] CGMS-B Bottom-Field Data Register for 63:32 bits */
-#define BCHP_CGMSAE_0_Bot_Data_B2                0x206e864c /* [RW] CGMS-B Bottom-Field Data Register for 95:64 bits */
-#define BCHP_CGMSAE_0_Bot_Data_B3                0x206e8650 /* [RW] CGMS-B Bottom-Field Data Register for 127:96 bits */
-#define BCHP_CGMSAE_0_Bot_Data_B4                0x206e8654 /* [RW] CGMS-B Bottom-Field Data Register for 159:128 bits */
-#define BCHP_CGMSAE_0_Reg_updt                   0x206e8658 /* [RW] Data Update Register */
+#define BCHP_CGMSAE_0_Top_Control                0x206e8604 /* [RW][32] CGMS-A Top-Field Control Register */
+#define BCHP_CGMSAE_0_Bot_Control                0x206e8608 /* [RW][32] CGMS-A Bottom-Field Control Register */
+#define BCHP_CGMSAE_0_Top_Format                 0x206e860c /* [RW][32] CGMS-A Top-Field Format Register */
+#define BCHP_CGMSAE_0_Bot_Format                 0x206e8610 /* [RW][32] CGMS-A Bottom-Field Format Register */
+#define BCHP_CGMSAE_0_Top_Data                   0x206e8614 /* [RW][32] CGMS-A Top-Field Data Register */
+#define BCHP_CGMSAE_0_Bot_Data                   0x206e8618 /* [RW][32] CGMS-A Bottom-Field Data Register */
+#define BCHP_CGMSAE_0_RevID                      0x206e861c /* [RO][32] CGMS-A Encoder Revision ID Register */
+#define BCHP_CGMSAE_0_Top_Control_B              0x206e8620 /* [RW][32] CGMS-B Top-Field Control Register */
+#define BCHP_CGMSAE_0_Bot_Control_B              0x206e8624 /* [RW][32] CGMS-B Bottom-Field Control Register */
+#define BCHP_CGMSAE_0_Top_Format_B               0x206e8628 /* [RW][32] CGMS-B Top-Field Format Register */
+#define BCHP_CGMSAE_0_Bot_Format_B               0x206e862c /* [RW][32] CGMS-B Bottom-Field Format Register */
+#define BCHP_CGMSAE_0_Top_Data_B0                0x206e8630 /* [RW][32] CGMS-B Top-Field Data Register for 31:0 bits */
+#define BCHP_CGMSAE_0_Top_Data_B1                0x206e8634 /* [RW][32] CGMS-B Top-Field Data Register for 63:32 bits */
+#define BCHP_CGMSAE_0_Top_Data_B2                0x206e8638 /* [RW][32] CGMS-B Top-Field Data Register for 95:64 bits */
+#define BCHP_CGMSAE_0_Top_Data_B3                0x206e863c /* [RW][32] CGMS-B Top-Field Data Register for 127:96 bits */
+#define BCHP_CGMSAE_0_Top_Data_B4                0x206e8640 /* [RW][32] CGMS-B Top-Field Data Register for 159:128 bits */
+#define BCHP_CGMSAE_0_Bot_Data_B0                0x206e8644 /* [RW][32] CGMS-B Bottom-Field Data Register for 31:0 bits */
+#define BCHP_CGMSAE_0_Bot_Data_B1                0x206e8648 /* [RW][32] CGMS-B Bottom-Field Data Register for 63:32 bits */
+#define BCHP_CGMSAE_0_Bot_Data_B2                0x206e864c /* [RW][32] CGMS-B Bottom-Field Data Register for 95:64 bits */
+#define BCHP_CGMSAE_0_Bot_Data_B3                0x206e8650 /* [RW][32] CGMS-B Bottom-Field Data Register for 127:96 bits */
+#define BCHP_CGMSAE_0_Bot_Data_B4                0x206e8654 /* [RW][32] CGMS-B Bottom-Field Data Register for 159:128 bits */
+#define BCHP_CGMSAE_0_Reg_updt                   0x206e8658 /* [RW][32] Data Update Register */
 
 /***************************************************************************
  *Top_Control - CGMS-A Top-Field Control Register

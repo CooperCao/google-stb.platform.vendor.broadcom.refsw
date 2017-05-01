@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)20016 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Transform feedback
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_TF_H
 #define GLXX_TF_H
 
@@ -36,7 +29,7 @@ enum glxx_tf_status
 
 typedef struct
 {
-   KHRN_RES_INTERLOCK_T *res_i;
+   khrn_resource *res;
    v3d_addr_t addr;
    size_t offset;
    size_t size;
@@ -58,7 +51,7 @@ typedef struct glxx_transform_feedback
    struct GL20_PROGRAM_T_        *program;
    char                          *debug_label;
 
-   KHRN_RES_INTERLOCK_T          *res_i;
+   khrn_resource          *res;
 
    //useful info when tf is active (between BeginTransformFeedback and EndTransformFeedback)
    unsigned num_active_buffers;
@@ -68,7 +61,7 @@ typedef struct glxx_transform_feedback
 
 extern GLXX_TRANSFORM_FEEDBACK_T* glxx_tf_create(unsigned name);
 
-extern bool glxx_tf_add_interlock_writes(const GLXX_TRANSFORM_FEEDBACK_T *tf,
+extern bool glxx_tf_add_resource_writes(const GLXX_TRANSFORM_FEEDBACK_T *tf,
       const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
       GLXX_HW_RENDER_STATE_T *rs,
       bool *requires_flush);
@@ -90,8 +83,7 @@ extern bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
       const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
       bool point_size_used);
 
-extern bool glxx_tf_post_draw(GLXX_HW_RENDER_STATE_T *rs,
-      GLXX_TRANSFORM_FEEDBACK_T *tf, const GLXX_PROGRAM_TFF_POST_LINK_T *ptf);
+extern bool glxx_tf_post_draw(GLXX_HW_RENDER_STATE_T *rs, const GLXX_TRANSFORM_FEEDBACK_T *tf);
 
 extern void glxx_tf_incr_start_count(GLXX_HW_RENDER_STATE_T *rs);
 

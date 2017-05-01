@@ -1,37 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-
-This implementation can be configured for "exclusive" or "nexus surface
-compositor mode"
-
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-
-The "exclusive display" is the fastest of all the display options.
-It supports a SINGLE native rendering window, which corresponds to the physical
-display. Only one native window can be created in this mode, with one
-eglWindowSurface attached. The framebuffers are set one at a time as the
-physical display framebuffers. No copying is done.
-
-#else
-
-The "Nexus surface compositor" display platform supports multiple overlapped
-relocatable and resizable display windows.  It supports multiple processes.
-Unlike exclusive mode, surface compositor mode implies that buffers are
-copied prior to display.  The front buffer from each client is copied into a
-common composition surface before being displayed.  NO_NXCLIENT can be defined
-to drop to using NSC instead of the reference server NxClient, which is useful
-for customers who have developed their own servers.
-
-#endif
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_nexus.h"
 #include "display_nexus.h"
 #include "display_helpers.h"

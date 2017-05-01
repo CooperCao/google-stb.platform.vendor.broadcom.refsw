@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 1.1 vertex buffer structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
 
@@ -22,12 +14,12 @@ Implementation of OpenGL ES 1.1 vertex buffer structure.
 
 static inline unsigned glxx_translate_access_flags(GLbitfield access)
 {
-   static_assrt(KHRN_MAP_READ_BIT                == GL_MAP_READ_BIT);
-   static_assrt(KHRN_MAP_WRITE_BIT               == GL_MAP_WRITE_BIT);
-   static_assrt(KHRN_MAP_INVALIDATE_RANGE_BIT    == GL_MAP_INVALIDATE_RANGE_BIT);
-   static_assrt(KHRN_MAP_INVALIDATE_BUFFER_BIT   == GL_MAP_INVALIDATE_BUFFER_BIT);
-   static_assrt(KHRN_MAP_FLUSH_EXPLICIT_BIT      == GL_MAP_FLUSH_EXPLICIT_BIT);
-   static_assrt(KHRN_MAP_UNSYNCHRONIZED_BIT      == GL_MAP_UNSYNCHRONIZED_BIT);
+   static_assrt(KHRN_ACCESS_READ                == GL_MAP_READ_BIT);
+   static_assrt(KHRN_ACCESS_WRITE               == GL_MAP_WRITE_BIT);
+   static_assrt(KHRN_ACCESS_INVALIDATE_RANGE    == GL_MAP_INVALIDATE_RANGE_BIT);
+   static_assrt(KHRN_ACCESS_INVALIDATE_BUFFER   == GL_MAP_INVALIDATE_BUFFER_BIT);
+   static_assrt(KHRN_ACCESS_FLUSH_EXPLICIT      == GL_MAP_FLUSH_EXPLICIT_BIT);
+   static_assrt(KHRN_ACCESS_UNSYNCHRONIZED      == GL_MAP_UNSYNCHRONIZED_BIT);
    return access;
 }
 
@@ -44,8 +36,6 @@ void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
    buffer->resource = NULL;
    buffer->size = 0;
    buffer->debug_label = NULL;
-
-   buffer->last_tf_write_count = 0;
 
    buffer->enabled = false;
 }
@@ -69,17 +59,17 @@ void glxx_buffer_term(void *v, size_t size)
       glxx_buffer_unmap_range(buffer, buffer->mapped_offset,
          buffer->mapped_size, buffer->mapped_access_flags);
 
-   khrn_res_interlock_refdec(buffer->resource);
+   khrn_resource_refdec(buffer->resource);
 }
 
 void* glxx_buffer_map_range(GLXX_BUFFER_T* buffer, size_t offset, size_t size, GLbitfield access)
 {
-   return khrn_res_interlock_pre_cpu_access_now(&buffer->resource, offset, size, glxx_translate_access_flags(access));
+   return khrn_resource_begin_access(&buffer->resource, offset, size, glxx_translate_access_flags(access) | KHRN_ACCESS_ORPHAN, KHRN_RESOURCE_PARTS_ALL);
 }
 
 void glxx_buffer_unmap_range(GLXX_BUFFER_T *buffer, size_t offset, size_t size, GLbitfield access)
 {
-   khrn_res_interlock_post_cpu_access(buffer->resource, offset, size, glxx_translate_access_flags(access));
+   khrn_resource_end_access(buffer->resource, offset, size, glxx_translate_access_flags(access));
 }
 
 /*
@@ -99,13 +89,13 @@ bool glxx_buffer_data(GLXX_BUFFER_T *buffer, size_t size, const void *data, GLen
    if (!reallocate)
    {
       reallocate = (buffer->resource != NULL)
-                && khrn_interlock_write_now_would_stall(&buffer->resource->interlock);
+                && khrn_resource_write_now_would_stall(buffer->resource);
    }
 
    if (reallocate)
    {
       // release existing resource (if any)
-      khrn_res_interlock_refdec(buffer->resource);
+      khrn_resource_refdec(buffer->resource);
       buffer->resource = NULL;
       buffer->size = 0;
 
@@ -119,7 +109,7 @@ bool glxx_buffer_data(GLXX_BUFFER_T *buffer, size_t size, const void *data, GLen
             return false;
 
          // attempt to allocate new resource, or fail
-         buffer->resource = khrn_res_interlock_create(
+         buffer->resource = khrn_resource_create(
             rounded_size,
             V3D_TMU_ML_ALIGN,
             GMEM_USAGE_V3D_RW,
@@ -145,11 +135,12 @@ bool glxx_buffer_subdata(GLXX_BUFFER_T *buffer, size_t offset, size_t size, cons
    assert(buffer->resource != NULL && data != NULL);
    assert(size > 0 && (offset + size) <= buffer->size);
 
-   void* ptr = khrn_res_interlock_pre_cpu_access_now(&buffer->resource, offset, size, KHRN_MAP_WRITE_BIT | KHRN_MAP_INVALIDATE_RANGE_BIT);
+   khrn_access_flags_t map_flags = KHRN_ACCESS_WRITE | KHRN_ACCESS_INVALIDATE_RANGE | KHRN_ACCESS_ORPHAN;
+   void* ptr = khrn_resource_begin_access(&buffer->resource, offset, size, map_flags, KHRN_RESOURCE_PARTS_ALL);
    if (!ptr)
       return false;
    memcpy(ptr, data, size);
-   khrn_res_interlock_post_cpu_access(buffer->resource, offset, size, KHRN_MAP_WRITE_BIT);
+   khrn_resource_end_access(buffer->resource, offset, size, map_flags);
    return true;
 }
 
@@ -163,11 +154,11 @@ bool glxx_buffer_copy_subdata(
 {
    assert(read_buffer->enabled);
 
-   void* read_ptr = khrn_res_interlock_pre_cpu_access_now(&read_buffer->resource, read_offset, size, KHRN_MAP_READ_BIT);
+   void* read_ptr = khrn_resource_begin_access(&read_buffer->resource, read_offset, size, KHRN_ACCESS_READ, KHRN_RESOURCE_PARTS_ALL);
    if (!read_ptr)
       return false;
    bool ok = glxx_buffer_subdata(write_buffer, write_offset, size, read_ptr);
-   khrn_res_interlock_post_cpu_access(read_buffer->resource, read_offset, size, KHRN_MAP_READ_BIT);
+   khrn_resource_end_access(read_buffer->resource, read_offset, size, KHRN_ACCESS_READ);
    return ok;
 }
 
@@ -185,60 +176,12 @@ bool glxx_buffer_find_max(uint32_t *max, bool *any,
    assert((offset + per_index_size*count) <= buffer->size);
 
    size_t size = per_index_size * count;
-   void* ptr = khrn_res_interlock_pre_cpu_access_now(&buffer->resource, offset, size, KHRN_MAP_READ_BIT);
+   void* ptr = khrn_resource_begin_access(&buffer->resource, offset, size, KHRN_ACCESS_READ, KHRN_RESOURCE_PARTS_ALL);
    if (!ptr)
       return false;
    *any = find_max(max, count, per_index_size, ptr, primitive_restart);
-   khrn_res_interlock_post_cpu_access(buffer->resource, offset, size, KHRN_MAP_READ_BIT);
+   khrn_resource_end_access(buffer->resource, offset, size, KHRN_ACCESS_READ);
    return true;
-}
-
-// todo, this control list code shouldn't live here
-KHRN_RES_INTERLOCK_T* glxx_buffer_get_tf_aware_res_interlock(GLXX_HW_RENDER_STATE_T *rs,
-                                                             GLXX_BUFFER_T *buffer)
-{
-   assert(buffer->enabled);
-   KHRN_RES_INTERLOCK_T *res_i = buffer->resource;
-
-   bool writing_to_buffer = khrn_interlock_get_write_stages(&res_i->interlock, (KHRN_RENDER_STATE_T*)rs);
-   if (!writing_to_buffer)
-   {
-      // This rs is not writing to the buffer.
-      // If another rs is then we will make this rs a dependency of that one.
-      return res_i;
-   }
-
-   unsigned tf_required_wait_count = buffer->last_tf_write_count;
-   if (tf_required_wait_count <= rs->tf.waited_count)
-   {
-      // No more waiting is required.
-      return res_i;
-   }
-
-   {
-      uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
-         V3D_CL_FLUSH_TRANSFORM_FEEDBACK_DATA_SIZE +
-         V3D_CL_WAIT_TRANSFORM_FEEDBACK_SIZE +
-         V3D_CL_CLEAR_VCD_CACHE_SIZE +
-         V3D_CL_FLUSH_L2T_SIZE);
-      if (!instr)
-         return NULL;
-
-      /* Need to flush or the TF wait could get stuck waiting forever */
-      v3d_cl_flush_transform_feedback_data(&instr);
-
-      v3d_cl_wait_transform_feedback(&instr, tf_required_wait_count);
-      rs->tf.waited_count = tf_required_wait_count;
-
-      v3d_cl_clear_vcd_cache(&instr);
-
-      /* Attribute data goes through L2T cache */
-      v3d_cl_flush_l2t(&instr, 0, ~0, V3D_L2T_FLUSH_MODE_FLUSH);
-
-      khrn_fmem_end_cle_exact(&rs->fmem, instr);
-   }
-
-   return res_i;
 }
 
 size_t glxx_indexed_binding_point_get_size(const GLXX_INDEXED_BINDING_POINT_T *binding)

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,7 +45,7 @@
 BDBG_MODULE(bape_decoder_ancillary_data);
 
 #if BAPE_CHIP_MAX_DECODERS
-void BAPE_Decoder_P_AdvanceAncDspRead(BAPE_DecoderHandle hDecoder, unsigned amount, void *pBase, void **pRead, unsigned *pNumBytes, unsigned *pNumWrapBytes)
+static void BAPE_Decoder_P_AdvanceAncDspRead(BAPE_DecoderHandle hDecoder, unsigned amount, void *pBase, void **pRead, unsigned *pNumBytes, unsigned *pNumWrapBytes)
 {
     unsigned dspBytes, dspWrapBytes;
     BDBG_MSG(("Consuming %u bytes from DSP buffer (pre-wrap %u post-wrap %u)", amount, *pNumBytes, *pNumWrapBytes));
@@ -70,7 +70,7 @@ void BAPE_Decoder_P_AdvanceAncDspRead(BAPE_DecoderHandle hDecoder, unsigned amou
     *pNumWrapBytes = dspWrapBytes;
 }
 
-BERR_Code BAPE_Decoder_P_ReadAncData(BAPE_DecoderHandle hDecoder, unsigned amount, void *pBuffer, const void *pBase, const void *pRead, unsigned numBytes, unsigned numWrapBytes)
+static BERR_Code BAPE_Decoder_P_ReadAncData(BAPE_DecoderHandle hDecoder, unsigned amount, void *pBuffer, const void *pBase, const void *pRead, unsigned numBytes, unsigned numWrapBytes)
 {
     const uint32_t *pSrc = (const uint32_t *)pRead;
     uint32_t *pDest = (uint32_t *)pBuffer;
@@ -402,22 +402,6 @@ void BAPE_Decoder_P_InitAncillaryDataBuffer(BAPE_DecoderHandle hDecoder)
     hDecoder->ancDataInit = true;
 }
 #else
-void BAPE_Decoder_P_AdvanceAncDspRead(
-    BAPE_DecoderHandle hDecoder,
-    unsigned amount,
-    void *pBase,
-    void **pRead,
-    unsigned *pNumBytes,
-    unsigned *pNumWrapBytes)
-{
-    BSTD_UNUSED(hDecoder);
-    BSTD_UNUSED(amount);
-    BSTD_UNUSED(pBase);
-    BSTD_UNUSED(pRead);
-    BSTD_UNUSED(pNumBytes);
-    BSTD_UNUSED(pNumWrapBytes);
-}
-
 BERR_Code BAPE_Decoder_GetAncillaryDataBuffer(
     BAPE_DecoderHandle hDecoder,
     void **pBuffer, /* [out] pointer to ancillary data buffer */

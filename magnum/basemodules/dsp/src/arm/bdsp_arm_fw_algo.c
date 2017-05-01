@@ -45,13 +45,14 @@ BDBG_MODULE(bdsp_arm_fw_algo);
 
 const uint32_t BDSP_ARM_SystemID_MemoryReqd[BDSP_ARM_SystemImgId_eMax] = {
     BDSP_ARM_IMG_SYSTEM_CODE_SIZE, /*BDSP_SystemImgId_eSystemCode*/
-#if 0
-    BDSP_ARM_IMG_SYSLIB_CODE_SIZE, /*BDSP_SystemImgId_eSyslibCode*/
-    BDSP_ARM_IMG_ALGOLIB_CODE_SIZE, /*BDSP_SystemImgId_eAlgolibCode*/
-    BDSP_ARM_IMG_IDSCOMMON_CODE_SIZE, /*BDSP_SystemImgId_eCommonIdsCode*/
-#endif
+
 };
 
+const char * BDSP_ARM_AlgoFileName[BDSP_ARM_AF_P_AlgoId_eMax] =
+{
+    "/DdpEncoder.so",  /*  BDSP_ARM_AF_P_AlgoId_eDDPEncode */
+    "/DdpEncoderFrameSync.so" /*BDSP_ARM_AF_P_AlgoId_eDDPEncFrameSync */
+};
 
 const BDSP_Arm_P_AlgorithmInfo BDSP_ARM_sAlgorithmInfo[] =
 {
@@ -103,7 +104,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_ARM_sNodeInfo[BDSP_ARM_AF_P_AlgoId_eMax+1] =
     /*  BDSP_ARM_sNodeInfo[BDSP_ARM_AF_P_AlgoId_eDDPEncode] =   */
     /*{ 0,0,0,0,0,0,0,0,0,0,0,0 },*/
     {
-        0,                                              /* ui32CodeSize */
+        BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE,              /* ui32CodeSize */
         BDSP_ARM_IMG_DDP_ENCODE_TABLES_SIZE,            /* ui32RomTableSize */
         BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE,       /* ui32InterFrameBuffSize */
         (1536+BDSP_AF_P_EXTRA_SAMPLES)*4*8,             /* ui32InterStageIoBuffSize */

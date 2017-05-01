@@ -1,40 +1,40 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
- *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- *  Except as expressly set forth in the Authorized License,
- *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
+*
  ******************************************************************************/
 #include "bhdm.h"
 #include "bhdm_priv.h"
@@ -684,7 +684,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 17.1" ;
+	static const char Version[] = "BHDM URSR 17.2" ;
 	return Version ;
 }
 
@@ -1348,11 +1348,6 @@ BERR_Code BHDM_Open(
 
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
 
-
-	/* Create private MHL object */
-#if BHDM_CONFIG_MHL_SUPPORT
-	BHDM_CHECK_RC(rc, BHDM_MHL_P_OpenMhl(hHDMI));
-#endif
 
 	/* Power on PHY */
 	BDBG_MSG(("Power ON HDMI Phy at %d", __LINE__)) ;
@@ -2154,6 +2149,24 @@ ConfigureHdmiPackets:
 			&hHDMI->DeviceSettings.stVendorSpecificInfoFrame)) ;
 	}
 
+#ifdef BCHP_HDMI_HDR_CFG
+	{
+		uint32_t reg;
+		reg = BREG_Read32(hHDMI->hRegister, BCHP_HDMI_HDR_CFG);
+		if(hHDMI->DeviceSettings.stVendorSpecificInfoFrame.bDolbyVisionEnabled)
+		{
+			/* set to Dolby MD mode */
+			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, HDR_RAM_ENABLE, 1);
+			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, MODE, 1); /* DOLBY */
+		} else {
+			/* set to Dolby MD mode */
+			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, HDR_RAM_ENABLE, 0);
+			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, MODE, 0);
+		}
+		BREG_Write32(hHDMI->hRegister, BCHP_HDMI_HDR_CFG, reg);
+	}
+#endif
+
 	/* recenter/initialize the FIFO only if the video format has changed */
 	if (HdmiVideoFormatChange || hHDMI->DeviceSettings.bForceEnableDisplay)
 	{
@@ -2190,10 +2203,6 @@ ConfigureHdmiPackets:
 #endif
 
 	BHDM_MONITOR_P_StartTimers(hHDMI) ;
-
-#if BHDM_CONFIG_MHL_SUPPORT
-	BHDM_CHECK_RC(rc, BHDM_MHL_P_ConfigMhlLink(hHDMI));
-#endif
 
 	hHDMI->DeviceSettings.bForceEnableDisplay = false ;
 	hHDMI->bForcePacketUpdates = false ;
@@ -2300,8 +2309,20 @@ BERR_Code BHDM_Close(
 	return BERR_SUCCESS;
 #endif
 
-#if BHDM_CONFIG_HAS_HDCP22
+	/* if in standby, power up HDMI Tx clock to configure core off */
+#if BCHP_PWR_RESOURCE_HDMI_TX_CLK || BCHP_PWR_RESOURCE_HDMI_TX_1_CLK
+	if (hHDMI->standby)
+	{
+		BCHP_PWR_AcquireResource(hHDMI->hChip, hHDMI->clkPwrResource[hHDMI->eCoreId]);
+	}
+#endif
+
+#if BHDM_HAS_HDMI_20_SUPPORT
 	BHDM_SCDC_DisableScrambleTx(hHDMI) ;
+
+	rc = BHDM_AUTO_I2C_P_FreeResources(hHDMI) ;
+	/* if error, dump trace and continue close of HDMI */
+	if (rc) {rc = BERR_TRACE(rc) ;}
 #endif
 
 	/* make sure display is disabled  */
@@ -2310,20 +2331,12 @@ BERR_Code BHDM_Close(
 		BHDM_DisableDisplay(hHDMI);
 	}
 
-#if BHDM_CONFIG_MHL_SUPPORT
-	BHDM_MHL_P_CloseMhl(hHDMI);
-#endif
-
-	BTMR_StopTimer(hHDMI->TimerHotPlugChange) ;
+	rc = BTMR_StopTimer(hHDMI->TimerHotPlugChange) ;
+	/* if error, dump trace and continue close of HDMI */
+	if (rc) {rc = BERR_TRACE(rc) ;}
 	hHDMI->HpdTimerEnabled = false ;
 
 	BHDM_P_FreeTimers(hHDMI) ;
-
-
-#if BHDM_CONFIG_HAS_HDCP22
-	rc = BHDM_AUTO_I2C_P_FreeResources(hHDMI) ;
-	if (rc) {rc = BERR_TRACE(rc) ; goto done ;}
-#endif
 
 	BHDM_P_DisableInterrupts(hHDMI) ;
 
@@ -2331,7 +2344,9 @@ BERR_Code BHDM_Close(
 	for ( i = 0; i < MAKE_INTR_ENUM(LAST); i++ )
 	{
 		/* all interrupts are now created; destroy all on close */
-		BHDM_CHECK_RC( rc, BINT_DestroyCallback( hHDMI->hCallback[i] ) );
+		rc = BINT_DestroyCallback( hHDMI->hCallback[i] ) ;
+		/* if error, dump trace and continue close of HDMI */
+		if (rc) {rc = BERR_TRACE(rc) ;}
 	}
 
 	/* reset HDCP registers (variables don't matter here) to their initial state */
@@ -2360,12 +2375,16 @@ BERR_Code BHDM_Close(
 	/* Used only for legacy 65nm. not required for 28nm and 40nm */
 #ifdef BCHP_PWR_RESOURCE_HDMI_TX_CEC
 	/* release the CEC	*/
-	BCHP_PWR_ReleaseResource(hHDMI->hChip, BCHP_PWR_RESOURCE_HDMI_TX_CEC);
+	rc = BCHP_PWR_ReleaseResource(hHDMI->hChip, BCHP_PWR_RESOURCE_HDMI_TX_CEC);
+	/* if error, dump trace and continue close of HDMI */
+	if (rc) {rc = BERR_TRACE(rc) ;}
 #endif
 
-#if BCHP_PWR_RESOURCE_HDMI_TX_CLK || BCHP_PWR_RESOURCE_HDMI_TX_1_CLK
 	/*  power down the TX Clock */
-	BCHP_PWR_ReleaseResource(hHDMI->hChip, hHDMI->clkPwrResource[hHDMI->eCoreId]);
+#if BCHP_PWR_RESOURCE_HDMI_TX_CLK || BCHP_PWR_RESOURCE_HDMI_TX_1_CLK
+	rc = BCHP_PWR_ReleaseResource(hHDMI->hChip, hHDMI->clkPwrResource[hHDMI->eCoreId]);
+	/* if error, dump trace and continue close of HDMI */
+	if (rc) {rc = BERR_TRACE(rc) ;}
 #endif
 
 	/* delete previous video descriptors if they exist */
@@ -2391,7 +2410,6 @@ BERR_Code BHDM_Close(
 	BKNI_Free( (void *) hHDMI) ;
 	hHDMI = (BHDM_Handle) NULL ;
 
-done:
 	BDBG_LEAVE(BHDM_Close) ;
 	return rc ;
 }
@@ -3065,20 +3083,10 @@ BERR_Code BHDM_RxDeviceAttached(
 		return rc ;
 	}
 
-#if BHDM_CONFIG_MHL_SUPPORT
-	if (hHDMI->bMhlMode)
-	{
-		status = (uint8_t)hHDMI->hMhl->stCbusState.eLastHpdState;
-	}
-	else
-#endif
-	{
-		/* read hotplug register and check if connected */
-		BKNI_EnterCriticalSection() ;
-			BHDM_P_RxDeviceAttached_isr(hHDMI, &status) ;
-		BKNI_LeaveCriticalSection() ;
-	}
-
+	/* read hotplug register and check if connected */
+	BKNI_EnterCriticalSection() ;
+		BHDM_P_RxDeviceAttached_isr(hHDMI, &status) ;
+	BKNI_LeaveCriticalSection() ;
 
 	if (status) {
 		*bDeviceAttached = 1 ;
@@ -3508,14 +3516,6 @@ BERR_Code BHDM_GetEventHandle(
 #endif
 		break;
 
-#if BHDM_CONFIG_MHL_SUPPORT
-	case BHDM_EventMhlStandby:
-		if (hHDMI->bMhlMode)
-			*pBHDMEvent = hHDMI->hMhl->BHDM_MHL_EventStandby;
-		else
-			*pBHDMEvent = NULL;
-		break;
-#endif
 	default :
 		BDBG_ERR(("BHDM_GetEventHandle: Unknown Event Handle: %d", eEventType)) ;
 		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
@@ -3569,6 +3569,9 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		hHDMI->RxDeviceAttached = 0;
 		hHDMI->hotplugInterruptFired = true;
 
+#if BHDM_HAS_HDMI_20_SUPPORT
+		BKNI_Memset(&hHDMI->stStatusControlData, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
+#endif
 		BHDM_MONITOR_P_HpdChanges_isr(hHDMI) ;
 
 		/* always disable AvMute after a hot plug */
@@ -3585,11 +3588,6 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		/* Set CLEAR_RDB_AUTHENTICATED BIT only - all other bits must be zero */
 		Register = BCHP_FIELD_DATA(HDMI_HDCP_CTL, I_CLEAR_RDB_AUTHENTICATED, 1) ;
 		BREG_Write32(hRegister, BCHP_HDMI_HDCP_CTL + ulOffset, Register) ;
-
-#if BHDM_CONFIG_MHL_SUPPORT
-		/* Call MHL CLR_HPD isr if needed */
-		BHDM_MHL_P_ClearHpdState_isr(hHDMI);
-#endif
 
 	}
 	else /* HOTPLUG_CONNECTED */
@@ -3649,6 +3647,9 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 
 		/* always disable AvMute after a hot plug */
 		hHDMI->AvMuteState = false ;
+#if BHDM_HAS_HDMI_20_SUPPORT
+		BKNI_Memset(&hHDMI->stStatusControlData, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
+#endif
 	}
 	else
 	{
@@ -4608,16 +4609,6 @@ BERR_Code BHDM_InstallHotplugChangeCallback(
 		hHDMI->pvHotplugChangeParm1 = pvParm1 ;
 		hHDMI->iHotplugChangeParm2 = iParm2 ;
 
-#ifdef BHDM_CONFIG_MHL_SUPPORT
-	if (hHDMI->bMhlMode)
-	{
-		/* copy hotplug callback info to MHL object */
-		hHDMI->hMhl->pfHotplugChangeCallback = hHDMI->pfHotplugChangeCallback;
-		hHDMI->hMhl->pvHotplugChangeParm1 = hHDMI->pvHotplugChangeParm1;
-		hHDMI->hMhl->iHotplugChangeParm2 = hHDMI->iHotplugChangeParm2;
-	}
-#endif
-
 	BKNI_LeaveCriticalSection() ;
 
 	BDBG_LEAVE(BHDM_InstallHotplugChangeCallback);
@@ -4642,12 +4633,6 @@ BERR_Code BHDM_UnInstallHotplugChangeCallback(
 
 	BKNI_EnterCriticalSection() ;
 		hHDMI->pfHotplugChangeCallback = (BHDM_CallbackFunc) NULL ;
-#ifdef BHDM_CONFIG_MHL_SUPPORT
-	if (hHDMI->bMhlMode)
-	{
-		hHDMI->hMhl->pfHotplugChangeCallback = (BHDM_CallbackFunc)NULL;
-	}
-#endif
 
 	BKNI_LeaveCriticalSection();
 

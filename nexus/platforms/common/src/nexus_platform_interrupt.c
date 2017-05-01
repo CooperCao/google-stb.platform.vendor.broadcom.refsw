@@ -43,7 +43,6 @@
 
 #include "nexus_types.h"
 #include "nexus_base.h"
-#include "nexus_platform_extint.h"
 #include "nexus_platform_features.h"
 #include "nexus_platform_priv.h"
 #include "priv/nexus_core.h"
@@ -51,21 +50,6 @@
 #include "bchp_hif_cpu_intr1.h"
 
 BDBG_MODULE(nexus_platform_interrupt);
-
-struct NEXUS_ExternalInterrupt
-{
-    NEXUS_ExternalInterruptSettings settings;
-    NEXUS_IsrCallbackHandle callback;
-    bool enabled;
-    bool valid;
-    unsigned irq; /* 0-based bit position (0..63) in L1 register set */
-};
-
-#ifndef NEXUS_EXTIRQ_MAX
-#define NEXUS_EXTIRQ_MAX 5
-#endif
-
-static struct NEXUS_ExternalInterrupt g_NEXUS_ExternalInterrupt[NEXUS_EXTIRQ_MAX];
 
 NEXUS_Error NEXUS_Platform_P_InitInterrupts(void)
 {
@@ -92,30 +76,6 @@ NEXUS_Error NEXUS_Platform_P_InitInterrupts(void)
         }
     }
 
-
-    BKNI_Memset(&g_NEXUS_ExternalInterrupt, 0, sizeof(g_NEXUS_ExternalInterrupt));
-    {
-        unsigned i,extIrqNo;
-        const BINT_P_IntMap *intMap =  g_pCoreHandles->bint_map;/* use BINT's record of external interrupts */
-
-        for (extIrqNo=i=0;;i++) {
-            const BINT_P_IntMap *map = intMap+i;
-            if(map->L1Shift==-1) {
-                break;
-            }
-            if (BINT_MAP_IS_EXTERNAL(map)) {
-                if(extIrqNo >= NEXUS_EXTIRQ_MAX) {
-                    BDBG_WRN(("Exceeded number of slots for external IRQ (%u,%u), ignoring %u", extIrqNo, NEXUS_EXTIRQ_MAX, BINT_MAP_GET_L1SHIFT(map)));
-                    continue;
-                }
-                g_NEXUS_ExternalInterrupt[extIrqNo].valid = true;
-                g_NEXUS_ExternalInterrupt[extIrqNo].irq = BINT_MAP_GET_L1SHIFT(map);
-                extIrqNo++;
-            }
-        }
-        BDBG_MSG(("Found %u external interrupts", extIrqNo));
-    }
-
     return NEXUS_SUCCESS;
 error:
     return rc;
@@ -136,70 +96,3 @@ void NEXUS_Platform_P_UninitInterrupts(void)
     }
     return;
 }
-
-
-void NEXUS_Platform_GetDefaultExternalInterruptSettings( NEXUS_ExternalInterruptSettings *pSettings )
-{
-    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    NEXUS_CallbackDesc_Init(&pSettings->callback);
-}
-
-static void NEXUS_Platform_P_ExternalInterrupt_isr(void *context, int param)
-{
-    BSTD_UNUSED(param);
-    NEXUS_IsrCallback_Fire_isr(((struct NEXUS_ExternalInterrupt*)context)->callback);
-}
-
-NEXUS_Error NEXUS_Platform_EnableExternalInterrupt( unsigned interruptId, const NEXUS_ExternalInterruptSettings *pSettings )
-{
-    NEXUS_Error rc;
-    struct NEXUS_ExternalInterrupt *handle;
-
-    if (interruptId >= NEXUS_EXTIRQ_MAX || !g_NEXUS_ExternalInterrupt[interruptId].valid ){
-        BDBG_ERR(("invalid external interrupt %u", interruptId));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-
-    handle = &g_NEXUS_ExternalInterrupt[interruptId];
-    if (handle->enabled) {
-        BDBG_WRN(("External interrupt %u already enabled", interruptId));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-
-    handle->settings = *pSettings;
-    handle->callback = NEXUS_IsrCallback_Create(NULL, NULL);
-    NEXUS_IsrCallback_Set(handle->callback, &pSettings->callback);
-    rc = NEXUS_Platform_P_ConnectInterrupt(handle->irq, NEXUS_Platform_P_ExternalInterrupt_isr, handle, 0);
-    if (!rc) {
-        rc = NEXUS_Platform_P_EnableInterrupt(handle->irq);
-    }
-    if (!rc) {
-        handle->enabled = true;
-    }
-
-    return rc;
-}
-
-void NEXUS_Platform_DisableExternalInterrupt( unsigned interruptId )
-{
-    struct NEXUS_ExternalInterrupt *handle;
-
-    if (interruptId >= NEXUS_EXTIRQ_MAX || !g_NEXUS_ExternalInterrupt[interruptId].valid ){
-        BDBG_ERR(("invalid external interrupt %u", interruptId));
-        return;
-    }
-
-    handle = &g_NEXUS_ExternalInterrupt[interruptId];
-
-    if (!handle->enabled) {
-        BDBG_WRN(("External interrupt %u not enabled", interruptId));
-        return;
-    }
-
-    NEXUS_Platform_P_DisableInterrupt(handle->irq);
-    NEXUS_Platform_P_DisconnectInterrupt(handle->irq);
-    NEXUS_IsrCallback_Destroy(handle->callback);
-    handle->enabled = false;
-}
-
-

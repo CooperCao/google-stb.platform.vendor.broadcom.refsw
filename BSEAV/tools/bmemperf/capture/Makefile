@@ -49,7 +49,7 @@ NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 BSEAV = $(shell cd ../../../;pwd)
 magnum = $(shell cd ../../../../magnum;pwd)
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 ifeq ($(B_REFSW_ARCH),)
@@ -94,6 +94,7 @@ APP_CFLAGS += -DUSE_BOXMODES
 
 # Added for aarch64-linux-gcc
 APP_CFLAGS += -D_LINUX_TYPES_H
+APP_CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 
 install: all
 	@echo [Installing .. $< for $(B_THIS_DIR)]
@@ -108,7 +109,7 @@ clean:
 all:	boa bmemperf_capture
 
 boa:
-	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa
+	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa
 
 ### the awk command returns some type of error code to the Makefile; added echo at the end to signal to Makefile that awk command was successful
 $(BINDIR)/bmemperf_info.c :

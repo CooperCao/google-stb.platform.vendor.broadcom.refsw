@@ -189,6 +189,11 @@ static inline uint32_t gfx_umin3(uint32_t x, uint32_t y, uint32_t z)
    return gfx_umin(gfx_umin(x, y), z);
 }
 
+static inline uint64_t gfx_umin64(uint64_t x, uint64_t y)
+{
+   return (x < y) ? x : y;
+}
+
 static inline uint32_t gfx_umax(uint32_t x, uint32_t y)
 {
    return (x > y) ? x : y;
@@ -197,6 +202,11 @@ static inline uint32_t gfx_umax(uint32_t x, uint32_t y)
 static inline uint32_t gfx_umax3(uint32_t x, uint32_t y, uint32_t z)
 {
    return gfx_umax(gfx_umax(x, y), z);
+}
+
+static inline uint64_t gfx_umax64(uint64_t x, uint64_t y)
+{
+   return (x > y) ? x : y;
 }
 
 static inline uint32_t gfx_uclamp(uint32_t x, uint32_t min, uint32_t max)
@@ -458,11 +468,23 @@ static inline uint32_t gfx_uround_up_p2(uint32_t x, uint32_t y)
    return (x + (y - 1)) & ~(y - 1);
 }
 
+static inline uint32_t gfx_udiv_p2(uint32_t x, uint32_t y)
+{
+   return x >> gfx_log2(y);
+}
+
 static inline uint32_t gfx_udiv_round_up(uint32_t x, uint32_t y)
 {
    if (x == 0)
       return 0;
    return ((x - 1) / y) + 1;
+}
+
+static inline uint32_t gfx_udiv_round_up_p2(uint32_t x, uint32_t y)
+{
+   if (x == 0)
+      return 0;
+   return gfx_udiv_p2(x - 1, y) + 1;
 }
 
 static inline size_t gfx_zdiv_round_up(size_t x, size_t y)

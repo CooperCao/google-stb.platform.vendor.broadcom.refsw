@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 13:34:46 2016
- *                 Full Compile MD5 Checksum  02a2e6535d9af6e880ca1fca1d68c27e
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               463ec2fc88e93530417314b96f2b8292
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,37 +70,37 @@
 /***************************************************************************
  *HDMI_TX_PHY - HDMI Tx Analog Phy
  ***************************************************************************/
-#define BCHP_HDMI_TX_PHY_RESET_CTL               0x206f8e00 /* [RW] HDMI TX Analog Phy Reset Control */
-#define BCHP_HDMI_TX_PHY_POWERDOWN_CTL           0x206f8e04 /* [RW] HDMI TX Analog Phy Powerdown Control */
-#define BCHP_HDMI_TX_PHY_CTL_0                   0x206f8e08 /* [RW] HDMI TX Analog Phy Configuration and Control 0 */
-#define BCHP_HDMI_TX_PHY_CTL_1                   0x206f8e0c /* [RW] HDMI TX Analog Phy Configuration and Control 1 */
-#define BCHP_HDMI_TX_PHY_CTL_2                   0x206f8e10 /* [RW] HDMI TX Analog Phy Configuration and Control 2 */
-#define BCHP_HDMI_TX_PHY_CTL_3                   0x206f8e14 /* [RW] HDMI TX Analog Phy Configuration and Control 3 */
-#define BCHP_HDMI_TX_PHY_CTL_4                   0x206f8e18 /* [RW] HDMI TX Analog Phy Configuration and Control 4 */
-#define BCHP_HDMI_TX_PHY_PLL_CTL_0               0x206f8e1c /* [RW] HDMI TX Analog Phy PLL Configuration and Control 0 */
-#define BCHP_HDMI_TX_PHY_PLL_CTL_1               0x206f8e20 /* [RW] HDMI TX Analog Phy PLL Configuration and Control 1 */
-#define BCHP_HDMI_TX_PHY_PLL_CLK_DISABLE         0x206f8e24 /* [RW] HDMI TX Analog Phy output clock enable */
-#define BCHP_HDMI_TX_PHY_CLK_DIV                 0x206f8e28 /* [RW] HDMI TX Analog Phy output clock divider */
-#define BCHP_HDMI_TX_PHY_SSC_CFG_0               0x206f8e2c /* [RW] HDMI TX Analog Phy Spread Spectrum configuration register 0 */
-#define BCHP_HDMI_TX_PHY_SSC_CFG_1               0x206f8e30 /* [RW] HDMI TX Analog Phy Spread Spectrum configuration register 1 */
-#define BCHP_HDMI_TX_PHY_PLL_CFG                 0x206f8e34 /* [RW] HDMI TX PLL Configuration Register */
-#define BCHP_HDMI_TX_PHY_TMDS_CFG_0              0x206f8e38 /* [RW] HDMI TX Phy TMDS Configuration Register 0 */
-#define BCHP_HDMI_TX_PHY_TMDS_CFG_1              0x206f8e3c /* [RW] HDMI TX Phy TMDS Configuration Register 1 */
-#define BCHP_HDMI_TX_PHY_TMDS_CFG_2              0x206f8e40 /* [RW] HDMI TX Phy TMDS Configuration Register 2 */
-#define BCHP_HDMI_TX_PHY_TMDS_CLK_WORD_SEL       0x206f8e44 /* [RW] HDMI TX TMDS CLK WORD select */
-#define BCHP_HDMI_TX_PHY_STATUS                  0x206f8e48 /* [RO] HDMI TX Status register */
-#define BCHP_HDMI_TX_PHY_CHANNEL_SWAP            0x206f8e4c /* [RW] HDMI TX Phy Channel Swap and Invert Control Register. */
-#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1 0x206f8e50 /* [RW] HDMI TX Phy calibration configuration 1 */
-#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_2 0x206f8e54 /* [RW] HDMI TX Phy calibration configuration 2 */
-#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_3 0x206f8e58 /* [RW] HDMI TX Phy calibration configuration 3 */
-#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_4 0x206f8e5c /* [RW] HDMI TX Phy calibration configuration 4 */
-#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_STATUS_1 0x206f8e60 /* [RO] HDMI TX Phy calibration status 1 */
-#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_STATUS_2 0x206f8e64 /* [RO] HDMI TX Phy calibration status 2 */
-#define BCHP_HDMI_TX_PHY_RSEN_CTL                0x206f8e68 /* [RW] HDMI TX PHY RSEN Control Register */
-#define BCHP_HDMI_TX_PHY_RSEN_STATUS             0x206f8e6c /* [RO] HDMI TX PHY RSEN Status Register */
-#define BCHP_HDMI_TX_PHY_MHL_CTL_0               0x206f8e70 /* [RW] HDMI TX PHY MHL Control Register 0 */
-#define BCHP_HDMI_TX_PHY_MHL_CTL_1               0x206f8e74 /* [RW] HDMI TX PHY MHL Control Register 1 */
-#define BCHP_HDMI_TX_PHY_SPARE_REG2              0x206f8e7c /* [RW] SPARE_REG2   Register */
+#define BCHP_HDMI_TX_PHY_RESET_CTL               0x206f8e00 /* [RW][32] HDMI TX Analog Phy Reset Control */
+#define BCHP_HDMI_TX_PHY_POWERDOWN_CTL           0x206f8e04 /* [RW][32] HDMI TX Analog Phy Powerdown Control */
+#define BCHP_HDMI_TX_PHY_CTL_0                   0x206f8e08 /* [RW][32] HDMI TX Analog Phy Configuration and Control 0 */
+#define BCHP_HDMI_TX_PHY_CTL_1                   0x206f8e0c /* [RW][32] HDMI TX Analog Phy Configuration and Control 1 */
+#define BCHP_HDMI_TX_PHY_CTL_2                   0x206f8e10 /* [RW][32] HDMI TX Analog Phy Configuration and Control 2 */
+#define BCHP_HDMI_TX_PHY_CTL_3                   0x206f8e14 /* [RW][32] HDMI TX Analog Phy Configuration and Control 3 */
+#define BCHP_HDMI_TX_PHY_CTL_4                   0x206f8e18 /* [RW][32] HDMI TX Analog Phy Configuration and Control 4 */
+#define BCHP_HDMI_TX_PHY_PLL_CTL_0               0x206f8e1c /* [RW][32] HDMI TX Analog Phy PLL Configuration and Control 0 */
+#define BCHP_HDMI_TX_PHY_PLL_CTL_1               0x206f8e20 /* [RW][32] HDMI TX Analog Phy PLL Configuration and Control 1 */
+#define BCHP_HDMI_TX_PHY_PLL_CLK_DISABLE         0x206f8e24 /* [RW][32] HDMI TX Analog Phy output clock enable */
+#define BCHP_HDMI_TX_PHY_CLK_DIV                 0x206f8e28 /* [RW][32] HDMI TX Analog Phy output clock divider */
+#define BCHP_HDMI_TX_PHY_SSC_CFG_0               0x206f8e2c /* [RW][32] HDMI TX Analog Phy Spread Spectrum configuration register 0 */
+#define BCHP_HDMI_TX_PHY_SSC_CFG_1               0x206f8e30 /* [RW][32] HDMI TX Analog Phy Spread Spectrum configuration register 1 */
+#define BCHP_HDMI_TX_PHY_PLL_CFG                 0x206f8e34 /* [RW][32] HDMI TX PLL Configuration Register */
+#define BCHP_HDMI_TX_PHY_TMDS_CFG_0              0x206f8e38 /* [RW][32] HDMI TX Phy TMDS Configuration Register 0 */
+#define BCHP_HDMI_TX_PHY_TMDS_CFG_1              0x206f8e3c /* [RW][32] HDMI TX Phy TMDS Configuration Register 1 */
+#define BCHP_HDMI_TX_PHY_TMDS_CFG_2              0x206f8e40 /* [RW][32] HDMI TX Phy TMDS Configuration Register 2 */
+#define BCHP_HDMI_TX_PHY_TMDS_CLK_WORD_SEL       0x206f8e44 /* [RW][32] HDMI TX TMDS CLK WORD select */
+#define BCHP_HDMI_TX_PHY_STATUS                  0x206f8e48 /* [RO][32] HDMI TX Status register */
+#define BCHP_HDMI_TX_PHY_CHANNEL_SWAP            0x206f8e4c /* [RW][32] HDMI TX Phy Channel Swap and Invert Control Register. */
+#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1 0x206f8e50 /* [RW][32] HDMI TX Phy calibration configuration 1 */
+#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_2 0x206f8e54 /* [RW][32] HDMI TX Phy calibration configuration 2 */
+#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_3 0x206f8e58 /* [RW][32] HDMI TX Phy calibration configuration 3 */
+#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_4 0x206f8e5c /* [RW][32] HDMI TX Phy calibration configuration 4 */
+#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_STATUS_1 0x206f8e60 /* [RO][32] HDMI TX Phy calibration status 1 */
+#define BCHP_HDMI_TX_PHY_PLL_CALIBRATION_STATUS_2 0x206f8e64 /* [RO][32] HDMI TX Phy calibration status 2 */
+#define BCHP_HDMI_TX_PHY_RSEN_CTL                0x206f8e68 /* [RW][32] HDMI TX PHY RSEN Control Register */
+#define BCHP_HDMI_TX_PHY_RSEN_STATUS             0x206f8e6c /* [RO][32] HDMI TX PHY RSEN Status Register */
+#define BCHP_HDMI_TX_PHY_MHL_CTL_0               0x206f8e70 /* [RW][32] HDMI TX PHY MHL Control Register 0 */
+#define BCHP_HDMI_TX_PHY_MHL_CTL_1               0x206f8e74 /* [RW][32] HDMI TX PHY MHL Control Register 1 */
+#define BCHP_HDMI_TX_PHY_SPARE_REG2              0x206f8e7c /* [RW][32] SPARE_REG2   Register */
 
 /***************************************************************************
  *RESET_CTL - HDMI TX Analog Phy Reset Control

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,35 +58,10 @@
 
 BDBG_MODULE(thumbdecoder);
 
-struct bfile_io_partial_read_stdio {
-    struct bfile_io_read ops; /* shall be the first member */
-    FILE *fin;
-    unsigned len; /* only allow reading this number of bytes */
-};
-
-static ssize_t
-b_partial_stdio_read(bfile_io_read_t fd, void *buf, size_t length)
-{
-    struct bfile_io_partial_read_stdio *f=(void *)fd;
-    if (length > f->len) {
-        length = f->len;
-    }
-    f->len -= length;
-    return fread(buf, 1, length, f->fin);
-}
-
-static const struct bfile_io_read b_stdio_read_ops = {
-    b_partial_stdio_read,
-    NULL,
-    NULL,
-    BIO_DEFAULT_PRIORITY
-};
-
 struct thumbdecoder
 {
     FILE *stdio_indexfile, *stdio_datafile;
     bfile_io_read_t indexfile, datafile;
-    struct bfile_io_partial_read_stdio partial_read;
     bthumbnail_extractor_t thumbnail_extractor;
 
     NEXUS_Graphics2DHandle gfx;
@@ -96,6 +71,7 @@ struct thumbdecoder
     BKNI_EventHandle stillDecoderEvent;
     struct probe_results results;
     bool cancel;
+    NEXUS_VideoDecoderCapabilities cap;
 };
 
 static void complete(void *context, int unused)
@@ -161,12 +137,7 @@ thumbdecoder_t thumbdecoder_open(void)
         goto error;
     }
     
-    /* TODO: use simple decoder and video-as-graphics. */
-    handle->stillDecoder = NEXUS_StillDecoder_Open(NULL, 0, NULL);
-    if (!handle->stillDecoder) {
-        BERR_TRACE(NEXUS_UNKNOWN);
-        goto error;
-    }
+    NEXUS_GetVideoDecoderCapabilities(&handle->cap);
     
     return handle;
     
@@ -178,9 +149,6 @@ error:
 void thumbdecoder_close(thumbdecoder_t handle)
 {
     thumbdecoder_close_file(handle);
-    if (handle->stillDecoder) {
-        NEXUS_StillDecoder_Close(handle->stillDecoder);
-    }
     if (handle->playpump) {
         NEXUS_Playpump_Close(handle->playpump);
     }
@@ -201,10 +169,30 @@ int thumbdecoder_open_file( thumbdecoder_t handle, const char *streamname, const
     bthumbnail_extractor_create_settings create_settings;
     bthumbnail_extractor_settings settings;
     int rc;
+    NEXUS_StillDecoderOpenSettings stillDecoderOpenSettings;
     
     BDBG_MSG(("thumbdecoder_open_file %s %s", streamname, indexname));
     rc = probe_media(streamname, &handle->results);
     if (rc) {
+        goto error;
+    }
+
+    if (!handle->results.num_video) {
+        rc = -1;
+        goto error;
+    }
+
+    if (!handle->cap.memory[0].supportedCodecs[handle->results.video[0].codec]) {
+        rc = -1;
+        goto error;
+    }
+
+    NEXUS_StillDecoder_GetDefaultOpenSettings(&stillDecoderOpenSettings);
+    stillDecoderOpenSettings.maxWidth = handle->results.video[0].width;
+    stillDecoderOpenSettings.maxHeight = handle->results.video[0].height;
+    handle->stillDecoder = NEXUS_StillDecoder_Open(NULL, 0, &stillDecoderOpenSettings);
+    if (!handle->stillDecoder) {
+        rc = BERR_TRACE(NEXUS_UNKNOWN);
         goto error;
     }
 
@@ -229,41 +217,7 @@ int thumbdecoder_open_file( thumbdecoder_t handle, const char *streamname, const
         int n;
         unsigned packetSize = handle->results.timestampType == NEXUS_TransportTimestampType_eNone ? 188 : 192;
         /* for unindexed TS files, attempt an on-the-fly index to get the first I frame. */
-        read = botf_bcmindexer_open(streamname, handle->results.video[0].pid, handle->results.video[0].codec, packetSize);
-        if (read) {
-            /* first NAV entry should be I frame with metadata */
-            n = read->read(read, &nav, sizeof(nav));
-            botf_bcmindexer_close(read);
-            if (n > 0) {
-                unsigned offset = BNAV_get_frameOffsetLo(&nav); /* ignore hi */
-                unsigned size = BNAV_get_frameSize(&nav);
-                unsigned backup;
-                if (handle->results.video[0].codec == NEXUS_VideoCodec_eMpeg2) {
-                    backup = BNAV_get_seqHdrStartOffset(&nav);
-                }
-                else {
-                    backup = BNAV_get_SPS_Offset(&nav);
-                }
-                BDBG_MSG(("found I frame: %d %d with backup %d", offset, size, backup));
-                offset -= backup;
-                size += backup;
-                /* packet align */
-                if (offset % packetSize) {
-                    size += offset % packetSize;
-                    offset -= offset % packetSize;
-                }
-                if (size % packetSize) {
-                    size += packetSize - (size % packetSize);
-                }
-                /* cancel full read and setup partial read so still decoder sees exactly one picture */
-                bfile_stdio_read_detach(handle->datafile);
-                handle->datafile = NULL;
-                fseek(handle->stdio_datafile, offset, SEEK_SET);
-                handle->partial_read.ops = b_stdio_read_ops;
-                handle->partial_read.len = size;
-                handle->partial_read.fin = handle->stdio_datafile;
-            }
-        }
+        handle->indexfile = botf_bcmindexer_open(streamname, handle->results.video[0].pid, handle->results.video[0].codec, packetSize);
     }
 
     bthumbnail_extractor_get_default_create_settings(&create_settings);
@@ -279,7 +233,7 @@ int thumbdecoder_open_file( thumbdecoder_t handle, const char *streamname, const
     settings.timestampType = handle->results.timestampType;
     settings.videoPid = handle->results.video[0].pid;
     settings.playpump = handle->playpump;
-    settings.datafile = handle->datafile ? handle->datafile : &handle->partial_read.ops;
+    settings.datafile = handle->datafile;
     settings.indexfile = handle->indexfile;
     rc = bthumbnail_extractor_set_settings(handle->thumbnail_extractor, &settings);
     if (rc) {
@@ -308,13 +262,23 @@ void thumbdecoder_close_file( thumbdecoder_t handle )
         fclose(handle->stdio_datafile);
         handle->stdio_datafile = NULL;
     }
-    if (handle->indexfile) {
-        bfile_stdio_read_detach(handle->indexfile);
-        handle->indexfile = NULL;
-    }
     if (handle->stdio_indexfile) {
+        if (handle->indexfile) {
+            bfile_stdio_read_detach(handle->indexfile);
+            handle->indexfile = NULL;
+        }
         fclose(handle->stdio_indexfile);
         handle->stdio_indexfile = NULL;
+    }
+    else {
+        if (handle->indexfile) {
+            botf_bcmindexer_close(handle->indexfile);
+            handle->indexfile = NULL;
+        }
+    }
+    if (handle->stillDecoder) {
+        NEXUS_StillDecoder_Close(handle->stillDecoder);
+        handle->stillDecoder = NULL;
     }
 }
 

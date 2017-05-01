@@ -105,5 +105,9 @@ int         Bsysperf_WifiPrintAntennas( ANTENNAS_T *antennas );
 int         Bsysperf_WifiGetRssiAnt( const char *ifname, BSYSPERF_PHY_RSSI_ANT_T *pRssiAnt );
 int         Bsysperf_WifiGetDriverVersion( const char *ifname, char *strDriverVersion, int iDriverVersionLen );
 int         Bsysperf_WifiClearCounters( const char *ifname );
+int         Bsysperf_WifiWakeOnWlanSend( const char *ifname, const char *macAddress );
+bool        Bsysperf_WifiDriverIsLoaded ( void );
+char       *Bsysperf_GetTimeNowStr ( void );
+int         Bsysperf_WifiGetMacAssocList( const char *ifname, BWL_MAC_ADDRESS *outputList, int outputListLen );
 
 #endif /* __BSYSPERF_WIFI_H__ */

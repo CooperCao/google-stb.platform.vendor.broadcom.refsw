@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Functions to support selecting EGL configurations.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/include/EGL/eglext.h"
@@ -190,7 +182,7 @@ static bool bindable_rgba(FEATURES_T features);
 #define FEATURES_UNPACK_ANDROID_RECORDABLE(c)            ((EGLint)((c)      & 0x1))
 #define FEATURES_UNPACK_COLOR(c)                         (FEATURES_UNPACK_RED(c)+FEATURES_UNPACK_GREEN(c)+FEATURES_UNPACK_BLUE(c)+FEATURES_UNPACK_ALPHA(c))
 
-bool egl_config_check_attribs(const EGLint *attrib_list, bool *use_red, bool *use_green, bool *use_blue, bool *use_alpha)
+bool egl_config_check_attribs(const EGLint *attrib_list)
 {
    if (!attrib_list)
       return true;
@@ -198,18 +190,6 @@ bool egl_config_check_attribs(const EGLint *attrib_list, bool *use_red, bool *us
    while (*attrib_list != EGL_NONE) {
       EGLint name = *attrib_list++;
       EGLint value = *attrib_list++;
-
-      if (name == EGL_RED_SIZE && value != 0 && value != EGL_DONT_CARE)
-         *use_red = true;
-
-      if (name == EGL_GREEN_SIZE && value != 0 && value != EGL_DONT_CARE)
-         *use_green = true;
-
-      if (name == EGL_BLUE_SIZE && value != 0 && value != EGL_DONT_CARE)
-         *use_blue = true;
-
-      if (name == EGL_ALPHA_SIZE && value != 0 && value != EGL_DONT_CARE)
-         *use_alpha = true;
 
       switch (name) {
       case EGL_BUFFER_SIZE:

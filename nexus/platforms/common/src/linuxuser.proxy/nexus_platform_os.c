@@ -90,8 +90,7 @@
 #include "bvce_image.h"
 #endif
 #if NEXUS_HAS_SAGE
-extern void *SAGE_IMAGE_Context;
-extern BIMG_Interface SAGE_IMAGE_Interface;
+#include "../src/nexus_sage_image.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 extern void *HDMI_OUTPUT_IMAGE_Context;
 extern BIMG_Interface HDMI_OUTPUT_IMAGE_Interface;
@@ -739,6 +738,9 @@ NEXUS_Platform_GetDefaultSettings_tagged(NEXUS_PlatformSettings *pSettings, size
 
     /* call the proxy version */
     NEXUS_Platform_GetDefaultSettings_tagged_proxy(pSettings, size);
+#if NEXUS_HAS_SAGE
+    NEXUS_SageImage_SetImageExists_priv(&pSettings->sageModuleSettings);
+#endif
 #if NEXUS_HAS_FILE
     {
         NEXUS_FileModuleSettings fileModuleSettings;

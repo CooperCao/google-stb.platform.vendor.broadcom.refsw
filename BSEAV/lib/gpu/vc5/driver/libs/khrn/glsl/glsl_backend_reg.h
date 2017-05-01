@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 #include <stdbool.h>
 
@@ -9,7 +8,7 @@ typedef enum backend_reg
 {
    REG_UNDECIDED,
 
-   REG_R0_, REG_R1_, REG_R2_, REG_R3_, REG_R4_, REG_R5_,
+   _REG_R0, _REG_R1, _REG_R2, _REG_R3, _REG_R4, _REG_R5,
 
    REG_RF0,  REG_RF1,  REG_RF2,  REG_RF3,  REG_RF4,  REG_RF5,  REG_RF6,  REG_RF7,  REG_RF8,  REG_RF9,
    REG_RF10, REG_RF11, REG_RF12, REG_RF13, REG_RF14, REG_RF15, REG_RF16, REG_RF17, REG_RF18, REG_RF19,
@@ -33,6 +32,9 @@ typedef enum backend_reg
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    REG_MAGIC_TMU        = REG_MAGIC_BASE + 9,
    REG_MAGIC_TMUL       = REG_MAGIC_BASE + 10,
+#endif
+#if V3D_HAS_LDUNIFRF
+   REG_MAGIC_UNIFA      = REG_MAGIC_BASE + 9,
 #endif
    REG_MAGIC_TMUD       = REG_MAGIC_BASE + 11,
    REG_MAGIC_TMUA       = REG_MAGIC_BASE + 12,
@@ -59,20 +61,22 @@ typedef enum backend_reg
    REG_MAGIC_TMUSCM     = REG_MAGIC_BASE + 40,
    REG_MAGIC_TMUSF      = REG_MAGIC_BASE + 41,
    REG_MAGIC_TMUSLOD    = REG_MAGIC_BASE + 42,
-# if V3D_VER_AT_LEAST(4,0,2,0)
    REG_MAGIC_TMUHS      = REG_MAGIC_BASE + 43,
    REG_MAGIC_TMUHSCM    = REG_MAGIC_BASE + 44,
    REG_MAGIC_TMUHSF     = REG_MAGIC_BASE + 45,
    REG_MAGIC_TMUHSLOD   = REG_MAGIC_BASE + 46,
-# endif
+#endif
+
+#if V3D_HAS_R5REP
+   REG_MAGIC_R5REP      = REG_MAGIC_BASE + 55,
 #endif
 
 } backend_reg;
 
-static inline backend_reg REG_R(unsigned n)  { return (backend_reg)(REG_R0_ + n); }
+static inline backend_reg REG_R(unsigned n)  { return (backend_reg)(_REG_R0 + n); }
 static inline backend_reg REG_RF(unsigned n) { return (backend_reg)(REG_RF0 + n); }
 
-static inline bool IS_R(backend_reg r)       { return r >= REG_R0_ && r <= REG_R5_; }
+static inline bool IS_R(backend_reg r)       { return r >= _REG_R0 && r <= _REG_R5; }
 static inline bool IS_RF(backend_reg  r)     { return r >= REG_RF0 && r <= REG_RF63; }
 static inline bool IS_RRF(backend_reg r)     { return IS_R(r) || IS_RF(r); }
 static inline bool IS_FLAG(backend_reg r)    { return r == REG_FLAG_A || r == REG_FLAG_B; }

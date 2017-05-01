@@ -1,45 +1,6 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "pg_longscrolling.h"
 #include "pg_gui_display.h"
 #include "pg.h"
@@ -71,10 +32,10 @@ LongScrolling::~LongScrolling(void)
 
 }
 
-void LongScrolling::Init(App *theApp, 
-                           pg::Controller *controller, 
-                           const bsg::Mat4 &projectionMatrix, 
-                           float programWindowWidth, 
+void LongScrolling::Init(App *theApp,
+                           pg::Controller *controller,
+                           const bsg::Mat4 &projectionMatrix,
+                           float programWindowWidth,
                            float programWindowHeight)
 {
    m_pTheApp = theApp;
@@ -86,7 +47,7 @@ void LongScrolling::Init(App *theApp,
    m_screen_height = m_pTheApp->GetOptions().GetHeight();
    m_screen_width = m_pTheApp->GetOptions().GetWidth();
 
-   // The CallBack object is own by the Node so the pointer should be 
+   // The CallBack object is own by the Node so the pointer should be
    // deleted by the SceneNodeHandle
    m_pCallBackModelViewMatrix = new (MyCallbackModelViewMatrix);
    m_pCallBackModelViewMatrix->SetLongScrolling(this);
@@ -105,7 +66,7 @@ void LongScrolling::AddSceneNodes()
    pgScrollingStartEffect->Load("pg_longscrolling_start.bfx");
    m_pgScrollingStartTex->SetAutoMipmap(false);
    MaterialHandle pgScrollingStartMaterial(New, "PgLongScrollingStartPanel");
-   pgScrollingStartMaterial->SetEffect(pgScrollingStartEffect); 
+   pgScrollingStartMaterial->SetEffect(pgScrollingStartEffect);
    pgScrollingStartMaterial->SetTexture("u_tex", m_pgScrollingStartTex);
 
    // Object for the end region
@@ -113,20 +74,20 @@ void LongScrolling::AddSceneNodes()
    pgScrollingEndEffect->Load("pg_longscrolling_end.bfx");
    m_pgScrollingEndTex->SetAutoMipmap(false);
    MaterialHandle pgScrollingEndMaterial(New, "PgLongScrollingEndPanel");
-   pgScrollingEndMaterial->SetEffect(pgScrollingEndEffect); 
+   pgScrollingEndMaterial->SetEffect(pgScrollingEndEffect);
    pgScrollingEndMaterial->SetTexture("u_tex", m_pgScrollingEndTex);
 
    // Geometry used to display the long scrolling
-   GeometryHandle scrollingStartRect = QuadFactory(Vec2(-m_programWindowWidth/2, -m_programWindowHeight/2), 
-                                            Vec2( m_programWindowWidth/2,  m_programWindowHeight/2 + ChannelStride() * 1.0f), 
+   GeometryHandle scrollingStartRect = QuadFactory(Vec2(-m_programWindowWidth/2, -m_programWindowHeight/2),
+                                            Vec2( m_programWindowWidth/2,  m_programWindowHeight/2 + ChannelStride() * 1.0f),
                                             0.0f, eZ_AXIS).MakeGeometry(pgScrollingStartMaterial);
 
    // This object is created according to the type of animation selected
    GeometryHandle scrollingEndRect;
    if (!s_peelOffLongScrollAnim)
    {
-      scrollingEndRect = QuadFactory(Vec2(3 * -(m_programWindowWidth/2), -m_programWindowHeight/2), 
-                                               Vec2( -m_programWindowWidth/2,  m_programWindowHeight/2 + ChannelStride() * 1.0f), 
+      scrollingEndRect = QuadFactory(Vec2(3 * -(m_programWindowWidth/2), -m_programWindowHeight/2),
+                                               Vec2( -m_programWindowWidth/2,  m_programWindowHeight/2 + ChannelStride() * 1.0f),
                                                0.0f, eZ_AXIS).MakeGeometry(pgScrollingEndMaterial);
       scrollingEndRect->SetSortPriority(OVERLAY);
    }
@@ -179,8 +140,8 @@ void LongScrolling::CopyToTexture(bool copyStartScreen)
    Vec4 br_corner_view = m_projectionMat * m_programsModelViewMat * br_corner;
 
    // Vector in homogenous view space
-   bsg::Vec3 tl_corner_view_proj(tl_corner_view.Proj()); 
-   bsg::Vec3 br_corner_view_proj(br_corner_view.Proj()); 
+   bsg::Vec3 tl_corner_view_proj(tl_corner_view.Proj());
+   bsg::Vec3 br_corner_view_proj(br_corner_view.Proj());
 
    // Vectors in screen space
    bsg::Vec2 tl_screen(m_screen_width  * (tl_corner_view_proj.X() + 1 ) / 2, m_screen_height  * (tl_corner_view_proj.Y() + 1 ) / 2);
@@ -193,23 +154,23 @@ void LongScrolling::CopyToTexture(bool copyStartScreen)
    // Copy an area of the frame buffer into one of the two textures
    if (copyStartScreen)
    {
-      m_pgScrollingStartTex->CopyTexImage(uint32_t(tl_screen.X()), 
-                                             uint32_t(br_screen.Y()), 
-                                             uint32_t(view_prog_width)+1, 
+      m_pgScrollingStartTex->CopyTexImage(uint32_t(tl_screen.X()),
+                                             uint32_t(br_screen.Y()),
+                                             uint32_t(view_prog_width)+1,
                                              uint32_t(view_prog_height)+1);
    }
    else
    {
-      m_pgScrollingEndTex->CopyTexImage(uint32_t(tl_screen.X()), 
-                                             uint32_t(br_screen.Y()), 
-                                             uint32_t(view_prog_width+1), 
+      m_pgScrollingEndTex->CopyTexImage(uint32_t(tl_screen.X()),
+                                             uint32_t(br_screen.Y()),
+                                             uint32_t(view_prog_width+1),
                                              uint32_t(view_prog_height+1));
    }
 }
 
-bsg::AnimBindingBase * LongScrolling::RenderScene(bsg::SceneNodeHandle rootNode, 
-                                                      GUIDisplay &guiDisplay, 
-                                                      bsg::Time now, 
+bsg::AnimBindingBase * LongScrolling::RenderScene(bsg::SceneNodeHandle rootNode,
+                                                      GUIDisplay &guiDisplay,
+                                                      bsg::Time now,
                                                       float activeRegionWidth,
                                                       AnimationDoneNotifier *notifier)
 {
@@ -231,7 +192,7 @@ bsg::AnimBindingBase * LongScrolling::RenderScene(bsg::SceneNodeHandle rootNode,
 
       // Remove the background to get the textures
       m_pTheApp->BackdropVisible(false);
-            
+
       // Render the tree without any program selected
       m_pTheApp->RenderSceneGraph(rootNode);
 
@@ -276,7 +237,7 @@ bsg::AnimBindingBase * LongScrolling::RenderScene(bsg::SceneNodeHandle rootNode,
 
       // Render the first frame of the animation
       m_pTheApp->RenderSceneGraph(rootNode);
-      
+
       // Create the animation
       animStart = new AnimBindingHermiteVec3(&m_scrollingAnimated->GetPosition());
       animStart->Interpolator()->Init(now, now + Metrics::GetPageScrollTime(), BaseInterpolator::eLIMIT, notifier);

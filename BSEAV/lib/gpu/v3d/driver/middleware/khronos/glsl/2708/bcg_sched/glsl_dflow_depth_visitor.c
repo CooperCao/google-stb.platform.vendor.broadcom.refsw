@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_depth_visitor.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow.h"
@@ -26,8 +18,7 @@ static int32_t maxi(int32_t l, int32_t r)
 
 static void Accept(void *me, DFlowNode *node)
 {
-   DFlowDepthVisitor *self = (DFlowDepthVisitor *)me;
-
+   UNUSED(me);
    // Find max parent depth
    NodeList_const_iterator iter;
    const NodeList *parents = DFlowNode_Parents(node);

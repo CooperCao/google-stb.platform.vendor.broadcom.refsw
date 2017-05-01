@@ -66,19 +66,22 @@ public:
     CControl(const char * strName);
     virtual ~CControl(void);
 
-    virtual eRet    setOptimalVideoFormat(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode);
-    virtual eRet    setComponentDisplay(NEXUS_VideoFormat vFormat);
-    virtual eRet    setVideoFormat(NEXUS_VideoFormat videoFormat);
-    virtual eRet    setDeinterlacer(bool bDeinterlacer);
-    virtual eRet    setMpaaDecimation(bool bMpaaDecimation);
-    virtual eRet    setContentMode(NEXUS_VideoWindowContentMode contentMode);
-    virtual int32_t getVolume(void);
-    virtual eRet    setVolume(int32_t level);
-    virtual bool    getMute(void);
-    virtual eRet    setMute(bool muted);
-    virtual eRet    applyVbiSettings(uint32_t nDisplayIndex = 1);
-    virtual eRet    showPip(bool bShow = true);
-    virtual eRet    swapPip(void);
+    virtual eRet       setOptimalVideoFormat(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode);
+    virtual eRet       setComponentDisplay(NEXUS_VideoFormat vFormat);
+    virtual eRet       setVideoFormat(NEXUS_VideoFormat videoFormat);
+    virtual eRet       setDeinterlacer(bool bDeinterlacer);
+    virtual eRet       setMpaaDecimation(bool bMpaaDecimation);
+    virtual eRet       setContentMode(NEXUS_VideoWindowContentMode contentMode);
+    virtual int32_t    getVolume(void);
+    virtual eRet       setVolume(int32_t level);
+    virtual bool       getMute(void);
+    virtual eRet       setMute(bool muted);
+    virtual eRet       applyVbiSettings(uint32_t nDisplayIndex = 1);
+    virtual eRet       showPip(bool bShow = true);
+    virtual eRet       swapPip(void);
+    virtual eRet       setPowerMode(ePowerMode mode);
+    virtual ePowerMode getPowerMode(void);
+
     virtual eRet    connectDecoders(
             CSimpleVideoDecode * pVideoDecode,
             CSimpleAudioDecode * pAudioDecode,
@@ -94,6 +97,7 @@ public:
             CPid *               pAudioPid,
             CStc *               pStc);
     virtual eRet stopDecoders(CSimpleVideoDecode * pVideoDecode, CSimpleAudioDecode * pAudioDecode);
+    virtual bool checkPower(void) {return false;}
 
     eRet            initialize(void * id, CConfig * pConfig, CChannelMgr * pChannelMgr, CWidgetEngine * pWidgetEngine);
     eRet            uninitialize();
@@ -149,8 +153,6 @@ public:
     CView *    findView(const char * name);
     void       removeView(CView * pView);
     bool       validateNotification(CNotification & notification, eMode mode);
-    eRet       setPowerMode(ePowerMode mode);
-    ePowerMode getPowerMode(void);
 #ifdef CPUTEST_SUPPORT
     eRet setCpuTestLevel(int nLevel);
 #endif
@@ -166,6 +168,13 @@ public:
 #if NEXUS_HAS_FRONTEND
     void initializeTuners();
     eRet scanTuner(CTunerScanData * pScanData);
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    eRet setGraphicsDynamicRange(CChannel * pChannel);
+#endif
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    eRet setHdmiOutputDynamicRange(void);
+    eRet videoDecodeUpdatePlm(CSimpleVideoDecode * pVideoDecode);
 #endif
 
 protected:
@@ -204,6 +213,10 @@ protected:
     MList <CViewListNode> _viewList;
     MList <CChannel>      _recordingChannels;
     MList <CChannel>      _encodingChannels;
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    MList <CSimpleVideoDecode> _plmVideoDecodeList;
+    CTimer _timerPlmVerify;
+#endif
 };
 
 #ifdef __cplusplus

@@ -17,7 +17,7 @@ void glxx_binary_cache_invalidate(GLXX_BINARY_CACHE_T *cache)
 }
 
 GLXX_LINK_RESULT_DATA_T *glxx_binary_cache_get_shaders(GLXX_BINARY_CACHE_T *cache,
-                                                       GLSL_BACKEND_CFG_T  *key)
+                                                       const GLSL_BACKEND_CFG_T *key)
 {
    for (unsigned i = 0; i < cache->used; i++) {
       if (cache->entry[i].used && !memcmp(&cache->entry[i].key, key, sizeof(GLSL_BACKEND_CFG_T)))
@@ -30,7 +30,7 @@ GLXX_LINK_RESULT_DATA_T *glxx_binary_cache_get_shaders(GLXX_BINARY_CACHE_T *cach
 GLXX_LINK_RESULT_DATA_T *glxx_get_shaders_and_cache(
    GLXX_BINARY_CACHE_T *cache,
    IR_PROGRAM_T *ir,
-   GLSL_BACKEND_CFG_T *key)
+   const GLSL_BACKEND_CFG_T *key)
 {
    /* Compile new version of this shader and add it to the cache. */
    int i = cache->next;

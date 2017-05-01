@@ -1008,8 +1008,8 @@ void NEXUS_Platform_P_AddBoardStatus(NEXUS_PlatformStatus *pStatus)
     BSTD_UNUSED(pStatus);
 #else
     unsigned id = xapi->xfd_board_id;
-    pStatus->boardId.major = id >> 28;
-    pStatus->boardId.minor = (id >> 24) & 0xF;
+    pStatus->boardId.major = (id >> 4) & 0xF;
+    pStatus->boardId.minor = id & 0xF;
 #endif
 }
 NEXUS_Error NEXUS_Platform_P_DropPrivilege(const NEXUS_PlatformSettings *pSettings)

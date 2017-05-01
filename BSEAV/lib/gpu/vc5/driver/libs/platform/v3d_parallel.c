@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Parallel execution of jobs
-
-FILE DESCRIPTION
-Execute jobs in parallel threads
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos_thread.h"
 #include "vcos_event.h"
 #include "vcos_mutex.h"

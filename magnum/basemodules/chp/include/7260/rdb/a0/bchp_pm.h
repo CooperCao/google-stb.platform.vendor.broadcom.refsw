@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 13:34:46 2016
- *                 Full Compile MD5 Checksum  02a2e6535d9af6e880ca1fca1d68c27e
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               463ec2fc88e93530417314b96f2b8292
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,9 +70,9 @@
 /***************************************************************************
  *PM - Peripheral Module Configuration
  ***************************************************************************/
-#define BCHP_PM_CONFIG                           0x2040a200 /* [RW] PERIPHERAL MODULE CONFIGURATION REGISTER */
-#define BCHP_PM_CLK_CTRL                         0x2040a204 /* [RW] UPG Clock control register */
-#define BCHP_PM_RST_CTRL                         0x2040a208 /* [RW] UPG reset control register */
+#define BCHP_PM_CONFIG                           0x2040a200 /* [RW][32] PERIPHERAL MODULE CONFIGURATION REGISTER */
+#define BCHP_PM_CLK_CTRL                         0x2040a204 /* [RW][32] UPG Clock control register */
+#define BCHP_PM_RST_CTRL                         0x2040a208 /* [RW][32] UPG reset control register */
 
 /***************************************************************************
  *CONFIG - PERIPHERAL MODULE CONFIGURATION REGISTER

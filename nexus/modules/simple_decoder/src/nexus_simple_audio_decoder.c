@@ -1079,8 +1079,10 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Start( NEXUS_SimpleAudioDecoderHandle handl
     /* If we are not configured for audio description,
        the primary decoder mixing mode should be configured
        for NEXUS_AudioDecoderMixingMode_eSoundEffects */
+    if (!handle->serverSettings.capabilities.ms11 && !handle->serverSettings.capabilities.ms12) {
     if (!handle->serverSettings.description && handle->startSettings.primary.mixingMode == NEXUS_AudioDecoderMixingMode_eDescription) {
         handle->startSettings.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eSoundEffects;
+        }
     }
 
     if (!bypass_p_start) {
@@ -2681,6 +2683,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_GetProcessorStatus( NEXUS_SimpleAudioDecode
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    pStatus->type = NEXUS_AudioPostProcessing_eMax;
     if (handle->decoders[selector].state == state_started) {
         /* requested decoder is indeed started. Try to locate processor */
         if ( handle->serverSettings.capabilities.ms12 &&
@@ -2735,6 +2738,10 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_GetProcessorStatus( NEXUS_SimpleAudioDecode
                     if ( processorSettings.type == type ) {
                         /* found it */
                         NEXUS_AudioProcessor_GetStatus(handle->decoders[selector].processor[j], pStatus);
+                        if ( pStatus->type == NEXUS_AudioPostProcessing_eMax )
+                        {
+                            return NEXUS_NOT_AVAILABLE;
+                        }
                         return NEXUS_SUCCESS;
                     }
                 }

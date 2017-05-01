@@ -395,6 +395,16 @@ BERR_Code BXPT_Dma_Context_Enqueue(
                                                        must be <= BXPT_Dma_ContextSettings.maxNumBlocks */
     );
 
+/*******************************************************************************
+Summary:
+    Configure a pidchannel for a context
+*******************************************************************************/
+BERR_Code BXPT_Dma_Context_ConfigurePidChannel(
+    BXPT_Dma_ContextHandle hCtx,
+    unsigned pidChannelNum,
+    unsigned pid,
+    bool enable
+    );
 
 /*******************************************************************************
 Summary:

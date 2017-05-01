@@ -47,6 +47,9 @@
 #if NEXUS_HAS_VIDEO_DECODER
 #include "nexus_video_decoder_types.h"
 #endif
+#if NEXUS_HAS_HDMI_OUTPUT
+#include "nexus_hdmi_output_extra.h"
+#endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder_types.h"
 #endif
@@ -541,6 +544,20 @@ const namevalue_t g_videoEotfStrs[] = {
 	{"b67", NEXUS_VideoEotf_eHlg},
 	{"input", NEXUS_VideoEotf_eMax},
 	{NULL, 0}
+};
+
+const namevalue_t g_dbvPriorityModeStrs[] = {
+    {"auto", NEXUS_HdmiOutputDolbyVisionPriorityMode_eAuto},
+    {"video", NEXUS_HdmiOutputDolbyVisionPriorityMode_eVideo},
+    {"gfx", NEXUS_HdmiOutputDolbyVisionPriorityMode_eGraphics},
+    {NULL, 0}
+};
+
+const namevalue_t g_dolbyVisionModeStrs[] = {
+    {"auto", NEXUS_HdmiOutputDolbyVisionMode_eAuto},
+    {"on", NEXUS_HdmiOutputDolbyVisionMode_eEnabled},
+    {"off", NEXUS_HdmiOutputDolbyVisionMode_eDisabled},
+    {NULL, 0}
 };
 
 const namevalue_t g_syncModeStrs[] = {

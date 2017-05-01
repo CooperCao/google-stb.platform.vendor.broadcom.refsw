@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  prepro
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_globals.h"
 
@@ -158,13 +151,18 @@ static TokenSeq *subst(TokenSeq *is, TokenList *fp, TokenSeqList *ap, TokenList 
    checked, applied manual tail recursion elimination
 */
 
+static inline TokenSeq *next_token() {
+   Token *t = glsl_directive_next_token();
+   return t ? glsl_tokenseq_construct(t, NULL, NULL) : NULL;
+}
+
 TokenSeq *glsl_expand(TokenSeq *ts, bool recursive)
 {
    TokenSeq *res = NULL;
 
    while (ts || !res) {
       if (!recursive && ts == NULL)
-         ts = glsl_directive_next_token();
+         ts = next_token();
 
       if (ts == NULL)
          break;
@@ -179,13 +177,13 @@ TokenSeq *glsl_expand(TokenSeq *ts, bool recursive)
                continue;   // effective tail call
             case MACRO_FUNCTION:
                if (!recursive && ts->next == NULL)
-                  ts->next = glsl_directive_next_token();
+                  ts->next = next_token();
 
                if (ts->next && ts->next->token->type == WHITESPACE)
                   ts->next = ts->next->next;
 
                if (!recursive && ts->next == NULL)
-                  ts->next = glsl_directive_next_token();
+                  ts->next = next_token();
 
                if (ts->next && is_lparen(ts->next->token)) {
                   int formal_count = glsl_tokenlist_length(m->args);
@@ -202,7 +200,7 @@ TokenSeq *glsl_expand(TokenSeq *ts, bool recursive)
 
                   while (true) {
                      if (!recursive && tail == NULL)
-                        tail = glsl_directive_next_token();
+                        tail = next_token();
 
                      if (tail == NULL) {
                         glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "mismatched parenthesis in macro invocation");

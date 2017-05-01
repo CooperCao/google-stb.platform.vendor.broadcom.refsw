@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "interface/khronos/common/khrn_options.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_analyze_visitor.h"
@@ -607,7 +599,6 @@ void DFlowSimplifier_Accept(DFlowSimplifier *self, DFlowNode *node)
    case DATAFLOW_SUB:
    case DATAFLOW_V8SUBS:
       {
-         const DFlowNode   *left  = DFlowNode_GetArg(node, DFlowNode_ARG_LEFT);
          const DFlowNode   *right = DFlowNode_GetArg(node, DFlowNode_ARG_RIGHT);
          DataflowFlavour   rightFlavour = DFlowNode_Flavour(right);
 
@@ -866,7 +857,7 @@ static int32_t CostOfFlavour(DataflowFlavour flavour)
 
 static void Bushiness_Accept(void *me, DFlowNode *node)
 {
-   DFlowBushinessVisitor   *self = (DFlowBushinessVisitor *)me;
+   UNUSED(me);
    int32_t                 cost = 0;
    NodeList_const_iterator iter;
 

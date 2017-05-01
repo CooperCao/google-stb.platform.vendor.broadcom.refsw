@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,7 +60,7 @@ BDBG_FILE_MODULE(BSID_MEM);
 * Comments:
 * alignment is the required alignment of the memory in bytes
 ******************************************************************************/
-BERR_Code BSID_P_AllocLock(BMMA_Heap_Handle hMma, BSID_LinearBuffer * buf, uint32_t size, uint32_t alignment, const char *str)
+static BERR_Code BSID_P_AllocLock(BMMA_Heap_Handle hMma, BSID_LinearBuffer * buf, uint32_t size, uint32_t alignment, const char *str)
 {
 #ifndef BDBG_DEBUG_BUILD
     BSTD_UNUSED(str);
@@ -104,7 +104,7 @@ BERR_Code BSID_P_AllocLock(BMMA_Heap_Handle hMma, BSID_LinearBuffer * buf, uint3
 * Comments:
 *
 ******************************************************************************/
-void BSID_P_FreeUnlock(BSID_LinearBuffer * buf)
+static void BSID_P_FreeUnlock(BSID_LinearBuffer * buf)
 {
     if (buf != NULL && buf->hBlock != NULL)
     {
@@ -271,14 +271,19 @@ void BSID_P_Watchdog_isr(void *pContext, int iParam)
    BSID_Handle hSid = (BSID_Handle)pContext;
    uint32_t uiSIDStatus = 0;
    uint32_t uiArcPC = 0;
+   uint8_t uiArcFlags = 0;
+   int i;
 
    BSTD_UNUSED(iParam);
 
    hSid->bWatchdogOccurred = true;
 
-   BSID_P_ReadSIDStatus_isr(hSid->hReg, &uiSIDStatus, &uiArcPC);
-
-   BDBG_ERR(("Watchdog w/ SID HW status code: %08x! (ARC PC = %08x)", uiSIDStatus, uiArcPC));
+   for (i = 0; i < 10; i++)
+   {
+      BSID_P_ReadSIDStatus_isr(hSid->hReg, &uiSIDStatus, &uiArcPC, &uiArcFlags);
+      BDBG_ERR(("Watchdog w/ SID HW status code: %08x! (ARC PC = %08x, Flags = %02x)", uiSIDStatus, uiArcPC, uiArcFlags));
+      BKNI_Delay(10);
+   }
 
    /* Watchdog callback sends back user's info and any internal data necessary */
    if (NULL != hSid->fWatchdogCallback_isr)
@@ -655,12 +660,16 @@ void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh)
 {
     int iAbortAttempts = 0;
     BERR_Code err = BERR_SUCCESS;
+    uint32_t uiSIDStatus = 0;
+    uint32_t uiArcPC = 0;
+    uint8_t uiArcFlags = 0;
 
     BDBG_ENTER(BSID_P_AbortDecode);
 
     do
     {
         BKNI_EnterCriticalSection();
+        BSID_P_ReadSIDStatus_isr(hSidCh->hSid->hReg, &uiSIDStatus, &uiArcPC, &uiArcFlags);
         BKNI_ResetEvent(hSidCh->hAbortedEvent);
         BSID_P_SetAbortDma_isr(hSidCh);
         hSidCh->bAbortInitiated = true;
@@ -672,6 +681,11 @@ void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh)
            BDBG_WRN(("AbortDecode:: waiting for channel %d (%p) to respond [%u]", hSidCh->ui32_ChannelNum, (void *)hSidCh, iAbortAttempts));
            iAbortAttempts++;
         }
+        if (hSidCh->e_ChannelState == BSID_ChannelState_eReady)
+        {
+            /* Detected Channel Ready - abort must be done */;
+            break;
+        }
     }
     while ((BERR_SUCCESS != err ) && (iAbortAttempts < 10));
     if (iAbortAttempts == 10)
@@ -681,13 +695,16 @@ void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh)
         BKNI_EnterCriticalSection();
         BSID_P_Watchdog_isr(hSidCh->hSid, 0);
         BKNI_LeaveCriticalSection();
+        BDBG_ASSERT(0);
     }
     else
     {
         BDBG_WRN(("Decode Aborted!"));
     }
 
+    BKNI_EnterCriticalSection();
     hSidCh->bAbortInitiated = false;
+    BKNI_LeaveCriticalSection();
     /* Clear the DMA info to avoid "sticky" abort status */
     BSID_P_ResetDmaInfo(hSidCh->hSid);
 

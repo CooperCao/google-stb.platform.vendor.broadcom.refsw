@@ -259,6 +259,13 @@ typedef enum
 
 } BVDC_P_BufHeapAllocMode;
 
+typedef enum
+{
+    BVDC_P_BufferCount_eIncremented = 0,
+    BVDC_P_BufferCount_eToIncrement,
+    BVDC_P_BufferCount_eDecremented,
+    BVDC_P_BufferCount_eToDecrement
+} BVDC_P_BufferCountState;
 
 /* Use for dynamic RTS. */
 typedef struct
@@ -847,7 +854,7 @@ typedef struct BVDC_P_WindowContext
     BVDC_P_Window_Resource        stCurResource;
     BVDC_P_Window_Resource        stNewResource;
     bool                          bAllocResource;
-    const BVDC_P_ResourceRequire *pResource;
+    BVDC_P_ResourceRequire        stResourceRequire;
     BVDC_P_ResourceFeature        stResourceFeature;
 
     /* box detect stuff */
@@ -982,7 +989,7 @@ typedef struct BVDC_P_WindowContext
     uint8_t                       ucNumMosaicRects;
     uint8_t                       aucMosaicCfcIdxForRect[BAVC_MOSAIC_MAX]; /* cfcIdx assigned to rect */
     BVDC_P_CfcContext             astMosaicCfc[BVDC_P_CMP_CFCS]; /* mosaic cfc array */
-    bool                          bCfcAdjust; /* cleared only after AssignMosaicCfcToRect_isr is really called */
+    bool                          bCfcDirty; /* cleared only after Cfc_UpdateCfg_isr is really called */
 
     /* This flag indicate if the bandwidth equation is symmetric or not */
     bool                          bSclCapSymmetric;
@@ -1387,6 +1394,12 @@ void BVDC_P_Window_SetSurfaceSize_isr
       const BVDC_P_Rect               *pSurRect,
       BAVC_Polarity                    eScanType );
 
+void BVDC_P_Window_SetBlender_isr
+    ( BVDC_Window_Handle               hWindow,
+      uint8_t                          ucZOrder,
+      uint8_t                          ucConstantAlpha,
+      BVDC_BlendFactor                 eFrontBlendFactor,
+      BVDC_BlendFactor                 eBackBlendFactor );
 #ifdef __cplusplus
 }
 #endif

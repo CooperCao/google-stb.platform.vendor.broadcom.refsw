@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,66 +70,66 @@
 /***************************************************************************
  *GRPD_0 - Group delay and audio trap registers GRPD_0
  ***************************************************************************/
-#define BCHP_GRPD_0_GRP00                        0x206e3600 /* [RW] Group delay filter tap coefficients 0 and 1 */
-#define BCHP_GRPD_0_GRP01                        0x206e3604 /* [RW] Group delay filter tap coefficients 2 and 3 */
-#define BCHP_GRPD_0_GRP02                        0x206e3608 /* [RW] Group delay filter tap coefficients 4 and 5 */
-#define BCHP_GRPD_0_GRP03                        0x206e360c /* [RW] Group delay filter tap coefficients 6 and 7 */
-#define BCHP_GRPD_0_GRP04                        0x206e3610 /* [RW] Group delay filter tap coefficients 8 and 9 */
-#define BCHP_GRPD_0_GRP05                        0x206e3614 /* [RW] Group delay filter tap coefficients 10 and 11 */
-#define BCHP_GRPD_0_GRP06                        0x206e3618 /* [RW] Group delay filter tap coefficients 12 and 13 */
-#define BCHP_GRPD_0_GRP07                        0x206e361c /* [RW] Group delay filter tap coefficients 14 and 15 */
-#define BCHP_GRPD_0_GRP08                        0x206e3620 /* [RW] Group delay filter tap coefficients 16 and 17 */
-#define BCHP_GRPD_0_GRP09                        0x206e3624 /* [RW] Group delay filter tap coefficients 18 and 19 */
-#define BCHP_GRPD_0_GRP10                        0x206e3628 /* [RW] Group delay filter tap coefficients 20 and 21 */
-#define BCHP_GRPD_0_GRP11                        0x206e362c /* [RW] Group delay filter tap coefficients 22 and 23 */
-#define BCHP_GRPD_0_GRP12                        0x206e3630 /* [RW] Group delay filter tap coefficients 24 and 25 */
-#define BCHP_GRPD_0_GRP13                        0x206e3634 /* [RW] Group delay filter tap coefficients 26 and 27 */
-#define BCHP_GRPD_0_GRP14                        0x206e3638 /* [RW] Group delay filter tap coefficients 28 and 29 */
-#define BCHP_GRPD_0_GRP15                        0x206e363c /* [RW] Group delay filter tap coefficients 30 and 31 */
-#define BCHP_GRPD_0_GRP16                        0x206e3640 /* [RW] Group delay filter tap coefficients 32 and 33 */
-#define BCHP_GRPD_0_GRP17                        0x206e3644 /* [RW] Group delay filter tap coefficients 34 and 35 */
-#define BCHP_GRPD_0_GRP18                        0x206e3648 /* [RW] Group delay filter tap coefficients 36 and 37 */
-#define BCHP_GRPD_0_GRP19                        0x206e364c /* [RW] Group delay filter tap coefficients 38 and 39 */
-#define BCHP_GRPD_0_TRAP00                       0x206e3650 /* [RW] Audio trap filter tap coefficients 0 and 1 */
-#define BCHP_GRPD_0_TRAP01                       0x206e3654 /* [RW] Audio trap filter tap coefficients 2 and 3 */
-#define BCHP_GRPD_0_TRAP02                       0x206e3658 /* [RW] Audio trap filter tap coefficients 4 and 5 */
-#define BCHP_GRPD_0_TRAP03                       0x206e365c /* [RW] Audio trap filter tap coefficients 6 and 7 */
-#define BCHP_GRPD_0_TRAP04                       0x206e3660 /* [RW] Audio trap filter tap coefficients 8 and 9 */
-#define BCHP_GRPD_0_TRAP05                       0x206e3664 /* [RW] Audio trap filter tap coefficients 10 and 11 */
-#define BCHP_GRPD_0_TRAP06                       0x206e3668 /* [RW] Audio trap filter tap coefficients 12 and 13 */
-#define BCHP_GRPD_0_TRAP07                       0x206e366c /* [RW] Audio trap filter tap coefficients 14 and 15 */
-#define BCHP_GRPD_0_TRAP08                       0x206e3670 /* [RW] Audio trap filter tap coefficients 16 and 17 */
-#define BCHP_GRPD_0_TRAP09                       0x206e3674 /* [RW] Audio trap filter tap coefficients 18 and 19 */
-#define BCHP_GRPD_0_TRAP10                       0x206e3678 /* [RW] Audio trap filter tap coefficients 20 and 21 */
-#define BCHP_GRPD_0_TRAP11                       0x206e367c /* [RW] Audio trap filter tap coefficients 22 and 23 */
-#define BCHP_GRPD_0_TRAP12                       0x206e3680 /* [RW] Audio trap filter tap coefficients 24 and 25 */
-#define BCHP_GRPD_0_TRAP13                       0x206e3684 /* [RW] Audio trap filter tap coefficients 26 and 27 */
-#define BCHP_GRPD_0_TRAP14                       0x206e3688 /* [RW] Audio trap filter tap coefficients 28 and 29 */
-#define BCHP_GRPD_0_TRAP15                       0x206e368c /* [RW] Audio trap filter tap coefficients 30 and 31 */
-#define BCHP_GRPD_0_TRAP16                       0x206e3690 /* [RW] Audio trap filter tap coefficients 32 and 33 */
-#define BCHP_GRPD_0_TRAP17                       0x206e3694 /* [RW] Audio trap filter tap coefficients 34 and 35 */
-#define BCHP_GRPD_0_TRAP18                       0x206e3698 /* [RW] Audio trap filter tap coefficients 36 and 37 */
-#define BCHP_GRPD_0_TRAP19                       0x206e369c /* [RW] Audio trap filter tap coefficients 38 and 39 */
-#define BCHP_GRPD_0_TRAP20                       0x206e36a0 /* [RW] Audio trap filter tap coefficients 40 and 41 */
-#define BCHP_GRPD_0_TRAP21                       0x206e36a4 /* [RW] Audio trap filter tap coefficients 42 and 43 */
-#define BCHP_GRPD_0_TRAP22                       0x206e36a8 /* [RW] Audio trap filter tap coefficients 44 and 45 */
-#define BCHP_GRPD_0_TRAP23                       0x206e36ac /* [RW] Audio trap filter tap coefficients 46 and 47 */
-#define BCHP_GRPD_0_CLIP0                        0x206e36b0 /* [RW] Upper and lower threshold for clipper located after the decimating halfband filter */
-#define BCHP_GRPD_0_CLIP1                        0x206e36b4 /* [RW] Upper and lower threshold for clipper located after the audio trap filter */
-#define BCHP_GRPD_0_CLIPBYP                      0x206e36b8 /* [RW] Bypass control for the two programmable clippers in the video path */
-#define BCHP_GRPD_0_VIDEOSCL                     0x206e36bc /* [RW] Video block scaler value */
-#define BCHP_GRPD_0_AMCTL0                       0x206e36c0 /* [RW] Amplitude modulation control for the video signal */
-#define BCHP_GRPD_0_AMCTL1                       0x206e36c4 /* [RW] Amplitude modulation control for the video signal */
-#define BCHP_GRPD_0_DDFSFCW0                     0x206e36c8 /* [RW] Frequency control word for test DDFS1 */
-#define BCHP_GRPD_0_DDFSFCW1                     0x206e36cc /* [RW] Frequency control word for test DDFS1 */
-#define BCHP_GRPD_0_DDFSSCL01                    0x206e36d0 /* [RW] Scaling for DDFS1 and DDFS2 */
-#define BCHP_GRPD_0_VIDEOBYP                     0x206e36d4 /* [RW] Control for the input FIFO bypasses */
-#define BCHP_GRPD_0_VIDEOTONE                    0x206e36d8 /* [RW] Control video tone test */
-#define BCHP_GRPD_0_MODBYP                       0x206e36dc /* [RW] Bypass control for the sub-blocks in the amplitude modulator portion of the RF Modulator */
-#define BCHP_GRPD_0_OUTSCL                       0x206e36e0 /* [RW] Control for the scaler at the output of the RF Modulator block */
-#define BCHP_GRPD_0_GRPD_REVISION_ID             0x206e36e4 /* [RO] GRPD Revision ID register */
-#define BCHP_GRPD_0_RESERVED0                    0x206e36e8 /* [RW] Reserved register */
-#define BCHP_GRPD_0_RESERVED1                    0x206e36ec /* [RW] Reserved register */
+#define BCHP_GRPD_0_GRP00                        0x206e3600 /* [RW][32] Group delay filter tap coefficients 0 and 1 */
+#define BCHP_GRPD_0_GRP01                        0x206e3604 /* [RW][32] Group delay filter tap coefficients 2 and 3 */
+#define BCHP_GRPD_0_GRP02                        0x206e3608 /* [RW][32] Group delay filter tap coefficients 4 and 5 */
+#define BCHP_GRPD_0_GRP03                        0x206e360c /* [RW][32] Group delay filter tap coefficients 6 and 7 */
+#define BCHP_GRPD_0_GRP04                        0x206e3610 /* [RW][32] Group delay filter tap coefficients 8 and 9 */
+#define BCHP_GRPD_0_GRP05                        0x206e3614 /* [RW][32] Group delay filter tap coefficients 10 and 11 */
+#define BCHP_GRPD_0_GRP06                        0x206e3618 /* [RW][32] Group delay filter tap coefficients 12 and 13 */
+#define BCHP_GRPD_0_GRP07                        0x206e361c /* [RW][32] Group delay filter tap coefficients 14 and 15 */
+#define BCHP_GRPD_0_GRP08                        0x206e3620 /* [RW][32] Group delay filter tap coefficients 16 and 17 */
+#define BCHP_GRPD_0_GRP09                        0x206e3624 /* [RW][32] Group delay filter tap coefficients 18 and 19 */
+#define BCHP_GRPD_0_GRP10                        0x206e3628 /* [RW][32] Group delay filter tap coefficients 20 and 21 */
+#define BCHP_GRPD_0_GRP11                        0x206e362c /* [RW][32] Group delay filter tap coefficients 22 and 23 */
+#define BCHP_GRPD_0_GRP12                        0x206e3630 /* [RW][32] Group delay filter tap coefficients 24 and 25 */
+#define BCHP_GRPD_0_GRP13                        0x206e3634 /* [RW][32] Group delay filter tap coefficients 26 and 27 */
+#define BCHP_GRPD_0_GRP14                        0x206e3638 /* [RW][32] Group delay filter tap coefficients 28 and 29 */
+#define BCHP_GRPD_0_GRP15                        0x206e363c /* [RW][32] Group delay filter tap coefficients 30 and 31 */
+#define BCHP_GRPD_0_GRP16                        0x206e3640 /* [RW][32] Group delay filter tap coefficients 32 and 33 */
+#define BCHP_GRPD_0_GRP17                        0x206e3644 /* [RW][32] Group delay filter tap coefficients 34 and 35 */
+#define BCHP_GRPD_0_GRP18                        0x206e3648 /* [RW][32] Group delay filter tap coefficients 36 and 37 */
+#define BCHP_GRPD_0_GRP19                        0x206e364c /* [RW][32] Group delay filter tap coefficients 38 and 39 */
+#define BCHP_GRPD_0_TRAP00                       0x206e3650 /* [RW][32] Audio trap filter tap coefficients 0 and 1 */
+#define BCHP_GRPD_0_TRAP01                       0x206e3654 /* [RW][32] Audio trap filter tap coefficients 2 and 3 */
+#define BCHP_GRPD_0_TRAP02                       0x206e3658 /* [RW][32] Audio trap filter tap coefficients 4 and 5 */
+#define BCHP_GRPD_0_TRAP03                       0x206e365c /* [RW][32] Audio trap filter tap coefficients 6 and 7 */
+#define BCHP_GRPD_0_TRAP04                       0x206e3660 /* [RW][32] Audio trap filter tap coefficients 8 and 9 */
+#define BCHP_GRPD_0_TRAP05                       0x206e3664 /* [RW][32] Audio trap filter tap coefficients 10 and 11 */
+#define BCHP_GRPD_0_TRAP06                       0x206e3668 /* [RW][32] Audio trap filter tap coefficients 12 and 13 */
+#define BCHP_GRPD_0_TRAP07                       0x206e366c /* [RW][32] Audio trap filter tap coefficients 14 and 15 */
+#define BCHP_GRPD_0_TRAP08                       0x206e3670 /* [RW][32] Audio trap filter tap coefficients 16 and 17 */
+#define BCHP_GRPD_0_TRAP09                       0x206e3674 /* [RW][32] Audio trap filter tap coefficients 18 and 19 */
+#define BCHP_GRPD_0_TRAP10                       0x206e3678 /* [RW][32] Audio trap filter tap coefficients 20 and 21 */
+#define BCHP_GRPD_0_TRAP11                       0x206e367c /* [RW][32] Audio trap filter tap coefficients 22 and 23 */
+#define BCHP_GRPD_0_TRAP12                       0x206e3680 /* [RW][32] Audio trap filter tap coefficients 24 and 25 */
+#define BCHP_GRPD_0_TRAP13                       0x206e3684 /* [RW][32] Audio trap filter tap coefficients 26 and 27 */
+#define BCHP_GRPD_0_TRAP14                       0x206e3688 /* [RW][32] Audio trap filter tap coefficients 28 and 29 */
+#define BCHP_GRPD_0_TRAP15                       0x206e368c /* [RW][32] Audio trap filter tap coefficients 30 and 31 */
+#define BCHP_GRPD_0_TRAP16                       0x206e3690 /* [RW][32] Audio trap filter tap coefficients 32 and 33 */
+#define BCHP_GRPD_0_TRAP17                       0x206e3694 /* [RW][32] Audio trap filter tap coefficients 34 and 35 */
+#define BCHP_GRPD_0_TRAP18                       0x206e3698 /* [RW][32] Audio trap filter tap coefficients 36 and 37 */
+#define BCHP_GRPD_0_TRAP19                       0x206e369c /* [RW][32] Audio trap filter tap coefficients 38 and 39 */
+#define BCHP_GRPD_0_TRAP20                       0x206e36a0 /* [RW][32] Audio trap filter tap coefficients 40 and 41 */
+#define BCHP_GRPD_0_TRAP21                       0x206e36a4 /* [RW][32] Audio trap filter tap coefficients 42 and 43 */
+#define BCHP_GRPD_0_TRAP22                       0x206e36a8 /* [RW][32] Audio trap filter tap coefficients 44 and 45 */
+#define BCHP_GRPD_0_TRAP23                       0x206e36ac /* [RW][32] Audio trap filter tap coefficients 46 and 47 */
+#define BCHP_GRPD_0_CLIP0                        0x206e36b0 /* [RW][32] Upper and lower threshold for clipper located after the decimating halfband filter */
+#define BCHP_GRPD_0_CLIP1                        0x206e36b4 /* [RW][32] Upper and lower threshold for clipper located after the audio trap filter */
+#define BCHP_GRPD_0_CLIPBYP                      0x206e36b8 /* [RW][32] Bypass control for the two programmable clippers in the video path */
+#define BCHP_GRPD_0_VIDEOSCL                     0x206e36bc /* [RW][32] Video block scaler value */
+#define BCHP_GRPD_0_AMCTL0                       0x206e36c0 /* [RW][32] Amplitude modulation control for the video signal */
+#define BCHP_GRPD_0_AMCTL1                       0x206e36c4 /* [RW][32] Amplitude modulation control for the video signal */
+#define BCHP_GRPD_0_DDFSFCW0                     0x206e36c8 /* [RW][32] Frequency control word for test DDFS1 */
+#define BCHP_GRPD_0_DDFSFCW1                     0x206e36cc /* [RW][32] Frequency control word for test DDFS1 */
+#define BCHP_GRPD_0_DDFSSCL01                    0x206e36d0 /* [RW][32] Scaling for DDFS1 and DDFS2 */
+#define BCHP_GRPD_0_VIDEOBYP                     0x206e36d4 /* [RW][32] Control for the input FIFO bypasses */
+#define BCHP_GRPD_0_VIDEOTONE                    0x206e36d8 /* [RW][32] Control video tone test */
+#define BCHP_GRPD_0_MODBYP                       0x206e36dc /* [RW][32] Bypass control for the sub-blocks in the amplitude modulator portion of the RF Modulator */
+#define BCHP_GRPD_0_OUTSCL                       0x206e36e0 /* [RW][32] Control for the scaler at the output of the RF Modulator block */
+#define BCHP_GRPD_0_GRPD_REVISION_ID             0x206e36e4 /* [RO][32] GRPD Revision ID register */
+#define BCHP_GRPD_0_RESERVED0                    0x206e36e8 /* [RW][32] Reserved register */
+#define BCHP_GRPD_0_RESERVED1                    0x206e36ec /* [RW][32] Reserved register */
 
 /***************************************************************************
  *GRP00 - Group delay filter tap coefficients 0 and 1

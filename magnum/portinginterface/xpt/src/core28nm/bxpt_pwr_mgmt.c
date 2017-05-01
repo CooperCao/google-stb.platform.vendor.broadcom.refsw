@@ -903,6 +903,15 @@ static unsigned BXPT_P_RegisterRangeCount(const BXPT_P_RegisterRange *pRanges)
     return total;
 }
 
+static bool BXPT_P_MemoryIsReadOnly(uint32_t addr) {
+    #define BXPT_REGISTER_READONLY(offset) case (offset/4): return true;
+    switch(addr/4) {
+        #include "pwr/bxpt_pwr_mgmt_readonly.h"
+        default: break;
+    }
+    return false;
+}
+
 BERR_Code BXPT_P_RegisterToMemory(BREG_Handle reg, struct BXPT_Backup *backup, const BXPT_P_RegisterRange *pRanges)
 {
     unsigned i=0, j=0;
@@ -965,7 +974,12 @@ void BXPT_P_MemoryToRegister(BREG_Handle reg, struct BXPT_Backup *backup, const 
 
         while (addr <= endAddr) {
             const uint32_t *mem = BXPT_P_BackupPointer(backup, j++);
-            BREG_Write32(reg, addr, *mem);
+            if (!BXPT_P_MemoryIsReadOnly(addr)) {
+                BREG_Write32(reg, addr, *mem);
+            }
+            else {
+                BDBG_MSG(("Skip RO register 0x%08x", addr));
+            }
             addr += 4;
         }
         i++;

@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "v3d_ver.h"
@@ -34,6 +33,12 @@ All rights reserved.
 #define V3D_MAX_TLB_WIDTH_PX    64 /* In pixels */
 #define V3D_MAX_TLB_HEIGHT_PX   64
 
+#if V3D_HAS_UNCONSTR_VP_CLIP
+#define V3D_VP_COARSE_OFFSET_SHIFT 6
+static_assrt((1u << V3D_VP_COARSE_OFFSET_SHIFT) >= V3D_MAX_TLB_WIDTH_PX);
+static_assrt((1u << V3D_VP_COARSE_OFFSET_SHIFT) >= V3D_MAX_TLB_HEIGHT_PX);
+#endif
+
 /* Maximum words per sample in TLB itself */
 #define V3D_MAX_RT_WORDS_PER_SAMPLE 4
 /* V3D_MAX_RT_BPP is really max bits per sample, not per pixel */
@@ -44,17 +49,21 @@ All rights reserved.
 
 #define V3D_MAX_SAMPLES          4
 
-#define V3D_MAX_POINT_SIZE 512.0f /* TODO is this right? */
+#define V3D_MAX_POINT_SIZE 512.0f
+#define V3D_MAX_LINE_WIDTH 32.0f
 
 #define V3D_MAX_VERTS_PER_PRIM 32
 
 /* TODO get these values right */
 #define V3D_MAX_PRIM_COUNT         (1u << 24)
-#define V3D_MAX_INDEX              ((1u << 24) - 1)
+#define V3D_VCD_MAX_INDEX          ((1u << 24) - 1)
 #define V3D_MAX_ATTR_ARRAYS        16
 #define V3D_MAX_ATTR_ARRAY_STRIDE  (1u << 16)
 #define V3D_MAX_VARYING_COMPONENTS 64
 #define V3D_MAX_EXTRA_VARYINGS     3 /* Extra varyings for lines/points */
+
+#define V3D_VARY_FLAGS_PER_WORD 24
+#define V3D_MAX_VARY_FLAG_WORDS ((V3D_MAX_VARYING_COMPONENTS+V3D_VARY_FLAGS_PER_WORD-1)/V3D_VARY_FLAGS_PER_WORD)
 
 #define V3D_MAX_TF_BUFFERS 4
 #define V3D_MAX_TF_SPECS 16
@@ -88,6 +97,7 @@ All rights reserved.
 #define V3D_GMP_TABLE_SIZE 8192
 /* 32k pages / 32 lines in table = 1k pages per line */
 #define V3D_GMP_PAGES_PER_LINE 1024
+#define V3D_GMP_TABLE_LINE_SIZE (V3D_GMP_TABLE_SIZE / 32)
 
 #define V3D_TMU_CONFIG_CACHE_LINE_SIZE 64
 
@@ -119,3 +129,9 @@ static_assrt(V3D_COORD_SHIFT <= 8);
 #define V3D_MAX_TEXTURE_DEPTH 16384
 
 #define V3D_COORD_SCALE (1 << V3D_COORD_SHIFT)
+
+#if V3D_VER_AT_LEAST(3,4,3,0)
+#define V3D_MAX_PCTR_SRC 32
+#else
+#define V3D_MAX_PCTR_SRC 16
+#endif

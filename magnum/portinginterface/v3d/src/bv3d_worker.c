@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -651,7 +651,7 @@ bool BV3D_P_AllUnitsIdle(
 /***************************************************************************/
 /* AllQueuesEmpty
    Are all the client queues empty? */
-bool BV3D_P_AllQueuesEmpty(
+static bool BV3D_P_AllQueuesEmpty(
    BV3D_Handle hV3d
 )
 {
@@ -680,7 +680,7 @@ bool BV3D_P_IsIdle(
 }
 
 /***************************************************************************/
-void BV3D_P_DispatchWaiting(
+static void BV3D_P_DispatchWaiting(
    BV3D_Handle hV3d
 )
 {
@@ -706,7 +706,7 @@ void BV3D_P_DispatchWaiting(
 }
 
 /***************************************************************************/
-bool V3D_P_CanWaitProceed(
+static bool V3D_P_CanWaitProceed(
    BV3D_Handle hV3d,
    BV3D_Instruction *psInstruction
 )
@@ -751,7 +751,7 @@ void BV3D_P_InstructionDone(
 }
 
 /***************************************************************************/
-void BV3D_P_DoClientCallback(BV3D_Handle hV3d, BV3D_Instruction *psInstruction, uint32_t *callbackParam,
+static void BV3D_P_DoClientCallback(BV3D_Handle hV3d, BV3D_Instruction *psInstruction, uint32_t *callbackParam,
                              uint64_t seqNum, bool sync)
 {
    void  (*pCallback)(uint32_t, void *);
@@ -775,7 +775,7 @@ void BV3D_P_DoClientCallback(BV3D_Handle hV3d, BV3D_Instruction *psInstruction, 
 }
 
 /***************************************************************************/
-void BV3D_P_HardwareDone(
+static void BV3D_P_HardwareDone(
    BV3D_Handle      hV3d,
    BV3D_Instruction *psInstruction
 )
@@ -919,7 +919,7 @@ void BV3D_P_OutOfBinMemory(
 
 /***************************************************************************/
 
-void BV3D_P_IssueBin(
+static void BV3D_P_IssueBin(
    BV3D_Handle      hV3d,
    BV3D_Instruction *psInstruction
 )
@@ -976,7 +976,7 @@ void BV3D_P_IssueBin(
 }
 
 /***************************************************************************/
-void BV3D_P_IssueRender(
+static void BV3D_P_IssueRender(
    BV3D_Handle      hV3d,
    BV3D_Instruction *psInstruction
 )
@@ -1010,7 +1010,7 @@ void BV3D_P_IssueRender(
 }
 
 /***************************************************************************/
-void BV3D_P_IssueUser(
+static void BV3D_P_IssueUser(
    BV3D_Handle      hV3d,
    BV3D_Instruction *psInstruction
 )
@@ -1108,7 +1108,7 @@ bool BV3D_P_SwitchMode(
 /* Schedule and issue instructions. */
 /* Iterate over the client queues (using a round-robin scheme) looking for instructions that can be issued. */
 /***************************************************************************/
-void BV3D_P_IssueInstr(
+static void BV3D_P_IssueInstr(
    BV3D_Handle hV3d
 )
 {
@@ -1452,7 +1452,7 @@ void BV3D_P_AbandonJob(
 
 /********************************************************************************************/
 /* Dispatches interrupts -- called outside ISR context. */
-void BV3D_P_ProcessInterrupt(
+static void BV3D_P_ProcessInterrupt(
    BV3D_Handle hV3d
 )
 {
@@ -1672,8 +1672,6 @@ static void BV3D_P_TuneQPURatios(
 {
    uint64_t uiNowUs;
    uint64_t uiTotalUs;
-   uint32_t uiBinPct;
-   uint32_t uiRenderPct;
    uint32_t uiTotalQPUs = hV3d->uiNumSlices * 4;
 
    if (hV3d->bDisableAQA)
@@ -1701,18 +1699,24 @@ static void BV3D_P_TuneQPURatios(
       hV3d->uiRenderStartTimeUs = uiNowUs;
    }
 
-   uiBinPct    = (uint32_t)(hV3d->uiCumBinTimeUs * 100 / uiTotalUs);
-   uiRenderPct = (uint32_t)(hV3d->uiCumRenderTimeUs * 100 / uiTotalUs);
-
-   if (uiBinPct > 50)
+   if (uiTotalUs > 0)
    {
-      if (uiBinPct > 90 && uiBinPct > uiRenderPct)
-         BV3D_P_SetQPURatios(hV3d, uiTotalQPUs, uiTotalQPUs - 3, uiBinPct, uiRenderPct);
-      else if (uiRenderPct > 90 && uiRenderPct > uiBinPct)
-         BV3D_P_SetQPURatios(hV3d, uiTotalQPUs, uiTotalQPUs - 1, uiBinPct, uiRenderPct);
+      uint32_t uiBinPct    = (uint32_t)(hV3d->uiCumBinTimeUs * 100 / uiTotalUs);
+      uint32_t uiRenderPct = (uint32_t)(hV3d->uiCumRenderTimeUs * 100 / uiTotalUs);
+
+      if (uiBinPct > 50)
+      {
+         if (uiBinPct > 90 && uiBinPct > uiRenderPct)
+            BV3D_P_SetQPURatios(hV3d, uiTotalQPUs, uiTotalQPUs - 3, uiBinPct, uiRenderPct);
+         else if (uiRenderPct > 90 && uiRenderPct > uiBinPct)
+            BV3D_P_SetQPURatios(hV3d, uiTotalQPUs, uiTotalQPUs - 1, uiBinPct, uiRenderPct);
+      }
+      else
+         BV3D_P_SetQPURatios(hV3d, uiTotalQPUs, uiTotalQPUs, uiBinPct, uiRenderPct);
    }
    else
-      BV3D_P_SetQPURatios(hV3d, uiTotalQPUs, uiTotalQPUs, uiBinPct, uiRenderPct);
+      /* uiBinPct & uiRenderPct are only used for debug.  Pick up default allocation */
+      BV3D_P_SetQPURatios(hV3d, uiTotalQPUs, uiTotalQPUs, 0 /*unused*/, 0 /*unused*/);
 
    hV3d->uiCumBinTimeUs = 0;
    hV3d->uiCumRenderTimeUs = 0;

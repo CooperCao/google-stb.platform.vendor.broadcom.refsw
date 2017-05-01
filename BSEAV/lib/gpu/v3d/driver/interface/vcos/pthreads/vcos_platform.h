@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  vcos
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - pthreads types
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 /* Do not include this file directly - instead include it via vcos.h */
 
 /** @file
@@ -54,9 +44,7 @@ extern "C" {
 #define VCOS_HAVE_ONCE         1
 
 #ifndef V3D_LEAN
-#ifdef __linux__
 #define VCOS_HAVE_BACKTRACE    1
-#endif
 #endif
 
 #define VCOS_SO_EXT  ".so"

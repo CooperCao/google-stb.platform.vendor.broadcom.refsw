@@ -74,6 +74,7 @@ BDBG_MODULE( xpt_pcr_offset_emv );
 #define PCROFF_SPLICE_CHAN67_OFFSET     ( BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH6_CH7 -  BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 #define PCROFF_SPLICE_STATUS_OFFSET     ( BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_STATUS -       BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 #define PCROFF_OFFSET_STATE             ( BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATE -        BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
+#define PCROFF_FIXED_OFFSET_OFFSET  ( BCHP_XPT_PCROFFSET_CONTEXT0_FIXED_OFFSET -        BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 
 #define PCROFF_OFFSET_STATUS0           ( BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_0 -     BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 #define PCROFF_OFFSET_STATUS1           ( BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_1 -     BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
@@ -225,12 +226,13 @@ BERR_Code BXPT_PcrOffset_Open(
     lhPcrOff->BaseAddr = BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL + ( ChannelNo * PCROFF_CONTEXT_STEP );
     lhPcrOff->hChip = hXpt->hChip;
     lhPcrOff->hReg = hXpt->hRegister;
-    lhPcrOff->hMem = hXpt->hMemory;
     lhPcrOff->lvXpt = ( void * ) hXpt;
     lhPcrOff->ChannelNo = ChannelNo;
     lhPcrOff->PidChannelNum = 0;
     lhPcrOff->WhichStc = Defaults->WhichStc;
     lhPcrOff->UseHostPcrs = false;
+
+    BREG_Write32(lhPcrOff->hReg, lhPcrOff->BaseAddr + PCROFF_FIXED_OFFSET_OFFSET, 0);
 
     /* Map the PCR Offset to an STC. */
     Reg = BREG_Read32( lhPcrOff->hReg, lhPcrOff->BaseAddr + PCROFF_CTRL_OFFSET );
@@ -892,7 +894,7 @@ BERR_Code BXPT_PcrOffset_PushPidChannel(
     unsigned int PidChannel             /* [in] Channel carrying the PID to splice. */
     )
 {
-    uint32_t RdPtr, WrPtr, Reg;
+    uint32_t WrPtr, Reg;
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hChannel );
@@ -903,9 +905,6 @@ BERR_Code BXPT_PcrOffset_PushPidChannel(
         ExitCode = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
         goto Done;
     }
-
-    Reg = BREG_Read32( hChannel->hReg, hChannel->BaseAddr + PCROFF_SPLICE_RDPTR_OFFSET );
-    RdPtr = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_CONTEXT0_SPLICE_RD_PTR, NEXT_PID_CH_RD_PTR );
 
     Reg = BREG_Read32( hChannel->hReg, hChannel->BaseAddr + PCROFF_SPLICE_WRPTR_OFFSET );
     WrPtr = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_CONTEXT0_SPLICE_WR_PTR, NEXT_PID_CH_WR_PTR );
@@ -1050,6 +1049,11 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
     bAlreadyEnabled = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
     if (bAlreadyEnabled) { ExitCode = BERR_NOT_SUPPORTED; (void)BERR_TRACE( ExitCode); goto Done; }
 
+#ifndef BXPT_P_PCR_OFFSET_JITTER_FIX
+/* Force fixed offset enabled for this workaround. */
+    FixedOffsetEn = true;
+#endif
+
     Reg &= ~(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS ) |
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN ) |
@@ -1089,7 +1093,12 @@ void BXPT_PcrOffset_DisableOffset(
 
     Reg &= ~(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS ) |
-        BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN ) |
+#ifndef BXPT_P_PCR_OFFSET_JITTER_FIX
+        /* SWSTB-1525 Workaround until this is fixed in hw. */
+        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN, 1 ) |
+#else
+    BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN, 0 ) |
+#endif
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) |
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, OFFSET_INDEX )
     );

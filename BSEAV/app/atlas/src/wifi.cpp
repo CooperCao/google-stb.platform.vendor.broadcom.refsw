@@ -204,7 +204,7 @@ void CWifi::processWpaResponse(const char * strCallback)
                     {
                         /* transitioned from a connected state
                          *  state to disconnected state so stop DHCP */
-                        ret = dhcpStop();
+                        ret = ipAddressAcquisitionStop();
                         CHECK_ERROR("DHCP STOP failure", ret);
 
                         ret = requestStatus();
@@ -222,7 +222,7 @@ void CWifi::processWpaResponse(const char * strCallback)
                     {
                         /* transitioned from a non-connected
                          * state to connected so get IP address */
-                        ret = dhcpStart();
+                        ret = ipAddressAcquisitionStart();
                         CHECK_ERROR("DHCP START failure", ret);
 
                         ret = requestStatus();
@@ -1566,6 +1566,45 @@ error:
     return(ret);
 } /* sendRequest */
 
+eRet CWifi::staticIpStart()
+{
+    MString strCommand;
+    eRet ret          = eRet_Ok;
+    int32_t retSystem = 0;
+
+    if (false == _strInterfaceName.isEmpty())
+    {
+        strCommand = "ifconfig " + _strInterfaceName + " ";
+        strCommand += MString(GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_IP)) + " ";
+        strCommand += GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_NETMASK);
+
+        BDBG_WRN(("%s:%s", __FUNCTION__, strCommand.s()));
+        retSystem = system(strCommand.s());
+        if (-1 == retSystem)
+        {
+            ret = eRet_ExternalError;
+        }
+    }
+
+    return(ret);
+} /* staticIpStart */
+
+eRet CWifi::staticIpStop()
+{
+    MString strCommand = "ifconfig 0.0.0.0";
+    eRet ret          = eRet_Ok;
+    int32_t retSystem = 0;
+
+    BDBG_WRN(("%s:%s", __FUNCTION__, strCommand.s()));
+    retSystem = system(strCommand.s());
+    if (-1 == retSystem)
+    {
+        ret = eRet_ExternalError;
+    }
+
+    return(ret);
+}
+
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
@@ -1628,6 +1667,23 @@ done:
 
     return(ret);
 } /* dhcpStop */
+
+/* acquire new ip address using either dhcp or static ip from atlas.cfg */
+eRet CWifi::ipAddressAcquisitionStart()
+{
+    eRet ret = eRet_Ok;
+
+    ret = (MString("0.0.0.0") == GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_IP)) ? dhcpStart() : staticIpStart();
+    return(ret);
+}
+
+eRet CWifi::ipAddressAcquisitionStop()
+{
+    eRet ret = eRet_Ok;
+
+    ret = (MString("0.0.0.0") == GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_IP)) ? dhcpStop() : staticIpStop();
+    return(ret);
+}
 
 eConnectedState CWifi::getConnectedState()
 {

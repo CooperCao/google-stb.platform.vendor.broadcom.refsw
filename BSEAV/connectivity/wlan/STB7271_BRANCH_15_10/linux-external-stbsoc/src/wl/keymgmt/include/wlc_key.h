@@ -54,11 +54,7 @@ typedef uint8 wlc_key_id_t;
 typedef uint8 wlc_key_seq_id_t;
 
 /* Number of RX (replay) counters and RX counter for MFP */
-#if defined(WOWL)
-#define WLC_KEY_BASE_RX_SEQ 4
-#else
 #define WLC_KEY_BASE_RX_SEQ 16
-#endif /* WOWL */
 
 #if (defined(BCMCCX) && defined(CCX_SDK)) || defined(MFP)
 #define WLC_KEY_EXT_RX_SEQ 1

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Client-side implementation of the EGL_KHR_sync extension.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #define EGL_EGLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/common/khrn_client_mangle.h"
@@ -20,7 +12,7 @@ Client-side implementation of the EGL_KHR_sync extension.
 
 static EGL_SYNC_T *egl_sync_create(EGLSyncKHR name, EGLenum type, EGLint condition, EGLint status)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    EGL_SYNC_T *sync = (EGL_SYNC_T *)khrn_platform_malloc(sizeof(EGL_SYNC_T), "EGL_SYNC_T");
    uint64_t pid = khronos_platform_get_process_id();
 
@@ -74,7 +66,7 @@ static EGL_SYNC_T *egl_sync_create(EGLSyncKHR name, EGLenum type, EGLint conditi
 
 void egl_sync_term(EGL_SYNC_T *sync)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
 
    eglIntDestroySync_impl(sync->serversync);
 

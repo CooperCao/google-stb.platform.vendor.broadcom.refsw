@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,14 +70,14 @@
 /***************************************************************************
  *MMISC - BVN Middle Control Registers
  ***************************************************************************/
-#define BCHP_MMISC_SW_INIT                       0x20622800 /* [RW] BVN Middle Soft Init */
-#define BCHP_MMISC_VNET_F_CHANNEL_SW_INIT        0x2062280c /* [RW] BVN Video Network Switch Frontend Channels Init */
-#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT        0x20622810 /* [RW] BVN Video Network Switch Backend Channels Init */
-#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_1      0x20622814 /* [RW] BVN Video Network Switch Backend Channels Init */
-#define BCHP_MMISC_SCRATCH_0                     0x20622818 /* [RW] Scratch Register */
-#define BCHP_MMISC_BVNM_CLOCK_CTRL               0x20622820 /* [RW] BVN Middle clock control register */
-#define BCHP_MMISC_BVNM_PDA_OUT_STATUS           0x20622824 /* [RO] BVN Middle PDA Out Status */
-#define BCHP_MMISC_BVNM_PDA_PWR_UP_STATUS        0x20622828 /* [RO] BVN Middle PDA Power Up Status */
+#define BCHP_MMISC_SW_INIT                       0x20622800 /* [RW][32] BVN Middle Soft Init */
+#define BCHP_MMISC_VNET_F_CHANNEL_SW_INIT        0x2062280c /* [RW][32] BVN Video Network Switch Frontend Channels Init */
+#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT        0x20622810 /* [RW][32] BVN Video Network Switch Backend Channels Init */
+#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_1      0x20622814 /* [RW][32] BVN Video Network Switch Backend Channels Init */
+#define BCHP_MMISC_SCRATCH_0                     0x20622818 /* [RW][32] Scratch Register */
+#define BCHP_MMISC_BVNM_CLOCK_CTRL               0x20622820 /* [RW][32] BVN Middle clock control register */
+#define BCHP_MMISC_BVNM_PDA_OUT_STATUS           0x20622824 /* [RO][32] BVN Middle PDA Out Status */
+#define BCHP_MMISC_BVNM_PDA_PWR_UP_STATUS        0x20622828 /* [RO][32] BVN Middle PDA Power Up Status */
 
 /***************************************************************************
  *SW_INIT - BVN Middle Soft Init

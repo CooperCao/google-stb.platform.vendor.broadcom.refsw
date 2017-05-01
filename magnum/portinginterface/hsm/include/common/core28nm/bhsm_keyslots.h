@@ -1690,11 +1690,6 @@ BERR_Code  BHSM_ConfigPidChannelToDefaultKeySlot (
 
 
 
-BERR_Code BHSM_InvalidateTransportKeySlots(
-    BHSM_Handle         hHsm,
-    BHSM_ClientType_e   ownerShip
-);
-
 /*
     Configure/reconfigure  both the g2gr and gr2r bypass keyslots.
         - This function will be called internally by HSM moduele during initialisation.

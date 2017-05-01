@@ -200,7 +200,7 @@ void BVDC_P_Display_EnableSTGTriggers_isr
             BCHP_VIDEO_ENC_STG_0_CONTROL_EOP_TRIG_ENABLE_MASK |
             BCHP_VIDEO_ENC_STG_0_CONTROL_HOST_ARM_ENABLE_MASK);
 
-        BREG_Write32(hDisplay->hVdc->hRegister,
+        BREG_Write32_isr(hDisplay->hVdc->hRegister,
             BCHP_VIDEO_ENC_STG_0_CONTROL + ulRegOffset, ulStgCtrl);
     }
     else
@@ -759,7 +759,7 @@ void BVDC_P_ProgrameStgMBox_isr
             BCHP_FIELD_DATA(VIDEO_ENC_STG_0_CONTROL, TIMEBASE_SEL,      pCurInfo->eTimeBase) |
             BCHP_FIELD_DATA(VIDEO_ENC_STG_0_CONTROL, SLAVE_MODE,       !BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg)) |
             BCHP_FIELD_ENUM(VIDEO_ENC_STG_0_CONTROL, HOST_ARM_ENABLE,   ENABLE) |
-            BCHP_FIELD_DATA(VIDEO_ENC_STG_0_CONTROL, TIMER_TRIG_ENABLE, hDisplay->hCompositor->bIgnorePicture) |
+            BCHP_FIELD_DATA(VIDEO_ENC_STG_0_CONTROL, TIMER_TRIG_ENABLE, (hDisplay->hCompositor->bIgnorePicture||hDisplay->hCompositor->bMute)) |
 #if (BVDC_P_SUPPORT_STG_VER == BVDC_P_STG_VER_1)
             BCHP_FIELD_DATA(VIDEO_ENC_STG_0_CONTROL, EOP_TRIG_ENABLE,  !hDisplay->hCompositor->bIgnorePicture) |
 #else

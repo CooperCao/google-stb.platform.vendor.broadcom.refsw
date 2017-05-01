@@ -46,12 +46,14 @@
 
 # these call do NOT include ocap directory - add later
 
+UNCRUSTIFY_TOOL=../../../../rockford/uncrustify/uncrustify-0.60/uncrustify
+
 # uncrustify *.c and *.cpp files
 find . -iregex '.*\.\(c\|cpp\)' \
     -not -path "./ocap/*"       \
     -not -path "./linenoise/*"  \
     -not -path "./convert.cpp"  \
-    -exec ../tools/uncrustify-0.60/src/uncrustify -c ../tools/uncrustify_c_cpp.cfg --replace --no-backup {} \;
+    -exec $UNCRUSTIFY_TOOL -c ../tools/uncrustify_c_cpp.cfg --replace --no-backup {} \;
 
 # uncrustify *.h files
 find . -iregex '.*\.\(h\)'      \
@@ -59,4 +61,4 @@ find . -iregex '.*\.\(h\)'      \
     -not -path "./linenoise/*"  \
     -not -path "./atlas_cfg.h"  \
     -not -path "./model.h"      \
-    -exec ../tools/uncrustify-0.60/src/uncrustify -c ../tools/uncrustify_h_hpp.cfg --replace --no-backup {} \;
+    -exec $UNCRUSTIFY_TOOL -c ../tools/uncrustify_h_hpp.cfg --replace --no-backup {} \;

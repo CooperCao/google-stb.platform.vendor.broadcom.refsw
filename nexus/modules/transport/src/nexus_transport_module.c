@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -329,7 +329,6 @@ void NEXUS_TransportModule_GetDefaultSettings(NEXUS_TransportModuleSettings *pSe
        BXPT_GetDefaultSettings doesn't use the chp handle so pass in a bogus one */
     BXPT_GetDefaultSettings(&xptsettings, (BCHP_Handle)1);
 
-#if (BXPT_HAS_FIXED_RSBUF_CONFIG || BXPT_HAS_FIXED_XCBUF_CONFIG)
     #if NEXUS_NUM_PARSER_BANDS
     for (i=0;i<NEXUS_NUM_PARSER_BANDS;i++) {
         pSettings->maxDataRate.parserBand[i] = xptsettings.BandwidthConfig.MaxInputRate[i];
@@ -358,7 +357,6 @@ void NEXUS_TransportModule_GetDefaultSettings(NEXUS_TransportModuleSettings *pSe
         #endif
     }
     #endif
-#endif
 
 #if BXPT_NUM_MTSIF
     for (i=0;i<BXPT_NUM_MTSIF;i++) {
@@ -700,10 +698,8 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
 
     BXPT_GetDefaultSettings(pXptSettings, g_pCoreHandles->chp);
 
-    pXptSettings->memHeap = g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].mem;
     if (pTransport->moduleSettings.secureHeap) {
         pXptSettings->mmaRHeap = NEXUS_Heap_GetMmaHandle(pTransport->moduleSettings.secureHeap);
-        pXptSettings->memRHeap = NEXUS_Heap_GetMemHandle(pTransport->moduleSettings.secureHeap);
     }
 
     /* verify API macros aren't below nexus_platform_features.h */
@@ -715,7 +711,9 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
     BDBG_CASSERT(NEXUS_NUM_PARSER_BANDS <= BXPT_NUM_PID_PARSERS);
     BDBG_CASSERT(NEXUS_NUM_PLAYPUMPS <= BXPT_NUM_PLAYBACKS);
 
-#if (BXPT_HAS_FIXED_RSBUF_CONFIG || BXPT_HAS_FIXED_XCBUF_CONFIG)
+#if !BXPT_HAS_FIXED_RSBUF_CONFIG && !BXPT_HAS_FIXED_XCBUF_CONFIG
+#error
+#endif
 
     #if NEXUS_NUM_PARSER_BANDS
     for (i=0;i<NEXUS_NUM_PARSER_BANDS;i++) {
@@ -775,25 +773,6 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
         }
         #endif
     }
-#endif
-
-#else /* NEXUS_HAS_LEGACY_XPT */
-
-    /* reduce XPT memory if user has limited capabilities */
-#if NEXUS_NUM_PARSER_BANDS < BXPT_NUM_PID_PARSERS
-    for (i=NEXUS_NUM_PARSER_BANDS;i<BXPT_NUM_PID_PARSERS;i++) {
-        pXptSettings->DramBuffers.IbParserRsSize[i] = 0;
-        pXptSettings->DramBuffers.RaveXcCfg.IbParserXcSize[i] = 0;
-        pXptSettings->DramBuffers.MesgBufXcCfg.IbParserXcSize[i] = 0;
-    }
-#endif
-#if NEXUS_NUM_PLAYPUMPS < BXPT_NUM_PLAYBACKS
-    for (i=NEXUS_NUM_PLAYPUMPS;i<BXPT_NUM_PLAYBACKS;i++) {
-        pXptSettings->DramBuffers.PbParserRsSize[i] = 0;
-        pXptSettings->DramBuffers.RaveXcCfg.PbParserXcSize[i] = 0;
-        pXptSettings->DramBuffers.MesgBufXcCfg.PbParserXcSize[i] = 0;
-    }
-#endif
 #endif
 
 #if BXPT_NUM_MTSIF
@@ -859,12 +838,6 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
     if (rc) {rc=BERR_TRACE(rc); goto done;}
 
     /* required to be called once before use. */
-#if NEXUS_HAS_LEGACY_XPT
-#if !NEXUS_USE_SW_FILTER
-    BXPT_Mesg_SetPid2Buff(pTransport->xpt, true);
-#endif
-#endif
-
 #if BXPT_HAS_WAKEUP_PKT_SUPPORT
     BXPT_Wakeup_GetDefaults(&wakeupSettings );
     pTransport->wakeup.settings = BKNI_Malloc(sizeof(*pTransport->wakeup.settings));
@@ -967,12 +940,6 @@ void NEXUS_TransportModule_Uninit(void)
         }
         NEXUS_P_HwPidChannel_CloseAll(pidChannel);
         lastPidChannel = pidChannel;
-    }
-    /* HW pid channel refcnt ought to be at zero now */
-    for (i=0;i<NEXUS_NUM_PID_CHANNELS;i++) {
-        if (pTransport->hwPidChannelRefCnt[i]) {
-            BDBG_ERR(("hwPidChannelRefCnt[%d] = %d", i, pTransport->hwPidChannelRefCnt[i]));
-        }
     }
 
 #if NEXUS_NUM_PARSER_BANDS
@@ -1291,3 +1258,13 @@ NEXUS_Error NEXUS_TransportWakeup_SetSettings(const NEXUS_TransportWakeupSetting
 
     return 0;
 }
+
+#if (!NEXUS_HAS_XPT_DMA)
+NEXUS_PidChannelHandle NEXUS_DmaJob_OpenPidChannel(NEXUS_DmaJobHandle handle, unsigned pid, const NEXUS_PidChannelSettings *pSettings)
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pid);
+    BSTD_UNUSED(pSettings);
+    return NULL;
+}
+#endif

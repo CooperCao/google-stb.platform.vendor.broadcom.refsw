@@ -49,6 +49,7 @@ BDBG_MODULE(nexus_platform_pinmux);
 
 #define SV_BOARD_ID 1
 #define HB_BOARD_ID 2
+#define VMS_BOARD_ID 3
 
 #if NEXUS_HAS_SAGE
 static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
@@ -133,7 +134,7 @@ static void NEXUS_Platform_P_EnableHvdUartPinmux(void)
     switch (platformStatus.boardId.major) {
         default:
         {
-            /* VMS and HB boards don't have anything other than UART 0 headers */
+            /* HB boards don't have anything other than UART 0 headers */
             BDBG_MSG(("Unknown or no HVD UART available on board type %d.",platformStatus.boardId.major));
             break;
         }
@@ -192,6 +193,43 @@ static void NEXUS_Platform_P_EnableHvdUartPinmux(void)
                     reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_1, port_8_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_1_port_8_cpu_sel_HVD1_IL) );
                     BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_1, reg);
 
+                    break;
+                }
+                /* default unreachable */
+            }
+        }
+        case VMS_BOARD_ID:
+        {
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6);
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_040));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_040, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6_gpio_040_TP_IN_19));
+            BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6, reg);
+
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7);
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_041));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_041, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7_gpio_041_TP_OUT_20));
+            BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7, reg);
+            /* Activate the test port */
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);
+            reg = BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS;
+            BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);
+
+            switch (hvd_env_val) {
+                case 0:
+                {
+                    /* Route HVD0 OL UART to connector */
+                    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0);
+                    reg &=~( BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel ) );
+                    reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0_port_5_cpu_sel_HVD0_OL) );
+                    BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0, reg);
+                    break;
+                }
+                case 1:
+                {   /* Route HVD1 OL UART to connector */
+                    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0);
+                    reg &=~( BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel ) );
+                    reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0_port_5_cpu_sel_HVD1_OL) );
+                    BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0, reg);
                     break;
                 }
                 /* default unreachable */

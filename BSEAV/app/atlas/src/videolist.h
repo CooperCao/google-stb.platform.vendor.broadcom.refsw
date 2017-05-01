@@ -152,8 +152,8 @@ public:
     void              setSize(int64_t size)                { _size = size; }
     uint32_t          getDuration(void)                    { return(_duration); }
     void              setDuration(uint32_t duration)       { _duration = duration; }
-    uint16_t          getMaxBitrate(void)                  { return(_maxBitrate); }
-    void              setMaxBitrate(uint16_t maxBitrate)   { _maxBitrate = maxBitrate; }
+    uint32_t          getMaxBitrate(void)                  { return(_maxBitrate); }
+    void              setMaxBitrate(uint32_t maxBitrate)   { _maxBitrate = maxBitrate; }
     MString           getInfoName(void)                    { return(_infoName); }
     MString           getInfoNamePath(void)                { return(_infoPath + MString("/") + _infoName); }
     void              setInfoName(const char * strName)    { _infoName = strName; }
@@ -202,7 +202,7 @@ protected:
     time_t   _date;
     int64_t  _size;
     uint32_t _duration;
-    uint16_t _maxBitrate;
+    uint32_t _maxBitrate;
     MString  _infoName;
     MString  _mediaName;
     MString  _indexName;

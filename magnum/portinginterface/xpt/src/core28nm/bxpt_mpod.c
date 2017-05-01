@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -308,7 +308,7 @@ unsigned int BXPT_Mpod_GetPodRes(
 }
 #endif
 
-BERR_Code RouteMultichannelPlaybackToMpod(
+static BERR_Code RouteMultichannelPlaybackToMpod(
     BXPT_Handle hXpt,           /* [in] Handle for this instance of transport. */
     unsigned ParserNum,         /* [in] Which parser to get data from */
     bool Enable                 /* [in] Route data to the MPOD interface if true */
@@ -388,7 +388,7 @@ BERR_Code BXPT_Mpod_RouteToMpod(
     return ExitCode;
 }
 
-BERR_Code RouteMultichannelPlaybackToMpodPidFiltered(
+static BERR_Code RouteMultichannelPlaybackToMpodPidFiltered(
     BXPT_Handle hXpt,           /* [in] Handle for this instance of transport. */
     unsigned ParserNum,         /* [in] Which parser to get data from */
     bool MpodPidFilter,         /* [in] enable pid filtering prior to the MCARD */
@@ -475,7 +475,7 @@ BERR_Code BXPT_Mpod_RouteToMpodPidFiltered(
     return ExitCode;
 }
 
-BERR_Code MultichannelPlaybackAllPassToMpod(
+static BERR_Code MultichannelPlaybackAllPassToMpod(
     BXPT_Handle hXpt,           /* [in] Handle for this instance of transport. */
     unsigned ParserNum,         /* [in] Which parser to get data from */
     bool Enable                 /* [in] All pass mode enabled if true, disabled if false */

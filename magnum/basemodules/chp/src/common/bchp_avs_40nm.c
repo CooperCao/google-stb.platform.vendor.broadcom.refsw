@@ -1,25 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2006-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date:
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *   See Module Overview below.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #if 0
 #include <stdio.h>
 #include <string.h>
@@ -494,9 +509,9 @@ static void AvsUpdateExcludeLists(BCHP_P_AvsHandle handle)
     }
 
     if (handle->central_exclude_mask != default_central_exclude_mask)
-        BDBG_MSG(("Using corrected central exclude mask of: 0x%016llx", handle->central_exclude_mask));
+        BDBG_MSG(("Using corrected central exclude mask of: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(handle->central_exclude_mask)));
     if (handle->remote_exclude_mask != default_remote_exclude_mask)
-        BDBG_MSG(("Using corrected remote exclude mask of: 0x%016llx", handle->remote_exclude_mask));
+        BDBG_MSG(("Using corrected remote exclude mask of: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(handle->remote_exclude_mask)));
 }
 
 /* This performs some pre-initialization cleanup from stuff passed from CFE */
@@ -1063,7 +1078,6 @@ static void AvsSetNewThresholds_1(BCHP_P_AvsHandle handle)
     BREG_Handle hRegister = handle->hRegister;
     unsigned i, current_dac, lowest_hvt, lowest_svt, temp;
     oscillator_t which_h_type, which_s_type; unsigned which_h, which_s;
-    bool remotes;
 
     /* 0) Use the current DAC value to choose the lower threshold value */
     current_dac = AvsGetDAC(handle);
@@ -1072,7 +1086,6 @@ static void AvsSetNewThresholds_1(BCHP_P_AvsHandle handle)
     lowest_hvt = AvsReadCentralOscillator(hRegister, 44);
     lowest_svt = AvsReadCentralOscillator(hRegister, 45);
     which_s_type = which_h_type = Central; which_h = 44; which_s = 45;
-    remotes = false;
 
     lowest_hvt *= 2; /* normalizing the central to the remotes because central are divided by 2 relative to remotes */
     lowest_svt *= 2;
@@ -1081,9 +1094,9 @@ static void AvsSetNewThresholds_1(BCHP_P_AvsHandle handle)
     {
         if (((uint64_t)1<<i) & handle->remote_exclude_mask) continue; /* skip items we're excluding */
         if (i&1) {
-            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_hvt) { lowest_hvt = temp; remotes = true; which_h_type = Remote; which_h = i; }
+            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_hvt) { lowest_hvt = temp; which_h_type = Remote; which_h = i; }
         } else {
-            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_svt) { lowest_svt = temp; remotes = true; which_s_type = Remote; which_s = i; }
+            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_svt) { lowest_svt = temp; which_s_type = Remote; which_s = i; }
         }
     }
 
@@ -1120,7 +1133,6 @@ static void AvsSetNewThresholds_2(BCHP_P_AvsHandle handle)
     BREG_Handle hRegister = handle->hRegister;
     unsigned i, current_dac, lowest_hvt, lowest_svt, temp;
     oscillator_t which_h_type, which_s_type; unsigned which_h, which_s;
-    bool remotes;
 
     current_dac = AvsGetDAC(handle);
 
@@ -1128,7 +1140,6 @@ static void AvsSetNewThresholds_2(BCHP_P_AvsHandle handle)
     lowest_hvt = AvsReadCentralOscillator(hRegister, 44);
     lowest_svt = AvsReadCentralOscillator(hRegister, 45);
     which_s_type = which_h_type = Central; which_h = 44; which_s = 45;
-    remotes = false;
 
     lowest_hvt *= 2; /* normalizing the central to the remotes because central are divided by 2 relative to remotes */
     lowest_svt *= 2;
@@ -1137,9 +1148,9 @@ static void AvsSetNewThresholds_2(BCHP_P_AvsHandle handle)
     {
         if (((uint64_t)1<<i) & handle->remote_exclude_mask) continue; /* skip items we're excluding */
         if (i&1) {
-            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_hvt) { lowest_hvt = temp; remotes = true; which_h_type = Remote; which_h = i; }
+            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_hvt) { lowest_hvt = temp; which_h_type = Remote; which_h = i; }
         } else {
-            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_svt) { lowest_svt = temp; remotes = true; which_s_type = Remote; which_s = i; }
+            if ((temp = AvsReadRemoteOscillator(hRegister, i)) < lowest_svt) { lowest_svt = temp; which_s_type = Remote; which_s = i; }
         }
     }
 

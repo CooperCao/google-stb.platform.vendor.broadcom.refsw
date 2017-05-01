@@ -1,7 +1,8 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#if !V3D_HAS_QTS
+
 #include "khrn_tile_state.h"
 #include "khrn_process.h"
 #include "libs/core/v3d/v3d_align.h"
@@ -194,3 +195,5 @@ void khrn_tile_state_release_shared(khrn_shared_tile_state* mem)
 {
    tile_state_strong_release(mem);
 }
+
+#endif

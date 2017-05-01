@@ -52,6 +52,12 @@
 
 extern void *_system_link_base;
 
+extern "C" uintptr_t _regBaseOffset;
+uintptr_t _regBaseOffset;
+
+extern "C" uintptr_t _noenRegBaseOffset;
+uintptr_t _neonRegBaseOffset;
+
 static ObjCacheAllocator<TzTask> allocator;
 static uint32_t nextTaskNum = 0;
 
@@ -71,6 +77,9 @@ static int nswTask(void *task, void *ctx) {
 
 void TzTask::initNoTask()
 {
+    _regBaseOffset = (uintptr_t)&(((TzTask *) 0)->savedRegBase);
+    _neonRegBaseOffset = (uintptr_t)&(((TzTask *) 0)->savedNeonRegBase);
+
     allocator.init();
     spinLockInit(&termLock);
     tasks.init();
@@ -80,6 +89,9 @@ void TzTask::init() {
     allocator.init();
     spinLockInit(&termLock);
     tasks.init();
+    _regBaseOffset = (uintptr_t)&(((TzTask *) 0)->savedRegBase);
+    _neonRegBaseOffset = (uintptr_t)&(((TzTask *) 0)->savedNeonRegBase);
+
 
     TzTask *nwTask = new TzTask(nswTask, nullptr, NS_WORLD_PRIORITY, "NWOS");
     if (nwTask == nullptr) {
@@ -205,9 +217,10 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
     ARCH_SPECIFIC_GET_SPSR(spsr);
     savedRegs[SAVED_REG_SPSR] = spsr;
 #ifdef __aarch64__
-    savedRegs[SAVED_REG_SPSR] = 0x205;
+    savedRegs[SAVED_REG_SPSR] = 0x285;
 #endif
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
+    savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
 
     this->parent = parentTask;
     spinLockInit(&lock);
@@ -369,6 +382,7 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
     savedRegs[SAVED_REG_SPSR] = spsr;
 
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
+    savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
 
     spinLockInit(&lock);
 
@@ -472,9 +486,15 @@ TzTask::TzTask(TzTask& parentTask) :
     for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
         savedRegs[i] = parentTask.savedRegs[i];
     }
+
+    for (int i=0; i<NUM_SAVED_NEON_REGS; i++) {
+        savedNeonRegs[i] = parentTask.savedNeonRegs[i];
+    }
+
     savedRegs[SAVED_REG_R0] = 0;
     savedRegs[SAVED_REG_SP] = (unsigned long)stackKernel;
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
+    savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
 
     spinLockInit(&lock);
 
@@ -509,48 +529,21 @@ TzTask::TzTask(TzTask& parentTask) :
     tasks.pushBack(this);
 }
 
-unsigned long *excYieldCurrentTask(int reason, int mode) {
-    TzTask *currTask;
-#ifdef __aarch64__
-    // Check if userspace has changed the TLS and update it
-#if 0
-    if (mode==Mode_USR) {
-        volatile register uintptr_t tpidrro, tpidr;
-        ARCH_SPECIFIC_GET_TPIDRRO(tpidrro);
-        ARCH_SPECIFIC_GET_TPIDR(tpidr);
-        if(tpidrro!=tpidr) {
-            //printf("Setting threadInfo to new value %lx\n", tpidr);
-            currTask = currentTask[arm::smpCpuNum()];
-            currTask->SetThreadInfo((uintptr_t) tpidr);
-            int rv = currTask->setThreadArea((user_desc*)tpidr);
-            if(rv) {
-                err_msg("error setting thread area %d\n",rv);
-            }
-        }
-    }
-#endif
-#endif
-    PageTable::kernelPageTable()->activate();
-    currTask = currentTask[arm::smpCpuNum()];
+void yieldCurrentTask(unsigned int reason, unsigned int spsr) {
 
-#if 0
-    UNUSED(reason);
-    UNUSED(mode);
-#else
+    TzTask *currTask = currentTask[arm::smpCpuNum()];
+    unsigned int mode = spsr & 0x1f;
+
     if ((reason == 0 && (mode != Mode_USR && mode != 5)) ||
-        (reason == 3 && mode != Mode_SVC)) {
+        (reason == 2 && mode == Mode_SVC)) {
         err_msg("Exceptions taken in wrong mode, reason %d, mode %d\n", reason, mode);
         asm volatile("b .":::);
     }
-#endif
 
     currTask->state = TzTask::Ready;
-    Scheduler::addTask(currTask);
-
-    unsigned long *rv = currTask->savedRegBase;
     currTask->savedRegBase += NUM_SAVED_CPU_REGS;
-
-    return rv;
+    currTask->savedNeonRegBase += NUM_SAVED_NEON_REGS;
+    Scheduler::addTask(currTask);
 }
 
 void printReg()
@@ -597,12 +590,14 @@ void TzTask::yield(){
     //printf("yield %d\n", (int) this->id() & 0xFFFFFFFF);
     Scheduler::removeTask(this);
 
-    register unsigned long *idx = savedRegBase;
+    unsigned long *cpuIdx = savedRegBase;
+    long double *neonIdx = savedNeonRegBase;
     savedRegBase += NUM_SAVED_CPU_REGS;
+    savedNeonRegBase += NUM_SAVED_NEON_REGS;
 
     spinLockRelease(&lock);
 
-    ARCH_SPECIFIC_SAVE_STATE(idx);
+    ARCH_SPECIFIC_SAVE_STATE(neonIdx, cpuIdx);
 }
 
 int TzTask::setThreadArea(struct user_desc *desc) {
@@ -836,7 +831,7 @@ int TzTask::nice(int incr) {
     return 0;
 }
 
-extern "C" void contextSwitch(unsigned long *);
+extern "C" void contextSwitch(long double *, unsigned long *);
 
 void TzTask::run() {
     /*
@@ -846,22 +841,24 @@ void TzTask::run() {
      */
 
     state = TzTask::Running;
+    COMPILER_BARRIER();
 
     // Set the threadinfo register: TPIDRURO
-    volatile unsigned long ti = (unsigned long)threadInfo;
+    register unsigned long ti = (unsigned long)threadInfo;
     ARCH_SPECIFIC_SET_TPIDRURO(ti);
+    COMPILER_BARRIER();
 
-    if ((userReg(spsr) & 0x1f) == Mode_USR)
-        pageTable->activate();
-    else
-        kernPageTable->activate();
+    pageTable->activate();
 
     // Observed stack related calls here due to compiler reordering.
     // Adding compiler barrier below to prevent any code reordering.
     COMPILER_BARRIER();
 
     savedRegBase -= NUM_SAVED_CPU_REGS;
-    contextSwitch(savedRegBase);
+    savedNeonRegBase -= NUM_SAVED_NEON_REGS;
+    COMPILER_BARRIER();
+
+    contextSwitch(savedNeonRegBase, savedRegBase);
 }
 
 void *TzTask::operator new(size_t sz) {

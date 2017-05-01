@@ -39,6 +39,8 @@
 #include "nexus_platform.h"
 #include "nexus_audio_dummy_output.h"
 #include "nexus_i2s_output.h"
+#include "platform_plm_priv.h"
+#include "model_types.h"
 
 #ifndef PLATFORM_H__
 #define PLATFORM_H__
@@ -95,12 +97,24 @@ public:
     bool isSupportedEncoder(uint16_t number);
     bool isMemSettingsValid(void) { return(_bMemSettingsValid); }
 
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    bool getPlmLumaRangeAdjVideo(unsigned inputIndex, unsigned rectIndex);
+    void setPlmLumaRangeAdjVideo(unsigned inputIndex, unsigned rectIndex, bool enable);
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    bool getPlmLumaRangeAdjGraphics(void);
+    void setPlmLumaRangeAdjGraphics(bool enable);
+#endif
+
 protected:
     bool                              _bInitialized;
     NEXUS_PlatformSettings            _platformSettings;
     NEXUS_PlatformConfiguration       _platformConfig;
     NEXUS_MemoryConfigurationSettings _memSettings;
     bool                              _bMemSettingsValid;
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    unsigned                          _lumaRangeAdj[eWindowType_Max - eWindowType_Mosaic1];
+#endif
 }; /* CPlatform */
 
 #endif /* PLATFORM_H__ */

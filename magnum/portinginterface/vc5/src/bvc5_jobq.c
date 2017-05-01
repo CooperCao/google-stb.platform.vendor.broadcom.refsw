@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_internal_job_priv.h"
@@ -132,7 +131,7 @@ BVC5_P_InternalJob *BVC5_P_JobQTop(
 
 /***************************************************************************/
 
-void BVC5_P_JobQInsertTail(
+static void BVC5_P_JobQInsertTail(
    BVC5_JobQHandle      hJobQ,
    BVC5_P_InternalJob  *psJob
 )
@@ -144,7 +143,7 @@ void BVC5_P_JobQInsertTail(
 
 /***************************************************************************/
 
-void BVC5_P_JobQInsertHead(
+static void BVC5_P_JobQInsertHead(
    BVC5_JobQHandle      hJobQ,
    BVC5_P_InternalJob  *psJob
 )

@@ -406,6 +406,18 @@ static void do_copy_rect(
     }
 } /* do_copy_rect */
 
+void CGraphics::forceDrawSync(bwidget_engine_t widgetEngine)
+{
+    /* handle all queued draw events */
+    while (-1 != bwidget_process_event2(widgetEngine, false))
+    {
+        BDBG_MSG(("calling bwidget_process_event()"));
+    }
+
+    /* flip double framebuffer to display executed draw events */
+    sync();
+}
+
 void CGraphics::sync(bwin_framebuffer_t framebuffer)
 {
     eRet ret = eRet_Ok;
@@ -966,3 +978,18 @@ eRet CGraphics::destroyBwinFramebuffer(bwin_framebuffer_t framebuffer)
 
     return(ret);
 } /* destroyBwinFramebuffer */
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+bool CGraphics::isPlmEnabled()
+{
+    CPlatform * pPlatform = _pCfg->getPlatformConfig();
+
+    return(pPlatform->getPlmLumaRangeAdjGraphics());
+} /* isPlmGraphicsEnabled */
+
+void CGraphics::setPlm(bool bEnable)
+{
+    CPlatform * pPlatform = _pCfg->getPlatformConfig();
+
+    pPlatform->setPlmLumaRangeAdjGraphics(bEnable);
+} /* setPlm */
+#endif

@@ -92,6 +92,9 @@ CControl::CControl(const char * strName) :
     _viewList(false),
     _recordingChannels(false),
     _encodingChannels(false)
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    ,_timerPlmVerify(this)
+#endif
 {
     _viewList.clear();
     _recordingChannels.clear();
@@ -141,6 +144,10 @@ eRet CControl::initialize(
     _powerOnTimer.setWidgetEngine(_pWidgetEngine);
     _powerOnTimer.setTimeout(GET_INT(_pCfg, POWER_ON_TIMEOUT));
 
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    _timerPlmVerify.setWidgetEngine(_pWidgetEngine);
+    _timerPlmVerify.setTimeout(240);
+#endif
     ATLAS_MEMLEAK_TRACE("END");
     return(ret);
 } /* initialize */
@@ -734,6 +741,13 @@ void CControl::onIdle()
     }
 
 done:
+#if POWERSTANDBY_SUPPORT
+    /* check to see if we need to turn on Atlas NxClient mode after shutdown */
+    if ((ePowerMode_S0 != getPowerMode()) && (checkPower() == true))
+    {
+        setPowerMode(ePowerMode_S0);
+    }
+#endif
     return;
 } /* onIdle */
 
@@ -1431,6 +1445,11 @@ void CControl::processNotification(CNotification & notification)
             ret = setOptimalVideoFormat(pDisplay, pVideoDecode);
             CHECK_ERROR_GOTO("unable to set optimal video format", ret, error);
         }
+
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+        _plmVideoDecodeList.add(pVideoDecode);
+        _timerPlmVerify.start(240);
+#endif
     }
     break;
 
@@ -1484,6 +1503,25 @@ void CControl::processNotification(CNotification & notification)
                 {
                     setVideoFormat(format);
                 }
+
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+                ret = setHdmiOutputDynamicRange();
+                CHECK_WARN("unable to set hdmi output dynamic range", ret);
+
+                for (int i = 0; i < eWindowType_Max; i++)
+                {
+                    CSimpleVideoDecode * pVideoDecode = NULL;
+
+                    pVideoDecode = _pModel->getSimpleVideoDecode((eWindowType)i);
+                    if (NULL == pVideoDecode) { continue; }
+                    if (false == pVideoDecode->isStarted()) { continue; }
+
+                    _plmVideoDecodeList.add(pVideoDecode);
+                }
+
+                /* this timer will trigger updates to both video and graphics plm */
+                _timerPlmVerify.start(1000);
+#endif
             }
             else
             {
@@ -1540,6 +1578,54 @@ void CControl::processNotification(CNotification & notification)
             ret = setPowerMode(ePowerMode_S0);
             CHECK_ERROR_GOTO("unable to power ON!", ret, error);
         }
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+        if (pTimer == &_timerPlmVerify)
+        {
+            eRet                 ret          = eRet_Ok;
+            CSimpleVideoDecode * pVideoDecode = NULL;
+            int                  index        = 0;
+
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+            /* set graphics plm setting */
+            {
+                CChannel * pChannel = _pModel->getCurrentChannel();
+                if (NULL != pChannel)
+                {
+                    ret = setGraphicsDynamicRange(pChannel);
+                    CHECK_WARN("unable to set graphics dynamic range", ret);
+                }
+            }
+#endif
+            /* _plmVideoDecodeList contains started video decoders
+               that are not ready to report dynamic range yet. so we set a timer to
+               retry.  The retries are handled here.
+            */
+            while (NULL != (pVideoDecode = _plmVideoDecodeList[index]))
+            {
+                eDynamicRange dynamicRange = pVideoDecode->getDynamicRange();
+                if (eDynamicRange_Unknown != dynamicRange)
+                {
+                    BDBG_MSG(("_plmVideoDecodeList.total():%d", _plmVideoDecodeList.total()));
+                    pVideoDecode->updatePlm();
+                    /* remove duplicates as well */
+                    while (NULL != _plmVideoDecodeList.remove(pVideoDecode));
+                }
+                else
+                {
+                    BDBG_MSG(("video decode not ready to report dynamic range - ch:%d.%d", pVideoDecode->getChannel()->getMajor(), pVideoDecode->getChannel()->getMinor()));
+                    /* video decoder is not ready try next one */
+                    index++;
+                }
+            }
+
+            if (0 < index)
+            {
+                /* at least one video decoder is not ready to give dynamic range so retry */
+                BDBG_WRN(("IN TIMER: PLM NOT available - start timer for retry"));
+                _timerPlmVerify.start(1000);
+            }
+        }
+#endif
     }
     break;
 
@@ -1580,9 +1666,13 @@ void CControl::processNotification(CNotification & notification)
     case eNotify_SetPowerMode:
     {
         eRet       ret       = eRet_Ok;
+#if POWERSTANDBY_SUPPORT
         ePowerMode powerMode = *((ePowerMode *)notification.getData());
         ret = setPowerMode(powerMode);
         CHECK_ERROR_GOTO("unable to set power mode", ret, error);
+#else
+        BDBG_WRN(("POWER MANAGEMENT IS NOT SUPPORTED!"));
+#endif
     }
     break;
 
@@ -2052,6 +2142,9 @@ eRet CControl::unTuneChannel(
         CHECK_PTR_ERROR_GOTO("current channel is NULL, ignoring untune request", pChannel, ret, eRet_NotAvailable, error);
     }
 
+    BDBG_MSG(("calling CChannel::finish()"));
+    pChannel->finish();
+
     if (false == pChannel->isTuned())
     {
         /* We should return OK because Channels may fail to tune and may untune themselves. Specially Channels
@@ -2174,6 +2267,12 @@ eRet CControl::tuneChannel(
         CHECK_PTR_ERROR_GOTO("Channel list empty - Unable to tune!", pChannel, ret, eRet_NotAvailable, error);
     }
 
+    if (NULL != pCurrentChannel)
+    {
+        BDBG_MSG(("calling CChannel::finish()"));
+        pCurrentChannel->finish();
+    }
+
     /* untune current channel if necessary */
     if ((NULL != pCurrentChannel) && (true == pCurrentChannel->isTuned()))
     {
@@ -2199,6 +2298,11 @@ eRet CControl::tuneChannel(
         _pModel->setChannelTuneInProgress(pChannel, windowType);
         ret = pChannel->tune(_id, _pConfig, false /* async tune */, tunerIndex);
         CHECK_WARN_GOTO("tuning failed", ret, error);
+
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+        ret = setGraphicsDynamicRange(pChannel);
+        CHECK_WARN("unable to set graphics dynamic range", ret);
+#endif
     }
     else
     {
@@ -2239,6 +2343,12 @@ eRet CControl::decodeChannel(
 #endif
 
     BDBG_MSG(("entering CControl::decodeChannel()"));
+
+    if ((NULL == pVideoDecode) && (NULL == pAudioDecode))
+    {
+        return(eRet_NotSupported);
+    }
+
     if (0 < GET_INT(_pCfg, MAXDATARATE_PARSERBAND))
     {
         if (NULL != pChannel->getParserBand())
@@ -2379,8 +2489,37 @@ eRet CControl::decodeChannel(
     }
 #endif /* ifdef MPOD_SUPPORT */
 
+    if (NULL != pVideoDecode)
+    {
+        pVideoDecode->setChannel(pChannel);
+    }
+
     ret = connectDecoders(pVideoDecode, pAudioDecode, pChannel->getWidth(), pChannel->getHeight(), pVideoPid, windowType);
     CHECK_ERROR_GOTO("unable to connect decoders", ret, error);
+
+    /* apply channel video window geometry setting. if rectVideoWinPercent is empty
+       (main/pip channels will be), then pVideoDecode will calculate sizes based on atlas.cfg
+       settings. */
+    {
+        MRect rectVideoWinPercent = pChannel->getVideoWindowGeometryPercent();
+
+        ret = pVideoDecode->setVideoWindowGeometryPercent(&rectVideoWinPercent);
+        CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
+
+        if ((NULL != pVideoDecode) && (eWindowType_Mosaic1 <= pVideoDecode->getWindowType()))
+        {
+            /* if the channel does not have a specified video window geometry, then
+               the video decode will use default values.  these defaults will be
+               returned in rectVideoWinPercent variable.  we will now set the
+               channel to have these default values.  this will ONLY apply for
+               mosaic channels.  mosaic subchannels need a video window geometry
+               so that associated label graphics can be properly placed relative
+               to the video window.  main and pip channels should have an empty
+               CHANNEL video window geometry since they will be resized
+               automatically based on pip swap state. */
+            pChannel->setVideoWindowGeometryPercent(&rectVideoWinPercent);
+        }
+    }
 
     ret = startDecoders(pVideoDecode, pVideoPid, pAudioDecode, pAudioPid, pStc);
     CHECK_ERROR_GOTO("unable to start decoders", ret, error);
@@ -4618,7 +4757,6 @@ eRet CControl::showPip(bool bShow)
     else
     {
         /* hide pip */
-
         eMode mode = _pModel->getMode(pipWinType);
 
         switch (mode)
@@ -4853,6 +4991,7 @@ ePowerMode CControl::getPowerMode()
    hard drive */
 eRet CControl::ipServerStart()
 {
+#ifdef PLAYBACK_IP_SUPPORT
     eRet                   ret                  = eRet_Ok;
     CServerMgr *           pServerMgr           = _pModel->getServerMgr();
     CAutoDiscoveryClient * pAutoDiscoveryClient = _pModel->getAutoDiscoveryClient();
@@ -4890,12 +5029,16 @@ eRet CControl::ipServerStart()
 error:
     ATLAS_MEMLEAK_TRACE("END");
     return(ret);
+#else
+    return eRet_Ok;
+#endif
 } /* ipServerStart */
 
 /* used by setPowerMode() - we leave auto discovery alone since it does not touch
    hard drive */
 eRet CControl::ipServerStop()
 {
+#ifdef PLAYBACK_IP_SUPPORT
     eRet                   ret                  = eRet_Ok;
     CServerMgr *           pServerMgr           = _pModel->getServerMgr();
     CAutoDiscoveryClient * pAutoDiscoveryClient = _pModel->getAutoDiscoveryClient();
@@ -4930,6 +5073,9 @@ eRet CControl::ipServerStop()
 
 error:
     return(ret);
+#else
+    return eRet_Ok;
+#endif
 } /* ipServerStop */
 
 eRet CControl::setPowerMode(ePowerMode mode)
@@ -5097,7 +5243,13 @@ eRet CControl::connectDecoders(
 
 void CControl::disconnectDecoders(eWindowType winType)
 {
-    BSTD_UNUSED(winType);
+    CSimpleVideoDecode * pVideoDecode = _pModel->getSimpleVideoDecode(winType);
+
+    if (NULL != pVideoDecode)
+    {
+        pVideoDecode->setChannel(NULL);
+    }
+
     return;
 } /* disconnectDecoders() */
 
@@ -5129,6 +5281,13 @@ eRet CControl::startDecoders(
         CHECK_WARN("unable to set VBI settings after decoder start", retVbi);
     }
 
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    if ((NULL != pVideoDecode) && (NULL != pVideoPid))
+    {
+        _plmVideoDecodeList.add(pVideoDecode);
+        _timerPlmVerify.start(240);
+    }
+#endif
     return(ret);
 } /* startDecoders */
 
@@ -5138,6 +5297,14 @@ eRet CControl::stopDecoders(
         )
 {
     eRet ret = eRet_Ok;
+
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    while (NULL != _plmVideoDecodeList.remove(pVideoDecode));
+    if (0 == _plmVideoDecodeList.total())
+    {
+        _timerPlmVerify.stop();
+    }
+#endif
 
     if (NULL != pVideoDecode)
     {
@@ -5150,3 +5317,88 @@ eRet CControl::stopDecoders(
 
     return(ret);
 } /* stopDecoders */
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+eRet CControl::setGraphicsDynamicRange(CChannel * pChannel)
+{
+    eRet        ret       = eRet_Ok;
+    CGraphics * pGraphics = _pModel->getGraphics();
+    CSimpleVideoDecode * pVideoDecode = NULL;
+
+    if ((NULL == pGraphics) || (NULL == pChannel))
+    {
+        BDBG_MSG(("setGraphicsDynamicRange() ignored - pGraphics:%p pChannel:%p", pGraphics, pChannel));
+        return(eRet_InvalidState);
+    }
+
+    pVideoDecode = pChannel->getVideoDecode();
+    if (NULL != pVideoDecode)
+    {
+        if (eWindowType_Mosaic1 <= pVideoDecode->getWindowType())
+        {
+            /* do not set graphics dynamic range for mosaic sub channels */
+            BDBG_MSG(("setGraphicsDynamicRange() ignored - windowType:%d", pVideoDecode->getWindowType()));
+            return(eRet_InvalidState);
+        }
+    }
+
+    BDBG_MSG(("set gfx plm:%s", pChannel->isGraphicsPlmEnabled() ? "true" : "false"));
+    pGraphics->setPlm(pChannel->isGraphicsPlmEnabled());
+
+error:
+    return(ret);
+}
+#endif
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+eRet CControl::setHdmiOutputDynamicRange()
+{
+    eRet          ret                = eRet_Ok;
+    CDisplay *    pDisplay           = _pModel->getDisplay();
+    eDynamicRange dynamicRangeLast   = _pModel->getLastDynamicRange();
+    eDynamicRange dynamicRangeOutput = eDynamicRange_Unknown;
+
+    if (NULL == pDisplay)
+    {
+        return(eRet_InvalidState);
+    }
+
+    if (true == GET_BOOL(_pCfg, FORCE_HDMI_HDR_OUTPUT))
+    {
+        dynamicRangeOutput = eDynamicRange_HDR10;
+        BDBG_WRN(("Forcing HDMI dynamic range output (see FORCE_HDMI_HDR_OUTPUT in atlas.cfg):%s", videoDynamicRangeToString(dynamicRangeOutput).s()));
+    }
+    else
+    {
+        dynamicRangeOutput = pDisplay->getOutputDynamicRange();
+    }
+
+    if (dynamicRangeLast != dynamicRangeOutput)
+    {
+        /* video dynamic range has changed */
+        ret = pDisplay->setOutputDynamicRange(dynamicRangeOutput);
+        CHECK_ERROR_GOTO("unable to set hdmi output dynamic range", ret, error);
+    }
+
+error:
+    return(ret);
+}
+#endif
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+/* update PLM settings for each video decode */
+eRet CControl::videoDecodeUpdatePlm(CSimpleVideoDecode * pVideoDecode)
+{
+    eRet                     ret     = eRet_Ok;
+    NEXUS_VideoDecoderStatus status;
+
+    ret = pVideoDecode->getStatus(&status);
+    CHECK_ERROR_GOTO("unable to get video decode status", ret, error);
+
+    if (true == status.started)
+    {
+        ret = pVideoDecode->updatePlm();
+        CHECK_ERROR_GOTO("unable to update video decode plm", ret, error);
+    }
+
+error:
+    return(ret);
+}
+#endif

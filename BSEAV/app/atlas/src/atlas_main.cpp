@@ -2579,10 +2579,10 @@ doneDecodePip:
     /* initialize video and audio outputs */
     pOutputHdmi = outputHdmiInitialize(pDisplayHD);
     CHECK_PTR_MSG("unable to initialize hdmi output - disabled", pOutputHdmi, ret, eRet_Ok);
-    pOutputComponent = outputComponentInitialize(pDisplayHD);
-    CHECK_PTR_MSG("unable to initialize component output - disabled", pOutputComponent, ret, eRet_Ok);
     pOutputComposite = outputCompositeInitialize(pDisplaySD);
     CHECK_PTR_MSG("unable to initialize composite output - disabled", pOutputComposite, ret, eRet_Ok);
+    pOutputComponent = outputComponentInitialize(pDisplayHD);
+    CHECK_PTR_MSG("unable to initialize component output - disabled", pOutputComponent, ret, eRet_Ok);
     pOutputRFM = outputRfmInitialize(pDisplaySD);
     CHECK_PTR_MSG("unable to initialize rfm output - disabled", pOutputRFM, ret, eRet_Ok);
     pOutputSpdif = outputSpdifInitialize();

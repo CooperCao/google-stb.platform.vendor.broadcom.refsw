@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -245,6 +245,7 @@ typedef struct NxClient_VideoDecoderCapabilities
     unsigned fifoSize; /* actual fifo should be at least this size */
     bool avc51Enabled;
     bool secureVideo;
+    unsigned userDataBufferSize; /* Size of userdata buffer in bytes. Increase this for high bitrate userdata applications. */
 
     /* the following are used to request a decoder and can also be changed
     at runtime to reduce memory allocation */
@@ -336,7 +337,10 @@ typedef struct NxClient_ConnectSettings
     struct {
         unsigned id; /* id used to acquire SimpleVideoDecoder. 0 is no request. */
         unsigned surfaceClientId; /* id for top-level surface client */
-        unsigned windowId;
+        unsigned windowId; /* Same as window_id param in NEXUS_SurfaceClient_AcquireVideoWindow.
+                              It is relative to the surfaceClientId, which is its parent.
+                              If you have only one video window under a SurfaceClient, always use 0.
+                              If you have more than one video window under a SurfaceClient, this id differentiates. */
         NxClient_VideoDecoderCapabilities decoderCapabilities;
         NxClient_VideoWindowCapabilities windowCapabilities;
     } simpleVideoDecoder[NXCLIENT_MAX_IDS];
@@ -446,6 +450,24 @@ void NxClient_GetDefaultReconfigSettings(
 
 NEXUS_Error NxClient_Reconfig(
     const NxClient_ReconfigSettings *pSettings
+    );
+
+/**
+Change mode after Join
+We currently support raising your privilege, from eUntrusted to eProtected, or eProtected to eVerified.
+**/
+typedef struct NxClient_ClientModeSettings
+{
+    NEXUS_ClientMode mode;
+    NEXUS_Certificate certificate;
+} NxClient_ClientModeSettings;
+
+void NxClient_GetDefaultClientModeSettings(
+    NxClient_ClientModeSettings *pSettings
+    );
+
+NEXUS_Error NxClient_SetClientMode(
+    const NxClient_ClientModeSettings *pSettings
     );
 
 #ifdef __cplusplus

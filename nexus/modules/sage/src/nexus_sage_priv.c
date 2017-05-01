@@ -65,6 +65,18 @@ NEXUS_Sage_WaitSage_priv(void)
     return NEXUS_NOT_AVAILABLE;
 }
 
+void * NEXUS_Sage_Malloc_priv(size_t size)
+{
+    NEXUS_ASSERT_MODULE();
+    return NEXUS_Sage_P_Malloc(size);
+}
+
+void * NEXUS_Sage_MallocRestricted_priv(size_t size)
+{
+    NEXUS_ASSERT_MODULE();
+    return NEXUS_Sage_P_MallocRestricted(size);
+}
+
 #if NEXUS_POWER_MANAGEMENT
 
 /* The following is only used if Power Management is enabled */
@@ -301,7 +313,6 @@ NEXUS_SageModule_Standby_priv(
     if (!enabled) {
         /* leaving standby */
         if (g_sage_standby.currMode == NEXUS_StandbyMode_eDeepSleep) {
-            g_NEXUS_sageModule.booted = 0;
             BSAGElib_Management_Reset(g_NEXUS_sageModule.hSAGElib);
             nexus_rc = NEXUS_SageModule_P_Start();
             if (nexus_rc != NEXUS_SUCCESS) {

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Render state handler
-
-FILE DESCRIPTION
-Handles allocation and flushing of render states.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_int_common.h"
 #include "khrn_render_state.h"
 #include "khrn_types.h"
@@ -17,9 +9,9 @@ Handles allocation and flushing of render states.
 #include "../glxx/glxx_compute.h"
 #include <stddef.h>
 
-KHRN_RENDER_STATE_T render_states[MAX_RENDER_STATES];
+khrn_render_state render_states[MAX_RENDER_STATES];
 
-static KHRN_RENDER_STATE_T *init_render_state(KHRN_RENDER_STATE_T *rs,
+static khrn_render_state *init_render_state(khrn_render_state *rs,
       khrn_render_state_type_t type)
 {
    memset(rs, 0, sizeof *rs);
@@ -27,20 +19,20 @@ static KHRN_RENDER_STATE_T *init_render_state(KHRN_RENDER_STATE_T *rs,
    return rs;
 }
 
-bool khrn_render_state_is_valid(const KHRN_RENDER_STATE_T *rs)
+bool khrn_render_state_is_valid(const khrn_render_state *rs)
 {
    uintptr_t offset = (uintptr_t)rs - (uintptr_t)&render_states[0];
-   return   (offset / sizeof(KHRN_RENDER_STATE_T)) < MAX_RENDER_STATES
-         && (offset % sizeof(KHRN_RENDER_STATE_T)) == 0;
+   return   (offset / sizeof(khrn_render_state)) < MAX_RENDER_STATES
+         && (offset % sizeof(khrn_render_state)) == 0;
 }
 
-static KHRN_RENDER_STATE_T* find_oldest_flushable_rs()
+static khrn_render_state* find_oldest_flushable_rs()
 {
-   KHRN_RENDER_STATE_T *oldest_rs = NULL;
+   khrn_render_state *oldest_rs = NULL;
 
    for (unsigned i = 0; i < MAX_RENDER_STATES; i++)
    {
-      KHRN_RENDER_STATE_T *rs = render_states + i;
+      khrn_render_state *rs = render_states + i;
       if (  rs->type != KHRN_RENDER_STATE_TYPE_NONE
          && rs->flush_state == KHRN_RENDER_STATE_FLUSH_ALLOWED)
       {
@@ -53,7 +45,7 @@ static KHRN_RENDER_STATE_T* find_oldest_flushable_rs()
 
 bool khrn_render_state_flush_oldest_possible(void)
 {
-   KHRN_RENDER_STATE_T *oldest_rs = find_oldest_flushable_rs();
+   khrn_render_state *oldest_rs = find_oldest_flushable_rs();
    if (oldest_rs)
    {
       khrn_render_state_flush(oldest_rs);
@@ -62,9 +54,9 @@ bool khrn_render_state_flush_oldest_possible(void)
    return false;
 }
 
-KHRN_RENDER_STATE_T *khrn_render_state_new(khrn_render_state_type_t type)
+khrn_render_state *khrn_render_state_new(khrn_render_state_type_t type)
 {
-   KHRN_RENDER_STATE_T *rs;
+   khrn_render_state *rs;
    static unsigned allocated_order = 0;
 
    assert(type != KHRN_RENDER_STATE_TYPE_NONE);
@@ -93,7 +85,7 @@ KHRN_RENDER_STATE_T *khrn_render_state_new(khrn_render_state_type_t type)
    return rs;
 }
 
-void khrn_render_state_flush(KHRN_RENDER_STATE_T *rs)
+void khrn_render_state_flush(khrn_render_state *rs)
 {
    assert(khrn_render_state_is_valid(rs));
    switch (rs->type)
@@ -113,13 +105,13 @@ void khrn_render_state_flush_all(void)
 {
    for (unsigned i = 0; i < MAX_RENDER_STATES; i++)
    {
-      KHRN_RENDER_STATE_T *rs = render_states + i;
+      khrn_render_state *rs = render_states + i;
       if (rs->type == KHRN_RENDER_STATE_TYPE_GLXX)
          khrn_render_state_flush(rs);
    }
 }
 
-KHRN_RENDER_STATE_T *khrn_render_state_set_pop(khrn_render_state_set_t *set)
+khrn_render_state *khrn_render_state_set_pop(khrn_render_state_set_t *set)
 {
    if (!*set)
       return NULL;
@@ -130,7 +122,7 @@ KHRN_RENDER_STATE_T *khrn_render_state_set_pop(khrn_render_state_set_t *set)
    return &render_states[index];
 }
 
-void khrn_render_state_delete(KHRN_RENDER_STATE_T *rs)
+void khrn_render_state_delete(khrn_render_state *rs)
 {
    if (rs == NULL) return;
 
@@ -138,8 +130,8 @@ void khrn_render_state_delete(KHRN_RENDER_STATE_T *rs)
    init_render_state(rs, KHRN_RENDER_STATE_TYPE_NONE);
 }
 
-bool khrn_render_state_record_fence_to_signal(KHRN_RENDER_STATE_T *rs,
-      KHRN_FENCE_T *fence)
+bool khrn_render_state_record_fence_to_signal(khrn_render_state *rs,
+      khrn_fence *fence)
 {
    assert(khrn_render_state_is_valid(rs));
 
@@ -162,12 +154,12 @@ bool khrn_render_state_record_fence_to_signal(KHRN_RENDER_STATE_T *rs,
 /* For debugging */
 unsigned khrn_hw_render_state_allocated_order(const GLXX_HW_RENDER_STATE_T *hw_rs)
 {
-   const KHRN_RENDER_STATE_T *rs;
+   const khrn_render_state *rs;
 
    if (hw_rs == NULL)
       return 0;
 
-   rs = (const KHRN_RENDER_STATE_T *)hw_rs;
+   rs = (const khrn_render_state *)hw_rs;
    return rs->allocated_order;
 }
 
@@ -177,7 +169,7 @@ void glxx_hw_render_state_foreach(glxx_hw_rs_foreach_callback callback, void *da
 
    for (i = 0; i < MAX_RENDER_STATES; i++)
    {
-      KHRN_RENDER_STATE_T *rs = render_states + i;
+      khrn_render_state *rs = render_states + i;
       if (rs->type == KHRN_RENDER_STATE_TYPE_GLXX)
       {
          GLXX_HW_RENDER_STATE_T *hw_rs = khrn_render_state_get_glxx(rs);
@@ -200,7 +192,7 @@ bool khrn_render_state_set_iterate_cb(const khrn_render_state_set_t *set,
    {
       if (*set & (1 << i))
       {
-         KHRN_RENDER_STATE_T *rs = render_states + i;
+         khrn_render_state *rs = render_states + i;
          res = cb(rs, param);
          if (!res )
             return false;

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __LOADER_H__
 #define __LOADER_H__
 
@@ -18,11 +10,13 @@ DESC
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-
+#include <mutex>
 #include <vector>
 
 #include "Command.h"
 #include "bsg_task.h"
+#include "datasource.h"
+
 
 #ifdef HAS_UNZIP
 #include "unzip.h"
@@ -48,7 +42,7 @@ private:
    Loader   &m_loader;
 };
 
-class Loader
+class Loader: private DataSource
 {
 public:
    Loader(SpyToolReplay *replay);
@@ -59,9 +53,10 @@ public:
 
    friend class LoaderTask;
 
+private: //DataSource interface
+   size_t Read(void *buf, size_t count);
+
 private:
-   int32_t Read(void *buf, size_t count);
-   int32_t Read32();
    bool    ReadCommand(Command *cmd);
    void    PrimeBuffer();
    bool    FillBuffer(bool print);
@@ -79,6 +74,7 @@ private:
    uint32_t                         m_minor;
    uint32_t                         m_bufferLen;
    uint8_t                          *m_buffer;
+   uint32_t                         m_readBytes;
    uint32_t                         m_cmdQueueBytes;
    bool                             m_taskDone;
    uint32_t                         m_insertAt;
@@ -90,7 +86,7 @@ private:
    bool                             m_reprime;
    uint8_t                          *m_readPtr;
    std::vector<SpecializedCommand>  m_cmdQueue;
-   bsg::Mutex                       m_queueMutex;
+   mutable std::mutex               m_queueMutex;
    LoaderTask                       *m_loaderTask;
    bsg::Tasker                      *m_tasker;
 

@@ -1041,7 +1041,8 @@ void
 wlc_phy_force_rfseq_acphy(phy_info_t *pi, uint8 cmd)
 {
 	uint16 trigger_mask, status_mask;
-	uint16 orig_RfseqCoreActv, orig_rxfectrl1;
+	uint16 orig_RfseqCoreActv;
+	uint8 stall_val, fifo_rst_val = 0;
 
 	if (READ_PHYREGFLD(pi, OCLControl1, ocl_mode_enable) == 1) {
 		if (cmd == ACPHY_RFSEQ_RESET2RX)
@@ -1090,12 +1091,21 @@ wlc_phy_force_rfseq_acphy(phy_info_t *pi, uint8 cmd)
 
 	/* Save */
 	orig_RfseqCoreActv = READ_PHYREG(pi, RfseqMode);
-	orig_rxfectrl1 = READ_PHYREG(pi, RxFeCtrl1);
+	stall_val = READ_PHYREGFLD(pi, RxFeCtrl1, disable_stalls);
+	fifo_rst_val = READ_PHYREGFLD(pi, RxFeCtrl1, soft_sdfeFifoReset);
+	/* Force gated clocks on */
+	wlapi_bmac_phyclk_fgc(pi->sh->physhim, ON);
+	if (ACMAJORREV_32(pi->pubpi.phy_rev) || ACMAJORREV_33(pi->pubpi.phy_rev) || ACMAJORREV_37(pi->pubpi.phy_rev)) {
+		W_REG(pi->sh->osh, &pi->regs->psm_phy_hdr_param, (MAC_PHY_CLOCK_EN | MAC_PHY_FORCE_CLK)); /* set reg(PHY_CTL) 0x6 */
 
-	MOD_PHYREG(pi, RxFeCtrl1, soft_sdfeFifoReset, 1);
-	if (ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev)) {
-		OSL_DELAY(1);
+		/* Disable Stalls */
+		if (stall_val == 0)
+			ACPHY_DISABLE_STALL(pi);
 	}
+
+	if (fifo_rst_val == 0)
+		MOD_PHYREG(pi, RxFeCtrl1, soft_sdfeFifoReset, 1);
+	OSL_DELAY(1);
 
 	/* Trigger */
 	phy_utils_or_phyreg(pi, ACPHY_RfseqMode(pi->pubpi->phy_rev),
@@ -1121,9 +1131,18 @@ wlc_phy_force_rfseq_acphy(phy_info_t *pi, uint8 cmd)
 	}
 
 	/* Restore */
-	WRITE_PHYREG(pi, RfseqMode, orig_RfseqCoreActv);
-	WRITE_PHYREG(pi, RxFeCtrl1, orig_rxfectrl1);
+	MOD_PHYREG(pi, RxFeCtrl1, soft_sdfeFifoReset, fifo_rst_val);
+	if (ACMAJORREV_32(pi->pubpi.phy_rev) || ACMAJORREV_33(pi->pubpi.phy_rev) || ACMAJORREV_37(pi->pubpi.phy_rev)) {
+	/* Undo Stalls */
+		ACPHY_ENABLE_STALL(pi, stall_val);
+		OSL_DELAY(1);
 
+		/* Force gated clocks off */
+		W_REG(pi->sh->osh, &pi->regs->psm_phy_hdr_param, MAC_PHY_CLOCK_EN); /* set reg(PHY_CTL) 0x2 */
+	}
+	wlapi_bmac_phyclk_fgc(pi->sh->physhim, OFF);
+
+	WRITE_PHYREG(pi, RfseqMode, orig_RfseqCoreActv);
 
 	if (ACMAJORREV_1(pi->pubpi->phy_rev))
 		return;

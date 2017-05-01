@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "khrn_mem.h"
@@ -10,7 +9,7 @@ All rights reserved.
 struct khrn_map_entry
 {
    uint32_t key;
-   KHRN_MEM_HANDLE_T value;
+   khrn_mem_handle_t value;
 };
 
 typedef struct khrn_map
@@ -20,37 +19,37 @@ typedef struct khrn_map
 
    struct khrn_map_entry *storage;
    uint32_t capacity;
-} KHRN_MAP_T;
+} khrn_map;
 
 /* capacity must be >= 8. false returned on failure. */
-extern bool khrn_map_init(KHRN_MAP_T *map, uint32_t capacity);
+extern bool khrn_map_init(khrn_map *map, uint32_t capacity);
 
 /* It's fine to call this on a zero-initialised map, even after a failed call
  * to khrn_map_init(). */
-extern void khrn_map_term(KHRN_MAP_T *map);
+extern void khrn_map_term(khrn_map *map);
 
 /* Inserts value into map with key key. The map will hold a reference to value.
  * If another value is already in the map with this key, the function will not
  * fail; the new value replaces the old. On failure, false is returned and the
  * map is unchanged. */
-extern bool khrn_map_insert(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T value);
+extern bool khrn_map_insert(khrn_map *map, uint32_t key, khrn_mem_handle_t value);
 
 /* If present, deletes the element identified by key from the map and returns
  * true. If not present, returns false. */
-extern bool khrn_map_delete(KHRN_MAP_T *map, uint32_t key);
+extern bool khrn_map_delete(khrn_map *map, uint32_t key);
 
-static inline uint32_t khrn_map_get_count(const KHRN_MAP_T *map)
+static inline uint32_t khrn_map_get_count(const khrn_map *map)
 {
    return map->entries;
 }
 
 /* Returns the value corresponding to key, or NULL if key is not in the map.
  * value's reference count *is not* incremented. */
-extern KHRN_MEM_HANDLE_T khrn_map_lookup(const KHRN_MAP_T *map, uint32_t key);
+extern khrn_mem_handle_t khrn_map_lookup(const khrn_map *map, uint32_t key);
 
 /* Runs the given callback function once for every (key, value) pair in the
  * map. The iterator function is allowed to delete the element it is given, but
  * not modify the structure of map in any other way (eg by adding new
  * elements). */
-typedef void (*KHRN_MAP_CALLBACK_T)(KHRN_MAP_T *map, uint32_t key, KHRN_MEM_HANDLE_T value, void *p);
-extern void khrn_map_iterate(KHRN_MAP_T *map, KHRN_MAP_CALLBACK_T func, void *p);
+typedef void (*khrn_map_callback_t)(khrn_map *map, uint32_t key, khrn_mem_handle_t value, void *p);
+extern void khrn_map_iterate(khrn_map *map, khrn_map_callback_t func, void *p);

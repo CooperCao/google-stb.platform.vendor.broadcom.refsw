@@ -53,7 +53,13 @@
 #define PROC_INTERRUPTS_FILE         "/proc/interrupts"
 #define TEMP_INTERRUPTS_FILE         "interrupts"
 #define PROC_STAT_FILE               "/proc/stat"
+#define PATH_PROCNET_SNMP            "/proc/net/snmp"
+#define PATH_PROCNET_SNMP_MAX        4096 /* expected length of file should not exceed this size */
+#define PATH_PROCNET_IGMP            "/proc/net/igmp"
+#define PATH_PROCNET_IGMP_MAX        4096
 #define MAX_LENGTH_GETPIDOF_CMD      128
+#define BASPMON_CFG_FILENAME         "baspmon.cfg"
+#define BASPMON_MAX_NUM_STREAMS      16
 
 typedef struct
 {
@@ -123,6 +129,21 @@ typedef struct
     char         ddr_type[8];
 } BMEMPERF_BUS_BURST_INFO;
 
+typedef struct
+{
+    unsigned char      xptActive[32];
+    unsigned long int  xptPid[32];
+    unsigned long int  xptPktCount[32];
+    unsigned long int  xptRavePacketCount;
+} bmemperf_xpt_details;
+
+typedef struct
+{
+    unsigned char      aspActive[32];
+    unsigned long int  aspPid[32];
+    unsigned long int  aspPktCount[32];
+} bmemperf_asp_details;
+
 const char *noprintf( const char *format, ... );
 char *getPlatformVersion(
     void
@@ -169,6 +190,8 @@ int convert_to_string_with_commas(
     );
 unsigned long int getSecondsSinceEpoch( void );
 char *GetFileContents( const char *filename );
+int   SetFileContents( const char* filename, const char* contents);
+char *GetFileContentsProc( const char *filename, int max_expected_file_size );
 char *GetFileContentsSeek( const char *filename, unsigned int offset );
 unsigned int GetFileLength( const char *filename );
 char *GetTempDirectoryStr( void );
@@ -195,6 +218,7 @@ int          bmemperf_cas_to_cycle( unsigned int memc_index, volatile unsigned i
 volatile unsigned int *bmemperf_openDriver_and_mmap( void );
 unsigned int convert_from_msec( unsigned int msec_value, unsigned int g_interval );
 unsigned int get_my_ip4_addr( void );
+char        *get_my_ip4_local( void );
 unsigned long int  getPidOf ( const char * processName );
 const char        *executable_fullpath( const char * exe_name );
 const char        *get_executing_command( const char * exe_name );
@@ -218,5 +242,10 @@ char              *getFileContents( const char *filename);
 char              *Bsysperf_FindLastStr ( const char * buffer, const char * searchStr );
 void               printflog (const char * szFormat, ... );
 int                Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies );
+int                Bsysperf_GetTcpStatistics( char *outputBuffer, int outputBufferLen );
+int                Bsysperf_GetXptData( bmemperf_xpt_details *pxpt );
+int                Bsysperf_GetAspData( bmemperf_asp_details *pasp );
+int                Bmemperf_GetCfgFileEntry( const char* cfg_filename, const char* cfg_tagline, char* output_buffer, int output_buffer_len );
+int                Bmemperf_SetCfgFileEntry( const char* cfg_filename, const char* cfg_tagline, char* new_value );
 
 #endif /* __BMEMPERF_LIB_H__ */

@@ -648,7 +648,8 @@ retryAuthentication:
         BDBG_LOG(("%s: version[%d], state [%d]", __FUNCTION__,
             hdmiRxHdcpStatus.version, hdmiRxHdcpStatus.hdcpState));
 
-        if ((hdmiRxHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eAuthenticated))
+        if ((hdmiRxHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eAuthenticated)
+		|| (hdmiRxHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated))
         {
             BDBG_LOG(("%s: HDCP2.2 Authentication status from with upstream Tx: AUTHENTICATED", __FUNCTION__));
             if (!rxAuthenticated)

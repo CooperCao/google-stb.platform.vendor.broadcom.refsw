@@ -1,51 +1,44 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Memory management
-
-FILE DESCRIPTION
-Khronos memory management API - backed by either reloc heap or malloc
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_mem.h"
 #include "vcos.h"
 #include "khrn_int_util.h"
 
-KHRN_MEM_HANDLE_T khrn_mem_handle_empty_string;
+khrn_mem_handle_t khrn_mem_handle_empty_string;
 
-KHRN_MEM_HANDLE_T khrn_mem_alloc_ex(size_t size, const char *desc, bool init, bool resizeable, bool discardable)
+khrn_mem_handle_t khrn_mem_alloc_ex(size_t size, const char *desc, bool init, bool resizeable, bool discardable)
 {
    /* Ignore resizeable and discardable */
-   uint8_t *alloc = malloc(size + sizeof(KHRN_MEM_HEADER_T));
+   uint8_t *alloc = malloc(size + sizeof(khrn_mem_header));
    if (!alloc)
    {
       return KHRN_MEM_HANDLE_INVALID;
    }
 
-   KHRN_MEM_HEADER_T *header = (KHRN_MEM_HEADER_T *)alloc;
+   khrn_mem_header *header = (khrn_mem_header *)alloc;
    header->magic = KHRN_MEM_HEADER_MAGIC;
    header->ref_count = 1;
    header->term = NULL;
    header->size = size;
 
-   void *result = (uint8_t *)alloc + sizeof(KHRN_MEM_HEADER_T);
+   void *result = (uint8_t *)alloc + sizeof(khrn_mem_header);
    if (init)
    {
       khrn_memset(result, 0, size);
    }
 
-   assert(header == khrn_mem_header(result));
+   assert(header == khrn_mem_get_header(result));
 
    return result;
 }
 
-void khrn_mem_release(KHRN_MEM_HANDLE_T handle)
+void khrn_mem_release(khrn_mem_handle_t handle)
 {
    if (handle == KHRN_MEM_HANDLE_INVALID)
       return;
 
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    int before_dec = vcos_atomic_dec(&header->ref_count);
    assert(before_dec > 0);
 
@@ -58,12 +51,12 @@ void khrn_mem_release(KHRN_MEM_HANDLE_T handle)
    }
 }
 
-bool khrn_mem_try_release(KHRN_MEM_HANDLE_T handle)
+bool khrn_mem_try_release(khrn_mem_handle_t handle)
 {
    if (handle == KHRN_MEM_HANDLE_INVALID)
       return false;
 
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    assert(header->ref_count > 0);
    if (header->ref_count == 1)
       return false;
@@ -72,12 +65,12 @@ bool khrn_mem_try_release(KHRN_MEM_HANDLE_T handle)
    return true;
 }
 
-bool khrn_mem_resize(KHRN_MEM_HANDLE_T *handle_inout, size_t size)
+bool khrn_mem_resize(khrn_mem_handle_t *handle_inout, size_t size)
 {
-   KHRN_MEM_HANDLE_T handle = *handle_inout;
+   khrn_mem_handle_t handle = *handle_inout;
    assert(handle != KHRN_MEM_HANDLE_INVALID);
 
-   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   khrn_mem_header *header = khrn_mem_get_header(handle);
    assert(header->ref_count == 1);
    size_t old_size = header->size;
 
@@ -85,7 +78,7 @@ bool khrn_mem_resize(KHRN_MEM_HANDLE_T *handle_inout, size_t size)
       return true;
 
    /* TODO: realloc? */
-   KHRN_MEM_HANDLE_T new_handle = khrn_mem_alloc_ex(size, "realloc", false, true, false);
+   khrn_mem_handle_t new_handle = khrn_mem_alloc_ex(size, "realloc", false, true, false);
    if (new_handle == KHRN_MEM_HANDLE_INVALID)
       return false;
 
@@ -121,9 +114,9 @@ void khrn_mem_term(void)
    khrn_mem_release(khrn_mem_handle_empty_string);
 }
 
-KHRN_MEM_HANDLE_T khrn_mem_strdup(const char *str)
+khrn_mem_handle_t khrn_mem_strdup(const char *str)
 {
-   KHRN_MEM_HANDLE_T handle = khrn_mem_alloc_ex(strlen(str) + 1, "khrn_mem_strdup", false, false, false);
+   khrn_mem_handle_t handle = khrn_mem_alloc_ex(strlen(str) + 1, "khrn_mem_strdup", false, false, false);
    if (handle == KHRN_MEM_HANDLE_INVALID)
       return KHRN_MEM_HANDLE_INVALID;
 

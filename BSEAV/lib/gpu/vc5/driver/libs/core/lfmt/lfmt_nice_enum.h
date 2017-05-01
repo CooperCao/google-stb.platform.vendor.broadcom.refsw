@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 /* BEGIN AUTO-GENERATED CODE (nice_enum) */
 GFX_LFMT_1D_RSO = GFX_LFMT_MAKE_NOCAST(DIMS_1D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_NONE, TYPE_NONE, CHANNELS_NONE, PRE_NONPRE),
 GFX_LFMT_ASTC10X10_SRGB_SRGB_SRGB_UNORM_2D_LT = GFX_LFMT_MAKE_NOCAST(DIMS_2D, SWIZZLING_LT, YFLIP_NOYFLIP, BASE_ASTC10X10, TYPE_SRGB_SRGB_SRGB_UNORM, CHANNELS_NONE, PRE_NONPRE),

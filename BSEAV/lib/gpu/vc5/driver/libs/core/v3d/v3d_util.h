@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "v3d_common.h"
@@ -68,30 +67,34 @@ VCOS_EXTERN_C_END
 
 #ifdef __cplusplus
 
-// Intended for use with std::set.
-// Don't put overlapping ranges in a set.
-// Don't put ranges with is_lookup=true in sets.
+// Intended for use with std::set/map.
+// Don't put overlapping ranges in a set/map.
+// Don't put ranges with is_lookup=true in sets/maps.
 // Do lookups with is_lookup=true ranges. These will match overlapping ranges.
-struct v3d_addr_range
+struct v3d_addr_range_key : v3d_addr_range
 {
-   v3d_addr_t begin_addr, end_addr;
+#ifndef NDEBUG
    bool is_lookup;
+#endif
 
-   v3d_addr_range(v3d_addr_t begin_addr, v3d_addr_t end_addr, bool is_lookup=false) :
-      begin_addr(begin_addr), end_addr(end_addr), is_lookup(is_lookup)
+   v3d_addr_range_key(v3d_addr_t begin, v3d_addr_t end, bool is_lookup=false) :
+      v3d_addr_range(begin, end)
+#ifndef NDEBUG
+      , is_lookup(is_lookup)
+#endif
    {
       // Empty ranges not allowed
-      assert(begin_addr < end_addr);
+      assert(begin < end);
    }
 
-   bool operator<(const v3d_addr_range &other) const
+   bool operator<(const v3d_addr_range_key &other) const
    {
       assert(!is_lookup || !other.is_lookup); // Shouldn't both be lookup ranges...
-      if (end_addr <= other.begin_addr)
+      if (end <= other.begin)
          return true;
       // Ranges should only overlap if they are the same range or one of them
       // is a lookup range
-      assert((other.end_addr <= begin_addr) || (this == &other) || is_lookup || other.is_lookup);
+      assert((other.end <= begin) || (this == &other) || is_lookup || other.is_lookup);
       return false;
    }
 };

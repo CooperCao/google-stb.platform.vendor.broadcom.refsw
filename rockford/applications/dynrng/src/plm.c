@@ -75,6 +75,16 @@ void plm_p_apply(PlmHandle plm)
     }
 }
 
+void plm_p_clear_lra(PlmHandle plm)
+{
+    pwl_set_lra_hw(plm->curve, plm->index, plm->rect, 0);
+}
+
+void plm_p_apply_lra(PlmHandle plm)
+{
+    pwl_set_lra_hw(plm->curve, plm->index, plm->rect, plm_get(plm) > 0);
+}
+
 void plm_p_apply_current(PlmHandle plm)
 {
     assert(plm);
@@ -84,11 +94,13 @@ void plm_p_apply_current(PlmHandle plm)
         {
             file_switcher_set_position(plm->currentSwitcher, plm->plmSetting);
         }
-        plm_p_apply(plm);
+        /*plm_p_apply(plm);*/
+        plm->apply(plm);
     }
     else
     {
-        plm_p_clear(plm);
+        /*plm_p_clear(plm);*/
+        plm->clear(plm);
     }
 }
 
@@ -98,11 +110,13 @@ void plm_p_apply_initial(PlmHandle plm)
     if (plm->currentSwitcher)
     {
         file_switcher_first(plm->currentSwitcher);
-        plm_p_apply(plm);
+        /*plm_p_apply(plm);*/
+        plm->apply(plm);
     }
     else
     {
-        plm_p_clear(plm);
+        /*plm_p_clear(plm);*/
+        plm->clear(plm);
     }
 }
 
@@ -136,6 +150,7 @@ void plm_p_compute_switcher(PlmHandle plm, PlatformDynamicRange input, PlatformD
                 break;
         }
     }
+    /* DVS means no switcher */
 }
 
 PlmHandle plm_create(
@@ -148,22 +163,21 @@ PlmHandle plm_create(
     unsigned rect,
     PwlPointMutator set_point,
     PwlPointAccessor get_point,
-    bool demo)
+    PwlLraMutator set_lra,
+    PwlLraAccessor get_lra)
 {
     PlmHandle plm;
     static const char nl2lSubdir[] = "/nl2l";
+    char * nl2lRoot = NULL;
 
     plm = malloc(sizeof(*plm));
     assert(plm);
     memset(plm, 0, sizeof(*plm));
     if (!name) name = UTIL_STR_NONE;
-    plm->name = malloc(strlen(name) + 1);
-    assert(plm->name);
-    strcpy(plm->name, name);
+    plm->name = set_string(plm->name, name);
     plm->index = index;
     plm->rect = rect;
     plm->currentSwitcher = NULL;
-    char * nl2lRoot = NULL;
 
     if (sdr2hdrRoot)
     {
@@ -185,9 +199,13 @@ PlmHandle plm_create(
         plm->nl2l = nl2l_create(platform, "NL2L", nl2lRoot);
         if (nl2lRoot) free(nl2lRoot);
     }
-    plm->curve = pwl_create_curve(name, PWL_POINTS, set_point, get_point);
+    plm->curve = pwl_create_curve(name, PWL_POINTS, set_point, get_point, set_lra, get_lra);
     assert(plm->curve);
-    plm->demo = demo;
+
+    /*plm-apply = plm_p_apply;*/
+    /*pml->clear  = plm_p_clear;*/
+    plm->apply = plm_p_apply_lra;
+    plm->clear = plm_p_clear_lra;
 
     return plm;
 }
@@ -211,14 +229,7 @@ void plm_update_dynamic_range(PlmHandle plm, PlatformDynamicRange input, Platfor
 
 void plm_reapply(PlmHandle plm)
 {
-    if (plm->demo)
-    {
-        plm_p_apply_initial(plm);
-    }
-    else
-    {
-        plm_p_apply_current(plm);
-    }
+    plm_p_apply_current(plm);
 }
 
 void plm_next(PlmHandle plm)
@@ -227,7 +238,8 @@ void plm_next(PlmHandle plm)
     if (!plm->currentSwitcher) { printf("%s is already in the correct luma space; no conversion performed\n", plm->name); return; }
     file_switcher_next(plm->currentSwitcher);
     plm->plmSetting = file_switcher_get_position(plm->currentSwitcher);
-    plm_p_apply(plm);
+    /*plm_p_apply(plm);*/
+    plm->apply(plm);
 }
 
 void plm_prev(PlmHandle plm)
@@ -236,7 +248,8 @@ void plm_prev(PlmHandle plm)
     if (!plm->currentSwitcher) { printf("%s is already in the correct luma space; no conversion performed\n", plm->name); return; }
     file_switcher_prev(plm->currentSwitcher);
     plm->plmSetting = file_switcher_get_position(plm->currentSwitcher);
-    plm_p_apply(plm);
+    /*plm_p_apply(plm);*/
+    plm->apply(plm);
 }
 
 void plm_set(PlmHandle plm, int plmSetting)
@@ -245,13 +258,15 @@ void plm_set(PlmHandle plm, int plmSetting)
     plm->plmSetting = plmSetting;
     if (plmSetting == -1)
     {
+        printf("Clear switcher %s\n", plm->name);
         plm->currentSwitcher = NULL;
         return;
     }
     if (!plm->currentSwitcher) { printf("%s switcher not ready; storing setting (%d) for later application\n", plm->name, plmSetting); return; }
     if (file_switcher_get_position(plm->currentSwitcher) == plmSetting) return;
     file_switcher_set_position(plm->currentSwitcher, plmSetting);
-    plm_p_apply(plm);
+    /*plm_p_apply(plm);*/
+    plm->apply(plm);
 }
 
 FileSwitcherHandle plm_get_current_switcher(PlmHandle plm)

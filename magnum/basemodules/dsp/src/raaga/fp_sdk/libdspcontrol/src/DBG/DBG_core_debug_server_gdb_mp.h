@@ -137,6 +137,9 @@ void
 DBG_core_gdb_process_create_resp(DBG *dbg, dbg_pid_t pid, bool b_err_status);
 
 void
+DBG_core_gdb_process_create_resp_1(DBG *dbg, bool b_err_status);
+
+void
 DBG_core_gdb_vKill_resp(DBG *dbg);
 
 void
@@ -166,6 +169,9 @@ DBG_core_gdb_thread_created(DBG *dbg, dbg_pid_t pid __unused, dbg_tid_t tid __un
 
 void
 DBG_core_gdb_notify_library_change(DBG *dbg);
+
+void
+DBG_core_gdb_notify_process_terminate(DBG *dbg, dbg_pid_t pid, DBP_FAULT_ID fault);
 
 void
 DBG_core_gdb_thread_exited(DBG *dbg, dbg_pid_t pid __unused, dbg_tid_t tid);

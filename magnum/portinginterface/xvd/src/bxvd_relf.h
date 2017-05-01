@@ -1,4 +1,45 @@
 /***************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *   See code
+ *
+ ***************************************************************************/
+/***************************************************************************
  * bxvd_elf.h
  *
  * Standard (common) definitions for ELF structures/fields.
@@ -6,17 +47,6 @@
  * All of this material comes out of the ELF 1.1 Specification.
  * Metaware ARC-specific definitions are below.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *   See module
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef __ELF_H__
 #define __ELF_H__
@@ -213,21 +243,6 @@ typedef struct
  *                                                                      *
  *----------------------------------------------------------------------*/
 
-
-/*********************************************************************
- * THE SOFTWARE CONTAINED IN THIS FILE IS LICENSED TO BROADCOMS 
- * CUSTOMERS FOR USE SOLELY IN CONNECTION WITH ARC processors
- * within BROADCOM'S PRODUCTS.
- * (C) Copyright 2005; ARC International (ARC);  Santa Cruz, CA 95060
- * This program is the unpublished property and trade secret of ARC.  It
- * is to be  utilized  solely  under  license and it is to be maintained 
- * on a confidential basis. The security  and  protection  of  the program
- * is paramount to maintenance of the trade secret status.  It is to be 
- * protected from disclosure to unauthorized parties, both within the 
- * Licensee company and outside, in a manner not less stringent than that
- * utilized for Licensee's own proprietary internal information.  
- *********************************************************************/
-
 /**********************************************************************
 * Relocation types for the ARC ELF object files
 *   A = addend used to compute the relocation
@@ -304,7 +319,7 @@ typedef struct
                                      *(convert to longword displacement) 
                                      */
 #define R_ARC_B22_PCREL       0x6   /* disp22   (S + A - P) >> 2
-				     *    (convert to longword displacement)
+                                     *(convert to longword displacement)
                                      */
 #define R_ARC_H30             0x7   /* word32   (S + A) >> 2 */
 #define R_ARC_N8              0x8   /* bits8    S - A */
@@ -443,5 +458,12 @@ typedef struct
 #define R_ARC_SECTOFF_2      0x2c   /* word32  ((S - <start of section>) + A)
                                      * >> 2
                                      */
+
+BERR_Code BXVD_P_Relf_RelocateELF(BXVD_Handle hXvd,
+                                  uint8_t  *image,
+                                  uint32_t image_size,
+                                  uint32_t code_base,
+                                  uint32_t load_base,
+                                  uint32_t *end_of_code);
 
 #endif

@@ -52,23 +52,9 @@ typedef struct
 	bool bBchEvent  ;
  } BHDR_DEBUG_P_EventCounter ;
 
+#if BHDR_CONFIG_DEBUG_TIMER_S
 void BHDR_P_DebugMonitorHdmiRx_isr (BHDR_Handle hHDR) ;
-
-void BHDR_P_DEBUG_AviInfoFrame(
-	BAVC_HDMI_AviInfoFrame *OldAvi, BAVC_HDMI_AviInfoFrame *NewAvi) ;
-
-void BHDR_P_DEBUG_AudioInfoFrame(
-	BAVC_HDMI_AudioInfoFrame *OldAudioInfoFrame, BAVC_HDMI_AudioInfoFrame*NewAudioInfoframe) ;
-
-void BHDR_P_DEBUG_SpdInfoFrame(
-	BAVC_HDMI_SPDInfoFrame *OldSpdInfoFrame,  BAVC_HDMI_SPDInfoFrame *NewSpdInfoFrame) ;
-
-void BHDR_P_DEBUG_VsInfoFrame(
-	BAVC_HDMI_VendorSpecificInfoFrame *OldVsInfoFrame,  BAVC_HDMI_VendorSpecificInfoFrame *VsInfoFrame) ;
-
-void BHDR_P_DEBUG_AcrPacket(
-	BAVC_HDMI_AudioClockRegenerationPacket *OldAcrPacket,
-	BAVC_HDMI_AudioClockRegenerationPacket *NewAcrPacket) ;
+#endif
 
 void BHDR_P_DEBUG_DumpPacketRam_isr(
 	BHDR_Handle hHDR, uint8_t PacketNumber, BAVC_HDMI_Packet *Packet)  ;

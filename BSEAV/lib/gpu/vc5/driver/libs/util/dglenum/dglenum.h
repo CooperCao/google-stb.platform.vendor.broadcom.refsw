@@ -1,8 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2012 Broadcom.
- All rights reserved.
-==============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef DGLENUM_H
 #define DGLENUM_H
 

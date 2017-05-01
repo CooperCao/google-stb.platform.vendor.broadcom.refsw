@@ -220,7 +220,7 @@ void BHDM_MONITOR_P_HotplugChanges_isr(const BHDM_Handle hHDMI)
 }
 
 
-void BHDM_MONITOR_P_ReadStatus_isr(const BHDM_Handle hHDMI)
+static void BHDM_MONITOR_P_ReadStatus_isr(const BHDM_Handle hHDMI)
 {
 	BREG_Handle hRegister ;
 	uint32_t Register, ulOffset ;

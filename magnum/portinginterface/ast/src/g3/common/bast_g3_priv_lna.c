@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 /* #define BAST_BCM3445_NEW_CONFIG */
 #include "bstd.h"
@@ -36,15 +56,10 @@ BDBG_MODULE(bast_g3_priv_lna);
    if ((retCode = x) != BERR_SUCCESS) goto done;
 
 
-/* local functions */
-BERR_Code BAST_g3_P_ReadBcm3445(BAST_ChannelHandle h, uint8_t reg, uint8_t *val);
-BERR_Code BAST_g3_P_WriteBcm3445(BAST_ChannelHandle h, uint8_t reg, uint8_t val);
-
-
 /******************************************************************************
  BAST_g3_P_WriteBcm3445()
 ******************************************************************************/
-BERR_Code BAST_g3_P_WriteBcm3445(BAST_ChannelHandle hChn, uint8_t reg, uint8_t val)
+static BERR_Code BAST_g3_P_WriteBcm3445(BAST_ChannelHandle hChn, uint8_t reg, uint8_t val)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(hChn->pDevice->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -52,7 +67,7 @@ BERR_Code BAST_g3_P_WriteBcm3445(BAST_ChannelHandle hChn, uint8_t reg, uint8_t v
 
    buf[0] = reg;
    buf[1] = val;
-   
+
    for (i = 0; i < 3; i++)
    {
       retCode = BAST_g3_P_WriteMi2c(hChn, hDev->bcm3445Address, buf, 2);
@@ -67,14 +82,14 @@ BERR_Code BAST_g3_P_WriteBcm3445(BAST_ChannelHandle hChn, uint8_t reg, uint8_t v
 /******************************************************************************
  BAST_g3_P_ReadBcm3445()
 ******************************************************************************/
-BERR_Code BAST_g3_P_ReadBcm3445(BAST_ChannelHandle hChn, uint8_t reg, uint8_t *val)
+static BERR_Code BAST_g3_P_ReadBcm3445(BAST_ChannelHandle hChn, uint8_t reg, uint8_t *val)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(hChn->pDevice->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
    uint8_t i, buf[2];
 
    buf[0] = reg;
-   
+
    for (i = 0; i < 3; i++)
    {
       retCode = BAST_g3_P_ReadMi2c(hChn, hDev->bcm3445Address, buf, 1, val, 1);
@@ -86,20 +101,21 @@ BERR_Code BAST_g3_P_ReadBcm3445(BAST_ChannelHandle hChn, uint8_t reg, uint8_t *v
 }
 
 
+#if 0
 /******************************************************************************
  BAST_g3_P_LnaSetNotchFilter() - return BAST_ERR_MI2C_BUSY if waiting for mi2c - Non-ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_LnaSetNotchFilter(BAST_ChannelHandle h, bool bEnable)
+static BERR_Code BAST_g3_P_LnaSetNotchFilter(BAST_ChannelHandle h, bool bEnable)
 {
    BAST_Handle hAst = h->pDevice;
    BAST_ChannelHandle hI2cChn;
    BAST_g3_P_ChannelHandle *hI2cChnImpl;
    BAST_g3_P_ChannelHandle *hMyChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
-   BERR_Code retCode;   
+   BERR_Code retCode;
    uint8_t pd2_ctrl2, data0;
-   
+
    /* no notch required for external tuner */
-#ifndef BAST_EXCLUDE_EXT_TUNER   
+#ifndef BAST_EXCLUDE_EXT_TUNER
    if (hMyChn->bExternalTuner)
       return BERR_SUCCESS;
 #endif
@@ -112,19 +128,19 @@ BERR_Code BAST_g3_P_LnaSetNotchFilter(BAST_ChannelHandle h, bool bEnable)
    else
       hI2cChn = h;
    hI2cChnImpl = (BAST_g3_P_ChannelHandle *)(hI2cChn->pImpl);
-   
+
    /* check for mi2c busy */
    if (hI2cChnImpl->bMi2cInProgress)
       return BERR_TRACE(BAST_ERR_MI2C_BUSY);
-   
+
    data0 = 0;  /* no notch enabled by default */
    if (hMyChn->bcm3445TunerInput == BAST_Bcm3445OutputChannel_eDaisy)
       data0 = 0x04; /* Daisy Notch */
    else if (hMyChn->bcm3445TunerInput == BAST_Bcm3445OutputChannel_eOut2)
       data0 = 0x02; /* OUT2 Notch */
    else if (hMyChn->bcm3445TunerInput == BAST_Bcm3445OutputChannel_eOut1)
-      data0 = 0x01; /* OUT1 Notch */          
-   
+      data0 = 0x01; /* OUT1 Notch */
+
    /* set notch filters */
    BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hI2cChn, 0x11, &pd2_ctrl2));
    pd2_ctrl2 &= 0x07;
@@ -134,10 +150,11 @@ BERR_Code BAST_g3_P_LnaSetNotchFilter(BAST_ChannelHandle h, bool bEnable)
    else
       pd2_ctrl2 &= ~data0;
    BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hI2cChn, 0x11, pd2_ctrl2));
-   
+
    done:
    return retCode;
 }
+#endif
 
 
 /******************************************************************************
@@ -158,15 +175,15 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
    /* check for invalid configurations */
    BDBG_ASSERT(pSettings);
    BDBG_ENTER(BAST_g3_P_ConfigBcm3445);
-   
+
    /* check maximum i2c channel */
    if (pSettings->mi2c >= h->totalChannels)
       return BERR_TRACE(BERR_INVALID_PARAMETER);
-   
+
    /* daisy cannot loop back to itself */
    if (pSettings->daisy == BAST_Bcm3445OutputConfig_eDaisy)
       return BERR_TRACE(BERR_INVALID_PARAMETER);
-   
+
    /* input driver 1 and daisy driver 2 cannot be enabled simultaneously */
    if (pSettings->out1 == BAST_Bcm3445OutputConfig_eIn1Db)
    {
@@ -183,26 +200,26 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       if ((pSettings->out1 == BAST_Bcm3445OutputConfig_eIn1Vga) || (pSettings->out2 == BAST_Bcm3445OutputConfig_eIn1Vga))
          return BERR_TRACE(BERR_INVALID_PARAMETER);
    }
-   
+
    /* set up handles */
    hChn = (BAST_ChannelHandle)(h->pChannels[(int)(pSettings->mi2c)]);
    hChnImpl = (BAST_g3_P_ChannelHandle *)(hChn->pImpl);
    hChnImpl->bcm3445Settings = *pSettings;
    hChnImpl->bcm3445Status = 0;
-   
+
    /* check for mi2c busy */
    if (hChnImpl->bMi2cInProgress)
       return BERR_TRACE(BAST_ERR_MI2C_BUSY);
-   
+
    /* reset 3445 */
    BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x17, 0x80));
    BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x17, 0x00));
-   
+
    /* read driver settings for configuration */
    BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hChn, 0x0C, &ob_ctrl1));
    BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hChn, 0x09, &vga_ctrl1));
    BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hChn, 0x0B, &db_ctrl));
-   
+
    /* configure out1 path */
    ob_ctrl1 &= 0xF8;    /* enable output drivers 1, 2, 3 as basis */
    switch (pSettings->out1)
@@ -260,7 +277,7 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       default:
          hChnImpl->bcm3445Status |= BAST_BCM3445_STATUS_ERR_INVALID_CFG;
    }
-   
+
    /* configure daisy path */
    ob_ctrl1 &= 0x3F;   /*enable output drivers 7, 8 as basis */
    switch (pSettings->daisy)
@@ -285,7 +302,7 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       default:
          hChnImpl->bcm3445Status |= BAST_BCM3445_STATUS_ERR_INVALID_CFG;
    }
-   
+
    /* check for errors */
    if ((hChnImpl->bcm3445Status & BAST_BCM3445_STATUS_ERROR) == 0)
    {
@@ -293,7 +310,7 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x09, vga_ctrl1));
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x0B, db_ctrl));
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x0C, ob_ctrl1));
-      
+
       /* power off bandgap if all elements off */
       BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hChn, 0x17, &bandgap_ctrl));
       if (ob_ctrl1 == 0xFF)
@@ -301,7 +318,7 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       else
          bandgap_ctrl &= ~0x40;
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x17, bandgap_ctrl)); /* bandgap_ctrl1 */
-      
+
       /* power down unused inputs */
       BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hChn, 0x18, &bandgap_ctrl));
       if ((ob_ctrl1 & 0x89) == 0x89)   /* check if input driver 1 and daisy driver 2 are used */
@@ -318,7 +335,7 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       if ((ob_ctrl1 & 0x24) == 0x24)   /* check if daisy driver 1 is used */
          db_ctrl |= 0x40;        /* disable daisy driver 1 */
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x18, bandgap_ctrl)); /* bandgap_ctrl2 */
-      
+
       /* toggle low power settings */
       BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hChn, 0x0D, &ob_ctrl2));
       BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hChn, 0x1E, &vga_amp2_ctrl));
@@ -336,15 +353,15 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       }
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x0D, ob_ctrl2));
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x1E, vga_amp2_ctrl));
-      
+
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x09, vga_ctrl1));
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x0B, db_ctrl));
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x0C, ob_ctrl1));
-      
+
       /* for better IP3 setting, per Dave Chang email */
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x19, 0xC9)); /* VGA1_OS_CTRL */
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hChn, 0x1A, 0x90)); /* VGA2_OS_CTRL */
-      
+
       /* AGC takeover point setting 5dB move up */
       switch (hChnImpl->bcm3445Ctl & BAST_G3_BCM3445_CTL_AGC_TOP)
       {
@@ -364,11 +381,11 @@ BERR_Code BAST_g3_P_ConfigBcm3445(
       hChnImpl->bcm3445Status = BAST_BCM3445_STATUS_INITIALIZED;
    }
    else
-      hDev->bBcm3445 = false; 
-   
+      hDev->bBcm3445 = false;
+
    done:
    BDBG_LEAVE(BAST_g3_P_ConfigBcm3445);
-   return retCode;      
+   return retCode;
 }
 
 
@@ -382,18 +399,18 @@ BERR_Code BAST_g3_P_MapBcm3445ToTuner(
 )
 {
    BAST_g3_P_ChannelHandle *hMyChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
-   
+
    BDBG_ENTER(BAST_g3_P_MapBcm3445ToTuner);
-   
+
    /* check maximum i2c channel */
    if (mi2c >= BAST_G3_MAX_CHANNELS)
       return BERR_TRACE(BERR_INVALID_PARAMETER);
-   
+
    hMyChn->bcm3445Mi2cChannel = mi2c;
    hMyChn->bcm3445TunerInput = out;
-   
+
    BDBG_LEAVE(BAST_g3_P_MapBcm3445ToTuner);
-   return BERR_SUCCESS;  
+   return BERR_SUCCESS;
 }
 
 
@@ -408,33 +425,33 @@ BERR_Code BAST_g3_P_GetBcm3445Status(
    BAST_g3_P_ChannelHandle *hMyChn = (BAST_g3_P_ChannelHandle *)(h->pImpl);
    BAST_Handle hAst = h->pDevice;
    BAST_ChannelHandle hI2cChn = hAst->pChannels[(int)(hMyChn->bcm3445Mi2cChannel)];
-   BAST_g3_P_ChannelHandle *hI2cChnImpl = hI2cChn->pImpl;   
+   BAST_g3_P_ChannelHandle *hI2cChnImpl = hI2cChn->pImpl;
    BERR_Code retCode;
    uint8_t val8, agc_dac_ctrl1_addr;
-   
+
    BDBG_ENTER(BAST_g3_P_GetBcm3445Status);
 
    /* retrieve tuner mapping s*/
    pStatus->mi2c = hMyChn->bcm3445Mi2cChannel;
    pStatus->tuner_input = hMyChn->bcm3445TunerInput;
    pStatus->status = hI2cChnImpl->bcm3445Status;
-   
+
    /* retrieve input mappings */
    if (hMyChn->bcm3445TunerInput == BAST_Bcm3445OutputChannel_eOut1)
       pStatus->out_cfg = hI2cChnImpl->bcm3445Settings.out1;
    else if (hMyChn->bcm3445TunerInput == BAST_Bcm3445OutputChannel_eOut2)
       pStatus->out_cfg = hI2cChnImpl->bcm3445Settings.out2;
-   else if (hMyChn->bcm3445TunerInput == BAST_Bcm3445OutputChannel_eDaisy) 
+   else if (hMyChn->bcm3445TunerInput == BAST_Bcm3445OutputChannel_eDaisy)
       pStatus->out_cfg = hI2cChnImpl->bcm3445Settings.daisy;
    else
       pStatus->out_cfg = BAST_Bcm3445OutputConfig_eOff;
- 
+
    /* check for mi2c busy */
    if (hI2cChnImpl->bMi2cInProgress)
       return BERR_TRACE(BAST_ERR_MI2C_BUSY);
- 
+
    BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hI2cChn, 0x02, &(pStatus->version)));
- 
+
    BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hI2cChn, ((pStatus->out_cfg == BAST_Bcm3445OutputConfig_eIn2Vga) ? 1 : 0), &val8));
    if (val8 & 0x80)
    {
@@ -442,9 +459,9 @@ BERR_Code BAST_g3_P_GetBcm3445Status(
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hI2cChn, agc_dac_ctrl1_addr, 0xC0));   /* AGCx_DAC_CTRL1 */
       BAST_MI2C_ASSERT(BAST_g3_P_WriteBcm3445(hI2cChn, agc_dac_ctrl1_addr+1, 0x80)); /* AGCx_DAC_CTRL2 */
       BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hI2cChn, agc_dac_ctrl1_addr, &val8));
-      BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hI2cChn, agc_dac_ctrl1_addr, &(pStatus->agc))); /* need to read twice */      
+      BAST_MI2C_ASSERT(BAST_g3_P_ReadBcm3445(hI2cChn, agc_dac_ctrl1_addr, &(pStatus->agc))); /* need to read twice */
       /* BDBG_MSG(("BCM3445 AGC is 0x%X", pStatus->agc)); */
-      pStatus->agc &= 0x3F;      
+      pStatus->agc &= 0x3F;
    }
    else
    {
@@ -454,8 +471,8 @@ BERR_Code BAST_g3_P_GetBcm3445Status(
 
    done:
    BDBG_LEAVE(BAST_g3_P_GetBcm3445Status);
-   return retCode;  
+   return retCode;
 }
 
-#endif 
+#endif
 

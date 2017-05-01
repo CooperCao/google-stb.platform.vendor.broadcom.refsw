@@ -105,7 +105,7 @@ vpath %.h $(foreach SDIR, $(BSAGELIB_TOOLS_SOURCES), $(dir $(SDIR)))
 F_SRCS += $(foreach depSRC, ${BSAGELIB_TOOLS_SOURCES}, $(notdir ${depSRC}))
 endif
 
-F_PUBLIC_LIBS += lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so
+F_LIBNAMES += lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so
 ifneq ($(NEXUS_BIN_DIR),)
 D_FOR_LIB_INSTALL := $(NEXUS_BIN_DIR)
 else
@@ -114,7 +114,8 @@ endif
 F_OBJS := $(patsubst %.c,%.o, ${F_SRCS})
 END_OBJS := $(addprefix ${UTILITY_OBJ_ROOT}/,${F_OBJS})
 
-F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_PUBLIC_LIBS})
+F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_LIBNAMES})
+F_PUBLIC_LIBS := $(addprefix ${UTILITY_OBJ_ROOT}/, ${F_LIBNAMES})
 
 ############################################################################
 #                              MAIN TARGETS
@@ -126,9 +127,9 @@ prep_folder:
 
 clean:
 	@ echo clean objects [${F_OBJS}]
-	@ rm -f ${F_OBJS}
-	@ echo clean libraries [${F_PUBLIC_LIBS}]
-	@ rm -f ${F_INSTALLED_LIBS} ${UTILITY_OBJ_ROOT}/lib${LIB_BASENAME}.so ${UTILITY_OBJ_ROOT}/lib${LIB_BASENAME}.a
+	@ rm -f ${END_OBJS}
+	@ echo clean libraries [${F_LIBNAMES}]
+	@ rm -f ${F_INSTALLED_LIBS} ${F_PUBLIC_LIBS}
 
 re: clean install
 
@@ -138,27 +139,27 @@ re: clean install
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-lib${LIB_BASENAME}.so: ${F_OBJS}
-	@ echo [Linking shared library .... ${UTILITY_OBJ_ROOT}/$$@ ]
-	@ ${CC} -shared -o ${UTILITY_OBJ_ROOT}/$@ ${LDFLAGS} ${END_OBJS} -Wl,-dy
+$(filter %.so, ${F_PUBLIC_LIBS}): ${END_OBJS}
+	@ echo [Linking shared library .... $(notdir $@) ]
+	${CC} -shared -o $@ ${LDFLAGS} $^ -Wl,-dy
 	${STRIP_COMMAND}
 
-lib${LIB_BASENAME}.a: ${F_OBJS}
-	@ echo [Linking static library .... ${UTILITY_OBJ_ROOT}/$@ ]
-	@ ${AR} rc ${UTILITY_OBJ_ROOT}/$@ ${END_OBJS}
+$(filter %.a, ${F_PUBLIC_LIBS}): ${END_OBJS}
+	@ echo [Linking static library .... $(notdir $@) ]
+	${AR} rc $@ $^
 	${STRIP_COMMAND}
 
-idirs:
-	@ [ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
+${D_FOR_LIB_INSTALL}:
+	mkdir -p ${D_FOR_LIB_INSTALL}
 
-install: all idirs ${F_INSTALLED_LIBS}
+install: all ${F_INSTALLED_LIBS}
 
-${D_FOR_LIB_INSTALL}/%.a : %.a
-	install -m 0755 ${UTILITY_OBJ_ROOT}/$< $@
+${D_FOR_LIB_INSTALL}/%.a : ${UTILITY_OBJ_ROOT}/%.a | ${D_FOR_LIB_INSTALL}
+	install -m 0755 $< $@
 
-${D_FOR_LIB_INSTALL}/%.so : %.so
-	install -m 0755 ${UTILITY_OBJ_ROOT}/$< $@
+${D_FOR_LIB_INSTALL}/%.so : ${UTILITY_OBJ_ROOT}/%.so | ${D_FOR_LIB_INSTALL}
+	install -m 0755 $< $@
 
-%.o: %.c
-	@ echo [Compiling .... $< ]
-	@ ${CC} ${CFLAGS} -c -o ${UTILITY_OBJ_ROOT}/$@ $<
+${UTILITY_OBJ_ROOT}/%.o: %.c
+	@ echo [Compiling .... $(notdir $<) ]
+	@ ${CC} ${CFLAGS} -c -o $@ $<

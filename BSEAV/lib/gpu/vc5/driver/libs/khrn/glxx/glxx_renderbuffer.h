@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 2.0 / Open GL ES 1.1 OES_framebuffer_object renderbuffer structure declaration.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_RENDERBUFFER_H
 #define GLXX_RENDERBUFFER_H
 
@@ -19,7 +11,7 @@ OpenGL ES 2.0 / Open GL ES 1.1 OES_framebuffer_object renderbuffer structure dec
 
 typedef struct GLXX_RENDERBUFFER_ {
    uint32_t name;
-   KHRN_IMAGE_T   *image;        // floating KHRN_IMAGE_T
+   khrn_image   *image;        // floating khrn_image
    glxx_ms_mode   ms_mode;
 
    unsigned width_pixels;

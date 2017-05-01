@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -890,7 +890,7 @@ static void BVDC_P_Mcvp_BuildRul_SetEnable_isr
         if(hMcvp->hMcdi->bMadr)
         {
             bool bDitherEn =
-#if BVDC_CRC_CAPTURE
+#if BVDC_CRC_CAPTURE || BVDC_DITHER_OFF
                 false;
 #else
                 /* enable dithering for 10 bit source (stream is 10b and MFD */

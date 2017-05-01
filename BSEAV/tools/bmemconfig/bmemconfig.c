@@ -2284,11 +2284,11 @@ static char *HtmlAudioPostProcessing(
     return( htmlBuffer );
 } /* HtmlAudioPostProcessing */
 
-static int findWidthHeightHertz(
+static unsigned long int findWidthHeightHertz(
     const char   *name,
-    unsigned int *width,
-    unsigned int *height,
-    unsigned int *hertz
+    unsigned long int *width,
+    unsigned long int *height,
+    unsigned long int *hertz
     )
 {
     char *posp = NULL;
@@ -2335,13 +2335,13 @@ static int findWidthHeightHertz(
     {
         if (posx)
         {
-            sscanf( name, "%u", width );
+            sscanf( name, "%lu", width );
             posx++;
-            sscanf( posx, "%u", height );
+            sscanf( posx, "%lu", height );
         }
         else
         {
-            sscanf( name, "%u", height );
+            sscanf( name, "%lu", height );
         }
         if (posp)
         {
@@ -2349,7 +2349,7 @@ static int findWidthHeightHertz(
             /* if string has p separator */
             if (*posp)
             {
-                sscanf( posp, "%u", hertz );
+                sscanf( posp, "%lu", hertz );
                 if (*hertz ==0) {*hertz = 61; }
                 if (*hertz ==30) {*hertz = 61; }
                 if (*hertz ==60) {*hertz = 62; }
@@ -2418,7 +2418,7 @@ static char *HtmlVideoFormats(
     unsigned int      enumCount     = 0;
     static bool       printedValues = true; /* only print debug the first time through */
     int               used_formats[NEXUS_VideoFormat_eMax];
-    unsigned          widthTmp       = 0, heightTmp = 0, hertzTmp = 0;
+    unsigned long int widthTmp       = 0, heightTmp = 0, hertzTmp = 0;
     unsigned long int thisResolution = 0;
     int               c, d;
 
@@ -2449,7 +2449,7 @@ static char *HtmlVideoFormats(
                 {
                     if (debug)
                     {
-                        printf( "for %s (%u), scannedValue %d; count %d<br>\n", g_videoFormatStrs[idx].name,
+                        printf( "for %s (%u), scannedValue %lu; count %d<br>\n", g_videoFormatStrs[idx].name,
                             g_videoFormatStrs[idx].value, heightTmp, enumCount );
                     }
                 }
@@ -5586,7 +5586,7 @@ static int compute_max_video_formats(
         if (maxFormat)
         {
             unsigned int      value         = 0;
-            unsigned          widthTmp      = 0, heightTmp = 0, hertzTmp = 0;
+            unsigned long int widthTmp      = 0, heightTmp = 0, hertzTmp = 0;
             unsigned long int maxResolution = 0;
             /* 480:enum24, 720p:enum34, 1080p:enum32, 3840p60:enum47 */
             /* maxFormat for 720 (34) is numerically greater than maxFormat for 1080p (32); need to determine lines of resolution */

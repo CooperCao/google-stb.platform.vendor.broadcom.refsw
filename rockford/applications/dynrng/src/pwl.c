@@ -77,10 +77,8 @@ void pwl_clear_curve(PwlCurveHandle curve)
     curve->points[0].slope_exp = 1;
 }
 
-PwlCurveHandle pwl_create_curve(const char * name, unsigned maxNumPoints, PwlPointMutator set_point, PwlPointAccessor get_point)
+PwlCurveHandle pwl_create_curve(const char * name, unsigned maxNumPoints, PwlPointMutator set_point, PwlPointAccessor get_point, PwlLraMutator set_lra, PwlLraAccessor get_lra)
 {
-    int rc = 0;
-    unsigned i;
     PwlCurveHandle curve;
 
     curve = malloc(sizeof(*curve));
@@ -97,6 +95,9 @@ PwlCurveHandle pwl_create_curve(const char * name, unsigned maxNumPoints, PwlPoi
     curve->set_point = set_point;
     curve->get_point = get_point;
     pwl_clear_curve(curve);
+
+    curve->set_lra = set_lra;
+    curve->get_lra = get_lra;
 
     return curve;
 }
@@ -144,7 +145,7 @@ void pwl_p_read_curve(PwlCurveHandle curve, const char * pwlFilename)
             }
             else
             {
-                printf("Only %u points supported. (%lf,%lf) ignored\n", curve->count, x, y);
+                printf("Only %u points supported. (%f,%f) ignored\n", curve->count, x, y);
             }
         }
     }
@@ -203,7 +204,7 @@ void pwl_p_compute_curve_slopes(PwlCurveHandle curve)
         }
         else
         {
-            printf("Divide by zero with point (%0.06lf, %0.06lf) and (%0.06lf, %0.06lf)\n", p1->x, p1->y, p2->x, p2->y);
+            printf("Divide by zero with point (%0.06f, %0.06f) and (%0.06f, %0.06f)\n", p1->x, p1->y, p2->x, p2->y);
         }
         p1 = p2;
     }
@@ -220,7 +221,7 @@ void pwl_print_curve(const PwlCurveHandle curve)
     for (i = 0; i < curve->count; i++)
     {
         p = &curve->points[i];
-        printf("  %0.06lf, %0.06lf, %0.010lf, %d\n", p->x, p->y, p->slope_man, p->slope_exp);
+        printf("  %0.06f, %0.06f, %0.010f, %d\n", p->x, p->y, p->slope_man, p->slope_exp);
     }
     printf("}\n");
 }
@@ -260,4 +261,17 @@ void pwl_set_curve_hw(PwlCurveHandle curve, unsigned inputIndex, unsigned rectIn
         pPoint = &curve->points[i];
         curve->set_point(inputIndex, rectIndex, i, pPoint->slope_man, pPoint->slope_exp, pPoint->x, pPoint->y);
     }
+}
+
+void pwl_get_lra_hw(PwlCurveHandle curve, unsigned inputIndex, unsigned rectIndex, bool *enabled)
+{
+    assert(curve);
+    if (!curve->get_lra) { printf("%s: no lra getter\n", curve->name); return; }
+    curve->get_lra(inputIndex, rectIndex, enabled);
+}
+void pwl_set_lra_hw(PwlCurveHandle curve, unsigned inputIndex, unsigned rectIndex, bool enabled)
+{
+    assert(curve);
+    if (!curve->set_lra) { printf("%s: no lra setter\n", curve->name); return; }
+    curve->set_lra(inputIndex, rectIndex, enabled);
 }

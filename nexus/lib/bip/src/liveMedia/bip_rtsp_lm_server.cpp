@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -333,9 +333,9 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
         BKNI_Memset( pClientSession->transportStatus.clientAddressStr, 0, strlen( pTransportStatus->clientAddressStr ) + 1 );
         strncpy( pClientSession->transportStatus.clientAddressStr, pTransportStatus->clientAddressStr, strlen( pTransportStatus->clientAddressStr ));
 error_ipaddr:
-        BDBG_ERR(( "%s: new clientAddressStr (%p) (%s); len (%zu); orig len (%zu)", __FUNCTION__, pClientSession->transportStatus.clientAddressStr,
-                   pClientSession->transportStatus.clientAddressStr, strlen( pClientSession->transportStatus.clientAddressStr ),
-                   strlen( pTransportStatus->clientAddressStr )));
+        BDBG_ERR(( "%s: new clientAddressStr (%p) (%s); len (%u); orig len (%u)", __FUNCTION__, pClientSession->transportStatus.clientAddressStr,
+                   pClientSession->transportStatus.clientAddressStr, (unsigned)strlen( pClientSession->transportStatus.clientAddressStr ),
+                   (unsigned)strlen( pTransportStatus->clientAddressStr )));
     }
     if (bitmaskOptionsFound & 0x10000)   // transport->destinationTTL
     {
@@ -645,7 +645,7 @@ char *extractUrl(
     // make a temporary copy of the URL
     BKNI_Memset( urlTemp, 0, strlen( fullRequestStr ) + 1 );
     strncpy( urlTemp, fullRequestStr, strlen( fullRequestStr ));
-    BDBG_MSG(( "%s: urlTemp len %zu; (%s)", __FUNCTION__, strlen( urlTemp ), urlTemp ));
+    BDBG_MSG(( "%s: urlTemp len %u; (%s)", __FUNCTION__, (unsigned)strlen( urlTemp ), urlTemp ));
     if (( posRtsp = strstr( urlTemp, "rtsp://" ))) /* bypass the DESCRIBE or PLAY tag */
     {
         BDBG_MSG(( "%s: posRtsp %p; (%s)", __FUNCTION__, posRtsp, posRtsp ));
@@ -659,7 +659,7 @@ char *extractUrl(
             strncpy( rtspReturn, posRtsp, strlen( posRtsp ));
 no_rtspreturn:
 
-            BDBG_MSG(( "%s: rtspReturn %p; (%s); len %zu", __FUNCTION__, rtspReturn, rtspReturn, strlen( posRtsp )));
+            BDBG_MSG(( "%s: rtspReturn %p; (%s); len %u", __FUNCTION__, rtspReturn, rtspReturn, (unsigned)strlen( posRtsp )));
         }
     }
     BKNI_Free( urlTemp );
@@ -935,7 +935,7 @@ BIP_RtspServer
     BIP_CHECK_PTR_GOTO( fOurMulticastAddressTemplate, "Memory Allocation Failed for fOurMulticastAddressTemplate", error_malloc, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
     BKNI_Memset( fOurMulticastAddressTemplate, 0, strlen( multicastAddressTemplate ) +1 );
     strncpy( fOurMulticastAddressTemplate, multicastAddressTemplate, strlen( multicastAddressTemplate ));
-    BDBG_MSG(( "%s; BKNI_Malloc(len(%s)); len %zu; returned %p", __FUNCTION__, multicastAddressTemplate, strlen( multicastAddressTemplate ), fOurMulticastAddressTemplate ));
+    BDBG_MSG(( "%s; BKNI_Malloc(len(%s)); len %u; returned %p", __FUNCTION__, multicastAddressTemplate, (unsigned)strlen( multicastAddressTemplate ), fOurMulticastAddressTemplate ));
 error_malloc:
 error_template:
 
@@ -1870,7 +1870,7 @@ error_responseBuffer2:
         /* we need to send a response now if an error was detected */
         if (bSendResponse)
         {
-            BDBG_MSG(( "%s: sending response1: sock (%d); len (%zu); cseq (%s)", __FUNCTION__, fClientOutputSocket, strlen((char *)fResponseBuffer ), cseq ));
+            BDBG_MSG(( "%s: sending response1: sock (%d); len (%u); cseq (%s)", __FUNCTION__, fClientOutputSocket, (unsigned)strlen((char *)fResponseBuffer ), cseq ));
             BDBG_REQSEND(( "%s: SENDING1 (%s)", __FUNCTION__, (char *)fResponseBuffer ));
             send_rc = send( fClientOutputSocket, (char const *)fResponseBuffer, strlen((char *)fResponseBuffer ), 0 );
             BIP_CHECK_GOTO(( send_rc >= 0 ), ( "send failed ..." ), error_send, BIP_ERR_OS_CHECK_ERRNO, rc );
@@ -2188,8 +2188,8 @@ void BIP_RtspServer::BIP_RtspClientConnection::sendResponse(
 
     if (pClientSession->fClientConnection)
     {
-        BDBG_MSG(( "%s: bSendResponse %d; fClientOutputSocket (%d); len fResponseBuffer (%zu); responseBuffer (%zu) ", __FUNCTION__,
-                   bSendResponse, pClientSession->fClientConnection->fClientOutputSocket, strlen((char *)fResponseBuffer ), strlen( responseBuffer )));
+        BDBG_MSG(( "%s: bSendResponse %d; fClientOutputSocket (%d); len fResponseBuffer (%u); responseBuffer (%u) ", __FUNCTION__,
+                   bSendResponse, pClientSession->fClientConnection->fClientOutputSocket, (unsigned)strlen((char *)fResponseBuffer ), (unsigned)strlen( responseBuffer )));
 
         if (bIsIgmpResponse)
         {
@@ -2198,8 +2198,8 @@ void BIP_RtspServer::BIP_RtspClientConnection::sendResponse(
 
         if (( bSendResponse ) && ( pClientSession->fClientConnection->fClientOutputSocket> 0 ) && ( strlen((char *)fResponseBuffer )>0 ))
         {
-            BDBG_MSG(( "%s: sending response2: sock (%d); len (%zu); cseq (%s)", __FUNCTION__,
-                       pClientSession->fClientConnection->fClientOutputSocket, strlen((char *)fResponseBuffer ),
+            BDBG_MSG(( "%s: sending response2: sock (%d); len (%u); cseq (%s)", __FUNCTION__,
+                       pClientSession->fClientConnection->fClientOutputSocket, (unsigned)strlen((char *)fResponseBuffer ),
                        pClientSession->fClientConnection->fCurrentCSeq ));
             BDBG_REQSEND(( "%s: SENDING2 (%s)", __FUNCTION__, (char *)fResponseBuffer ));
             rc = send( pClientSession->fClientConnection->fClientOutputSocket, (char const *)fResponseBuffer, strlen((char *)fResponseBuffer ), 0 );
@@ -2431,7 +2431,7 @@ char *BIP_Rtsp_GenerateSdpDescription(
         ( state==BIP_RtspLmSessionStreamState_UnicastPlay || state==BIP_RtspLmSessionStreamState_MulticastPlay ) ?  "sendonly" : "inactive" );
 
     if (pidListStr) {BKNI_Free( pidListStr ); }
-    BDBG_MSG(( "%s: returning SDP len %zu", __FUNCTION__, strlen( sdpDescription )));
+    BDBG_MSG(( "%s: returning SDP len %u", __FUNCTION__, (unsigned)strlen( sdpDescription )));
     BDBG_MSG(( "%s: returning SDP (%s)", __FUNCTION__, sdpDescription ));
 error:
     return( sdpDescription );
@@ -2480,8 +2480,8 @@ char *BIP_Rtsp_ConcatinateSdp(
     BIP_CHECK_PTR_GOTO( newSdp, "malloc() for newSdp returned null", error, BIP_ERR_INVALID_PARAMETER );
     BKNI_Memset( newSdp, 0, newlength );
 
-    BDBG_MSG(( "%s: newlength (%u) = prevlen (%zu) + sdp %d (%zu) + 1", __FUNCTION__, newlength, strlen( sdpDescriptionCombined ),
-               idx, strlen( streamIdSdp )));
+    BDBG_MSG(( "%s: newlength (%u) = prevlen (%u) + sdp %d (%u) + 1", __FUNCTION__, newlength, (unsigned)strlen( sdpDescriptionCombined ),
+               idx, (unsigned)strlen( streamIdSdp )));
     // combine the accumulated SDP description with the one for the current streamId
     strncpy( newSdp, sdpDescriptionCombined, newlength-1 );
     strncat( newSdp, streamIdSdp,            newlength-1 );
@@ -2543,7 +2543,7 @@ char *BIP_Rtsp_ConcatinateSdpVlc(
     BIP_CHECK_PTR_GOTO( newSdp, "malloc() for newSdp returned null", error, BIP_ERR_INVALID_PARAMETER );
     BKNI_Memset( newSdp, 0, newlength );
 
-    BDBG_MSG(( "%s: newlength (%u) = prevlen (%zu) + sdp %d + 1", __FUNCTION__, newlength, strlen( sdpDescriptionCombined ), sdpVlcLen ));
+    BDBG_MSG(( "%s: newlength (%u) = prevlen (%u) + sdp %d + 1", __FUNCTION__, newlength, (unsigned)strlen( sdpDescriptionCombined ), sdpVlcLen ));
     // combine the accumulated SDP description with the one for the current streamId
     strncpy( newSdp, sdpDescriptionCombined, newlength-1 );
     strncat( newSdp, sdpVlcStr,              newlength-1 );
@@ -2608,7 +2608,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_DESCRIBE(
             BKNI_Memset( &transportStatus, 0, sizeof( transportStatus ));
             bitmaskOptionsFound = BIP_Rtsp_ParseUrlOptions( &satelliteSettings, &transportStatus, urlSuffix );
 
-            BDBG_MSG(( "%s: lstreamId %d; sdpLen (%zu); sdp(%s)", __FUNCTION__, satelliteSettings.streamId, strlen( sdpDescriptionCombined ),
+            BDBG_MSG(( "%s: lstreamId %d; sdpLen (%u); sdp(%s)", __FUNCTION__, satelliteSettings.streamId, (unsigned)strlen( sdpDescriptionCombined ),
                        sdpDescriptionCombined ));
 
             /* if an error was detected while parsing the URL */
@@ -2695,7 +2695,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_DESCRIBE(
             rtspStart,
             sdpDescriptionSize-2,
             sdpDescriptionCombined );
-        BDBG_MSG(( "%s: len %zu; ", __FUNCTION__, strlen((char *) fResponseBuffer )));
+        BDBG_MSG(( "%s: len %u; ", __FUNCTION__, (unsigned)strlen((char *) fResponseBuffer )));
         BDBG_REQSEND(( "%s: SENDING...(%s)", __FUNCTION__, (char *) fResponseBuffer ));
     }
 
@@ -3154,7 +3154,7 @@ int BIP_Rtsp_ParseUrlOptions(
     {
         bitmaskOptionsFound   |= 0x0010;
         satSettings->pilotTone = ( strcmp( tmpBuf, "on" )==0 ) ? 1 : 0;
-        BDBG_MSG(( "%s: Sat pilotTone is set (%u), strlen tmpBuf %zu", __FUNCTION__, satSettings->pilotTone, strlen( tmpBuf )));
+        BDBG_MSG(( "%s: Sat pilotTone is set (%u), strlen tmpBuf %u", __FUNCTION__, satSettings->pilotTone, (unsigned)strlen( tmpBuf )));
     }
 
     /* sr=2000 in kSymb/s */

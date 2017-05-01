@@ -2,14 +2,15 @@
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "gl_public_api.h"
+
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
+#include "../common/khrn_render_state.h"
+#include "../common/khrn_resource.h"
 
 #include "glxx_server.h"
 #include "glxx_server_internal.h"
 #include "glxx_server_pipeline.h"
-
-#include "libs/util/dglenum/dglenum.h"
 
 #include "glxx_hw.h"
 #include "glxx_shared.h"
@@ -22,16 +23,10 @@
 #include "../gl20/gl20_program.h"
 #include "../gl20/gl20_shader.h"
 
-#include "../common/khrn_render_state.h"
-#include "../common/khrn_interlock.h"
-
 #include "../gl11/gl11_int_config.h"
-
 #include "../gl11/gl11_shadercache.h"
-#include "../gl20/gl20_program.h"
-#include "../egl/egl_surface.h"
 
-#include "../common/khrn_event_monitor.h"
+#include "../egl/egl_surface.h"
 
 #include <string.h>
 #include <math.h>
@@ -44,8 +39,6 @@
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 #include "libs/util/profile/profile.h"
 #include "libs/util/demand.h"
-
-LOG_DEFAULT_CAT("glxx_server")
 
 static void glxx_update_viewport_internal(GLXX_SERVER_STATE_T *state);
 
@@ -213,6 +206,9 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
       state->primitive_bounding_box.max[i] = pbb[4+i];
    }
 
+#if V3d_HAS_POLY_OFFSET_CLAMP
+   state->polygon_offset.limit = 0.0f;
+#endif
    state->polygon_offset.factor = 0.0f;
    state->polygon_offset.units = 0.0f;
 
@@ -270,8 +266,9 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    state->viewport.y = 0;
    state->viewport.width = 0;
    state->viewport.height = 0;
-   state->viewport.vp_near = 0.0f;
-   state->viewport.vp_far = 1.0f;
+
+   state->depth_range.z_near = 0.0f;
+   state->depth_range.z_far = 1.0f;
 
    glxx_update_viewport_internal(state);
 
@@ -381,16 +378,10 @@ void glxx_server_state_flush(GLXX_SERVER_STATE_T *state, bool wait)
    khrn_fence_flush(state->fences.fence);
    if (wait)
    {
-      uint32_t id = khrn_driver_track_next_id(KHRN_DRIVER_TRACK_DRIVER);
-      khrn_driver_add_event(KHRN_DRIVER_TRACK_DRIVER, id, KHRN_DRIVER_EVENT_FENCE_WAIT, BCM_EVENT_BEGIN);
-
       khrn_fence_wait(state->fences.fence, V3D_SCHED_DEPS_FINALISED);
-
-      khrn_driver_add_event(KHRN_DRIVER_TRACK_DRIVER, id, KHRN_DRIVER_EVENT_FENCE_WAIT, BCM_EVENT_END);
-
-     #if GMEM_FINISH
+#if GMEM_FINISH
       gmem_finish();
-     #endif
+#endif
    }
 }
 
@@ -415,10 +406,10 @@ void glxx_server_attach_surfaces(GLXX_SERVER_STATE_T *state,
 
    if (!state->made_current)
    {
-      size_t width, height;
+      unsigned width, height;
       if (draw)
       {
-         KHRN_IMAGE_T *img = egl_surface_get_back_buffer(draw);
+         khrn_image *img = egl_surface_get_back_buffer(draw);
 
          width = khrn_image_get_width(img);
          height = khrn_image_get_height(img);
@@ -1046,7 +1037,7 @@ GL_API void GL_APIENTRY glDepthMask(GLboolean flag) // S
 
    Implementation notes:
 
-   We update the near and far elements of state.viewport, potentially
+   We update the z_near and z_far elements of state.depth_range, potentially
    violating the invariant and call glxx_update_viewport_internal() to restore it.
 
    Preconditions:
@@ -1060,11 +1051,11 @@ GL_API void GL_APIENTRY glDepthMask(GLboolean flag) // S
 
    Invariants preserved:
 
-   0.0 <= state.viewport.near <= 1.0
-   0.0 <= state.viewport.far  <= 1.0
+   0.0 <= state.depth_range.z_near <= 1.0
+   0.0 <= state.depth_range.z_far  <= 1.0
 
-   state.viewport.internal is consistent with other elements according to glxx_update_viewport_internal() docs
-   elements of state.viewport.internal are valid
+   state.vp_internal is consistent with other elements according to glxx_update_viewport_internal() docs
+   elements of state.vp_internal are valid
 */
 
 GL_API void GL_APIENTRY glDepthRangef(GLclampf zNear, GLclampf zFar)
@@ -1073,8 +1064,8 @@ GL_API void GL_APIENTRY glDepthRangef(GLclampf zNear, GLclampf zFar)
    if (!state)
       return;
 
-   state->viewport.vp_near = gfx_fclamp(zNear, 0.0f, 1.0f);
-   state->viewport.vp_far = gfx_fclamp(zFar, 0.0f, 1.0f);
+   state->depth_range.z_near = gfx_fclamp(zNear, 0.0f, 1.0f);
+   state->depth_range.z_far = gfx_fclamp(zFar, 0.0f, 1.0f);
    state->dirty.viewport = KHRN_RENDER_STATE_SET_ALL;
 
    glxx_update_viewport_internal(state);
@@ -1087,8 +1078,8 @@ GL_API void GL_APIENTRY glDepthRangex(GLclampx zNear, GLclampx zFar)
    if (!state)
       return;
 
-   state->viewport.vp_near = gfx_fclamp(fixed_to_float(zNear), 0.0f, 1.0f);
-   state->viewport.vp_far = gfx_fclamp(fixed_to_float(zFar), 0.0f, 1.0f);
+   state->depth_range.z_near = gfx_fclamp(fixed_to_float(zNear), 0.0f, 1.0f);
+   state->depth_range.z_far = gfx_fclamp(fixed_to_float(zFar), 0.0f, 1.0f);
    state->dirty.viewport = KHRN_RENDER_STATE_SET_ALL;
 
    glxx_update_viewport_internal(state);
@@ -1281,7 +1272,7 @@ static void set_enabled(GLenum cap, bool enabled)
       SET_INDIVIDUAL(state->gl11.statebits.fragment, GL11_SAMPLE_ONE, enabled);
       break;
    case GL_SAMPLE_COVERAGE:
-      state->dirty.sample_coverage = KHRN_RENDER_STATE_SET_ALL;
+      state->dirty.sample_state = KHRN_RENDER_STATE_SET_ALL;
       state->sample_coverage.enable = !!enabled;
       break;
    case GL_SCISSOR_TEST:
@@ -1324,6 +1315,9 @@ static void set_enabled(GLenum cap, bool enabled)
       state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
       break;
    case GL_SAMPLE_MASK:
+#if V3D_HAS_FEP_SAMPLE_MASK
+      state->dirty.sample_state = KHRN_RENDER_STATE_SET_ALL;
+#endif
       state->sample_mask.enable = !!enabled;
       break;
    case GL_DEBUG_OUTPUT_KHR:
@@ -1824,7 +1818,7 @@ static void glxx_patch_parameter(GLenum pname, GLint value)
    {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
    }
-   else if (value <= 0 || value > GL_MAX_PATCH_VERTICES)
+   else if (value <= 0 || value > V3D_MAX_PATCH_VERTICES)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    }
@@ -1874,18 +1868,23 @@ GL_API void GL_APIENTRY glPatchParameteri(GLenum pname, GLint value)
    dependent constant that relates to the usable resolution of the depth
    buffer. The resulting values are summed to produce the polygon offset value. Both
    factor and units may be either positive or negative.
-
-   Implementation notes:
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 or 2.0 context
-
-   Postconditions:
-
-   Invariants preserved:
 */
+
+#if V3D_HAS_POLY_OFFSET_CLAMP
+GL_API void GL_APIENTRY glPolygonOffsetClampEXT(GLfloat limit, GLfloat factor, GLfloat units)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   state->dirty.polygon_offset = KHRN_RENDER_STATE_SET_ALL;
+   state->polygon_offset.limit = limit;
+   state->polygon_offset.factor = factor;
+   state->polygon_offset.units = units;
+
+   glxx_unlock_server_state();
+}
+#endif
 
 GL_API void GL_APIENTRY glPolygonOffset(GLfloat factor, GLfloat units)
 {
@@ -1894,6 +1893,9 @@ GL_API void GL_APIENTRY glPolygonOffset(GLfloat factor, GLfloat units)
       return;
 
    state->dirty.polygon_offset = KHRN_RENDER_STATE_SET_ALL;
+#if V3D_HAS_POLY_OFFSET_CLAMP
+   state->polygon_offset.limit = 0.0f;
+#endif
    state->polygon_offset.factor = factor;
    state->polygon_offset.units = units;
 
@@ -1906,6 +1908,9 @@ GL_API void GL_APIENTRY glPolygonOffsetx(GLfixed factor, GLfixed units)
       return;
 
    state->dirty.polygon_offset = KHRN_RENDER_STATE_SET_ALL;
+#if V3D_HAS_POLY_OFFSET_CLAMP
+   state->polygon_offset.limit = 0.0f;
+#endif
    state->polygon_offset.factor = fixed_to_float(factor);
    state->polygon_offset.units = fixed_to_float(units);
 
@@ -1937,7 +1942,7 @@ static GLenum readpixels_check_internals(const GLXX_FRAMEBUFFER_T *fb, int x,
 static void read_pixels(GLXX_SERVER_STATE_T *state, int x, int y, GLsizei width, GLsizei height,
    GLenum format, GLenum type, GLsizei buf_size, void *pixels)
 {
-   KHRN_IMAGE_T *src = NULL;     /* Used in error handler at 'end' */
+   khrn_image *src = NULL;     /* Used in error handler at 'end' */
 
    GLXX_BUFFER_T *pixel_buffer = state->bound_buffer[GLXX_BUFTGT_PIXEL_PACK].obj;
    GLenum error = readpixels_check_internals(state->bound_read_framebuffer, x, y, width, height,
@@ -2113,7 +2118,7 @@ GL_API void GL_APIENTRY glSampleCoverage(GLclampf value, GLboolean invert)
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state) return;
 
-   state->dirty.sample_coverage = KHRN_RENDER_STATE_SET_ALL;
+   state->dirty.sample_state = KHRN_RENDER_STATE_SET_ALL;
    state->sample_coverage.invert = !!invert;
    state->sample_coverage.value = gfx_fclamp(value, 0.0f, 1.0f);
 
@@ -2125,7 +2130,7 @@ GL_API void GL_APIENTRY glSampleCoveragex(GLclampx value, GLboolean invert)
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
-   state->dirty.sample_coverage = KHRN_RENDER_STATE_SET_ALL;
+   state->dirty.sample_state = KHRN_RENDER_STATE_SET_ALL;
    state->sample_coverage.invert = !!invert;
    state->sample_coverage.value = gfx_fclamp(fixed_to_float(value), 0.0f, 1.0f);
 
@@ -2144,6 +2149,9 @@ GL_API void GL_APIENTRY glSampleMaski(GLuint maskNumber, GLbitfield mask)
       goto end;
    }
 
+#if V3D_HAS_FEP_SAMPLE_MASK
+   state->dirty.sample_state = KHRN_RENDER_STATE_SET_ALL;
+#endif
    state->sample_mask.mask[maskNumber] = mask;
 
 end:
@@ -2882,15 +2890,13 @@ GL_API void GL_APIENTRY glCullFace(GLenum mode)
 static void glxx_update_viewport_internal(GLXX_SERVER_STATE_T *state)
 {
    /* Builtin uniforms */
-   state->viewport.internal_dr_near = state->viewport.vp_near;
-   state->viewport.internal_dr_far = state->viewport.vp_far;
-   state->viewport.internal_dr_diff = state->viewport.vp_far - state->viewport.vp_near;
+   state->vp_internal.dr_diff = state->depth_range.z_far - state->depth_range.z_near;
 
    /* Ones that the hardware always requires */
-   state->viewport.internal_xscale = 128.0f * (float)state->viewport.width;
-   state->viewport.internal_yscale = 128.0f * (float)state->viewport.height;
-   state->viewport.internal_zscale = (state->viewport.vp_far - state->viewport.vp_near) / 2.0f;
-   state->viewport.internal_zoffset = (state->viewport.vp_far + state->viewport.vp_near) / 2.0f;
+   state->vp_internal.xscale = 128.0f * (float)state->viewport.width;
+   state->vp_internal.yscale = 128.0f * (float)state->viewport.height;
+   state->vp_internal.zscale = (state->depth_range.z_far - state->depth_range.z_near) / 2.0f;
+   state->vp_internal.zoffset = (state->depth_range.z_far + state->depth_range.z_near) / 2.0f;
 }
 
 /*
@@ -2899,46 +2905,13 @@ static void glxx_update_viewport_internal(GLXX_SERVER_STATE_T *state)
    set GL server-side error state if none already set
 */
 
-#ifdef DISABLE_OPTION_PARSING
-void glxx_server_state_set_error(GLXX_SERVER_STATE_T *state, GLenum error)
-{
-#ifdef BREAK_ON_ERROR
-   BREAKPOINT();
-#endif
-   if (state->error == GL_NO_ERROR)
-      state->error = error;
-
-   if (glxx_debug_enabled(state))   // The test here is just an optimisation to prevent
-                                    // calling khrn_glenum_to_str if not needed
-   {
-      glxx_debug_message(state, GL_DEBUG_SOURCE_API_KHR, GL_DEBUG_TYPE_ERROR_KHR, GL_DEBUG_SEVERITY_HIGH_KHR,
-                         (GLuint)error, khrn_glenum_to_str(error));
-   }
-}
-#else
 void glxx_server_state_set_error_ex(GLXX_SERVER_STATE_T *state, GLenum error, const char *func, const char *file, int line)
 {
-   log_trace(
-      "GL error: %s From: %s:%d (%s)",
-      khrn_glenum_to_str(error),
-      file, line, func ? func : "NULL");
+   glxx_debug_log_error(&state->khr_debug, error, func, file, line);
 
-   if (glxx_debug_enabled(state))   // The test here is just an optimisation to prevent
-                                    // calling khrn_glenum_to_str if not needed
-   {
-      glxx_debug_message(state, GL_DEBUG_SOURCE_API_KHR, GL_DEBUG_TYPE_ERROR_KHR, GL_DEBUG_SEVERITY_HIGH_KHR,
-                         (GLuint)error, khrn_glenum_to_str(error));
-   }
-
-   khrn_error_assist(error, func, file, line);
-
-#ifdef BREAK_ON_ERROR
-   BREAKPOINT();
-#endif
    if (state->error == GL_NO_ERROR)
       state->error = error;
 }
-#endif
 
 /*
    glViewport (GLint x, GLint y, GLsizei width, GLsizei height)
@@ -2951,11 +2924,8 @@ void glxx_server_state_set_error_ex(GLXX_SERVER_STATE_T *state, GLenum error, co
 
    Invariants preserved:
 
-   state.viewport.width  >= 0
-   state.viewport.height >= 0
-
-   state.viewport.internal is consistent with other elements according to glxx_update_viewport_internal() docs
-   elements of state.viewport.internal are valid
+   state.vp_internal is consistent with other elements according to glxx_update_viewport_internal() docs
+   elements of state.vp_internal are valid
 */
 
 GL_API void GL_APIENTRY glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
@@ -2973,8 +2943,8 @@ GL_API void GL_APIENTRY glViewport(GLint x, GLint y, GLsizei width, GLsizei heig
    state->dirty.viewport = KHRN_RENDER_STATE_SET_ALL;
    state->viewport.x = x;
    state->viewport.y = y;
-   state->viewport.width = gfx_sclamp(width, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
-   state->viewport.height = gfx_sclamp(height, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
+   state->viewport.width = gfx_smin(width, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
+   state->viewport.height = gfx_smin(height, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
 
    glxx_update_viewport_internal(state);
 
@@ -2994,14 +2964,14 @@ void glxx_server_invalidate_for_render_state(GLXX_SERVER_STATE_T *state, GLXX_HW
    khrn_render_state_set_add(&state->dirty.linewidth, rs);
    khrn_render_state_set_add(&state->dirty.polygon_offset, rs);
    khrn_render_state_set_add(&state->dirty.viewport, rs);
-   khrn_render_state_set_add(&state->dirty.sample_coverage, rs);
+   khrn_render_state_set_add(&state->dirty.sample_state, rs);
    khrn_render_state_set_add(&state->dirty.stuff, rs);
    khrn_render_state_set_add(&state->dirty.stencil, rs);
 }
 
-bool glxx_server_state_add_fence_to_depend_on(GLXX_SERVER_STATE_T *state, const KHRN_FENCE_T *fence)
+bool glxx_server_state_add_fence_to_depend_on(GLXX_SERVER_STATE_T *state, const khrn_fence *fence)
 {
-   KHRN_FENCE_T *new_fence;
+   khrn_fence *new_fence;
 
    new_fence = khrn_fence_dup(state->fences.fence_to_depend_on);
    if (!new_fence)
@@ -3041,6 +3011,7 @@ GL20_PROGRAM_T *glxx_server_get_active_program(GLXX_SERVER_STATE_T *state)
    return NULL;
 }
 
+#if KHRN_GLES31_DRIVER
 static void primitive_bounding_box(float minX, float minY, float minZ, float minW,
                                    float maxX, float maxY, float maxZ, float maxW)
 {
@@ -3056,6 +3027,7 @@ static void primitive_bounding_box(float minX, float minY, float minZ, float min
 
    glxx_unlock_server_state();
 }
+#endif
 
 #if KHRN_GLES32_DRIVER
 GL_API void GL_APIENTRY glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW,

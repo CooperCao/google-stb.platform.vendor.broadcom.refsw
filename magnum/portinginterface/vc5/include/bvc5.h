@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef BVC5_H__
 #define BVC5_H__
 
@@ -616,6 +615,14 @@ BERR_Code BVC5_MakeFenceForAnyNonFinalizedJob(
    int        *piFence     /* [out] */
    );
 
+BERR_Code BVC5_MakeFenceForAnyJob(
+   BVC5_Handle                   hVC5,             /* [in] */
+   uint32_t                      uiClientId,       /* [in] */
+   const BVC5_SchedDependencies *pCompletedDeps,   /* [in] */
+   const BVC5_SchedDependencies *pFinalizedDeps,   /* [in] */
+   int                          *piFence           /* [out] */
+   );
+
 BERR_Code BVC5_FenceKeep(
    BVC5_Handle                 hVC5,                   /* [in]           */
    int                         iFence                  /* [in]           */
@@ -678,11 +685,16 @@ BERR_Code BVC5_GetCompletions(
    );
 
 /* BVC5_GetInfo
-
  */
 void BVC5_GetInfo(
    BVC5_Handle                 hVC5,                   /* [in]           */
    BVC5_Info                  *psInfo                  /* [out]          */
+   );
+
+/* BVC5_HasBrcmv3dko
+ */
+bool BVC5_HasBrcmv3dko(
+   void
    );
 
 /************************************************************************/

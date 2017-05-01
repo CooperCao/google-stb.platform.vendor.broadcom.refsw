@@ -40,7 +40,7 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_PHI,                 FOLDER_CANT_FOLD, },
    { DATAFLOW_EXTERNAL,            FOLDER_CANT_FOLD, },
    { DATAFLOW_LOGICAL_NOT,         FOLDER_RET_MATCH, 1, .uf = { op_logical_not, NULL, NULL, NULL } },
-   { DATAFLOW_CONST_SAMPLER,       FOLDER_CANT_FOLD, },
+   { DATAFLOW_CONST_IMAGE,         FOLDER_CANT_FOLD, },
    { DATAFLOW_FTOI_TRUNC,          FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_trunc,   NULL, NULL }, },
    { DATAFLOW_FTOI_NEAREST,        FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_nearest, NULL, NULL }, },
    { DATAFLOW_FTOU,                FOLDER_RET_UINT,  1, .uf = { NULL, op_floattouint,        NULL, NULL }, },
@@ -285,6 +285,9 @@ static Dataflow *simplify_unary_op (DataflowFlavour flavour, Dataflow *operand) 
       return glsl_dataflow_construct_unary_op(DATAFLOW_FTOI_NEAREST, operand->d.unary_op.operand);
    if (flavour == DATAFLOW_FTOI_NEAREST && operand->flavour == DATAFLOW_TRUNC)
       return glsl_dataflow_construct_unary_op(DATAFLOW_FTOI_TRUNC, operand->d.unary_op.operand);
+
+   if (flavour == DATAFLOW_ARITH_NEGATE && operand->flavour == DATAFLOW_SUB)
+      return glsl_dataflow_construct_binary_op(DATAFLOW_SUB, operand->d.binary_op.right, operand->d.binary_op.left);
 
    /* Optimise expressions that resolve to small powers */
    if (flavour == DATAFLOW_EXP2 && operand->flavour == DATAFLOW_MUL) {
@@ -754,6 +757,13 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
       }
    }
 
+   if (flavour == DATAFLOW_ADD && left->flavour == DATAFLOW_ARITH_NEGATE)
+      return glsl_dataflow_construct_binary_op(DATAFLOW_SUB, right, left->d.unary_op.operand);
+   if (flavour == DATAFLOW_ADD && right->flavour == DATAFLOW_ARITH_NEGATE)
+      return glsl_dataflow_construct_binary_op(DATAFLOW_SUB, left, right->d.unary_op.operand);
+   if (flavour == DATAFLOW_SUB && right->flavour == DATAFLOW_ARITH_NEGATE)
+      return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, left, right->d.unary_op.operand);
+
    if (left->flavour == DATAFLOW_CONST) {
       Dataflow *comm = simplify_commutative_binop(flavour, right, left);
       if (comm) return comm;
@@ -1055,12 +1065,23 @@ static Dataflow *simplify_addr_load(Dataflow *dataflow) {
    if (l->d.unary_op.operand->flavour != DATAFLOW_ADDRESS) return NULL;
 
    Dataflow *addr = l->d.unary_op.operand->d.unary_op.operand;
-   if (addr->flavour == DATAFLOW_UNIFORM || addr->flavour == DATAFLOW_UNIFORM_BUFFER) {
+   if (addr->flavour == DATAFLOW_UNIFORM) {
       Dataflow *ret = glsl_dataflow_construct_buffer(addr->flavour, dataflow->type, addr->u.buffer.index,
                                                      addr->u.buffer.offset + 4 * dataflow->u.get_vec4_component.component_index);
       return ret;
    }
 
+   return NULL;
+}
+
+static Dataflow *simplify_store(Dataflow *dataflow) {
+   if (dataflow->d.addr_store.cond) {
+      Dataflow *c = dataflow->d.addr_store.cond;
+      if (c->flavour == DATAFLOW_CONST && c->u.constant.value) {
+         dataflow->d.addr_store.cond = NULL;
+         return dataflow;
+      }
+   }
    return NULL;
 }
 
@@ -1072,6 +1093,8 @@ Dataflow *glsl_dataflow_simplify(Dataflow *dataflow) {
       return simplify_texture(dataflow);
    if (dataflow->flavour == DATAFLOW_GET_VEC4_COMPONENT)
       return simplify_addr_load(dataflow);
+   if (glsl_dataflow_affects_memory(dataflow->flavour))
+      return simplify_store(dataflow);
 
    switch(dataflow->dependencies_count) {
    case 0:

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x06000000
+#define VICE_API_VERSION                  0x06000002
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -101,12 +101,13 @@ extern "C"
 
 
 /*
- * Minimum size of the secure and command buffers that is required
+ * Minimum size per channel of the secure and command buffers that is required
  * for correct operation of the encoder. The host may allocate larger
- * buffers. V3 does not use these buffers.
+ * buffers. V3 does not use the CMD buffer.
  */
-#define MIN_SECURE_BUFFER_SIZE_IN_BYTES_FOR_VICE2_V1_AND_V2_0   0x00400000    /*   4MB */
-#define MIN_SECURE_BUFFER_SIZE_IN_BYTES_FOR_VICE2_V2_1          0x00580000    /* 5.5MB */
+#define MIN_SECURE_BUFFER_SIZE_IN_BYTES_FOR_VICE2_V1_AND_V2_0   0x00400000    /*   4MB - Bin buffer */
+#define MIN_SECURE_BUFFER_SIZE_IN_BYTES_FOR_VICE2_V2_1          0x00580000    /* 5.5MB  - Bin buffers */
+#define MIN_SECURE_BUFFER_SIZE_IN_BYTES_FOR_VICE3               0x000024E0    /* 5*1888 Bytes - CABAC probabilites buffers */
 #define MIN_CMD_BUFFER_SIZE_IN_BYTES                            0x00004000    /*  16kB */
 
 /*
@@ -408,7 +409,9 @@ typedef enum
     VICE_WDOG_MBARC_WAIT_MBARC_TO_PICARC_ADI_SENT               = 0x490,
     VICE_WDOG_MBARC_WAIT_MBARC_TO_PICARC_ADI_SENT_AFTER         = 0x491,
     VICE_WDOG_TRACE_MB_WAIT_MBARC_FROM_PICARC_DINO              = 0x4A0,
-    VICE_WDOG_TRACE_MB_WAIT_MBARC_FROM_PICARC_DINO_AFTER        = 0x4A1
+    VICE_WDOG_TRACE_MB_WAIT_MBARC_FROM_PICARC_DINO_AFTER        = 0x4A1,
+    VICE_WDOG_TRACE_MB_WAIT_CABAC_STAT_TO_MBARC_DINO            = 0x4B0,
+    VICE_WDOG_TRACE_MB_WAIT_CABAC_STAT_TO_MBARC_DINO_AFTER      = 0x4B1
 
 } WdogTraceCode_e;
 
@@ -639,9 +642,10 @@ typedef struct ViceCmdOpenChannel_t
     VCE_PTR(uint8_t)    pNonSecureBufferBaseLo;             /* pointer to the location that will contain the non-secure buffer */
     VCE_PTR(uint8_t)    pNonSecureBufferBaseHi;             /* pointer to the location that will contain the non-secure buffer */
     uint32_t            uiNonSecureBufferSize;              /* size of the non-secure buffer */
-    VCE_PTR(uint8_t)    pSecureBufferBase;                  /* pointer to the location that will contain the secure buffer (VICE v1/v2 only) */
-    uint32_t            uiSecureBufferSize;                 /* size of the secure buffer (VICE v1/v2 only) */
+    VCE_PTR(uint8_t)    pSecureBufferBase;                  /* pointer to the location that will contain the secure buffer. TODO - Change name.    */
+    uint32_t            uiSecureBufferSize;                 /* size of the secure buffer */
     uint32_t            uiMaxNumChannels;                   /* maximum number of channels, 0: max num of ch supported on current platform */
+    VCE_PTR(uint8_t)    pSecureBufferBaseHi;                /* pointer to the location that will contain the secure buffer. TODO - put it after pSecureBufferBaseLo.     */
 } ViceCmdOpenChannel_t;
 
 
@@ -817,6 +821,11 @@ typedef enum
        ENCODING_FRAME_RATE_CODE_0999        /* Not supported for ViCEv3 */
 } FrameRateCode_e;
 
+typedef struct FPNumber
+{
+    uint32_t mantissa;        /* the significant digits of the floating point number */
+    int32_t exponent;         /* the floating point number exponent */
+} FPNumber_t;
 
 typedef enum
 {
@@ -1068,22 +1077,21 @@ typedef struct BVCE_FW_P_NonSecureMemSettings_t
     uint32_t    DcxvEnable;
 } BVCE_FW_P_NonSecureMemSettings_t;
 
-
 /* Populates the default non-secure memory settings based on the specified core settings */
 void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings );
 
 /* Returns the memory required for the specified core/memory settings */
 uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings );
 
+uint32_t BVCE_FW_P_ConvertFrameRate(FrameRate_e framesPerSecond, FPNumber_t *FP_inverse);
+uint32_t BVCE_FW_P_CalcHRDbufferSize(uint32_t  Protocol, uint32_t  Profile, EncoderLevel_e  Level);
+uint32_t BVCE_FW_P_Compute_DeeIn27MhzTicks(uint32_t averageBitsPerPic, uint32_t hrdBufferSize, FPNumber_t FP_ticksPerBit,
+uint32_t maxPictureIntervalIn27MhzTicks, uint32_t *pMaxAllowedBitsPerPicture, uint8_t MaxNumFNRT);
 
-
-uint32_t
-BVCE_FW_P_CalcHRDbufferSize(
-    uint32_t            Protocol,                          /* encoding standard */
-    uint32_t            Profile,                           /* encoding profile  */
-    EncoderLevel_e      Level                              /* Profile Level     */
-);
-
+uint32_t BVCE_FW_P_Compute_MaxDeeIn27MhzTicks(uint32_t hrdBufferSize, FPNumber_t FP_ticksPerBit);
+void BVCE_FW_P_ComputeRateInTicksPerBit(FPNumber_t *pt_FP_ticksPerBit, uint32_t bitrateBPS);
+uint32_t BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(uint32_t MinAllowedBvnFrameRate, uint8_t ITFPenable, uint8_t Mode, FrameRate_e MinFrameRateLimit, uint8_t InputType, uint8_t MaxAllowedGopStruct, uint32_t PictureWidthInPels, uint32_t PictureHeightInPels);
+FrameRate_e BVCE_FW_P_FrameRateCodeToFrameRate(FrameRateCode_e FrameRateCode);
 
 /* ---- DEBUG ---- */
 

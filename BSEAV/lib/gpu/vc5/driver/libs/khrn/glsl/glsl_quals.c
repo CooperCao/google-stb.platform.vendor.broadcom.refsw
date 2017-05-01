@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_fastmem.h"
 #include "glsl_globals.h"
@@ -86,13 +84,6 @@ Qualifier *new_qual_precise(void) {
    return ret;
 }
 
-static TypeQualifier aq_to_tq(AuxiliaryQualifier a) {
-   if (a == AUXILIARY_CENTROID)    return TYPE_QUAL_CENTROID;
-   else if (a == AUXILIARY_PATCH)  return TYPE_QUAL_PATCH;
-   else if (a == AUXILIARY_SAMPLE) return TYPE_QUAL_SAMPLE;
-   else unreachable();             return TYPE_QUAL_NONE;
-}
-
 static bool is_valid_es3_flavour(QualFlavour f) {
    switch (f) {
       case QUAL_STORAGE:
@@ -161,9 +152,10 @@ static bool validate_quallist_es3(const QualList *l) {
    return true;
 }
 
-void qualifiers_from_list(Qualifiers *q, QualList *l) {
+void qualifiers_from_list_context_sq(Qualifiers *q, QualList *l, StorageQualifier sq) {
    q->sq = STORAGE_NONE;
-   q->tq = TYPE_QUAL_NONE;
+   q->iq = INTERP_SMOOTH;
+   q->aq = AUXILIARY_NONE;
    q->lq = NULL;
    q->pq = PREC_NONE;
    q->mq = MEMORY_NONE;
@@ -172,8 +164,6 @@ void qualifiers_from_list(Qualifiers *q, QualList *l) {
    if (l == NULL) return;
 
    bool seen[QUAL_FLAVOUR_LAST+1] = { false, };
-   InterpolationQualifier iq = INTERP_SMOOTH;
-   AuxiliaryQualifier aq = 0;    /* Value not used - initialised to silence warning. */
 
    for (QualListNode *n = l->head; n; n=n->next) {
       Qualifier *qin = n->q;
@@ -190,7 +180,7 @@ void qualifiers_from_list(Qualifiers *q, QualList *l) {
             q->sq = qin->u.storage;
             break;
          case QUAL_AUXILIARY:
-            aq = qin->u.auxiliary;
+            q->aq = qin->u.auxiliary;
             break;
          case QUAL_MEMORY:
             if (q->mq & qin->u.memory)
@@ -204,7 +194,7 @@ void qualifiers_from_list(Qualifiers *q, QualList *l) {
             q->pq = qin->u.precision;
             break;
          case QUAL_INTERP:
-            iq = qin->u.interp;
+            q->iq = qin->u.interp;
             break;
          case QUAL_INVARIANT:
             q->invariant = true;
@@ -219,20 +209,21 @@ void qualifiers_from_list(Qualifiers *q, QualList *l) {
    if (q->sq == STORAGE_INOUT)
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "inout is not a storage class");
 
-   if ((seen[QUAL_INTERP] || seen[QUAL_AUXILIARY]) && !seen[QUAL_STORAGE])
+   if ((seen[QUAL_INTERP] || seen[QUAL_AUXILIARY]) && !(seen[QUAL_STORAGE] || sq != STORAGE_NONE))
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Interpolation and centroid qualifiers must have a storage qualifier");
 
-   if (seen[QUAL_INTERP] && seen[QUAL_AUXILIARY] && aq == AUXILIARY_PATCH)
+   if (seen[QUAL_INTERP] && seen[QUAL_AUXILIARY] && q->aq == AUXILIARY_PATCH)
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Interpolation qualifiers may not be used with 'patch'");
 
    if (g_ShaderVersion <= GLSL_SHADER_VERSION(3, 0, 1) && !validate_quallist_es3(l))
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "qualifiers or ordering not valid for version 300 es");
 
-   if (seen[QUAL_STORAGE]) {
-      if (iq == INTERP_FLAT) q->tq = TYPE_QUAL_FLAT;
-      else if (seen[QUAL_AUXILIARY]) q->tq = aq_to_tq(aq);
-      else q->tq = TYPE_QUAL_NONE;
-   }
+   /* Flat supersedes all the auxiliary qualifiers */
+   if (q->iq == INTERP_FLAT) q->aq = AUXILIARY_NONE;
+}
+
+void qualifiers_from_list(Qualifiers *q, QualList *l) {
+   qualifiers_from_list_context_sq(q, l, STORAGE_NONE);
 }
 
 static bool is_param_qualifier(StorageQualifier q) {
@@ -260,7 +251,8 @@ static bool validate_param_quallist_es3(const QualList *l) {
 
 void param_quals_from_list(Qualifiers *q, ParamQualifier *param_qual, QualList *l) {
    q->sq = STORAGE_NONE;
-   q->tq = TYPE_QUAL_NONE;
+   q->iq = INTERP_SMOOTH;
+   q->aq = AUXILIARY_NONE;
    q->lq = NULL;
    q->pq = PREC_NONE;
    q->mq = MEMORY_NONE;
@@ -353,7 +345,8 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, DeclDefaultStat
             Qualifiers q = { .invariant = false,
                              .lq = NULL,
                              .sq = STORAGE_CONST,
-                             .tq = TYPE_QUAL_NONE,
+                             .iq = INTERP_SMOOTH,
+                             .aq = AUXILIARY_NONE,
                              .pq = PREC_HIGHP,
                              .mq = MEMORY_NONE };
             const_value *v = malloc_fast(3 * sizeof(const_value));

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Functions for driving the hardware for both GLES1.1 and GLES2.0.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifdef KHRN_GEOMD
 #include "libs/tools/geomd/geomd.h"
 #endif
@@ -39,7 +31,7 @@ Functions for driving the hardware for both GLES1.1 and GLES2.0.
 
 #include "../egl/egl_platform.h"
 #include "../common/khrn_process.h"
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 #include "../common/khrn_counters.h"
 #include "../common/khrn_render_state.h"
 #include "../common/khrn_fmem.h"
@@ -95,15 +87,15 @@ static void log_trace_rs(const GLXX_HW_RENDER_STATE_T *rs, const char *context)
    }
 }
 
-static bool begin_img_plane_write(glxx_bufstate_t *bufstate, KHRN_FMEM_T *fmem,
-   const KHRN_IMAGE_PLANE_T *img_plane, khrn_changrps_t changrps)
+static bool begin_img_plane_write(glxx_bufstate_t *bufstate, khrn_fmem *fmem,
+   const khrn_image_plane *img_plane, khrn_changrps_t changrps)
 {
    if (img_plane->image)
    {
       bool invalid;
-      if (!khrn_fmem_record_res_interlock_write(fmem,
-            khrn_image_get_res_interlock(img_plane->image), KHRN_INTERLOCK_STAGE_RENDER,
-            khrn_image_plane_interlock_parts(img_plane, changrps, /*subset=*/false),
+      if (!khrn_fmem_record_resource_write(fmem,
+            khrn_image_get_resource(img_plane->image), KHRN_STAGE_RENDER,
+            khrn_image_plane_resource_parts(img_plane, changrps, /*subset=*/false),
             &invalid))
          return false;
       if (bufstate)
@@ -134,7 +126,7 @@ static void glxx_hw_render_state_delete(GLXX_HW_RENDER_STATE_T *rs)
       glxx_destroy_hw_framebuffer(&rs->tlb_blits[i].dst_fb);
    }
    rs->num_blits = 0;
-   khrn_render_state_delete((KHRN_RENDER_STATE_T *)rs);
+   khrn_render_state_delete((khrn_render_state *)rs);
 }
 
 void glxx_hw_render_state_reset_z_prepass(GLXX_HW_RENDER_STATE_T *rs)
@@ -164,7 +156,7 @@ static void init_clear_colors(uint32_t clear_colors[GLXX_MAX_RENDER_TARGETS][4])
 bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
       const GLXX_HW_FRAMEBUFFER_T *fb)
 {
-   if (!khrn_fmem_init(&rs->fmem, (KHRN_RENDER_STATE_T *) rs))
+   if (!khrn_fmem_init(&rs->fmem, (khrn_render_state *) rs))
       return false;
 
    /* Record security status */
@@ -229,7 +221,6 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
    {
       rs->cl_record_threshold = GLXX_MULTICORE_BIN_SPLIT_THRESHOLD/4;
       rs->cl_record_remaining = GLXX_MULTICORE_BIN_SPLIT_THRESHOLD/4;
-      rs->do_multicore_bin = khrn_get_num_bin_subjobs() > 1;
    }
 #ifndef NDEBUG
    rs->cl_records[0].in_begin = GLXX_CL_STATE_NUM;
@@ -237,7 +228,7 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
 
    glxx_hw_render_state_reset_z_prepass(rs);
 
-   log_trace_rs(rs, VCOS_FUNCTION);
+   log_trace_rs(rs, __FUNCTION__);
 
    return true;
 }
@@ -247,13 +238,21 @@ struct glxx_hw_tile_cfg
    bool ms, double_buffer;
    v3d_rt_bpp_t max_rt_bpp;
    unsigned num_tiles_x, num_tiles_y;
+
 };
 
-static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
+struct glxx_hw_supertile_cfg
+{
+   unsigned frame_w_in_supertiles, frame_h_in_supertiles;
+   unsigned supertile_w_in_tiles, supertile_h_in_tiles;
+};
+
+
+static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    const struct glxx_hw_tile_cfg *tile_cfg,
+   const struct glxx_hw_supertile_cfg *supertile_cfg,
    const struct glxx_hw_tile_list_rcfg *rcfg,
-   v3d_addr_t const generic_tile_list[2],
-   uint32_t num_cores, uint32_t core)
+   bool multicore)
 {
    GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
 
@@ -270,7 +269,7 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
       r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;              // sep_stencil
 #endif
    for (unsigned b = 0; b < fb->rt_count; ++b)
-      r_size += v3d_cl_rcfg_clear_colors_size(fb->color_internal_bpp[b]);
+      r_size += v3d_cl_rcfg_clear_colors_size(fb->color_rt_format[b].bpp);
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // zs clear values
 
    // Initial TLB clear
@@ -297,20 +296,7 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
    r_size += V3D_CL_CLEAR_VCD_CACHE_SIZE;
    r_size += V3D_CL_TILE_LIST_INITIAL_BLOCK_SIZE_SIZE;
    r_size += V3D_CL_MULTICORE_RENDERING_SUPERTILE_CFG_SIZE;
-   r_size += V3D_CL_GENERIC_TILE_LIST_SIZE;
-
-   uint32_t supertile_w_in_tiles = 0;
-   uint32_t supertile_h_in_tiles = 0;
-   v3d_choose_supertile_sizes(tile_cfg->num_tiles_x, tile_cfg->num_tiles_y,
-                              khrn_options.min_supertile_w, khrn_options.min_supertile_h,
-                              khrn_options.max_supertiles,
-                              &supertile_w_in_tiles, &supertile_h_in_tiles);
-
-   uint32_t frame_w_in_supertiles = gfx_udiv_round_up(tile_cfg->num_tiles_x, supertile_w_in_tiles);
-   uint32_t frame_h_in_supertiles = gfx_udiv_round_up(tile_cfg->num_tiles_y, supertile_h_in_tiles);
-   r_size += V3D_CL_SUPERTILE_COORDS_SIZE * frame_w_in_supertiles * frame_h_in_supertiles;
-
-   r_size += V3D_CL_END_RENDER_SIZE;
+   r_size += V3D_CL_RETURN_SIZE;
 
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, r_size);
    if (!instr)
@@ -346,14 +332,14 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
       for (unsigned b = 0; b < V3D_MAX_RENDER_TARGETS; ++b)
       {
          if (b < fb->rt_count)
-         {
-            i.u.color.rts[b].internal_bpp = fb->color_internal_bpp[b];
-            i.u.color.rts[b].internal_type = fb->color_internal_type[b];
-         }
+            i.u.color.rt_formats[b] = fb->color_rt_format[b];
          else
          {
-            i.u.color.rts[b].internal_bpp = V3D_RT_BPP_32;
-            i.u.color.rts[b].internal_type = V3D_RT_TYPE_8;
+            i.u.color.rt_formats[b].bpp = V3D_RT_BPP_32;
+            i.u.color.rt_formats[b].type = V3D_RT_TYPE_8;
+#if V3D_HAS_RT_CLAMP
+            i.u.color.rt_formats[b].clamp = V3D_RT_CLAMP_NONE;
+#endif
          }
       }
       v3d_cl_tile_rendering_mode_cfg_indirect(&instr, &i);
@@ -364,8 +350,8 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
       const struct v3d_tlb_ldst_params *ls = &rcfg->rt_ls[b];
       v3d_cl_tile_rendering_mode_cfg_color(&instr,
          b, // render target
-         fb->color_internal_bpp[b],
-         fb->color_internal_type[b],
+         fb->color_rt_format[b].bpp,
+         fb->color_rt_format[b].type,
          ls->decimate,
          ls->output_format.pixel,
          ls->dither,
@@ -405,20 +391,41 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
       uint32_t clear_colors[4];
       memcpy(clear_colors, rs->clear_colors[b], sizeof(clear_colors));
 
-      /* If the render target does not have an alpha channel, we need alpha in
-       * the TLB to be 1 to get correct blending. We ensure this by explicitly
-       * clearing to 1 at the start, and by disabling alpha writes so it
-       * doesn't change. Note that we must check api_fmt since the actual lfmt
-       * might contain alpha when the original internalformat did not. */
-      KHRN_IMAGE_T const *img = fb->color_ms[b].image ? fb->color_ms[b].image : fb->color[b].image;
-      if (img && !gfx_lfmt_has_alpha(img->api_fmt))
-         clear_colors[3] = gfx_float_to_bits(1.0f);
+      khrn_image const *img = fb->color_ms[b].image ? fb->color_ms[b].image : fb->color[b].image;
+      if (img)
+      {
+#if !V3D_HAS_RT_CLAMP // If V3D_HAS_RT_CLAMP, v3d_cl_rcfg_clear_colors will do this for us
+         /* If the render target is ufloat then clamp negative colours to 0 */
+         if ((img->api_fmt & GFX_LFMT_TYPE_MASK) == GFX_LFMT_TYPE_UFLOAT)
+            for (int i=0; i<4; i++)
+               clear_colors[i] = gfx_float_to_bits(fmaxf(gfx_float_from_bits(clear_colors[i]), 0));
+#endif
+
+         /* If the render target does not have an alpha channel, we need alpha in
+          * the TLB to be 1 to get correct blending. We ensure this by explicitly
+          * clearing to 1 at the start, and by disabling alpha writes so it
+          * doesn't change. Note that we must check api_fmt since the actual lfmt
+          * might contain alpha when the original internalformat did not. */
+         unsigned alpha_bits = gfx_lfmt_alpha_bits(img->api_fmt);
+         if (alpha_bits == 0)
+            clear_colors[3] = gfx_float_to_bits(1.0f);
+         else if (gfx_lfmt_alpha_type(img->api_fmt) == GFX_LFMT_TYPE_UNORM &&
+                  (alpha_bits == 1 || alpha_bits == 2)  )
+         {
+            /* Quantise alpha to a representable value. We only convert alpha so
+             * that colour can be dithered. We don't dither 1 or 2 bit alpha anyway. */
+            float alpha = gfx_float_from_bits(clear_colors[3]);
+            uint32_t clamped = gfx_float_to_unorm(alpha, alpha_bits);
+            alpha = gfx_unorm_to_float(clamped, alpha_bits);
+            clear_colors[3] = gfx_float_to_bits(alpha);
+         }
+      }
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
       const struct v3d_tlb_ldst_params *ls = &rcfg->rt_ls[b];
 #endif
       v3d_cl_rcfg_clear_colors(&instr, b, clear_colors,
-         fb->color_internal_type[b], fb->color_internal_bpp[b]
+         &fb->color_rt_format[b]
 #if !V3D_VER_AT_LEAST(4,0,2,0)
          , (ls->memory_format == V3D_MEMORY_FORMAT_RASTER) ? ls->stride : ls->flipy_height_px,
          v3d_memory_format_is_uif(ls->memory_format) ? ls->stride : 0
@@ -467,7 +474,7 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
    //       when not needed, be careful with packed depth/stencil
    v3d_cl_tile_coords(&instr, 0, 0);
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-   if (workaround_gfxh_1320 && !glxx_workaround_gfxh_1320(&instr, &rs->fmem))
+   if (workaround_gfxh_1320 && !glxx_workaround_gfxh_1320(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
       return false;
 #endif
    v3d_cl_store_general(&instr,
@@ -490,48 +497,26 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
       /*chain=*/true);
 
    v3d_cl_multicore_rendering_supertile_cfg(&instr,
-      supertile_w_in_tiles,
-      supertile_h_in_tiles,
-      frame_w_in_supertiles,
-      frame_h_in_supertiles,
+      supertile_cfg->supertile_w_in_tiles,
+      supertile_cfg->supertile_h_in_tiles,
+      supertile_cfg->frame_w_in_supertiles,
+      supertile_cfg->frame_h_in_supertiles,
       tile_cfg->num_tiles_x,
       tile_cfg->num_tiles_y,
-      num_cores > 1,
+      multicore,
       V3D_SUPERTILE_ORDER_RASTER, // TODO enable morton
       rs->fmem.br_info.num_bins);
 
-   v3d_cl_generic_tile_list(&instr, generic_tile_list[0], generic_tile_list[1]);
-
-   if (khrn_options.isolate_frame == khrn_fmem_frame_i)
-   {
-      // isolate requested supertile
-      v3d_cl_supertile_coords(&instr,
-         gfx_umin(khrn_options.isolate_supertile_x, frame_w_in_supertiles - 1u),
-         gfx_umin(khrn_options.isolate_supertile_y, frame_w_in_supertiles - 1u));
-   }
-   else
-   {
-      uint32_t morton_flags, begin_supertile, end_supertile;
-      v3d_supertile_range(&morton_flags, &begin_supertile, &end_supertile,
-                          num_cores, core,
-                          frame_w_in_supertiles, frame_h_in_supertiles,
-                          khrn_options.partition_supertiles_in_sw,
-                          khrn_options.all_cores_same_st_order);
-
-      GFX_MORTON_STATE_T morton;
-      gfx_morton_init(&morton, frame_w_in_supertiles, frame_h_in_supertiles, morton_flags);
-
-      uint32_t x, y;
-      for (unsigned i = 0; gfx_morton_next(&morton, &x, &y, NULL); ++i)
-         if (i >= begin_supertile && i < end_supertile)
-            v3d_cl_supertile_coords(&instr, x, y);
-   }
-
-   v3d_cl_end_render(&instr);
+   v3d_cl_return(&instr);
 
    khrn_fmem_end_cle(&rs->fmem, instr);
 
    return true;
+}
+
+static v3d_size_t calc_tile_state_size(const struct glxx_hw_tile_cfg *tile_cfg)
+{
+   return tile_cfg->num_tiles_x * tile_cfg->num_tiles_y * V3D_TILE_STATE_SIZE;
 }
 
 static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg, uint8_t *draw_clist_ptr, GLXX_CL_RECORD_T* start_record)
@@ -542,10 +527,12 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       rs->installed_fb.rt_count);
 
    {
+    #if !V3D_HAS_QTS
       // allocate tile state memory
-      v3d_addr_t tile_state_addr = khrn_fmem_tile_state_alloc(&rs->fmem, tile_cfg->num_tiles_x * tile_cfg->num_tiles_y * V3D_TILE_STATE_SIZE);
+      v3d_addr_t tile_state_addr = khrn_fmem_tile_state_alloc(&rs->fmem, calc_tile_state_size(tile_cfg));
       if (!tile_state_addr)
          return false;
+    #endif
 
       unsigned size = 0
          + V3D_CL_TILE_BINNING_MODE_CFG_SIZE
@@ -557,21 +544,33 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       if (!instr)
          return false;
 
-      // At least Simpenrose wants 120.1 followed by 120.0 and not the other way around
-
-      // CLE 120.0 - 9 bytes (1 + 8)
-      v3d_cl_tile_binning_mode_cfg_part1(&instr,
-         true, // auto_init_tile_state
+#if V3D_HAS_UNCONSTR_VP_CLIP
+      v3d_cl_tile_binning_mode_cfg(&instr,
          v3d_translate_tile_alloc_block_size(c_initial_tile_alloc_block_size),
          v3d_translate_tile_alloc_block_size(c_tile_alloc_block_size),
+         rs->installed_fb.rt_count,
+         tile_cfg->max_rt_bpp,
+         tile_cfg->ms,
+         tile_cfg->double_buffer,
+         rs->installed_fb.width,
+         rs->installed_fb.height);
+#else
+      v3d_cl_tile_binning_mode_cfg_part1(&instr,
+         !V3D_HAS_QTS, // auto_init_tile_state (!V3D_HAS_QTS) / set_tile_state_addr (V3D_HAS_QTS)
+         v3d_translate_tile_alloc_block_size(c_initial_tile_alloc_block_size),
+         v3d_translate_tile_alloc_block_size(c_tile_alloc_block_size),
+       #if !V3D_HAS_QTS
          tile_state_addr,
+       #else
+         0,
+       #endif
          tile_cfg->num_tiles_x,
          tile_cfg->num_tiles_y,
          rs->installed_fb.rt_count,
          tile_cfg->max_rt_bpp,
          tile_cfg->ms,
-         tile_cfg->double_buffer
-         );
+         tile_cfg->double_buffer);
+#endif
 
 #ifdef KHRN_GEOMD
       fmem_debug_info_insert(&rs->fmem,
@@ -624,77 +623,6 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
    return true;
 }
 
-// timh-todo: Maybe this can be refactored/combined with the regular
-// create/destroy paths, I don't really like the duplication
-bool glxx_hw_render_state_discard_and_restart(
-   GLXX_SERVER_STATE_T *state,
-   GLXX_HW_RENDER_STATE_T *rs)
-{
-   GLXX_HW_FRAMEBUFFER_T *installed_fb = &rs->installed_fb;
-   unsigned b;
-
-   khrn_fmem_persist* persist = rs->fmem.persist;
-   assert(persist->occlusion_query_list == NULL);
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   assert(persist->prim_counts_query_list == NULL);
-#endif
-   assert(rs->tf.used == false);
-
-   if (!khrn_fmem_reset(&rs->fmem, (KHRN_RENDER_STATE_T*)rs))
-      return false;
-
-   if (  !khrn_fmem_record_fence_to_signal(&rs->fmem, state->fences.fence)
-      || !khrn_fmem_record_fence_to_depend_on(&rs->fmem, state->fences.fence_to_depend_on) )
-      return false;
-
-   for (b = 0; b < installed_fb->rt_count; ++b)
-   {
-      if (!begin_img_plane_write(NULL, &rs->fmem, &installed_fb->color[b], KHRN_CHANGRP_ALL))
-         return false;
-
-      if (!begin_img_plane_write(NULL, &rs->fmem, &installed_fb->color_ms[b], KHRN_CHANGRP_ALL))
-         return false;
-   }
-
-   if (!begin_img_plane_write(NULL, &rs->fmem, &installed_fb->depth, KHRN_CHANGRP_NONSTENCIL))
-      return false;
-
-   if (!begin_img_plane_write(NULL, &rs->fmem, &installed_fb->stencil, KHRN_CHANGRP_STENCIL))
-      return false;
-
-   // set all dirty flags for the server-state so they are flushed through
-   glxx_server_invalidate_for_render_state(state, rs);
-   rs->flat_shading_flags_set = false;
-   rs->centroid_flags_set = false;
-
-   // initialise record keeping (this needs deduplicating, hopefully with this whole function)
-   if (GLXX_MULTICORE_BIN_ENABLED)
-   {
-      memset(&rs->cl_records[0], 0, sizeof(rs->cl_records[0]));
-      rs->num_cl_records = 0;
-      rs->cl_record_threshold = GLXX_MULTICORE_BIN_SPLIT_THRESHOLD/4;
-      rs->cl_record_remaining = GLXX_MULTICORE_BIN_SPLIT_THRESHOLD/4;
-   }
-#ifndef NDEBUG
-   rs->cl_records[0].in_begin = GLXX_CL_STATE_NUM;
-#endif
-
-   glxx_hw_render_state_reset_z_prepass(rs);
-   rs->has_tcs_barriers = false;
-
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   // reset workaround state
-   rs->workaround_gfxh_1313 = false;
-#endif
-
-   // reset uses flow control state
-   rs->fmem.br_info.bin_workaround_gfxh_1181 = false;
-   rs->fmem.br_info.render_workaround_gfxh_1181 = false;
-   rs->fmem.br_info.secure = egl_context_gl_secure(state->context);
-
-   return true;
-}
-
 void glxx_hw_render_state_rw(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs)
 {
    unsigned i = 0;
@@ -719,10 +647,68 @@ void glxx_hw_render_state_rw(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T 
       glxx_bufstate_rw(&rs->stencil_buffer_state);
 }
 
-static bool create_master_cls(GLXX_HW_RENDER_STATE_T *rs,
+static bool create_render_subjob_cl(GLXX_HW_RENDER_STATE_T *rs,
+      const struct glxx_hw_supertile_cfg *supertile_cfg,
+      uint32_t core, uint32_t num_cores)
+{
+   size_t r_size = V3D_CL_SUPERTILE_COORDS_SIZE *
+      supertile_cfg->frame_w_in_supertiles * supertile_cfg->frame_h_in_supertiles;
+   r_size += V3D_CL_END_RENDER_SIZE;
+
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, r_size);
+   if (!instr)
+      return false;
+
+   if (khrn_options.isolate_frame == khrn_fmem_frame_i)
+   {
+      // isolate requested supertile
+      v3d_cl_supertile_coords(&instr,
+         gfx_umin(khrn_options.isolate_supertile_x, supertile_cfg->frame_w_in_supertiles - 1u),
+         gfx_umin(khrn_options.isolate_supertile_y, supertile_cfg->frame_h_in_supertiles - 1u));
+   }
+   else
+   {
+      uint32_t morton_flags, begin_supertile, end_supertile;
+      v3d_supertile_range(&morton_flags, &begin_supertile, &end_supertile,
+                          num_cores, core,
+                          supertile_cfg->frame_w_in_supertiles, supertile_cfg->frame_h_in_supertiles,
+                          khrn_options.partition_supertiles_in_sw,
+                          khrn_options.all_cores_same_st_order);
+
+      GFX_MORTON_STATE_T morton;
+      gfx_morton_init(&morton, supertile_cfg->frame_w_in_supertiles,
+            supertile_cfg->frame_h_in_supertiles, morton_flags);
+
+      uint32_t x, y;
+      for (unsigned i = 0; gfx_morton_next(&morton, &x, &y, NULL); ++i)
+         if (i >= begin_supertile && i < end_supertile)
+            v3d_cl_supertile_coords(&instr, x, y);
+   }
+   v3d_cl_end_render(&instr);
+   khrn_fmem_end_cle(&rs->fmem, instr);
+   return true;
+}
+
+static void calc_supertile_cfg(struct glxx_hw_supertile_cfg *supertile_cfg,
+      const struct glxx_hw_tile_cfg *tile_cfg)
+{
+   supertile_cfg->supertile_w_in_tiles = 0;
+   supertile_cfg->supertile_h_in_tiles = 0;
+   v3d_choose_supertile_sizes(tile_cfg->num_tiles_x, tile_cfg->num_tiles_y,
+         khrn_options.min_supertile_w, khrn_options.min_supertile_h,
+         khrn_options.max_supertiles, &supertile_cfg->supertile_w_in_tiles,
+         &supertile_cfg->supertile_h_in_tiles);
+
+   supertile_cfg->frame_w_in_supertiles =
+      gfx_udiv_round_up(tile_cfg->num_tiles_x, supertile_cfg->supertile_w_in_tiles);
+   supertile_cfg->frame_h_in_supertiles =
+      gfx_udiv_round_up(tile_cfg->num_tiles_y, supertile_cfg->supertile_h_in_tiles);
+}
+
+static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
    const struct glxx_hw_tile_cfg *tile_cfg,
    const struct glxx_hw_tile_list_rcfg *rcfg,
-   v3d_addr_t const generic_tile_list[2])
+   v3d_addr_range const *generic_tile_list)
 {
    unsigned num_cores = khrn_get_num_render_subjobs();
    // Buffer writes are not suitably coherent on multiple cores and frame isolation
@@ -730,16 +716,48 @@ static bool create_master_cls(GLXX_HW_RENDER_STATE_T *rs,
    if (rs->has_tcs_barriers || rs->base.has_buffer_writes || khrn_options.isolate_frame == khrn_fmem_frame_i)
       num_cores = 1;
 
+   struct glxx_hw_supertile_cfg supertile_cfg;
+   calc_supertile_cfg(&supertile_cfg, tile_cfg);
+
+   v3d_addr_range render_common;
+   render_common.begin = khrn_fmem_begin_clist(&rs->fmem);
+   if (!render_common.begin || !create_render_cl_common(rs, tile_cfg, &supertile_cfg, rcfg, num_cores > 1))
+      return false;
+   render_common.end = khrn_fmem_end_clist(&rs->fmem);
+
+   v3d_addr_range subjobs[V3D_MAX_RENDER_SUBJOBS];
+   for (unsigned core = 0; core != num_cores; ++core)
+   {
+      subjobs[core].begin =  khrn_fmem_begin_clist(&rs->fmem);
+      if (!subjobs[core].begin || !create_render_subjob_cl(rs, &supertile_cfg, core, num_cores))
+         return false;
+
+      subjobs[core].end =  khrn_fmem_end_clist(&rs->fmem);
+   }
+
+   //per each core
+   size_t r_size = V3D_CL_BRANCH_SIZE; //branch to common
+   r_size += V3D_CL_GENERIC_TILE_LIST_SIZE;
+   r_size += V3D_CL_BRANCH_SIZE; // branch to cl for each core
+
    for (unsigned core = 0; core != num_cores; ++core)
    {
       assert(core < V3D_MAX_RENDER_SUBJOBS);
+
       rs->fmem.br_info.render_begins[core] = khrn_fmem_begin_clist(&rs->fmem);
-      if (!rs->fmem.br_info.render_begins[core] ||
-         !create_master_cl(rs, tile_cfg, rcfg, generic_tile_list, num_cores, core))
-      {
+      if (!rs->fmem.br_info.render_begins[core])
          return false;
-      }
-      rs->fmem.br_info.render_ends[core] = khrn_fmem_end_clist(&rs->fmem);
+
+      uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, r_size);
+      if (!instr)
+         return false;
+      v3d_cl_branch_sub(&instr, render_common.begin);
+      v3d_cl_generic_tile_list(&instr, generic_tile_list->begin, generic_tile_list->end);
+      v3d_cl_branch(&instr, subjobs[core].begin);
+      khrn_fmem_end_cle(&rs->fmem, instr);
+      khrn_fmem_end_clist(&rs->fmem);
+      rs->fmem.br_info.render_ends[core] = subjobs[core].end;
+
    }
    rs->fmem.br_info.num_renders = num_cores;
 
@@ -748,12 +766,7 @@ static bool create_master_cls(GLXX_HW_RENDER_STATE_T *rs,
 
 static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg, uint8_t* draw_clist_ptr)
 {
-   // can only enable multi-core binning if we don't have transform feedback waits in CL
-   unsigned max_cores = !rs->has_tcs_barriers && rs->do_multicore_bin && rs->tf.waited_count == 0
-#if V3D_VER_AT_LEAST(4,0,2,0)
-      && rs->fmem.persist->prim_counts_query_list == NULL
-#endif
-      ? khrn_get_num_bin_subjobs() : 1;
+   unsigned max_cores = glxx_hw_render_state_max_bin_subjobs(rs);
 
    // estimated total number of shaded vertices in control list
    uint64_t bin_cost_total = rs->cl_records[rs->num_cl_records].bin_cost_cumulative;
@@ -780,7 +793,7 @@ static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile
          uint64_t num_splits = max_cores - core;
 
          // but also limited by amount of work remaining (don't want tiny pieces)
-         num_splits = vcos_min(num_splits, bin_cost_remaining / GLXX_MULTICORE_BIN_SPLIT_THRESHOLD);
+         num_splits = gfx_umin64(num_splits, bin_cost_remaining / GLXX_MULTICORE_BIN_SPLIT_THRESHOLD);
 
          // figure out cost to allocate to remaining cores
          uint64_t bin_cost_per_core = bin_cost_remaining / (num_splits + 1);
@@ -842,17 +855,20 @@ static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile
          return false;
       }
       rs->fmem.br_info.bin_ends[core] = khrn_fmem_end_clist(&rs->fmem);
-
-      rs->fmem.br_info.min_initial_bin_block_size = gfx_uround_up_p2(
-            tile_cfg->num_tiles_x * tile_cfg->num_tiles_y *
-            c_initial_tile_alloc_block_size, V3D_TILE_ALLOC_ALIGN) +
-            /* If HW runs out of memory immediately it may not raise an out of
-             * memory interrupt (it only raises one on the transition from having
-             * memory to not having memory). Avoid this by ensuring it starts with
-             * at least one block. */
-            V3D_TILE_ALLOC_GRANULARITY;
    }
    rs->fmem.br_info.num_bins = core;
+
+   rs->fmem.br_info.min_initial_bin_block_size = gfx_uround_up_p2(
+      tile_cfg->num_tiles_x * tile_cfg->num_tiles_y * c_initial_tile_alloc_block_size,
+      V3D_TILE_ALLOC_ALIGN) +
+      /* If HW runs out of memory immediately it may not raise an out of
+       * memory interrupt (it only raises one on the transition from having
+       * memory to not having memory). Avoid this by ensuring it starts with
+       * at least one block. */
+      V3D_TILE_ALLOC_GRANULARITY;
+#if V3D_HAS_QTS
+   rs->fmem.br_info.bin_tile_state_size = calc_tile_state_size(tile_cfg);
+#endif
 
    // all bin jobs have z-prepass rendering enabled
    if (do_z_prepass)
@@ -864,7 +880,7 @@ static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile
    return true;
 }
 
-static void invalidate_interlocks_based_on_bufstates(GLXX_HW_RENDER_STATE_T *rs)
+static void invalidate_resources_based_on_bufstates(GLXX_HW_RENDER_STATE_T *rs)
 {
    GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
 
@@ -879,8 +895,8 @@ static void invalidate_interlocks_based_on_bufstates(GLXX_HW_RENDER_STATE_T *rs)
           * thus always being able to set it correctly -- we use the validity
           * of the multisample buffer to determine whether to load from it or
           * the downsampled buffer */
-         assert(khrn_image_plane_interlock_parts(&fb->color_ms[b], KHRN_CHANGRP_ALL, /*subset=*/true) ==
-            khrn_image_plane_interlock_parts(&fb->color_ms[b], KHRN_CHANGRP_ALL, /*subset=*/false));
+         assert(khrn_image_plane_resource_parts(&fb->color_ms[b], KHRN_CHANGRP_ALL, /*subset=*/true) ==
+            khrn_image_plane_resource_parts(&fb->color_ms[b], KHRN_CHANGRP_ALL, /*subset=*/false));
          khrn_image_plane_invalidate(&fb->color_ms[b], KHRN_CHANGRP_ALL);
       }
    }
@@ -908,8 +924,8 @@ static bool calc_tile_cfg_and_prep_tile_list_fb_ops(
 
    tile_cfg->max_rt_bpp = V3D_RT_BPP_32;
    for (unsigned b = 0; b != rs->installed_fb.rt_count; ++b)
-      if (rs->installed_fb.color_internal_bpp[b] > tile_cfg->max_rt_bpp) /* Assume V3D_RT_BPP_* values are sensibly ordered... */
-         tile_cfg->max_rt_bpp = rs->installed_fb.color_internal_bpp[b];
+      if (rs->installed_fb.color_rt_format[b].bpp > tile_cfg->max_rt_bpp) /* Assume V3D_RT_BPP_* values are sensibly ordered... */
+         tile_cfg->max_rt_bpp = rs->installed_fb.color_rt_format[b].bpp;
 
    uint32_t tile_w, tile_h;
    v3d_tile_size_pixels(&tile_w, &tile_h,
@@ -923,11 +939,9 @@ static bool calc_tile_cfg_and_prep_tile_list_fb_ops(
 
 void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
 {
-   khrn_render_state_begin_flush((KHRN_RENDER_STATE_T*)rs);
+   khrn_render_state_begin_flush((khrn_render_state*)rs);
 
-   log_trace_rs(rs, VCOS_FUNCTION);
-
-   /* Interlock transfer delayed until we know that we can't fail */
+   log_trace_rs(rs, __FUNCTION__);
 
    // we we had any draw commands
    uint8_t *draw_clist_ptr = rs->fmem.cle_first;
@@ -972,15 +986,16 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
       goto quit;
 
    // create the generic tile list (must be done after binning control lists
-   // have been created!)
-   v3d_addr_t generic_tile_list[2];
+   // have been created - because we are using num_bin_subjobs to
+   // write_tile_list_branches)
+   v3d_addr_range generic_tile_list;
    struct glxx_hw_tile_list_rcfg rcfg;
-   if (!glxx_hw_create_generic_tile_list(generic_tile_list, &rcfg,
+   if (!glxx_hw_create_generic_tile_list(&generic_tile_list, &rcfg,
          rs, tile_cfg.ms, tile_cfg.double_buffer, &tile_list_fb_ops))
       goto quit;
 
    // create the render control lists for each core
-   if (!create_master_cls(rs, &tile_cfg, &rcfg, generic_tile_list))
+   if (!create_render_cls(rs, &tile_cfg, &rcfg, &generic_tile_list))
       goto quit;
 
 #ifdef KHRN_GEOMD
@@ -991,7 +1006,7 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
    // submits bin and render
    khrn_fmem_flush(&rs->fmem);
 
-   invalidate_interlocks_based_on_bufstates(rs);
+   invalidate_resources_based_on_bufstates(rs);
 
    if (rs->has_tcs_barriers && khrn_get_num_cores() > 1)
       v3d_scheduler_wait_all();
@@ -1026,6 +1041,7 @@ v3d_compare_func_t glxx_hw_convert_test_function(GLenum function)
 
 // This function is called when we fail to do what we were asked to do.
 // We simply give up any unflushed rendering done so far.
+// It is also called to discard any rendering that is completely cleared over the top.
 void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs)
 {
    assert(rs != NULL);

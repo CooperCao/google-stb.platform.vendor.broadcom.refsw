@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -305,6 +305,17 @@ NEXUS_P_File_TryCompleted(struct NEXUS_File_P_Scheduler *sched, bool timerContex
             else {
                 locked = NEXUS_Module_TryLock(e->module);
             }
+
+            {
+                NEXUS_Time now;
+                unsigned age;
+                NEXUS_Time_Get_isrsafe(&now);
+                age = NEXUS_Time_Diff_isrsafe(&now, &e->arrival);
+                if (age > MAX_WORK_ITEM_AGE) {
+                    BDBG_WRN(("TryCompleted: work item { %s %u bytes @ %p } delayed %u msec", ioTypeStrings[e->ioType], (unsigned)e->length, e->buf, age));
+                }
+            }
+
             if (locked) {
                 queue = &sched->free;
                 /* call callback and add into the free list */
@@ -312,15 +323,7 @@ NEXUS_P_File_TryCompleted(struct NEXUS_File_P_Scheduler *sched, bool timerContex
                 NEXUS_Module_Unlock(e->module);
             }
             else {
-                NEXUS_Time now;
-                unsigned age;
                 queue = &sched->completed;
-                NEXUS_Time_Get_isrsafe(&now);
-                age = NEXUS_Time_Diff_isrsafe(&now, &e->arrival);
-                if (age > MAX_WORK_ITEM_AGE) {
-                    BDBG_ERR(("NEXUS_P_File_TryCompleted: work item { %s %u bytes @ %p } too old %u ms -> may see buffer xflow events", ioTypeStrings[e->ioType], (unsigned)e->length, e->buf, age));
-                    BDBG_ERR(("Do you have a busy loop holding nexus playback, record, or mux module locks?"));
-                }
             }
             NEXUS_LockModule(); /* back into file module lock */
             if (locker) /* this thread was a Lock user, rather than a TryLock user */

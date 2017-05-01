@@ -1,0 +1,115 @@
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
+.tableblue {
+    /*background-color:#3333ff; original blue */
+    /*background-color:#ff7800; vonage orange */
+    background-color:#007cc7; /* vonage blue */
+    color:white;
+    -moz-border-radius:6px; /* Firefox */
+    -webkit-border-radius: 6px; /* Safari, Chrome */
+    -khtml-border-radius: 6px; /* KHTML */
+    border-radius: 6px; /* CSS3 */
+    behavior:url("border-radius.htc");
+}
+.title{
+    /* color:#ff7800; vonage orange */
+    color:#007cc7; /* vonage blue */
+}
+.tableblocks { /* background for large blocks */
+    background-color:white;
+    color:white;
+}
+.tablekhaki { /* cell background for S0 - S31 Transport and ASP streams */
+    /*background-color:#f8e2c7;*/
+    background-color:white;
+    color:white;
+}
+.tdred14bold{
+    /*color:red;*/
+    color:#ff7800;
+    font-size:14pt;
+    font-weight:bold;
+}
+.tdred14boldyellow{
+    color:#ff7800;
+    font-size:14pt;
+    font-weight:bold;
+    background-color:yellow;
+}
+.floatDIV{
+    position:absolute;
+    top:190px; /* position the div down from the top of the page to allow clicks to be recognized */
+    left:110px;
+}
+
+.floatDIV2{
+    position:absolute;
+    top:100px;
+    left:1318px;
+}
+
+line {stroke:rgb(0, 0, 0); stroke-width: 2}
+.pathgray {
+    stroke-dasharray: 7;
+    stroke:gray;
+    stroke-width:1
+}
+
+.pathblue {
+    stroke-dasharray: 7;
+    animation: dash 5s linear;
+    stroke:blue;
+    stroke-width:4
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: 500;
+    }
+}
+.inputForm
+{
+    -moz-border-radius:6px; /* Firefox */
+    -webkit-border-radius: 6px; /* Safari, Chrome */
+    -khtml-border-radius: 6px; /* KHTML */
+    border-radius: 6px; /* CSS3 */
+    behavior:url("border-radius.htc");
+    font-size:12pt;
+    width:120;
+}

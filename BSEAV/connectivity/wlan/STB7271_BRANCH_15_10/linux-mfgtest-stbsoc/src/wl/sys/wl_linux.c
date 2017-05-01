@@ -109,11 +109,6 @@ typedef const struct si_pub si_t;
 #endif
 
 
-#include <wl_iw.h>
-#ifdef USE_IW
-struct iw_statistics *wl_get_wireless_stats(struct net_device *dev);
-#endif
-
 #include <wl_export.h>
 #ifdef TOE
 #include <wl_toe.h>
@@ -353,6 +348,10 @@ static int wl_set_radio_block(void *data, bool blocked);
 static void wl_report_radio_state(wl_info_t *wl);
 #endif
 
+#if defined(WOWL_DRV_NORELOAD)
+extern int wl_wowl_resume_normalmode(wlc_info_t* wlc);
+#endif /*WOWL_DRV_NORELOAD*/
+
 #ifdef WL_PCMCIA
 
 static void wl_cs_config(dev_link_t *link);
@@ -574,7 +573,7 @@ int wl_net_attach(void *netdev, int bssidx);
 	for ((idx) = 0; (int) (idx) < MAX_RSDB_MAC_NUM; (idx)++) \
 		if ((((current_wl) = wl_cmn->wl[(idx)]) != NULL))
 
-#if WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 static struct ethtool_ops wl_ethtool_ops =
 #else
@@ -586,7 +585,7 @@ static const struct ethtool_ops wl_ethtool_ops =
 	.set_tx_csum = wl_set_tx_csum
 #endif
 };
-#endif /* WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29) */
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29) */
 
 #ifdef WL_THREAD
 static int
@@ -766,16 +765,7 @@ wl_if_setup(struct net_device *dev)
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30) */
 #endif /* NAPI_POLL */
 
-#ifdef USE_IW
-#if WIRELESS_EXT < 19
-	dev->get_wireless_stats = wl_get_wireless_stats;
-#endif
-#if WIRELESS_EXT > 12
-	dev->wireless_handlers = (const struct iw_handler_def *) &wl_iw_handler_def;
-#endif
-#endif /* USE_IW */
-
-#if WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
 	dev->ethtool_ops = &wl_ethtool_ops;
 #endif
 } /* wl_if_setup */
@@ -1202,6 +1192,10 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 		}
 	}
 
+	if (wlc_iovar_setint(wl->wlc, "pay_decode_war", FALSE)) {
+		WL_ERROR(("wl%d: Error setting pay_decode_war variable to FALSE\n", unit));
+	}
+
 #if defined(CONFIG_PROC_FS)
 	/* create /proc/net/wl<unit> */
 	(void)snprintf(tmp, sizeof(tmp), "net/wl%d", wl->pub->unit);
@@ -1342,10 +1336,6 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 
 	}
 
-#if defined(USE_IW)
-	WL_ERROR(("Using Wireless Extension\n"));
-#endif
-
 #if defined(STB_SOC_WIFI)
 	wl->plat_info = (struct wl_platform_info *)cmndata;
 #endif /* STB_SOC_WIFI */
@@ -1447,9 +1437,6 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29) */
 #endif /* LINUX_CRYPTO */
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14) */
-#ifdef USE_IW
-	wlif->iw.wlinfo = (void *)wl;
-#endif
 
 #if defined(WL_CONFIG_RFKILL)
 	if (wl_init_rfkill(wl) < 0)
@@ -1484,6 +1471,18 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	wlc_dump_register(wl->pub, "wl", (dump_fn_t)wl_dump, (void *)wl);
 #endif
 
+#if defined(BCMINTDBG)
+
+	if (device > 0x9999)
+		printf("%s: Broadcom BCM%d 802.11 Wireless Controller \n" EPI_VERSION_STR
+			"\nHashDate:%s\nTagInfo:%s\nRemoteBr:%s\n",
+			dev->name, device, EPI_VERSION_DATE, EPI_VERSION_TAG, EPI_REMOTE_BRANCH);
+	else
+		printf("%s: Broadcom BCM%04x 802.11 Wireless Controller \n" EPI_VERSION_STR
+		    "\nHashDate:%s\nTagInfo:%s\nRemoteBr:%s\n",
+			dev->name, device, EPI_VERSION_DATE, EPI_VERSION_TAG, EPI_REMOTE_BRANCH);
+
+#else /* BCMINTDBG */
 	{
 		char *devstr;
 
@@ -1503,11 +1502,14 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 			"\nTagInfo:%s\n",
 			dev->name, devstr, EPI_VERSION_TAG);
 	}
+#endif /* BCMINTDBG */
 
-#ifdef BCMDBG
+#if defined(BCMINTDBG)
+	printf("(Compiled in " SRCBASE " at " __TIME__ " on " __DATE__ ")\n");
+#else
 	printf("Compiled at " __TIME__ " on " __DATE__ "\n");
+#endif /* BCMINTDBG */
 	printf("Targets: %s\n", BCMTARGETS);
-#endif /* BCMDBG */
 
 #ifdef STB_SOC_WIFI
 	/* Get NVRAM rev from NVRAM file */
@@ -3348,6 +3350,9 @@ wl_down(wl_info_t *wl)
 		 */
 		SPINWAIT((atomic_read(&wl->callbacks) > callbacks), 100 * 1000);
 	}
+#ifdef BCMINTDBG
+	ASSERT(atomic_read(&wl->callbacks) <= callbacks);
+#endif /* BCMINTDBG */
 
 	WL_LOCK(wl);
 } /* wl_down */
@@ -3382,7 +3387,7 @@ wl_get_driver_info(struct net_device *dev, struct ethtool_drvinfo *info)
 {
 	wl_info_t *wl = WL_INFO_GET(dev);
 
-#if WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
 	if (!wl || !wl->pub || !wl->wlc || !wl->dev)
 		return;
 #endif
@@ -3525,14 +3530,6 @@ wl_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			wl->pub->unit, cmd, preempt_count()));
 #endif
 
-#ifdef USE_IW
-	/* linux wireless extensions */
-	if ((cmd >= SIOCIWFIRST) && (cmd <= SIOCIWLAST)) {
-		/* may recurse, do NOT lock */
-		return wl_iw_ioctl(dev, ifr, cmd);
-	}
-#endif /* USE_IW */
-
 	if (cmd == SIOCETHTOOL)
 		return (wl_ethtool(wl, (void*)ifr->ifr_data, wlif));
 
@@ -3646,85 +3643,6 @@ wl_get_stats(struct net_device *dev)
 	memcpy(stats, stats_watchdog, sizeof(struct net_device_stats));
 	return (stats);
 }
-
-#ifdef USE_IW
-struct iw_statistics *
-wl_get_wireless_stats(struct net_device *dev)
-{
-	int res = 0;
-	wl_info_t *wl;
-	wl_if_t *wlif;
-	struct iw_statistics *wstats = NULL;
-	struct iw_statistics *wstats_watchdog = NULL;
-	int phy_noise, rssi;
-
-	if (!dev)
-		return NULL;
-
-	if ((wl = WL_INFO_GET(dev)) == NULL)
-		return NULL;
-
-	if ((wlif = WL_DEV_IF(dev)) == NULL)
-		return NULL;
-
-	if ((wstats = &wlif->wstats) == NULL)
-		return NULL;
-
-	WL_TRACE(("wl%d: wl_get_wireless_stats\n", wl->pub->unit));
-
-	ASSERT(wlif->stats_id < 2);
-	wstats_watchdog = &wlif->wstats_watchdog[wlif->stats_id];
-
-	phy_noise = wlif->phy_noise;
-#if WIRELESS_EXT > 11
-	wstats->discard.nwid = 0;
-	wstats->discard.code = wstats_watchdog->discard.code;
-	wstats->discard.fragment = wstats_watchdog->discard.fragment;
-	wstats->discard.retries = wstats_watchdog->discard.retries;
-	wstats->discard.misc = wstats_watchdog->discard.misc;
-
-	wstats->miss.beacon = 0;
-#endif /* WIRELESS_EXT > 11 */
-
-	/* RSSI measurement is somewhat meaningless for AP in this context */
-	if (AP_ENAB(wl->pub))
-		rssi = 0;
-	else {
-		scb_val_t scb;
-		res = wlc_ioctl(wl->wlc, WLC_GET_RSSI, &scb, sizeof(int), wlif->wlcif);
-		if (res) {
-			WL_ERROR(("wl%d: %s: WLC_GET_RSSI failed (%d)\n",
-				wl->pub->unit, __FUNCTION__, res));
-			return NULL;
-		}
-		rssi = scb.val;
-	}
-
-	if (rssi <= WLC_RSSI_NO_SIGNAL)
-		wstats->qual.qual = 0;
-	else if (rssi <= WLC_RSSI_VERY_LOW)
-		wstats->qual.qual = 1;
-	else if (rssi <= WLC_RSSI_LOW)
-		wstats->qual.qual = 2;
-	else if (rssi <= WLC_RSSI_GOOD)
-		wstats->qual.qual = 3;
-	else if (rssi <= WLC_RSSI_VERY_GOOD)
-		wstats->qual.qual = 4;
-	else
-		wstats->qual.qual = 5;
-
-	/* Wraps to 0 if RSSI is 0 */
-	wstats->qual.level = 0x100 + rssi;
-	wstats->qual.noise = 0x100 + phy_noise;
-#if WIRELESS_EXT > 18
-	wstats->qual.updated |= (IW_QUAL_ALL_UPDATED | IW_QUAL_DBM);
-#else
-	wstats->qual.updated |= 7;
-#endif /* WIRELESS_EXT > 18 */
-
-	return wstats;
-} /* wl_get_wireless_stats */
-#endif /* USE_IW */
 
 static int
 wl_set_mac_address(struct net_device *dev, void *addr)
@@ -4403,10 +4321,6 @@ wl_link_down(wl_info_t *wl, char *ifname)
 void
 wl_event(wl_info_t *wl, char *ifname, wlc_event_t *e)
 {
-#ifdef USE_IW
-	wl_iw_event(wl->dev, &(e->event), e->data);
-#endif /* USE_IW */
-
 #if defined(USE_CFG80211)
 	wl_cfg80211_event(wl->dev, &(e->event), e->data);
 #endif
@@ -5588,13 +5502,39 @@ wl_jtag_poll(void *wl)
 #endif /* BCMJTAG */
 
 
+#if defined(WOWL_DRV_NORELOAD)
+int wl_resume_normalmode(void)
+{
+	wl_wowl_resume_normalmode(((wl_info_t*)(gpDev->drvdata))->wlc);
+	return 0;
+}
+EXPORT_SYMBOL(wl_resume_normalmode);
+#endif /* WOWL_DRV_NORELOAD  */
+
 #if defined(PLATFORM_INTEGRATED_WIFI) && defined(CONFIG_OF)
+#if defined(WOWL_DRV_NORELOAD)
+static irqreturn_t wowl_isr(int irq, void *dev)
+{
+	struct wl_platform_info *plat = dev;
+	wl_info_t	*wl;
+	wl = (wl_info_t *)platform_get_drvdata(plat->pdev);
+
+	pm_wakeup_event(&plat->pdev->dev, 0);
+	printk("#####wowl_isr######\n\n\n\n\n");
+	wl_wowl_resume_normalmode(wl->wlc);
+	return 0;
+}
+#endif /*  WOWL_DRV_NORELOAD  */
+
 static int
 wl_plat_drv_probe(struct platform_device *pdev)
 {
 	struct wl_platform_info *plat;
 	struct resource *r;
 	int error = 0;
+#if defined(WOWL_DRV_NORELOAD)
+	int ret;
+#endif /*	WOWL_DRV_NORELOAD  */
 	wl_info_t	*wl;
 
 	plat = devm_kzalloc(&pdev->dev, sizeof(*plat), GFP_KERNEL);
@@ -5615,6 +5555,13 @@ wl_plat_drv_probe(struct platform_device *pdev)
 	if (plat->irq < 0) {
 		return plat->irq;
 	}
+
+#if defined(WOWL_DRV_NORELOAD)
+	plat->wowl_irq = platform_get_irq(pdev,1);
+	if (plat->wowl_irq < 0) {
+		return plat->wowl_irq;
+	}
+#endif /*  WOWL_DRV_NORELOAD  */
 
 #ifdef STB_SOC_WIFI
 	error = wl_stbsoc_init(plat);
@@ -5642,6 +5589,13 @@ wl_plat_drv_probe(struct platform_device *pdev)
 		platform_set_drvdata(pdev, wl);
 	}
 
+#if defined(WOWL_DRV_NORELOAD)
+	ret = devm_request_irq(&pdev->dev, plat->wowl_irq, wowl_isr, IRQF_NO_SUSPEND, "wlan_wol", plat);
+	device_set_wakeup_capable(&pdev->dev, 1);
+	ret = device_set_wakeup_enable(&pdev->dev, 1);
+	enable_irq_wake(plat->wowl_irq);
+#endif /*	WOWL_DRV_NORELOAD  */
+
 	return error;
 }
 
@@ -5650,11 +5604,21 @@ wl_plat_drv_remove(struct platform_device *pdev)
 {
 	wl_info_t	*wl;
 
+#if defined(WOWL_DRV_NORELOAD)
+	int ret;
+#endif /*WOWL_DRV_NORELOAD*/
+
 	wl = (wl_info_t *)platform_get_drvdata(pdev);
 
 	WL_LOCK((wl_info_t *)wl);
 	wl_down((wl_info_t *)wl);
 	WL_UNLOCK((wl_info_t *)wl);
+
+#if defined(WOWL_DRV_NORELOAD)
+	disable_irq_wake(wl->plat_info->wowl_irq);
+	ret = device_set_wakeup_enable(&pdev->dev, 0);
+	device_set_wakeup_capable(&pdev->dev, 0);
+#endif /*WOWL_DRV_NORELOAD*/
 
 #ifdef STB_SOC_WIFI
 	wl_stbsoc_deinit(wl->plat_info);
@@ -5674,6 +5638,12 @@ wl_plat_drv_shutdown(struct platform_device *pdev)
 	wl_info_t	*wl;
 
 	wl = (wl_info_t *)platform_get_drvdata(pdev);
+
+#if defined(WOWL_DRV_NORELOAD)
+	WL_LOCK((wl_info_t *)wl);
+	wl_down((wl_info_t *)wl);
+	WL_UNLOCK((wl_info_t *)wl);
+#endif /*WOWL_DRV_NORELOAD*/
 
 #ifdef STB_SOC_WIFI
 	wl_stbsoc_deinit(wl->plat_info);
@@ -5774,8 +5744,10 @@ wl_char_drv_init(void)
 	gpDev->dev_device = NULL;
 
 	plat = kmalloc(sizeof(struct wl_platform_info), GFP_KERNEL);
-	if (!plat)
+	if (!plat) {
+		kfree(gpDev);
 		return -ENOMEM;
+	}
 	bzero(plat, sizeof(struct wl_platform_info));
 
 #ifdef STB_SOC_WIFI
@@ -5783,8 +5755,11 @@ wl_char_drv_init(void)
 	plat->regs = ioremap_nocache(WLAN_INTF_START, WLAN_INTF_SIZE);
 
 	error = wl_stbsoc_init(plat);
-	if (error != BCME_OK)
+	if (error != BCME_OK) {
+		kfree(gpDev);
+		kfree(plat);
 		return error;
+	}
 
 	plat->deviceid = stb_devid;
 #else
@@ -5801,13 +5776,15 @@ wl_char_drv_init(void)
 		0 /* BAR2_SIZE */, plat /* private data */);
 
 	if (!wl) {
-		error = -ENODEV;
-	} else {
-		wl->plat_info = plat;
-		wl_stbsoc_set_drvdata(gpDev, wl);
+		kfree(gpDev);
+		kfree(plat);
+		return -ENODEV;
 	}
 
-	return error;
+	wl->plat_info = plat;
+	wl_stbsoc_set_drvdata(gpDev, wl);
+
+	return 0;
 }
 
 static void
@@ -5823,10 +5800,10 @@ wl_char_drv_deinit(void)
 
 #ifdef STB_SOC_WIFI
 	wl_stbsoc_deinit(wl->plat_info);
+	kfree(wl->plat_info);
 #endif /* STB_SOC_WIFI */
 
 	wl_free((wl_info_t *)wl);
-
 	if (gpDev->cdev) {
 	    cdev_del(gpDev->cdev);
 	    gpDev->cdev = NULL;
@@ -5900,6 +5877,9 @@ wl_tkip_encrypt(wl_info_t *wl, void *p, int hdr_len)
 			error = wl->tkipmodops->encrypt_mpdu(skb, hdr_len, wl->tkip_ucast_data);
 		if (error) {
 			WL_ERROR(("Error encrypting MPDU %d\n", error));
+#ifdef BCMDBG
+			wl_tkip_keydump(wl, FALSE);
+#endif /* BCMDBG */
 		}
 	} else
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14) */
@@ -5936,6 +5916,30 @@ wl_tkip_decrypt(wl_info_t *wl, void *p, int hdr_len, bool group_key)
 		WL_ERROR(("%s: No tkip mod ops\n", __FUNCTION__));
 	}
 
+#ifdef BCMINTDBG
+	switch (err) {
+		case -1:
+			WL_ERROR(("Invalid Len frame \n"));
+			break;
+		case -2:
+			WL_ERROR(("Recd TKIP frame with out ExtIV flag\n"));
+			break;
+		case -3:
+			WL_ERROR(("Key not configured\n"));
+			break;
+		case -4:
+			WL_ERROR(("Replay detected\n"));
+			break;
+		case -5:
+			WL_ERROR(("ICV Error detected\n"));
+			break;
+		case -6:
+			WL_ERROR(("Invalid Key Index\n"));
+			break;
+	}
+	if (err < 0)
+		wl_tkip_keydump(wl, group_key);
+#endif /* BCMINTDBG */
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14) */
 
 	/* Error */
@@ -5943,6 +5947,47 @@ wl_tkip_decrypt(wl_info_t *wl, void *p, int hdr_len, bool group_key)
 } /* wl_tkip_decrypt */
 
 
+#ifdef BCMINTDBG
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14)
+static void
+bytedump(char *s, uint8 *p, uint cnt)
+{
+	uint i;
+	printk("\ndump %s: %d byte\n", s, cnt);
+	if (cnt >= 96)
+		cnt = 96;
+	for (i = 0; i < cnt; i++) {
+		printk("%02x ", p[i]);
+		if (((i+1)%16) == 0)
+			printk("\n");
+	}
+	printk("\n");
+}
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14) */
+
+int
+wl_tkip_keydump(wl_info_t *wl, bool group)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14)
+	wl_wsec_key_t key;
+
+	if (wl->tkipmodops) {
+		if (wl->tkip_ucast_data && !group)
+			wl->tkipmodops->get_key(&key.data, TKIP_KEY_SIZE, (uint8 *)&key.rxiv,
+				wl->tkip_ucast_data);
+		else if (wl->tkip_bcast_data && group)
+			wl->tkipmodops->get_key(&key.data, TKIP_KEY_SIZE, (uint8 *)&key.rxiv,
+				wl->tkip_bcast_data);
+
+		if (group)
+			bytedump("Group Key used is", key.data, 32);
+		else
+			bytedump("Perpath Key used is", key.data, 32);
+	}
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14) */
+	return 0;
+}
+#endif /* BCMINTDBG*/
 
 int
 wl_tkip_keyset(wl_info_t *wl, const wlc_key_info_t *key_info,
@@ -6194,10 +6239,7 @@ wl_linux_watchdog(void *ctx)
 	uint id;
 	wl_if_t *wlif;
 	wl_if_stats_t wlif_stats;
-#ifdef USE_IW
-	struct iw_statistics *wstats = NULL;
-	int phy_noise;
-#endif
+
 	if (wl == NULL)
 		return;
 
@@ -6233,28 +6275,8 @@ wl_linux_watchdog(void *ctx)
 					stats->tx_fifo_errors = 0;
 				}
 
-#ifdef USE_IW
-				wstats = &wlif->wstats_watchdog[id];
-				if (wstats) {
-#if WIRELESS_EXT > 11
-					wstats->discard.nwid = 0;
-					wstats->discard.code = WLCNTVAL(wl->pub->_cnt->rxundec);
-					wstats->discard.fragment = WLCNTVAL(wlif_stats.rxfragerr);
-					wstats->discard.retries = WLCNTVAL(wlif_stats.txfail);
-					wstats->discard.misc = WLCNTVAL(wl->pub->_cnt->rxrunt) +
-						WLCNTVAL(wl->pub->_cnt->rxgiant);
-					wstats->miss.beacon = 0;
-#endif /* WIRELESS_EXT > 11 */
-				}
-#endif /* USE_IW */
-
 				wlif->stats_id = id;
 			}
-#ifdef USE_IW
-			if (!wlc_get(wl->wlc, WLC_GET_PHY_NOISE, &phy_noise))
-				wlif->phy_noise = phy_noise;
-#endif /* USE_IW */
-
 		}
 	}
 

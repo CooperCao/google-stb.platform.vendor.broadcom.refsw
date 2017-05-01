@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "../common/khrn_process.h"
 #include "../common/khrn_record.h"
@@ -153,7 +147,6 @@ static EGLint extract_attribs(const EGLint *attrib_list, const CLIENT_API_T **ap
             if (value & ~supported_flags) return EGL_BAD_ATTRIBUTE;
             flags = value;
             break;
-#if EGL_EXT_create_context_robustness
          case EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT:
             if (value == EGL_TRUE || value == EGL_FALSE) *robustness = value;
             else return EGL_BAD_ATTRIBUTE;
@@ -163,13 +156,10 @@ static EGLint extract_attribs(const EGLint *attrib_list, const CLIENT_API_T **ap
             else if (value == EGL_LOSE_CONTEXT_ON_RESET_EXT) *reset_notification = true;
             else return EGL_BAD_ATTRIBUTE;
             break;
-#endif
-#if EGL_EXT_protected_content
          case EGL_PROTECTED_CONTENT_EXT:
             if (value == EGL_TRUE || value == EGL_FALSE) *secure = value;
             else return EGL_BAD_ATTRIBUTE;
             break;
-#endif
          default:
             return EGL_BAD_ATTRIBUTE;
       }
@@ -232,7 +222,7 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
    bool locked = false;
    bool robustness;
    bool reset_notification;
-   bool want_debug = false;
+   bool debug = false;
    bool secure = false;
 
    if (vcos_once(&gl_once, init_lock))
@@ -245,7 +235,7 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
    }
 
    error = extract_attribs(attrib_list, &client_api, &robustness,
-      &reset_notification, &want_debug, &secure);
+      &reset_notification, &debug, &secure);
    if (error != EGL_SUCCESS)
       goto end;
 
@@ -259,7 +249,7 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
       goto end;
    locked = true;
 
-   egl_context_base_init(&ret->base, API_OPENGL, config, robustness, reset_notification, secure);
+   egl_context_base_init(&ret->base, API_OPENGL, config, debug, robustness, reset_notification, secure);
 
    ret->api = client_api->api;
    ret->server.context = ret;
@@ -273,7 +263,7 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
    server = &ret->server;
    ret->base.valid = true;
 
-   server->khr_debug.debug_output = want_debug;
+   server->khr_debug.debug_output = debug;
 
    error = EGL_SUCCESS;
 end:
@@ -292,7 +282,7 @@ end:
    return error;
 }
 
-bool convert_image(EGL_CONTEXT_T *context, KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src)
+bool convert_image(EGL_CONTEXT_T *context, khrn_image *dst, khrn_image *src)
 {
    if (egl_context_gl_lock())
    {
@@ -347,6 +337,14 @@ gl_api_t egl_context_gl_api(const EGL_GL_CONTEXT_T *context, gl_api_t apis)
    return context->api & apis;
 }
 
+bool egl_context_gl_debug(const EGL_GL_CONTEXT_T *context)
+{
+   if (!context && !(context = current_context()))
+      return false;
+
+   return context->base.debug;
+}
+
 bool egl_context_gl_secure(const EGL_GL_CONTEXT_T *context)
 {
    if (!context && !(context = current_context()))
@@ -355,7 +353,7 @@ bool egl_context_gl_secure(const EGL_GL_CONTEXT_T *context)
    return context->base.secure;
 }
 
-EGLBoolean egl_context_gl_robustness(const EGL_GL_CONTEXT_T *context)
+bool egl_context_gl_robustness(const EGL_GL_CONTEXT_T *context)
 {
    if (!context && !(context = current_context()))
       return EGL_FALSE;

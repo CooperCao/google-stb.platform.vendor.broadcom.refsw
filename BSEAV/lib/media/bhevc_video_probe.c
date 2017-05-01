@@ -135,12 +135,6 @@ b_hevc_video_probe_destroy(bmedia_probe_base_es_t probe)
     return;
 }
 
-static void b_hevc_video_set_frame_mbs_only(bmedia_probe_h265_video *info, bool frame_mbs_only)
-{
-    info->frame_mbs_only = frame_mbs_only;
-    return;
-}
-
 struct b_hevc_bitstream {
     size_t len;
     batom_cursor cursor;

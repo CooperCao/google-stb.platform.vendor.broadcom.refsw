@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 
 BDBG_MODULE(nexus_timebase);
 
-static NEXUS_Error NEXUS_Timebase_P_SetTwoPcrErrorMonitor(NEXUS_TimebaseHandle timebase, bool forceOff);
+static NEXUS_Error NEXUS_Timebase_P_SetTwoPcrErrorMonitor(NEXUS_TimebaseHandle timebase, const NEXUS_TimebaseSettings *pSettings);
 
 static NEXUS_TimebaseHandle NEXUS_Timebase_P_ResolveAcquire(NEXUS_Timebase timebase, bool acquire)
 {
@@ -812,7 +812,7 @@ NEXUS_Error NEXUS_Timebase_P_SetSettings(NEXUS_TimebaseHandle timebase, const NE
 
     BXPT_PCR_FreezeIntegrator(pcr, pSettings->freeze);
 
-    rc = NEXUS_Timebase_P_SetTwoPcrErrorMonitor(timebase, false);
+    rc = NEXUS_Timebase_P_SetTwoPcrErrorMonitor(timebase, pSettings);
     if (rc) return BERR_TRACE(rc);
 
     NEXUS_Timebase_P_DoSettingsAccounting(timebase, pSettings);
@@ -1027,7 +1027,7 @@ void NEXUS_Timebase_P_StopMonitor(NEXUS_TimebaseHandle timebase)
     }
 
     /* clean up in case it was left on */
-    (void)NEXUS_Timebase_P_SetTwoPcrErrorMonitor(timebase, true);
+    (void)NEXUS_Timebase_P_SetTwoPcrErrorMonitor(timebase, NULL);
 }
 
 static void NEXUS_Timebase_P_TwoPcrError_isr( void *context, int param )
@@ -1040,20 +1040,20 @@ static void NEXUS_Timebase_P_TwoPcrError_isr( void *context, int param )
     NEXUS_IsrCallback_Fire_isr(timebase->pcrErrorCallback);
 }
 
-static NEXUS_Error NEXUS_Timebase_P_SetTwoPcrErrorMonitor(NEXUS_TimebaseHandle timebase, bool forceOff)
+static NEXUS_Error NEXUS_Timebase_P_SetTwoPcrErrorMonitor(NEXUS_TimebaseHandle timebase, const NEXUS_TimebaseSettings *pSettings)
 {
     BINT_Id dpcrErrorIntId;
     bool install = false;
 
     BDBG_OBJECT_ASSERT(timebase, NEXUS_Timebase);
 
-    install = (timebase->settings.sourceType == NEXUS_TimebaseSourceType_ePcr &&
-               timebase->settings.sourceSettings.pcr.pidChannel &&
-               timebase->settings.pcrErrorCallback.callback &&
-               !forceOff);
+    install = (pSettings &&
+               pSettings->sourceType == NEXUS_TimebaseSourceType_ePcr &&
+               pSettings->sourceSettings.pcr.pidChannel &&
+               pSettings->pcrErrorCallback.callback);
 
     if ( install ) {
-        NEXUS_IsrCallback_Set(timebase->pcrErrorCallback, &timebase->settings.pcrErrorCallback);
+        NEXUS_IsrCallback_Set(timebase->pcrErrorCallback, &pSettings->pcrErrorCallback);
     }
     else {
         NEXUS_IsrCallback_Set(timebase->pcrErrorCallback, NULL);

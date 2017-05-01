@@ -248,17 +248,20 @@ const_value glsl_single_scalar_type_conversion(PrimitiveTypeIndex to_index,
 }
 
 /*
-   Symbol* glsl_resolve_overload_using_arguments(Symbol* head, ExprChain* args)
+   Symbol *glsl_resolve_overload_using_arguments(Symbol *head, ExprChain *args)
 
-   Function names can be overloaded. If functions' names and argument types match, then their return
-type and parameter qualifiers must also match. When overloaded functions are resolved, an exact
-match for the function's signature is sought -- no promotion or demotion of the return type or input
-argument types is done.
+   Function names can be overloaded. If functions' names and argument types
+   match, then their return type and parameter qualifiers must also match. When
+   overloaded functions are resolved, an exact match for the function's
+   signature is sought -- no promotion or demotion of the return type or input
+   argument types is done.
 */
 static bool args_match_overload(SymbolType *overload, ExprChain *args)
 {
    ExprChainNode *arg = args->first;
-   assert(overload->u.function_type.param_count == args->count);
+
+   if (overload->u.function_type.param_count != args->count)
+      return false;
 
    for (unsigned i=0; i<args->count; i++, arg = arg->next)
    {
@@ -272,67 +275,14 @@ static bool args_match_overload(SymbolType *overload, ExprChain *args)
    return true;
 }
 
-static bool is_arrays_of_image_type(SymbolType *type) {
-   while (type->flavour == SYMBOL_ARRAY_TYPE) type = type->u.array_type.member_type;
-   return glsl_prim_is_prim_image_type(type);
-}
-
-static void check_args_valid_for_overload(SymbolType *overload, ExprChain *args, bool relaxed_memq)
-{
-   ExprChainNode *arg = args->first;
-   assert(overload->u.function_type.param_count == args->count);
-
-   for (unsigned i=0; i<args->count; i++, arg = arg->next)
-   {
-      Symbol *param = overload->u.function_type.params[i];
-      ParamQualifier pq = param->u.param_instance.param_qual;
-
-      if (pq == PARAM_QUAL_INOUT || pq == PARAM_QUAL_OUT) {
-         // Check that the argument can be passed to an out/inout parameter.
-         if (!glsl_is_lvalue(arg->expr))
-            glsl_compile_error(ERROR_CUSTOM, 16, arg->expr->line_num, "out parameters must be lvalues");
-      }
-
-      if (is_arrays_of_image_type(param->type)) {
-         /* Any qualifiers from v may not be present on the arg but not the param */
-         MemoryQualifier v = MEMORY_READONLY | MEMORY_WRITEONLY |
-                             MEMORY_COHERENT | MEMORY_VOLATILE;
-         if (relaxed_memq) v &= ~(MEMORY_COHERENT | MEMORY_VOLATILE);
-         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr, g_ShaderFlavour);
-         MemoryQualifier arg_only = arg_mq & ~param->u.param_instance.mem_qual;
-         if (arg_only & v)
-            glsl_compile_error(ERROR_CUSTOM, 16, arg->expr->line_num, "invalid memory qualifiers");
-      } else {
-         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr, g_ShaderFlavour);
-         if ( (pq == PARAM_QUAL_IN || pq == PARAM_QUAL_INOUT) && (arg_mq & MEMORY_WRITEONLY) )
-            glsl_compile_error(ERROR_SEMANTIC, 5, arg->expr->line_num, NULL);
-      }
-   }
-}
-
 Symbol *glsl_resolve_overload_using_arguments(Symbol *head, ExprChain *args)
 {
-   for ( ; head; head = head->u.function_instance.next_overload)
-   {
-      SymbolType *existing_prototype = head->type;
-
+   for ( ; head; head = head->u.function_instance.next_overload) {
       assert(head->flavour == SYMBOL_FUNCTION_INSTANCE);
-      assert(existing_prototype->flavour == SYMBOL_FUNCTION_TYPE);
+      assert(head->type->flavour == SYMBOL_FUNCTION_TYPE);
 
-      // First check that the number of params is the same.
-      if (existing_prototype->u.function_type.param_count != args->count)
-         continue; // next prototype
-
-      // Next match the param types, one by one.
-      if (!args_match_overload(existing_prototype, args))
-         continue; // next prototype
-
-      // This is the prototype we want. Check that this is a valid call
-      bool memq_template = glsl_stdlib_is_stdlib_symbol(head) &&
-                           (glsl_stdlib_function_properties[glsl_stdlib_function_index(head)] & GLSL_STDLIB_PROPERTY_MEMQ_TEMPLATE);
-      check_args_valid_for_overload(existing_prototype, args, memq_template);
-
-      return head;
+      if (args_match_overload(head->type, args))
+         return head;
    }
 
    return NULL;
@@ -402,7 +352,7 @@ Symbol *glsl_resolve_overload_using_prototype(Symbol *head, SymbolType *prototyp
    return NULL;
 }
 
-bool glsl_type_contains(SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f) {
+bool glsl_type_contains(const SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f) {
    switch (t->flavour)
    {
       case SYMBOL_PRIMITIVE_TYPE:
@@ -432,11 +382,11 @@ bool glsl_type_contains(SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f) {
    }
 }
 
-bool glsl_type_contains_opaque(SymbolType *t) {
+bool glsl_type_contains_opaque(const SymbolType *t) {
    return glsl_type_contains(t, PRIM_IMAGE_TYPE | PRIM_SAMPLER_TYPE | PRIM_ATOMIC_TYPE);
 }
 
-bool glsl_type_contains_array(SymbolType *t) {
+bool glsl_type_contains_array(const SymbolType *t) {
    switch (t->flavour) {
       case SYMBOL_PRIMITIVE_TYPE: return false;
       case SYMBOL_ARRAY_TYPE:     return true;
@@ -510,10 +460,16 @@ void glsl_symbol_construct_interface_block(Symbol *result, const char *name, Sym
    result->name                 = name;
    result->type                 = ref_type;
    result->u.interface_block.sq = q->sq;
-   result->u.interface_block.tq = q->tq;
+   result->u.interface_block.iq = q->iq;
+   result->u.interface_block.aq = q->aq;
    result->u.interface_block.block_data_type = type;
+   result->u.interface_block.layout_loc_specified  = false;
    result->u.interface_block.layout_bind_specified = false;
 
+   if (q->lq != NULL && (q->lq->qualified & LOC_QUALED)) {
+      result->u.interface_block.layout_loc_specified  = true;
+      result->u.interface_block.layout_location       = q->lq->location;
+   }
    if (q->lq != NULL && (q->lq->qualified & BINDING_QUALED)) {
       result->u.interface_block.layout_bind_specified = true;
       result->u.interface_block.layout_binding        = q->lq->binding;
@@ -553,7 +509,8 @@ void glsl_symbol_construct_var_instance(Symbol *result, const char *name, Symbol
       }
    }
 
-   result->u.var_instance.type_qual    = q->tq;
+   result->u.var_instance.interp_qual  = q->iq;
+   result->u.var_instance.aux_qual     = q->aq;
    result->u.var_instance.storage_qual = q->sq;
    result->u.var_instance.prec_qual    = q->pq;
    result->u.var_instance.mem_qual     = q->mq;
@@ -655,7 +612,7 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
                case PRIM_UINT:     type = DF_USAMPLER; break;
                default: assert(0); type = DF_INVALID;  break;
             }
-            scalar_values[i] = glsl_dataflow_construct_const_sampler(type, -1, false);
+            scalar_values[i] = glsl_dataflow_construct_const_image(type, -1, false);
          } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index]))
             scalar_values[i] = glsl_dataflow_construct_const_uint(0);
          else {
@@ -668,7 +625,7 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
                case PRIM_UINT:     type = DF_UIMAGE;  break;
                default: assert(0); type = DF_INVALID; break;
             }
-            scalar_values[i] = glsl_dataflow_construct_const_sampler(type, -1, false);
+            scalar_values[i] = glsl_dataflow_construct_const_image(type, -1, false);
          }
       }
    }

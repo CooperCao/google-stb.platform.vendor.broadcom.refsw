@@ -58,6 +58,7 @@
 #pragma GCC diagnostic pop
 
 BDBG_MODULE(wv_decryptor);
+#include "dump_hex.h"
 
 using namespace wvcdm;
 using namespace dif_streamer;
@@ -196,7 +197,7 @@ WidevineDecryptor::~WidevineDecryptor()
 
 bool WidevineDecryptor::Initialize(std::string& pssh)
 {
-    LOGD(("%s: pssh(%d): %s", __FUNCTION__, pssh.size(), b2a_hex(pssh).c_str()));
+    LOGW(("%s: pssh(%d): %s", __FUNCTION__, pssh.size(), b2a_hex(pssh).c_str()));
     m_pssh.assign(pssh);
     m_keyId.assign(pssh.substr(4));
     LOGD(("%s: default keyId(%d): %s", __FUNCTION__, m_keyId.size(), b2a_hex(m_keyId).c_str()));
@@ -237,7 +238,9 @@ bool WidevineDecryptor::Initialize(std::string& pssh)
     }
     LOGD(("GetProvisioningRequest: url=%s", provisioning_server_url.c_str()));
 
+    dump_hex("ProvisioningReq", m_keyMessage.data(), m_keyMessage.size(), true);
     std::string response = GetCertRequestResponse(m_keyMessage, provisioning_server_url);
+    dump_hex("Cert response", response.data(), response.size(), true);
 
     LOGD(("calling HandleProvisioningResponse"));
     status = m_cdm->HandleProvisioningResponse(response);
@@ -259,7 +262,7 @@ bool WidevineDecryptor::Initialize(std::string& pssh)
 
 bool WidevineDecryptor::GenerateKeyRequest(std::string initData)
 {
-LOGD(("%s: %d initData= %s", __FUNCTION__, __LINE__, b2a_hex(initData).c_str()));
+    LOGW(("%s: %d initData(%d): %s", __FUNCTION__, __LINE__, initData.size(), b2a_hex(initData).c_str()));
     m_hasKeyMessage = false;
     cdm::Status status = m_cdm->GenerateKeyRequest(
         NULL, 0, (const uint8_t*)initData.data(), initData.length());
@@ -269,7 +272,7 @@ LOGD(("%s: %d initData= %s", __FUNCTION__, __LINE__, b2a_hex(initData).c_str()))
             status = m_cdm->GenerateKeyRequest(
                 NULL, 0, (const uint8_t*)initData.data(), initData.length());
             if (status != cdm::kSuccess) {
-                LOGE(("GenerateKeyRequest failed."));
+                LOGE(("Second GenerateKeyRequest failed: %d", status));
                 return false;
             }
         } else {
@@ -277,7 +280,7 @@ LOGD(("%s: %d initData= %s", __FUNCTION__, __LINE__, b2a_hex(initData).c_str()))
             return false;
         }
     } else if (status != cdm::kSuccess) {
-        LOGE(("GenerateKeyRequest failed."));
+        LOGE(("First GenerateKeyRequest failed: %d", status));
         return false;
     }
     LOGD(("GenerateKeyRequest returned session_id: %s", m_sessionId.c_str()));

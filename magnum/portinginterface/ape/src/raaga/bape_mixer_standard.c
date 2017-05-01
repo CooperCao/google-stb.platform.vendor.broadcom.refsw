@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -399,7 +399,13 @@ static BERR_Code BAPE_StandardMixer_P_AddInput(
                 }
                 handle->master = input;
             }
+
+            /* init input volume settings */
             BAPE_Mixer_P_GetDefaultInputVolume(&handle->inputVolume[i]);
+
+            /* init input settings */
+            handle->inputSettings[i].srcEnabled = true;
+
             errCode = BAPE_PathNode_P_AddInput(&handle->pathNode, input);
             if ( errCode )
             {
@@ -796,6 +802,55 @@ static BERR_Code BAPE_StandardMixer_P_SetInputVolume(
     return BERR_SUCCESS;
 }
 
+/*************************************************************************/
+static BERR_Code BAPE_StandardMixer_P_GetInputSettings(
+    BAPE_MixerHandle handle,
+    BAPE_Connector input,
+    BAPE_MixerInputSettings *pSettings      /* [out] */
+    )
+{
+    unsigned i;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_OBJECT_ASSERT(input, BAPE_PathConnector);
+    BDBG_ASSERT(NULL != pSettings);
+
+    i = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, input);
+    if ( i == BAPE_MIXER_INPUT_INDEX_INVALID )
+    {
+        BDBG_ERR(("Input %p is not connected to mixer %p", (void *)input, (void *)handle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    *pSettings = handle->inputSettings[i];
+
+    return BERR_SUCCESS;
+}
+
+/*************************************************************************/
+static BERR_Code BAPE_StandardMixer_P_SetInputSettings(
+    BAPE_MixerHandle handle,
+    BAPE_Connector input,
+    const BAPE_MixerInputSettings *pSettings
+    )
+{
+    unsigned i;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_OBJECT_ASSERT(input, BAPE_PathConnector);
+    BDBG_ASSERT(NULL != pSettings);
+
+    i = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, input);
+    if ( i == BAPE_MIXER_INPUT_INDEX_INVALID )
+    {
+        BDBG_ERR(("Input %p is not connected to mixer %p", (void *)input, (void *)handle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    handle->inputSettings[i] = *pSettings;
+
+    return BERR_SUCCESS;
+}
 
 static BERR_Code BAPE_StandardMixer_P_ApplyStereoMode(BAPE_MixerHandle handle, BAPE_StereoMode stereoMode)
 {
@@ -2515,6 +2570,7 @@ static void BAPE_StandardMixer_P_SetInputSRC_isr(BAPE_MixerHandle mixer, BAPE_Co
 /*************************************************************************/
 static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHandle handle, BAPE_PathConnection *pConnection)
 {
+    unsigned i;
     BERR_Code errCode;
     bool sfifoRequired=false, srcRequired=false, buffersOnly=false;
 
@@ -2524,6 +2580,9 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
     BDBG_ASSERT(&handle->pathNode == pConnection->pSink);
 
+    i = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, input);
+    BDBG_ASSERT(i != BAPE_MIXER_INPUT_INDEX_INVALID);
+
     switch ( pConnection->pSource->format.source )
     {
     case BAPE_DataSource_eDfifo:
@@ -2531,15 +2590,16 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
     case BAPE_DataSource_eHostBuffer:
         /* SFIFO is required - also always allocate SRC since it handles startup ramp and input mute */
         sfifoRequired = true;
+        /* Omit for HBR sources, only one sample rate is valid for HBR */
         if ( pConnection->pSource->format.type != BAPE_DataType_eIec61937x16 )
         {
-            srcRequired = true;     /* Omit for HBR sources, only one sample rate is valid for HBR */
+            srcRequired = handle->inputSettings[i].srcEnabled;
         }
         break;
     case BAPE_DataSource_eFci:
         if ( pConnection->pSource->pParent->type == BAPE_PathNodeType_eInputCapture )
         {
-            srcRequired = true;
+            srcRequired = handle->inputSettings[i].srcEnabled;
         }
         else
         {
@@ -2848,6 +2908,8 @@ static const BAPE_MixerInterface  standardMixerInterface  = {
     BAPE_StandardMixer_P_RemoveAllOutputs,       /*       (*removeAllOutputs)  */
     BAPE_StandardMixer_P_GetInputVolume,         /*       (*getInputVolume)    */
     BAPE_StandardMixer_P_SetInputVolume,         /*       (*setInputVolume)    */
+    BAPE_StandardMixer_P_GetInputSettings,       /*       (*getInputSettings)  */
+    BAPE_StandardMixer_P_SetInputSettings,       /*       (*setInputSettings)    */
     BAPE_StandardMixer_P_ApplyOutputVolume,      /*       (*applyOutputVolume) */
     BAPE_StandardMixer_P_SetSettings,            /*       (*setSettings) */
     BAPE_StandardMixer_P_ApplyStereoMode,        /*       (*applyStereoMode) */

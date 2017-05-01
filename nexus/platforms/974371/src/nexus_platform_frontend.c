@@ -151,7 +151,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             BDBG_ERR(("Unable to open onboard 3128 tuner/demodulator channel %d", i));
             continue;
         }
-		BDBG_MSG(("i = %d, pConfig->frontend[i] = 0x%x", i, pConfig->frontend[i]));
+		BDBG_MSG(("i = %d, pConfig->frontend[i] = %p", i, (void *)pConfig->frontend[i]));
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
         userParams.param1 = st3128DeviceOpenSettings.isMtsif ? st3128Settings.channelNumber : NEXUS_InputBand_e0+i;
         userParams.isMtsif = st3128DeviceOpenSettings.isMtsif;

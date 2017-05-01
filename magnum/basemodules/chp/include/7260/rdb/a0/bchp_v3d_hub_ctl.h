@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:28 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,26 +70,26 @@
 /***************************************************************************
  *V3D_HUB_CTL
  ***************************************************************************/
-#define BCHP_V3D_HUB_CTL_AXICFG                  0x21300000 /* [RW] AXI configuration */
-#define BCHP_V3D_HUB_CTL_UIFCFG                  0x21300004 /* [RW] UIF configuration */
-#define BCHP_V3D_HUB_CTL_IDENT0                  0x21300008 /* [RO] V3D Hub Identification 0 (V3D hub block identity) */
-#define BCHP_V3D_HUB_CTL_IDENT1                  0x2130000c /* [RO] V3D Hub Identification 1 (V3D Hub Configuration A) */
-#define BCHP_V3D_HUB_CTL_IDENT2                  0x21300010 /* [RO] V3D Hub Identification 1 (V3D Hub Configuration B) */
-#define BCHP_V3D_HUB_CTL_IDENT3                  0x21300014 /* [RO] V3D Hub Identification 3 */
-#define BCHP_V3D_HUB_CTL_FPGACFG                 0x21300040 /* [RW] (FPGA-ONLY) V3D Hub FPGA dummy slave configuration */
-#define BCHP_V3D_HUB_CTL_FPGACFG1                0x21300044 /* [RW] (FPGA-ONLY) V3D Hub FPGA dummy slave configuration 1 */
-#define BCHP_V3D_HUB_CTL_INT_STS                 0x21300050 /* [RO] V3D Interrupt Status */
-#define BCHP_V3D_HUB_CTL_INT_SET                 0x21300054 /* [WO] V3D Interrupt Set */
-#define BCHP_V3D_HUB_CTL_INT_CLR                 0x21300058 /* [WO] V3D Interrupt Clear */
-#define BCHP_V3D_HUB_CTL_INT_MSK_STS             0x2130005c /* [RO] V3D Interrupt Mask Status */
-#define BCHP_V3D_HUB_CTL_INT_MSK_SET             0x21300060 /* [WO] V3D Interrupt Mask Set */
-#define BCHP_V3D_HUB_CTL_INT_MSK_CLR             0x21300064 /* [WO] V3D Interrupt Mask Clear */
-#define BCHP_V3D_HUB_CTL_INT_STS_PCI             0x21300068 /* [RO] Duplicate V3D Interrupt Status, reads 0 when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_HUB_CTL_INT_SET_PCI             0x2130006c /* [WO] Duplicate V3D Interrupt Set, write has no effect when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_HUB_CTL_INT_CLR_PCI             0x21300070 /* [WO] Duplicate V3D Interrupt Clear, write has no effect when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_HUB_CTL_INT_MSK_STS_PCI         0x21300074 /* [RO] Duplicate V3D Interrupt Mask Status, reads 0 when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_HUB_CTL_INT_MSK_SET_PCI         0x21300078 /* [WO] Duplicate V3D Interrupt Mask Set, write has no effect when BCG_INT in IDENT2 is 0 */
-#define BCHP_V3D_HUB_CTL_INT_MSK_CLR_PCI         0x2130007c /* [WO] Duplicate V3D Interrupt Mask Clear, write has noeffect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_HUB_CTL_AXICFG                  0x21300000 /* [RW][32] AXI configuration */
+#define BCHP_V3D_HUB_CTL_UIFCFG                  0x21300004 /* [RW][32] UIF configuration */
+#define BCHP_V3D_HUB_CTL_IDENT0                  0x21300008 /* [RO][32] V3D Hub Identification 0 (V3D hub block identity) */
+#define BCHP_V3D_HUB_CTL_IDENT1                  0x2130000c /* [RO][32] V3D Hub Identification 1 (V3D Hub Configuration A) */
+#define BCHP_V3D_HUB_CTL_IDENT2                  0x21300010 /* [RO][32] V3D Hub Identification 1 (V3D Hub Configuration B) */
+#define BCHP_V3D_HUB_CTL_IDENT3                  0x21300014 /* [RO][32] V3D Hub Identification 3 */
+#define BCHP_V3D_HUB_CTL_FPGACFG                 0x21300040 /* [RW][32] (FPGA-ONLY) V3D Hub FPGA dummy slave configuration */
+#define BCHP_V3D_HUB_CTL_FPGACFG1                0x21300044 /* [RW][32] (FPGA-ONLY) V3D Hub FPGA dummy slave configuration 1 */
+#define BCHP_V3D_HUB_CTL_INT_STS                 0x21300050 /* [RO][32] V3D Interrupt Status */
+#define BCHP_V3D_HUB_CTL_INT_SET                 0x21300054 /* [WO][32] V3D Interrupt Set */
+#define BCHP_V3D_HUB_CTL_INT_CLR                 0x21300058 /* [WO][32] V3D Interrupt Clear */
+#define BCHP_V3D_HUB_CTL_INT_MSK_STS             0x2130005c /* [RO][32] V3D Interrupt Mask Status */
+#define BCHP_V3D_HUB_CTL_INT_MSK_SET             0x21300060 /* [WO][32] V3D Interrupt Mask Set */
+#define BCHP_V3D_HUB_CTL_INT_MSK_CLR             0x21300064 /* [WO][32] V3D Interrupt Mask Clear */
+#define BCHP_V3D_HUB_CTL_INT_STS_PCI             0x21300068 /* [RO][32] Duplicate V3D Interrupt Status, reads 0 when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_HUB_CTL_INT_SET_PCI             0x2130006c /* [WO][32] Duplicate V3D Interrupt Set, write has no effect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_HUB_CTL_INT_CLR_PCI             0x21300070 /* [WO][32] Duplicate V3D Interrupt Clear, write has no effect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_HUB_CTL_INT_MSK_STS_PCI         0x21300074 /* [RO][32] Duplicate V3D Interrupt Mask Status, reads 0 when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_HUB_CTL_INT_MSK_SET_PCI         0x21300078 /* [WO][32] Duplicate V3D Interrupt Mask Set, write has no effect when BCG_INT in IDENT2 is 0 */
+#define BCHP_V3D_HUB_CTL_INT_MSK_CLR_PCI         0x2130007c /* [WO][32] Duplicate V3D Interrupt Mask Clear, write has noeffect when BCG_INT in IDENT2 is 0 */
 
 /***************************************************************************
  *AXICFG - AXI configuration

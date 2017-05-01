@@ -807,6 +807,11 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		0x00000000,
 		(uint32_t)0,
 		},
+		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
+		{
+		0x00000000,
+		(uint32_t)0,
+		},
 		/* BDSP_AF_P_AlgoId_eEndOfPpAlgos */
 		{
 		0x00000000,

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,15 +70,15 @@
 /***************************************************************************
  *AVS_TMON - AVS Temperature Monitor
  ***************************************************************************/
-#define BCHP_AVS_TMON_TEMPERATURE_MEASUREMENT_STATUS 0x204d1500 /* [RO] Indicate temperature measurement data and validity of data */
-#define BCHP_AVS_TMON_ENABLE_OVER_TEMPERATURE_RESET 0x204d1504 /* [RW] Enable over temperature reset */
-#define BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD 0x204d1508 /* [RW] Represent threshold for over temperature reset */
-#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_IDLE_TIME 0x204d1510 /* [RW] No new temperature interrupt can be generated for interval defined by this idle time */
-#define BCHP_AVS_TMON_ENABLE_TEMPERATURE_INTERRUPT_SOURCES 0x204d1514 /* [RW] Enable high and low temperature interrupts */
-#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_THRESHOLDS 0x204d1518 /* [RW] Represent thresholds for high and low temperature interrupts */
-#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_TEMPERATURE 0x204d151c /* [RO] Temperature code associated with temperature interrupt event */
-#define BCHP_AVS_TMON_TP_TMON_TEST_ENABLE        0x204d1520 /* [RW] Enabling TP mode to use data from tp_in for testing TMON */
-#define BCHP_AVS_TMON_SPARE_0                    0x204d1524 /* [RW] Spare register 0 for AVS TEMPERATURE MONITOR core */
+#define BCHP_AVS_TMON_TEMPERATURE_MEASUREMENT_STATUS 0x204d1500 /* [RO][32] Indicate temperature measurement data and validity of data */
+#define BCHP_AVS_TMON_ENABLE_OVER_TEMPERATURE_RESET 0x204d1504 /* [RW][32] Enable over temperature reset */
+#define BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD 0x204d1508 /* [RW][32] Represent threshold for over temperature reset */
+#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_IDLE_TIME 0x204d1510 /* [RW][32] No new temperature interrupt can be generated for interval defined by this idle time */
+#define BCHP_AVS_TMON_ENABLE_TEMPERATURE_INTERRUPT_SOURCES 0x204d1514 /* [RW][32] Enable high and low temperature interrupts */
+#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_THRESHOLDS 0x204d1518 /* [RW][32] Represent thresholds for high and low temperature interrupts */
+#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_TEMPERATURE 0x204d151c /* [RO][32] Temperature code associated with temperature interrupt event */
+#define BCHP_AVS_TMON_TP_TMON_TEST_ENABLE        0x204d1520 /* [RW][32] Enabling TP mode to use data from tp_in for testing TMON */
+#define BCHP_AVS_TMON_SPARE_0                    0x204d1524 /* [RW][32] Spare register 0 for AVS TEMPERATURE MONITOR core */
 
 /***************************************************************************
  *TEMPERATURE_MEASUREMENT_STATUS - Indicate temperature measurement data and validity of data

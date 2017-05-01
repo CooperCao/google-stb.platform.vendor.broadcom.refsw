@@ -522,8 +522,25 @@ Summary:
     This function gets default CIR setting for a KIR module channel and specified device.
 
 Description:
-    This function is responsible for returning the default setting for
-    channel of BKIR and the specified device. The return default setting is
+    This function is responsible for returning the default setting for the
+    specified device. The return default setting is used when setting custom CIR.
+
+Returns:
+    TODO:
+
+****************************************************************************/
+BERR_Code BKIR_GetDefaultCirParam (
+    BKIR_KirDevice      device,          /* device type to enable */
+    CIR_Param           *pCustomCirParam /* [output] Returns default setting */
+);
+
+/***************************************************************************
+Summary:
+    This function gets current CIR setting for a KIR module channel and specified device.
+
+Description:
+    This function is responsible for returning the current setting for
+    channel of BKIR and the specified device. The return setting is
     used when setting custom CIR.
 
 Returns:
@@ -533,7 +550,7 @@ See Also:
     BKIR_SetCustomCir()
 
 ****************************************************************************/
-BERR_Code BKIR_GetDefaultCirParam (
+BERR_Code BKIR_GetCurrentCirParam (
     BKIR_ChannelHandle  hChn,            /* Device channel handle */
     BKIR_KirDevice      device,          /* device type to enable */
     CIR_Param           *pCustomCirParam /* [output] Returns default setting */

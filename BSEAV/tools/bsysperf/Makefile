@@ -86,7 +86,7 @@ B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/bsysperf
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 APPS = $(THEAPPS)
 APPS ?= $(APP)
@@ -107,10 +107,10 @@ BWL_OBJ_DIR = $(NEXUS_TOP)/../$(B_REFSW_OBJ_DIR)/BSEAV/lib/bwl
 BWL_SRC_DIR = $(NEXUS_TOP)/../BSEAV/lib/bwl
 BWL_SRC_FILES = $(shell find $(BWL_SRC_DIR) -name "*.c" -o -name "*.h" -o -name "Makefile" )
 
-BOA_SRC_DIR = $(NEXUS_TOP)/../BSEAV/lib/boa
+BOA_SRC_DIR = $(NEXUS_TOP)/../BSEAV/opensource/boa
 BOA_SRC_FILES = $(shell find $(BOA_SRC_DIR) -name "Makefile" -o -name "boa*.gz" -o -name "boa.conf" -o -name "index*" )
 
-IPERF_SRC_DIR = $(NEXUS_TOP)/../BSEAV/lib/iperf
+IPERF_SRC_DIR = $(NEXUS_TOP)/../BSEAV/opensource/iperf
 IPERF_SRC_FILES = $(shell find $(IPERF_SRC_DIR) -name "Makefile" -o -name "*.info" -o -name "*.inc" )
 
 # This cleans nexus and local apps
@@ -206,6 +206,7 @@ CFLAGS += -DBWL_SUPPORT
 CFLAGS += -I$(BWL_SRC_DIR)/include
 
 CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
+CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 
 # Always build with debug
 CFLAGS += -g
@@ -220,7 +221,7 @@ ${NEXUS_BIN_DIR}/bsysperf.cgi: $(BINDIR)/../bin/boa_server $(BWL_OBJ_DIR)/libbwl
 	$(Q_)$(CC) -o $@ $(MAIN_OBJS) $(EXTRA_OBJS) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
 	$(Q_)rm -f ${NEXUS_BIN_DIR}/bsysperf.d
 
-${NEXUS_BIN_DIR}/bsysperf_server: $(SERVER_OBJS) $(BWL_OBJ_DIR)/libbwl.a
+${NEXUS_BIN_DIR}/bsysperf_server: $(SERVER_OBJS) $(EXTRA_OBJS) $(BWL_OBJ_DIR)/libbwl.a
 	@echo [Building ... $@]
 	$(Q_)$(CC) -c $(SERVER_OBJS) $(CFLAGS)
 	$(Q_)$(CC) -o $@ $(SERVER_OBJS) $(EXTRA_OBJS) $(CFLAGS) $(LDFLAGS)

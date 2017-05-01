@@ -118,7 +118,7 @@ typedef struct NEXUS_3128
     NEXUS_IsrCallbackHandle asyncStatusAppCallback[NEXUS_MAX_3128_FRONTENDS];
     NEXUS_TaskCallbackHandle spectrumDataAppCallback[NEXUS_MAX_3128_FRONTENDS];
     bool                    isInternalAsyncStatusCall[NEXUS_MAX_3128_FRONTENDS];
-    NEXUS_3128ConfigSettings deviceSettings;
+    NEXUS_FrontendDevice3128Settings deviceSettings;
     uint8_t numTunerPoweredOn;
     bool isTunerPoweredOn[NEXUS_MAX_3128_FRONTENDS];
     bool isPoweredOn[NEXUS_MAX_3128_FRONTENDS];
@@ -556,6 +556,7 @@ static void NEXUS_Frontend_3128DeviceTestThread(void *arg)
             unsigned code_size = 0, data_size = 0;
             unsigned num_chunks, chunk_size = MAX_CTFE_IMG_CHUNK_SIZE;
             unsigned chunk;
+            NEXUS_MemoryAllocationSettings allocSettings;
 
             rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_3128, &pImgContext, &imgInterface);
             if (rc) { BERR_TRACE(rc); goto done; }
@@ -566,7 +567,9 @@ static void NEXUS_Frontend_3128DeviceTestThread(void *arg)
             code_size = (pImage[10] << 16) | (pImage[11] << 8) | pImage[12];
             data_size = (pImage[16] << 16) | (pImage[17] << 8) | pImage[18];
             fw_size = code_size + data_size + header_size;
-            rc = NEXUS_Memory_Allocate(fw_size, NULL, (void **)&fw);
+            NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+            allocSettings.heap = g_pCoreHandles->heap[0].nexus;
+            rc = NEXUS_Memory_Allocate(fw_size, &allocSettings, (void **)&fw);
             if (rc) { BERR_TRACE(rc); goto done; }
 
             num_chunks = fw_size / chunk_size;
@@ -1311,9 +1314,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3128(unsigned index, const N
         pDevice->chipId = chipId;
         pDevice->revId = revId;
         pDevice->pGenericDeviceHandle = pFrontendDevice;
-#if NEXUS_FRONTEND_312x_OOB
-        pDevice->deviceSettings.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eMax; /* Setting default. */
-#endif
+        NEXUS_FrontendDevice_GetDefault3128Settings(&pDevice->deviceSettings);
         BLST_S_INSERT_HEAD(&g_3128DevList, pDevice, node);
 
         rc = NEXUS_Frontend_P_3128_setCrystalDaisySettings(pSettings);
@@ -2764,6 +2765,9 @@ void NEXUS_FrontendDevice_GetDefault3128Settings(NEXUS_FrontendDevice3128Setting
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->agcValue = 0x1f; /* Max gain*/
     NEXUS_CallbackDesc_Init(&pSettings->updateGainCallback);
+#if NEXUS_FRONTEND_312x_OOB
+    pSettings->outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eMax; /* Setting default. */
+#endif
 }
 
 NEXUS_Error NEXUS_FrontendDevice_Get3128Settings(NEXUS_FrontendDeviceHandle handle, NEXUS_FrontendDevice3128Settings *pSettings)
@@ -2861,10 +2865,7 @@ NEXUS_Error NEXUS_FrontendDevice_Set3128Settings(NEXUS_FrontendDeviceHandle hand
     }
     else if(pDevice->pGenericDeviceHandle->openPending && !(pDevice->pGenericDeviceHandle->openFailed)){
         pDevice->settingsInitialized = true;
-        pDevice->deviceSettings.enableRfLoopThrough = pSettings->enableRfLoopThrough;
-        pDevice->deviceSettings.agcValue = pSettings->agcValue;
-        pDevice->deviceSettings.updateGainCallback = pSettings->updateGainCallback;
-        pDevice->deviceSettings.outOfBand.outputMode = pSettings->outOfBand.outputMode;
+        pDevice->deviceSettings = *pSettings;
     }
     else{
         BDBG_ERR(("Device open failed."));

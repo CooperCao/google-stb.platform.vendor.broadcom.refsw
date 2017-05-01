@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,8 +46,8 @@
 
 BDBG_MODULE(bsat_g1_priv_snr);
 
-BERR_Code BSAT_g1_P_GetSnrSnore_isr(BSAT_ChannelHandle h, uint32_t *pSnr);
-BERR_Code BSAT_g1_P_GetSnrSnre_isr(BSAT_ChannelHandle h, uint32_t *pSnr);
+static BERR_Code BSAT_g1_P_GetSnrSnore_isr(BSAT_ChannelHandle h, uint32_t *pSnr);
+static BERR_Code BSAT_g1_P_GetSnrSnre_isr(BSAT_ChannelHandle h, uint32_t *pSnr);
 
 
 #define BSAT_DEBUG_SNR(x) /* x */
@@ -251,7 +251,7 @@ static const uint16_t snr_power_compensation[] = {
 /******************************************************************************
  BSAT_g1_P_GetSnrSnore_isr() - calculates snr in 1/256 dB
 ******************************************************************************/
-BERR_Code BSAT_g1_P_GetSnrSnore_isr(BSAT_ChannelHandle h, uint32_t *pSnr)
+static BERR_Code BSAT_g1_P_GetSnrSnore_isr(BSAT_ChannelHandle h, uint32_t *pSnr)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t sig_power, sig_power_scaled, tot_power, snr256, snr_power, err_power, M, N;
@@ -777,7 +777,7 @@ static const uint16_t BSAT_snr_ldpc_8psk_table[128] = {
 /******************************************************************************
  BSAT_g1_P_GetSnrSnre_isr() - returns SNR in units of 1/256 dB
 ******************************************************************************/
-BERR_Code BSAT_g1_P_GetSnrSnre_isr(BSAT_ChannelHandle h, uint32_t *pSnr)
+static BERR_Code BSAT_g1_P_GetSnrSnre_isr(BSAT_ChannelHandle h, uint32_t *pSnr)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t snre, val1, val2, snre_min, snre_max, snre_scale, snre_idx, x, P_hi, P_lo, Q_hi, Q_lo;

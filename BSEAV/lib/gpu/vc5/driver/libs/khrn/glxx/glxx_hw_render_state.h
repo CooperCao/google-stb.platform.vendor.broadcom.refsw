@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef HW_RENDER_STATE_H
 #define HW_RENDER_STATE_H
 
@@ -72,15 +70,18 @@ typedef enum
    GLXX_CL_STATE_CFG,
    GLXX_CL_STATE_LINE_WIDTH,
    GLXX_CL_STATE_POLYGON_OFFSET,
-   GLXX_CL_STATE_VIEWPORT,
    GLXX_CL_STATE_STENCIL,
-   GLXX_CL_STATE_SAMPLE_COVERAGE,
+   GLXX_CL_STATE_SAMPLE_STATE,
    GLXX_CL_STATE_OCCLUSION_QUERY,
 
    GLXX_CL_STATE_NUM_FIXED_SIZE,
 
    // variable sized states
-   GLXX_CL_STATE_FLAT_SHADING_FLAGS = GLXX_CL_STATE_NUM_FIXED_SIZE,
+   GLXX_CL_STATE_VIEWPORT = GLXX_CL_STATE_NUM_FIXED_SIZE,
+   GLXX_CL_STATE_FLAT_SHADING_FLAGS,
+#if V3D_HAS_VARY_NO_PERSP
+   GLXX_CL_STATE_NOPERSPECTIVE_FLAGS,
+#endif
    GLXX_CL_STATE_CENTROID_FLAGS,
 #if V3D_VER_AT_LEAST(4,0,2,0)
    GLXX_CL_STATE_BLEND_CFG,
@@ -102,14 +103,18 @@ static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
    [GLXX_CL_STATE_CFG]              = V3D_CL_CFG_BITS_SIZE,
    [GLXX_CL_STATE_LINE_WIDTH]       = V3D_CL_LINE_WIDTH_SIZE,
    [GLXX_CL_STATE_POLYGON_OFFSET]   = V3D_CL_DEPTH_OFFSET_SIZE,
-   [GLXX_CL_STATE_VIEWPORT]         = (V3D_CL_CLIP_SIZE + V3D_CL_CLIPPER_XY_SIZE + V3D_CL_VIEWPORT_OFFSET_SIZE + V3D_CL_CLIPPER_Z_SIZE + V3D_CL_CLIPZ_SIZE),
    [GLXX_CL_STATE_STENCIL]          = (V3D_CL_STENCIL_CFG_SIZE * 2),
-   [GLXX_CL_STATE_SAMPLE_COVERAGE]  = V3D_CL_SAMPLE_COVERAGE_SIZE,
+   [GLXX_CL_STATE_SAMPLE_STATE]     = V3D_CL_SAMPLE_STATE_SIZE,
    [GLXX_CL_STATE_OCCLUSION_QUERY]  = V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE_SIZE,
 
    // variable sized states (these are maximums)
+   [GLXX_CL_STATE_VIEWPORT]            = (V3D_CL_CLIP_SIZE + V3D_CL_CLIPPER_XY_SIZE + V3D_CL_VIEWPORT_OFFSET_SIZE +
+                                          V3D_CL_CLIPPER_Z_SIZE + V3D_CL_CLIPZ_SIZE),
    [GLXX_CL_STATE_FLAT_SHADING_FLAGS]  = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
    [GLXX_CL_STATE_CENTROID_FLAGS]      = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
+#if V3D_HAS_VARY_NO_PERSP
+   [GLXX_CL_STATE_NOPERSPECTIVE_FLAGS] = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
    [GLXX_CL_STATE_BLEND_CFG]           = GLXX_MAX_RENDER_TARGETS * V3D_CL_BLEND_CFG_SIZE,
 #endif
@@ -119,6 +124,7 @@ static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
 enum
 {
    GLXX_CL_STATE_OPTIONAL = (1 << GLXX_CL_STATE_BLEND_COLOR)
+                          | (1 << GLXX_CL_STATE_BLEND_CFG)
                           | (1 << GLXX_CL_STATE_STENCIL)
                           | (1 << GLXX_CL_STATE_OCCLUSION_QUERY)  // occlusion queries are disabled in create_bin_cl, so this is optional
 };
@@ -143,7 +149,7 @@ typedef struct
 extern bool glxx_cl_record_validate(GLXX_CL_RECORD_T *record);
 
 //! Apply cl record to current clist.
-extern bool glxx_cl_record_apply(GLXX_CL_RECORD_T *record, KHRN_FMEM_T *fmem);
+extern bool glxx_cl_record_apply(GLXX_CL_RECORD_T *record, khrn_fmem *fmem);
 
 static_assrt(offsetof(glxx_render_state, fmem) == 0);
 
@@ -153,7 +159,7 @@ typedef struct glxx_hw_render_state
    union
    {
       glxx_render_state base;
-      KHRN_FMEM_T fmem;
+      khrn_fmem fmem;
    };
 
    // Renderstate needs a copy of the hw fb as it was at the time renderstate was prepared,
@@ -194,6 +200,10 @@ typedef struct glxx_hw_render_state
    uint32_t                prev_centroid_flags[GLXX_NUM_SHADING_FLAG_WORDS];
    bool                    flat_shading_flags_set;
    bool                    centroid_flags_set;
+#if V3D_HAS_VARY_NO_PERSP
+   uint32_t                prev_noperspective_flags[GLXX_NUM_SHADING_FLAG_WORDS];
+   bool                    noperspective_flags_set;
+#endif
 
    GLXX_BLIT_T             tlb_blits[GLXX_RS_MAX_BLITS];
    unsigned                num_blits;
@@ -227,9 +237,10 @@ typedef struct glxx_hw_render_state
        * or PCF when feedback address is zero; */
       unsigned                started_count;
       unsigned                waited_count;   // Number of transform feedbacks waited for
+      v3d_cache_ops           done_cache_ops; // Cache ops inserted in CL since last wait. Valid iff waited_count >0.
 
       GLXX_TRANSFORM_FEEDBACK_T *last_used;
-      KHRN_RES_INTERLOCK_T *res_i;
+      khrn_resource *res;
       bool enabled;
    }tf;
 
@@ -239,7 +250,6 @@ typedef struct glxx_hw_render_state
    uint64_t cl_record_remaining;   // bin-cycle count remaining before creating new record
    unsigned num_cl_records;        // num entries written to cl_records
    GLXX_CL_RECORD_T cl_records[GLXX_MAX_CL_RECORDS];
-   bool do_multicore_bin;
    bool has_tcs_barriers;
 } glxx_hw_render_state;
 

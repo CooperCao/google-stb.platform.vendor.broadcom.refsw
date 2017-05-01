@@ -121,6 +121,11 @@ eRet CChannelMosaic::readXML(MXmlElement * xmlElemChannel)
     {
         CChannel * pCh = NULL;
 
+        if (xmlElemCh->tag() != XML_TAG_CHANNEL)
+        {
+            continue;
+        }
+
         pCh = createChannel(_pCfg, xmlElemCh);
 
         if (NULL != pCh)
@@ -146,6 +151,8 @@ void CChannelMosaic::writeXML(MXmlElement * xmlElemChannel)
     BDBG_MSG((" Write Mosaic channel"));
     CChannel::writeXML(xmlElemChannel);
 
+    xmlElemChannel->addAttr(XML_ATT_TYPE, "mosaic");
+
     /* write all mosaic sub channels */
     for (pMosaic = _mosaicList.first(); pMosaic; pMosaic = _mosaicList.next())
     {
@@ -155,7 +162,6 @@ void CChannelMosaic::writeXML(MXmlElement * xmlElemChannel)
         pMosaic->writeXML(xmlElemSubChannel);
     }
 
-    xmlElemChannel->addAttr(XML_ATT_MAJOR, MString(getMajor()));
 error:
     return;
 } /* writeXML */
@@ -219,6 +225,10 @@ eRet CChannelMosaic::tune(
 
 error:
     _tuned = (eRet_Ok == ret) ? true : false;
+
+    /* mosaic channels do not decode...only the individual mosaics do so
+       we will call start() manually here */
+    start();
     return(ret);
 } /* tune */
 
@@ -234,6 +244,14 @@ eRet CChannelMosaic::unTune(
     BSTD_UNUSED(bFullUnTune);
     BSTD_UNUSED(bCheckInTuner);
     BDBG_ASSERT(NULL != _pModel);
+
+    /* we must reset STC to ref count of pids when we do an untune */
+    if(_pStc != NULL )
+    {
+        NEXUS_SimpleStcChannelSettings settings;
+        _pStc->getDefaultSettings(&settings);
+        _pStc->setSettings(&settings);
+    }
 
     for (pMosaic = _mosaicList.first(); pMosaic; pMosaic = _mosaicList.next())
     {
@@ -300,4 +318,23 @@ bool CChannelMosaic::isTunerRequired()
     _bTunerRequired = bTunerRequired;
 
     return(bTunerRequired);
+}
+
+eRet CChannelMosaic::finish()
+{
+    CChannel * pMosaic = NULL;
+    eRet       ret     = eRet_Ok;
+
+    for (pMosaic = _mosaicList.first(); pMosaic; pMosaic = _mosaicList.next())
+    {
+        BDBG_MSG(("FINISH mosaic:%s", pMosaic->getName().s()));
+        ret = notifyObservers(eNotify_ChannelFinish, pMosaic);
+        CHECK_ERROR_GOTO("error notifying observers", ret, error);
+    }
+
+    ret = notifyObservers(eNotify_ChannelFinish, this);
+    CHECK_ERROR_GOTO("error notifying observers", ret, error);
+
+error:
+    return(ret);
 }

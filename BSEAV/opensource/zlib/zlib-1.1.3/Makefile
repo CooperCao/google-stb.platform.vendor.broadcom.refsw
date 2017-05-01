@@ -33,12 +33,12 @@ BSEAV ?= $(subst /${B_THIS_DIR},,$(CURDIR))/BSEAV
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
-BINDIR := ${B_REFSW_OBJ_ROOT}/$(B_THIS_DIR)
+B_ZLIB_BINDIR := ${B_REFSW_OBJ_ROOT}/$(B_THIS_DIR)
 
-${PHONY}: ${BINDIR}/exists
-	@${MAKE} -C ${BINDIR} B_REFSW_REAL_BESAV=${BSEAV} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
+${PHONY}: ${B_ZLIB_BINDIR}/exists
+	@${MAKE} -C ${B_ZLIB_BINDIR} B_REFSW_REAL_BESAV=${BSEAV} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
 
-${BINDIR}/exists:
+${B_ZLIB_BINDIR}/exists:
 	@mkdir -p $@
 
 else
@@ -47,7 +47,7 @@ BSEAV?=${B_REFSW_REAL_BESAV}
 
 include $(BSEAV)/api/build/tools.mak
 include $(BSEAV)/build/refsw_inc.mak
-CFLAGS += $(B_REFSW_CFLAGS) -w
+CFLAGS += $(B_REFSW_CFLAGS) -w -fPIC
 
 vpath %.c $(BSEAV)/opensource/zlib
 vpath %.h $(BSEAV)/opensource/zlib

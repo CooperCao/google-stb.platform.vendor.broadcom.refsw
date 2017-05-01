@@ -189,9 +189,15 @@ enum {
 /* Constants */
 const bcm_iovar_t btc_iovars[] = {
 	{"btc_mode", IOV_BTC_MODE, 0, 0, IOVT_UINT32, 0},
+#ifdef BCMINTDBG
+	{"btc_wire", IOV_BTC_WIRE, (IOVF_SET_DOWN), 0, IOVT_UINT32, 0 },
+#endif /* BCMINTDBG */
 	{"btc_stuck_war", IOV_BTC_STUCK_WAR, 0, 0, IOVT_BOOL, 0 },
 	{"btc_flags", IOV_BTC_FLAGS, (IOVF_SET_UP | IOVF_GET_UP), 0, IOVT_BUFFER, 0 },
 	{"btc_params", IOV_BTC_PARAMS, 0, 0, IOVT_BUFFER, 0 },
+#if defined(BCMINTDBG)
+	{"coex_debug_enable_gpio", IOV_COEX_DEBUG_GPIO_ENABLE, (0), 0, IOVT_BOOL, 0 },
+#endif
 	{"btc_siso_ack", IOV_BTC_SISO_ACK, 0, 0, IOVT_INT16, 0
 	},
 	{"btc_rxgain_thresh", IOV_BTC_RXGAIN_THRESH, 0, 0, IOVT_UINT32, 0
@@ -3168,6 +3174,20 @@ wlc_btc_doiovar(void *ctx, uint32 actionid,
 		wlc_btc_stuck_war50943(wlc, bool_val);
 		break;
 
+#if defined(BCMINTDBG)
+	case IOV_GVAL(IOV_COEX_DEBUG_GPIO_ENABLE):
+		*ret_int_ptr = wlc_bmac_mhf_get(wlc->hw, MHF5, WLC_BAND_AUTO) &
+			MHF5_BTCX_GPIO_DEBUG;
+		if (*ret_int_ptr) {
+			*ret_int_ptr = 1;
+		}
+		break;
+
+	case IOV_SVAL(IOV_COEX_DEBUG_GPIO_ENABLE):
+		wlc_bmac_mhf(wlc->hw, MHF5, MHF5_BTCX_GPIO_DEBUG, bool_val ?
+			MHF5_BTCX_GPIO_DEBUG : 0, WLC_BAND_AUTO);
+		break;
+#endif /* defined(BCMINTDBG) */
 
 	case IOV_GVAL(IOV_BTC_SISO_ACK):
 		*ret_int_ptr = wlc_btc_siso_ack_get(wlc);

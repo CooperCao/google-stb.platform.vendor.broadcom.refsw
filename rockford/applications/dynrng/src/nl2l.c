@@ -114,13 +114,8 @@ void nl2l_p_read_lut(Nl2lHandle nl2l, const char * lutFilename)
             value = p + 1;
             *p = 0;
 
-            /* trim whitespace */
-            while (*name != 0 && isspace(*name)) name++;
-            p--;
-            while (p > name && isspace(*p)) *p-- = 0;
-            while (*value != 0 && isspace(*value)) value++;
-            p = value + strlen(value) - 1;
-            while (p > value && isspace(*p)) *p-- = 0;
+            name = trim(name);
+            value = trim(value);
 
             if (strlen(value) && strlen(name))
             {
@@ -256,7 +251,7 @@ void nl2l_update(Nl2lHandle nl2l, int nl2lSetting)
 {
     assert(nl2l);
 
-    if (nl2lSetting >= file_switcher_get_count(nl2l->switcher))
+    if (nl2lSetting >= (int)file_switcher_get_count(nl2l->switcher))
     {
         printf("NL2L: file position out of bounds\n");
         return;

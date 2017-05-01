@@ -407,7 +407,7 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_FCIC, 0x00000307 | val);    /* m/n majority vote for fast cic */
 
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_SCIC, 0x00410307);       /* adjust slow cic */
-   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_TCTL, 0x1FD40010);       /* set toa_conf_timeout */
+   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_TCTL, 0x1FD40000);       /* set toa/tod delays to zero */
 
    /* set cic settings based on rx tone mode */
    if (hChn->configParam[BDSQ_g1_CONFIG_RX_TONE_MODE] == 3)

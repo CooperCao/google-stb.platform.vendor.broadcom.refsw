@@ -54,9 +54,16 @@ typedef struct PlatformGraphics
     bgui_t gui;
     bfont_t font;
     struct bgui_settings guiSettings;
-    NEXUS_SurfaceClientHandle video;
+    NEXUS_SurfaceClientHandle video[MAX_MOSAICS];
     unsigned textHeight;
     PlatformRect fbRect;
+    struct {
+        NEXUS_SurfaceClientHandle surfaceClient;
+        unsigned id;
+        unsigned numWindows;
+    } sc[NEXUS_MAX_VIDEO_DECODERS];
+    unsigned nonMosaicWindowId;
+    unsigned maxMosaics; /* This could differ from MAX_MOSAICS, due to 3+1 config for moasic */
 } PlatformGraphics;
 
 typedef struct PlatformSurface

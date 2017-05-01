@@ -527,18 +527,12 @@ NEXUS_Error NEXUS_IrInput_GetCustomSettingsForMode(NEXUS_IrInputMode mode, NEXUS
     BERR_Code rc;
     CIR_Param cirParam;
 
-    if (mode==NEXUS_IrInputMode_eCustom) {
-        /* required check so that we don't dereference a null handle in BKIR */
-        goto error;
-    }
-
-    rc = BKIR_GetDefaultCirParam(NULL, (BKIR_KirDevice)mode, &cirParam);
+    rc = BKIR_GetDefaultCirParam((BKIR_KirDevice)mode, &cirParam);
     if (rc==BERR_SUCCESS) {
         BKNI_Memcpy(pSettings, &cirParam, sizeof(NEXUS_IrInputCustomSettings));
         return NEXUS_SUCCESS;
     }
 
-error:
     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 }
 

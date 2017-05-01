@@ -161,7 +161,8 @@ static void NEXUS_AudioModule_Print(void)
             }
             BAPE_Decoder_GetTsmSettings(handle->channel, &tsmSettings);
             BDBG_LOG((" channel%d: (%p) %s", i, (void *)handle->channel, status.locked ? "locked " : ""));
-            BDBG_LOG(("  dsp index=%d started=%c, codec=%d, pid=0x%x, pidCh=%p, stcCh=%p",handle->openSettings.dspIndex, status.started ? 'y' : 'n',
+            BDBG_LOG(("  dsp index=%d started=%s, codec=%d, pid=0x%x, pidCh=%p, stcCh=%p",handle->openSettings.dspIndex,
+                status.started == NEXUS_AudioRunningState_eStarted ? "started" : (status.started == NEXUS_AudioRunningState_eSuspended ? "suspended" : "stopped"),
                 status.started ? status.codec : 0, pidChannelStatus.pid, (void *)handle->programSettings.pidChannel, (void *)handle->programSettings.stcChannel));
             BDBG_LOG(("  fifo: %d/%d (%d%%), queued: %d", status.fifoDepth, status.fifoSize, status.fifoSize ? status.fifoDepth*100/status.fifoSize : 0, status.queuedFrames));
             BDBG_LOG(("  TSM: %s pts=%#x pts_stc_diff=%d pts_offset=%#x errors=%d", status.tsm ? "enabled" : "disabled", status.pts, status.ptsStcDifference,
@@ -789,7 +790,7 @@ NEXUS_AudioCodec NEXUS_Audio_P_MagnumToCodec(BAVC_AudioCompressionStd codec)
 }
 
 #if BAPE_DSP_SUPPORT
-BDSP_Algorithm NEXUS_Audio_P_PostProcessingToBdspAlgo(NEXUS_AudioPostProcessing pp)
+static BDSP_Algorithm NEXUS_Audio_P_PostProcessingToBdspAlgo(NEXUS_AudioPostProcessing pp)
 {
     switch (pp)
     {
@@ -817,7 +818,7 @@ BDSP_Algorithm NEXUS_Audio_P_PostProcessingToBdspAlgo(NEXUS_AudioPostProcessing 
 }
 #endif
 
-BAPE_PostProcessorType NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType(NEXUS_AudioPostProcessing procType)
+static BAPE_PostProcessorType NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType(NEXUS_AudioPostProcessing procType)
 {
     switch ( procType )
     {

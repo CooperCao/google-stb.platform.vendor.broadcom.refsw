@@ -150,7 +150,7 @@ int _tzioc_ioctl_map_paddr(
     uint32_t ulPaddr,
     uint32_t ulSize,
     uint32_t ulFlags,
-    uint32_t *pulVaddr)
+    uintptr_t *pulVaddr)
 {
     struct tzioc_ioctl_map_paddr_data mapPaddrData;
     int err = 0;

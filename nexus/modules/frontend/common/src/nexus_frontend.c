@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,6 +56,8 @@ struct NEXUS_FrontendDeviceList g_frontendDeviceList;
 struct NEXUS_FrontendList g_frontendList;
 
 struct NEXUS_TunerList g_tunerList;
+
+static NEXUS_FrontendModuleStatistics g_NEXUS_FrontendModuleStatistics;
 
 /***************************************************************************
 Summary:
@@ -458,6 +460,7 @@ void NEXUS_Frontend_Untune( NEXUS_FrontendHandle handle )
         BDBG_ERR(("Device open failed. Cannot untune."));
         return;
     }
+    handle->tuned = false;
 
 #if 0
     /* if app has disconnected mtsif, this will release mapping */
@@ -521,6 +524,21 @@ void NEXUS_Frontend_Untune( NEXUS_FrontendHandle handle )
         {
             BDBG_ERR(("Unable to untune. No tuner capabilities found."));
         }
+    }
+}
+
+void NEXUS_Frontend_P_SetTuned(NEXUS_FrontendHandle handle)
+{
+    NEXUS_FrontendHandle f;
+    unsigned cnt = 0;
+
+    handle->tuned = true;
+
+    for (f=BLST_SQ_FIRST(&g_frontendList.frontends);f;f=BLST_SQ_NEXT(f,link)) {
+        if (f->tuned) cnt++;
+    }
+    if (cnt > g_NEXUS_FrontendModuleStatistics.maxTunedFrontends) {
+        g_NEXUS_FrontendModuleStatistics.maxTunedFrontends = cnt;
     }
 }
 
@@ -2017,17 +2035,18 @@ NEXUS_Error NEXUS_FrontendDevice_Probe(const NEXUS_FrontendDeviceOpenSettings *p
 #define NUM_SPI_BYTES 8
 #define NUM_SPI_ADDRESSES 3
     else if (pSettings->spiDevice) {
-        uint8_t wData[2], rData[NUM_SPI_BYTES];
+        uint8_t wData[NUM_SPI_BYTES], rData[NUM_SPI_BYTES];
         NEXUS_Error rc;
         uint8_t spiAddr[NUM_SPI_ADDRESSES] = { 0x20, 0x40, 0x24 };
         unsigned i = 0;
 
         BDBG_MSG(("Probing for chip at SPI %p",(void *)pSettings->spiDevice));
 
+        BKNI_Memset(wData, 0, NUM_SPI_BYTES);
+
         while (i < NUM_SPI_ADDRESSES && (chipId == 0 || chipId == 0xFFFF)) {
 
             wData[0] = spiAddr[i]<<1;
-            wData[1] = 0x00;
 #if DEBUG_SPI_READS
             {
                 int i;
@@ -2244,4 +2263,9 @@ NEXUS_Error NEXUS_FrontendDevice_SetWakeupSettings(NEXUS_FrontendDeviceHandle ha
         }
     }
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+}
+
+void NEXUS_FrontendModule_GetStatistics( NEXUS_FrontendModuleStatistics *pStats )
+{
+    *pStats = g_NEXUS_FrontendModuleStatistics;
 }

@@ -401,27 +401,25 @@ bmedia_player_nav_next(bmedia_player_nav_t player, bmedia_player_entry *entry)
     }
 
     if (bcmEntry.waitingForIntraGopPictureIndex) {
-        unsigned index, openGopPictures;
+        bmedia_player_dqt_data data;
         if (!player->config.get_dqt_index) {
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
-        rc = player->config.get_dqt_index(player->config.cntx, &index, &openGopPictures);
+
+        rc = player->config.get_dqt_index(player->config.cntx, &data);
         if (!rc) {
-            BNAV_Player_SetMDqtInfo(player->bcm_player, index, openGopPictures);
+            BNAV_Player_SetMDqtInfo(player->bcm_player, data.index, data.openGopPictures);
             player->dqt_wait_count = 0;
         }
         else {
-            if (++player->dqt_wait_count % 100 == 0) {
-                BDBG_WRN(("waiting %u", player->dqt_wait_count));
-                entry->type = bmedia_player_entry_type_no_data;
-            }
-            if (player->dqt_wait_count == 1000) {
-                /* TODO: revise this */
-                BDBG_WRN(("uncle!"));
+            entry->type = bmedia_player_entry_type_sleep_10msec;
+            /* this is a 2 second timeout. average wait is around 200 msec. */
+            if (++player->dqt_wait_count >= 200) {
+                BDBG_WRN(("dqt info timeout. forcing next gop."));
                 BNAV_Player_SetMDqtInfo(player->bcm_player, 0, 0);
                 player->dqt_wait_count = 0;
             }
-            BKNI_Sleep(10); /* not ideal, but HVD must have some time */
+
         }
     }
     else if (bcmEntry.isInsertedPacket) {
@@ -716,8 +714,8 @@ bmedia_player_nav_set_direction(bmedia_player_nav_t player,
         case bmedia_player_host_trick_mode_brcm: playMode.playMode = eBpPlayBrcm; break;
         case bmedia_player_host_trick_mode_gop: playMode.playMode = eBpPlayDecoderGOPTrick; break;
         case bmedia_player_host_trick_mode_gop_IP: playMode.playMode = eBpPlayDecoderGOPIPTrick; break;
-        case bmedia_player_host_trick_mode_mdqt: playMode.playMode = eBpPlayDecoderMDqtTrick; break;
-        case bmedia_player_host_trick_mode_mdqt_IP: playMode.playMode = eBpPlayDecoderMDqtIPTrick; break;
+        case bmedia_player_host_trick_mode_mdqt:
+        case bmedia_player_host_trick_mode_mdqt_IP: playMode.playMode = eBpPlayDecoderMDqtTrick; break;
         case bmedia_player_host_trick_mode_time_skip: 
             playMode.playMode = eBpPlayTimeSkip; 
             /* In order to perform time skip calculations, the app needs to know source frame rate. But it doesn't know. So,
@@ -775,7 +773,6 @@ bmedia_player_nav_set_direction(bmedia_player_nav_t player,
     case eBpPlayDecoderGOPTrick:
     case eBpPlayDecoderGOPIPTrick:
     case eBpPlayDecoderMDqtTrick:
-    case eBpPlayDecoderMDqtIPTrick:
         if (playMode.playModeModifier < 0) {
             mode->dqt = true;
             break;
@@ -797,7 +794,11 @@ bmedia_player_nav_set_direction(bmedia_player_nav_t player,
     case eBpPlayI:
         mode->display_frames = bmedia_player_decoder_frames_I;
         break;
-    case eBpPlayDecoderMDqtIPTrick:
+    case eBpPlayDecoderMDqtTrick:
+        if (player->config.decoder_features.host_mode == bmedia_player_host_trick_mode_mdqt_IP) {
+            mode->display_frames = bmedia_player_decoder_frames_IP;
+        }
+        break;
     case eBpPlayIP:
         mode->display_frames = bmedia_player_decoder_frames_IP;
         break;

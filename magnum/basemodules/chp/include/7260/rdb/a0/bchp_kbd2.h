@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,21 +70,21 @@
 /***************************************************************************
  *KBD2 - IR Keyboard/Remote Receiver 2
  ***************************************************************************/
-#define BCHP_KBD2_STATUS                         0x20417180 /* [RW] KEYBOARD/REMOTE RECEIVER STATUS REGISTER */
-#define BCHP_KBD2_DIVISOR                        0x20417184 /* [RW] KEYBOARD/REMOTE RECEIVER DIVISOR */
-#define BCHP_KBD2_FILTER1                        0x20417188 /* [RW] KEYBOARD FILTER1 */
-#define BCHP_KBD2_DATA1                          0x2041718c /* [RW] KEYBOARD/REMOTE RECEIVER DATA WORD 1 (MS Word) */
-#define BCHP_KBD2_DATA0                          0x20417190 /* [RW] KEYBOARD/REMOTE RECEIVER DATA WORD 0 (LS Word) */
-#define BCHP_KBD2_CMD                            0x20417194 /* [RW] KEYBOARD/REMOTE RECEIVER COMMAND REGISTER */
-#define BCHP_KBD2_CIR_ADDR                       0x20417198 /* [RW] CONSUMER IR DECODER ADDRESS REGISTER */
-#define BCHP_KBD2_CIR_DATA                       0x2041719c /* [RW] CONSUMER IR DECODER DATA (LSB) */
-#define BCHP_KBD2_KBD_MASK0                      0x204171a0 /* [RW] KEBOARD INPUT MASK 0 */
-#define BCHP_KBD2_KBD_MASK1                      0x204171a4 /* [RW] KEBOARD INPUT MASK 1 */
-#define BCHP_KBD2_KBD_MASK2                      0x204171a8 /* [RW] KEBOARD INPUT MASK 2 */
-#define BCHP_KBD2_KBD_PAT0                       0x204171ac /* [RW] KEBOARD INPUT PATTERN MATCH 0 */
-#define BCHP_KBD2_KBD_PAT1                       0x204171b0 /* [RW] KEBOARD INPUT PATTERN MATCH 1 */
-#define BCHP_KBD2_KBD_PAT2                       0x204171b4 /* [RW] KEBOARD INPUT PATTERN MATCH 2 */
-#define BCHP_KBD2_STATUS2                        0x204171bc /* [RO] KEYBOARD/REMOTE RECEIVER STATUS2 REGISTER */
+#define BCHP_KBD2_STATUS                         0x20417180 /* [RW][32] KEYBOARD/REMOTE RECEIVER STATUS REGISTER */
+#define BCHP_KBD2_DIVISOR                        0x20417184 /* [RW][32] KEYBOARD/REMOTE RECEIVER DIVISOR */
+#define BCHP_KBD2_FILTER1                        0x20417188 /* [RW][32] KEYBOARD FILTER1 */
+#define BCHP_KBD2_DATA1                          0x2041718c /* [RW][32] KEYBOARD/REMOTE RECEIVER DATA WORD 1 (MS Word) */
+#define BCHP_KBD2_DATA0                          0x20417190 /* [RW][32] KEYBOARD/REMOTE RECEIVER DATA WORD 0 (LS Word) */
+#define BCHP_KBD2_CMD                            0x20417194 /* [RW][32] KEYBOARD/REMOTE RECEIVER COMMAND REGISTER */
+#define BCHP_KBD2_CIR_ADDR                       0x20417198 /* [RW][32] CONSUMER IR DECODER ADDRESS REGISTER */
+#define BCHP_KBD2_CIR_DATA                       0x2041719c /* [RW][32] CONSUMER IR DECODER DATA (LSB) */
+#define BCHP_KBD2_KBD_MASK0                      0x204171a0 /* [RW][32] KEBOARD INPUT MASK 0 */
+#define BCHP_KBD2_KBD_MASK1                      0x204171a4 /* [RW][32] KEBOARD INPUT MASK 1 */
+#define BCHP_KBD2_KBD_MASK2                      0x204171a8 /* [RW][32] KEBOARD INPUT MASK 2 */
+#define BCHP_KBD2_KBD_PAT0                       0x204171ac /* [RW][32] KEBOARD INPUT PATTERN MATCH 0 */
+#define BCHP_KBD2_KBD_PAT1                       0x204171b0 /* [RW][32] KEBOARD INPUT PATTERN MATCH 1 */
+#define BCHP_KBD2_KBD_PAT2                       0x204171b4 /* [RW][32] KEBOARD INPUT PATTERN MATCH 2 */
+#define BCHP_KBD2_STATUS2                        0x204171bc /* [RO][32] KEYBOARD/REMOTE RECEIVER STATUS2 REGISTER */
 
 #endif /* #ifndef BCHP_KBD2_H__ */
 

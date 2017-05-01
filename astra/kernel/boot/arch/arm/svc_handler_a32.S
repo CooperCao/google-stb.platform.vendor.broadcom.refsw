@@ -48,26 +48,14 @@ tz_secure_svc_handler:
 
     cpsid   if
 
-    push    {r0}
-    push    {r1}
-    push    {r2}
-    push    {r3}
-    push    {r12}
-    push    {lr}
-
-    mov     r0, #0
-    mrs     r1, spsr_svc
-    and     r1, #0x1f
-    bl      excYieldCurrentTask
-    /* r0 now points to the array where we should save register context */
-
-    /* Pop all registers except r0 */
-    pop     {lr}
-    pop     {r12}
-    pop     {r3}
-    pop     {r2}
-    pop     {r1}
-
+    push   {r0}
+    push   {r1}
+    push   {r2}
+    push   {lr}
+    bl get_regbase
+    pop    {lr}
+    pop    {r2}
+    pop    {r1}
     /*
      * Save all the core regsiters
      */
@@ -100,6 +88,10 @@ tz_secure_svc_handler:
     mov     r1, r0
     pop     {r0}
     str     r0, [r1]
+
+    mov     r0, #0
+    mrs     r1, spsr_svc
+    bl      yieldCurrentTask
 
     bl      svcService
 

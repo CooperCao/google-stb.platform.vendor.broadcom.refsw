@@ -255,7 +255,7 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
 }
 #endif
 
-static Dataflow *calculate_store_cond(const PrimSamplerInfo *sampler_info,
+static Dataflow *calculate_store_cond(const PrimSamplerInfo *image_info,
       Dataflow *sampler, Dataflow *x, Dataflow *y, Dataflow *z)
 {
    Dataflow *width = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_WIDTH);
@@ -279,9 +279,9 @@ static Dataflow *calculate_store_cond(const PrimSamplerInfo *sampler_info,
    if (z)
    {
       Dataflow *depth;
-      if (sampler_info->cube)
+      if (image_info->cube)
       {
-         assert(!sampler_info->array); //we should not have cubemap arrays in this version
+         assert(!image_info->array); //we should not have cubemap arrays in this version
          depth = glsl_dataflow_construct_const_uint(6);
       }
       else
@@ -449,7 +449,7 @@ static Dataflow *construct_dataflow_pack_data(GFX_LFMT_T fmt, Dataflow *data[4])
    return glsl_dataflow_construct_vec4(v[0], v[1], v[2], v[3]);
 }
 
-static void get_x_y_z_elem_no(const PrimSamplerInfo *sampler_info, Dataflow *coord[3],
+static void get_x_y_z_elem_no(const PrimSamplerInfo *image_info, Dataflow *coord[3],
       Dataflow **x, Dataflow **y, Dataflow **z, Dataflow **elem_no)
 {
    //coords from int to uint
@@ -459,13 +459,13 @@ static void get_x_y_z_elem_no(const PrimSamplerInfo *sampler_info, Dataflow *coo
    *y = *z = *elem_no = NULL;
    unsigned pos = 0;
 
-   assert(sampler_info->size_dim >= 1);
+   assert(image_info->size_dim >= 1);
    *x = coord[pos++];
-   if (sampler_info->size_dim > 1)
+   if (image_info->size_dim > 1)
       *y = coord[pos++];
-   if (sampler_info->array || sampler_info->cube)
+   if (image_info->array || image_info->cube)
       *elem_no = coord[pos++];
-   else if (sampler_info->coord_count > 2)
+   else if (image_info->coord_count > 2)
       *z = coord[2];
 }
 
@@ -526,10 +526,10 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
    if (expr->u.intrinsic.args->count == 4)
       glsl_expr_calculate_dataflow(ctx, &cmp, args->first->next->next->next->expr);
 
-   PrimSamplerInfo *sampler_info = glsl_prim_get_image_info(expr_sampler->type->u.primitive_type.index);
+   PrimSamplerInfo *image_info = glsl_prim_get_image_info(expr_sampler->type->u.primitive_type.index);
 
    Dataflow *x , *y, *z, *elem_no;
-   get_x_y_z_elem_no(sampler_info, coord, &x, &y, &z, & elem_no);
+   get_x_y_z_elem_no(image_info, coord, &x, &y, &z, & elem_no);
 
    assert(sampler->u.load.fmt_valid);
    GFX_LFMT_T fmt = fmt_qualifier_to_fmt(sampler->u.load.fmt);
@@ -544,10 +544,10 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
    Dataflow *addr;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   if (is_imagebuffer(sampler_info))
+   if (is_imagebuffer(image_info))
    {
       assert(y == NULL && z == NULL && elem_no == NULL);
-      cond = calculate_store_cond(sampler_info, sampler, x, NULL, NULL);
+      cond = calculate_store_cond(image_info, sampler, x, NULL, NULL);
 
       Dataflow *coord = x;
       glsl_imgbuffer_translate_coord(sampler, coord, &x, &elem_no);
@@ -561,8 +561,8 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
    addr = glsl_dataflow_construct_texture_addr(sampler, x, y, z, elem_no);
 #else
    //if coordinates are outside image size --> don't do any stores;
-   cond = calculate_store_cond(sampler_info, sampler, x, y, z ? z : elem_no);
-   if (is_imagebuffer(sampler_info))
+   cond = calculate_store_cond(image_info, sampler, x, y, z ? z : elem_no);
+   if (is_imagebuffer(image_info))
       addr = construct_dataflow_img_buffer_addr(sampler, fmt, x);
    else
       addr = construct_dataflow_img_addr(sampler, fmt, x, y, z, elem_no);

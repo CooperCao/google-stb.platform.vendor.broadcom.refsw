@@ -261,6 +261,14 @@ eRet CChannelStreamer::unTune(
 
     pBoardResources = pConfig->getBoardResources();
 
+    /* we must reset STC to ref count of pids when we do an untune */
+    if(_pStc != NULL )
+    {
+        NEXUS_SimpleStcChannelSettings settings;
+        _pStc->getDefaultSettings(&settings);
+        _pStc->setSettings(&settings);
+    }
+
     if ((NULL != _pParserBand) && (_pParserBand->isCheckedOut()))
     {
         _pParserBand->close();

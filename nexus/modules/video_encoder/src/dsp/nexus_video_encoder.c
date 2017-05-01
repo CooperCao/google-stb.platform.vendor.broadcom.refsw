@@ -1005,3 +1005,8 @@ unsigned NEXUS_VideoEncoder_GetIndex_isrsafe(NEXUS_VideoEncoderHandle encoder)
     BDBG_OBJECT_ASSERT(encoder, NEXUS_VideoEncoder);
     return encoder->index;
 }
+
+void NEXUS_VideoEncoderModule_GetStatistics( NEXUS_VideoEncoderModuleStatistics *pStats )
+{
+    BKNI_Memset(pStats, 0, sizeof(*pStats));
+}

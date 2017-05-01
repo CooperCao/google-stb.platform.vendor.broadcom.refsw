@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"
@@ -33,14 +53,14 @@ BDBG_MODULE(bast_g3_priv_turbo);
 #ifndef BAST_EXCLUDE_TURBO
 
 /* local functions */
-BERR_Code BAST_g3_P_TurboOnHpLock_isr(BAST_ChannelHandle h);
-BERR_Code BAST_g3_P_TurboOnSyncTimeout_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TurboOnHpLock_isr(BAST_ChannelHandle h);
+static BERR_Code BAST_g3_P_TurboOnSyncTimeout_isr(BAST_ChannelHandle h);
 
 
 /******************************************************************************
  BAST_g3_P_TurboScanTryNextMode_isr()
 ******************************************************************************/
-bool BAST_g3_P_TurboScanTryNextMode_isr(BAST_ChannelHandle h)
+static bool BAST_g3_P_TurboScanTryNextMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    bool bIsTurbo8psk;
@@ -165,7 +185,7 @@ bool BAST_g3_P_TurboScanTryNextMode_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboConfigCl_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboConfigCl_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboConfigCl_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -222,7 +242,7 @@ BERR_Code BAST_g3_P_TurboConfigCl_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboConfigEq_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboConfigEq_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboConfigEq_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, i;
@@ -300,7 +320,7 @@ BERR_Code BAST_g3_P_TurboConfigEq_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboSetOpll_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboSetOpll_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboSetOpll_isr(BAST_ChannelHandle h)
 {
    static const uint32_t turbo_opll_N[10] =
    {
@@ -369,7 +389,7 @@ BERR_Code BAST_g3_P_TurboSetOpll_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboSetTitr_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboSetTitr_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboSetTitr_isr(BAST_ChannelHandle h)
 {
    static const uint32_t turbo_titr[] =
    {
@@ -398,7 +418,7 @@ BERR_Code BAST_g3_P_TurboSetTitr_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboSetTtur_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboSetTtur_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboSetTtur_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val, iter, P_hi, P_lo, Q_hi, Q_lo;
@@ -419,7 +439,7 @@ BERR_Code BAST_g3_P_TurboSetTtur_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboSetTssq_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboSetTssq_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboSetTssq_isr(BAST_ChannelHandle h)
 {
    static const uint8_t turbo_tssq_qpsk_1_2[2] =
    {
@@ -556,7 +576,7 @@ BERR_Code BAST_g3_P_TurboSetTssq_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboConfigTfec_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboConfigTfec_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboConfigTfec_isr(BAST_ChannelHandle h)
 {
    static const uint32_t script_turbo_2[] =
    {
@@ -606,7 +626,7 @@ BERR_Code BAST_g3_P_TurboConfigTfec_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboRun_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboRun_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboRun_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -633,7 +653,7 @@ BERR_Code BAST_g3_P_TurboRun_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboEnableSyncInterrupt_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboEnableSyncInterrupt_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboEnableSyncInterrupt_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -683,7 +703,7 @@ void BAST_g3_P_TurboSync_isr(void *p, int int_id)
 /******************************************************************************
  BAST_g3_P_TurboAcquire_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboAcquire_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboAcquire_isr(BAST_ChannelHandle h)
 {
 #ifndef BAST_EXCLUDE_TURBO
    static const uint32_t script_turbo_1[] =
@@ -818,7 +838,7 @@ BERR_Code BAST_g3_P_TurboAcquire_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboOnSyncTimeout_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboOnSyncTimeout_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboOnSyncTimeout_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -866,7 +886,7 @@ BERR_Code BAST_g3_P_TurboOnSyncTimeout_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboOnHpLock_isr() - called when HP locks
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboOnHpLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboOnHpLock_isr(BAST_ChannelHandle h)
 {
    static const uint32_t script_turbo_5[] =
    {
@@ -976,7 +996,7 @@ BERR_Code BAST_g3_P_TurboUpdateErrorCounters_isrsafe(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboCheckMode_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboCheckMode_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboCheckMode_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
@@ -1010,7 +1030,7 @@ BERR_Code BAST_g3_P_TurboCheckMode_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboOnLock_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboOnLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboOnLock_isr(BAST_ChannelHandle h)
 {
    BSTD_UNUSED(h);
 
@@ -1022,7 +1042,7 @@ BERR_Code BAST_g3_P_TurboOnLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboOnLostLock_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboOnLostLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboOnLostLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1048,7 +1068,7 @@ BERR_Code BAST_g3_P_TurboOnLostLock_isr(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboOnStableLock_isr() - ISR context
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboOnStableLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboOnStableLock_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
@@ -1171,7 +1191,7 @@ BERR_Code BAST_g3_P_TurboPowerDown(BAST_ChannelHandle h)
 /******************************************************************************
  BAST_g3_P_TurboEnableLockInterrupts_isr()
 ******************************************************************************/
-BERR_Code BAST_g3_P_TurboEnableLockInterrupts_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboEnableLockInterrupts_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
 
@@ -1204,7 +1224,7 @@ BERR_Code BAST_g3_P_TurboDisableLockInterrupts_isr(BAST_ChannelHandle h)
  BAST_g3_P_TurboMonitorLock_isr()
 ******************************************************************************/
 /* #define BAST_DELAY_DAFE_TRK_BW */
-BERR_Code BAST_g3_P_TurboMonitorLock_isr(BAST_ChannelHandle h)
+static BERR_Code BAST_g3_P_TurboMonitorLock_isr(BAST_ChannelHandle h)
 {
 #if 0
 #ifdef BAST_DELAY_DAFE_TRK_BW

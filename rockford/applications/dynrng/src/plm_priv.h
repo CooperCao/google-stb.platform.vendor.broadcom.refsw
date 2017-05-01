@@ -61,8 +61,10 @@ typedef struct Plm
     FileSwitcherHandle hlg2hdrSwitcher;
     PwlCurveHandle curve;
     Nl2lHandle nl2l;
-    bool demo;
     int plmSetting;
+    int lRangeAdj;
+    void (*apply) (PlmHandle plm);
+    void (*clear) (PlmHandle plm);
 } Plm;
 
 void plm_p_compute_switcher(PlmHandle plm, PlatformDynamicRange input, PlatformDynamicRange output);

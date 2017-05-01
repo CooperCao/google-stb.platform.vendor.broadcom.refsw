@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/core/v3d/v3d_addr.h"
@@ -154,6 +153,8 @@ static inline void* gmem_map_and_invalidate_range(gmem_handle_t handle,
    v3d_size_t offset, v3d_size_t length);
 
 /* Queries ================================================================= */
+
+v3d_size_t gmem_heap_size();
 
 GMEM_PLAT_INLINE v3d_size_t gmem_get_size(gmem_handle_t handle);
 GMEM_PLAT_INLINE gmem_usage_flags_t gmem_get_usage(gmem_handle_t handle);

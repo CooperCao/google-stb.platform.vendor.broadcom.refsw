@@ -1,45 +1,6 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "spytool_replay.h"
 
 #include "bsg_application_options.h"
@@ -56,6 +17,7 @@
 
 #include "Loader.h"
 #include "Command.h"
+#include "GetProcAddress.h"
 
 #ifdef HAS_MD5
 #include "md5.h"
@@ -70,8 +32,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
-
-#include <EGL/egl.h>
 
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
@@ -99,16 +59,11 @@ static uint32_t    sDisplaySurface = 0;
 static Command     *sExecutingCmd = NULL;
 static std::set<uint32_t>  sSpecificFrames;
 static std::set<uint32_t>  sSpecificDraws;
+static std::set<uint32_t>  sSpecificShaderReplacement;
 static bool        sRematchConfigs = true;
 #ifndef BSG_STAND_ALONE
 static bool        sSavePng = false;
 #endif // BSG_STAND_ALONE
-
-#ifndef WIN32
-#include <dlfcn.h>
-#endif
-
-void *GetFunctionAddress(const char *funcName);
 
 static void GetIntegerParamSet(const std::string &arg, std::set<uint32_t> &set)
 {
@@ -269,6 +224,11 @@ public:
          GetIntegerParamSet(arg, sSpecificDraws);
          return true;
       }
+      else if (ApplicationOptions::ArgMatch(arg.c_str(), "replaceShaders="))
+      {
+         GetIntegerParamSet(arg, sSpecificShaderReplacement);
+         return true;
+      }
 #ifndef BSG_STAND_ALONE
       else if (ApplicationOptions::ArgMatch(arg.c_str(), "savepng="))
       {
@@ -286,39 +246,41 @@ public:
    virtual std::string UsageString() const
    {
 #ifndef BSG_STAND_ALONE
-      return "replay=<filename>   set the capture file to use\n"
-             "v=XxY               rescale viewport for an XxY screen\n"
-             "skipFrames=N        don't render first N frames\n"
-             "skipDraws=N         ignore the first N draw calls\n"
-             "waitEachFrame=[0|1] wait for a key-press between frames\n"
-             "frames=<N,M,A-B,..> only render frames in list\n"
-             "draws=<N,M,A-B,..>  only process draw calls numbers in list\n"
-             "bufferMB=N          use N MB for replay buffer (default 64MB)\n"
-             "ioBufferKB=N        use N KB as read chunk size (default 64KB)\n"
-             "maxCmds=N           set maximum number of commands in replay buffer (default 200000)\n"
-             "lowBuffer=<REPRIME|CONTINUE> re-prime buffers when low (default) or carry on running in background\n"
-             "rematchConfigs=[0|1]         if 1 will try to find a matching config. Will use the original config id otherwise\n"
-             "savepng=[0|1]       if 1 will take a hash of the frame data and save as <hash>.png\n"
-             "displaySurface=N    if multiple surfaces are created, which one should be on the display (0 is the first)\n"
-             "timing=[0|1]        show the timing of each API call as it is executed\n"
-             "timingToFiles=[0|1] autogenerate the timing data into seperate frames as CSV files\n"
+      return "replay=<filename>              set the capture file to use\n"
+             "v=XxY                          rescale viewport for an XxY screen\n"
+             "skipFrames=N                   don't render first N frames\n"
+             "skipDraws=N                    ignore the first N draw calls\n"
+             "waitEachFrame=[0|1]            wait for a key-press between frames\n"
+             "frames=<N,M,A-B,..>            only render frames in list\n"
+             "draws=<N,M,A-B,..>             only process draw calls numbers in list\n"
+             "bufferMB=N                     use N MB for replay buffer (default 64MB)\n"
+             "ioBufferKB=N                   use N KB as read chunk size (default 64KB)\n"
+             "maxCmds=N                      set maximum number of commands in replay buffer (default 200000)\n"
+             "lowBuffer=<REPRIME|CONTINUE>   re-prime buffers when low (default) or carry on running in background\n"
+             "rematchConfigs=[0|1]           if 1 will try to find a matching config. Will use the original config id otherwise\n"
+             "savepng=[0|1]                  if 1 will take a hash of the frame data and save as <hash>.png\n"
+             "displaySurface=N               if multiple surfaces are created, which one should be on the display (0 is the first)\n"
+             "timing=[0|1]                   show the timing of each API call as it is executed\n"
+             "timingToFiles=[0|1]            autogenerate the timing data into seperate frames as CSV files\n"
+             "replaceShaders=<N,M,A-B,..>    load shaders from file <replace%d.shader>\n"
          ;
 #else
-      return "replay=<filename>   set the capture file to use\n"
-             "v=XxY               rescale viewport for an XxY screen\n"
-             "skipFrames=N        don't render first N frames\n"
-             "skipDraws=N         ignore the first N draw calls\n"
-             "waitEachFrame=[0|1] wait for a key-press between frames\n"
-             "frames=<N,M,A-B,..> only render frames in list\n"
-             "draws=<N,M,A-B,..>  only process draw calls numbers in list\n"
-             "bufferMB=N          use N MB for replay buffer (default 64MB)\n"
-             "ioBufferKB=N        use N KB as read chunk size (default 64KB)\n"
-             "maxCmds=N           set maximum number of commands in replay buffer (default 200000)\n"
-             "lowBuffer=<REPRIME|CONTINUE> re-prime buffers when low (default) or carry on running in background\n"
-             "rematchConfigs=[0|1]         if 1 will try to find a matching config. Will use the original config id otherwise\n"
-             "displaySurface=N    if multiple surfaces are created, which one should be on the display (0 is the first)\n"
-             "timing=[0|1]        show the timing of each API call as it is executed\n"
-             "timingToFiles=[0|1] autogenerate the timing data into seperate frames as CSV files\n"
+      return "replay=<filename>              set the capture file to use\n"
+             "v=XxY                          rescale viewport for an XxY screen\n"
+             "skipFrames=N                   don't render first N frames\n"
+             "skipDraws=N                    ignore the first N draw calls\n"
+             "waitEachFrame=[0|1]            wait for a key-press between frames\n"
+             "frames=<N,M,A-B,..>            only render frames in list\n"
+             "draws=<N,M,A-B,..>             only process draw calls numbers in list\n"
+             "bufferMB=N                     use N MB for replay buffer (default 64MB)\n"
+             "ioBufferKB=N                   use N KB as read chunk size (default 64KB)\n"
+             "maxCmds=N                      set maximum number of commands in replay buffer (default 200000)\n"
+             "lowBuffer=<REPRIME|CONTINUE>   re-prime buffers when low (default) or carry on running in background\n"
+             "rematchConfigs=[0|1]           if 1 will try to find a matching config. Will use the original config id otherwise\n"
+             "displaySurface=N               if multiple surfaces are created, which one should be on the display (0 is the first)\n"
+             "timing=[0|1]                   show the timing of each API call as it is executed\n"
+             "timingToFiles=[0|1]            autogenerate the timing data into seperate frames as CSV files\n"
+             "replaceShaders=<N,M,A-B,..>    load shaders from file <replace%d.shader>\n"
          ;
 #endif // BSG_STAND_ALONE
    }
@@ -331,6 +293,8 @@ public:
 SpyToolReplay::SpyToolReplay(Platform &platform) :
    Application(platform),
    m_platform(platform),
+   m_deviceCaps(),
+   m_dispatch(),
    m_data(NULL),
    //m_curDrawSurface(EGL_NO_SURFACE),
    m_hasWindow(false),
@@ -682,36 +646,37 @@ void SpyToolReplay::FrameDone(uint32_t frameNum)
 
 bool SpyToolReplay::ReplaceShaderSource(GLuint shader)
 {
-#if 0
-   // This is an example of replacing a specific pair of shaders
-   // with new code loaded from two text files.
-   if (shader == 5560 || shader == 5561)
+   if (sSpecificShaderReplacement.size() > 0)
    {
-      const uint32_t bufSize = 8 * 1024;
-      char buf[bufSize];
-
-      GLchar *ptrs[1];
-
-      memset(buf, 0, bufSize);
-
-      FILE *fp = NULL;
-      if (shader == 5560)
-         fp = fopen("vert.txt", "r");
-      else
-         fp = fopen("frag.txt", "r");
-
-      if (fp)
+      if (sSpecificShaderReplacement.find(shader) != sSpecificShaderReplacement.end())
       {
-         fread(buf, 1, bufSize, fp);
-         fclose(fp);
+         const uint32_t bufSize = 8 * 1024;
+         char buf[bufSize];
+
+         memset(buf, 0, bufSize);
+
+         char filename[100];
+         snprintf(filename, sizeof(filename), "replace%d.shader", shader);
+
+         FILE *fp = fopen(filename, "r");
+         if (fp)
+         {
+            fread(buf, 1, bufSize, fp);
+            fclose(fp);
+         }
+         else
+         {
+            // carry on with the original shader in the capture
+            printf("failed to open : %s\n", filename);
+            return false;
+         }
+
+         const GLchar *ptrs[1] = { &buf[0] };
+         glShaderSource(shader, 1, ptrs, NULL);
+
+         return true;
       }
-
-      ptrs[0] = &buf[0];
-      glShaderSource(shader, 1, ptrs, NULL);
-
-      return true;
    }
-#endif
    return false;
 }
 
@@ -947,7 +912,7 @@ int main(int argc, char **argv)
 
       if (sReplayFile == "")
       {
-         SizeFunc getDefSize = (SizeFunc)GetFunctionAddress("GetDefaultSize");
+         SizeFunc getDefSize = (SizeFunc)GetFunctionAddress(NULL, "GetDefaultSize");
          if (getDefSize)
             getDefSize(&w, &h);
       }
@@ -974,7 +939,7 @@ int main(int argc, char **argv)
 
       if (sReplayFile == "")
       {
-         app.SetCurrentFrameFunc((FrameFunc)GetFunctionAddress("RenderCaptureFrame_000001"));
+         app.SetCurrentFrameFunc((FrameFunc)GetFunctionAddress(NULL, "RenderCaptureFrame_000001"));
       }
       else
       {
@@ -1002,45 +967,3 @@ int main(int argc, char **argv)
 
    return ret;
 }
-
-#ifdef WIN32
-#include <windows.h>
-
-void *GetFunctionAddress(const char *funcName)
-{
-   void *res = (void*)GetProcAddress(GetModuleHandle(NULL), funcName);
-
-   if (res == NULL)
-   {
-      DWORD err = GetLastError();
-      LPTSTR errorText = NULL;
-
-      FormatMessage(
-         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-         NULL,
-         err,
-         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-         (LPTSTR)&errorText,
-         0,
-         NULL);
-
-      if (errorText)
-      {
-         std::cout << "GetFunctionAddress generated error : " << errorText << std::endl;
-         LocalFree(errorText);
-         errorText = NULL;
-      }
-      else
-         std::cout << "GetFunctionAddress generated error : " << err << std::endl;
-   }
-   return res;
-}
-
-#else
-void *GetFunctionAddress(const char *funcName)
-{
-   return (void*)dlsym(RTLD_DEFAULT, funcName);
-}
-
-#endif
-

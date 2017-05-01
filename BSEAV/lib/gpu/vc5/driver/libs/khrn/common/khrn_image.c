@@ -1,13 +1,6 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-   Implementation of khrn_image
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_image.h"
 #include "khrn_mem.h"
 #include "khrn_process.h"
@@ -20,12 +13,12 @@ FILE DESCRIPTION
 #include "libs/platform/v3d_scheduler.h"
 #include "../glxx/glxx_server.h"
 
-static void *image_map(const KHRN_IMAGE_T *img,
-      KHRN_FENCE_T *fence_to_depend_on, bool write);
-static void image_unmap(const KHRN_IMAGE_T *img, void *ptr, bool write);
+static void *image_map(const khrn_image *img,
+      khrn_fence *fence_to_depend_on, bool write);
+static void image_unmap(const khrn_image *img, void *ptr, bool write);
 
-static void image_init(KHRN_IMAGE_T *img,
-      KHRN_BLOB_T *blob, unsigned level,
+static void image_init(khrn_image *img,
+      khrn_blob *blob, unsigned level,
       unsigned start_elem, unsigned num_array_elems,
       unsigned start_slice, unsigned num_slices,
       GFX_LFMT_T api_fmt)
@@ -41,21 +34,21 @@ static void image_init(KHRN_IMAGE_T *img,
 
 static void image_term(void *v, size_t size)
 {
-   KHRN_IMAGE_T *img = v;
+   khrn_image *img = v;
    KHRN_MEM_ASSIGN(img->blob, NULL);
 }
 
-static KHRN_IMAGE_T* image_create(KHRN_BLOB_T *blob, unsigned level,
+static khrn_image* image_create(khrn_blob *blob, unsigned level,
       unsigned start_elem, unsigned num_array_elems,
       unsigned start_slice, unsigned num_slices,
       GFX_LFMT_T api_fmt)
 {
-    KHRN_IMAGE_T *img;
+    khrn_image *img;
     assert(khrn_blob_contains_level(blob, level) &&
                 (start_elem + num_array_elems <= blob->num_array_elems) &&
                 (start_slice + num_slices <= blob->desc[0].depth));
 
-    img = KHRN_MEM_ALLOC_STRUCT(KHRN_IMAGE_T);
+    img = KHRN_MEM_ALLOC_STRUCT(khrn_image);
     if (img == NULL)
        return NULL;
 
@@ -65,20 +58,20 @@ static KHRN_IMAGE_T* image_create(KHRN_BLOB_T *blob, unsigned level,
     return img;
 }
 
-KHRN_IMAGE_T* khrn_image_create(KHRN_BLOB_T *blob,
+khrn_image* khrn_image_create(khrn_blob *blob,
    unsigned start_elem, unsigned num_array_elems, unsigned level, GFX_LFMT_T api_fmt)
 {
     return image_create(blob, level, start_elem, num_array_elems, 0,
        blob->desc[level].depth, api_fmt);
 }
 
-KHRN_IMAGE_T* khrn_image_create_one_elem_slice(KHRN_BLOB_T *blob,
+khrn_image* khrn_image_create_one_elem_slice(khrn_blob *blob,
    unsigned elem, unsigned slice, unsigned level, GFX_LFMT_T api_fmt)
 {
    return image_create(blob, level, elem, 1, slice, 1, api_fmt);
 }
 
-GFX_LFMT_T khrn_image_get_lfmt(const KHRN_IMAGE_T *img,
+GFX_LFMT_T khrn_image_get_lfmt(const khrn_image *img,
       unsigned plane)
 {
    const GFX_BUFFER_DESC_T *desc;
@@ -89,7 +82,7 @@ GFX_LFMT_T khrn_image_get_lfmt(const KHRN_IMAGE_T *img,
    return desc->planes[plane].lfmt;
 }
 
-unsigned khrn_image_get_max_levels(const KHRN_IMAGE_T *img)
+unsigned khrn_image_get_max_levels(const khrn_image *img)
 {
    const GFX_BUFFER_DESC_T *desc;
    unsigned max_size, max_levels;
@@ -103,8 +96,8 @@ unsigned khrn_image_get_max_levels(const KHRN_IMAGE_T *img)
    return max_levels;
 }
 
-bool khrn_image_match_fmt(const KHRN_IMAGE_T *img1,
-      const KHRN_IMAGE_T *img2)
+bool khrn_image_match_fmt(const khrn_image *img1,
+      const khrn_image *img2)
 {
    const GFX_BUFFER_DESC_T *desc1, *desc2;
    unsigned i;
@@ -124,8 +117,8 @@ bool khrn_image_match_fmt(const KHRN_IMAGE_T *img1,
    return true;
 }
 
-bool khrn_image_match_fmt_and_dim(const KHRN_IMAGE_T *img1,
-      const KHRN_IMAGE_T *img2)
+bool khrn_image_match_fmt_and_dim(const khrn_image *img1,
+      const khrn_image *img2)
 {
    const GFX_BUFFER_DESC_T *desc1, *desc2;
 
@@ -144,8 +137,8 @@ bool khrn_image_match_fmt_and_dim(const KHRN_IMAGE_T *img1,
    return true;
 }
 
-bool khrn_image_is_miplevel(const KHRN_IMAGE_T *img1,
-      unsigned mip_level, const KHRN_IMAGE_T *img2)
+bool khrn_image_is_miplevel(const khrn_image *img1,
+      unsigned mip_level, const khrn_image *img2)
 {
    const GFX_BUFFER_DESC_T *desc1, *desc2;
 
@@ -166,7 +159,7 @@ bool khrn_image_is_miplevel(const KHRN_IMAGE_T *img1,
    return true;
 }
 
-bool khrn_image_match_dim_and_fmt(const KHRN_IMAGE_T *img,
+bool khrn_image_match_dim_and_fmt(const khrn_image *img,
       unsigned width, unsigned height, unsigned depth, unsigned num_array_elems,
       const GFX_LFMT_T *lfmts, unsigned num_planes)
 {
@@ -191,20 +184,20 @@ bool khrn_image_match_dim_and_fmt(const KHRN_IMAGE_T *img,
 }
 
 static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
-      const KHRN_IMAGE_T *img,
-      KHRN_FENCE_T *fence_to_depend_on,
+      const khrn_image *img,
+      khrn_fence *fence_to_depend_on,
       unsigned int x, unsigned int y, unsigned int z,
       unsigned int start_elem, bool write)
 {
    v3d_scheduler_deps deps;
    const GFX_BUFFER_DESC_T *desc;
-   KHRN_RES_INTERLOCK_T *res_i;
+   khrn_resource *res;
 
-   res_i = khrn_image_get_res_interlock(img);
+   res = khrn_image_get_resource(img);
    if (write)
-      deps = *khrn_interlock_begin_submit_writer_jobs(&res_i->interlock);
+      deps = *khrn_resource_begin_submit_writer_jobs(res);
    else
-      deps = *khrn_interlock_begin_submit_reader_jobs(&res_i->interlock);
+      deps = *khrn_resource_begin_submit_reader_jobs(res);
 
    if (fence_to_depend_on)
    {
@@ -213,13 +206,13 @@ static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
    }
 
    desc = &img->blob->desc[img->level];
-   v3d_imgconv_init_gmem_tgt(tgt, img->blob->res_i->handle, 0, &deps, desc, x, y,
+   v3d_imgconv_init_gmem_tgt(tgt, img->blob->res->handle, 0, &deps, desc, x, y,
       img->start_slice + z, img->start_elem + start_elem,
       img->blob->array_pitch);
 }
 
-static void end_imgconv(const KHRN_IMAGE_T *img, bool success,
-      KHRN_FENCE_T *fence, bool write, uint64_t job_id)
+static void end_imgconv(const khrn_image *img, bool success,
+      khrn_fence *fence, bool write, uint64_t job_id)
 {
    v3d_scheduler_deps deps;
    deps.n = 0;
@@ -232,19 +225,17 @@ static void end_imgconv(const KHRN_IMAGE_T *img, bool success,
          khrn_fence_job_add(fence, job_id);
    }
 
-   KHRN_RES_INTERLOCK_T* res = khrn_image_get_res_interlock(img);
+   khrn_resource* res = khrn_image_get_resource(img);
    if (write)
    {
-      khrn_interlock_end_submit_writer_jobs(&res->interlock, success, &deps,
-         khrn_image_interlock_parts(img, /*subset=*/false));
-
-      khrn_res_interlock_invalidate_synced_range(res);
+      khrn_resource_parts_t parts = khrn_image_resource_parts(img, /*subset=*/false);
+      khrn_resource_end_submit_writer_jobs(res, success, &deps, parts);
    }
    else
-      khrn_interlock_end_submit_reader_jobs(&res->interlock, success, &deps);
+      khrn_resource_end_submit_reader_jobs(res, success, &deps);
 }
 
-bool khrn_image_convert_from_ptr_tgt(KHRN_IMAGE_T *dst,
+bool khrn_image_convert_from_ptr_tgt(khrn_image *dst,
       unsigned dst_x, unsigned dst_y, unsigned dst_z,
       unsigned dst_start_elem, const struct v3d_imgconv_ptr_tgt *src,
       unsigned width, unsigned height, unsigned depth,
@@ -270,7 +261,7 @@ bool khrn_image_convert_from_ptr_tgt(KHRN_IMAGE_T *dst,
    return ok;
 }
 
-bool khrn_image_convert_to_ptr_tgt(KHRN_IMAGE_T *src,
+bool khrn_image_convert_to_ptr_tgt(khrn_image *src,
       unsigned src_x, unsigned src_y, unsigned src_z,
       unsigned src_start_elem, struct v3d_imgconv_ptr_tgt *dst,
       unsigned width, unsigned height, unsigned depth,
@@ -296,8 +287,8 @@ bool khrn_image_convert_to_ptr_tgt(KHRN_IMAGE_T *src,
    return ok;
 }
 
-static void* image_map(const KHRN_IMAGE_T *img,
-      KHRN_FENCE_T *fence_to_depend_on,
+static void* image_map(const khrn_image *img,
+      khrn_fence *fence_to_depend_on,
       bool write)
 {
    if (fence_to_depend_on)
@@ -306,34 +297,35 @@ static void* image_map(const KHRN_IMAGE_T *img,
       v3d_scheduler_wait_jobs(&fence_to_depend_on->deps, V3D_SCHED_DEPS_COMPLETED);
    }
 
+   khrn_access_flags_t access = KHRN_ACCESS_READ;
+   khrn_resource_parts_t parts = KHRN_RESOURCE_PARTS_ALL;
    if (write)
    {
-      khrn_interlock_write_now(&img->blob->res_i->interlock,
-         khrn_image_interlock_parts(img, /*subset=*/false));
-   }
-   else
-   {
-      khrn_interlock_read_now(&img->blob->res_i->interlock);
+      access = KHRN_ACCESS_WRITE;
+      parts = khrn_image_resource_parts(img, /*subset=*/false);
    }
 
-   return gmem_map_and_invalidate_range(
-      img->blob->res_i->handle,
+   return khrn_resource_begin_access(
+      &img->blob->res,
       img->start_elem * img->blob->array_pitch,
-      img->num_array_elems * img->blob->array_pitch);
+      img->num_array_elems * img->blob->array_pitch,
+      access,
+      parts);
 }
 
-static void image_unmap(const KHRN_IMAGE_T *img, void* ptr, bool write)
+static void image_unmap(const khrn_image *img, void* ptr, bool write)
 {
-   if (!ptr || !write)
+   if (!ptr)
       return;
 
-   gmem_flush_mapped_range(
-      img->blob->res_i->handle,
+   khrn_resource_end_access(
+      img->blob->res,
       img->start_elem * img->blob->array_pitch,
-      img->num_array_elems * img->blob->array_pitch);
+      img->num_array_elems * img->blob->array_pitch,
+      write ? KHRN_ACCESS_WRITE : KHRN_ACCESS_READ);
 }
 
-bool khrn_image_convert(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src,
+bool khrn_image_convert(khrn_image *dst, const khrn_image *src,
       glxx_context_fences *fences, bool secure_context)
 {
    struct v3d_imgconv_gmem_tgt src_tgt, dst_tgt;
@@ -358,9 +350,9 @@ bool khrn_image_convert(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src,
    return ok;
 }
 
-bool khrn_image_convert_one_elem_slice(KHRN_IMAGE_T *dst, unsigned dst_x, unsigned
+bool khrn_image_convert_one_elem_slice(khrn_image *dst, unsigned dst_x, unsigned
       dst_y, unsigned dst_z, unsigned dst_start_elem,
-      KHRN_IMAGE_T *src, unsigned src_x, unsigned src_y, unsigned src_z,
+      khrn_image *src, unsigned src_x, unsigned src_y, unsigned src_z,
       unsigned src_start_elem,
       unsigned width, unsigned height,
       glxx_context_fences *fences,
@@ -389,8 +381,8 @@ bool khrn_image_convert_one_elem_slice(KHRN_IMAGE_T *dst, unsigned dst_x, unsign
    return ok;
 }
 
-extern bool khrn_image_memcpy_one_elem_slice(KHRN_IMAGE_T *dst, unsigned dst_x,
-      unsigned dst_y, unsigned dst_z, unsigned dst_start_elem, KHRN_IMAGE_T
+extern bool khrn_image_memcpy_one_elem_slice(khrn_image *dst, unsigned dst_x,
+      unsigned dst_y, unsigned dst_z, unsigned dst_start_elem, khrn_image
       *src, unsigned src_x, unsigned src_y, unsigned src_z, unsigned
       src_start_elem, unsigned src_width, unsigned src_height,
       glxx_context_fences *fences,
@@ -420,7 +412,7 @@ extern bool khrn_image_memcpy_one_elem_slice(KHRN_IMAGE_T *dst, unsigned dst_x,
 }
 
 /* Format of dst & src must match */
-bool khrn_image_subsample(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src,
+bool khrn_image_subsample(khrn_image *dst, const khrn_image *src,
       bool force_no_srgb, glxx_context_fences *fences)
 {
    GFX_BUFFER_BLIT_TGT_T dst_b, src_b;
@@ -475,13 +467,13 @@ end:
 }
 
 
-bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
-      KHRN_IMAGE_T* const* dst_images,
+bool khrn_image_generate_mipmaps_tfu(khrn_image* src_image,
+      khrn_image* const* dst_images,
       unsigned num_dst_levels, bool skip_dst_level_0, bool force_no_srgb,
       glxx_context_fences *fences, bool secure_context)
 {
-   KHRN_BLOB_T* src_blob = src_image->blob;
-   KHRN_BLOB_T* dst_blob = dst_images[0]->blob;
+   khrn_blob* src_blob = src_image->blob;
+   khrn_blob* dst_blob = dst_images[0]->blob;
    GFX_BUFFER_DESC_T const* src_desc = &src_blob->desc[src_image->level];
    GFX_BUFFER_DESC_T const* dst_desc = &dst_blob->desc[dst_images[0]->level];
    GFX_LFMT_T src_lfmt = src_desc->planes[0].lfmt;
@@ -520,8 +512,8 @@ bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
       tfu_cmd.srgb = false;
 
    // Lock v3d addresses for src/dst blobs.
-   gmem_handle_t src_gmemh = src_blob->res_i->handle;
-   gmem_handle_t dst_gmemh = dst_blob->res_i->handle;
+   gmem_handle_t src_gmemh = src_blob->res->handle;
+   gmem_handle_t dst_gmemh = dst_blob->res->handle;
    v3d_addr_t src_addr = gmem_get_addr(src_gmemh);
    v3d_addr_t dst_addr = gmem_get_addr(dst_gmemh);
 
@@ -532,11 +524,11 @@ bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
 
    // TFU job is runnable when all dependencies for read and write are met.
    v3d_scheduler_deps tfu_job_deps;
-   KHRN_INTERLOCK_T* dst_interlock = &dst_blob->res_i->interlock;
-   KHRN_INTERLOCK_T* src_interlock = &src_blob->res_i->interlock;
-   v3d_scheduler_copy_deps(&tfu_job_deps, khrn_interlock_begin_submit_writer_jobs(dst_interlock));
-   if (src_interlock != dst_interlock)
-      v3d_scheduler_merge_deps(&tfu_job_deps, khrn_interlock_begin_submit_reader_jobs(src_interlock));;
+   khrn_resource* dst_res = dst_blob->res;
+   khrn_resource* src_res = src_blob->res;
+   v3d_scheduler_copy_deps(&tfu_job_deps, khrn_resource_begin_submit_writer_jobs(dst_res));
+   if (src_res != dst_res)
+      v3d_scheduler_merge_deps(&tfu_job_deps, khrn_resource_begin_submit_reader_jobs(src_res));
 
    if (fences->fence_to_depend_on)
    {
@@ -547,9 +539,10 @@ bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
    uint32_t src_offset = khrn_image_get_offset(src_image, 0);
    uint32_t dst_offset = khrn_image_get_offset(dst_images[0], 0);
 
+   bool has_l3c = v3d_scheduler_get_hub_identity()->has_l3c;
    v3d_cache_ops cache_ops =
-         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE)
-       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ);
+         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, has_l3c)
+       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, has_l3c);
 
    // todo, ideally the kernel API would support batch submission of TFU jobs.
 
@@ -574,14 +567,13 @@ bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
       dst_offset += dst_blob->array_pitch;
    }
 
-   // Update interlock with tfu_job deps.
+   // Update resource with tfu_job deps.
 
    /* Could figure out tighter parts here but probably not worth it... */
-   khrn_interlock_end_submit_writer_jobs(dst_interlock, true, &final_deps, KHRN_INTERLOCK_PARTS_ALL);
-   khrn_res_interlock_invalidate_synced_range(dst_blob->res_i);
+   khrn_resource_end_submit_writer_jobs(dst_res, true, &final_deps, KHRN_RESOURCE_PARTS_ALL);
 
-   if (src_interlock != dst_interlock)
-      khrn_interlock_end_submit_reader_jobs(src_interlock, true, &final_deps);
+   if (src_res != dst_res)
+      khrn_resource_end_submit_reader_jobs(src_res, true, &final_deps);
 
    if (fences->fence)
       khrn_fence_deps_add(fences->fence, &final_deps);
@@ -592,34 +584,34 @@ bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
    return true;
 }
 
-unsigned khrn_image_get_depth(const KHRN_IMAGE_T *img)
+unsigned khrn_image_get_depth(const khrn_image *img)
 {
    assert(img->start_slice + img->num_slices <=
          img->blob->desc[img->level].depth);
    return img->num_slices;
 }
 
-unsigned khrn_image_get_width(const KHRN_IMAGE_T *img)
+unsigned khrn_image_get_width(const khrn_image *img)
 {
    return img->blob->desc[img->level].width;
 }
 
-unsigned khrn_image_get_height(const KHRN_IMAGE_T *img)
+unsigned khrn_image_get_height(const khrn_image *img)
 {
    return img->blob->desc[img->level].height;
 }
 
-unsigned khrn_image_get_num_elems(const KHRN_IMAGE_T *img)
+unsigned khrn_image_get_num_elems(const khrn_image *img)
 {
    return img->num_array_elems;
 }
 
-unsigned khrn_image_get_num_planes(const KHRN_IMAGE_T *img)
+unsigned khrn_image_get_num_planes(const khrn_image *img)
 {
    return img->blob->desc[img->level].num_planes;
 }
 
-void khrn_image_get_dimensions(const KHRN_IMAGE_T *img, unsigned *width,
+void khrn_image_get_dimensions(const khrn_image *img, unsigned *width,
       unsigned *height, unsigned *depth, unsigned *num_elems)
 {
    if (width)
@@ -635,7 +627,7 @@ void khrn_image_get_dimensions(const KHRN_IMAGE_T *img, unsigned *width,
       *num_elems = khrn_image_get_num_elems(img);
 }
 
-void khrn_image_get_lfmts(const KHRN_IMAGE_T *img,
+void khrn_image_get_lfmts(const khrn_image *img,
       GFX_LFMT_T lfmts[GFX_BUFFER_MAX_PLANES], unsigned *num_planes)
 {
    unsigned i;
@@ -647,7 +639,7 @@ void khrn_image_get_lfmts(const KHRN_IMAGE_T *img,
          lfmts[i] = desc->planes[i].lfmt;
 }
 
-void khrn_image_get_fmts(const KHRN_IMAGE_T *img,
+void khrn_image_get_fmts(const khrn_image *img,
       GFX_LFMT_T fmts[GFX_BUFFER_MAX_PLANES], unsigned *num_planes)
 {
    khrn_image_get_lfmts(img, fmts, num_planes);
@@ -655,7 +647,7 @@ void khrn_image_get_fmts(const KHRN_IMAGE_T *img,
       fmts[i] = gfx_lfmt_fmt(fmts[i]);
 }
 
-unsigned khrn_image_get_offset(const KHRN_IMAGE_T *img,
+unsigned khrn_image_get_offset(const khrn_image *img,
       unsigned plane)
 {
    const GFX_BUFFER_DESC_T *desc;
@@ -669,14 +661,14 @@ unsigned khrn_image_get_offset(const KHRN_IMAGE_T *img,
       img->start_slice * p->slice_pitch;
 }
 
-bool khrn_image_is_one_elem_slice(const KHRN_IMAGE_T *img)
+bool khrn_image_is_one_elem_slice(const khrn_image *img)
 {
    if (img->num_array_elems == 1 && img->num_slices == 1)
       return true;
    return false;
 }
 
-bool khrn_image_equal(const KHRN_IMAGE_T *img1, const KHRN_IMAGE_T *img2)
+bool khrn_image_equal(const khrn_image *img1, const khrn_image *img2)
 {
    if (img1->blob != img2->blob ||
        img1->level != img2->level ||

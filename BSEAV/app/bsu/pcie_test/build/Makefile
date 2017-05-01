@@ -1,5 +1,5 @@
 ###############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -141,33 +141,15 @@ BSU_BIN_ROOT = $(NEXUS_DIR)/../obj.${NEXUS_PLATFORM}
 BSU_BIN_DIR = $(BSU_BIN_ROOT)/BSEAV/bin${BSU_BIN_DIR_SUFFIX}
 endif
 
-ifeq ($(NEXUS_MODE),)
-# MODE is deprecated
-NEXUS_MODE = $(MODE)
-endif
-
-
 #########
-#### Figure out ARCH
+#### Include OS LIB and NEXUS .inc
 #########
-ifeq ($(B_REFSW_ARCH),)
-B_REFSW_ARCH=mips-linux
-export B_REFSW_ARCH
-endif
-B_REFSW_DEBUG ?= y
+include $(NEXUS_DIR)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 ifeq ($(B_REFSW_DEBUG),y)
 DEBUG_SUFFIX=debug
 else
 DEBUG_SUFFIX=release
 endif
-
-#########
-#### Include OS LIB and NEXUS .inc
-#########
-include $(NEXUS_DIR)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
-
-# Get system-specific CFLAGS and LDFLAGS based on SYSTEM, PLATFORM, DEBUG
-include $(BSEAV_DIR)/build/refsw_inc.mak
 
 #################
 ############ Staging Area setup directory. It will be destroyed later

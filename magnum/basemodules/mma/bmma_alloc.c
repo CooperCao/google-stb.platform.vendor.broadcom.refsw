@@ -562,6 +562,9 @@ static void BMMA_LockOffset_locked(BMMA_Block_Handle b)
     b->discardable = false;
     if(b->lock_offset_cnt>=0 && b->lock_offset_cnt<BMMA_P_LOCK_OFFSET_LIMIT) {
         b->lock_offset_cnt++;
+        if (b->lock_offset_cnt == BMMA_P_LOCK_OFFSET_LIMIT) {
+            BDBG_ERR(("BMMA_LockOffset: %p: allocated at %s:%u hit bad lock_offset_cnt:%d ->%s:%u", (void *)b,b->fname,b->line,b->lock_offset_cnt,fname?fname:"",line));
+        }
     } else {
         if(b->lock_offset_cnt != BMMA_P_LOCK_OFFSET_LIMIT) {
             BDBG_ERR(("BMMA_LockOffset: %p: allocated at %s:%u has bad lock_offset_cnt:%d ->%s:%u", (void *)b,b->fname,b->line,b->lock_offset_cnt,fname?fname:"",line));

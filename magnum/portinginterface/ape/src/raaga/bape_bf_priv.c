@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -159,6 +159,7 @@ BERR_Code BAPE_SfifoGroup_P_Create(
     /* If none found, return error */
     if ( NULL == handle )
     {
+        BDBG_ERR(("Not enough Audio Sfifo resources to support this usage case."));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -1186,7 +1187,7 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     wr &= ~BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
     if ( wraddr == ((BMMA_DeviceOffset)bufferSize + base) )
     {
-        BDBG_MSG(("Inverting toggle bit - was 0x%x now 0x%x", wr, wr ^ (unsigned)BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1)));
+        BDBG_MSG(("Inverting toggle bit - was " BDBG_UINT64_FMT "now " BDBG_UINT64_FMT, BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(wr ^ (unsigned)BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1))));
         wr ^= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1);   /* flip the toggle bit */
         wraddr = base;
     }

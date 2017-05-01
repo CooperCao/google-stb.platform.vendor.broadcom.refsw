@@ -235,9 +235,9 @@ typedef struct
 } Raaga_Interrupt_Control_Block;
 
 #ifdef __FIREPATH__
-__absolute extern Raaga_Interrupt_Control_Block taddr_Mem_Done_Status_Int_RDB;
-__absolute extern Raaga_Interrupt_Control_Block taddr_Queue_Status_Int_RDB;
-__absolute extern Raaga_Interrupt_Control_Block taddr_Error_Int_RDB;
+__absolute __align(4) extern Raaga_Interrupt_Control_Block taddr_Mem_Done_Status_Int_RDB;
+__absolute __align(4) extern Raaga_Interrupt_Control_Block taddr_Queue_Status_Int_RDB;
+__absolute __align(4) extern Raaga_Interrupt_Control_Block taddr_Error_Int_RDB;
 #endif
 #endif  /* !defined(ASMCPP) && !defined(__LINKER_SCRIPT__) */
 

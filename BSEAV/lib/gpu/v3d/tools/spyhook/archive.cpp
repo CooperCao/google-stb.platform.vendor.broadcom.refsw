@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "archive.h"
 #include "packet.h"
 
@@ -48,9 +46,9 @@ All rights reserved.
 #define TO_LE_W(w)
 #endif
 
-static uint32_t BUFFER_BYTES = 8 * 1024 * 1024;
-
 #ifdef THREADED_IO
+
+static uint32_t BUFFER_BYTES = 8 * 1024 * 1024;
 
 static uint8_t *sWrite = 0;
 static uint8_t *sRead = 0;

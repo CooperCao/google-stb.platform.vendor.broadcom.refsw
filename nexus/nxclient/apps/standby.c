@@ -38,7 +38,7 @@
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
-#if NEXUS_POWER_MANAGEMENT
+ #if NEXUS_POWER_MANAGEMENT
 #include "nexus_platform_client.h"
 #include "nexus_core_utils.h"
 #include "nxclient.h"
@@ -50,16 +50,7 @@
 #include "binput.h"
 #include "namevalue.h"
 
-/* ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
- * =================================
- * nexus.client standby -timeout 0 -gui
- * -- then you can use the IR remote to select a standby mode from the screen
- * -- and use a button attached to the gpio pin to wakeup
- */
-
-#define ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
-
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+#if NEXUS_HAS_GPIO
 #include "nexus_gpio.h"
 #endif
 
@@ -72,7 +63,9 @@
 
 BDBG_MODULE(standby);
 
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+static bool gpio_enabled = false;
+
+#if NEXUS_HAS_GPIO
 static const char *gpio_type_str[] = {
     "GPIO",
     "SGPIO",
@@ -94,7 +87,7 @@ struct appcontext {
     int timeout;
     bool coldBoot;
     bool done;
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+#if NEXUS_HAS_GPIO
     NEXUS_GpioHandle pin_handle;
 #endif
 } g_context;
@@ -162,7 +155,7 @@ static void set_wake_event(struct appcontext *pContext)
     }
 }
 
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+#if NEXUS_HAS_GPIO
 void gpio_interrupt(void *context, int param)
 {
     struct appcontext *pContext = context;
@@ -366,7 +359,11 @@ static void set_power_state(struct appcontext *pContext)
     NxClient_GetDefaultStandbySettings(&standbySettings);
     standbySettings.settings.mode = pContext->mode;
     standbySettings.settings.wakeupSettings.ir = true;
-    standbySettings.settings.wakeupSettings.gpio = true;
+#if NEXUS_HAS_GPIO
+    standbySettings.settings.wakeupSettings.gpio = gpio_enabled;
+#else
+    standbySettings.settings.wakeupSettings.gpio = false;
+#endif
     standbySettings.settings.wakeupSettings.timeout = timeout;
     rc = NxClient_SetStandbySettings(&standbySettings);
     if (rc) {BERR_TRACE(rc); goto done;}
@@ -430,11 +427,13 @@ static void print_usage(void)
     "  -timeout X               timeout in seconds\n"
     "  -prompt  off             disable user prompt.\n"
     "  -pmlib   off             disable pmlib support.\n");
+#if NEXUS_HAS_GPIO
     printf(
     "  -p       [s|a|as][0-99]  Wakeup GPIO pin (ex. -p a9)\n"
     "                             s=SGPIO, special\n"
     "                             a=AON_GPIO, AonStandard\n"
     "                             as=AON_SGPIO, AonSpecial\n");
+#endif
     printf(
     "  -s0                      wake up and exit\n"
     "  -s1                      put system into S1 and exit (unless timeout set)\n"
@@ -452,11 +451,9 @@ int main(int argc, const char **argv)
     int curarg = 1;
     struct bgui_settings gui_settings;
     bool gui=true, prompt=true, pmlib=true, exit=false;
-    bool gpio_enabled = false;
+#if NEXUS_HAS_GPIO
     NEXUS_GpioType gpio_type;
     unsigned gpio_pin;
-
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
     NEXUS_GpioSettings gpioSettings;
 #endif
 
@@ -471,7 +468,7 @@ int main(int argc, const char **argv)
             print_usage();
             return 0;
         }
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+#if NEXUS_HAS_GPIO
         else if (!strcmp(argv[curarg], "-p") && argc>curarg+1) {
             char *gpio_string;
             gpio_pin = strtoul(argv[curarg+1], &gpio_string, 10);
@@ -561,7 +558,7 @@ int main(int argc, const char **argv)
 
     NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
 
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+#if NEXUS_HAS_GPIO
     if (gpio_enabled) {
         printf("Enabling wakeup GPIO: %s-%d\n", gpio_type_str[gpio_type], gpio_pin);
         NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
@@ -634,7 +631,7 @@ int main(int argc, const char **argv)
     }
 
 done:
-#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+#if NEXUS_HAS_GPIO
     if (gpio_enabled) {
         NEXUS_Gpio_Close(pContext->pin_handle);
     }

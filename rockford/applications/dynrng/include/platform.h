@@ -43,6 +43,8 @@
 #define PLATFORM_H__ 1
 
 #include "platform_types.h"
+#include <stdint.h>
+#include <stddef.h>
 
 PlatformHandle platform_open(const char * appName);
 void platform_close(PlatformHandle platform);
@@ -65,10 +67,18 @@ void platform_display_set_hdmi_colorimetry(PlatformDisplayHandle display, Platfo
 bool platform_display_hdmi_is_connected(PlatformDisplayHandle display);
 void platform_display_wait_for_display_settings_application(PlatformDisplayHandle display);
 
+void platform_display_set_nl2l_source(unsigned source);
+void platform_display_load_nl2l_lut(size_t len, uint32_t * data);
+
 void platform_plm_set_vid_point(unsigned inputIndex, unsigned rectIndex, unsigned pointIndex, double slopeMantissa, int slopeExponent, double x, double y);
 void platform_plm_get_vid_point(unsigned inputIndex, unsigned rectIndex, unsigned pointIndex, double * pSlopeMantissa, int * pSlopeExponent, double * pX, double * pY);
 void platform_plm_set_gfx_point(unsigned inputIndex, unsigned rectIndex, unsigned pointIndex, double slopeMantissa, int slopeExponent, double x, double y);
 void platform_plm_get_gfx_point(unsigned inputIndex, unsigned rectIndex, unsigned pointIndex, double * pSlopeMantissa, int * pSlopeExponent, double * pX, double * pY);
+
+void platform_plm_set_vid_lra(unsigned inputIndex, unsigned rectIndex, bool enabled);
+void platform_plm_get_vid_lra(unsigned inputIndex, unsigned rectIndex, bool *enabled);
+void platform_plm_set_gfx_lra(unsigned inputIndex, unsigned rectIndex, bool enabled);
+void platform_plm_get_gfx_lra(unsigned inputIndex, unsigned rectIndex, bool *enabled);
 
 PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const char * fontPath, unsigned fbWidth, unsigned fbHeight);
 void platform_graphics_close(PlatformGraphicsHandle gfx);
@@ -82,9 +92,10 @@ unsigned platform_graphics_get_text_width(PlatformGraphicsHandle gfx, const char
 const PlatformRect * platform_graphics_get_fb_rect(PlatformGraphicsHandle gfx);
 void platform_graphics_submit(PlatformGraphicsHandle gfx);
 void platform_graphics_render_picture(PlatformGraphicsHandle gfx, PlatformPictureHandle pic, const PlatformRect * pRect);
-void platform_graphics_scale_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect);
-void platform_graphics_move_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect);
+void platform_graphics_scale_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect, unsigned id);
+void platform_graphics_move_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect, unsigned id);
 void platform_graphics_render_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect);
+unsigned platform_graphics_get_non_mosaic_window_id(PlatformGraphicsHandle gfx);
 
 PlatformPictureHandle platform_picture_create(PlatformHandle platform, const char * picturePath);
 void platform_picture_destroy(PlatformPictureHandle pic);
@@ -96,9 +107,10 @@ const char * platform_picture_get_path(PlatformPictureHandle pic);
 extern const int PLATFORM_TRICK_RATE_1X;
 PlatformMediaPlayerHandle platform_media_player_create(PlatformHandle platform, PlatformCallback streamInfoCallback, void * streamInfoContext);
 void platform_media_player_destroy(PlatformMediaPlayerHandle player);
-void playform_media_player_start(PlatformMediaPlayerHandle player);
-void playform_media_player_stop(PlatformMediaPlayerHandle player);
-void playform_media_player_trick(PlatformMediaPlayerHandle player, int rate);
+int platform_media_player_start(PlatformMediaPlayerHandle player, const char * url, bool mosaic);
+void platform_media_player_stop(PlatformMediaPlayerHandle player);
+void platform_media_player_trick(PlatformMediaPlayerHandle player, int rate);
+void platform_media_player_frame_advance(PlatformMediaPlayerHandle player, bool mosaic);
 void platform_media_player_get_picture_info(PlatformMediaPlayerHandle player, PlatformPictureInfo * pInfo);
 
 PlatformReceiverHandle platform_receiver_open(PlatformHandle platform, PlatformCallback hotplugCallback, void * hotplugContext);
@@ -113,7 +125,7 @@ PlatformCapability platform_receiver_supports_color_depth(PlatformReceiverHandle
 
 PlatformInputHandle platform_input_open(PlatformHandle platform, PlatformInputMethod method);
 void platform_input_close(PlatformInputHandle input);
-void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEvent event, PlatformCallback callback, void * callbackContext, int param);
+void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEvent event, PlatformCallback callback, void * callbackContext);
 bool platform_input_try(PlatformInputHandle input);
 
 PlatformSchedulerHandle platform_get_scheduler(PlatformHandle platform);

@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "v3d_gen.h"
@@ -294,5 +293,15 @@ bool v3d_build_tfu_cmd(V3D_TFU_COMMAND_T *cmd,
       const GFX_BUFFER_DESC_T *dst_desc,
       unsigned num_dst_levels, bool skip_dst_level_0,
       v3d_addr_t src_base_addr, v3d_addr_t dst_base_addr);
+
+void v3d_tfu_calc_src_desc(
+   v3d_addr_t *base_addr, GFX_BUFFER_DESC_T *desc,
+   v3d_tfu_yuv_col_space_t *yuv_col_space, // May be NULL
+   const V3D_TFU_COMMAND_T *cmd, unsigned dram_map_version);
+
+// descs[0] shouldn't be used if cmd->disable_main_texture_write
+void v3d_tfu_calc_dst_descs(
+   v3d_addr_t *base_addr, GFX_BUFFER_DESC_T *descs,
+   const V3D_TFU_COMMAND_T *cmd);
 
 VCOS_EXTERN_C_END

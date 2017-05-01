@@ -215,6 +215,9 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eDISABLE_RPMB_HMAC = 0x6a,
     BCMD_cmdType_eSCTE52_Decrypt_Protection_Key = 0x6b,
     BCMD_cmdType_eSCTE52_Load_CW = 0x6c,
+    BCMD_cmdType_eReserved109  =  0x6d,
+    BCMD_cmdType_eReserved110  =  0x6e,
+    BCMD_cmdType_eReserved111  =  0x6f,
 
 
 

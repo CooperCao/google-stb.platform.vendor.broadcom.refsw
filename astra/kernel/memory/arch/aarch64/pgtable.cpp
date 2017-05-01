@@ -240,7 +240,9 @@ PageTable::~PageTable() {
                 if (GET_MEMORY_ACCESS_SW_BITS(l3Entry) != AllocOnWrite &&
                     GET_MEMORY_ACCESS_SW_BITS(l3Entry) != SharedMem) {
 						TzMem::PhysAddr cowPage = (void *)(l3Entry & L3_PHYS_ADDR_MASK);
-						TzMem::freePage(cowPage);
+						if (cowPage != (TzMem::PhysAddr) L3_PHYS_ADDR_MASK) {
+							TzMem::freePage(cowPage);
+						}
 					}
 				}
 

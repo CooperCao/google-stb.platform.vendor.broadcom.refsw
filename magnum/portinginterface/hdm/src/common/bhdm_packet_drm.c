@@ -45,6 +45,35 @@
 
 BDBG_MODULE(BHDM_PACKET_DRM) ;
 
+/******************************************************************************
+Summary:
+Display the DRM Info Frame packet to be sent to the HDMI Rx
+*******************************************************************************/
+void BHDM_DisplayDRMInfoFramePacket(
+   const BHDM_Handle hHDMI,		  /* [in] HDMI handle */
+   BAVC_HDMI_DRMInfoFrame *pstDRMInfoFrame
+)
+{
+#if BDBG_DEBUG_BUILD
+
+	BDBG_LOG(("*** DRM INFOFRAME")) ;
+	BDBG_LOG(("Tx%d: Checksum:   %#02x", hHDMI->eCoreId,
+		hHDMI->PacketBytes[0])) ;
+
+	BDBG_LOG(("Tx%d: DRM EOTF:   %s", hHDMI->eCoreId,
+		BAVC_HDMI_DRMInfoFrame_EOTFToStr(pstDRMInfoFrame->eEOTF))) ;
+
+	BDBG_LOG(("Tx%d: DRM Descriptor ID   %s", hHDMI->eCoreId,
+		BAVC_HDMI_DRMInfoFrame_DescriptorIdToStr(pstDRMInfoFrame->eDescriptorId))) ;
+
+	/* TODO Add parse/display of fields within the packet */
+	BDBG_LOG((" ")) ;
+#else
+	BSTD_UNUSED(hHDMI) ;
+	BSTD_UNUSED(pstDRMInfoFrame) ;
+#endif
+}
+
 
 /******************************************************************************
 Summary:
@@ -204,29 +233,20 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stDRMInfoFrame, pstDRMInfoFrame,
 		sizeof(BAVC_HDMI_DRMInfoFrame)) ;
 
-
-	BDBG_MSG(("------------------- NEW  DRM INFOFRAME ------------------")) ;
-	BDBG_MSG(("Tx%d: Packet Type: 0x%02x  Version %d  Length: %d", hHDMI->eCoreId,
-		PacketType, PacketVersion, PacketLength)) ;
-	BDBG_MSG(("Tx%d: Checksum            %#02x", hHDMI->eCoreId,
-		hHDMI->PacketBytes[0])) ;
-
-	BDBG_MSG(("Tx%d: DRM EOTF     %s", hHDMI->eCoreId,
-		BAVC_HDMI_DRMInfoFrame_EOTFToStr(pstDRMInfoFrame->eEOTF))) ;
-
-	BDBG_MSG(("Tx%d: DRM Descriptor ID   %s", hHDMI->eCoreId,
-		BAVC_HDMI_DRMInfoFrame_DescriptorIdToStr(pstDRMInfoFrame->eDescriptorId))) ;
-
+#if BDBG_DEBUG_BUILD
 	{
-		uint8_t i ;
+		BDBG_Level level ;
 
-		for (i = 1 ; i <= PacketLength ; i++)
+		BDBG_GetModuleLevel("BHDM_PACKET_DRM", &level) ;
+		if (level == BDBG_eMsg)
 		{
-			BDBG_MSG(("Tx%d: Data Byte %02d = %#02x h", hHDMI->eCoreId,
-				i, hHDMI->PacketBytes[i])) ;
+			BDBG_MSG(("Tx%d: Packet Type: 0x%02x  Version %d  Length: %d", hHDMI->eCoreId,
+				PacketType, PacketVersion, PacketLength)) ;
+
+			BHDM_DisplayDRMInfoFramePacket( hHDMI, pstDRMInfoFrame) ;
 		}
 	}
-
+#endif
 
 done:
 	return rc ;

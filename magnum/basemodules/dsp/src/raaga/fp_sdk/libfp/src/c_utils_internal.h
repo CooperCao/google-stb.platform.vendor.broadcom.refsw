@@ -99,9 +99,22 @@
 
 #if !defined(__LINKER_SCRIPT__)     /* limit typed bitmasks to C sources */
 
-#if !defined(CHAR_BIT)
-#define CHAR_BIT 8
-#endif
+/* Raaga Magnum is allergic to limits.h (sigh...) so we need a bit of acrobatics here */
+#  if defined(__FIREPATH__)
+#    include <limits.h>
+#  else
+#    include "libdspcontrol/CHIP.h"
+#    if FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+#      ifdef __CHAR_BIT__
+#        define CHAR_BIT    __CHAR_BIT__
+#      else
+#        define CHAR_BIT    8
+#      endif
+#    else
+#      include <limits.h>
+#    endif
+#  endif
+
 #define NBITS(type)                         (CHAR_BIT * sizeof(type))
 #define BIT_T(type, n)                      ((n) < NBITS(type) ? ((type) 1) << ((n) % NBITS(type)) : ((type) 0))
 #define BITMASK_T(type, t, b)               ((type)(BIT_T(type, 1 + (t)) - BIT_T(type, b)))
@@ -116,6 +129,17 @@
 #define BITMASK_64(t, b)                    BITMASK_T(uint64_t, t, b)
 
 #endif  /* !defined(__LINKER_SCRIPT__) */
+
+
+/* https://lists.freebsd.org/pipermail/freebsd-current/2007-February/069093.html */
+#define _BITS_FLOOD_2(x)        (              (x) | (              (x) >>  1))
+#define _BITS_FLOOD_4(x)        ( _BITS_FLOOD_2(x) | ( _BITS_FLOOD_2(x) >>  2))
+#define _BITS_FLOOD_8(x)        ( _BITS_FLOOD_4(x) | ( _BITS_FLOOD_4(x) >>  4))
+#define _BITS_FLOOD_16(x)       ( _BITS_FLOOD_8(x) | ( _BITS_FLOOD_8(x) >>  8))
+#define _BITS_FLOOD_32(x)       (_BITS_FLOOD_16(x) | (_BITS_FLOOD_16(x) >> 16))
+#define _BITS_FLOOD_64(x)       (_BITS_FLOOD_32(x) | (_BITS_FLOOD_32(x) >> 32))
+/** Return the next power-of-2 value. Requires x > 0 and x < 2**31. */
+#define CEIL_TO_POWER_OF_2(x)   (_BITS_FLOOD_32(x - 1) + 1)
 
 
 /* Debugging */

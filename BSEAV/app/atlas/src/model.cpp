@@ -84,7 +84,8 @@ CModel::CModel(const char * strName) :
     _pAudioCapture(NULL),
     _simpleVideoDecoderServer(NULL),
     _simpleAudioDecoderServer(NULL),
-    _simpleEncoderServer(NULL)
+    _simpleEncoderServer(NULL),
+    _dynamicRangeLast(eDynamicRange_Unknown)
 #ifdef CPUTEST_SUPPORT
     , _pCpuTest(NULL)
 #endif
@@ -346,6 +347,7 @@ void CModel::setCurrentChannel(
     }
 
     if ((NULL == pChannel) &&
+        (eWindowType_Mosaic1 > windowType) &&
         (NULL != _currentChannel[windowType]) &&
         (false == _currentChannel[windowType]->isStopAllowed()))
     {
@@ -488,7 +490,10 @@ void CModel::setDeferredChannelNum(
         _pDeferredChannel[windowType]   = pCh;
     }
 
-    notifyObservers(eNotify_DeferredChannel, &windowType);
+    if ((NULL != strChNum) || (NULL != pCh))
+    {
+        notifyObservers(eNotify_DeferredChannel, &windowType);
+    }
 } /* setDeferredChannelNum */
 
 /* send keyDown event to registered observers.  this circumvents the bwidget

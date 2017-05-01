@@ -549,11 +549,11 @@ static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize,
     nexus_p_free_capture_buffers();
 
     /* call function which captures to NEXUS_P_ProcFsState */
-    BDBG_SetModulePrintFunction(p->dbg_modules,brcm_proc_dbgprint_capture);
     NEXUS_Module_Lock(p->handle);
+    BDBG_SetModulePrintFunction(p->dbg_modules,brcm_proc_dbgprint_capture);
     p->callback(p->context);
-    NEXUS_Module_Unlock(p->handle);
     BDBG_SetModulePrintFunction(p->dbg_modules,NULL);
+    NEXUS_Module_Unlock(p->handle);
 
     #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
     *start = buf; /* reading fs/proc/generic.c, this is required for multi-page reads */
@@ -611,11 +611,11 @@ void nexus_driver_proc_unregister_status(const char *filename)
     int i;
     for (i=0; i < NEXUS_P_PROC_DATA_MAX; i++) {
         if (g_proc_data[i].filename==filename) {
+            remove_proc_entry(filename, brcm_dir_entry);
             g_proc_data[i].filename = NULL;
             g_proc_data[i].dbg_modules = NULL;
             g_proc_data[i].callback = NULL;
             g_proc_data[i].context = NULL;
-            remove_proc_entry(filename, brcm_dir_entry);
             break;
         }
     }

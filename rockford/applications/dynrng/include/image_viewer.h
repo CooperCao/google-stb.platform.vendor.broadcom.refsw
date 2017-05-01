@@ -63,7 +63,8 @@ typedef struct ImageViewerCreateSettings
 void image_viewer_get_default_create_settings(ImageViewerCreateSettings * pSettings);
 ImageViewerHandle image_viewer_create(const ImageViewerCreateSettings * pSettings);
 void image_viewer_destroy(ImageViewerHandle viewer);
-void image_viewer_view_image(ImageViewerHandle viewer, unsigned imageIndex);
+void image_viewer_view_image_by_index(ImageViewerHandle viewer, int imageIndex);
+void image_viewer_view_image_by_path(ImageViewerHandle viewer, const char * imagePath);
 void image_viewer_first(ImageViewerHandle viewer);
 void image_viewer_next(ImageViewerHandle viewer);
 void image_viewer_prev(ImageViewerHandle viewer);

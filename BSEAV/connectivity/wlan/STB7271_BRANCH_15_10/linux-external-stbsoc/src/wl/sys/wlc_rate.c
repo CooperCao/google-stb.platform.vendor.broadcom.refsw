@@ -641,14 +641,9 @@ wlc_rateset_merge(wlc_rateset_t *rs1, wlc_rateset_t *rs2)
 	rs1->count = 0;
 	for (i = 0; i < WLC_MAXRATE+1; i++) {
 		if (rateset[i]) {
+			if (rs1->count >= WLC_NUMRATES) break;
 			rs1->rates[rs1->count] = rateset[i];
 			rs1->count++;
-			if (rs1->count > WLC_NUMRATES) {
-				WL_ERROR(("%s: number of rates %d can't be more than %d\n",
-					__FUNCTION__, rs1->count, WLC_NUMRATES));
-				ASSERT(0);
-				return;
-			}
 		}
 	}
 }

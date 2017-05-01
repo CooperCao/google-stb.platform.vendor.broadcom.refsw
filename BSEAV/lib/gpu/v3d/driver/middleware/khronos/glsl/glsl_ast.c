@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include <stdlib.h>
@@ -2368,11 +2361,29 @@ Expr* glsl_expr_construct_binary_op_equality(ExprFlavour flavour, Expr* left, Ex
       if (left->compile_time_value && right->compile_time_value)
       {
          const_bool equal;
+         int left_index = left->type->u.primitive_type.index;
+         int left_flags = primitiveTypeFlags[left_index];
+         uint32_t *left_value = (uint32_t *)left->compile_time_value;
+         uint32_t *right_value = (uint32_t *)right->compile_time_value;
+
+         switch (left_flags & (PRIM_BOOL_TYPE | PRIM_INT_TYPE | PRIM_FLOAT_TYPE))
+         {
+         case PRIM_FLOAT_TYPE:
+            /* floats need a more detailed comparison to determine equality */
+            for (int i = 0; i < left->type->scalar_count; ++i) {
+               const_int res;
+               /* returns 0 for equality */
+               op_cmp__const_int__const_float__const_float(&res, &left_value[i], &right_value[i]);
+               equal = !res;
+               if (!equal) break;
+            }
+            break;
+         default:
+            equal = (0 == memcmp(left->compile_time_value, right->compile_time_value, operand_size_as_const));
+            break;
+         }
 
          expr->compile_time_value = malloc_fast(expr->type->size_as_const);
-
-         equal = (0 == memcmp(left->compile_time_value, right->compile_time_value, operand_size_as_const));
-
          switch (flavour)
          {
          case EXPR_EQUAL:
@@ -2509,7 +2520,6 @@ Expr* glsl_expr_construct_intrinsic(ExprFlavour flavour, ExprChain* args)
    const SymbolType *type;
    const int BAD_ARG_COUNT = 24, BAD_ARG_TYPES = 25;
    int error = 0;
-   bool bad_arg_types = false, bad_arg_count = false;
    Expr* expr = (Expr *)malloc_fast(sizeof(Expr));
 
    expr->line_num = g_LineNumber;

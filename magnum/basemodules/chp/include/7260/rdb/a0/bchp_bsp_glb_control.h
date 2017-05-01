@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,46 +70,46 @@
 /***************************************************************************
  *BSP_GLB_CONTROL - BSP GLOBAL Control Register
  ***************************************************************************/
-#define BCHP_BSP_GLB_CONTROL_GLB_REVISION        0x2032d000 /* [RO] Revision Register */
-#define BCHP_BSP_GLB_CONTROL_GLB_TIMER           0x2032d004 /* [RO] Timer */
-#define BCHP_BSP_GLB_CONTROL_GLB_IRDY            0x2032d008 /* [RO] Input Command Buffer Ready */
-#define BCHP_BSP_GLB_CONTROL_GLB_ORDY            0x2032d00c /* [RW] Output Command Buffer Ready */
-#define BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS 0x2032d010 /* [RW] Host CPU Interrupt Status */
-#define BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_EN    0x2032d014 /* [RW] Host CPU Interrupt Enable */
-#define BCHP_BSP_GLB_CONTROL_GLB_RAAGA_INTR_STATUS 0x2032d018 /* [RW] Host CPU Interrupt Status */
-#define BCHP_BSP_GLB_CONTROL_GLB_OLOAD2          0x2032d020 /* [RW] Output Command Buffer 2 Loaded */
-#define BCHP_BSP_GLB_CONTROL_GLB_OLOAD1          0x2032d024 /* [RW] Output Command Buffer 1 Loaded */
-#define BCHP_BSP_GLB_CONTROL_GLB_ILOAD2          0x2032d028 /* [RW] Input Command Buffer 2 Loaded */
-#define BCHP_BSP_GLB_CONTROL_GLB_ILOAD1          0x2032d02c /* [RW] Input Command Buffer 1 Loaded */
-#define BCHP_BSP_GLB_CONTROL_HOST_TO_BSP_GENERAL_INTR 0x2032d034 /* [RW] HOST to BSP Processor General Interrupt Trigger Register */
-#define BCHP_BSP_GLB_CONTROL_GLB_MISC0           0x2032d038 /* [RW] Aegis Miscellaneous Control Configuration */
-#define BCHP_BSP_GLB_CONTROL_GLB_JTAG_DEBUG_CTRL 0x2032d040 /* [RW] Aegis JTAG Debug Control */
-#define BCHP_BSP_GLB_CONTROL_ZZYZX_CLOCK_STOP    0x2032d04c /* [RW] ZZYZX Clock Stop */
-#define BCHP_BSP_GLB_CONTROL_GLB_DWNLD_ERR       0x2032d050 /* [RW] Download Error flags */
-#define BCHP_BSP_GLB_CONTROL_GLB_DWNLD_STATUS    0x2032d054 /* [RO] Download Status flags */
-#define BCHP_BSP_GLB_CONTROL_GLB_OLOAD_CR        0x2032d058 /* [RW] Challenge/Response Output Command Buffer Loaded */
-#define BCHP_BSP_GLB_CONTROL_GLB_ILOAD_CR        0x2032d05c /* [RW] Challenge/Response Input Command Buffer Loaded */
-#define BCHP_BSP_GLB_CONTROL_OTP_HASH_CRC        0x2032d060 /* [RO] OTP HASH CRC Register */
-#define BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_hi 0x2032d064 /* [RO] Otp value v_PubOtpUniqueID_hi */
-#define BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_lo 0x2032d068 /* [RO] Otp value v_PubOtpUniqueID_lo */
-#define BCHP_BSP_GLB_CONTROL_v_PubOtpOID         0x2032d06c /* [RO] Otp value v_PubOtpOID */
-#define BCHP_BSP_GLB_CONTROL_v_Version           0x2032d070 /* [RO] Otp value v_Version */
-#define BCHP_BSP_GLB_CONTROL_OTP_MSP_CRC         0x2032d074 /* [RO] MSP CRC Register */
-#define BCHP_BSP_GLB_CONTROL_FW_FLAGS            0x2032d078 /* [RW] FW Error Flags */
-#define BCHP_BSP_GLB_CONTROL_OTP_HASH2_CRC       0x2032d07c /* [RO] OTP HASH2 CRC Register */
-#define BCHP_BSP_GLB_CONTROL_ASKM_STB_OwnerID    0x2032d080 /* [RO] Otp value ASKM_STB_OwnerID */
-#define BCHP_BSP_GLB_CONTROL_HW_FLAGS            0x2032d084 /* [RW] HW Error Flags */
-#define BCHP_BSP_GLB_CONTROL_DEBUG_PASSWORD      0x2032d088 /* [RW] Debug/EJTAG Password Data */
-#define BCHP_BSP_GLB_CONTROL_DEBUG_PASSWORD_CTRL 0x2032d08c /* [RW] Debug/EJTAG Password Ctrl/Status */
-#define BCHP_BSP_GLB_CONTROL_POWAY_UID_HI        0x2032d090 /* [RO] Otp value Poway_UID */
-#define BCHP_BSP_GLB_CONTROL_POWAY_UID_LO        0x2032d094 /* [RO] Otp value Poway_UID */
-#define BCHP_BSP_GLB_CONTROL_POWAY_BUSY          0x2032d098 /* [RO] Poway Busy Register */
-#define BCHP_BSP_GLB_CONTROL_FW_COUNTER          0x2032d09c /* [RW] FW Error Flags */
-#define BCHP_BSP_GLB_CONTROL_SCPU_DDONE          0x2032d0a0 /* [RW] SCPU Data Done */
-#define BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT        0x2032d0a4 /* [RW] SCPU Nonsecure Software Init register. */
-#define BCHP_BSP_GLB_CONTROL_ZZYZX_SW_RESET      0x2032d0a8 /* [RW] public ZZYZX software reset Register */
-#define BCHP_BSP_GLB_CONTROL_ZZYZX_CTRL          0x2032d0ac /* [RW] ZZYZX Control */
-#define BCHP_BSP_GLB_CONTROL_ZZYZX_RNG_CTRL      0x2032d0b0 /* [RW] ZZYZX RNG Control */
+#define BCHP_BSP_GLB_CONTROL_GLB_REVISION        0x2032d000 /* [RO][32] Revision Register */
+#define BCHP_BSP_GLB_CONTROL_GLB_TIMER           0x2032d004 /* [RO][32] Timer */
+#define BCHP_BSP_GLB_CONTROL_GLB_IRDY            0x2032d008 /* [RO][32] Input Command Buffer Ready */
+#define BCHP_BSP_GLB_CONTROL_GLB_ORDY            0x2032d00c /* [RW][32] Output Command Buffer Ready */
+#define BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS 0x2032d010 /* [RW][32] Host CPU Interrupt Status */
+#define BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_EN    0x2032d014 /* [RW][32] Host CPU Interrupt Enable */
+#define BCHP_BSP_GLB_CONTROL_GLB_RAAGA_INTR_STATUS 0x2032d018 /* [RW][32] Host CPU Interrupt Status */
+#define BCHP_BSP_GLB_CONTROL_GLB_OLOAD2          0x2032d020 /* [RW][32] Output Command Buffer 2 Loaded */
+#define BCHP_BSP_GLB_CONTROL_GLB_OLOAD1          0x2032d024 /* [RW][32] Output Command Buffer 1 Loaded */
+#define BCHP_BSP_GLB_CONTROL_GLB_ILOAD2          0x2032d028 /* [RW][32] Input Command Buffer 2 Loaded */
+#define BCHP_BSP_GLB_CONTROL_GLB_ILOAD1          0x2032d02c /* [RW][32] Input Command Buffer 1 Loaded */
+#define BCHP_BSP_GLB_CONTROL_HOST_TO_BSP_GENERAL_INTR 0x2032d034 /* [RW][32] HOST to BSP Processor General Interrupt Trigger Register */
+#define BCHP_BSP_GLB_CONTROL_GLB_MISC0           0x2032d038 /* [RW][32] Aegis Miscellaneous Control Configuration */
+#define BCHP_BSP_GLB_CONTROL_GLB_JTAG_DEBUG_CTRL 0x2032d040 /* [RW][32] Aegis JTAG Debug Control */
+#define BCHP_BSP_GLB_CONTROL_ZZYZX_CLOCK_STOP    0x2032d04c /* [RW][32] ZZYZX Clock Stop */
+#define BCHP_BSP_GLB_CONTROL_GLB_DWNLD_ERR       0x2032d050 /* [RW][32] Download Error flags */
+#define BCHP_BSP_GLB_CONTROL_GLB_DWNLD_STATUS    0x2032d054 /* [RO][32] Download Status flags */
+#define BCHP_BSP_GLB_CONTROL_GLB_OLOAD_CR        0x2032d058 /* [RW][32] Challenge/Response Output Command Buffer Loaded */
+#define BCHP_BSP_GLB_CONTROL_GLB_ILOAD_CR        0x2032d05c /* [RW][32] Challenge/Response Input Command Buffer Loaded */
+#define BCHP_BSP_GLB_CONTROL_OTP_HASH_CRC        0x2032d060 /* [RO][32] OTP HASH CRC Register */
+#define BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_hi 0x2032d064 /* [RO][32] Otp value v_PubOtpUniqueID_hi */
+#define BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_lo 0x2032d068 /* [RO][32] Otp value v_PubOtpUniqueID_lo */
+#define BCHP_BSP_GLB_CONTROL_v_PubOtpOID         0x2032d06c /* [RO][32] Otp value v_PubOtpOID */
+#define BCHP_BSP_GLB_CONTROL_v_Version           0x2032d070 /* [RO][32] Otp value v_Version */
+#define BCHP_BSP_GLB_CONTROL_OTP_MSP_CRC         0x2032d074 /* [RO][32] MSP CRC Register */
+#define BCHP_BSP_GLB_CONTROL_FW_FLAGS            0x2032d078 /* [RW][32] FW Error Flags */
+#define BCHP_BSP_GLB_CONTROL_OTP_HASH2_CRC       0x2032d07c /* [RO][32] OTP HASH2 CRC Register */
+#define BCHP_BSP_GLB_CONTROL_ASKM_STB_OwnerID    0x2032d080 /* [RO][32] Otp value ASKM_STB_OwnerID */
+#define BCHP_BSP_GLB_CONTROL_HW_FLAGS            0x2032d084 /* [RW][32] HW Error Flags */
+#define BCHP_BSP_GLB_CONTROL_DEBUG_PASSWORD      0x2032d088 /* [RW][32] Debug/EJTAG Password Data */
+#define BCHP_BSP_GLB_CONTROL_DEBUG_PASSWORD_CTRL 0x2032d08c /* [RW][32] Debug/EJTAG Password Ctrl/Status */
+#define BCHP_BSP_GLB_CONTROL_POWAY_UID_HI        0x2032d090 /* [RO][32] Otp value Poway_UID */
+#define BCHP_BSP_GLB_CONTROL_POWAY_UID_LO        0x2032d094 /* [RO][32] Otp value Poway_UID */
+#define BCHP_BSP_GLB_CONTROL_POWAY_BUSY          0x2032d098 /* [RO][32] Poway Busy Register */
+#define BCHP_BSP_GLB_CONTROL_FW_COUNTER          0x2032d09c /* [RW][32] FW Error Flags */
+#define BCHP_BSP_GLB_CONTROL_SCPU_DDONE          0x2032d0a0 /* [RW][32] SCPU Data Done */
+#define BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT        0x2032d0a4 /* [RW][32] SCPU Nonsecure Software Init register. */
+#define BCHP_BSP_GLB_CONTROL_ZZYZX_SW_RESET      0x2032d0a8 /* [RW][32] public ZZYZX software reset Register */
+#define BCHP_BSP_GLB_CONTROL_ZZYZX_CTRL          0x2032d0ac /* [RW][32] ZZYZX Control */
+#define BCHP_BSP_GLB_CONTROL_ZZYZX_RNG_CTRL      0x2032d0b0 /* [RW][32] ZZYZX RNG Control */
 
 /***************************************************************************
  *GLB_REVISION - Revision Register

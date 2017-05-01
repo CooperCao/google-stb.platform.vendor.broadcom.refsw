@@ -313,6 +313,7 @@ typedef enum BDSP_AF_P_AlgoId
     BDSP_AF_P_AlgoId_eOutputFormatterPostProc,
     BDSP_AF_P_AlgoId_eVocalPostProc,
     BDSP_AF_P_AlgoId_eFadeCtrlPostProc,
+	BDSP_AF_P_AlgoId_eTsmCorrectionPostProc,
     BDSP_AF_P_AlgoId_eEndOfPpAlgos,
 
     /*  All algo Ids for post proc frame sync */
@@ -445,6 +446,7 @@ typedef enum BDSP_AF_P_DecodeEncPPAlgoType
     BDSP_AF_P_PostProcessingType_eOutputFormatter,
     BDSP_AF_P_PostProcessingType_eVocalPP,
     BDSP_AF_P_PostProcessingType_eFadeCtrl,
+	BDSP_AF_P_PostProcessingType_eTsmCorrection,
     /* Extra Gap fillers*/
     BDSP_AF_P_PostProcessingType_eExtraPPsStart,
     BDSP_AF_P_PostProcessingType_eExtraPPsEnd =96,
@@ -969,6 +971,7 @@ typedef struct BDSP_sEncodeParams
     /* 32bit RDB address from DSP page where pic metadata address will be updated. It will hold a DRAM address */
     uint32_t                            ui32RdbForPicDescp[BDSP_FW_VIDEO_ENC_MAX_INTERRUPT_TO_DSP];
     uint32_t                            IsGoBitInterruptEnabled;
+	uint32_t							IsNrtModeEnabled;
 
 }BDSP_VF_P_sEncodeParams;
 

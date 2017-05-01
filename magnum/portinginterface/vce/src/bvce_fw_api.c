@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -219,13 +219,6 @@
 #define U32xPOSQ8MULTIPLY(operand32bit,  operand16bit) ((UMULT16((operand32bit)>>16, (operand16bit))<<8) + (UMULT16((operand32bit), (operand16bit))>>8))
 
 /* ==========================  STRUCTURES  ================================== */
-typedef struct FPNumber
-{
-    uint32_t mantissa;        /* the significant digits of the floating point number */
-    int32_t exponent;         /* the floating point number exponent */
-} FPNumber_t;
-
-
 static void RcNumToFP(FPNumber_t *outputFPNumber, uint32_t inputNumber, uint8_t numBits);
 static uint32_t RcFPToNum(FPNumber_t localFPNumber);
 static uint32_t RcU32ScaleFP(FPNumber_t FP_operand, uint32_t scaleFactor, uint8_t bypassNormFlag);
@@ -244,15 +237,7 @@ extern void_t NormalizeFP(FPNumber_t *pOutputFPNumber, FPNumber_t pInputFPNumber
 /* ==========================  DATA  ============================== */
 
 /* ==========================  CODE  ============================== */
-uint32_t BVCE_FW_P_ConvertFrameRate(FrameRate_e framesPerSecond, FPNumber_t *FP_inverse);
-uint32_t BVCE_FW_P_CalcHRDbufferSize(uint32_t  Protocol, uint32_t  Profile, EncoderLevel_e  Level);
-uint32_t BVCE_FW_P_Compute_DeeIn27MhzTicks(uint32_t averageBitsPerPic, uint32_t hrdBufferSize, FPNumber_t FP_ticksPerBit,
-                                           uint32_t maxPictureIntervalIn27MhzTicks, uint32_t *pMaxAllowedBitsPerPicture, uint8_t MaxNumFNRT);
 
-uint32_t BVCE_FW_P_Compute_MaxDeeIn27MhzTicks(uint32_t hrdBufferSize, FPNumber_t FP_ticksPerBit);
-void BVCE_FW_P_ComputeRateInTicksPerBit(FPNumber_t *pt_FP_ticksPerBit, uint32_t bitrateBPS);
-uint32_t BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(uint32_t MinAllowedBvnFrameRate, uint8_t ITFPenable, uint8_t Mode, FrameRate_e MinFrameRateLimit, uint8_t InputType, uint8_t MaxAllowedGopStruct, uint32_t PictureWidthInPels, uint32_t PictureHeightInPels);
-FrameRate_e BVCE_FW_P_FrameRateCodeToFrameRate( FrameRateCode_e FrameRateCode );
 
 #ifndef BSTD_UNUSED
 #define BSTD_UNUSED(x)
@@ -1118,7 +1103,7 @@ static int16_t arcDivide16(int16_t numerator, int16_t denominator)
 *        Number of stripes in a picture width
 *
 ************************************************************************/
-uint8_t bvceEpmCalcWidthInStripes(uint32_t PictureWidthInPels,uint32_t DramStripeWidth)
+static uint8_t bvceEpmCalcWidthInStripes(uint32_t PictureWidthInPels,uint32_t DramStripeWidth)
 {
     uint8_t WidthInStripes;
 
@@ -1152,7 +1137,7 @@ uint8_t bvceEpmCalcWidthInStripes(uint32_t PictureWidthInPels,uint32_t DramStrip
 *        Aligned number
 *
 ************************************************************************/
-uint32_t bvceEpmAlignJword(uint32_t UnalignedNumber)
+static uint32_t bvceEpmAlignJword(uint32_t UnalignedNumber)
 {
     uint32_t AlignedNumber;
     AlignedNumber=(UnalignedNumber+31) & 0xffffffe0;
@@ -1173,7 +1158,7 @@ uint32_t bvceEpmAlignJword(uint32_t UnalignedNumber)
 *        Number of macroblocks per stripe height
 *
 ************************************************************************/
-uint8_t bvceEpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t Y)
+static uint8_t bvceEpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t Y)
 {
 
     uint8_t nmby,n;
@@ -1234,7 +1219,8 @@ uint8_t bvceEpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t Y)
 #define MULT16(x)       ( (x) << 4 )
 #define MULT8(x)        ( (x) << 3 )
 
-uint32_t bvceEpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf , uint32_t IsInterlace , uint32_t IsChroma , uint32_t X, uint32_t Y)
+#if 0
+static uint32_t bvceEpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf , uint32_t IsInterlace , uint32_t IsChroma , uint32_t X, uint32_t Y)
 {
     uint32_t Nmby;
     uint32_t DcxvPaddingHeight;
@@ -1276,7 +1262,7 @@ uint32_t bvceEpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf , u
     return(Nmby);
 
 }
-
+#endif
 
 /************************************************************************
 * Function: EpmCalcStripeBufferSize
@@ -1291,7 +1277,7 @@ uint32_t bvceEpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf , u
 *        buffer size
 *
 ************************************************************************/
-uint32_t bvceEpmCalcStripeBufferSize(uint32_t PictureWidthInPels , uint32_t PictureHeightInPels , uint32_t IsDcxvBuf , uint32_t IsInterlace , uint32_t StripeWidth , uint32_t X , uint32_t Y)
+static uint32_t bvceEpmCalcStripeBufferSize(uint32_t PictureWidthInPels , uint32_t PictureHeightInPels , uint32_t IsDcxvBuf , uint32_t IsInterlace , uint32_t StripeWidth , uint32_t X , uint32_t Y)
 {
 
     uint32_t BufferWidthInPels , BuffereHeightInPels;
@@ -1715,12 +1701,13 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 
         if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2 )
         {
-
+            /* Allocate collocated pixels buffer */
             BufferSize = 32*12* ((max_horizontal_size_in_pels + 63) >> 6) * max_vertical_size_in_pels;
 
             CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress = CurrAddress + BufferSize;
 
+            /* Allocate CABAC probabilites for VP9 ( not required for interlaced mode which is not supported in VP9 ) */
             CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress = CurrAddress + (5 * VP9_CTX_TABLE_SIZE);
         }

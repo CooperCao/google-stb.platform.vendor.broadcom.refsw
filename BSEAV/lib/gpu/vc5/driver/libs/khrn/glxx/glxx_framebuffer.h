@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 2.0 framebuffer / Open GL ES 1.1 OES_framebuffer_object structure declaration.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_FRAMEBUFFER_H
 #define GLXX_FRAMEBUFFER_H
 
@@ -58,8 +50,8 @@ typedef struct
       struct
       {
          glxx_ms_mode ms_mode;
-         KHRN_IMAGE_T *img;
-         KHRN_IMAGE_T *ms_img;  /* if samples == 0, img != NULL && ms_img == NULL;
+         khrn_image *img;
+         khrn_image *ms_img;  /* if samples == 0, img != NULL && ms_img == NULL;
                                    if samples != 0, ms_img != NULL and we
                                    might also have a downsampled image in img
                                    (e.g: when we multismaple, in the color attachment case,we have a
@@ -237,7 +229,7 @@ typedef enum
  * is_ms can be NULL if not needed.
  */
 extern bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
-      glxx_att_img_t att_img, KHRN_IMAGE_T **img, bool *is_ms);
+      glxx_att_img_t att_img, khrn_image **img, bool *is_ms);
 
 /* Acquires the desired att_img image from the read buffer specified for this
  * fb. If read buffer was set to none, img will be NULL.
@@ -247,7 +239,7 @@ extern bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
  * Filled in image is reference counted and the caller must release it.
  */
 extern bool glxx_fb_acquire_read_image(const GLXX_FRAMEBUFFER_T *fb,
-      glxx_att_img_t att_img, KHRN_IMAGE_T **img, bool *ms);
+      glxx_att_img_t att_img, khrn_image **img, bool *ms);
 
 extern GFX_LFMT_T glxx_attachment_get_api_fmt(const GLXX_ATTACHMENT_T *attachment);
 

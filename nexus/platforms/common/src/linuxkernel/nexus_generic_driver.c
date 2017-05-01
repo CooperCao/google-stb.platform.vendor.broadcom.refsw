@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -565,38 +565,6 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
 
     BSTD_UNUSED(unlocked);
     BSTD_UNUSED(compat);
-#if NEXUS_COMPAT_32ABI
-    if(compat) {
-        bool known=false;
-        bool good = false;
-#define CMD(x) if(cmd==x) { BDBG_LOG(("%u %s %u", cmd, #x, (unsigned)x)); known = true;}
-#define CMD_GOOD(x) if(cmd==x) { BDBG_MSG(("%u %s %u", cmd, #x, (unsigned)x)); known = true; good = true;}
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Image)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_RunScheduler)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Log_Deactivate)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Log_Test)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Log_Activate)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Log_Create)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Log_Dequeue)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Log_Destroy)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Platform_Uninit)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_StartCallbacks)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_StopCallbacks)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_Scheduler)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_SchedulerLock)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_CacheFlush)
-       CMD_GOOD( IOCTL_PROXY_NEXUS_AuthenticatedJoin )
-
-        if(!known) {
-            BDBG_LOG(("IOCTL %#x", cmd));
-        }
-        if(!good) {
-            (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
-            rc = NEXUS_UNKNOWN;
-            goto err_ioctl;
-        }
-    }
-#endif
 
     switch(cmd) {
     case IOCTL_PROXY_NEXUS_AuthenticatedJoin:
@@ -859,20 +827,17 @@ nexus_driver_module_print_cb_null(void *context)
 }
 
 NEXUS_Error
-nexus_driver_module_init_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings)
+nexus_platform_p_add_proc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void))
 {
-    if (settings->dbgModules && settings->dbgPrint) {
-        nexus_driver_proc_register_status(name, handle, settings->dbgModules, nexus_driver_module_print_cb_null, (void *)settings->dbgPrint);
-    }
+    nexus_driver_proc_register_status(filename, module, module_name, nexus_driver_module_print_cb_null, (void *)dbgPrint);
     return NEXUS_SUCCESS;
 }
 
 void
-nexus_driver_module_uninit_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings)
+nexus_platform_p_remove_proc(NEXUS_ModuleHandle module, const char *filename)
 {
-    if (settings->dbgModules && settings->dbgPrint) {
-        nexus_driver_proc_unregister_status(name);
-    }
+    BSTD_UNUSED(module);
+    nexus_driver_proc_unregister_status(filename);
 }
 
 /**
@@ -1045,6 +1010,23 @@ nexus_driver_create_client(const NEXUS_Certificate *pCertificate, const NEXUS_Cl
 
 static const char *g_clientModeStr[NEXUS_ClientMode_eMax] = {"unprotected","verified","protected","untrusted"};
 
+NEXUS_Error nexus_p_set_client_mode(struct nexus_driver_client_state *client, NEXUS_ClientMode mode)
+{
+    switch (mode) {
+    case NEXUS_ClientMode_eUnprotected: /* deprecated */
+        client->client.mode = NEXUS_ClientMode_eVerified;
+        break;
+    case NEXUS_ClientMode_eVerified:
+    case NEXUS_ClientMode_eProtected:
+    case NEXUS_ClientMode_eUntrusted:
+        client->client.mode = mode;
+        break;
+    default:
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    return NEXUS_SUCCESS;
+}
+
 /**
 nexus_driver_create_client is called in three places:
 1) from NEXUS_Platform_RegisterClient for authenticated clients
@@ -1069,19 +1051,8 @@ nexus_driver_create_client_lock(const NEXUS_Certificate *pCertificate, const NEX
         /* this path is only for authenticated clients */
         client->certificate = *pCertificate;
     }
-    switch (pConfig->mode) {
-    case NEXUS_ClientMode_eUnprotected: /* deprecated */
-        client->client.mode = NEXUS_ClientMode_eVerified;
-        break;
-    case NEXUS_ClientMode_eVerified:
-    case NEXUS_ClientMode_eProtected:
-    case NEXUS_ClientMode_eUntrusted:
-        client->client.mode = pConfig->mode;
-        break;
-    default:
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        goto err_invalid_mode;
-    }
+    rc = nexus_p_set_client_mode(client, pConfig->mode);
+    if (rc) { BERR_TRACE(rc); goto err_invalid_mode; }
 
     if (nexus_driver_state.server) {
         rc = b_get_client_default_heaps(&client->client.config, &client->client.default_heaps);

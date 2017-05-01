@@ -22,6 +22,7 @@
 #include "glsl_backend_cfg.h"
 #include "glsl_qbe_vertex.h"
 #include "glsl_qbe_fragment.h"
+#include "glsl_inline_asm.h"
 
 #include "libs/core/v3d/v3d_gen.h"
 #include "libs/util/gfx_util/gfx_util.h"
@@ -154,7 +155,9 @@ static void fragment_backend_init(FragmentBackendState *s,
 {
    s->ms                       = !!(backend & GLSL_SAMPLE_MS);
    s->sample_alpha_to_coverage = s->ms && !!(backend & GLSL_SAMPLE_ALPHA);
+#if !V3D_HAS_FEP_SAMPLE_MASK
    s->sample_mask              = s->ms && !!(backend & GLSL_SAMPLE_MASK);
+#endif
    s->fez_safe_with_discard    = !!(backend & GLSL_FEZ_SAFE_WITH_DISCARD);
    s->early_fragment_tests     = early_fragment_tests;
 #if !V3D_HAS_RELAXED_THRSW
@@ -288,7 +291,7 @@ struct postamble_info {
 
    int instr_count;
    int code_patch_loc;
-   uint32_t code[18];
+   uint64_t code[9];
 };
 
 static const struct postamble_info postamble_infos[] = {
@@ -308,10 +311,10 @@ static const struct postamble_info postamble_infos[] = {
       .instr_count = 4,
       .code_patch_loc = 0,
       .code = {
-         0x0020d000, 0x02000006,    // bu.anyap  0, r:unif
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186 }   // nop
+         0x020000060020d000ull,    // bu.anyap  0, r:unif
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull }   // nop
    },
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -330,15 +333,15 @@ static const struct postamble_info postamble_infos[] = {
       .instr_count = 9,
       .code_patch_loc = 4,
       .code = {
-         0x0020d000, 0x02000006,    // bu.anyap  0, r:unif
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0x0020d000, 0x02000006,    // bu.anyap  0, r:unif
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c403186 }   // nop   ; ldunif
+         0x020000060020d000ull,    // bu.anyap  0, r:unif
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x020000060020d000ull,    // bu.anyap  0, r:unif
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c403186bb800000ull }   // nop   ; ldunif
    },
 
    /* POSTAMBLE_GFXH1181_1_EXTRA_UNIF */
@@ -351,15 +354,15 @@ static const struct postamble_info postamble_infos[] = {
       .instr_count = 9,
       .code_patch_loc = 4,
       .code = {
-         0x0020d000, 0x02000006,    // bu.anyap  0, r:unif
-         0xbb800000, 0x3c403186,    // nop   ; ldunif
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0x0020d000, 0x02000006,    // bu.anyap  0, r:unif
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c403186 }   // nop   ; ldunif
+         0x020000060020d000ull,    // bu.anyap  0, r:unif
+         0x3c403186bb800000ull,    // nop   ; ldunif
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x020000060020d000ull,    // bu.anyap  0, r:unif
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c403186bb800000ull }   // nop   ; ldunif
    },
 
    /* POSTAMBLE_GFXH1181_2_EXTRA_UNIFS */
@@ -372,54 +375,74 @@ static const struct postamble_info postamble_infos[] = {
       .instr_count = 9,
       .code_patch_loc = 4,
       .code = {
-         0x0020d000, 0x02000006,    // bu.anyap  0, r:unif
-         0xbb800000, 0x3c403186,    // nop   ; ldunif
-         0xbb800000, 0x3c403186,    // nop   ; ldunif
-         0xbb800000, 0x3c003186,    // nop
-         0x0020d000, 0x02000006,    // bu.anyap  0, r:unif
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c003186,    // nop
-         0xbb800000, 0x3c403186 }   // nop   ; ldunif
+         0x020000060020d000ull,    // bu.anyap  0, r:unif
+         0x3c403186bb800000ull,    // nop   ; ldunif
+         0x3c403186bb800000ull,    // nop   ; ldunif
+         0x3c003186bb800000ull,    // nop
+         0x020000060020d000ull,    // bu.anyap  0, r:unif
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c003186bb800000ull,    // nop
+         0x3c403186bb800000ull }   // nop   ; ldunif
    }
 #endif
 };
 
-/* Uniforms: quorum, op_set_quorum */
-static const uint32_t barrier_preamble[] = {
-#if V3D_HAS_RELAXED_THRSW
-   0xbb80f000, 0x3c602183, // ycd rf3              ; nop          ; thrsw ; ldunif
-   0xbbf42000, 0x3c005106, // eidx.pushz -         ; mov rf4, r5
-   0x7d83e0c1, 0x3dea2184, // shr.ifna rf4, rf3, 1
-   0xb6836100, 0x3c003191, // mov syncu, rf4
-#else
-   0xbb00f000, 0x08646003, // ycd rf3              ; sub.pushz r0, r0, r0 ; thrsw ; ldunif
-   0xbbf42000, 0x3c005106, // eidx.pushz -         ; mov rf4, r5
-   0x7de3e0c1, 0x3dfca304, // shr.ifna rf4, rf3, 1 ; mov.ifnb tmua, r0
-   0xbb800000, 0x3c803186, // nop                                         ; ldtmu
-   0xb6836100, 0x3c003191, // mov syncu, rf4
-#endif
-};
+typedef struct iu_sizes {
+   size_t code;
+   size_t unif;
+} iu_sizes;
 
-/* Uniform op_wait_inc_check */
-static const uint32_t barrier_code[] = {
-   0xbb80f000, 0x3c203180, // ycd r0 ; nop ; thrsw
-   0x7d838001, 0x3de03191, // shr syncu, r0, 1
-   0xbb800000, 0x3c003186, // nop
-};
+static iu_sizes copy_preamble(uint64_t *code, umap_entry *unif, ShaderFlavour flavour, unsigned threads,
+                              bool has_barriers, bool barrier_first, bool has_compute_padding)
+{
+   const struct inline_qasm *barrier_preamble[2] = { &tcs_barrier_preamble, &cs_barrier_preamble };
+   const struct inline_umap *barrier_preamble_unif[2] = { &tcs_barrier_preamble_unif, &cs_barrier_preamble_unif };
+   iu_sizes s = { 0, 0 };
 
-static const uint32_t barrier_code_lthrsw[] = {
-   0xbb80f000, 0x3c203180, // ycd r0 ; nop ; thrsw
-   0xbb800000, 0x3c203186, // nop    ; nop ; thrsw
-   0x7d838001, 0x3de03191, // shr syncu, r0, 1
-};
+   if (has_barriers) {
+      assert(flavour == SHADER_TESS_CONTROL || flavour == SHADER_FRAGMENT);
+      s.code = copy_inline_qasm_if(code, s.code, barrier_preamble[flavour == SHADER_FRAGMENT]);
+      s.unif = copy_inline_umap_if(unif, s.unif, barrier_preamble_unif[flavour == SHADER_FRAGMENT]);
+   }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
-static inline uint32_t gfxh1370_tsy_op(v3d_tsy_op_t op) { return op; }
-#else
-/* Work around GFXH-1370 by setting the high 3 bits of TSY configs. */
-static inline uint32_t gfxh1370_tsy_op(v3d_tsy_op_t op) { return 0xE0 | op; }
-#endif
+   if (has_compute_padding) {
+      assert(flavour == SHADER_FRAGMENT);
+      if (has_barriers) {
+         s.code -= cs_pad_setmsf_with_barriers_code_truncate;
+         s.unif -= cs_pad_setmsf_with_barriers_unif_truncate;
+         s.code = copy_inline_qasm_if(code, s.code, &cs_pad_setmsf_with_barriers);
+         s.unif = copy_inline_umap_if(unif, s.unif, &cs_pad_setmsf_with_barriers_unif);
+      } else {
+         if (threads > 1)
+            s.code = copy_inline_qasm_if(code, s.code, &cs_scoreboard_wait);
+         else
+            s.code = copy_inline_qasm_if(code, s.code, &cs_one_thread_wait);
+         s.code = copy_inline_qasm_if(code, s.code, &cs_pad_setmsf);
+         s.unif = copy_inline_umap_if(unif, s.unif, &cs_pad_setmsf_unif);
+      }
+   }
+
+   if (barrier_first) {
+      s.code = copy_inline_qasm_if(code, s.code, &cs_barrier);
+      s.unif = copy_inline_umap_if(unif, s.unif, &barrier_unif);
+   }
+
+   return s;
+}
+
+static iu_sizes copy_barrier(uint64_t *code, umap_entry *unif, ShaderFlavour flavour, bool is_lthrsw_block)
+{
+   assert(flavour == SHADER_FRAGMENT || flavour == SHADER_TESS_CONTROL);
+
+   const struct inline_qasm *barrier_code[2][2] = { { &tcs_barrier, &tcs_barrier_lthrsw },
+                                                    { &cs_barrier,  &cs_barrier_lthrsw  } };
+   // Uniform is common for all barriers.
+   iu_sizes s;
+   s.code = copy_inline_qasm_if(code, 0, barrier_code[flavour == SHADER_FRAGMENT][is_lthrsw_block]);
+   s.unif = copy_inline_umap_if(unif, 0, &barrier_unif);
+   return s;
+}
 
 BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavour,
                                                   bool                     bin_mode,
@@ -530,6 +553,9 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    int max_threading = 4;
    bool has_thrsw = false;
    bool uses_barrier = false;
+   bool barrier_first = false;
+   bool drop_barriers = flavour == SHADER_FRAGMENT && !glsl_wg_size_requires_barriers(ir->cs_wg_size);
+   bool has_compute_padding = key->backend & GLSL_COMPUTE_PADDING;
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       int block_max_threads;
       does_thrsw[i] = get_max_threadability(tblocks[i]->tmu_lookups, &block_max_threads);
@@ -538,11 +564,16 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
          uses_barrier = true;
          does_thrsw[i] = true;
       }
+      if (tblocks[i]->accesses_shared && !drop_barriers) {
+         uses_barrier = true;
+         barrier_first = true;
+      }
 
       max_threading = gfx_smin(max_threading, block_max_threads);
       has_thrsw = has_thrsw || does_thrsw[i];
    }
-   if (uses_barrier) {
+   if (uses_barrier) has_thrsw = true;
+   if (uses_barrier || has_compute_padding) {
       if (flavour == SHADER_FRAGMENT)     binary->u.fragment.tlb_wait_first_thrsw = true;
       if (flavour == SHADER_TESS_CONTROL) binary->u.tess_c.barrier = true;
    }
@@ -583,9 +614,9 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
       }
 
       if (last_read != NULL)
-         glsl_backflow_chain_append(&tblocks[i]->iodeps, last_read);
+         glsl_backflow_chain_push_back(&tblocks[i]->iodeps, last_read);
       if (last_write != NULL)
-         glsl_backflow_chain_append(&tblocks[i]->iodeps, last_write);
+         glsl_backflow_chain_push_back(&tblocks[i]->iodeps, last_write);
 
       if (tblocks[i]->first_tlb_read) binary->u.fragment.tlb_wait_first_thrsw = true;
    }
@@ -596,7 +627,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 #if V3D_HAS_RELAXED_THRSW
       fragment_backend_init(&s, key->backend, ir->early_fragment_tests);
 #else
-      bool sbwaited = uses_barrier || (final_block_id != 0 && tblocks[0]->first_tlb_read);
+      bool sbwaited = uses_barrier || has_compute_padding || (final_block_id != 0 && tblocks[0]->first_tlb_read);
       fragment_backend_init(&s, key->backend, ir->early_fragment_tests, !sbwaited);
 #endif
       for (int i=0; i<sh->num_cfg_blocks; i++) binary->u.fragment.per_sample = binary->u.fragment.per_sample ||
@@ -744,7 +775,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
          }
 
          /* This is conservative but checking CFG paths is expensive and this catches common cases */
-         bool sbwaited = uses_barrier || (i != 0 && tblocks[0]->first_tlb_read);
+         bool sbwaited = uses_barrier || has_compute_padding || (i != 0 && tblocks[0]->first_tlb_read);
          backend_result[i] = glsl_backend_schedule(tblocks[i], in, out, i != 0 ? next_class : 0,
                                                    flavour, bin_mode, threads, (i == final_block_id),
                                                    (i == lthrsw_block && !sh->blocks[i].barrier), sbwaited);
@@ -759,7 +790,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
    if(flavour == SHADER_FRAGMENT) {
       vary_map->n = backend_result[0]->varying_count;
-      memcpy(vary_map->entries, backend_result[0]->varyings, 4 * backend_result[0]->varying_count);
+      memcpy(vary_map->entries, backend_result[0]->varyings, backend_result[0]->varying_count*sizeof(uint32_t));
    }
    for (int i=1; i<sh->num_cfg_blocks; i++) assert(backend_result[i]->varying_count == 0);
 
@@ -767,27 +798,22 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
       int unif_start;
       int code_start;
       enum postamble_type postamble_type;
-   } *bi = malloc_fast(sh->num_cfg_blocks * sizeof(struct block_info));
+   } *bi = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(struct block_info));
 
-   int unif_size = 0;
-   int code_size = 0;
-   if (uses_barrier) {
-      code_size += sizeof(barrier_preamble);
-      unif_size += 8*2;
-   }
-
+   iu_sizes preamble_sizes = copy_preamble(NULL, NULL, flavour, threads, uses_barrier, barrier_first, has_compute_padding);
+   size_t instr_count = preamble_sizes.code;
+   size_t unif_count  = preamble_sizes.unif;
    for (int i=0; i<sh->num_cfg_blocks; i++) {
-      bi[i].unif_start = unif_size;
-      bi[i].code_start = code_size;
+      bi[i].unif_start = unif_count;
+      bi[i].code_start = instr_count;
 
       assert(sh->blocks[i].next_if_false == i+1 ||
              sh->blocks[i].next_if_false == -1    );
 
       if (sh->blocks[i].barrier) {
-         /* TODO: It would be less code to get this right than to assert the hack is not wrong ... */
-         assert(sizeof(barrier_code) == sizeof(barrier_code_lthrsw));
-         code_size += sizeof(barrier_code);
-         unif_size += 8;
+         iu_sizes barrier_sizes = copy_barrier(NULL, NULL, flavour, i == lthrsw_block);
+         instr_count += barrier_sizes.code;
+         unif_count  += barrier_sizes.unif;
       }
 
       if (sh->blocks[i].successor_condition == -1)
@@ -799,22 +825,22 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
          /* Must workaround GFXH-1181. May need extra unifs to ensure unif
           * stream address % 16 is 0 or 4 at the point the dummy branch
           * actually happens. */
-         int unif_pos_after_dummy_branch_instr = (bi[i].unif_start + 8*(backend_result[i]->unif_count + 1)) / 2;
-         if (unif_pos_after_dummy_branch_instr % 16 == 8)
+         int unif_pos_after_dummy_branch_instr = bi[i].unif_start + backend_result[i]->unif_count + 1;
+         if (unif_pos_after_dummy_branch_instr % 4 == 2)
             bi[i].postamble_type = POSTAMBLE_GFXH1181_2_EXTRA_UNIFS;
-         else if (unif_pos_after_dummy_branch_instr % 16 == 12)
+         else if (unif_pos_after_dummy_branch_instr % 4 == 3)
             bi[i].postamble_type = POSTAMBLE_GFXH1181_1_EXTRA_UNIF;
          else
             bi[i].postamble_type = POSTAMBLE_GFXH1181_NO_EXTRA_UNIFS;
 #endif
       }
 
-      unif_size += 8*(backend_result[i]->unif_count + postamble_infos[bi[i].postamble_type].unif_count);
-      code_size += 8*(backend_result[i]->instruction_count + postamble_infos[bi[i].postamble_type].instr_count);
+      unif_count  += backend_result[i]->unif_count + postamble_infos[bi[i].postamble_type].unif_count;
+      instr_count += backend_result[i]->instruction_count + postamble_infos[bi[i].postamble_type].instr_count;
    }
 
-   binary->unif = malloc(unif_size);
-   binary->code = malloc(code_size);
+   binary->unif = malloc(unif_count*sizeof(umap_entry));
+   binary->code = malloc(instr_count*sizeof(uint64_t));
    if(binary->unif == NULL || binary->code == NULL)
       goto failed;
 
@@ -830,67 +856,63 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    binary->uses_control_flow = (sh->num_cfg_blocks != 1);
 #endif
 
-   if (uses_barrier) {
-      memcpy(binary->code, barrier_preamble, sizeof(barrier_preamble));
-      binary->unif[0] = BACKEND_UNIFORM_SPECIAL;
-      binary->unif[1] = BACKEND_SPECIAL_UNIFORM_QUORUM;
-      binary->unif[2] = BACKEND_UNIFORM_LITERAL;
-      binary->unif[3] = 0xFFFFFF00 | gfxh1370_tsy_op(V3D_TSY_OP_SET_QUORUM);
-   }
+   if (preamble_sizes.code != 0)
+      copy_preamble(binary->code, binary->unif, flavour, threads, uses_barrier, barrier_first, has_compute_padding);
 
    for (int i=0; i<sh->num_cfg_blocks; i++) {
-      memcpy(binary->code + bi[i].code_start/4, backend_result[i]->instructions,
-            8*backend_result[i]->instruction_count);
+      memcpy(binary->code + bi[i].code_start, backend_result[i]->instructions,
+                  backend_result[i]->instruction_count*sizeof(uint64_t));
 
-      memcpy(binary->unif + bi[i].unif_start/4, backend_result[i]->unifs,
-            8*backend_result[i]->unif_count);
+      memcpy(binary->unif + bi[i].unif_start, backend_result[i]->unifs,
+                  backend_result[i]->unif_count*sizeof(umap_entry));
 
-      int code_end = bi[i].code_start + 8*backend_result[i]->instruction_count;
-      int unif_end = bi[i].unif_start + 8*backend_result[i]->unif_count;
+      int code_end = bi[i].code_start + backend_result[i]->instruction_count;
+      int unif_end = bi[i].unif_start + backend_result[i]->unif_count;
       if (sh->blocks[i].barrier) {
-         memcpy(binary->code + code_end/4, i == lthrsw_block ? barrier_code_lthrsw : barrier_code, sizeof(barrier_code));
-         code_end += sizeof(barrier_code);
-         /* NOTE: GFXH-1370 workaround, see above */
-         binary->unif[unif_end/4] = BACKEND_UNIFORM_LITERAL;
-         binary->unif[unif_end/4+1] = 0xFFFFFF00 | gfxh1370_tsy_op(V3D_TSY_OP_WAIT_INC_CHECK);
-         unif_end += 8;
+         iu_sizes barrier_sizes = copy_barrier(binary->code + code_end,
+                                               binary->unif + unif_end,
+                                               flavour, i == lthrsw_block);
+         code_end += barrier_sizes.code;
+         unif_end += barrier_sizes.unif;
       }
 
       if (bi[i].postamble_type != POSTAMBLE_NONE) {
          const struct postamble_info *p = &postamble_infos[bi[i].postamble_type];
 
          /* Location in each stream from which we will branch */
-         int bu_loc = unif_end + 8*p->unif_branch_from;
-         int bi_loc = code_end + 8*(p->code_patch_loc + 4);
+         int bu_loc = unif_end + p->unif_branch_from;
+         int bi_loc = code_end + p->code_patch_loc + 4;
          /* Relative branch distance */
          int b_target = sh->blocks[i].next_if_true;
-         int bu_rel = -(bu_loc - bi[b_target].unif_start)/2;
-         int bi_rel = -(bi_loc - bi[b_target].code_start);
+         int bu_rel = -(bu_loc - bi[b_target].unif_start)*sizeof(uint32_t);
+         int bi_rel = -(bi_loc - bi[b_target].code_start)*sizeof(uint64_t);
 
          /* Locations of the beginning of the postamble */
-         uint32_t *unif_ptr = binary->unif + unif_end/4;
-         uint32_t *code_ptr = binary->code + code_end/4;
+         umap_entry *unif_ptr = binary->unif + unif_end;
+         uint64_t   *code_ptr = binary->code + code_end;
          for (int j=0; j<p->unif_count; j++) {
-            unif_ptr[2*j] = BACKEND_UNIFORM_LITERAL;
-            unif_ptr[2*j + 1] = 0;
+            unif_ptr[j].type  = BACKEND_UNIFORM_LITERAL;
+            unif_ptr[j].value = 0;
          }
-         unif_ptr[2*p->unif_patch_loc + 1] = bu_rel;
+         unif_ptr[p->unif_patch_loc].value = bu_rel;
          if (p->patch_two_unifs)
-            unif_ptr[2*p->unif_patch_loc + 3] = bu_rel;
+            unif_ptr[p->unif_patch_loc+1].value = bu_rel;
 
-         memcpy(code_ptr, p->code, 8*p->instr_count);
-         code_ptr[2*p->code_patch_loc]     |= (bi_rel >> 24) << 24;
-         code_ptr[2*p->code_patch_loc + 1] |= ((bi_rel >> 3) & 0x1FFFFF) << 3;
+         memcpy(code_ptr, p->code, p->instr_count * sizeof(uint64_t));
+         uint64_t patch_hi = (bi_rel & 0xFF000000);
+         uint64_t patch_lo = (bi_rel & (0x1FFFFF << 3));
+         code_ptr[p->code_patch_loc] |= (patch_lo << 32) | patch_hi;
       }
    }
 
-   binary->code_size  = code_size;
-   binary->unif_count = unif_size / 8;
+   glsl_safemem_free(bi);
+
+   binary->code_size  = instr_count * sizeof(uint64_t);
+   binary->unif_count = unif_count;
 
 #ifdef KHRN_SHADER_DUMP
    printf("%s%s:\n", glsl_shader_flavour_name(flavour), bin_mode ? " (bin)" : "");
-   dqasmc_print(stdout, (const uint64_t *)binary->code, binary->code_size / 8,
-                NULL, NULL, NULL);
+   dqasmc_print_basic(binary->code, instr_count);
    printf("\n\n");
 #endif
 

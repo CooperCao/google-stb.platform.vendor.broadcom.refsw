@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gfx_buffer_translate_v3d.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "libs/core/v3d/v3d_tlb_decimate.h"
@@ -51,13 +49,11 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
    ls->addr = base_addr + p->offset + (slice * p->slice_pitch);
 
    ls->memory_format = gfx_buffer_translate_memory_format(desc, plane_i);
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   ls->pixel_format = gfx_lfmt_translate_pixel_format(p->lfmt);
-# if V3D_HAS_TLB_SWIZZLE
-   ls->chan_reverse = false;
-   ls->rb_swap = false;
+#if V3D_HAS_TLB_SWIZZLE
+   gfx_lfmt_translate_pixel_format(p->lfmt, &ls->pixel_format, &ls->chan_reverse, &ls->rb_swap);
    ls->load_alpha_to_one = !gfx_lfmt_has_alpha(p->lfmt);
-# endif
+#elif V3D_VER_AT_LEAST(4,0,2,0)
+   ls->pixel_format = gfx_lfmt_translate_pixel_format(p->lfmt);
 #else
    if (color)
       ls->output_format.pixel = gfx_lfmt_translate_pixel_format(p->lfmt);
@@ -73,9 +69,9 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
       ls->decimate = V3D_DECIMATE_ALL_SAMPLES;
    }
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   else if (tlb_ms && color && v3d_rt_type_supports_4x_decimate(v3d_pixel_format_internal_type(ls->pixel_format)))
+   else if (tlb_ms && color && v3d_pixel_format_supports_4x_decimate(ls->pixel_format))
 #else
-   else if (tlb_ms && color && v3d_rt_type_supports_4x_decimate(v3d_pixel_format_internal_type(ls->output_format.pixel)))
+   else if (tlb_ms && color && v3d_pixel_format_supports_4x_decimate(ls->output_format.pixel))
 #endif
       ls->decimate = V3D_DECIMATE_4X;
    else

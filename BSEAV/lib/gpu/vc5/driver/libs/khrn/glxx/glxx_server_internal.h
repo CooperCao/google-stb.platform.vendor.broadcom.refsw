@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 and 2.0 server-side internal functions
-needed by glxx/glxx_server.c, gl11/server.c and gl20/server.c
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_SERVER_INTERNAL_H
 #define GLXX_SERVER_INTERNAL_H
 
@@ -320,18 +311,20 @@ static inline void glxx_readpixels_impldefined_formats(GLenum *format, GLenum *t
    switch(api_fmt)
    {
    case GFX_LFMT_BSTC_RGBA_UNORM:
-   case GFX_LFMT_BSTCYFLIP_RGBA_UNORM: *dst_lfmt = GFX_LFMT_R8_G8_B8_A8_UNORM; break;
-   case GFX_LFMT_R8_G8_B8_X8_UNORM: *dst_lfmt = GFX_LFMT_R8_G8_B8_UNORM; break;
-   case GFX_LFMT_R8_G8_B8_X8_SNORM: *dst_lfmt = GFX_LFMT_R8_G8_B8_SNORM; break;
-   case GFX_LFMT_R8_G8_B8_X8_SRGB: *dst_lfmt = GFX_LFMT_R8_G8_B8_SRGB; break;
+   case GFX_LFMT_BSTCYFLIP_RGBA_UNORM:  *dst_lfmt = GFX_LFMT_R8_G8_B8_A8_UNORM; break;
+   case GFX_LFMT_R8_G8_B8_X8_UNORM:     *dst_lfmt = GFX_LFMT_R8_G8_B8_UNORM;    break;
+   case GFX_LFMT_R8_G8_B8_X8_SNORM:     *dst_lfmt = GFX_LFMT_R8_G8_B8_SNORM;    break;
+   case GFX_LFMT_R8_G8_B8_X8_SRGB:      *dst_lfmt = GFX_LFMT_R8_G8_B8_SRGB;     break;
+   case GFX_LFMT_X4B4G4R4_UNORM:        *dst_lfmt = GFX_LFMT_A4B4G4R4_UNORM;    break;
+   case GFX_LFMT_X1B5G5R5_UNORM:        *dst_lfmt = GFX_LFMT_A1B5G5R5_UNORM;    break;
    case GFX_LFMT_R16_G16_B16_X16_FLOAT: *dst_lfmt = GFX_LFMT_R16_G16_B16_FLOAT; break;
    case GFX_LFMT_R32_G32_B32_X32_FLOAT: *dst_lfmt = GFX_LFMT_R32_G32_B32_FLOAT; break;
-   case GFX_LFMT_R8_G8_B8_X8_INT: *dst_lfmt = GFX_LFMT_R8_G8_B8_INT; break;
-   case GFX_LFMT_R8_G8_B8_X8_UINT: *dst_lfmt = GFX_LFMT_R8_G8_B8_UINT; break;
-   case GFX_LFMT_R16_G16_B16_X16_INT: *dst_lfmt = GFX_LFMT_R16_G16_B16_INT; break;
-   case GFX_LFMT_R16_G16_B16_X16_UINT: *dst_lfmt = GFX_LFMT_R16_G16_B16_UINT; break;
-   case GFX_LFMT_R32_G32_B32_X32_INT: *dst_lfmt = GFX_LFMT_R32_G32_B32_INT; break;
-   case GFX_LFMT_R32_G32_B32_X32_UINT: *dst_lfmt = GFX_LFMT_R32_G32_B32_UINT; break;
+   case GFX_LFMT_R8_G8_B8_X8_INT:       *dst_lfmt = GFX_LFMT_R8_G8_B8_INT;      break;
+   case GFX_LFMT_R8_G8_B8_X8_UINT:      *dst_lfmt = GFX_LFMT_R8_G8_B8_UINT;     break;
+   case GFX_LFMT_R16_G16_B16_X16_INT:   *dst_lfmt = GFX_LFMT_R16_G16_B16_INT;   break;
+   case GFX_LFMT_R16_G16_B16_X16_UINT:  *dst_lfmt = GFX_LFMT_R16_G16_B16_UINT;  break;
+   case GFX_LFMT_R32_G32_B32_X32_INT:   *dst_lfmt = GFX_LFMT_R32_G32_B32_INT;   break;
+   case GFX_LFMT_R32_G32_B32_X32_UINT:  *dst_lfmt = GFX_LFMT_R32_G32_B32_UINT;  break;
    default: *dst_lfmt = api_fmt;break;
    }
 

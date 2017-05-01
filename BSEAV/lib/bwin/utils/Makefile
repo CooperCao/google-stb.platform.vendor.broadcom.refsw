@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,106 +35,67 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 ############################################################
-# Nexus examples
 
 export FREETYPE_SUPPORT=y
 export PNG_SUPPORT=n
 
-B_THIS_DIR:=BSEAV/lib/bwin/utils
-PHONY := all clean nexus clean_nexus api clean_api clean_apps clean_bwin install nexus_headers
-.PHONY: ${PHONY}
-.NOTPARALLEL: api apps
+.PHONY: all clean nexus clean_nexus clean_apps install libs clean_libs
 
-THEAPPS = \
+APPS = \
 	buildfont
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
+NEXUS_TOP := $(shell cd ../../../../nexus;pwd)
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+BINDIR := $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bwin/utils
 
-ifeq ($(B_REFSW_OS),)
-B_REFSW_OS=linuxuser
-endif
-include ../../../../nexus/build/os/$(B_REFSW_OS)/os_tools.inc
-
-#ifeq ($(B_REFSW_REAL_MAKE),)
-#NEXUS_TOP ?= $(shell cd "../../../../nexus" && ${PWD})
-#
-#B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-#B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-#BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/examples
-#
-#${PHONY} ${THEAPPS}: ${BINDIR}/exists
-	#@${MAKE} -C ${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
-#
-#${BINDIR}/exists:
-	#@mkdir -p $@
-#
-#else # B_REFSW_REAL_MAKE
-#NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
-NEXUS_TOP = $(shell cd "../../../../nexus" && ${PWD})
-
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
+BSEAV := $(NEXUS_TOP)/../BSEAV
 BWIN=$(BSEAV)/lib/bwin
 include $(BWIN)/include/bwin.mak
 CFLAGS += $(BWIN_CFLAGS) -DBWIN_SUPPORT
-CXXFLAGS += $(BWIN_CFLAGS) -DBWIN_SUPPORT
 LDFLAGS += $(BWIN_LDFLAGS)
 
-APPS = $(THEAPPS)
-APPS ?= $(APP)
+all: $(APPS)
 
-vpath %.c ${B_THIS_DIR}
+include $(BSEAV)/lib/bwin/build/b_bwin_targets.inc
+B_BWIN_OTHER_BUILDS += b_bwin_target_build
+B_BWIN_OTHER_CLEANS += b_bwin_target_clean
 
-all: apps
+clean: clean_apps clean_libs
 
-apps: $(APPS)
-
-LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES) -lm
-CLIENT_LDFLAGS := $(NEXUS_LDFLAGS) $(NEXUS_CLIENT_LD_LIBRARIES)
-
-bwin:
-	$(MAKE) -C $(BWIN_DIR)/build
-
-nexus_print_options nexus_headers:
-	$(MAKE) -C $(NEXUS_TOP)/build $@
-
-# This cleans nexus and local apps
-clean: clean_api clean_apps clean_bwin
-
-# Clean api except on binary version
-ifeq ($(NEXUS_PREBUILT_BINARY),y)
-nexus api:
-clean_nexus clean_api:
-else
-nexus api:
+nexus:
 	$(MAKE) -C $(NEXUS_TOP)/build
-clean_nexus clean_api:
+clean_nexus:
 	$(MAKE) -C $(NEXUS_TOP)/build clean
-endif
-clean_bwin:
-	$(MAKE) -C $(BWIN_DIR)/build clean
+
+libs: nexus $(B_BWIN_OTHER_BUILDS)
+
+clean_libs: clean_nexus $(B_BWIN_OTHER_CLEANS)
 
 clean_apps:
-	-$(RM) $(APPS) *.d *.o *.out
+	-$(RM) -rf $(BINDIR)
 
-# This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
-
-# Always build with debug
 CFLAGS += -g
+LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES) -lm
 
-# Implicit rule for building local apps
-%$(APPSUFFIX): bwin %.c $(patsubst %.o,%.c,$(EXTRA_OBJS)) $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
-	cp -f $@ ${NEXUS_BIN_DIR}
+$(BINDIR)/%.o: %.c
+	@echo [Compile... $(notdir $<)]
+	@mkdir -p $(dir $@)
+	$(Q_)$(CC) -c -o $@ $< $(CFLAGS) ${CDEP_FLAG}
 
--include *.d
+$(BINDIR)/buildfont: $(BINDIR)/buildfont.o libs
+	@echo [Install... $@ to $(NEXUS_BIN_DIR)]
+	@mkdir -p $(dir $@)
+	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(LDFLAGS)
+	cp -f $@ $(NEXUS_BIN_DIR)
+
+.PHONY: buildfont
+buildfont: $(BINDIR)/buildfont
+
+-include %(BINDIR)/*.d
 
 install: all
-	cp -f ${APPS} ${NEXUS_BIN_DIR}
-
-#endif # B_REFSW_REAL_MAKE

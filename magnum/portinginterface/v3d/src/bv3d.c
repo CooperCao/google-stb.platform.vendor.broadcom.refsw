@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012-16 Broadcom.  All rights reserved.
+ *     Copyright (C) 2012-16 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -459,7 +459,7 @@ BERR_Code BV3D_GetInfo(
  *
  * Placeholder for generating client ids.
  */
-uint32_t BV3D_P_GetFreeClientId(BV3D_Handle hV3d)
+static uint32_t BV3D_P_GetFreeClientId(BV3D_Handle hV3d)
 {
    hV3d->uiNextClientId++;
 

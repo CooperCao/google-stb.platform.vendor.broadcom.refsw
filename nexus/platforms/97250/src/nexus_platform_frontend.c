@@ -49,6 +49,19 @@ BDBG_MODULE(nexus_platform_frontend);
 #if NEXUS_HAS_FRONTEND && NEXUS_USE_7250_CD2
 #include "nexus_frontend.h"
 #include "nexus_gpio.h"
+#include "nexus_frontend_3158.h"
+
+#ifdef NEXUS_FRONTEND_REVERSE_RMAGNUM_SUPPORT
+#include "nexus_docsis.h"
+#endif
+
+#define PLATFORM_MAX_TUNERS 1
+NEXUS_TunerHandle tunerHandle[PLATFORM_MAX_TUNERS];
+
+#ifdef NEXUS_FRONTEND_REVERSE_RMAGNUM_SUPPORT
+NEXUS_FrontendDeviceHandle hDocsisFrontendDevice = NULL;
+#endif
+
 
 static NEXUS_GpioHandle gpioHandleInt = NULL;
 
@@ -63,11 +76,17 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendUserParameters userParams;
     unsigned i=0;
     NEXUS_FrontendDeviceOpenSettings deviceSettings;
+    NEXUS_TunerOpen3158Settings tunerOpenSettings;
+    NEXUS_FrontendCapabilities tunerCapabilities;
     NEXUS_GpioSettings gpioSettings;
     bool cd2 = false;
     bool i2c = false;
+    bool ifDacPresent = false;
     unsigned interrupt = 10;
     NEXUS_GpioType interruptType = NEXUS_GpioType_eAonStandard;
+#ifdef NEXUS_FRONTEND_REVERSE_RMAGNUM_SUPPORT
+    NEXUS_DocsisOpenDeviceSettings openDeviceSettings;
+#endif
 
     {
         NEXUS_PlatformStatus platformStatus;
@@ -138,7 +157,12 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
             for (i=0; i < capabilities.numTuners ; i++)
             {
+
                 NEXUS_FrontendChannelSettings channelSettings;
+
+                BKNI_Memset(&tunerCapabilities, 0x0, sizeof(tunerCapabilities));
+                NEXUS_FrontendDevice_GetTunerCapabilities(device, i, &tunerCapabilities);
+                if(tunerCapabilities.ifdac) ifDacPresent = true;
 
                 NEXUS_Frontend_GetDefaultOpenSettings(&channelSettings);
 
@@ -156,6 +180,25 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 }
                 BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,pConfig->frontend[i]));
             }
+            if(ifDacPresent){
+                BDBG_WRN(("Waiting for ifdac tuner channel to initialize."));
+                NEXUS_Tuner_GetDefaultOpen3158Settings(&tunerOpenSettings);
+                tunerOpenSettings.device = device;
+                tunerHandle[0] = NEXUS_Tuner_Open3158(0, &tunerOpenSettings);
+                if (NULL == tunerHandle[0])
+                {
+                    BDBG_ERR(("Unable to open onboard 97250 Ifdac tuner."));
+                    return BERR_NOT_INITIALIZED;
+                }
+
+#ifdef NEXUS_FRONTEND_REVERSE_RMAGNUM_SUPPORT
+               NEXUS_Docsis_GetDefaultOpenDeviceSettings(&openDeviceSettings);
+               openDeviceSettings.dataTuner[0] = tunerHandle[0];
+               openDeviceSettings.rpcTimeOut = 1000;
+               hDocsisFrontendDevice = NEXUS_Docsis_OpenDevice(0,&openDeviceSettings);
+#endif
+           }
+
         } else {
             BDBG_WRN(("No frontend found."));
         }
@@ -199,6 +242,15 @@ void NEXUS_Platform_UninitFrontend(void)
             deviceHandles[i] = NULL;
         }
     }
+
+#ifdef NEXUS_FRONTEND_REVERSE_RMAGNUM_SUPPORT
+    if(hDocsisFrontendDevice)
+    {
+        NEXUS_FrontendDevice_Close(hDocsisFrontendDevice);
+        hDocsisFrontendDevice = NULL;
+    }
+#endif
+
     if(gpioHandleInt)
     {
         NEXUS_Gpio_Close(gpioHandleInt);

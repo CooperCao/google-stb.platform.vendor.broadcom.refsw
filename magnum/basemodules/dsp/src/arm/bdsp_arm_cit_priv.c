@@ -102,7 +102,7 @@ static BERR_Code BDSP_Arm_P_PopulateFwHwBuffer(
     for(ui32Count =0; ui32Count<BDSP_AF_P_MAX_ADAPTIVE_RATE_BLOCKS;ui32Count++)
     {
         psFwHwCfg->sPpmCfg[ui32Count].ePPMChannel       = BDSP_AF_P_eDisable;
-        psFwHwCfg->sPpmCfg[ui32Count].ui32PPMCfgAddr    = (uint32_t)NULL;
+        psFwHwCfg->sPpmCfg[ui32Count].ui32PPMCfgAddr    = (dramaddr_t)((uintptr_t)NULL);
     }
 
     BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmPrimaryStage, pArmConnectStage)
@@ -221,15 +221,15 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
                 BDBG_MSG(("ui32NodeIndex=%d", ui32NodeIndex));
                 BDBG_MSG(("sAlgoInfo->algoExecInfo.eAlgoIds[ui32Node]=%d, ui32Node=%d", sAlgoInfo->algoExecInfo.eAlgoIds[ui32Node], ui32Node));
 
+				/* Copy file name */
+				BKNI_Memcpy((void *)(&psNodeCfg->ui32AlgoAddrFile[0]),(void *)(BDSP_ARM_AlgoFileName[psNodeCfg->eAlgoId]),sizeof(psNodeCfg->ui32AlgoAddrFile));
 
                 /*  Code Buffer */
-#if 0  /* TBD : CODE_DOWNLOAD Enable when individual algo code download is enabled */
-
                 psNodeCfg->sDramAlgoCodeBuffer.ui32DramBufferAddress =
                                                 pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(psNodeCfg->eAlgoId)].offset;
                 psNodeCfg->sDramAlgoCodeBuffer.ui32BufferSizeInBytes =
                                                 pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(psNodeCfg->eAlgoId)].size;
-#endif
+
 
                 if(ui32Node==0)
                 {
@@ -264,7 +264,7 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
                     BDSP_Arm_P_InsertEntry_MapTable(&(pArmConnectStage->sStageMapTable[0]),
                        &Memory,
                        psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes,
-                       BDSP_ARM_AF_P_Map_eDram,
+                       (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
                        BDSP_ARM_MAX_ALLOC_STAGE);
                 }
                 if(ui32Node == 0)
@@ -498,12 +498,12 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
 
 										/* We are trying to MAP the registers here, hence we pass the same in both physical and virtual Address */
 										Memory.offset = pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr;
-										Memory.pAddr  = (void *)pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr;
+										Memory.pAddr  = (void *)((uintptr_t)pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr);
 										errCode = BDSP_Arm_P_InsertEntry_MapTable(
 											&(pArmConnectStage->sStageMapTable[0]),
 											&Memory,
 											(6*sizeof(uint32_t)),
-											BDSP_ARM_AF_P_Map_eDevice,
+											(BDSP_ARM_AF_P_Map_eDevice | BDSP_ARM_AF_P_Map_eNoExec),
 											BDSP_ARM_MAX_ALLOC_STAGE);
                                         if (BERR_SUCCESS != errCode)
                                         {
@@ -512,7 +512,7 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
 										/* The Memory we are trying to MAP is actual Buffer which is allocated by APE/AIO for the FMM buffer. The address is physical and stored in the FMM register.
 										Since Insert enrty table function expects both physical and virtual. The processing inside the function is based on virtual and at the end we pass the physical
 										address to Firmware. We read the value and pass it as both physical and virtual address, so that Insert Entry function processes it correctly. */
-										Memory.pAddr =  (void *)BDSP_Read32(pDevice->regHandle ,pArmConnectStage->sStageOutput[ui32Op].IoBuffer.sCircBuffer[i].ui32BaseAddr);
+										Memory.pAddr =  (void *)((uintptr_t)BDSP_Read32(pDevice->regHandle ,pArmConnectStage->sStageOutput[ui32Op].IoBuffer.sCircBuffer[i].ui32BaseAddr));
 										Memory.offset=  BDSP_Read32(pDevice->regHandle ,pArmConnectStage->sStageOutput[ui32Op].IoBuffer.sCircBuffer[i].ui32BaseAddr);
 										size = (uint32_t)(((uint32_t)BDSP_Read32(pDevice->regHandle ,pArmConnectStage->sStageOutput[ui32Op].IoBuffer.sCircBuffer[i].ui32EndAddr) -
 												(uint32_t)BDSP_Read32(pDevice->regHandle ,pArmConnectStage->sStageOutput[ui32Op].IoBuffer.sCircBuffer[i].ui32BaseAddr)) + 1);
@@ -520,7 +520,7 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
 											&(pArmConnectStage->sStageMapTable[0]),
 											&Memory,
 											size,
-											BDSP_ARM_AF_P_Map_eDevice,
+											(BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
 											BDSP_ARM_MAX_ALLOC_STAGE);
 
                                         if (BERR_SUCCESS != errCode)

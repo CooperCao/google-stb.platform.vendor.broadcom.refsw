@@ -99,9 +99,9 @@ static BERR_Code InitialisePidChannels( BHSM_Handle hHsm );
 #define BHSM_KEYSLOT_WORD_COUNT ((BCMD_XptSecKeySlot_eTypeMax+3)/4)  /* size rounded up */
 
 /* Stash keyslot parameters to SRAM so that the can be retrieved (even from SAGE context.) */
-void BHSM_P_StashKeySlotTableWrite( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
-{
 #if BHSM_HOST_SAGE_SRAM_INTERFACE
+static void BHSM_P_StashKeySlotTableWrite( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
+{
     unsigned    stashAddress = 0;
     unsigned    stashStartAddress = 0;
     unsigned    i;
@@ -159,16 +159,11 @@ void BHSM_P_StashKeySlotTableWrite( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeys
     BDBG_LEAVE( BHSM_P_StashKeySlotTableWrite );
 
     return;
-#else
-    BSTD_UNUSED( hHsm );
-    BSTD_UNUSED( pKeyslots );
-    (void)BERR_TRACE( BERR_NOT_SUPPORTED );
-    return;
-#endif /* #if (BHSM_HOST_SAGE_SRAM_INTERFACE ) */
 }
+#endif /* #if (BHSM_HOST_SAGE_SRAM_INTERFACE ) */
 
 /* Read keyslot parameters from SRAM. */
-BERR_Code BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
+static BERR_Code BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
 {
 #if BHSM_HOST_SAGE_SRAM_INTERFACE
     unsigned    stashAddress = 0;
@@ -219,7 +214,7 @@ BERR_Code BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *p
 }
 
 
-BERR_Code BHSM_P_BspKeySlotTableRead ( BHSM_Handle hHsm, BHSM_KeyslotTypes_t * pKeyslotsInfo )
+static BERR_Code BHSM_P_BspKeySlotTableRead ( BHSM_Handle hHsm, BHSM_KeyslotTypes_t * pKeyslotsInfo )
 {
 #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2))
     BERR_Code       rc = BERR_SUCCESS;
@@ -1653,7 +1648,7 @@ BERR_Code BHSM_FreeCAKeySlot_v2 ( /* pre Zeus 4 */
                 /*We do expect the keyslot client to be SAGE */
                 if( pKeyslot->client != BHSM_ClientType_eSAGE )
                 {
-                    BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
+                    BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client(%u)", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
                 }
                 pKeyslot->client = BHSM_ClientType_eSAGE;
                 break;
@@ -3526,45 +3521,6 @@ BERR_Code  BHSM_GetPidChannelBypassKeyslot(
 }
 #endif
 
-BERR_Code BHSM_InvalidateTransportKeySlots( BHSM_Handle hHsm, BHSM_ClientType_e ownerShip )
-{
-    unsigned int      i, j;
-    unsigned int      maxKeySlot;
-    BHSM_InvalidateKeyIO_t  invalidateKeyIO;
-    BERR_Code    rc = BERR_SUCCESS;
-
-    BSTD_UNUSED( ownerShip ) ;
-
-    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
-
-    BKNI_Memset( &invalidateKeyIO, 0, sizeof(invalidateKeyIO) );
-
-    /* For each of the key slot type  */
-    for( i = 0; i < BCMD_XptSecKeySlot_eTypeMax; i++ ) /* For each ks type */
-    {
-        maxKeySlot = hHsm->keySlotTypes[i].unKeySlotNum;
-
-        for( j = 0; j < maxKeySlot; j++ ) /* For each ks of type */
-        {
-            #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
-            invalidateKeyIO.bInvalidateAllEntries = true;
-            #endif
-            invalidateKeyIO.caKeySlotType         = i;
-            invalidateKeyIO.invalidKeyType        = BCMD_InvalidateKey_Flag_eDestKeyOnly;
-            invalidateKeyIO.unKeySlotNum          = j;
-            invalidateKeyIO.virtualKeyLadderID = BCMD_VKL_KeyRam_eMax;
-
-            rc = BHSM_InvalidateKey(hHsm, &invalidateKeyIO);
-            if( rc )
-            {
-                BDBG_MSG(("Failed key invalidation: Key Type : %d  Key Number  %d", i, j));
-                return rc;
-            }
-        }
-    }
-
-    return rc;
-}
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 

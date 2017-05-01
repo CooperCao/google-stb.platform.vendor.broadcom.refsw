@@ -938,16 +938,6 @@ done :
 
 
 /**************************************************************************
-Summary: Power Down Core Sequence
-**************************************************************************/
-void BHDR_FE_P_PowerDownCore(
-	BHDR_FE_ChannelHandle hFeChannel)
-{
-	BDBG_OBJECT_ASSERT(hFeChannel, BHDR_FE_P_ChannelHandle) ;
-}
-
-
-/**************************************************************************
 Summary:Set Power State
 **************************************************************************/
 BERR_Code BHDR_FE_SetPowerState(

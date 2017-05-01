@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
@@ -53,19 +50,19 @@ BDBG_MODULE(bsat_g1_priv_tfec);
 /* #define BSAT_DEBUG_ACQ_TIME */
 
 /* local functions */
-bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_TfecSetOpll_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_TfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h);
+static bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecSetOpll_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h);
 #ifndef BSAT_HAS_DUAL_TFEC
-BERR_Code BSAT_g1_P_TfecAcquire2_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_TfecAcquire2_isr(BSAT_ChannelHandle h);
 #endif
 #ifdef BSAT_HAS_DUAL_TFEC
-BSAT_ChannelHandle BSAT_g1_P_TfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandle h);
+static BSAT_ChannelHandle BSAT_g1_P_TfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandle h);
 #endif
 
 #ifdef BSAT_DEBUG_ACQ_TIME
@@ -201,7 +198,7 @@ BERR_Code BSAT_g1_P_TfecEnableSyncInterrupt_isr(BSAT_ChannelHandle h, bool bEnab
 /******************************************************************************
  BSAT_g1_P_TfecOnHpLock_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
@@ -318,7 +315,7 @@ BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecAcquire2_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecAcquire2_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecAcquire2_isr(BSAT_ChannelHandle h)
 {
    BERR_Code retCode;
 
@@ -527,7 +524,7 @@ BERR_Code BSAT_g1_P_TfecResetBlockCount_isrsafe(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecUpdateBlockCount_isrsafe()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -554,7 +551,7 @@ BERR_Code BSAT_g1_P_TfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecScanTryNextMode_isr()
 ******************************************************************************/
-bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h)
+static bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    bool bIsTurbo8psk;
@@ -702,7 +699,7 @@ bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecConfigCl_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -737,7 +734,7 @@ BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecConfigEq_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, i, main_tap_idx = 12;
@@ -842,7 +839,7 @@ BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecSetOpll_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecSetOpll_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecSetOpll_isr(BSAT_ChannelHandle h)
 {
    static const uint32_t turbo_opll_N[10] =
    {
@@ -911,7 +908,7 @@ BERR_Code BSAT_g1_P_TfecSetOpll_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecSetTitr_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecSetTitr_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecSetTitr_isr(BSAT_ChannelHandle h)
 {
    static const uint32_t turbo_titr[] =
    {
@@ -939,7 +936,7 @@ BERR_Code BSAT_g1_P_TfecSetTitr_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecSetTtur_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecSetTtur_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecSetTtur_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, iter, P_hi, P_lo, Q_hi, Q_lo;
@@ -965,7 +962,7 @@ BERR_Code BSAT_g1_P_TfecSetTtur_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecSetTssq_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecSetTssq_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecSetTssq_isr(BSAT_ChannelHandle h)
 {
    static const uint8_t turbo_tssq_qpsk_1_2[2] =
    {
@@ -1102,7 +1099,7 @@ BERR_Code BSAT_g1_P_TfecSetTssq_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecConfig_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1159,7 +1156,7 @@ BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_TfecOnSyncTimeout_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecOnSyncTimeout_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecOnSyncTimeout_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1208,7 +1205,7 @@ BDBG_ERR(("TfecOnSyncTimeout: t=%d, actualMode=0x%X, status=0x%X", t1-t0, hChn->
 /******************************************************************************
  BSAT_g1_P_TfecRun_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h)
 {
    static const uint16_t rs_timeout[10] =
    {
@@ -1238,7 +1235,7 @@ BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t0);
 /******************************************************************************
  BSAT_g1_P_TfecGetOtherChannelHandle_isrsafe()
 ******************************************************************************/
-BSAT_ChannelHandle BSAT_g1_P_TfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandle h)
+static BSAT_ChannelHandle BSAT_g1_P_TfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandle h)
 {
    BSAT_P_Handle *hDev = h->pDevice;
    BSAT_ChannelHandle hOtherChan;

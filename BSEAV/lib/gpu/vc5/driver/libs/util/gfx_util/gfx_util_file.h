@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GFX_UTIL_FILE_H
 #define GFX_UTIL_FILE_H
 
@@ -29,7 +22,13 @@ extern char *gfx_replace_extension(const char *filename,
 extern char *gfx_replace_any_extension(const char *filename, const char *replacement);
 
 /* Free returned pointer with free() */
-extern void *gfx_load_binary_file(size_t *size, const char *filename);
+extern void *gfx_load_binary_file_range(size_t *size, const char *filename,
+   uint64_t offset, uint64_t max_size);
+
+static inline void *gfx_load_binary_file(size_t *size, const char *filename)
+{
+   return gfx_load_binary_file_range(size, filename, 0, UINT64_MAX);
+}
 
 VCOS_EXTERN_C_END
 

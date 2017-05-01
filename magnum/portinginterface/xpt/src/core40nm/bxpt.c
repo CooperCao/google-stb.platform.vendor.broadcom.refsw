@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,7 +56,6 @@
     #include "bxpt_xcbuf_priv.h"
 #endif
 
-#include "bmem.h"
 #include "bxpt_rave.h"
 #include "bxpt_pcr_offset.h"
 
@@ -124,7 +123,12 @@ static void BXPT_P_FreeSharedXcRsBuffer(
     BXPT_Handle hXpt
     )
 {
-    BMEM_Free( hXpt->hMemory, (void*)hXpt->sharedRsXcBuff.block );
+   if (hXpt->sharedRsXcBuff.block) {
+       BMMA_UnlockOffset(hXpt->sharedRsXcBuff.block, hXpt->sharedRsXcBuff.offset);
+       BMMA_Free(hXpt->sharedRsXcBuff.block);
+       hXpt->sharedRsXcBuff.block = NULL;
+       hXpt->sharedRsXcBuff.offset = 0;
+   }
 }
 #endif /* BXPT_FOR_BOOTUPDATER */
 
@@ -132,23 +136,19 @@ BERR_Code BXPT_P_AllocSharedXcRsBuffer(
     BXPT_Handle hXpt
     )
 {
-    BERR_Code ExitCode = BERR_SUCCESS;
-    uint32_t Offset = 0;
-    void *Buffer;
+   BMMA_Block_Handle block;
+   BMMA_DeviceOffset Offset;
 
-    Buffer = BMEM_AllocAligned( hXpt->hMemory, BXPT_P_MINIMUM_BUF_SIZE, 8, 0 );
-    if( !Buffer )
-    {
-        BDBG_ERR(( "Shared XC/RS buffer alloc failed!" ));
-        ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
-        goto Done;
-    }
-    BMEM_ConvertAddressToOffset( hXpt->hMemory, Buffer, &Offset );
-    hXpt->sharedRsXcBuff.block = Buffer;
+   block = BMMA_Alloc(hXpt->mmaHeap, BXPT_P_MINIMUM_BUF_SIZE, 1 << 8, 0);
+   if (!block) {
+       BDBG_ERR(("Shared XC/RS buffer alloc failed!"));
+       return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+   }
+   Offset = BMMA_LockOffset(block);
+   hXpt->sharedRsXcBuff.block = block;
+   hXpt->sharedRsXcBuff.offset = Offset;
 
-    Done:
-    hXpt->sharedRsXcBuff.offset = Offset;
-    return ExitCode;
+   return BERR_SUCCESS;
 }
 
 BERR_Code BXPT_GetDefaultSettings(
@@ -278,8 +278,6 @@ BERR_Code BXPT_Open(
 
     lhXpt->mmaHeap = hMemory;
     lhXpt->mmaRHeap = Defaults->mmaRHeap;
-    lhXpt->hMemory = Defaults->memHeap;
-    lhXpt->hRHeap = Defaults->memRHeap;
 #if 0 /* deprecated as part of MMA conversion */
     lhXpt->hPbHeap = Defaults->hPbHeap;
 #endif
@@ -716,23 +714,6 @@ void BXPT_Close(
 #endif
 
 #if BXPT_HAS_MESG_BUFFERS
-    /*
-    ** Free any message buffers we've allocated. If the user has allocated any, its
-    ** the their responsibility to free them.
-    */
-    for( Index = 0; Index < BXPT_NUM_MESG_BUFFERS; Index++ )
-    {
-        MessageBufferEntry *Buffer = &hXpt->MessageBufferTable[ Index ];
-
-        /* Free the old buffer, if there is one. */
-        if( Buffer->IsAllocated == true )
-        {
-            if( Buffer->Address )
-                BMEM_Free( hXpt->hMemory, ( void * ) Buffer->Address );
-            Buffer->IsAllocated = false;
-        }
-    }
-
     BINT_DestroyCallback(hXpt->hMsgCb);
     BINT_DestroyCallback(hXpt->hMsgOverflowCb);
 #endif
@@ -1012,38 +993,6 @@ BERR_Code BXPT_GetParserConfig(
 
     return( ExitCode );
 }
-
-#ifndef BXPT_FOR_BOOTUPDATER
-BERR_Code BXPT_GetDefaultParserConfig(
-    BXPT_Handle hXpt,               /* [in] Handle for the transport to access. */
-    unsigned int ParserNum,             /* [in] Which parser band to access. */
-    BXPT_ParserConfig *ParserConfig /* [out] The current settings */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( ParserConfig );
-
-    /* Is the parser number within range? */
-    if( ParserNum > hXpt->MaxPidParsers )
-    {
-        /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
-    else
-    {
-        ParserConfig->ErrorInputIgnore = false;
-        ParserConfig->TsMode = BXPT_ParserTimestampMode_eAutoSelect;
-        ParserConfig->AcceptNulls = false;
-        ParserConfig->AcceptAdapt00 = false;
-        ParserConfig->ForceRestamping = true;
-    }
-
-    return( ExitCode );
-}
-#endif /* BXPT_FOR_BOOTUPDATER */
 
 BERR_Code BXPT_SetParserConfig(
     BXPT_Handle hXpt,                       /* [in] Handle for the transport to access. */

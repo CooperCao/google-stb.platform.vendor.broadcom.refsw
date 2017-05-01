@@ -1,35 +1,43 @@
 ############################################################
-#     Copyright (c) 2003-2013, Broadcom Corporation
-#     All Rights Reserved
-#     Confidential Property of Broadcom Corporation
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
+# Except as expressly set forth in the Authorized License,
 #
-# Module Description:
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# Revision History:
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# Created: 08/28/2007 by Jon Garrett
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
 #
-# $brcm_Log: $
-# 
 ############################################################
 
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP ?= $(shell cd ../../../../nexus && cd)
-else
-NEXUS_TOP ?= $(shell cd ../../../../nexus; pwd)
-endif
+NEXUS_TOP := $(shell cd ../../../../nexus && pwd)
 
 APPS = \
     audio_arc_input \
@@ -39,6 +47,7 @@ APPS = \
     audio_hdmi_input_edid_ram \
     audio_img_load \
     audio_mixer \
+    audio_mixer_input_stress \
     audio_playback \
     audio_test_auto \
     codec_test \
@@ -46,9 +55,9 @@ APPS = \
     i2s_input_decoder \
     audio_wma_tsm  \
     echo_canceller \
-	playback_pip \
-	audio_hdmi_input_encode \
-	app_audio
+    playback_pip \
+    audio_hdmi_input_encode \
+    app_audio
 
 APPS_DEP = $(APPS:%=%.d)
 
@@ -67,7 +76,7 @@ endif
 
 include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
-CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES)) -I$(BSEAV)/lib/mpeg2_ts_parse -I$(BSEAV)/lib/tspsi
+CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES)) -I$(BSEAV)/lib/mpeg2_ts_parse
 CFLAGS += $(addprefix -D,$(BMEDIA_PROBE_DEFINES))
 
 # For Enabling ring buffer capture # 
@@ -145,7 +154,7 @@ ifneq ($(NEXUS_AUDIO_EXTENSION_INC),)
 CFLAGS += -DCUSTOM_VOICE_ENABLE
 endif
 
-include ${NEXUS_TOP}/../rockford/unittests/nexus/common/Makefile.inc
+include ../common/Makefile.inc
 
 #-include $(APPS_DEP)
-app_audio : $(NEXUS_TOP)/../rockford/unittests/nexus/audio/rbuf_capture.h
+$(BINDIR)/app_audio : rbuf_capture.h

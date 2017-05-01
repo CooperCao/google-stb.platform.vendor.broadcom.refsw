@@ -49,7 +49,7 @@
 #define OSD_PADDING 70 /* ppt */
 #define PANEL_PADDING 14 /* ppt */
 
-typedef struct OsdPictureDetailsView
+typedef struct OsdPictureInfoView
 {
     BWT_LabelHandle format;
     BWT_LabelHandle dynrng;
@@ -57,62 +57,52 @@ typedef struct OsdPictureDetailsView
     BWT_LabelHandle space;
     BWT_LabelHandle depth;
     BWT_LabelHandle plm;
-} OsdPictureDetailsView;
-
-typedef struct OsdDetailsPanel
-{
-    BWT_PanelHandle base;
-    BWT_TableHandle table;
-    OsdPictureDetailsView vid;
-    OsdPictureDetailsView gfx;
-    OsdPictureDetailsView sel;
-    OsdPictureDetailsView out;
-    OsdPictureDetailsView rcv;
-} OsdDetailsPanel;
-
-typedef struct OsdPictureInfoView
-{
-    BWT_LabelHandle dynrng;
-    BWT_LabelHandle plm;
 } OsdPictureInfoView;
 
 typedef struct OsdInfoPanel
 {
     BWT_PanelHandle base;
     BWT_TableHandle table;
-    OsdPictureInfoView vid;
+    OsdPictureInfoView vid[MAX_MOSAICS];
     OsdPictureInfoView gfx;
+    OsdPictureInfoView sel;
     OsdPictureInfoView out;
+    OsdPictureInfoView rcv;
 } OsdInfoPanel;
 
 typedef struct Osd
 {
     OsdTheme theme;
     PlatformHandle platform;
+    PlatformGraphicsHandle gfx;
     PlatformListenerHandle renderer;
     BWT_ToolkitHandle bwt;
     bool pig;
     bool detailed;
+    bool mosaic;
+    unsigned layout;
     BWT_ImageHandle thumbnail;
     BWT_ImageHandle background;
     BWT_PanelHandle guide;
-    BWT_VideoWindowHandle window;
-    OsdDetailsPanel details;
-    OsdInfoPanel info;
+    BWT_VideoWindowHandle window[MAX_MOSAICS];
+    OsdInfoPanel details, mosaicDetails;
+    OsdInfoPanel info, mosaicInfo;
+    OsdInfoPanel *current;
     PlatformModel model;
     BWT_PanelHandle main;
+    BWT_PanelHandle video;
 } Osd;
 
 BWT_PanelHandle osd_p_create_main_panel(OsdHandle osd);
 BWT_PanelHandle osd_p_create_guide_panel(OsdHandle osd, const BWT_Dimensions * mainDims, unsigned mainMargin, unsigned textHeight);
-BWT_PanelHandle osd_p_create_info_panel(OsdHandle osd, unsigned textHeight);
-BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, const BWT_Dimensions * mainDims, unsigned mainMargin, unsigned textHeight);
+BWT_PanelHandle osd_p_create_info_panel(OsdHandle osd, OsdInfoPanel *infoPanel, unsigned textHeight, unsigned numVideos);
+BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, OsdInfoPanel *detailsPanel, const BWT_Dimensions * mainDims, unsigned mainMargin, unsigned textHeight, unsigned numVideos);
 
 void osd_label_p_update_dynamic_range(BWT_LabelHandle label, PlatformDynamicRange eotf);
 void osd_label_p_update_colorimetry(BWT_LabelHandle label, PlatformColorimetry colorimetry);
 void osd_label_p_update_color_space(BWT_LabelHandle label, PlatformColorSpace color_space);
+void osd_label_p_update_plm(BWT_LabelHandle label, PlatformTriState plm);
 void osd_label_p_update_color_depth(BWT_LabelHandle label, unsigned color_depth);
-void osd_label_p_update_plm(BWT_LabelHandle label, int position);
 void osd_p_scheduler_callback(void * pContext, int param);
 
 #endif /* OSD_PRIV_H__ */

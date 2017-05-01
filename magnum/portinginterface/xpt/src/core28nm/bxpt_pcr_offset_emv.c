@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,6 @@
 
 #include "bstd.h"
 #include "bkni.h"
-#include "bmem.h"
 #include "bxpt_priv.h"
 #include "bxpt_pcr_offset.h"
 #include "bchp_xpt_pcroffset.h"
@@ -79,6 +78,7 @@ BDBG_MODULE( xpt_pcr_offset_emv );
 #define PCROFF_SPLICE_CHAN67_OFFSET     ( BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH6_CH7 -  BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 #define PCROFF_SPLICE_STATUS_OFFSET     ( BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_STATUS -       BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 #define PCROFF_OFFSET_STATE             ( BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATE -        BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
+#define PCROFF_FIXED_OFFSET_OFFSET  ( BCHP_XPT_PCROFFSET_CONTEXT0_FIXED_OFFSET -        BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 
 #define PCROFF_OFFSET_STATUS0           ( BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_0 -     BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
 #define PCROFF_OFFSET_STATUS1           ( BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_1 -     BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL )
@@ -241,6 +241,8 @@ BERR_Code BXPT_PcrOffset_Open(
     lhPcrOff->PidChannelNum = 0;
     lhPcrOff->WhichStc = Defaults->WhichStc;
     lhPcrOff->UseHostPcrs = false;
+
+    BREG_Write32(lhPcrOff->hReg, lhPcrOff->BaseAddr + PCROFF_FIXED_OFFSET_OFFSET, 0);
 
     /* Map the PCR Offset to an STC. */
     Reg = BREG_Read32( lhPcrOff->hReg, lhPcrOff->BaseAddr + PCROFF_CTRL_OFFSET );
@@ -1067,6 +1069,11 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
     bAlreadyEnabled = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
     if (bAlreadyEnabled) { ExitCode = BERR_NOT_SUPPORTED; (void)BERR_TRACE( ExitCode); goto Done; }
 
+#ifndef BXPT_P_PCR_OFFSET_JITTER_FIX
+/* Force fixed offset enabled for this workaround. */
+    FixedOffsetEn = true;
+#endif
+
     Reg &= ~(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS ) |
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN ) |
@@ -1110,6 +1117,17 @@ void BXPT_PcrOffset_DisableOffset(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) |
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, OFFSET_INDEX )
     );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS, 0 ) |
+#ifndef BXPT_P_PCR_OFFSET_JITTER_FIX
+        /* SWSTB-1525 Workaround until this is fixed in hw. */
+        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN, 1 ) |
+#else
+    BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN, 0 ) |
+#endif
+        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN, 0 ) |
+        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, OFFSET_INDEX, 0 )
+    );
 
     BREG_Write32( hPcrOff->hReg, RegAddr, Reg );
 }
@@ -1149,13 +1167,15 @@ uint32_t GetStcRegAddr_isrsafe(
     return Ctx0Addr + STC_CONTEXT_STEP * WhichStc;
 }
 
-uint32_t GetStcSnapshotRegAddr_isrsafe(
+#if BXPT_NUM_STC_SNAPSHOTS > 0
+static uint32_t GetStcSnapshotRegAddr_isrsafe(
     uint32_t Ctx0Addr,
     unsigned WhichStc
     )
 {
     return Ctx0Addr + STC_SNAPSHOT_CONTEXT_STEP * WhichStc;
 }
+#endif
 
 bool BXPT_PcrOffset_IsOffsetValid(
     BXPT_PcrOffset_Handle hPcrOff

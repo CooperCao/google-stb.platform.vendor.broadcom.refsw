@@ -80,7 +80,7 @@ static void
 DBG_handle_get_pid_list_resp(dbp_response_t *p_dbp_response, DBG *dbg);
 
 static void
-DBG_handle_process_get_tid_list_resp(dbp_response_t *p_dbp_response, DBG_core_debug_server *p_dbg_server);
+DBG_handle_process_get_tid_list_resp(dbp_response_t *p_dbp_response, DBG *dbg);
 
 static void
 DBG_handle_process_get_state_resp(dbp_response_t *p_dbp_response, DBG *dbg);
@@ -185,6 +185,9 @@ static void
 DBG_handle_resp_library_unloaded(dbp_response_t *p_dbp_response, DBG *dbg);
 
 static void
+DBG_handle_resp_fatal(dbp_response_t *p_dbp_response, DBG *dbg);
+
+static void
 DBG_core_print_dbp_response(dbp_response_t *p_dbp_resp)
 {
     DSPLOG_INFO("msglen : 0x%x", p_dbp_resp->msglen);
@@ -257,7 +260,7 @@ DBG_core_dbp_handle_resp(DBG *dbg)
 
             case DBP_CMD_PROCESS_GET_TID_LIST:
                 DSPLOG_INFO("Handle DBP_CMD_PROCESS_GET_TID_LIST response");
-                DBG_handle_process_get_tid_list_resp(p_dbp_resp, p_dbg_server);
+                DBG_handle_process_get_tid_list_resp(p_dbp_resp, dbg);
                 break;
 
             case DBP_CMD_PROCESS_GET_STATE:
@@ -428,6 +431,11 @@ DBG_core_dbp_handle_resp(DBG *dbg)
             case DBP_RESP_LIBRARY_UNLOADED:
                 DSPLOG_INFO("Handle DBP_RESP_LIBRARY_UNLOADED response");
                 DBG_handle_resp_library_unloaded(p_dbp_resp, dbg);
+                break;
+
+            case DBP_RESP_FATAL:
+                DSPLOG_INFO("Handle DBP_RESP_FATAL response");
+                DBG_handle_resp_fatal(p_dbp_resp, dbg);
                 break;
 
             default:
@@ -1329,8 +1337,10 @@ DBG_handle_get_pid_list_resp(dbp_response_t *p_dbp_response, DBG* dbg)
 }
 
 static void
-DBG_handle_process_get_tid_list_resp(dbp_response_t *p_dbp_response, DBG_core_debug_server *p_dbg_server)
+DBG_handle_process_get_tid_list_resp(dbp_response_t *p_dbp_response, DBG *dbg)
 {
+    bool b_status = true;
+    DBG_core_debug_server *p_dbg_server = dbg->dbg_core.p_dbg_server;
     DSPLOG_DEBUG("Handle DBP_CMD_PROCESS_GET_TID_LIST response 0x%x", p_dbp_response->response);
 
     if(p_dbp_response->response & DBP_PACK)
@@ -1348,8 +1358,12 @@ DBG_handle_process_get_tid_list_resp(dbp_response_t *p_dbp_response, DBG_core_de
     else
     {
         DSPLOG_ERROR("DBP_CMD_PROCESS_GET_TID_LIST NACK - error status 0x%x", p_dbp_response->status);
+        b_status = false;
         DBG_core_remove_pid_info(p_dbp_response->process_get_tid_list.pid, &p_dbg_server->pid_info_queue);
     }
+
+    if(p_dbg_server->gdb_process_get_tid_list_cb != NULL)
+        p_dbg_server->gdb_process_get_tid_list_cb(dbg, b_status);
 }
 
 static void
@@ -1643,6 +1657,9 @@ DBG_handle_process_create_resp(dbp_response_t *p_dbp_response, DBG *dbg)
 
         /*Enqueue the process info structure*/
         DBG_core_enqueue_pid_info(p_pid_info, &p_dbg_server->pid_info_queue);
+
+        /*Mark the process as created by the debugger*/
+        DBG_core_process_created(p_pid_info);
     }
     else
     {
@@ -2487,6 +2504,29 @@ DBG_handle_resp_library_unloaded(dbp_response_t *p_dbp_response, DBG *dbg)
                                     DBG_PROCESS_STATE_FROZEN_BP);
 
     /*FIXME: We will have to enqueue the response and notify gdb when the user switches to the inferior*/
+}
+
+static void
+DBG_handle_resp_fatal(dbp_response_t *p_dbp_response, DBG *dbg)
+{
+    DSPLOG_DEBUG("Handle DBP_RESP_FATAL response");
+    DBG_core_debug_server *p_dbg_server = dbg->dbg_core.p_dbg_server;
+
+    dbg_core_pid_info_t *p_pid_info = DBG_core_find_pid_info(p_dbp_response->fatal.pid, &p_dbg_server->pid_info_queue);
+
+    if(p_pid_info == NULL)
+    {
+        DSPLOG_ERROR("Unknown pid 0x%x - FATAL response", p_dbp_response->fatal.pid);
+        return;
+    }
+
+    DSPLOG_INFO("Process terminate 0x%x - reason %d @ PC 0x%x address 0x%x",
+            p_dbp_response->fatal.pid, p_dbp_response->fatal.type, p_dbp_response->fatal.pc, p_dbp_response->fatal.address);
+
+    DBG_core_gdb_notify_process_terminate(dbg, p_dbp_response->fatal.pid, p_dbp_response->fatal.type);
+
+    /*Remove pid from the pid_info_queue*/
+    DBG_core_remove_pid_info(p_dbp_response->fatal.pid, &p_dbg_server->pid_info_queue);
 }
 
 static void

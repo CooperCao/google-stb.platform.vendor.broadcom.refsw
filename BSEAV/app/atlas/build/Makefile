@@ -58,28 +58,21 @@ KERNEL_VERSION  := $(K_VERSION).$(K_PATCHLEVEL).$(K_SUBLEVEL)-$(K_EXTRAVERSION)
 
 check-linux-version = $(shell expr \( $(K_VERSION) \* 65536 + $(K_PATCHLEVEL) \* 256 + $(K_SUBLEVEL) \) \>= \( $(1) \* 65536 + $(2) \* 256 + $(3) \))
 
-#####
-###First thing we must include the tools
-#####
+BSEAV = $(shell cd "../../.." && pwd)
 
-#########
-#### Figure out OS
-#########
-ifeq ($(B_REFSW_OS),)
-B_REFSW_OS=linuxuser
-endif
-
-include ../../../../nexus/build/os/$(B_REFSW_OS)/os_tools.inc
-
-BSEAV = $(shell cd "../../.." && ${PWD})
-NEXUS_TOP = $(shell cd "../../../../nexus" && ${PWD})
+NEXUS_TOP = $(shell cd "../../../../nexus" && pwd)
+NEXUS_PLATFORM ?= $(PLATFORM)
 ifeq ($(NEXUS_PLATFORM),)
-# PLATFORM is deprecated
 $(error Please define NEXUS_PLATFORM first)
 endif
-
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+B_REFSW_CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+B_REFSW_LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES) -lm
+ifeq (${B_REFSW_DEBUG},y)
+DEBUG_SUFFIX = debug
+else
+DEBUG_SUFFIX = release
+endif
 
 ifeq ($(ATLAS_BIN_DIR),)
 # location of final binaries
@@ -89,36 +82,8 @@ else
 ATLAS_BIN_ROOT = $(ATLAS_BIN_DIR)
 endif
 
-ifeq ($(NEXUS_MODE),)
-# MODE is deprecated
-NEXUS_MODE = $(MODE)
-endif
-
-
-#########
-#### Figure out ARCH
-#########
-ifeq ($(B_REFSW_ARCH),)
-B_REFSW_ARCH=mips-linux
-export B_REFSW_ARCH
-endif
-
-B_REFSW_DEBUG ?= y
-ifeq ($(B_REFSW_DEBUG),y)
-DEBUG_SUFFIX=debug
-else
-DEBUG_SUFFIX=release
-endif
-
-#########
-#### Include NEXUS .inc
-#########
-include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 B_LIB_TOP := $(NEXUS_TOP)/lib
 include $(B_LIB_TOP)/os/b_os_lib.inc
-
-# Get system-specific CFLAGS and LDFLAGS based on SYSTEM, PLATFORM, DEBUG
-include $(BSEAV)/build/refsw_inc.mak
 
 #########
 #### Include thumbnail .inc
@@ -145,11 +110,11 @@ APP := $(ATLAS_ODIR)/atlas
 #### Font Directories
 #######
 ifeq ($(B_REFSW_ARCH),mips-linux)
-PRERENDERED_FONTS = ../fonts/mswebfonts/be/*.bwin_font
+PRERENDERED_FONTS = ../../../opensource/fonts/mswebfonts/be/*.bwin_font
 else # goes for ARM as well which is LE only
-PRERENDERED_FONTS = ../fonts/mswebfonts/le/*.bwin_font
+PRERENDERED_FONTS = ../../../opensource/fonts/mswebfonts/le/*.bwin_font
 endif
-PRERENDERED_CC_FONTS = ../fonts/cc_fonts/*.bwin_font
+PRERENDERED_CC_FONTS = ../../../opensource/fonts/cc_fonts/*.bwin_font
 
 ESTB_SNMP_SUPPORT ?= n
 ifeq ($(ESTB_SNMP_SUPPORT), y)
@@ -224,7 +189,7 @@ endif  # PLAYBACK_IP_SUPPORT
 # The name of the installation tar ball , Change to Atlas
 #
 BUILDDATE = `date +%Y%m%d`
-ATLAS_TAR_BALL = refsw-$(BUILDDATE).$(NEXUS_PLATFORM)-$(SYSTEM)
+ATLAS_TAR_BALL = refsw-$(BUILDDATE).$(NEXUS_PLATFORM)-$(B_REFSW_ARCH)
 ATLAS_TAR_BALL := $(ATLAS_TAR_BALL)-atlas
 ATLAS_TAR_BALL := $(ATLAS_TAR_BALL).bin.tgz
 
@@ -302,9 +267,9 @@ endif
 LUA_BUILD:=
 LUA_CLEAN:=
 ifneq ($(LUA_SUPPORT),n)
-include $(BSEAV)/lib/lua/b_lua_targets.inc
+include $(BSEAV)/opensource/lua/b_lua_targets.inc
 APP_OBJECTS += atlas_lua.o
-LUA_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/lua/lua-5.2.4/install
+LUA_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/lua-5.2.4/install
 CFLAGS += -DLUA_SUPPORT -I$(LUA_DIR)/include
 LIBS += $(LUA_DIR)/lib/liblua.a
 LINENOISE_DIR = $(BSEAV)/app/atlas/src/linenoise/antirez-linenoise-02d7935
@@ -346,10 +311,11 @@ all: $(ATLAS_BIN_DIR) $(APP)
 
 clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools $(PMLIB_CLEAN)
 
-dist-clean: clean dist-clean-netapp
+dist-clean: clean dist-clean-netapp dist-clean-openssl
 	@echo [Clean..... libraries]
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/lib
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/opensource
+	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/connectivity
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/target
 	@echo [Clean..... linux]
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/linux
@@ -569,7 +535,7 @@ else
 CP_DIR = $(POD_DIR)/lib/cp
 endif
 #POD_DRIVERDIR = $(BSEAV)/cable/lib/mpod/src/driver/build/bcm$(NEXUS_PLATFORM)$(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')/$(SYSTEM)
-POD_DRIVERDIR = $(BSEAV)/cable/lib/mpod/src/driver/build/$(SYSTEM)
+POD_DRIVERDIR = $(BSEAV)/cable/lib/mpod/src/driver/build/linux
 
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/nexus/bin -lb_mpod
 LDFLAGS += -L$(POD_STAGING_DIR) -lcp
@@ -812,6 +778,7 @@ APP_OBJECTS += \
 	config_nx.o \
 	graphics_nx.o \
 	output_nx.o \
+	power_nx.o \
 	remote_nx.o \
 	tuner_ofdm_nx.o \
 	tuner_qam_nx.o \
@@ -1173,10 +1140,8 @@ clean-pod-driver:
 	${Q_}$(MAKE) -C $(POD_DRIVERDIR) clean
 
 install-pod-driver:
-ifeq ($(SYSTEM),linux)
 	@echo "[Install... pod.ko to $(STAGING_DIR)]"
 	${Q_}$(MAKE) INSTALL_DIR=$(STAGING_DIR) -C $(POD_DRIVERDIR) install
-endif
 
 else #CABLECARD_SUPPORT is not defined, so define empty targets
 podlibs:
@@ -1289,7 +1254,7 @@ clean-snmp-agent:
 	bash ./build clean; \
 	cd -
 snmp-proxy:
-	cd $(SNMP_DIR); \
+	${Q_}cd $(SNMP_DIR); \
 	if [ ! -e /tmp/net-snmp-5.0.9.tar.gz ]; then \
 		wget http://sourceforge.net/projects/net-snmp/files/OldFiles/net-snmp-5.0.x/5.0.9/net-snmp-5.0.9.tar.gz -P /tmp; \
 	fi; \
@@ -1298,18 +1263,18 @@ snmp-proxy:
 		patch -p1 < snmp.patch; \
 	fi; \
 	if [ -e Makefile ]; then \
-		${Q_}$(MAKE) depend; \
-		${Q_}$(MAKE); \
+		$(MAKE) depend; \
+		$(MAKE); \
 	else \
 		bash $(SNMPCONFIG); \
-		${Q_}$(MAKE) depend; \
-		${Q_}$(MAKE); \
+		$(MAKE) depend; \
+		$(MAKE); \
 	fi; \
 	cd -
 clean-snmp-proxy:
-	cd $(SNMP_DIR); \
+	${Q_}cd $(SNMP_DIR); \
 	if [ -e Makefile ]; then \
-		${Q_}$(MAKE) distclean; \
+		$(MAKE) distclean; \
 		$(RM) -fr Makefile.bak; \
 		$(RM) -fr agent/Makefile.bak; \
 		$(RM) -fr agent/helpers/Makefile.bak; \
@@ -1423,6 +1388,9 @@ playback_ip_lib_clean: b_bip_target_clean
 
 playback_ip_lib_min_clean: playback_ip_lib_clean
 
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
+dist-clean-openssl: b_openssl_target_clean_all
+
 else #PLAYBACK_IP_SUPPORT is not defined, so define empty targets
 playback_ip_lib:
 #intentionally left empty
@@ -1435,6 +1403,9 @@ playback_ip_lib_clean:
 
 playback_ip_lib_min_clean:
 	@echo [clean.... bip (not openssl)]
+
+dist-clean-openssl:
+#intentionally left empty
 
 clean-bip: playback_ip_lib_min_clean
 
@@ -1474,7 +1445,7 @@ $(STAGING_DIR):
 
 make-tarball: install-support-files
 	@echo [Build..... tarball of $(STAGING_DIR)]
-	${Q_}(cd $(STAGING_DIR);tar -pzckf $(ATLAS_BIN_DIR)/${ATLAS_TAR_BALL} .)
+	${Q_}(cd $(STAGING_DIR);tar -pzckf $(ATLAS_BIN_DIR)/${ATLAS_TAR_BALL} --exclude '*.a' .)
 	${Q_}$(RM) -rf $(STAGING_DIR)
 	@echo ""
 	@echo "*********************************************"
@@ -1545,6 +1516,7 @@ install-wlan-files:
 	${Q_}$(CP)  ../scripts/udhcpc.script $(STAGING_DIR)
 	${Q_}chmod 755 $(STAGING_DIR)/udhcpc.script
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97271*.txt $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlan_plat.ko $(STAGING_DIR)
 else
 install-wlan-files:
 #intentionally left empty

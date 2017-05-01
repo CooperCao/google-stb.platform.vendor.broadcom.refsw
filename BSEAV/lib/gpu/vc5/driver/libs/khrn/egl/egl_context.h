@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_CONTEXT_H
 #define EGL_CONTEXT_H
 #include <stdbool.h>
@@ -17,7 +11,7 @@ extern void egl_context_flush(EGL_CONTEXT_T *context);
 
 /* see convert_image in egl_context_base.h */
 extern bool egl_context_convert_image(EGL_CONTEXT_T *context,
-      KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src);
+      khrn_image *dst, khrn_image *src);
 
 extern void egl_context_invalidate_draw(EGL_CONTEXT_T *context,
    bool color, bool color_ms, bool other_aux);

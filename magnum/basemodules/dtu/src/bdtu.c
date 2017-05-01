@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -124,7 +124,12 @@ static void bdtu_p_print_page(unsigned bp, uint32_t val)
 /* Extend this macro to support multiple MEMC's */
 #define BDTU_REG(BP) (BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_ARRAY_BASE + ((BP) * BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_ARRAY_ELEMENT_SIZE/8))
 
-BERR_Code BDTU_Remap( BDTU_Handle handle, BSTD_DeviceOffset devAddr, BSTD_DeviceOffset fromPhysAddr, BSTD_DeviceOffset toPhysAddr )
+void BDTU_GetDefaultRemapSettings( BDTU_RemapSettings *pSettings )
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
+BERR_Code BDTU_P_Remap( BDTU_Handle handle, BSTD_DeviceOffset devAddr, BSTD_DeviceOffset fromPhysAddr, BSTD_DeviceOffset toPhysAddr )
 {
     unsigned from_bp, to_bp, dp = 0;
     uint32_t val;
@@ -149,37 +154,67 @@ BERR_Code BDTU_Remap( BDTU_Handle handle, BSTD_DeviceOffset devAddr, BSTD_Device
     if ((val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_MASK) >> BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_SHIFT != dp) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
+    if (val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_OWNED_MASK) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
-    /* unmap */
+    val = BREG_Read32(handle->createSettings.reg, BDTU_REG(to_bp));
+    /* bdtu_p_print_page(to_bp, val); */
+    if (val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_VALID_MASK) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if (val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_OWNED_MASK) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    /* unmap and check */
     val = BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_COMMAND_CMD_UNMAP;
     BREG_Write32(handle->createSettings.reg, BDTU_REG(from_bp), val);
-    /* bdtu_p_print_page(from_bp, BREG_Read32(handle->createSettings.reg, BDTU_REG(from_bp))); */
-
-    /* map */
-    val = BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_COMMAND_CMD_MAP |
-        (dp << BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_SHIFT);
-    BREG_Write32(handle->createSettings.reg, BDTU_REG(to_bp), val);
-    /* bdtu_p_print_page(to_bp, BREG_Read32(handle->createSettings.reg, BDTU_REG(to_bp))); */
-
-    /* validate new mapping */
     val = BREG_Read32(handle->createSettings.reg, BDTU_REG(from_bp));
+    /* bdtu_p_print_page(from_bp, BREG_Read32(handle->createSettings.reg, BDTU_REG(from_bp))); */
     if (val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_VALID_MASK) {
         BDBG_ERR(("old bp %u not unmapped", from_bp));
         bdtu_p_print_page(from_bp, val);
+        return BERR_TRACE(BERR_UNKNOWN);
     }
+
+    /* map and check */
+    val = BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_COMMAND_CMD_MAP |
+        (dp << BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_SHIFT);
+    BREG_Write32(handle->createSettings.reg, BDTU_REG(to_bp), val);
     val = BREG_Read32(handle->createSettings.reg, BDTU_REG(to_bp));
+    /* bdtu_p_print_page(to_bp, BREG_Read32(handle->createSettings.reg, BDTU_REG(to_bp))); */
     if (!(val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_VALID_MASK)) {
         BDBG_ERR(("new bp %u not mapped", to_bp));
         bdtu_p_print_page(to_bp, val);
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        return BERR_TRACE(BERR_UNKNOWN);
     }
     if ((val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_MASK) >> BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_SHIFT != dp) {
         BDBG_ERR(("new bp %u not mapped to dp %u", to_bp, dp));
         bdtu_p_print_page(to_bp, val);
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        return BERR_TRACE(BERR_UNKNOWN);
     }
 
     return BERR_SUCCESS;
+}
+
+BERR_Code BDTU_Remap( BDTU_Handle handle, const BDTU_RemapSettings *pSettings )
+{
+    unsigned i;
+    BERR_Code rc;
+    for (i=0;i<BDTU_REMAP_LIST_TOTAL && pSettings->list[i].devAddr;i++) {
+        rc = BDTU_P_Remap(handle, pSettings->list[i].devAddr, pSettings->list[i].fromPhysAddr, pSettings->list[i].toPhysAddr);
+        if (rc) { BERR_TRACE(rc); goto error; }
+    }
+    return BERR_SUCCESS;
+error:
+    /* try to remap back to what we had */
+    while (i--) {
+        /* declare a local rc so the original failure is preserved and returned */
+        BERR_Code rc = BDTU_P_Remap(handle, pSettings->list[i].devAddr, pSettings->list[i].toPhysAddr, pSettings->list[i].fromPhysAddr);
+        if (rc) { BERR_TRACE(rc); } /* keep going */
+    }
+    return rc;
 }
 
 BERR_Code BDTU_ReadDeviceAddress( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BSTD_DeviceOffset *devAddr )
@@ -220,6 +255,12 @@ BERR_Code BDTU_Own( BDTU_Handle handle, BSTD_DeviceOffset addr, bool own)
 
     rc = bdtu_p_convert_physaddr_to_bp(handle, addr, &bp);
     if (rc) return BERR_TRACE(rc);
+
+    /* Can only own if the mapping is valid */
+    val = BREG_Read32(handle->createSettings.reg, BDTU_REG(bp));
+    if (!BCHP_GET_FIELD_DATA(val, MEMC_DTU_MAP_STATE_0_MAP_STATEi, VALID)) {
+        return BERR_NOT_INITIALIZED;
+    }
 
     val = own ? BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_COMMAND_CMD_SETOWN : BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_COMMAND_CMD_UNSETOWN;
     BREG_Write32(handle->createSettings.reg, BDTU_REG(bp), val);

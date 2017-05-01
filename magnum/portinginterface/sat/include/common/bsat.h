@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,7 +61,7 @@ extern "C" {
 #include "berr_ids.h"
 
 
-#define BSAT_API_VERSION 10
+#define BSAT_API_VERSION 11
 
 
 /******************************************************************************
@@ -72,13 +72,14 @@ Desciption:
 See Also:
    None.
 ******************************************************************************/
-#define BSAT_ERR_UNSUPPORTED_HW   BERR_MAKE_CODE(BERR_SAT_ID, 0) /* chip does not support this function */
-#define BSAT_ERR_POWERED_DOWN     BERR_MAKE_CODE(BERR_SAT_ID, 1) /* unable to access h/w block due to it being powered down */
-#define BSAT_ERR_NOT_IMPLEMENTED  BERR_MAKE_CODE(BERR_SAT_ID, 2) /* function not implemented */
-#define BSAT_ERR_INVALID_STATE    BERR_MAKE_CODE(BERR_SAT_ID, 3) /* invalid s/w state */
-#define BSAT_ERR_POWERUP_FAILED   BERR_MAKE_CODE(BERR_SAT_ID, 4) /* unable to power up h/w */
-#define BSAT_ERR_POWERDOWN_FAILED BERR_MAKE_CODE(BERR_SAT_ID, 5) /* unable to power down h/w */
-#define BSAT_ERR_INVALID_STREAM_ID BERR_MAKE_CODE(BERR_SAT_ID, 6) /* stream ID not found */
+#define BSAT_ERR_UNSUPPORTED_HW    BERR_MAKE_CODE(BERR_SAT_ID, 0)  /* chip does not support this function */
+#define BSAT_ERR_POWERED_DOWN      BERR_MAKE_CODE(BERR_SAT_ID, 1)  /* unable to access h/w block due to it being powered down */
+#define BSAT_ERR_NOT_IMPLEMENTED   BERR_MAKE_CODE(BERR_SAT_ID, 2)  /* function not implemented */
+#define BSAT_ERR_INVALID_STATE     BERR_MAKE_CODE(BERR_SAT_ID, 3)  /* invalid s/w state */
+#define BSAT_ERR_POWERUP_FAILED    BERR_MAKE_CODE(BERR_SAT_ID, 4)  /* unable to power up h/w */
+#define BSAT_ERR_POWERDOWN_FAILED  BERR_MAKE_CODE(BERR_SAT_ID, 5)  /* unable to power down h/w */
+#define BSAT_ERR_INVALID_STREAM_ID BERR_MAKE_CODE(BERR_SAT_ID, 6)  /* stream ID not found */
+#define BSAT_ERR_BUSY              BERR_MAKE_CODE(BERR_SAT_ID, 7)  /* operation has not yet completed */
 
 
 /******************************************************************************
@@ -885,6 +886,71 @@ typedef struct BSAT_StreamStatus
 } BSAT_StreamStatus;
 
 
+/******************************************************************************
+Summary:
+   resolution bandwidth options for spectrum analyzer
+Description:
+   resolution bandwidth options for spectrum analyzer
+See Also:
+   BSAT_ScanSpectrum()
+******************************************************************************/
+typedef enum BSAT_ResBw {
+   BSAT_ResBw_e100khz = 0, /* RBW=100KHz */
+   BSAT_ResBw_e300khz,     /* RBW=300KHz */
+   BSAT_ResBw_e1mhz,       /* RBW=1MHz */
+   BSAT_ResBw_e3mhz,       /* RBW=3MHz */
+   BSAT_ResBw_e10mhz       /* RBW=10MHz */
+} BSAT_ResBw;
+
+
+/******************************************************************************
+Summary:
+   video bandwidth options for spectrum analyzer
+Description:
+   video bandwidth options for spectrum analyzer
+See Also:
+   BSAT_ScanSpectrum()
+******************************************************************************/
+typedef enum BSAT_VidBw {
+   BSAT_VidBw_eNone = 0, /* no filtering */
+   BSAT_VidBw_e20khz,    /* VBW=20KHz */
+   BSAT_VidBw_e10khz     /* VBW=10KHz */
+} BSAT_VidBw;
+
+
+/******************************************************************************
+Summary:
+   input parameters for spectrum scan
+Description:
+   input parameters for spectrum scan
+See Also:
+   BSAT_ScanSpectrum()
+******************************************************************************/
+typedef struct BSAT_ScanSpectrumSettings {
+   uint32_t   adcSelect; /* [in] ADC selection (0-based index) */
+   uint32_t   startFreq; /* in Hz */
+   uint32_t   stopFreq;  /* in Hz */
+   BSAT_ResBw resBw;     /* resolution bandwidth */
+   BSAT_VidBw vidBw;     /* video bandwidth */
+} BSAT_ScanSpectrumSettings;
+
+
+/******************************************************************************
+Summary:
+   status of the spectrum scan
+Description:
+   status of the spectrum scan
+See Also:
+   BSAT_GetSpectrumStatus()
+******************************************************************************/
+typedef struct BSAT_SpectrumStatus {
+   BERR_Code status;      /* status of the spectrum scan operation */
+   bool      bValid;      /* true if data is valid */
+   uint32_t  numSamples;  /* number of 8-bit samples (up to 4096) */
+   uint32_t  freqStep;    /* in Hz */
+} BSAT_SpectrumStatus;
+
+
 /* bit definitions for BSAT_ExtAcqSettings.blindScanModes */
 #define BSAT_BLIND_SCAN_MODE_DVBS   0x01 /* search DVB-S modes */
 #define BSAT_BLIND_SCAN_MODE_TURBO  0x02 /* search Turbo modes */
@@ -1141,6 +1207,8 @@ typedef struct BSAT_ApiFunctTable
    BERR_Code (*GetStreamList)(BSAT_ChannelHandle, int, int *, uint8_t *);
    BERR_Code (*GetStreamStatus)(BSAT_ChannelHandle, uint8_t, BSAT_StreamStatus*);
    BERR_Code (*GetFastChannelStatus)(BSAT_ChannelHandle, BSAT_FastStatusId *, uint8_t, BSAT_FastChannelStatus *);
+   BERR_Code (*ScanSpectrum)(BSAT_ChannelHandle, BSAT_ScanSpectrumSettings *);
+   BERR_Code (*GetSpectrumStatus)(BSAT_ChannelHandle, BSAT_SpectrumStatus *, uint8_t *);
 } BSAT_ApiFunctTable;
 
 
@@ -1654,8 +1722,11 @@ Description:
    4. The peak power scan initiated by BSAT_StartToneDetect() has finished.
    5. The symbol rate scan initiated by BSAT_StartSymbolRateScan() has finished.
    6. The PSD scan initiated by BSAT_StartPsdScan() has finished.
-   After the Acquisition Done event is set, it will not be set again until
-   after the next call to BSAT_Acquire().
+   7. The spectrum scan initiated by BSAT_ScanSpectrum() has finished.
+   After the Acquisition Done event is set, the event will not be set again
+   until after the next call to BSAT_Acquire(), BSAT_StartSignalDetect(),
+   BSAT_StartToneDetect(), BSAT_StartSymbolRateScan(), BSAT_StartPsdScan, or
+   BSAT_ScanSpectrum().
 Returns:
    BERR_Code
 ******************************************************************************/
@@ -2284,6 +2355,38 @@ BERR_Code BSAT_GetFastChannelStatus(
    BSAT_FastStatusId *pStatusIds,   /* [in] ID of the status items */
    uint8_t numItems,                /* [in] number of status items (0 to 7) */
    BSAT_FastChannelStatus *pStatus  /* [out] returned status */
+);
+
+
+/******************************************************************************
+Summary:
+   Get data for spectrum analyzer display
+Description:
+   This function gets data for a spectrum analyzer display.  When the data is
+   ready, the Acq Done event is set.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSAT_ScanSpectrum(
+   BSAT_ChannelHandle h,                 /* [in] BSAT channel handle */
+   BSAT_ScanSpectrumSettings *pSettings  /* [in] spectrum analyzer settings */
+);
+
+
+/******************************************************************************
+Summary:
+   Get the status of the most recent scan spectrum operation
+Description:
+   This function returns the status of the scan spectrum operation initiated by
+   the most recent call to BSAT_ScanSpectrum().  This function should be called
+   after the Acq Done event is set.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSAT_GetSpectrumStatus(
+   BSAT_ChannelHandle h,         /* [in] BSAT channel handle */
+   BSAT_SpectrumStatus *pStatus, /* [out] status of most recent scan spectrum operation */
+   uint8_t *pSamples             /* [out] pointer to where the 8-bit samples are to be written if pStatus->bValid=true */
 );
 
 #ifdef __cplusplus

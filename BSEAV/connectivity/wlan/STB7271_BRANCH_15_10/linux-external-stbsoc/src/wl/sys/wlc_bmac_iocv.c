@@ -84,6 +84,19 @@ static const bcm_iovar_t wlc_bmac_iovt[] = {
 	{"pcielcreg", IOV_BMAC_PCIELCREG, 0, 0, IOVT_UINT32, 0},
 #endif /* BCMDBG */
 	{"pciereg", IOV_BMAC_PCIEREG, 0, 0, IOVT_BUFFER, 0},
+#ifdef BCMINTDBG
+	{"bpind", IOV_BMAC_BPIND, 0, 0, IOVT_BUFFER, 0},
+	{"ccreg", IOV_BMAC_CCREG, 0, 0, IOVT_BUFFER, 0},
+	{"corereg", IOV_BMAC_COREREG, 0, 0, IOVT_BUFFER, 0},
+	{"corewrapperreg", IOV_BMAC_COREWRAPPERREG, 0, 0, IOVT_BUFFER, 0},
+	{"pcicfgreg", IOV_BMAC_PCICFGREG, 0, 0, IOVT_BUFFER, 0},
+	{"sflags", IOV_BMAC_SFLAGS, 0, 0, IOVT_BUFFER, 0},
+	{"cflags", IOV_BMAC_CFLAGS, 0, 0, IOVT_BUFFER, 0},
+#ifdef ROUTER_COMA
+	{"jtagureg", IOV_BMAC_JTAGUREG, 0, 0, IOVT_BUFFER, 0},
+	{"coma", IOV_BMAC_COMA, 0, 0, IOVT_BUFFER, 0},
+#endif
+#endif /* BCMINTDBG */
 	{"pcieserdesreg", IOV_BMAC_PCIESERDESREG, 0, 0, IOVT_BUFFER, 0},
 #ifdef BCMDBG
 	{"dmalpbk", IOV_BMAC_DMALPBK, IOVF_SET_UP, 0, IOVT_UINT8, 0},
@@ -100,13 +113,23 @@ static const bcm_iovar_t wlc_bmac_iovt[] = {
 #ifdef BCMDBG
 	{"filter_war", IOV_BMAC_FILT_WAR, 0, 0, IOVT_UINT8, 0},
 #endif /* BCMDBG */
+#if defined(BCMINTDBG)
+	{"suspend_mac", IOV_BMAC_SUSPEND_MAC, 0, 0, IOVT_UINT32, 0},
+	{"timestamp", IOV_BMAC_TIMESTAMP, 0, 0, IOVT_BUFFER, 0},
+#endif
 #if defined(BCMDBG)
 	{"rcvlazy", IOV_BMAC_RCVLAZY, 0, 0, IOVT_INT32, 0},
 #endif
 	{"btswitch", IOV_BMAC_BTSWITCH,	0, 0, IOVT_INT32, 0},
 	{"vcofreq_pcie2", IOV_BMAC_4360_PCIE2_WAR, IOVF_SET_DOWN, 0, IOVT_INT32, 0},
+#ifdef BCMINTDBG
+	{"bmc_nbufs", IOV_BMC_NBUFS, (IOVF_SET_DOWN), 0, IOVT_UINT32, 0},
+#endif
 	{"edcrs", IOV_BMAC_EDCRS, IOVF_SET_UP | IOVF_GET_UP, 0, IOVT_UINT8, 0},
 	{"macfreq", IOV_BMAC_MACFREQ, 0, 0, IOVT_UINT8, 0},
+#if defined(BCMINTDBG)
+	{"hw_hdrconv", IOV_BMAC_HDR_CONV, 0, 0, IOVT_UINT32, 0},
+#endif /* BCMINTDBG */
 #ifdef LDO3P3_MIN_RES_MASK
 	{"ldo_prot_ovrd", IOV_BMAC_LDO3P3_PROTECTION_OVERRIDE, (0), 0, IOVT_INT32, 0},
 #endif /* LDO3P3_MIN_RES_MASK */
@@ -142,6 +165,9 @@ static uint wlc_bmac_dma_avoidance_cnt(wlc_hw_info_t *wlc_hw);
 static int wlc_bmac_bt_regs_read(wlc_hw_info_t *wlc_hw, uint32 stAdd, uint32 dump_size, uint32 *b);
 
 
+#if defined(BCMINTDBG)
+static void wlc_bmac_suspend_timeout(void *arg);
+#endif /* BCMINTDBG */
 
 #if defined(STA) && defined(BCMDBG)
 static void wlc_bmac_dma_lpbk(wlc_hw_info_t *wlc_hw, bool enable);
@@ -153,6 +179,24 @@ static void wlc_bmac_dma_lpbk(wlc_hw_info_t *wlc_hw, bool enable);
  */
 #include <wlc_patch.h>
 
+#if defined(BCMINTDBG)
+static void
+wlc_bmac_suspend_timeout(void *arg)
+{
+	wlc_info_t *wlc = (wlc_info_t*)arg;
+
+	ASSERT(wlc);
+
+	if (wlc->bmac_suspend_timer) {
+		wl_del_timer(wlc->wl, wlc->bmac_suspend_timer);
+		wlc->is_bmac_suspend_timer_active = FALSE;
+	}
+
+	wlc_bmac_enable_mac(wlc->hw);
+
+	return;
+}
+#endif /* BCMINTDBG */
 
 #if defined(STA) && defined(BCMDBG)
 static void
@@ -324,6 +368,27 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 			err = wlc_bmac_bt_regs_read(wlc_hw, int_val, int_val2, (uint32*)arg);
 		break;
 	}
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_BMAC_SBGPIOTIMERMASK):
+		*ret_int_ptr = si_gpioled(wlc_hw->sih, 0, 0);
+		break;
+	case IOV_SVAL(IOV_BMAC_SBGPIOTIMERMASK):
+		si_gpioled(wlc_hw->sih, ~0, int_val);
+		break;
+
+	case IOV_GVAL(IOV_BMAC_RFDISABLEDLY):
+		if (wlc_hw->corerev >= 10)
+			*ret_int_ptr = R_REG(wlc_hw->osh, &wlc_hw->regs->rfdisabledly);
+		else
+			err = BCME_UNSUPPORTED;
+		break;
+	case IOV_SVAL(IOV_BMAC_RFDISABLEDLY):
+		if (wlc_hw->corerev >= 10)
+			W_REG(wlc_hw->osh, &wlc_hw->regs->rfdisabledly, int_val);
+		else
+			err = BCME_UNSUPPORTED;
+		break;
+#endif /* BCMINTDBG */
 
 
 	case IOV_GVAL(IOV_BMAC_PCIEADVCORRMASK):
@@ -495,6 +560,363 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 				*ret_int_ptr = (val & IFS_CTL1_EDCRS) ? TRUE:FALSE;
 		}
 		break;
+#ifdef BCMINTDBG
+	case IOV_SVAL(IOV_BMAC_BPIND): {
+		int32 int_val3;
+
+		if (p_len < (int)sizeof(int_val) * 3) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+
+		bcopy(((uint8 *)params + 2 * sizeof(int_val)),
+		      &int_val3, sizeof(int_val));
+
+		err = si_bpind_access(wlc_hw->sih, int_val, int_val2,
+			&int_val3, FALSE);
+		break;
+	}
+	case IOV_GVAL(IOV_BMAC_BPIND):
+
+		if (p_len < (int)sizeof(int_val) * 2) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+
+		err = si_bpind_access(wlc_hw->sih, (uint32)int_val, (uint32)int_val2,
+			ret_int_ptr, TRUE);
+		break;
+
+	case IOV_SVAL(IOV_BMAC_COREWRAPPERREG): {
+		int32 int_val3;
+		if (p_len < (int)sizeof(int_val) * 3) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < 0 || int_val2 < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+
+		bcopy(((uint8 *)params + 2 * sizeof(int_val)),
+		      &int_val3, sizeof(int_val));
+		/* int_val is the core index, int_val2 is addres of the register, int_val3 value */
+		si_core_wrapperreg(wlc_hw->sih, int_val, int_val2, ~0, int_val3);
+		break;
+	}
+
+	case IOV_GVAL(IOV_BMAC_COREWRAPPERREG): {
+		if (p_len < (int)sizeof(int_val) * 2) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < 0 || int_val2 < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+		/* int_val is the core index, int_val2 is addres of the register */
+
+		*ret_int_ptr = si_core_wrapperreg(wlc_hw->sih, int_val, int_val2, 0, 0);
+		break;
+	}
+
+	case IOV_SVAL(IOV_BMAC_CCREG):
+		if (p_len < (int)sizeof(int_val) * 2) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+		si_ccreg(wlc_hw->sih, int_val, ~0, int_val2);
+		break;
+
+	case IOV_GVAL(IOV_BMAC_CCREG):
+		if (p_len < (int)sizeof(int_val)) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+		*ret_int_ptr = si_ccreg(wlc_hw->sih, int_val, 0, 0);
+		break;
+
+	case IOV_SVAL(IOV_BMAC_COREREG): {
+		int32 int_val3;
+		if (p_len < (int)sizeof(int_val) * 3) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < 0 || int_val2 < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+
+		bcopy(((uint8 *)params + 2 * sizeof(int_val)),
+		      &int_val3, sizeof(int_val));
+		/* write dev/offset/val to serdes */
+		si_corereg(wlc_hw->sih, int_val, int_val2, ~0, int_val3);
+		break;
+	}
+
+	case IOV_GVAL(IOV_BMAC_COREREG): {
+		if (p_len < (int)sizeof(int_val) * 2) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < 0 || int_val2 < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+
+		*ret_int_ptr = si_corereg(wlc_hw->sih, int_val, int_val2, 0, 0);
+		break;
+	}
+
+	case IOV_GVAL(IOV_BMAC_CFLAGS):
+	case IOV_GVAL(IOV_BMAC_SFLAGS): {
+		si_t *sih = wlc_hw->sih;
+		int savecidx = 0;
+
+		if (p_len < (int)sizeof(int_val)) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < -1) {
+			err = BCME_BADARG;
+			break;
+		}
+		if (int_val >= 0) {
+			savecidx = si_coreidx(sih);
+			wlc_intrsoff(wlc_hw->wlc);
+			if (si_setcoreidx(sih, int_val) == NULL) {
+				err = BCME_BADARG;
+				break;
+			}
+		}
+
+		if (actionid == IOV_GVAL(IOV_BMAC_CFLAGS))
+			*ret_int_ptr = si_core_cflags(sih, 0, 0);
+		else
+			*ret_int_ptr = si_core_sflags(sih, 0, 0);
+
+		if (int_val >= 0)
+			si_setcoreidx(sih, savecidx);
+		wlc_intrson(wlc_hw->wlc);
+
+		break;
+	}
+
+	case IOV_SVAL(IOV_BMAC_CFLAGS):
+	case IOV_SVAL(IOV_BMAC_SFLAGS): {
+		si_t *sih = wlc_hw->sih;
+		int savecidx = 0;
+		int32 int_val3;
+
+		bcopy(((uint8*)params + 2 * sizeof(int_val)),
+			&int_val3, sizeof(int_val));
+
+		if (p_len < (int)sizeof(int_val) * 3) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (int_val < -1 || int_val2 < -1) {
+			err = BCME_BADARG;
+			break;
+		}
+
+		if (int_val >= 0) {
+			savecidx = si_coreidx(sih);
+			wlc_intrsoff(wlc_hw->wlc);
+			if (si_setcoreidx(sih, int_val) == NULL) {
+				err = BCME_BADARG;
+				break;
+			}
+		}
+
+		if (actionid == IOV_SVAL(IOV_BMAC_CFLAGS))
+			*ret_int_ptr = si_core_cflags(sih, int_val2, int_val3);
+		else
+			*ret_int_ptr = si_core_sflags(sih, int_val2, int_val3);
+
+		if (int_val >= 0)
+			si_setcoreidx(sih, savecidx);
+		wlc_intrson(wlc_hw->wlc);
+
+		break;
+	}
+
+#ifdef ROUTER_COMA
+	case IOV_SVAL(IOV_BMAC_JTAGUREG): {
+		si_t *sih = wlc_hw->sih;
+		int savecidx;
+		volatile void *jh;
+
+		if (CCREV(sih->ccrev) < 31) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+
+		if (p_len < (int)sizeof(int_val) * 2) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+
+		/* hnd_jtagm_init does a setcore to chipc */
+		savecidx = si_coreidx(sih);
+		wlc_intrsoff(wlc_hw->wlc);
+		if ((jh = hnd_jtagm_init(sih, 0, FALSE)) != NULL) {
+			jtag_scan(sih, jh, LV_IR_SIZE, LV_UREG_IR(int_val), 0,
+				LV_DR_SIZE, int_val2, NULL, FALSE);
+			hnd_jtagm_disable(sih, jh);
+		} else
+			err = BCME_ERROR;
+
+		si_setcoreidx(sih, savecidx);
+		wlc_intrson(wlc_hw->wlc);
+		break;
+	}
+
+	case IOV_GVAL(IOV_BMAC_JTAGUREG): {
+		si_t *sih = wlc_hw->sih;
+		int savecidx;
+		volatile void *jh;
+
+		if (p_len < (int)sizeof(int_val)) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+
+		/* hnd_jtagm_init does a setcore to chipc */
+		savecidx = si_coreidx(sih);
+		wlc_intrsoff(wlc_hw->wlc);
+		if ((jh = hnd_jtagm_init(sih, 0, FALSE)) != NULL) {
+			*ret_int_ptr = jtag_scan(sih, jh, LV_IR_SIZE, LV_UREG_ROIR(int_val),
+			                         0, LV_DR_SIZE, 0, NULL, FALSE);
+			hnd_jtagm_disable(sih, jh);
+		} else
+			err = BCME_ERROR;
+
+		si_setcoreidx(sih, savecidx);
+		wlc_intrson(wlc_hw->wlc);
+		break;
+	}
+
+	case IOV_SVAL(IOV_BMAC_COMA): {
+		si_t *sih = wlc_hw->sih;
+		int savecidx;
+		uint32 wlc_wd_msticks, max_int_val;
+		extern void si_router_coma(si_t *sihptr, int reset, int delay);
+
+		if (((CHIPID(sih->chip)) == BCM5357_CHIP_ID) && CHIPREV(sih->chiprev) == 0) {
+			max_int_val = 0x0fffffff / ILP_CLOCK;
+			if (int_val > max_int_val) {
+				int_val = max_int_val;
+				WL_ERROR(("%s: Out of valid range: 0 ~ %d\n",
+					__FUNCTION__, max_int_val));
+			}
+		} else {
+			wlc_wd_msticks = si_watchdog_msticks();
+			max_int_val = 0xffffffff / (wlc_wd_msticks * 1000);
+			if (int_val > max_int_val) {
+				int_val = max_int_val;
+				WL_ERROR(("%s: Out of valid range: 0 ~ %d\n",
+					__FUNCTION__, max_int_val));
+			}
+		}
+
+		if (((CHIPID(sih->chip)) != BCM5357_CHIP_ID) &&
+			((CHIPID(sih->chip)) != BCM53572_CHIP_ID) &&
+			((CHIPID(sih->chip)) != BCM4749_CHIP_ID)) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+
+		if (CCREV(sih->ccrev) < 31) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+
+		savecidx = si_coreidx(sih);
+		/* Should we do a wlc_out? */
+		wlc_intrsoff(wlc_hw->wlc);
+		/* Turn off radio, analog core, phypll, etc. */
+		wlc_bmac_down_finish(wlc_hw);
+
+		si_router_coma(sih, int_val, int_val2);
+
+		si_setcoreidx(sih, savecidx);
+		wlc_intrson(wlc_hw->wlc);
+		break;
+	}
+#endif	/* ROUTER_COMA */
+	case IOV_SVAL(IOV_BMAC_PCICFGREG):
+		if (int_val < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+		if (BUSTYPE(wlc_hw->sih->bustype) != PCI_BUS) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+
+		if (int_val < PCIE_EXTCFG_OFFSET)
+			OSL_PCI_WRITE_CONFIG(wlc_hw->osh, int_val,
+			                     sizeof(uint32), int_val2);
+		else
+			si_pciereg(wlc_hw->sih, int_val, 1, int_val2,
+			           PCIE_CONFIGREGS);
+		break;
+
+	case IOV_GVAL(IOV_BMAC_PCICFGREG):
+		if (int_val < 0) {
+			err = BCME_BADARG;
+			break;
+		}
+		if (BUSTYPE(wlc_hw->sih->bustype) != PCI_BUS) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+		if (int_val < PCIE_EXTCFG_OFFSET)
+			*ret_int_ptr = OSL_PCI_READ_CONFIG(wlc_hw->osh,
+			                                   int_val, sizeof(uint32));
+		else
+			*ret_int_ptr = si_pciereg(wlc_hw->sih, int_val,
+			                          0, 0, PCIE_CONFIGREGS);
+		break;
+
+	case IOV_SVAL(IOV_BMAC_PCIEGPIOOUT):
+		si_pciesbreg(wlc_hw->sih, OFFSETOF(sbpcieregs_t, gpiosel),
+		             ~0, int_val);
+		break;
+
+	case IOV_GVAL(IOV_BMAC_PCIEGPIOOUT):
+		*ret_int_ptr = si_pciesbreg(wlc_hw->sih,
+		                            OFFSETOF(sbpcieregs_t, gpiosel), 0, 0);
+		break;
+
+	case IOV_SVAL(IOV_BMAC_PCIEGPIOOUTEN):
+		si_pciesbreg(wlc_hw->sih, OFFSETOF(sbpcieregs_t, gpioouten),
+		             ~0, int_val);
+		break;
+
+	case IOV_GVAL(IOV_BMAC_PCIEGPIOOUTEN):
+		*ret_int_ptr = si_pciesbreg(wlc_hw->sih,
+		                            OFFSETOF(sbpcieregs_t, gpioouten), 0, 0);
+		break;
+	case IOV_SVAL(IOV_BMAC_PCIECLKREQENCTRL):
+		si_pciesbreg(wlc_hw->sih,
+		             OFFSETOF(sbpcieregs_t, u.pcie1.clkreqenctrl), ~0, int_val);
+		break;
+
+	case IOV_GVAL(IOV_BMAC_PCIECLKREQENCTRL):
+		*ret_int_ptr = si_pciesbreg(wlc_hw->sih,
+		                            OFFSETOF(sbpcieregs_t, u.pcie1.clkreqenctrl), 0, 0);
+		break;
+#endif	/* BCMINTDBG */
 
 	case IOV_SVAL(IOV_BMAC_PCIESERDESREG): {
 		int32 int_val3;
@@ -739,6 +1161,58 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 		break;
 #endif /* BCMDBG */
 
+#if defined(BCMINTDBG)
+	case IOV_SVAL(IOV_BMAC_SUSPEND_MAC):
+	{
+		wlc_info_t *wlc = wlc_hw->wlc;
+		bool suspend = TRUE;
+
+		err = BCME_OK;
+
+		if ((wlc->bmac_suspend_timer) && (wlc->is_bmac_suspend_timer_active)) {
+			/* stop timer in case it's already active */
+			wl_del_timer(wlc->wl, wlc->bmac_suspend_timer);
+			wlc->is_bmac_suspend_timer_active = FALSE;
+
+			if (int_val == 0) {
+				/* MAC already suspended and timer will be cancelled immediately */
+				wlc_bmac_enable_mac(wlc_hw);
+			} else {
+				/* MAC already suspended - timer will restart with new value */
+				suspend = FALSE;
+			}
+		}
+		if (int_val > 0) {
+			if (wlc->bmac_suspend_timer == NULL) {
+				wlc->bmac_suspend_timer = wl_init_timer(wlc->wl,
+				     wlc_bmac_suspend_timeout, wlc, "bmac_suspend");
+			}
+
+			if (wlc->bmac_suspend_timer != NULL) {
+				if (suspend) {
+					wlc_bmac_suspend_mac_and_wait(wlc_hw);
+				}
+
+				wl_add_timer(wlc->wl, wlc->bmac_suspend_timer, int_val, FALSE);
+
+				wlc->is_bmac_suspend_timer_active = TRUE;
+			} else {
+				err = BCME_ERROR;
+			}
+		}
+		break;
+	}
+
+#if defined(BCMDBG) && !defined(BCMDBG_EXCLUDE_HW_TIMESTAMP)
+	case IOV_GVAL(IOV_BMAC_TIMESTAMP):
+	{
+		struct bcmstrbuf b;
+		bcm_binit(&b, (char*)arg, len);
+		bcm_bprintf(&b, "%s timestamp", wlc_dbg_get_hw_timestamp());
+		break;
+	}
+#endif /* BCMDBG && !BCMDBG_EXCLUDE_HW_TIMESTAMP */
+#endif /* (BCMINTDBG) */
 #if defined(BCMDBG)
 	case IOV_SVAL(IOV_BMAC_RCVLAZY):
 		/* Fix up the disable value if needed */
@@ -810,6 +1284,22 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 		*ret_int_ptr = (int)wlc_hw->vcoFreq_4360_pcie2_war;
 		break;
 
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_BMAC_BMC_NBUFS):
+		if (D11REV_GE(wlc_hw->corerev, 40)) {
+			*ret_int_ptr = wlc_bmac_bmc_get(wlc_hw);
+		} else {
+			err = BCME_UNSUPPORTED;
+		}
+		break;
+	case IOV_SVAL(IOV_BMAC_BMC_NBUFS):
+		if (D11REV_GE(wlc_hw->corerev, 40)) {
+			err = wlc_bmac_bmc_set(wlc_hw, (uint16)int_val);
+		} else {
+			err = BCME_UNSUPPORTED;
+		}
+		break;
+#endif
 
 #if defined(SAVERESTORE) && defined(BCMDBG_SR)
 	case IOV_GVAL(IOV_BMAC_SR_VERIFY): {
@@ -848,6 +1338,30 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 		}
 #endif
 
+#if defined(BCMINTDBG)
+	case IOV_GVAL(IOV_BMAC_HDR_CONV):
+	{
+		if (!RXFIFO_SPLIT()) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+		*ret_int_ptr = wlc_hw->hdrconv_mode;
+		break;
+	}
+	case IOV_SVAL(IOV_BMAC_HDR_CONV):
+	{
+		wlc_info_t *wlc = wlc_hw->wlc;
+
+		if (!RXFIFO_SPLIT()) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+		/* Change the HW mode */
+		wlc_update_splitrx_mode(wlc->hw, bool_val, FALSE);
+
+		break;
+	}
+#endif /* BCMINTDBG*/
 
 #ifdef LDO3P3_MIN_RES_MASK
 	case IOV_SVAL(IOV_BMAC_LDO3P3_PROTECTION_OVERRIDE):

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,41 +34,21 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #ifndef NEXUS_SAGE_IMAGE_H__
 #define NEXUS_SAGE_IMAGE_H__
 #include "bsagelib_types.h"
 #include "bimg.h"
+#include "nexus_sage_types.h"
 
 #define SAGE_IMG_BUFFER_SIZE (64*1024)
-
-typedef enum SAGE_IMAGE_FirmwareID
-{
-#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
-	SAGE_IMAGE_FirmwareID_eBootLoader_Development = 0,	 /* Development (ZS) chip-compatible SAGE boot loader image */
-	SAGE_IMAGE_FirmwareID_eOS_App_Development,			/* Development (ZS) chip-compatible SAGE OS/APP image */
-	SAGE_IMAGE_FirmwareID_eBootLoader,					 /* Production (ZB or customer specific) chip-compatible SAGE boot loader image */
-	SAGE_IMAGE_FirmwareID_eOS_App,						 /* Production (ZB or customer specific) chip-compatible SAGE OS/APP image */
-	/* Add additional image IDs ABOVE this line */
-	SAGE_IMAGE_FirmwareID_Max
-#else
-        SAGE_IMAGE_FirmwareID_eBootLoader_Development = 0,   /* Development (ZS) chip-compatible SAGE boot loader image */
-        SAGE_IMAGE_FirmwareID_eFramework_Development,          /* Development (ZS) chip-compatible SAGE Framework image */
-        SAGE_IMAGE_FirmwareID_eBootLoader,                   /* Production (ZB or customer specific) chip-compatible SAGE boot loader image */
-        SAGE_IMAGE_FirmwareID_eFramework,                       /* Production (ZB or customer specific) chip-compatible SAGE Framework image */
-        SAGE_IMAGE_FirmwareID_eSage_TA_SVP_Development,      /* Development (ZS) chip-compatible Anti-Rollback TA*/
-        SAGE_IMAGE_FirmwareID_eSage_TA_SVP,                  /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
-        SAGE_IMAGE_FirmwareID_eSage_TA_AR_Development,      /* Development (ZS) chip-compatible Anti-Rollback TA*/
-        SAGE_IMAGE_FirmwareID_eSage_TA_AR,                  /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
-        /* Add additional image IDs ABOVE this line */
-        SAGE_IMAGE_FirmwareID_Max
-#endif
-} SAGE_IMAGE_FirmwareID;
-
 extern void *SAGE_IMAGE_Context;
 extern BIMG_Interface SAGE_IMAGE_Interface;
+
+/* usermode only */
+void NEXUS_SageImage_SetImageExists_priv(
+    NEXUS_SageModuleSettings *pSettings);
 
 #endif /* NEXUS_SAGE_IMAGE_H__ */
 /* End of file. */

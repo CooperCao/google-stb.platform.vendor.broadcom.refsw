@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,17 +70,17 @@
 /***************************************************************************
  *HEVD_OL_SINT_0
  ***************************************************************************/
-#define BCHP_HEVD_OL_SINT_0_DMA_ADDR             0x20001000 /* [RW] DMA Address */
-#define BCHP_HEVD_OL_SINT_0_DMA_LEN              0x20001004 /* [RW] DMA length */
-#define BCHP_HEVD_OL_SINT_0_DMA_BASE             0x20001008 /* [RW] DMA Base Address */
-#define BCHP_HEVD_OL_SINT_0_DMA_END              0x2000100c /* [RW] DMA End Address */
-#define BCHP_HEVD_OL_SINT_0_STRM_POS             0x20001010 /* [RO] Stream Position */
-#define BCHP_HEVD_OL_SINT_0_STRM_STAT            0x20001014 /* [RW] Stream Status */
-#define BCHP_HEVD_OL_SINT_0_IENA                 0x20001018 /* [RW] Interrupt Enable */
-#define BCHP_HEVD_OL_SINT_0_STRM_BITS            0x2000101c /* [RW] Stream bit 'peek' */
-#define BCHP_HEVD_OL_SINT_0_GET_SYMB             0x20001020 /* [RW] Get Symbol */
-#define BCHP_HEVD_OL_SINT_0_VPX_PROB_TABLE       0x20001024 /* [RW] VPX Prob Table */
-#define BCHP_HEVD_OL_SINT_0_VPX_DEBUG            0x20001028 /* [RO] VPX Debug */
+#define BCHP_HEVD_OL_SINT_0_DMA_ADDR             0x20001000 /* [RW][32] DMA Address */
+#define BCHP_HEVD_OL_SINT_0_DMA_LEN              0x20001004 /* [RW][32] DMA length */
+#define BCHP_HEVD_OL_SINT_0_DMA_BASE             0x20001008 /* [RW][32] DMA Base Address */
+#define BCHP_HEVD_OL_SINT_0_DMA_END              0x2000100c /* [RW][32] DMA End Address */
+#define BCHP_HEVD_OL_SINT_0_STRM_POS             0x20001010 /* [RO][32] Stream Position */
+#define BCHP_HEVD_OL_SINT_0_STRM_STAT            0x20001014 /* [RW][32] Stream Status */
+#define BCHP_HEVD_OL_SINT_0_IENA                 0x20001018 /* [RW][32] Interrupt Enable */
+#define BCHP_HEVD_OL_SINT_0_STRM_BITS            0x2000101c /* [RW][32] Stream bit 'peek' */
+#define BCHP_HEVD_OL_SINT_0_GET_SYMB             0x20001020 /* [RW][32] Get Symbol */
+#define BCHP_HEVD_OL_SINT_0_VPX_PROB_TABLE       0x20001024 /* [RW][32] VPX Prob Table */
+#define BCHP_HEVD_OL_SINT_0_VPX_DEBUG            0x20001028 /* [RO][32] VPX Debug */
 
 /***************************************************************************
  *DMA_ADDR - DMA Address

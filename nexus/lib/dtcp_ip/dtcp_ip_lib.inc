@@ -59,7 +59,7 @@ endif
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-B_DTCP_IP_LIB_OBJ_DIR := ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_DTCP_IP_LIB_OUTPUT_NAME)
+B_DTCP_IP_LIB_OBJ_DIR := ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_REFSW_ARCH)/$(B_DTCP_IP_LIB_OUTPUT_NAME)
 
 #test for DTCP-IP sources
 DTCP_IP_SOURCES_AVAILABLE:= $(shell test -e $(B_LIB_TOP)/dtcp_ip/src/b_dtcp_applib.c   && echo y)

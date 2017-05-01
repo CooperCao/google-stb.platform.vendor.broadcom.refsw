@@ -16,7 +16,7 @@ How to build and run
 Source Location:
 
     BSEAV/tools/bmemconfig
-    BSEAV/lib/boa
+    BSEAV/opensource/boa
 
 How to build:
 

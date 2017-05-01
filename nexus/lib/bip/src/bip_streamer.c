@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -114,7 +114,7 @@ error_play:
     }
 
     /* Recpump Stats. */
-    if ( hStreamer->hRecpump)
+    if (hStreamer->hRecpump)
     {
         NEXUS_RecpumpStatus recStatus;
 
@@ -561,28 +561,18 @@ static BIP_Status openAllpassPidChannel(
 
                 break;
             }
+#endif
         case BIP_StreamerInputType_eFile:
             {
                 NEXUS_PlaybackPidChannelSettings playbackPidSettings;
 
                 NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-                playbackPidSettings.pidSettings.pidSettings = hTrackEntry->trackSettings.pidChannelSettings;
-                if (hTrackEntry->streamerTrackInfo.type == BIP_MediaInfoTrackType_eVideo)
-                {
-                    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-                    playbackPidSettings.pidTypeSettings.video.codec = hTrackEntry->streamerTrackInfo.info.video.codec;
-                    playbackPidSettings.pidTypeSettings.video.index = false;
-                }
-                else if (hTrackEntry->streamerTrackInfo.type == BIP_MediaInfoTrackType_eAudio)
-                {
-                    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
-                }
-                hPidChannel = NEXUS_Playback_OpenPidChannel(hStreamer->hPlayback, hTrackEntry->streamerTrackInfo.trackId, &playbackPidSettings);
+            NEXUS_Playpump_GetAllPassPidChannelIndex(hStreamer->hPlaypump, &playbackPidSettings.pidSettings.pidSettings.pidChannelIndex );
+                hPidChannel = NEXUS_Playback_OpenPidChannel(hStreamer->hPlayback, 0x00, &playbackPidSettings);
                 BIP_CHECK_GOTO(( hPidChannel ), ( "hStreamer %p, state %s: NEXUS_PlaybackOpen_PidChannel() Failed",
-                            hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
+                            (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
                 break;
             }
-#endif
         default:
             {
                 bipStatus = BIP_ERR_NOT_AVAILABLE;
@@ -797,6 +787,16 @@ static BIP_Status openNexusPlayback(
         playbackSettings.endOfStreamAction = hStreamer->file.inputSettings.enableContinousPlay ? NEXUS_PlaybackLoopMode_eLoop : NEXUS_PlaybackLoopMode_ePause;
         playbackSettings.playpump = hStreamer->hPlaypump;
         playbackSettings.playpumpSettings.transportType = hStreamer->streamerStreamInfo.transportType;
+        if (!hStreamer->offloadStreamerToAsp)
+        {
+            /* TODO: restricting b/w for non-ASP case. Restricting it here for ASP case has some issue w/ client's starving for data. */
+            playbackSettings.playpumpSettings.maxDataRate = hStreamer->file.inputSettings.maxDataRate;
+        }
+        if ( hStreamer->file.inputSettings.enableAllPass )
+        {
+            playbackSettings.playpumpSettings.allPass = true;
+            playbackSettings.playpumpSettings.acceptNullPackets = true;
+        }
         nrc = NEXUS_Playback_SetSettings( hStreamer->hPlayback, &playbackSettings );
         BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEUS_Playback_SetSettings Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
         bipStatus = BIP_SUCCESS;
@@ -872,6 +872,7 @@ static void resetStreamerState(
     hStreamer->inputType = BIP_StreamerInputType_eMax;
     hStreamer->transcode.handlesState = BIP_StreamerOutputState_eNotSet;
     hStreamer->transcode.profileState = BIP_StreamerOutputState_eNotSet;
+    hStreamer->offloadStreamerToAsp = false;
 
     hStreamer->stats.numTracksAdded = 0;
 
@@ -928,6 +929,7 @@ static BIP_Status stopAndUnPrepare(
         hStreamer->transcode.hTranscode = NULL;
     }
 
+    hStreamer->offloadStreamerToAsp = false;
     closeNexusResources( hStreamer );
 
     bipStatus = BIP_SUCCESS;
@@ -1032,7 +1034,7 @@ static BIP_Status startNexusPlayback(
     playbackSettings.playpumpSettings.transportType = hStreamer->streamerStreamInfo.transportType;
 
     if (hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eTs && playSpeed == 1 && hStreamer->transcode.profileState == BIP_StreamerOutputState_eNotSet &&
-            (BIP_Streamer_GetTrackEntry_priv( hStreamer, BIP_MediaInfoTrackType_ePcr, &hTrackEntry ) == BIP_SUCCESS) )
+            (BIP_Streamer_GetTrackEntry_priv( hStreamer, BIP_MediaInfoTrackType_ePcr, &hTrackEntry ) == BIP_SUCCESS) && hStreamer->file.inputSettings.enableHwPacing == true)
     {
         /* For TS streams being played via Playback path w/o transcode enabled, turn on PCR Pacing if PCR track is present in the stream. */
         playbackSettings.playpumpSettings.timestamp.pacing = true;
@@ -1056,11 +1058,6 @@ static BIP_Status startNexusPlayback(
         /* For non-1x playback, we start playback in the paused state and call the trickmode api to feed the scaled data! */
         /* Likewise, if seekPosition is set, then we start paused and then call Playback Seek API. */
         playbackSettings.startPaused = true;
-    }
-    else
-    {
-        /* For rest of scenarios, it must be transcode case needing the Nexus Playback. Double check that. */
-        BDBG_ASSERT( hStreamer->transcode.profileState == BIP_StreamerOutputState_eSet );
     }
 
     nrc = NEXUS_Playback_SetSettings( hStreamer->hPlayback, &playbackSettings );
@@ -1658,6 +1655,10 @@ static BIP_Status prepareStreamerForFileInput(
             /* This will require us to decode & re-encode the media file. And thus we use the playback path for this flow. */
             feedUsingPlaybackChannel = true;
         }
+        else if (hStreamer->output.settings.enableStreamingUsingPlaybackCh)
+        {
+            feedUsingPlaybackChannel = true;
+        }
         else
         {
             /*
@@ -1685,6 +1686,10 @@ static BIP_Status prepareStreamerForFileInput(
                     hStreamer->file.inputSettings.enableAllPass == false &&
                     (hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eTs ||
                      hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eMpeg2Pes) )
+            {
+                feedUsingPlaybackChannel = true;
+            }
+            else if (hStreamer->offloadStreamerToAsp)
             {
                 feedUsingPlaybackChannel = true;
             }
@@ -1734,7 +1739,14 @@ static BIP_Status prepareStreamerForFileInput(
         if ( bipStatus == BIP_SUCCESS )
         {
             /* Now open the PidChannels. */
-            bipStatus = openPidChannels( hStreamer );
+            if (hStreamer->file.inputSettings.enableAllPass)
+            {
+                bipStatus = openAllpassPidChannel( hStreamer );
+            }
+            else
+            {
+                bipStatus = openPidChannels( hStreamer );
+            }
             if ( bipStatus == BIP_SUCCESS )
             {
                 BIP_TranscodeProfile *pTranscodeProfile;
@@ -2239,6 +2251,15 @@ void processStreamerState(
             /* We have confirmed that all streaming related states are valid and thus their settings are in place. */
             /* Note: we dont acquire & setup any Nexus streaming resources until caller invokes the _ProcessRequest(). */
             hStreamer->prepareSettings = *hStreamer->prepareApi.pSettings;
+
+            /* Determine if we can offload this streamer to ASP. */
+            if (
+                    hStreamer->output.settings.enableHwOffload &&                               /* App has enabled it, & */
+                    hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eTs &&   /* its a format ASP can stream out, & */
+                    hStreamer->transcode.profileState == BIP_StreamerOutputState_eNotSet )      /* transcode is not enabled (TODO: only HLS can't be streamed out by ASP, but for now disable all!) */
+            {
+                hStreamer->offloadStreamerToAsp = true;
+            }
 
             if ( hStreamer->file.inputState == BIP_StreamerInputState_eSet )
             {

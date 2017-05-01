@@ -1,23 +1,16 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)20013 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-   blob description
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_BLOB_H
 #define KHRN_BLOB_H
 
 #include "../glxx/gl_public_api.h"
 #include "libs/core/lfmt/lfmt.h"
 #include "libs/core/gfx_buffer/gfx_buffer.h"
-#include "khrn_res_interlock.h"
+#include "khrn_resource.h"
 #include "khrn_mem.h"
 
-typedef struct
+typedef struct khrn_blob
 {
    gfx_buffer_usage_t usage;
 
@@ -33,11 +26,11 @@ typedef struct
     * start of the handle in this resource plus (i * array_pitch) ;
     * for a blob that has one element, array_pitch is the size of that element*/
    size_t array_pitch;
-   KHRN_RES_INTERLOCK_T *res_i;
+   khrn_resource *res;
 
-   /* If this is true, we did not create the interlock and so we do not know
-    * how the interlock parts are assigned */
-   bool foreign_interlock;
+   /* If this is true, we did not create the resource and so we do not know
+    * how the resource parts are assigned */
+   bool foreign_resource;
 
    size_t descs_align;        /*alignment requirement for descs */
 
@@ -48,12 +41,12 @@ typedef struct
     * decs[0] to desc[num_mip_leves-1] describe the images in this blob */
    GFX_BUFFER_DESC_T desc[1];
 
-}KHRN_BLOB_T;
+}khrn_blob;
 
 /* There are either 1 or 2 "changrps" (channel groups) per plane. When there
  * are 2 per plane, the first contains the stencil channel (if there is one)
  * and the second contains all other channels. */
-static inline unsigned khrn_blob_changrps_per_plane(const KHRN_BLOB_T *blob)
+static inline unsigned khrn_blob_changrps_per_plane(const khrn_blob *blob)
 {
    for (unsigned plane = 0; plane != blob->desc[0].num_planes; ++plane)
    {
@@ -64,7 +57,7 @@ static inline unsigned khrn_blob_changrps_per_plane(const KHRN_BLOB_T *blob)
    return 1;
 }
 
-extern khrn_interlock_parts_t khrn_blob_interlock_parts(const KHRN_BLOB_T *blob,
+extern khrn_resource_parts_t khrn_blob_resource_parts(const khrn_blob *blob,
    unsigned start_elem, unsigned num_elems, /* Array elements */
    unsigned mip_level,
    /* changrps are numbered from 0 to (num_planes * khrn_blob_changrps_per_plane()) - 1 */
@@ -78,41 +71,41 @@ extern khrn_interlock_parts_t khrn_blob_interlock_parts(const KHRN_BLOB_T *blob,
  * accordingly;
  * blob_usage decides the alignment of the allocated storage (see
  * GFX_BUFFER_USAGE_V3D_.*) */
-extern KHRN_BLOB_T* khrn_blob_create(unsigned width, unsigned height,
+extern khrn_blob* khrn_blob_create(unsigned width, unsigned height,
       unsigned depth, unsigned num_array_elems, unsigned num_mip_levels,
       const GFX_LFMT_T *lfmts, unsigned num_planes,
       gfx_buffer_usage_t blob_usage, bool secure);
 
 /* one has to supply as many descs as the number of mipmap levels;
  * for an image that is not an array, array_pitch is the size of handle */
-extern KHRN_BLOB_T* khrn_blob_create_from_storage(gmem_handle_t handle,
+extern khrn_blob* khrn_blob_create_from_storage(gmem_handle_t handle,
       const GFX_BUFFER_DESC_T *descs, unsigned num_mip_levels,
       unsigned num_array_elems, unsigned array_pitch,
       gfx_buffer_usage_t blob_usage);
 
 /* The same as khrn_blob_create_from_storage but the storage is created
- * obtained from a res interlock */
-extern KHRN_BLOB_T* khrn_blob_create_from_res_interlock(KHRN_RES_INTERLOCK_T *res_i,
+ * obtained from a resource */
+extern khrn_blob* khrn_blob_create_from_resource(khrn_resource *res,
       const GFX_BUFFER_DESC_T *descs, unsigned num_mip_levels,
       unsigned num_array_elems, unsigned array_pitch,
       gfx_buffer_usage_t blob_usage, bool secure);
 
 /*creates a blob as khrn_blob_create but it doesn't allocate storage at this
- * point for the res_interlock handle; we will allocate the storage at some
+ * point for the resource handle; we will allocate the storage at some
  * later point (only if we need to use this blob) */
-extern KHRN_BLOB_T* khrn_blob_create_no_storage(unsigned width, unsigned height,
+extern khrn_blob* khrn_blob_create_no_storage(unsigned width, unsigned height,
       unsigned depth, unsigned num_array_elems, unsigned num_mip_levels,
       const GFX_LFMT_T *lfmts, unsigned num_planes,
       gfx_buffer_usage_t blob_usage, bool secure);
 
 /* this can be used in conjunction with the above function to delay storage
  * allocation till needed; if the blob already has storage, this function does nothing */
-extern bool khrn_blob_alloc_storage(KHRN_BLOB_T *blob);
+extern bool khrn_blob_alloc_storage(khrn_blob *blob);
 
-extern bool khrn_blob_contains_level(const KHRN_BLOB_T *blob,
+extern bool khrn_blob_contains_level(const khrn_blob *blob,
       unsigned mip_level);
 
-extern bool khrn_blob_has_level_with_spec(const KHRN_BLOB_T *blob,
+extern bool khrn_blob_has_level_with_spec(const khrn_blob *blob,
       unsigned level, unsigned width, unsigned height, unsigned depth,
       unsigned num_array_elems, const GFX_LFMT_T *lfmts, unsigned num_planes);
 

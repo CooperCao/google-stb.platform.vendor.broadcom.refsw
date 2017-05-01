@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,14 +70,14 @@
 /***************************************************************************
  *AVS_PVT_MNTR_CONFIG - AVS PVT Monitor Configuration Core
  ***************************************************************************/
-#define BCHP_AVS_PVT_MNTR_CONFIG_PVT_MNTR_CTRL   0x204d2100 /* [RW] Control bits for PVT monitor */
-#define BCHP_AVS_PVT_MNTR_CONFIG_PVT_MNTR_TP_MODE_ENABLE 0x204d2108 /* [RW] Enabling TP mode to use data from tp_in/out pins */
-#define BCHP_AVS_PVT_MNTR_CONFIG_DAC_CODE_PROGRAMMING_ENABLE 0x204d2110 /* [RW] SW must set this bit to 1 to modify DAC_CODE, MIN_DAC_CODE and MAX_DAC_CODE */
-#define BCHP_AVS_PVT_MNTR_CONFIG_DAC_CODE        0x204d2114 /* [RW] Represents the input code of the DAC */
-#define BCHP_AVS_PVT_MNTR_CONFIG_MIN_DAC_CODE    0x204d2118 /* [RW] SW may set this to a lower value to prevent the DAC from driving too high of a voltage */
-#define BCHP_AVS_PVT_MNTR_CONFIG_MAX_DAC_CODE    0x204d211c /* [RW] SW may set this to a higher value to prevent the DAC from driving too low of a voltage */
-#define BCHP_AVS_PVT_MNTR_CONFIG_PVT_MNTR_SW_RESETB 0x204d2120 /* [RW] SW controlled PVTMON_resetb */
-#define BCHP_AVS_PVT_MNTR_CONFIG_AVS_TOP_ANALOG_SRAM_INDICATOR 0x204d2124 /* [RW] Control register to drive control bits for analog SRAM indicator */
+#define BCHP_AVS_PVT_MNTR_CONFIG_PVT_MNTR_CTRL   0x204d2100 /* [RW][32] Control bits for PVT monitor */
+#define BCHP_AVS_PVT_MNTR_CONFIG_PVT_MNTR_TP_MODE_ENABLE 0x204d2108 /* [RW][32] Enabling TP mode to use data from tp_in/out pins */
+#define BCHP_AVS_PVT_MNTR_CONFIG_DAC_CODE_PROGRAMMING_ENABLE 0x204d2110 /* [RW][32] SW must set this bit to 1 to modify DAC_CODE, MIN_DAC_CODE and MAX_DAC_CODE */
+#define BCHP_AVS_PVT_MNTR_CONFIG_DAC_CODE        0x204d2114 /* [RW][32] Represents the input code of the DAC */
+#define BCHP_AVS_PVT_MNTR_CONFIG_MIN_DAC_CODE    0x204d2118 /* [RW][32] SW may set this to a lower value to prevent the DAC from driving too high of a voltage */
+#define BCHP_AVS_PVT_MNTR_CONFIG_MAX_DAC_CODE    0x204d211c /* [RW][32] SW may set this to a higher value to prevent the DAC from driving too low of a voltage */
+#define BCHP_AVS_PVT_MNTR_CONFIG_PVT_MNTR_SW_RESETB 0x204d2120 /* [RW][32] SW controlled PVTMON_resetb */
+#define BCHP_AVS_PVT_MNTR_CONFIG_AVS_TOP_ANALOG_SRAM_INDICATOR 0x204d2124 /* [RW][32] Control register to drive control bits for analog SRAM indicator */
 
 /***************************************************************************
  *PVT_MNTR_CTRL - Control bits for PVT monitor

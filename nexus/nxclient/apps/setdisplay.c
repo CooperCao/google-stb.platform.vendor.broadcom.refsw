@@ -1,41 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  *****************************************************************************/
 #include "nexus_platform_client.h"
@@ -97,6 +95,8 @@ static void print_usage(void)
         "  -composite {on|off}\n"
         "  -rfm {3|4}\n"
         "  -hdmi {on|off}\n"
+        "  -dolby {auto|on|off}           set dolby vision display mode\n"
+        "  -priority {auto|video|gfx} set dolby vision display priority mode\n"
         "  -3d {on|lr|ou|off}        enable stereoscopic (3D) video\n"
         "  -color CONTRAST,SATURATION,HUE,BRIGHTNESS   graphics color. values range between -32767 and 32768.\n"
         "  -backgroundColor          ARGB888 hex value for graphics background\n"
@@ -181,7 +181,8 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
     if (pSettings->hdmiPreferences.enabled) {
         n += snprintf(&buf[n], sizeof(buf)-n, " hdmi");
         if (drm_configured(&pSettings->hdmiPreferences.drmInfoFrame)) {
-            n += snprintf(&buf[n], sizeof(buf)-n, "DRM{%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}}",
+            n += snprintf(&buf[n], sizeof(buf)-n, "DRM{dbv %s,%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}}",
+            lookup_name(g_dolbyVisionModeStrs, pSettings->hdmiPreferences.dolbyVision.outputMode),
             lookup_name(g_videoEotfStrs, pSettings->hdmiPreferences.drmInfoFrame.eotf),
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.max,
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.maxFrameAverage,
@@ -365,10 +366,10 @@ int main(int argc, char **argv)  {
     NxClient_GetDefaultJoinSettings(&joinSettings);
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
-    
+
     NxClient_GetDisplaySettings(&displaySettings);
     NxClient_GetPictureQualitySettings(&pqSettings);
-    
+
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
             print_usage();
@@ -494,6 +495,14 @@ int main(int argc, char **argv)  {
             change = true;
             displaySettings.hdmiPreferences.drmInfoFrame.eotf = lookup(g_videoEotfStrs, argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-dolby") && argc>curarg+1) {
+            change = true;
+            displaySettings.hdmiPreferences.dolbyVision.outputMode = lookup(g_dolbyVisionModeStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-priority") && argc>curarg+1) {
+            change = true;
+            displaySettings.hdmiPreferences.dolbyVision.priorityMode = lookup(g_dbvPriorityModeStrs, argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-matrixCoeffs") && argc>curarg+1) {
             change = true;
             displaySettings.hdmiPreferences.matrixCoefficients = lookup(g_matrixCoeffStrs, argv[++curarg]);
@@ -606,7 +615,7 @@ int main(int argc, char **argv)  {
     else {
         print_settings("current", &displaySettings, &pqSettings);
     }
-    
+
     if (wait) {
         BKNI_Sleep(30 * 1000);
         NxClient_StopCallbackThread();

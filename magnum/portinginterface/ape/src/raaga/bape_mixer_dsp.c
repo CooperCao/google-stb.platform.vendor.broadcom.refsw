@@ -706,7 +706,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     BAPE_PathConnection *pInputConnection;
     BAPE_PathNode *pNode;
     unsigned numFound, i;
-    uint32_t sampleRate = 0;
+    uint32_t sampleRate = 48000;
 
     BDBG_ASSERT(false == handle->taskStarted);
 
@@ -1053,8 +1053,7 @@ static BAPE_MultichannelFormat BAPE_DspMixer_P_GetDdreMultichannelFormat(BAPE_Mi
        we want to route 7.1ch data into DDRE, and let DDRE's PCMR downmix to 5.1 if needed. */
     BSTD_UNUSED(handle);
 
-    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
-         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
+    if ( BAPE_P_DolbyCapabilities_MultichannelPcmFormat() == BAPE_MultichannelFormat_e7_1 )
     {
         return BAPE_MultichannelFormat_e7_1;
     }
@@ -1096,6 +1095,89 @@ BAPE_DolbyMSVersion BAPE_P_FwMixer_GetDolbyUsageVersion_isrsafe(BAPE_MixerHandle
     return BAPE_P_GetDolbyMSVersion();
 }
 
+static BERR_Code BAPE_DspMixer_P_ValidateInput(
+    BAPE_MixerHandle handle,
+    struct BAPE_PathConnection *pConnection
+    )
+{
+    unsigned i;
+
+    if ( pConnection->pSource->format.source != BAPE_DataSource_eDspBuffer )
+    {
+        for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
+        {
+            if ( handle->inputs[i] && handle->inputs[i] != pConnection->pSource )
+            {
+                BAPE_DecoderHandle decoder;
+                if ( handle->inputs[i]->pParent->type == BAPE_PathNodeType_eDecoder )
+                {
+                    decoder = (BAPE_DecoderHandle)handle->inputs[i]->pParent->pHandle;
+                    if ( decoder != NULL )
+                    {
+                        BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
+                        if ( decoder->state == BAPE_DecoderState_eStarted ||
+                             decoder->state == BAPE_DecoderState_eStarting ||
+                             decoder->state == BAPE_DecoderState_ePaused ||
+                             decoder->state == BAPE_DecoderState_eFrozen)
+                        {
+                            if ( decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eSoundEffects )
+                            {
+                                BDBG_ERR(("Unable to start Non-DSP path: Sound Effects input to Mixer is already in use"));
+                                return BERR_NOT_SUPPORTED;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        BAPE_DecoderHandle decoder = (BAPE_DecoderHandle)pConnection->pSource->pParent->pHandle;
+        if ( decoder != NULL )
+        {
+            BAPE_DecoderMixingMode mixingMode = decoder->startSettings.mixingMode;
+            BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
+
+            for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
+            {
+                if ( handle->inputs[i] && handle->inputs[i] != pConnection->pSource )
+                {
+                    if ( handle->inputs[i]->pParent->type == BAPE_PathNodeType_eDecoder )
+                    {
+                        decoder = (BAPE_DecoderHandle)handle->inputs[i]->pParent->pHandle;
+                        if ( decoder != NULL )
+                        {
+                            BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
+                            if ( decoder->state == BAPE_DecoderState_eStarted ||
+                                 decoder->state == BAPE_DecoderState_eStarting ||
+                                 decoder->state == BAPE_DecoderState_ePaused ||
+                                 decoder->state == BAPE_DecoderState_eFrozen)
+                            {
+                                if ( (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eSoundEffects  && mixingMode == BAPE_DecoderMixingMode_eSoundEffects) ||
+                                     (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eApplicationAudio  && mixingMode == BAPE_DecoderMixingMode_eApplicationAudio))
+                                {
+                                    BDBG_ERR(("Unable to start path: %d input to Mixer is already in use", mixingMode));
+                                    return BERR_NOT_SUPPORTED;
+                                }
+                            }
+                        }
+                    }
+                    else if ( mixingMode == BAPE_DecoderMixingMode_eSoundEffects && handle->loopbackRunning &&
+                              ( handle->inputs[i]->pParent->type == BAPE_PathNodeType_ePlayback ||
+                               handle->inputs[i]->pParent->type == BAPE_PathNodeType_eInputCapture ))
+                    {
+                        BDBG_ERR(("Unable to start DSP path: Sound Effects input to Mixer is already in use"));
+                        return BERR_NOT_SUPPORTED;
+                    }
+                }
+            }
+        }
+    }
+    return BERR_SUCCESS;
+
+}
+
 static BERR_Code BAPE_DspMixer_P_AllocatePathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
 {
     BAPE_MixerHandle handle;
@@ -1127,6 +1209,15 @@ static BERR_Code BAPE_DspMixer_P_AllocatePathFromInput(struct BAPE_PathNode *pNo
         BDBG_MSG(("AllocatePathFromInput: Task not present.  Starting mixer task."));
         errCode = BAPE_DspMixer_P_StartTask(handle);
         if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+
+    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
+    {
+        errCode = BAPE_DspMixer_P_ValidateInput(handle, pConnection);
+        if (errCode)
         {
             return BERR_TRACE(errCode);
         }
@@ -2331,8 +2422,18 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
 
         /* We will only end up in MS12 mode if compiled in MS12 mode AND we find DDRE downstream.
            So we will always set ms12 to 1 here. */
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 1);
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, handle->settings.enablePostProcessing ? 1 : 0);
+        if ( BAPE_P_DolbyCapabilities_Dapv2() )
+        {
+            BDBG_MSG(("DAP v2 is supported"));
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 1);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, handle->settings.enablePostProcessing ? 1 : 0);
+        }
+        else
+        {
+            BDBG_MSG(("DAP v2 is NOT supported"));
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 0);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, 0);
+        }
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);
         /* Hardcode to the most minimal processing mode */
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32Mode, 3);
@@ -2620,6 +2721,8 @@ static const BAPE_MixerInterface g_dspMixerInterface = {
     NOT_SUPPORTED(BAPE_DspMixer_P_RemoveAllOutputs),
     BAPE_DspMixer_P_GetInputVolume,
     BAPE_DspMixer_P_SetInputVolume,
+    NOT_SUPPORTED(BAPE_DspMixer_P_GetInputSettings),
+    NOT_SUPPORTED(BAPE_DspMixer_P_SetInputSettings),
     NOT_SUPPORTED(BAPE_DspMixer_P_ApplyOutputVolume),
     BAPE_DspMixer_P_SetSettings,
     NOT_SUPPORTED(BAPE_DspMixer_P_ApplyStereoMode),

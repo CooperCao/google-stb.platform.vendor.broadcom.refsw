@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 state machine.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
 
@@ -433,7 +425,7 @@ void gl20_server_try_delete_program(GLXX_SHARED_T *shared, GL20_PROGRAM_T *progr
    }
 }
 
-static void release_program(GLXX_SHARED_T *shared, KHRN_MEM_HANDLE_T handle)
+static void release_program(GLXX_SHARED_T *shared, khrn_mem_handle_t handle)
 {
    if (handle != KHRN_MEM_HANDLE_INVALID) {
       GL20_PROGRAM_T *program;
@@ -473,7 +465,7 @@ GL_APICALL void GL_APIENTRY glDeleteProgram(GLuint p)
 
    if (p == 0) goto end;
 
-   KHRN_MEM_HANDLE_T h_program = glxx_shared_get_pobject(state->shared, p);
+   khrn_mem_handle_t h_program = glxx_shared_get_pobject(state->shared, p);
    if (h_program == KHRN_MEM_HANDLE_INVALID) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
@@ -510,7 +502,7 @@ GL_APICALL void GL_APIENTRY glDeleteShader(GLuint s)
    if (!state) return;
 
    if (s) {
-      KHRN_MEM_HANDLE_T handle = glxx_shared_get_pobject(state->shared, s);
+      khrn_mem_handle_t handle = glxx_shared_get_pobject(state->shared, s);
 
       if (handle != KHRN_MEM_HANDLE_INVALID) {
          GL20_SHADER_T *shader;
@@ -628,10 +620,10 @@ end:
    glxx_unlock_server_state();
 }
 
-GLSL_BLOCK_T *gl20_get_ubo_from_index(GLSL_PROGRAM_T *p, unsigned int index)
+const GLSL_BLOCK_T *gl20_get_ubo_from_index(const GLSL_PROGRAM_T *p, unsigned int index)
 {
    for (unsigned i=0; i < p->num_uniform_blocks; i++) {
-      GLSL_BLOCK_T *b = &p->uniform_blocks[i];
+      const GLSL_BLOCK_T *b = &p->uniform_blocks[i];
 
       if (index < (unsigned int)(b->index + b->array_length))
          return b;
@@ -640,10 +632,10 @@ GLSL_BLOCK_T *gl20_get_ubo_from_index(GLSL_PROGRAM_T *p, unsigned int index)
    return NULL;
 }
 
-GLSL_BLOCK_T *gl20_get_ssbo_from_index(GLSL_PROGRAM_T *p, unsigned int index)
+const GLSL_BLOCK_T *gl20_get_ssbo_from_index(const GLSL_PROGRAM_T *p, unsigned int index)
 {
    for (unsigned i=0; i < p->num_buffer_blocks; i++) {
-      GLSL_BLOCK_T *b = &p->buffer_blocks[i];
+      const GLSL_BLOCK_T *b = &p->buffer_blocks[i];
 
       if (index < (unsigned int)(b->index + b->array_length))
          return b;
@@ -706,17 +698,18 @@ GL_APICALL void GL_APIENTRY glGetAttachedShaders(GLuint p, GLsizei maxcount, GLs
    }
 
    if (shaders) {
-      if (maxcount > 0) {
-         if (program->vertex != NULL) {
-            shaders[count++] = program->vertex->name;
-            maxcount--;
-         }
-      }
+      GL20_SHADER_T *attached[] = { program->vertex,
+#if GLXX_HAS_TNG
+                                    program->tess_control, program->tess_evaluation, program->geometry,
+#endif
+                                    program->fragment, program->compute };
 
-      if (maxcount > 0) {
-         if (program->fragment != NULL) {
-            shaders[count++] = program->fragment->name;
-            maxcount--;
+      for (int i=0; i<vcos_countof(attached); i++) {
+         if (maxcount > 0) {
+            if (attached[i] != NULL) {
+               shaders[count++] = attached[i]->name;
+               maxcount--;
+            }
          }
       }
    }
@@ -803,7 +796,10 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       params[0] = program->validated ? 1 : 0;
       break;
    case GL_ATTACHED_SHADERS:
-      params[0] = (program->vertex != NULL) + (program->fragment != NULL);
+      params[0] = (program->vertex != NULL) + (program->fragment != NULL) + (program->compute != NULL);
+#if GLXX_HAS_TNG
+      params[0] += (program->tess_control != NULL) + (program->tess_evaluation != NULL) + (program->geometry != NULL);
+#endif
       break;
    case GL_INFO_LOG_LENGTH:
       params[0] = khrn_mem_get_size(program->mh_info);
@@ -819,17 +815,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       break;
    case GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH:
       if (!linked_program) params[0] = 0;
-      else {
-         GLSL_PROGRAM_T *p = linked_program;
-         unsigned max = 0;
-         for (unsigned i=0; i<p->num_uniform_blocks; i++) {
-            unsigned size = strlen(p->uniform_blocks[i].name) + 1;
-            if (p->uniform_blocks[i].is_array)
-               size += snprintf(NULL, 0, "[%d]", p->uniform_blocks[i].array_length);
-            if (size > max) max = size;
-         }
-         params[0] = max;
-      }
+      else                 params[0] = glxx_get_max_name_length(linked_program, GL_UNIFORM_BLOCK);
       break;
    case GL_ACTIVE_UNIFORMS:
       if(!linked_program) {
@@ -848,25 +834,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       if(!linked_program) {
          params[0] = 0;
       } else {
-         unsigned max;
-         unsigned i, j;
-         unsigned size;
-         max = 0;
-         for (i = 0; i < linked_program->default_uniforms.num_members; i++) {
-            size = strlen(linked_program->default_uniforms.members[i].name) + 1;
-            if (size > max) {
-               max = size;
-            }
-         }
-         for (j = 0; j < linked_program->num_uniform_blocks; ++j) {
-            for (i = 0; i < linked_program->uniform_blocks[j].num_members; i++) {
-               size = strlen(linked_program->uniform_blocks[j].members[i].name) + 1;
-               if (size > max) {
-                  max = size;
-               }
-            }
-         }
-         params[0] = max;
+         params[0] = glxx_get_max_name_length(linked_program, GL_UNIFORM);
       }
       break;
    case GL_ACTIVE_ATTRIBUTES:
@@ -877,23 +845,10 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       }
       break;
    case GL_ACTIVE_ATTRIBUTE_MAX_LENGTH:
-      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_VERTEX)) {
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_VERTEX))
          params[0] = 0;
-      } else {
-         const int     count = linked_program->num_inputs;
-         GLSL_INOUT_T *base  = linked_program->inputs;
-
-         unsigned max = 0;
-         for (int i = 0; i < count; i++) {
-            /* strlen excludes the terminator, we need to include it */
-            unsigned size;
-            size = strlen(base[i].name) + 1;
-            if (size > max) {
-               max = size;
-            }
-         }
-         params[0] = max;
-      }
+      else
+         params[0] = glxx_get_max_name_length(linked_program, GL_PROGRAM_INPUT);
       break;
    case GL_TRANSFORM_FEEDBACK_BUFFER_MODE:
       params[0] = program->transform_feedback.buffer_mode;
@@ -902,23 +857,10 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       params[0] = linked_program ? program->common.transform_feedback.varying_count : 0u;
       break;
    case GL_TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH:
-      if (linked_program == NULL)
+      if (!linked_program)
          params[0] = 0;
       else
-      {
-         uint32_t max = 0;
-         uint32_t count = linked_program->num_tf_captures;
-
-         for (uint32_t i = 0; i < count; i++) {
-            /* strlen, including NULL terminator */
-            uint32_t size = strlen(linked_program->tf_capture[i].name) + 1;
-
-            if (size > max)
-               max = size;
-         }
-
-         params[0] = max;
-      }
+         params[0] = glxx_get_max_name_length(linked_program, GL_TRANSFORM_FEEDBACK_VARYING);
       break;
    case GL_PROGRAM_BINARY_RETRIEVABLE_HINT:
       params[0] = program->binary_hint;
@@ -937,9 +879,9 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
    case GL_COMPUTE_WORK_GROUP_SIZE:
       if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_COMPUTE))
          goto invalid_op;
-      params[0] = linked_program->wg_size[0];
-      params[1] = linked_program->wg_size[1];
-      params[2] = linked_program->wg_size[2];
+      params[0] = linked_program->ir->cs_wg_size[0];
+      params[1] = linked_program->ir->cs_wg_size[1];
+      params[2] = linked_program->ir->cs_wg_size[2];
       break;
 #endif
 
@@ -1132,7 +1074,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsProgram(GLuint p)
 {
    GLboolean result;
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
-   KHRN_MEM_HANDLE_T handle;
+   khrn_mem_handle_t handle;
    if (!state) return 0;
 
    handle = glxx_shared_get_pobject(state->shared, p);
@@ -1164,7 +1106,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsShader(GLuint s)
 {
    GLboolean result;
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
-   KHRN_MEM_HANDLE_T handle;
+   khrn_mem_handle_t handle;
    if (!state) return 0;
 
    handle  = glxx_shared_get_pobject(state->shared, s);
@@ -1508,8 +1450,6 @@ static void program_uniformv(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_T *program
       return;
    }
 
-   assert(program->common.linked_glsl_program);
-
    GLSL_BLOCK_MEMBER_T *info = program->common.linked_glsl_program->default_uniforms.members;
 
    if (!decode_location(&program->common.linked_glsl_program->default_uniforms, (unsigned)location, &index, &offset) ||
@@ -1531,17 +1471,10 @@ static void program_uniformv(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_T *program
       return;
    }
 
-   // INVALID_OPERATION : if count is greater than one,
-   // and the uniform declared in the shader is not an array variable
-   if (num > 1)
+   if (num > 1 && !info[index].is_array)
    {
-      // Uniform arrays end in [0]
-      size_t len = strlen(info[index].name);
-      if (len < 3 || strcmp(info[index].name + len - 3, "[0]") != 0)
-      {
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-         return;
-      }
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      return;
    }
 
    if (offset + num > info[index].array_length)
@@ -2553,7 +2486,7 @@ GL_APICALL void GL_APIENTRY glUniformBlockBinding(
       goto end;
    }
 
-   GLSL_BLOCK_T *block = gl20_get_ubo_from_index(program->common.linked_glsl_program, uniformBlockIndex);
+   const GLSL_BLOCK_T *block = gl20_get_ubo_from_index(program->common.linked_glsl_program, uniformBlockIndex);
    if (block != NULL) {
       program->common.ubo_binding_point[uniformBlockIndex] = uniformBlockBinding;
    } else {

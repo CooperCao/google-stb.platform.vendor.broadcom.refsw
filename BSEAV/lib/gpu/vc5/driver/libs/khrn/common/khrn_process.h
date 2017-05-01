@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_PROCESS_H
 #define KHRN_PROCESS_H
 #include <stdbool.h>
@@ -27,6 +21,7 @@ extern const struct glxx_tex_sampler_state *khrn_get_image_unit_default_sampler(
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 extern gmem_handle_t khrn_get_gfxh_1320_buffer(void);
 #endif
+extern const char *khrn_get_device_name(void);
 extern const char *khrn_get_gl11_exts_str(void);
 extern const char *khrn_get_gl3x_exts_str(void);
 extern unsigned khrn_get_num_gl3x_exts(void);

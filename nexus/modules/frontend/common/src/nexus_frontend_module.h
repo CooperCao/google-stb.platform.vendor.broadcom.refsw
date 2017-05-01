@@ -424,6 +424,7 @@ typedef struct NEXUS_Frontend
         unsigned daisyOverride; /* per-FrontendHandle override of daisy-chaining, to support cases where a slave device feeds to both the backend and a frontend device.
                                    if true, then this handle is routed directly to the backend. if false, then daisy-chained as usual */
     } mtsif;
+    bool tuned;
     NEXUS_FrontendCapabilities capabilities;
     NEXUS_FrontendUserParameters userParameters;
     NEXUS_FrontendChannelBondingHandle chbond;
@@ -653,6 +654,7 @@ void NEXUS_Frontend_P_Destroy(NEXUS_FrontendHandle handle);
 void NEXUS_Ifd_P_GetDefaultSettings(NEXUS_IfdSettings *pSettings);
 bool NEXUS_Frontend_P_ProbeCard(NEXUS_FrontendCard *pCard, const NEXUS_FrontendCardSettings *pSettings);
 unsigned NEXUS_Frontend_P_GetDefaultQamSymbolRate(NEXUS_FrontendQamMode mode, NEXUS_FrontendQamAnnex annex);
+void NEXUS_Frontend_P_SetTuned(NEXUS_FrontendHandle handle);
 
 void NEXUS_FrontendModule_P_Print(void);
 

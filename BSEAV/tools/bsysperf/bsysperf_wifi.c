@@ -50,6 +50,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <sys/time.h>
 
 #include "bsysperf_wifi.h"
 #include "bmemperf_lib.h"
@@ -164,23 +165,40 @@ static int32_t lRSSILevels[NEXUS_WIFI_DRIVER_MAX][NETAPP_WIFI_RSSI_MAX] =
 };
 #endif /* if 0 */
 
+char *Bsysperf_GetTimeNowStr( void )
+{
+    static char timeStr[64];
+    struct timeval tv;
+    gettimeofday( &tv, NULL );
+    sprintf( timeStr, "%d.%06d", (int) tv.tv_sec, (int) tv.tv_usec );
+    return ( timeStr );
+}
+
 int Bsysperf_WifiInit(
     const char *ifname
     )
 {
-    int i = 0;
+    int i   = 0;
+    int err = BWL_ERR_SUCCESS;
 
     /* Try to init the BWL interface */
     for (i = 0; i < BSYSPERF_WIFI_INIT_RETRY && hBwl == NULL; i++)
     {
-        if (BWL_Init( &hBwl, (char *) ifname ) == BWL_ERR_SUCCESS)
+        err = BWL_Init( &hBwl, (char *) ifname );
+        if ( err == BWL_ERR_SUCCESS )
         {
             break;
         }
+        else if ( err == BWL_ERR_IOCTL ) /* happens if wl.ko is not installed */
+        {
+            printf( "%s: BWL_ERR_IOCTL \n", __FUNCTION__ );
+            break;
+        }
+        printf( "%s: sleeping tenth of a second\n", __FUNCTION__ );
         usleep( 1000000/10 );                              /* sleep a tenth of a second */
     }
 
-    return( 0 );
+    return( err );
 }
 
 int Bsysperf_WifiUninit(
@@ -203,7 +221,6 @@ int Bsysperf_WifiGetRevs(
     int i        = 0;
     int tRetCode = 0;
 
-    noprintf( "%s:%u: hBwl #%p \n", __FILE__, __LINE__, hBwl );
     do
     {
         Bsysperf_WifiInit( ifname );
@@ -376,7 +393,6 @@ int Bsysperf_WifiGetConnectedInfo(
     int i        = 0;
     int tRetCode = 0;
 
-    noprintf( "%s:%u: hBwl #%p \n", __FILE__, __LINE__, hBwl );
     do
     {
         Bsysperf_WifiInit( ifname );
@@ -412,7 +428,6 @@ int Bsysperf_WifiGetRate(
 {
     int tRetCode = 0;
 
-    noprintf( "%s:%u: hBwl #%p \n", __FILE__, __LINE__, hBwl );
     do
     {
         Bsysperf_WifiInit( ifname );
@@ -1683,7 +1698,6 @@ int Bsysperf_WifiGetDriverVersion(
     char *pVersionS = NULL;
     char *pVersionE = NULL;
 
-    noprintf( "%s:%u: hBwl #%p \n", __FILE__, __LINE__, hBwl );
     strncpy( strDriverVersion, "unknown", iDriverVersionLen - 1 );
     do
     {
@@ -1749,3 +1763,90 @@ int Bsysperf_WifiClearCounters(
 err_out:
     return( tRetCode );
 }                                                          /* Bsysperf_WifiClearCounters */
+
+int Bsysperf_WifiWakeOnWlanSend(
+    const char *ifname,
+    const char *macAddress
+    )
+{
+    int   tRetCode = 0;
+
+    do
+    {
+        Bsysperf_WifiInit( ifname );
+
+        if (hBwl == NULL)
+        {
+            printf( "%s() Failed to Init BWL! \n", __FUNCTION__ );
+            tRetCode = -1;
+            break;
+        }
+        else
+        {
+            BWL_API_CHECK( BWL_SendWakeOnWlan( hBwl, "104", "ucast", (char*) macAddress, "magic" ), tRetCode );
+            /*printf("~DEBUG~%s tRetCode %d for MAC (%s)~", __FUNCTION__, tRetCode, macAddress );*/
+        }
+        Bsysperf_WifiUninit();
+    } while (0);
+
+err_out:
+    return( tRetCode );
+}   /* Bsysperf_WifiWakeOnWlanSend */
+
+/**
+ *  Function: This function will determine if the WiFi driver is loaded. It does this by reading the
+ *            contents of the /proc/modules file. If the driver is loaded, there should be a line that
+ *            starts with "wl". If this line is found, then the driver is loaded.
+ *            This API cannot call GetFileContents() because that API performs an lstat() on the modules
+ *            file. Since /proc/modules is a system-level file, the size of the file always comes back
+ *            as zero ... which prevents GetFileContents() from reading the contents of the file.
+ **/
+#define PROC_MODULES_FILE_MAX 1024
+bool Bsysperf_WifiDriverIsLoaded ( void )
+{
+    bool  rc = false;
+    char *tempBuffer = NULL;
+
+    /* if the wl.ko driver is not installed, do not go any further */
+    tempBuffer = GetFileContentsProc( "/proc/modules", PROC_MODULES_FILE_MAX );
+    if ( tempBuffer )
+    {
+        /* if the wl driver is NOT found as one of the installed modules */
+        if ( strstr( tempBuffer, "wl" ) != NULL)
+        {
+            rc = true;
+        }
+        free(tempBuffer);
+    }
+
+    return ( rc );
+}
+
+int Bsysperf_WifiGetMacAssocList(
+    const char      *ifname,
+    BWL_MAC_ADDRESS *outputList,
+    int              outputListLen
+    )
+{
+    int   num_addresses = 0;
+
+    printflog( "%s: outputList %p\n", __FUNCTION__, outputList );
+    do
+    {
+        Bsysperf_WifiInit( ifname );
+
+        if (hBwl == NULL)
+        {
+            printf( "%s() Failed to Init BWL! \n", __FUNCTION__ );
+            break;
+        }
+        else
+        {
+            num_addresses = BWL_GetMacAssocList( hBwl, outputList, outputListLen );
+            printflog( "%s: after BWL_GetMacAssocList() ... rc %d\n", __FUNCTION__, num_addresses );
+        }
+        Bsysperf_WifiUninit();
+    } while (0);
+
+    return( num_addresses );
+}   /* Bsysperf_WifiGetMacAssocList */

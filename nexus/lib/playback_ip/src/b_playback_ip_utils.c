@@ -93,6 +93,28 @@ static int _cacheflush(char * addr, int size, int type)
 
 extern B_PlaybackIpError B_PlaybackIp_HttpGetCurrentPlaybackPosition( B_PlaybackIpHandle playback_ip, NEXUS_PlaybackPosition *currentPosition);
 
+bool B_PlaybackIp_UtilsReadEnvInt(
+    char *varName,
+    int *var,
+    int varMin,
+    int varMax)
+{
+    char *val = getenv(varName);
+    if (val) {
+        BDBG_MSG(("found export %s=%s", varName, val));
+        int i = atoi(val);
+        if (varMin <= i && i <= varMax) {
+            *var =i;
+            BDBG_MSG(("Setting %s=%d", varName, i));
+            return true;
+        }
+        else{
+            BDBG_LOG(("%s(%d) not in range %d - %d ", varName, i, varMin, varMax));
+        }
+    }
+    return false;
+}
+
 void B_PlaybackIp_UtilsTuneNetworkStack(
     int fd
     )
@@ -147,6 +169,24 @@ void B_PlaybackIp_UtilsTuneNetworkStack(
         if (getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, &len) == 0)
             BDBG_MSG(("%s: new socket receive buffer size = %d KB\n", __FUNCTION__, size/1024));
     }
+
+#if 0
+    /* TODO: may need to enable keepalive to detect the dead connections or when server reboots w/o closing existing connection. */
+    /* Enable TCP Keepalive. */
+    {
+        size_t value =1;
+        if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value)) != 0)
+        {
+            BDBG_ERR(("%s: ERROR: Failed to enable SO_KEEPALIVE, errno=%d\n", __FUNCTION__, errno));
+        }
+        else
+        {
+            BDBG_MSG(("%s: TCP SO_KEEPALIVE is enabled", __FUNCTION__));
+            /* TODO: change the tunable parameters. */
+            /* IPPROTO_TCP, TCP_KEEPINTVL, TCP_KEEPIDLE, TCP_KEEPCNT */
+        }
+    }
+#endif
 #else
     BSTD_UNUSED(fd);
 #endif
@@ -263,7 +303,7 @@ B_PlaybackIp_UtilsWaitForSocketWriteReady(
             /* select timeout */
             BDBG_MSG(("%s: ERROR: select timed out (%d user val %d usec) in waiting for socket to be ready to accept more data (fd %d)\n",
                             __FUNCTION__, (int)tv.tv_usec, (int)timeout, (int)fd));
-            return 0;
+            return 1;
         }
 
         if (!FD_ISSET(fd, &wfds)) {
@@ -1786,12 +1826,12 @@ sendData(int fd, void *outBuf, int bytesToSend, bool *stopStreaming)
         rc = send(fd, (void*)outBuf, bytesToSend, MSG_NOSIGNAL );
 #endif
         if (rc < 0) {
-            if (errno == EINTR || errno == EAGAIN) {
+            if (errno == EINTR || errno == EAGAIN || errno == ETIMEDOUT) {
                 BDBG_MSG(("%s: got error: timeout or eagain error :%d, retrying", __FUNCTION__, errno));
                 continue;
             }
             /* it is not EINTR & EAGAIN, so all errors are serious network failures */
-            BDBG_MSG(("%s: send() ERROR:%d", __FUNCTION__, errno));
+            BDBG_ERR(("%s: send() ERROR:%d", __FUNCTION__, errno));
             return -1;
         }
         BDBG_MSG(("sent %d bytes out of bytesToSend %d\n", rc, bytesToSend));
@@ -1836,6 +1876,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
 #ifdef USE_NON_BLOCKING_MODE
     /* check is socket has some space to send data */
     if ((rc = B_PlaybackIp_UtilsWaitForSocketWriteReady(file->fd, SELECT_TIMEOUT_FOR_SOCKET_SEND /* timeout in usec*/)) <= 0) {
+        BDBG_ERR(("%s: B_PlaybackIp_UtilsWaitForSocketWriteReady failed!", __FUNCTION__));
         return rc;
     }
 #endif
@@ -2010,7 +2051,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
             rc = sendRtpUdpChunk(file, outBuf, outBufLength);
 
         if (rc != outBufLength) {
-            BDBG_MSG(("%s: Failed to send %d bytes, sent %zd for socket %d", __FUNCTION__, outBufLength, rc, file->fd));
+            BDBG_ERR(("%s: Failed to send %d bytes, sent %zd for socket %d, errno=%d", __FUNCTION__, outBufLength, rc, file->fd, errno));
             return -1;
         }
         bytesSent += rc;
@@ -2093,6 +2134,46 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
         file->residualBytesLength = 0;
     }
 #endif
+
+#if NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA
+    {
+        int enableMemDmaOverhead = 0;
+        B_PlaybackIp_UtilsReadEnvInt("enableMemDmaOverhead", &enableMemDmaOverhead, INT_MIN, INT_MAX);
+        if (enableMemDmaOverhead)
+        {
+            BERR_Code rcdma;
+            NEXUS_Error nrc;
+            B_PlaybackIpError status = B_ERROR_PROTO;
+            NEXUS_DmaJobBlockSettings blockSettings;
+            NEXUS_DmaJobStatus jobStatus;
+
+            NEXUS_FlushCache(buf, bufSize);
+            NEXUS_DmaJob_GetDefaultBlockSettings(&blockSettings);
+            blockSettings.pSrcAddr = (unsigned char *)buf;
+            blockSettings.pDestAddr = (unsigned char *)buf;
+            blockSettings.blockSize = bufSize;
+            blockSettings.cached = false;
+            BDBG_MSG(("%s: DMA job %p, size %zu", __FUNCTION__,
+                        (void *)file->dmaJobHandle, blockSettings.blockSize));
+            if ((nrc = NEXUS_DmaJob_ProcessBlocks(file->dmaJobHandle, &blockSettings, 1)) != NEXUS_DMA_QUEUED) {
+                BDBG_ERR(("%s: NEXUS_DmaJob_ProcessBlocks Failed: dmaJobHandle %p, nexus rc %d", __FUNCTION__, (void *)file->dmaJobHandle, nrc));
+                return -1;
+            }
+            BDBG_MSG(("%s: DMA job %p sumitted", __FUNCTION__, (void *)file->dmaJobHandle));
+            rcdma = BKNI_WaitForEvent(file->event, 10000);
+            if (rcdma == BERR_TIMEOUT || rcdma != 0) {
+                BDBG_ERR(("%s: Nexus DMA Job completion event failed for PVR decryption, rc %d: %s", __FUNCTION__, rcdma, rcdma == BERR_TIMEOUT? "event timeout in 10sec":"event failure"));
+                return -1;
+            }
+            NEXUS_DmaJob_GetStatus(file->dmaJobHandle, &jobStatus);
+            if (jobStatus.currentState != NEXUS_DmaJobState_eComplete) {
+                BDBG_ERR(("%s: DMA job completion failed, dma job current state %d", __FUNCTION__, jobStatus.currentState));
+                return -1;
+            }
+            BDBG_MSG(("%s: DMA job completed", __FUNCTION__));
+        }
+    }
+#endif
     while (bufSize) {
         if (file->stopStreaming == true) {
             BDBG_MSG(("%s: app wants to stop streaming, breaking out for fd %d", __FUNCTION__, file->fd));
@@ -2103,6 +2184,7 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
         bytesWritten = B_PlaybackIp_UtilsStreamingCtxWrite((struct bfile_io_write *)file, (void *)buf, (size_t) bytesToWrite);
         if (bytesWritten < 0) {
             /* encountered some error including too many timeouts to write the stream, return */
+            BDBG_ERR(("%s: B_PlaybackIp_UtilsStreamingCtxWrite Failed", __FUNCTION__));
             return bytesWritten;
         }
         else if (bytesWritten == 0) {
@@ -2143,7 +2225,24 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
 void
 B_PlaybackIp_UtilsStreamingCtxClose(struct bfile_io_write_net *data)
 {
+#if NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA
+    {
+        int enableMemDmaOverhead = 0;
+        B_PlaybackIp_UtilsReadEnvInt("enableMemDmaOverhead", &enableMemDmaOverhead, INT_MIN, INT_MAX);
+        if (enableMemDmaOverhead)
+        {
+            if (data->dmaHandle)
+            {
+                if (data->dmaJobHandle) NEXUS_DmaJob_Destroy(data->dmaJobHandle);
+                data->dmaJobHandle = NULL;
+                NEXUS_Dma_Close(data->dmaHandle);
+                data->dmaHandle = NULL;
+            }
+        }
+    }
+#else
     BSTD_UNUSED(data);
+#endif
 }
 
 #ifdef B_HAS_DTCP_IP
@@ -2168,14 +2267,16 @@ B_PlaybackIp_UtilsDtcpServerCtxClose(struct bfile_io_write_net *data)
 }
 #endif
 
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA
 static void m2mDmaJobCompleteCallback(void *pParam, int iParam)
 {
     iParam=iParam;
     BDBG_MSG(("%s: fired", __FUNCTION__));
     BKNI_SetEvent(pParam);
 }
+#endif
 
+#if NEXUS_HAS_SECURITY
 void
 B_PlaybackIp_UtilsPvrDecryptionCtxClose(struct bfile_io_write_net *data)
 {
@@ -2300,6 +2401,37 @@ B_PlaybackIp_UtilsStreamingCtxOpen(struct bfile_io_write_net *data)
 {
     socklen_t len;
     B_PlaybackIpError rc;
+
+#if NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA
+    {
+        int enableMemDmaOverhead = 0;
+        B_PlaybackIp_UtilsReadEnvInt("enableMemDmaOverhead", &enableMemDmaOverhead, INT_MIN, INT_MAX);
+        if (enableMemDmaOverhead)
+        {
+            NEXUS_DmaJobSettings jobSettings;
+            NEXUS_MemoryAllocationSettings allocSettings;
+
+            data->dmaHandle = NEXUS_Dma_Open(0, NULL);
+
+            if (BKNI_CreateEvent(&data->event)) {
+                BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
+                goto error;
+            }
+
+            NEXUS_DmaJob_GetDefaultSettings(&jobSettings);
+            jobSettings.numBlocks = 1;
+            jobSettings.keySlot = NULL;
+            jobSettings.dataFormat = NEXUS_DmaDataFormat_eBlock;
+            jobSettings.completionCallback.callback = m2mDmaJobCompleteCallback;
+            jobSettings.completionCallback.context = data->event;
+            data->dmaJobHandle = NEXUS_DmaJob_Create(data->dmaHandle, &jobSettings);
+            if (data->dmaJobHandle == NULL) {
+                BDBG_ERR(("%s: Failed to create Nexus DMA job", __FUNCTION__));
+                goto error;
+            }
+        }
+    }
+#endif
 
     data->minTime.tv_usec = 2*1000*1000*1000;
 
@@ -3490,28 +3622,6 @@ void B_PlaybackIp_UtilsBuildPictureOutputCountBtp(
 #define DEF_TRK_STATS_MS (1000)
 #define DEF_TRK_STATS_SLOW_MS (10000)
 #define DEF_TRK_STATS_NO_PRNT_MS (0)
-
-bool B_PlaybackIp_UtilsReadEnvInt(
-    char *varName,
-    int *var,
-    int varMin,
-    int varMax)
-{
-    char *val = getenv(varName);
-    if (val) {
-        BDBG_MSG(("found export %s=%s", varName, val));
-        int i = atoi(val);
-        if (varMin <= i && i <= varMax) {
-            *var =i;
-            BDBG_LOG(("Setting %s=%d", varName, i));
-            return true;
-        }
-        else{
-            BDBG_LOG(("%s(%d) not in range %d - %d ", varName, i, varMin, varMax));
-        }
-    }
-    return false;
-}
 
 
 void B_PlaybackIp_UtilsTrkStatsInit(

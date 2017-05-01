@@ -46,6 +46,7 @@
 #include "bdbg.h"
 #include "bkni.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 BDBG_MODULE(platform);
 
@@ -55,8 +56,9 @@ static const char * eventNames[] =
     "quit",
     "toggle osd",
     "toggle guide",
+    "toggle output dynrng lock",
     "cycle colorimetry",
-    "toggle forced sdr",
+    "cycle output dynrng",
     "next thumbnail",
     "prev thumbnail",
     "cycle background",
@@ -79,6 +81,7 @@ static const char * eventNames[] =
     "scenario 8",
     "scenario 9",
     "scenario 0",
+    "start shell",
     NULL
 };
 
@@ -94,22 +97,23 @@ static const char * consoleHelp =
     "  e   - toggle osd\n"
     "  i   - toggle details\n"
     "  g   - toggle pig\n"
-    "  x   - cycle output eotf\n"
+    "  x   - cycle output dynrng\n"
     "  o   - cycle colorimetry\n"
     "  .   - cycle background\n"
     "  0-9 - switch to scenario 0-9\n"
-    "  q   - quit\n"
+    "  q   - toggle output dynrng lock\n"
+    "  `   - start shell\n"
 };
 
 #define MAX_LINE_LEN 256
-bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInputEvent * pEvent)
+bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInputEvent * pEvent, int * pParam)
 {
     char line[MAX_LINE_LEN];
 
     BSTD_UNUSED(input);
 
     fprintf(stdout, "%s\n", consoleHelp);
-    fprintf(stdout, "dynrng # ");
+    fprintf(stdout, "[dynrng]$ ");
     fflush(stdout);
     if (fgets(line, MAX_LINE_LEN, stdin))
     {
@@ -155,7 +159,7 @@ bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInput
                 *pEvent = PlatformInputEvent_ePrevThumbnail;
                 break;
             case 'x':
-                *pEvent = PlatformInputEvent_eCycleOutputEotf;
+                *pEvent = PlatformInputEvent_eCycleOutputDynamicRange;
                 break;
             case 'o':
                 *pEvent = PlatformInputEvent_eCycleColorimetry;
@@ -164,37 +168,25 @@ bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInput
                 *pEvent = PlatformInputEvent_eCycleBackground;
                 break;
             case '1':
-                *pEvent = PlatformInputEvent_eScenario1;
-                break;
             case '2':
-                *pEvent = PlatformInputEvent_eScenario2;
-                break;
             case '3':
-                *pEvent = PlatformInputEvent_eScenario3;
-                break;
             case '4':
-                *pEvent = PlatformInputEvent_eScenario4;
-                break;
             case '5':
-                *pEvent = PlatformInputEvent_eScenario5;
-                break;
             case '6':
-                *pEvent = PlatformInputEvent_eScenario6;
-                break;
             case '7':
-                *pEvent = PlatformInputEvent_eScenario7;
-                break;
             case '8':
-                *pEvent = PlatformInputEvent_eScenario8;
-                break;
             case '9':
-                *pEvent = PlatformInputEvent_eScenario9;
-                break;
-            case '0':
-                *pEvent = PlatformInputEvent_eScenario0;
+                *pEvent = PlatformInputEvent_eScenario;
+                *pParam = atoi(line);
                 break;
             case 'q':
                 *pEvent = PlatformInputEvent_eQuit;
+                break;
+            case 'l':
+                *pEvent = PlatformInputEvent_eToggleOutputDynamicRangeLock;
+                break;
+            case '`':
+                *pEvent = PlatformInputEvent_eStartCommandShell;
                 break;
             default:
                 *pEvent = PlatformInputEvent_eUnknown;
@@ -227,7 +219,7 @@ void platform_input_close(PlatformInputHandle input)
     BKNI_Free(input);
 }
 
-PlatformInputEvent platform_input_p_event_from_key(b_remote_key key)
+PlatformInputEvent platform_input_p_event_from_key(b_remote_key key, int * pParam)
 {
     PlatformInputEvent event;
 
@@ -264,6 +256,9 @@ PlatformInputEvent platform_input_p_event_from_key(b_remote_key key)
         case b_remote_key_guide:
             event = PlatformInputEvent_eTogglePig;
             break;
+        case b_remote_key_menu:
+            event = PlatformInputEvent_eToggleMosaicLayout;
+            break;
         case b_remote_key_clear:
             event = PlatformInputEvent_eToggleOsd;
             break;
@@ -274,10 +269,10 @@ PlatformInputEvent platform_input_p_event_from_key(b_remote_key key)
             event = PlatformInputEvent_ePrevThumbnail;
             break;
         case b_remote_key_back:
-            event = PlatformInputEvent_eCycleOutputEotf;
+            event = PlatformInputEvent_eCycleOutputDynamicRange;
             break;
         case b_remote_key_power:
-            event = PlatformInputEvent_eQuit;
+            event = PlatformInputEvent_eToggleOutputDynamicRangeLock;
             break;
         case b_remote_key_stop:
             event = PlatformInputEvent_eCycleColorimetry;
@@ -286,34 +281,17 @@ PlatformInputEvent platform_input_p_event_from_key(b_remote_key key)
             event = PlatformInputEvent_eCycleBackground;
             break;
         case b_remote_key_one:
-            event = PlatformInputEvent_eScenario1;
-            break;
         case b_remote_key_two:
-            event = PlatformInputEvent_eScenario2;
-            break;
         case b_remote_key_three:
-            event = PlatformInputEvent_eScenario3;
-            break;
         case b_remote_key_four:
-            event = PlatformInputEvent_eScenario4;
-            break;
         case b_remote_key_five:
-            event = PlatformInputEvent_eScenario5;
-            break;
         case b_remote_key_six:
-            event = PlatformInputEvent_eScenario6;
-            break;
         case b_remote_key_seven:
-            event = PlatformInputEvent_eScenario7;
-            break;
         case b_remote_key_eight:
-            event = PlatformInputEvent_eScenario8;
-            break;
         case b_remote_key_nine:
-            event = PlatformInputEvent_eScenario9;
-            break;
         case b_remote_key_zero:
-            event = PlatformInputEvent_eScenario0;
+            event = PlatformInputEvent_eScenario;
+            *pParam = (key - b_remote_key_one) + 1;
             break;
         default:
             event = PlatformInputEvent_eUnknown;
@@ -323,7 +301,7 @@ PlatformInputEvent platform_input_p_event_from_key(b_remote_key key)
     return event;
 }
 
-bool platform_input_p_get_remote_input(PlatformInputHandle input, PlatformInputEvent * pEvent)
+bool platform_input_p_get_remote_input(PlatformInputHandle input, PlatformInputEvent * pEvent, int * pParam)
 {
     bool occurred = true;
     b_remote_key key;
@@ -334,7 +312,7 @@ bool platform_input_p_get_remote_input(PlatformInputHandle input, PlatformInputE
     }
     else
     {
-        *pEvent = platform_input_p_event_from_key(key);
+        *pEvent = platform_input_p_event_from_key(key, pParam);
     }
 
     return occurred;
@@ -344,18 +322,19 @@ bool platform_input_try(PlatformInputHandle input)
 {
     bool occurred = true;
     PlatformInputEvent event;
+    int param;
 
     BDBG_ASSERT(input);
 
     switch (input->method)
     {
         case PlatformInputMethod_eConsole:
-            occurred = platform_input_p_get_console_input(input, &event);
+            occurred = platform_input_p_get_console_input(input, &event, &param);
             if (!occurred) goto out;
             break;
         default:
         case PlatformInputMethod_eRemote:
-            occurred = platform_input_p_get_remote_input(input, &event);
+            occurred = platform_input_p_get_remote_input(input, &event, &param);
             if (!occurred) goto out;
             break;
     }
@@ -366,7 +345,7 @@ bool platform_input_try(PlatformInputHandle input)
     BDBG_MSG(("received '%s' event", eventNames[event]));
     if (input->eventHandlers[event].callback)
     {
-        input->eventHandlers[event].callback(input->eventHandlers[event].context, input->eventHandlers[event].param);
+        input->eventHandlers[event].callback(input->eventHandlers[event].context, param);
     }
     else
     {
@@ -377,11 +356,10 @@ out:
     return occurred;
 }
 
-void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEvent event, PlatformCallback callback, void * callbackContext, int param)
+void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEvent event, PlatformCallback callback, void * callbackContext)
 {
     BDBG_ASSERT(input);
     BDBG_ASSERT(event < PlatformInputEvent_eMax);
     input->eventHandlers[event].callback = callback;
     input->eventHandlers[event].context = callbackContext;
-    input->eventHandlers[event].param = param;
 }

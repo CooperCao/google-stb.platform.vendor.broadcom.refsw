@@ -1,19 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
-#ifndef __ARCHIVE_H__
-#define __ARCHIVE_H__
+#pragma once
 
 #include "remote.h"
 #include "platform.h"
+#include "datasink.h"
+#include "datasourcesinkfile.h"
+#include "datasinkasyncbuffer.h"
 
 #include <condition_variable>
 #include <fstream>
@@ -27,32 +22,26 @@ DESC
 
 #include <stdio.h>
 
-class Archive : public Remote
+class Archive : public DataSink
 {
 public:
-   Archive(const std::string &filename);
+   Archive();
    virtual ~Archive();
 
-   virtual bool Connect();
-   virtual void Disconnect();
-
-   virtual void Send(uint8_t *data, uint32_t size, bool isArray = false);
-   virtual void Flush();
+   bool Open(const char *filename);
+   void Close();
 
    uint64_t    BytesWritten() const { return m_bytesWritten; }
+
+public: //DataSink interface
+   virtual size_t Write(const void *data, size_t size) override;
+   virtual bool Flush() override;
 
 private:
    void BufferForWrite(uint8_t *data, uint32_t numBytes);
    void worker();
-   std::string                         m_filename;
-   FILE                                *m_fp;
-   std::mutex                          m_mutex;
-   std::condition_variable             m_condition;
-   std::queue<std::vector<uint8_t>>    m_queue;
-   std::vector<uint8_t>                m_buffer;
+   int                                 m_fd;
+   DataSourceSinkFile                  m_file;
+   DataSinkAsyncBuffer                 m_buffer;
    uint64_t                            m_bytesWritten;
-   std::thread                         m_thread;
-   bool                                m_done;
 };
-
-#endif /* __ARCHIVE_H__ */

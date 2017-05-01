@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -272,8 +272,8 @@ typedef struct BIP_HttpStreamerOutputSettings
                                                                         /* if input stream has transportTimestampEnabled and output settings doesn't set enableTransportTimestamp, then 4 byte timestamp is removed from the output */
     BIP_AppInitialPayload               appInitialPayload;              /* Optional: app specific private payload */
     NEXUS_HeapHandle                    heapHandle;                     /* Optional: heap for fifo allocation */
-    bool                                enableHwOffload;                /* Optional: enables offload to h/w like ASP if available on a platform & doable for a particular mediaInput stream format */
     bool                                disableAvHeadersInsertion;      /* Optional: dont insert AV Headers (TrackInfo) in outputgoing HTTP Response. */
+    bool                                disableContentLengthInsertion;  /* Optional: dont insert HTTP Content-Length header in outputgoing HTTP Response. */
     bool                                disableDlnaContentFeatureHeaderInsertion; /* Optional: dont insert ContentFeatures.DLNA.ORG header into the outgoing response. */
     bool                                enableDtcpIp;                   /* Optional: To stream media using DTCP/IP, this should be set to true. */
                                                                         /* Defaults to false => DTCP/IP is not enabled for this streamer. */

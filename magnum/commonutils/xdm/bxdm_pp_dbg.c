@@ -853,12 +853,13 @@ void BXDM_PPDBG_P_PrintMFD_isr(
                                  ( 0 != i ) ? " en" : " "
                                  ));
 
-      BDBG_MODULE_MSG( BXDM_MFD3, ("%c%x:[%02x.%03x] %s top::lb:0x%lu lo:%08x cb:0x%lu co:%08x bot::lb:0x%lu lo:%08x cb:0x%lu co:%08x",
+      BDBG_MODULE_MSG( BXDM_MFD3, ("%c%x:[%02x.%03x] %s md:%d top::lb:0x%lu lo:%08x cb:0x%lu co:%08x bot::lb:0x%lu lo:%08x cb:0x%lu co:%08x",
                                  ( pMFD->bMute ) ? 'M' : ' ',
                                  pDebug->uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                  pstSelectedPicture->stPicParms.uiPPBIndex & 0xFFF,
                                  ( pMFD->eBufferFormat ) ? "fp" : "Fr" ,
+                                 pMFD->stHdrMetadata.eType,
                                  (unsigned long)pMFD->hLuminanceFrameBufferBlock,
                                  pMFD->ulLuminanceFrameBufferBlockOffset,
                                  (unsigned long)pMFD->hChrominanceFrameBufferBlock,

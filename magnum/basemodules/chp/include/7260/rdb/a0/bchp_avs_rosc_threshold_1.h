@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,46 +70,46 @@
 /***************************************************************************
  *AVS_ROSC_THRESHOLD_1 - AVS ROSC Threshold 1 Related
  ***************************************************************************/
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_0 0x204d2d00 /* [RW] Threshold1 for central rosc number 0 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_1 0x204d2d04 /* [RW] Threshold1 for central rosc number 1 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_2 0x204d2d08 /* [RW] Threshold1 for central rosc number 2 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_3 0x204d2d0c /* [RW] Threshold1 for central rosc number 3 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_4 0x204d2d10 /* [RW] Threshold1 for central rosc number 4 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_5 0x204d2d14 /* [RW] Threshold1 for central rosc number 5 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_6 0x204d2d18 /* [RW] Threshold1 for central rosc number 6 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_7 0x204d2d1c /* [RW] Threshold1 for central rosc number 7 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_8 0x204d2d20 /* [RW] Threshold1 for central rosc number 8 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_9 0x204d2d24 /* [RW] Threshold1 for central rosc number 9 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_10 0x204d2d28 /* [RW] Threshold1 for central rosc number 10 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_11 0x204d2d2c /* [RW] Threshold1 for central rosc number 11 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_12 0x204d2d30 /* [RW] Threshold1 for central rosc number 12 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_13 0x204d2d34 /* [RW] Threshold1 for central rosc number 13 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_14 0x204d2d38 /* [RW] Threshold1 for central rosc number 14 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_15 0x204d2d3c /* [RW] Threshold1 for central rosc number 15 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_16 0x204d2d40 /* [RW] Threshold1 for central rosc number 16 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_17 0x204d2d44 /* [RW] Threshold1 for central rosc number 17 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_18 0x204d2d48 /* [RW] Threshold1 for central rosc number 18 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_19 0x204d2d4c /* [RW] Threshold1 for central rosc number 19 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_20 0x204d2d50 /* [RW] Threshold1 for central rosc number 20 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_21 0x204d2d54 /* [RW] Threshold1 for central rosc number 21 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_22 0x204d2d58 /* [RW] Threshold1 for central rosc number 22 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_23 0x204d2d5c /* [RW] Threshold1 for central rosc number 23 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_24 0x204d2d60 /* [RW] Threshold1 for central rosc number 24 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_25 0x204d2d64 /* [RW] Threshold1 for central rosc number 25 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_26 0x204d2d68 /* [RW] Threshold1 for central rosc number 26 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_27 0x204d2d6c /* [RW] Threshold1 for central rosc number 27 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_28 0x204d2d70 /* [RW] Threshold1 for central rosc number 28 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_29 0x204d2d74 /* [RW] Threshold1 for central rosc number 29 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_30 0x204d2d78 /* [RW] Threshold1 for central rosc number 30 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_31 0x204d2d7c /* [RW] Threshold1 for central rosc number 31 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_32 0x204d2d80 /* [RW] Threshold1 for central rosc number 32 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_33 0x204d2d84 /* [RW] Threshold1 for central rosc number 33 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_34 0x204d2d88 /* [RW] Threshold1 for central rosc number 34 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_35 0x204d2d8c /* [RW] Threshold1 for central rosc number 35 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_CEN_ROSC_THRESHOLD1_EN_0 0x204d2dd0 /* [RW] Software to program a mask to indicate which central roscs are to be tested against the threshold1 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_CEN_ROSC_THRESHOLD1_EN_1 0x204d2dd4 /* [RW] Software to program a mask to indicate which central roscs are to be tested against the threshold1 */
-#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_DIRECTION 0x204d2df8 /* [RW] Indicate to perform whether min test or max test */
-#define BCHP_AVS_ROSC_THRESHOLD_1_INTERRUPT_STATUS_THRESHOLD1_FAULTY_SENSOR 0x204d2dfc /* [RO] Indicate the faulty sensor where the threshold1 test failed */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_0 0x204d2d00 /* [RW][32] Threshold1 for central rosc number 0 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_1 0x204d2d04 /* [RW][32] Threshold1 for central rosc number 1 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_2 0x204d2d08 /* [RW][32] Threshold1 for central rosc number 2 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_3 0x204d2d0c /* [RW][32] Threshold1 for central rosc number 3 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_4 0x204d2d10 /* [RW][32] Threshold1 for central rosc number 4 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_5 0x204d2d14 /* [RW][32] Threshold1 for central rosc number 5 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_6 0x204d2d18 /* [RW][32] Threshold1 for central rosc number 6 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_7 0x204d2d1c /* [RW][32] Threshold1 for central rosc number 7 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_8 0x204d2d20 /* [RW][32] Threshold1 for central rosc number 8 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_9 0x204d2d24 /* [RW][32] Threshold1 for central rosc number 9 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_10 0x204d2d28 /* [RW][32] Threshold1 for central rosc number 10 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_11 0x204d2d2c /* [RW][32] Threshold1 for central rosc number 11 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_12 0x204d2d30 /* [RW][32] Threshold1 for central rosc number 12 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_13 0x204d2d34 /* [RW][32] Threshold1 for central rosc number 13 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_14 0x204d2d38 /* [RW][32] Threshold1 for central rosc number 14 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_15 0x204d2d3c /* [RW][32] Threshold1 for central rosc number 15 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_16 0x204d2d40 /* [RW][32] Threshold1 for central rosc number 16 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_17 0x204d2d44 /* [RW][32] Threshold1 for central rosc number 17 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_18 0x204d2d48 /* [RW][32] Threshold1 for central rosc number 18 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_19 0x204d2d4c /* [RW][32] Threshold1 for central rosc number 19 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_20 0x204d2d50 /* [RW][32] Threshold1 for central rosc number 20 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_21 0x204d2d54 /* [RW][32] Threshold1 for central rosc number 21 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_22 0x204d2d58 /* [RW][32] Threshold1 for central rosc number 22 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_23 0x204d2d5c /* [RW][32] Threshold1 for central rosc number 23 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_24 0x204d2d60 /* [RW][32] Threshold1 for central rosc number 24 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_25 0x204d2d64 /* [RW][32] Threshold1 for central rosc number 25 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_26 0x204d2d68 /* [RW][32] Threshold1 for central rosc number 26 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_27 0x204d2d6c /* [RW][32] Threshold1 for central rosc number 27 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_28 0x204d2d70 /* [RW][32] Threshold1 for central rosc number 28 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_29 0x204d2d74 /* [RW][32] Threshold1 for central rosc number 29 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_30 0x204d2d78 /* [RW][32] Threshold1 for central rosc number 30 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_31 0x204d2d7c /* [RW][32] Threshold1 for central rosc number 31 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_32 0x204d2d80 /* [RW][32] Threshold1 for central rosc number 32 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_33 0x204d2d84 /* [RW][32] Threshold1 for central rosc number 33 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_34 0x204d2d88 /* [RW][32] Threshold1 for central rosc number 34 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_35 0x204d2d8c /* [RW][32] Threshold1 for central rosc number 35 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_CEN_ROSC_THRESHOLD1_EN_0 0x204d2dd0 /* [RW][32] Software to program a mask to indicate which central roscs are to be tested against the threshold1 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_CEN_ROSC_THRESHOLD1_EN_1 0x204d2dd4 /* [RW][32] Software to program a mask to indicate which central roscs are to be tested against the threshold1 */
+#define BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_DIRECTION 0x204d2df8 /* [RW][32] Indicate to perform whether min test or max test */
+#define BCHP_AVS_ROSC_THRESHOLD_1_INTERRUPT_STATUS_THRESHOLD1_FAULTY_SENSOR 0x204d2dfc /* [RO][32] Indicate the faulty sensor where the threshold1 test failed */
 
 /***************************************************************************
  *THRESHOLD1_CEN_ROSC_0 - Threshold1 for central rosc number 0

@@ -37,15 +37,24 @@
 #
 ############################################################
 NEXUS_PLATFORM ?= $(PLATFORM)
-MAGNUM_TOP := $(shell cd ../../../magnum; pwd)
-NEXUS_TOP := $(shell cd ../../../nexus; pwd)
-BSEAV_TOP := $(shell cd ../../../BSEAV; pwd)
+URSR_TOP ?= ../../..
+MAGNUM_TOP := $(URSR_TOP)/magnum
+NEXUS_TOP := $(URSR_TOP)/nexus
+BSEAV_TOP := $(URSR_TOP)/BSEAV
+APPLIBS_TOP := $(URSR_TOP)/AppLibs
+
+USE_DIF ?= n
 
 # Include nexus definitions
-
+CHECK_APPLIBS = $(shell ls $(APPLIBS_TOP)/common/common.inc 2> /dev/null)
+ifeq ($(CHECK_APPLIBS),)
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
+else
+include $(APPLIBS_TOP)/common/common.inc
+endif
+
 include $(NEXUS_TOP)/build/os/linuxuser/os_tools.inc
 
 include $(BSEAV_TOP)/opensource/openssl/openssl.inc
@@ -77,6 +86,13 @@ NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
 include $(BSEAV_TOP)/lib/security/common_drm/lib/cmndrm_dir.inc
 
+include $(BSEAV_TOP)/lib/bpiff/bpiff.inc
+
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= $(abspath ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR})
+BPIFF_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/bpiff
+UTILS_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/utils
+
 # Custom include paths
 CFLAGS += -I./include
 CFLAGS += -I$(NEXUS_TOP)/modules/dma/$(BCHP_CHIP)/include
@@ -100,6 +116,19 @@ CFLAGS += -I${BSEAV_TOP}/lib/security/common_crypto/include
 CFLAGS += -I$(BSEAV_TOP)/lib/utils
 CFLAGS += -I$(BSEAV_TOP)/lib/media
 
+ifeq ($(SAGE_SUPPORT), y)
+OPAQUE_ENCRYPT ?= y
+else
+OPAQUE_ENCRYPT = n
+endif
+
+ifeq ($(OPAQUE_ENCRYPT), y)
+CFLAGS += -DOPAQUE_ENCRYPT
+endif
+
+ifeq ($(USE_DIF), y)
+CFLAGS += -I${BSEAV_TOP}/lib/bfile
+endif
 
 #allow c++ style comments
 CFLAGS += -std=c99
@@ -109,32 +138,22 @@ CFLAGS += -std=c99
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 
 # DRM Makefile exclude the 'include' subfolder which is built with the makefile
-D_ALL_SUBDIRS		:= $(filter-out %include, $(shell find . -type d))
-D_ALL_SUBDIRS	:= $(filter-out %examples, $(shell find . -type d))
-D_ALL_MODULE_DIR	:= $(filter-out %include, $(shell find . -maxdepth 1 -type d))
+D_ALL_MODULE_DIR := $(filter-out %include, $(shell find . -maxdepth 1 -type d))
 #$(error XXX D_ALL_SUBDIRS = ${D_ALL_SUBDIRS} XXX)
-
-vpath %.cpp    		${D_ALL_SUBDIRS}
-vpath %.c    		${D_ALL_SUBDIRS}
-vpath %.h      		${D_ALL_SUBDIRS}
-LIB_BASENAME        := bpiff
-
 
 ############
 # Set F_SRC_EXCLUDES to the basenames of C/C++ files you would like to
 # exclude from compilation.  By default, all *.c and *.cpp files will
 # be compiled.
 #####
-#F_SRC_EXCLUDES      =
-
+#F_SRC_EXCLUDES =
 
 ############
 # Set F_PUBLIC_INCS to the basenames of include files that are to be
 # used by other libraries or applications.  These files will be
 # installed into .../${BCHP_VER}/include/
 #####
-F_PUBLIC_INCS    	+= $(sort $(notdir $(shell find ${D_ALL_MODULE_DIR} -name '*.h')))
-
+F_PUBLIC_INCS += $(sort $(notdir $(shell find ${D_ALL_MODULE_DIR} -name '*.h')))
 
 #$(error ${F_PUBLIC_INCS})
 
@@ -142,57 +161,69 @@ F_PUBLIC_INCS    	+= $(sort $(notdir $(shell find ${D_ALL_MODULE_DIR} -name '*.h
 # If your library depends on another shared lib, you should add that
 # lib here (and any additional lib directories to search).
 #####
-#LDFLAGS				+= -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
-
-# TODO: uncheck when shared OpenSSL library is available
-LDFLAGS	+= -L$(NEXUS_BIN_DIR)/ -lnexus -L$(NEXUS_BIN_DIR)/ -lpthread -lm
+LDFLAGS	+= -L$(NEXUS_BIN_DIR)/ -lnexus -lpthread -lm
 LDFLAGS	+= $(B_OPENSSL_LDFLAGS)
+
+############################################################################
+#
+#vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
+SRC_DIR := src
+
+vpath %.c ${SRC_DIR}
+vpath %.h ${SRC_DIR}
+LIB_BASENAME := bpiff
 
 ############
 # Directory where to install the headers
 #####
-D_FOR_INC_INSTALL	:= include
-
+D_FOR_INC_INSTALL := include
 
 ############
 # You probably shouldn't have to modify the text below this point.
 #####
-F_PUBLIC_LIBS    	+= lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so
-B_REFSW_DEBUG ?= y
-ifeq ($(B_REFSW_DEBUG),y)
-D_FOR_LIB_INSTALL	:= lib/debug
-else
-D_FOR_LIB_INSTALL	:= lib/retail
-endif
+F_LIB_NAMES := lib${LIB_BASENAME}.a  lib${LIB_BASENAME}.so
+F_PUBLIC_LIBS += $(addprefix ${BPIFF_OBJ_ROOT}/,${F_LIB_NAMES})
+D_FOR_LIB_INSTALL := ${BPIFF_OBJ_ROOT}/${BPIFF_LIBDIR}
 
-F_SRCS	       		:= $(filter-out ${F_SRC_EXCLUDES}, $(notdir $(wildcard $(addsuffix /*.c, ${D_ALL_SUBDIRS}))))
-F_SRCS              += ${BSEAV_TOP}/lib/utils/bbase64.c
-F_SRCS_GPG          :=
-F_PREBUILT_OBJS     := $(patsubst %.gpg,%.o,${F_SRCS_GPG})
-F_OBJS 		   		:= $(patsubst %.c,%.o, ${F_SRCS})  ${F_PREBUILT_OBJS}
-F_INSTALLED_LIBS	:= $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_PUBLIC_LIBS})
+F_SRCS := $(filter-out ${F_SRC_EXCLUDES}, $(notdir $(wildcard $(addsuffix /*.c, ${SRC_DIR}))))
+F_OBJS := $(patsubst %.c,%.o, ${F_SRCS})
+END_OBJS := $(addprefix ${BPIFF_OBJ_ROOT}/,${F_OBJS})
+END_OBJS += ${UTILS_OBJ_ROOT}/bbase64.o
+F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_LIB_NAMES})
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
-
+#$(error END_OBJS = $(END_OBJS))
+#$(error CFLAGS = $(CFLAGS))
+$(warning F_LIB_NAMES: ${F_LIB_NAMES} )
+$(warning F_PUBLIC_LIBS: ${F_PUBLIC_LIBS} )
+$(warning F_INSTALLED_LIBS: ${F_INSTALLED_LIBS} )
+$(warning D_FOR_LIB_INSTALL: ${D_FOR_LIB_INSTALL} )
 
 ############################################################################
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-all: prep_openssl ${F_PUBLIC_LIBS} copy
+.PHONY: all
+all: prep_openssl ${F_PUBLIC_LIBS}
 
 prep_openssl:
 	$(MAKE) -C $(B_OPENSSL_BUILD_DIR)
-clean:
-	find -name '*.d' -o -name '*.o'  | xargs rm -f
-	rm -f ${BSEAV_TOP}/lib/utils/bbase64.o
-	ls *.a  | xargs rm -f
-	ls *.so | xargs rm -f
 
+${F_PUBLIC_LIBS} ${END_OBJS} : | prep_folder
+
+.PHONY : prep_folder
+prep_folder:
+	$(Q_)mkdir -p ${BPIFF_OBJ_ROOT}/
+	$(Q_)mkdir -p ${UTILS_OBJ_ROOT}/
+
+.PHONY : clean
+clean:
+	$(Q_)echo Cleaning objects... [${END_OBJS}]
+	$(Q_)rm -f ${END_OBJS}
+	$(Q_)echo Cleaning libraries... [${F_PUBLIC_LIBS} ${F_INSTALLED_LIBS}]
+	$(Q_)rm -f ${F_PUBLIC_LIBS} ${F_INSTALLED_LIBS}
+	$(Q_)rm -rf ${BPIFF_OBJ_ROOT} ${UTILS_OBJ_ROOT}
 
 distclean: clean
-#	find ./lib -name '*.a' -o -name '*.so' | xargs rm -f
-#	rm -f ${F_INSTALLED_LIBS}
-#	rm -f ${D_FOR_INC_INSTALL}/*.h ${F_INSTALLED_LIBS}
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
@@ -201,36 +232,41 @@ distclean: clean
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-lib${LIB_BASENAME}.so: ${F_OBJS}
-# TODO: linking with static OpenSSL library for now, need to generate shared libraries
-	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy
-	${STRIP_COMMAND}
+${D_FOR_LIB_INSTALL}/%.so : ${BPIFF_OBJ_ROOT}/%.so
+	cp $< $@
 
-lib${LIB_BASENAME}.a: ${F_OBJS}
-	${AR} rc  $@  $^
-	${STRIP_COMMAND}
+${D_FOR_LIB_INSTALL}/%.a : ${BPIFF_OBJ_ROOT}/%.a
+	cp $< $@
+
+${BPIFF_OBJ_ROOT}/%.so : ${END_OBJS}
+ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
+	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
+else
+	$(Q_)echo [Linking shared library .... $@ ]
+	$(Q_)${CC} -shared -o $@ ${LDFLAGS} ${END_OBJS} -Wl,-dy
+endif
+
+${BPIFF_OBJ_ROOT}/%.a : ${END_OBJS}
+	$(Q_)echo [Linking static library .... $@ ]
+	$(Q_)${AR} rc $@ ${END_OBJS}
+
+
+${BPIFF_OBJ_ROOT}/%.o: %.c
+	$(Q_)echo [Compiling  with $(CC).... $< ]
+	$(Q_)${CC} ${CFLAGS} -c -o $@ $<
+
+${UTILS_OBJ_ROOT}/%.o: ${BSEAV_TOP}/lib/utils/%.c
+	$(Q_)echo [Compiling  with $(CC).... $< ]
+	$(Q_)${CC} ${CFLAGS} -c -o $@ $<
 
 idirs:
-	@ [ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
-	@ [ -d ${D_FOR_INC_INSTALL} ] || mkdir -p ${D_FOR_INC_INSTALL}
+	$(Q_)[ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
+	$(Q_)[ -d ${D_FOR_INC_INSTALL} ] || mkdir -p ${D_FOR_INC_INSTALL}
 
 install: all idirs ${F_INSTALLED_LIBS}
-
-${D_FOR_LIB_INSTALL}/%.a : %.a
-	install -m 0755 $< $@
-
-${D_FOR_LIB_INSTALL}/%.so : %.so
-	install -m 0755 $< $@
-
-${F_PREBUILT_OBJS} : %.o : %.obj
-	${BDVD_PPRINT.cp}
-	@cp $^ $@
-
-%.o: %.c
-	@ echo [Compiling .... $< ]
-	@ ${CC} ${CFLAGS} -c -o $@ $<
-
-copy:
-	@echo [Copying proper bpiff lib version...]
-#cp -f $(BSEAV_TOP)/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrmprdy.so $(NEXUS_BIN_DIR)/
-	cp -f $(BSEAV_TOP)/lib/bpiff/libbpiff.so $(NEXUS_BIN_DIR)/
+	$(Q_)echo [Copying proper bpiff lib version...]
+	$(Q_)install -m 0755 ${D_FOR_LIB_INSTALL}/libbpiff.so $(NEXUS_BIN_DIR)
+	$(Q_)if [ -d $(APPLIBS_TOP) ] && [ -d $(APPLIBS_TARGET_LIB_DIR) ]; then \
+		echo [Copying libbpiff.so to applibs target]; \
+		install -m 0755 ${D_FOR_LIB_INSTALL}/libbpiff.so $(APPLIBS_TARGET_LIB_DIR); \
+	fi

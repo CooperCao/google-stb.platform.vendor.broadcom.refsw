@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_common.h"
 #include "v3d_cl.h"
 #include "libs/core/lfmt/lfmt.h"
@@ -89,11 +82,14 @@ uint32_t v3d_geom_prim_type_num_verts(v3d_cl_geom_prim_type_t type)
    }
 }
 
-void v3d_pixel_format_internal_type_and_bpp(
-   v3d_rt_type_t *type, v3d_rt_bpp_t *bpp,
-   v3d_pixel_format_t pixel_format)
+void v3d_pixel_format_to_rt_format(
+   V3D_RT_FORMAT_T *rt_format, v3d_pixel_format_t pixel_format)
 {
    /* See http://confluence.broadcom.com/x/qwLKB */
+
+#if V3D_HAS_RT_CLAMP
+   rt_format->clamp = V3D_RT_CLAMP_NONE;
+#endif
 
    switch (pixel_format) {
 
@@ -112,62 +108,74 @@ void v3d_pixel_format_internal_type_and_bpp(
    case V3D_PIXEL_FORMAT_RGBX8:
 #endif
    case V3D_PIXEL_FORMAT_BSTC:
-      *type = V3D_RT_TYPE_8;
-      *bpp = V3D_RT_BPP_32;
+      rt_format->type = V3D_RT_TYPE_8;
+      rt_format->bpp = V3D_RT_BPP_32;
       break;
    case V3D_PIXEL_FORMAT_RGBA8I:
    case V3D_PIXEL_FORMAT_RG8I:
    case V3D_PIXEL_FORMAT_R8I:
-      *type = V3D_RT_TYPE_8I;
-      *bpp = V3D_RT_BPP_32;
+      rt_format->type = V3D_RT_TYPE_8I;
+      rt_format->bpp = V3D_RT_BPP_32;
       break;
    case V3D_PIXEL_FORMAT_RGBA8UI:
    case V3D_PIXEL_FORMAT_RG8UI:
    case V3D_PIXEL_FORMAT_R8UI:
-      *type = V3D_RT_TYPE_8UI;
-      *bpp = V3D_RT_BPP_32;
+      rt_format->type = V3D_RT_TYPE_8UI;
+      rt_format->bpp = V3D_RT_BPP_32;
       break;
 
    case V3D_PIXEL_FORMAT_SRGB8_ALPHA8:
    case V3D_PIXEL_FORMAT_SRGB8:
    case V3D_PIXEL_FORMAT_RGB10_A2:
-   case V3D_PIXEL_FORMAT_R11F_G11F_B10F:
-   case V3D_PIXEL_FORMAT_RGBA16F:
 #if !V3D_HAS_TLB_SWIZZLE
    case V3D_PIXEL_FORMAT_SRGBX8:
 #endif
-      *type = V3D_RT_TYPE_16F;
-      *bpp = V3D_RT_BPP_64;
+      rt_format->type = V3D_RT_TYPE_16F;
+      rt_format->bpp = V3D_RT_BPP_64;
+#if V3D_HAS_RT_CLAMP
+      rt_format->clamp = V3D_RT_CLAMP_NORM;
+#endif
+      break;
+   case V3D_PIXEL_FORMAT_R11F_G11F_B10F:
+      rt_format->type = V3D_RT_TYPE_16F;
+      rt_format->bpp = V3D_RT_BPP_64;
+#if V3D_HAS_RT_CLAMP
+      rt_format->clamp = V3D_RT_CLAMP_POS;
+#endif
+      break;
+   case V3D_PIXEL_FORMAT_RGBA16F:
+      rt_format->type = V3D_RT_TYPE_16F;
+      rt_format->bpp = V3D_RT_BPP_64;
       break;
    case V3D_PIXEL_FORMAT_RG16F:
    case V3D_PIXEL_FORMAT_R16F:
-      *type = V3D_RT_TYPE_16F;
+      rt_format->type = V3D_RT_TYPE_16F;
 #if V3D_HAS_GFXH1207_FIX
-      *bpp = V3D_RT_BPP_32;
+      rt_format->bpp = V3D_RT_BPP_32;
 #else
       /* GFXH-1207: Although these are 32bpp, claim they are 64, otherwise the
        * TLB will incorrectly discard alpha output from shaders.
        */
-      *bpp = V3D_RT_BPP_64;
+      rt_format->bpp = V3D_RT_BPP_64;
 #endif
       break;
-   case V3D_PIXEL_FORMAT_RGBA16I:   *type = V3D_RT_TYPE_16I;   *bpp = V3D_RT_BPP_64;   break;
-   case V3D_PIXEL_FORMAT_RG16I:     *type = V3D_RT_TYPE_16I;   *bpp = V3D_RT_BPP_32;   break;
-   case V3D_PIXEL_FORMAT_R16I:      *type = V3D_RT_TYPE_16I;   *bpp = V3D_RT_BPP_32;   break;
+   case V3D_PIXEL_FORMAT_RGBA16I:   rt_format->type = V3D_RT_TYPE_16I;  rt_format->bpp = V3D_RT_BPP_64;  break;
+   case V3D_PIXEL_FORMAT_RG16I:     rt_format->type = V3D_RT_TYPE_16I;  rt_format->bpp = V3D_RT_BPP_32;  break;
+   case V3D_PIXEL_FORMAT_R16I:      rt_format->type = V3D_RT_TYPE_16I;  rt_format->bpp = V3D_RT_BPP_32;  break;
    case V3D_PIXEL_FORMAT_RGB10_A2UI:
-   case V3D_PIXEL_FORMAT_RGBA16UI:  *type = V3D_RT_TYPE_16UI;  *bpp = V3D_RT_BPP_64;   break;
-   case V3D_PIXEL_FORMAT_RG16UI:    *type = V3D_RT_TYPE_16UI;  *bpp = V3D_RT_BPP_32;   break;
-   case V3D_PIXEL_FORMAT_R16UI:     *type = V3D_RT_TYPE_16UI;  *bpp = V3D_RT_BPP_32;   break;
+   case V3D_PIXEL_FORMAT_RGBA16UI:  rt_format->type = V3D_RT_TYPE_16UI; rt_format->bpp = V3D_RT_BPP_64;  break;
+   case V3D_PIXEL_FORMAT_RG16UI:    rt_format->type = V3D_RT_TYPE_16UI; rt_format->bpp = V3D_RT_BPP_32;  break;
+   case V3D_PIXEL_FORMAT_R16UI:     rt_format->type = V3D_RT_TYPE_16UI; rt_format->bpp = V3D_RT_BPP_32;  break;
 
-   case V3D_PIXEL_FORMAT_RGBA32F:   *type = V3D_RT_TYPE_32F;   *bpp = V3D_RT_BPP_128;  break;
-   case V3D_PIXEL_FORMAT_RG32F:     *type = V3D_RT_TYPE_32F;   *bpp = V3D_RT_BPP_64;   break;
-   case V3D_PIXEL_FORMAT_R32F:      *type = V3D_RT_TYPE_32F;   *bpp = V3D_RT_BPP_32;   break;
-   case V3D_PIXEL_FORMAT_RGBA32I:   *type = V3D_RT_TYPE_32I;   *bpp = V3D_RT_BPP_128;  break;
-   case V3D_PIXEL_FORMAT_RG32I:     *type = V3D_RT_TYPE_32I;   *bpp = V3D_RT_BPP_64;   break;
-   case V3D_PIXEL_FORMAT_R32I:      *type = V3D_RT_TYPE_32I;   *bpp = V3D_RT_BPP_32;   break;
-   case V3D_PIXEL_FORMAT_RGBA32UI:  *type = V3D_RT_TYPE_32UI;  *bpp = V3D_RT_BPP_128;  break;
-   case V3D_PIXEL_FORMAT_RG32UI:    *type = V3D_RT_TYPE_32UI;  *bpp = V3D_RT_BPP_64;   break;
-   case V3D_PIXEL_FORMAT_R32UI:     *type = V3D_RT_TYPE_32UI;  *bpp = V3D_RT_BPP_32;   break;
+   case V3D_PIXEL_FORMAT_RGBA32F:   rt_format->type = V3D_RT_TYPE_32F;  rt_format->bpp = V3D_RT_BPP_128; break;
+   case V3D_PIXEL_FORMAT_RG32F:     rt_format->type = V3D_RT_TYPE_32F;  rt_format->bpp = V3D_RT_BPP_64;  break;
+   case V3D_PIXEL_FORMAT_R32F:      rt_format->type = V3D_RT_TYPE_32F;  rt_format->bpp = V3D_RT_BPP_32;  break;
+   case V3D_PIXEL_FORMAT_RGBA32I:   rt_format->type = V3D_RT_TYPE_32I;  rt_format->bpp = V3D_RT_BPP_128; break;
+   case V3D_PIXEL_FORMAT_RG32I:     rt_format->type = V3D_RT_TYPE_32I;  rt_format->bpp = V3D_RT_BPP_64;  break;
+   case V3D_PIXEL_FORMAT_R32I:      rt_format->type = V3D_RT_TYPE_32I;  rt_format->bpp = V3D_RT_BPP_32;  break;
+   case V3D_PIXEL_FORMAT_RGBA32UI:  rt_format->type = V3D_RT_TYPE_32UI; rt_format->bpp = V3D_RT_BPP_128; break;
+   case V3D_PIXEL_FORMAT_RG32UI:    rt_format->type = V3D_RT_TYPE_32UI; rt_format->bpp = V3D_RT_BPP_64;  break;
+   case V3D_PIXEL_FORMAT_R32UI:     rt_format->type = V3D_RT_TYPE_32UI; rt_format->bpp = V3D_RT_BPP_32;  break;
 
    default:
       unreachable();
@@ -228,20 +236,20 @@ v3d_pixel_format_t v3d_raw_mode_pixel_format(
 #endif
 
 void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
-                          v3d_rt_type_t type, v3d_rt_bpp_t bpp)
+   const V3D_RT_FORMAT_T *rt_format)
 {
    memset(packed, 0, 4 * sizeof(uint32_t));
-
-   switch (type) {
+   switch (rt_format->type)
+   {
    case V3D_RT_TYPE_8I:
    case V3D_RT_TYPE_8UI:
-      assert(bpp == V3D_RT_BPP_32);
+      assert(rt_format->bpp == V3D_RT_BPP_32);
       packed[0] = gfx_pack_8888(
          col[0] & 0xff, col[1] & 0xff,
          col[2] & 0xff, col[3] & 0xff);
       break;
    case V3D_RT_TYPE_8:
-      assert(bpp == V3D_RT_BPP_32);
+      assert(rt_format->bpp == V3D_RT_BPP_32);
       packed[0] = gfx_pack_8888(
          gfx_float_to_unorm8(gfx_float_from_bits(col[0])),
          gfx_float_to_unorm8(gfx_float_from_bits(col[1])),
@@ -250,7 +258,8 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
       break;
    case V3D_RT_TYPE_16I:
    case V3D_RT_TYPE_16UI:
-      switch (bpp) {
+      switch (rt_format->bpp)
+      {
       case V3D_RT_BPP_64:
          packed[1] = gfx_pack_1616(
             col[2] & 0xffff, col[3] & 0xffff);
@@ -264,7 +273,8 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
       }
       break;
    case V3D_RT_TYPE_16F:
-      switch (bpp) {
+      switch (rt_format->bpp)
+      {
       case V3D_RT_BPP_64:
          packed[1] = gfx_pack_1616(
             gfx_floatbits_to_float16(col[2]),
@@ -282,7 +292,8 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
    case V3D_RT_TYPE_32I:
    case V3D_RT_TYPE_32UI:
    case V3D_RT_TYPE_32F:
-      switch (bpp) {
+      switch (rt_format->bpp)
+      {
       case V3D_RT_BPP_128:
          packed[3] = col[3];
          packed[2] = col[2];
@@ -300,11 +311,16 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
    default:
       unreachable();
    }
+
+#if V3D_HAS_RT_CLAMP
+   for (unsigned i = 0; i != v3d_rt_bpp_words(rt_format->bpp); ++i)
+      packed[i] = v3d_apply_rt_clamp(packed[i], rt_format->type, rt_format->clamp);
+#endif
 }
 
 void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
    const uint32_t col[4],
-   v3d_rt_type_t type, v3d_rt_bpp_t bpp
+   const V3D_RT_FORMAT_T *rt_format
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    , uint32_t raster_padded_width_or_nonraster_height,
    uint32_t uif_height_in_ub
@@ -312,17 +328,17 @@ void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
    )
 {
    uint32_t packed[4];
-   v3d_pack_clear_color(packed, col, type, bpp);
+   v3d_pack_clear_color(packed, col, rt_format);
 
    v3d_cl_tile_rendering_mode_cfg_clear_colors_part1(cl, rt,
       packed[0], packed[1] & gfx_mask(24));
 
-   if ((bpp == V3D_RT_BPP_64) || (bpp == V3D_RT_BPP_128))
+   if ((rt_format->bpp == V3D_RT_BPP_64) || (rt_format->bpp == V3D_RT_BPP_128))
       v3d_cl_tile_rendering_mode_cfg_clear_colors_part2(cl, rt,
          packed[1] >> 24, packed[2], packed[3] & gfx_mask(16));
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   if (bpp == V3D_RT_BPP_128)
+   if (rt_format->bpp == V3D_RT_BPP_128)
       v3d_cl_tile_rendering_mode_cfg_clear_colors_part3(cl, rt, packed[3] >> 16);
 #else
    v3d_cl_tile_rendering_mode_cfg_clear_colors_part3(cl, rt,
@@ -331,6 +347,38 @@ void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
       uif_height_in_ub);
 #endif
 }
+
+#if V3D_HAS_RT_CLAMP
+uint32_t v3d_apply_rt_clamp(uint32_t w, v3d_rt_type_t type, v3d_rt_clamp_t clamp)
+{
+   switch (clamp)
+   {
+   case V3D_RT_CLAMP_NONE:
+      return w;
+   case V3D_RT_CLAMP_NORM:
+   case V3D_RT_CLAMP_POS:
+   {
+      assert(type == V3D_RT_TYPE_16F);
+      uint32_t res = 0;
+      for (unsigned i = 0; i != 2; ++i)
+      {
+         float f = gfx_float16_to_float(gfx_pick_16(w, i));
+         switch (clamp)
+         {
+         case V3D_RT_CLAMP_NORM: f = gfx_fclamp(f, 0.0f, 1.0f); break;
+         case V3D_RT_CLAMP_POS:  f = gfx_sign_bit_set(f) ? 0.0f : f; break; // Don't use fmaxf; want to preserve +ve NaNs
+         default:                unreachable();
+         }
+         res |= gfx_float_to_float16(f) << (i * 16);
+      }
+      return res;
+   }
+   default:
+      unreachable();
+      return 0;
+   }
+}
+#endif
 
 float v3d_snap_depth(float depth, v3d_depth_type_t depth_type)
 {
@@ -481,4 +529,38 @@ size_t v3d_cl_sprint_plist_fmt(char *buf, size_t buf_size, size_t offset,
    return vcos_safe_sprintf(buf, buf_size, offset, "n_verts=%u%s",
       plist_fmt->n_verts,
       plist_fmt->xy ? " xy" : plist_fmt->d3dpvsf ? " d3dpvsf" : "");
+}
+
+void v3d_cl_write_vary_flags(uint8_t **instr, const uint32_t *flags, v3d_cl_flag_set_func set, v3d_cl_flag_zero_func zero)
+{
+   v3d_flags_action_t lower_action = V3D_FLAGS_ACTION_ZERO;
+   for (uint32_t i = 0; i < V3D_MAX_VARY_FLAG_WORDS; i++)
+   {
+      assert((flags[i] & ~gfx_mask(V3D_VARY_FLAGS_PER_WORD)) == 0);
+
+      if (flags[i] != 0)
+      {
+         set(instr, i, lower_action, V3D_FLAGS_ACTION_ZERO, flags[i]);
+         lower_action = V3D_FLAGS_ACTION_KEEP;
+      }
+   }
+
+   if (lower_action != V3D_FLAGS_ACTION_KEEP)
+      zero(instr);
+}
+
+void v3d_cl_viewport_offset_from_rect(uint8_t **cl,
+   int x, int y, unsigned width, unsigned height)
+{
+   int off_x = ((2 * x) + (int)width) * 128;
+   int off_y = ((2 * y) + (int)height) * 128;
+#if V3D_HAS_UNCONSTR_VP_CLIP
+   int coarse_off_x = (off_x - (int)(width * 128)) >> (6 + 8);
+   int coarse_off_y = (off_y - (int)(height * 128)) >> (6 + 8);
+   v3d_cl_viewport_offset(cl,
+      off_x - (coarse_off_x << (6 + 8)), coarse_off_x,
+      off_y - (coarse_off_y << (6 + 8)), coarse_off_y);
+#else
+   v3d_cl_viewport_offset(cl, off_x, off_y);
+#endif
 }

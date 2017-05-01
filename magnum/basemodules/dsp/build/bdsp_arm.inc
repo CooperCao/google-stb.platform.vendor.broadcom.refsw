@@ -42,6 +42,12 @@
 #
 #
 
+ifeq ($(B_REFSW_ARCH),arm-linux)
+AONA_VER = v7
+else ifeq ($(B_REFSW_ARCH),aarch64-linux)
+AONA_VER = v8
+endif
+
 # Set CFLAG for ARM Support
 BDSP_DEFINES += BDSP_ARM_AUDIO_SUPPORT=1
 
@@ -49,7 +55,7 @@ BDSP_DEFINES += BDSP_ARM_AUDIO_SUPPORT=1
 BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/include/arm
 BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/include/common
 BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/common
-BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/v7
+BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/$(AONA_VER)
 BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src
 
 BDSP_ARM_DDPENC_SUPPORT ?= y

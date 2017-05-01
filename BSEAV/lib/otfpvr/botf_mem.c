@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,25 +43,21 @@
 
 #include "bstd.h"
 #include "botf_mem.h"
-#include "bmem.h"
 #include "bkni_multi.h"
 #include "botf_priv.h"
 
-void 
-botf_mem_init(botf_mem *mem, BSTD_DeviceOffset addr, void *uncached_ptr, size_t range, struct BOTF_Data *otf)
+void
+botf_mem_init(botf_mem *mem, BSTD_DeviceOffset addr, void *cached_ptr, uint64_t range, struct BOTF_Data *otf, void (*FlushCache)(const void *, size_t))
 {
     void *ptr;
     BERR_Code rc;
 
-    rc = BMEM_Heap_ConvertAddressToCached(otf->hBMem, uncached_ptr, &ptr);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
-
-    mem->base = (unsigned long)ptr - addr;
-    mem->uncached_ptr= uncached_ptr;
-    mem->ptr= ptr;
+    mem->base = (int64_t)(long)cached_ptr - addr;
+    mem->ptr = cached_ptr;
     mem->addr = addr;
     mem->range = range;
     mem->otf = otf;
+    mem->FlushCache = FlushCache;
     return;
 }
 
@@ -76,15 +72,12 @@ void *
 botf_mem_vaddr(botf_mem_t mem, BSTD_DeviceOffset addr)
 {
     BDBG_ASSERT(addr >= mem->addr && addr < (mem->addr + mem->range));
-    return (uint8_t *)mem->base + addr;
+    return (uint8_t *)(long)(mem->base + addr);
 }
 
 void botf_mem_flush(botf_mem_t mem, const void *ptr, size_t len)
 {
-    BERR_Code rc;
-
-    rc=BMEM_Heap_FlushCache(mem->otf->hBMem, (void *)ptr, len);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
+    mem->FlushCache(ptr, len);
     return;
 }
 

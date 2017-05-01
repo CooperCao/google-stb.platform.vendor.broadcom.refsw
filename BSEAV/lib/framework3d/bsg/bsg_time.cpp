@@ -1,59 +1,35 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "bsg_common.h"
 #include "bsg_time.h"
+
+#include <ctime>
+using namespace std::chrono;
 
 namespace bsg
 {
 
+system_clock::time_point Time::m_appEpoch(system_clock::now());
+high_resolution_clock::time_point HighResTime::m_appEpoch(high_resolution_clock::now());
+
+Time Time::Now()
+{
+   auto elapsed = system_clock::now() - m_appEpoch;
+   return Time(duration_cast<milliseconds>(elapsed).count());
+}
+
 int64_t Time::CalToMs(time_t cal)
 {
-   int64_t appSecs = cal - m_appCalEpoch;
+   int64_t appSecs =
+      cal - duration_cast<seconds>(m_appEpoch.time_since_epoch()).count();
    return appSecs * 1000;
 }
 
 time_t Time::MsToCal(int64_t ms)
 {
-   time_t calSecs = (ms / 1000) + m_appCalEpoch;
+   time_t calSecs = (ms / 1000) +
+      duration_cast<seconds>(m_appEpoch.time_since_epoch()).count();
    return calSecs;
 }
 
@@ -68,7 +44,7 @@ Time::Time(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minu
    t.tm_min = minute;
    t.tm_sec = second;
 
-   m_ms = CalToMs(mktime(&t));
+   m_ms = CalToMs(std::mktime(&t));
 }
 
 void Time::FromCalendarTime(time_t calTime)
@@ -169,5 +145,10 @@ uint8_t Time::CalendarSecond() const
    return 99;
 }
 
+HighResTime HighResTime::Now()
+{
+   auto elapsed = high_resolution_clock::now() - m_appEpoch;
+   return HighResTime(duration_cast<milliseconds>(elapsed).count());
 }
 
+}

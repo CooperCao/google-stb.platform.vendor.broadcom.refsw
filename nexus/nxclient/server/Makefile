@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,37 +36,14 @@
 # ANY LIMITED REMEDY.
 ############################################################
 
-PHONY=all server install clean nexus clean_nexus clean_apps nexus_headers
-.PHONY: $(PHONY)
-APPS = nxserver
+.PHONY: all server install clean nexus clean_nexus clean_apps nexus_headers nxserver
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
 
-ifeq ($(B_REFSW_REAL_MAKE),)
-
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP := $(shell cd ../.. && cd)
-else
-NEXUS_TOP := $(shell cd ../../; pwd)
-endif
-
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/nxclient/server
-MAKEFLAGS += --no-print-directory
-
-${PHONY} ${APPS}: ${BINDIR}/exists
-	@BINDIR=$(BINDIR) ${MAKE} -C ${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} -f ${CURDIR}/Makefile B_REFSW_REAL_MAKE=1 $@
-
-${BINDIR}/exists:
-	@mkdir -p $@
-
-else # B_REFSW_REAL_MAKE
-NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
+NEXUS_TOP := $(shell cd ../../;pwd)
 
 # include cross-compiler definitions
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
@@ -78,8 +55,7 @@ else
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
 
-vpath %.c ${NEXUS_TOP}/nxclient/server
-vpath %.h ${NEXUS_TOP}/nxclient/server
+BINDIR := $(B_REFSW_OBJ_ROOT)/nexus/nxclient/$(B_REFSW_ARCH)/server
 
 # namevalue
 vpath %.c ${NEXUS_TOP}/utils
@@ -94,7 +70,7 @@ server: nxserver
 
 IPC :=  ${NEXUS_TOP}/lib/ipc
 CFLAGS += -I${IPC} -I$(BINDIR)/stubs -I$(NEXUS_TOP)/nxclient/server
-EXTRA_OBJS := bipc_util.o bipc_server.o bipc_client.o
+EXTRA_OBJS := $(BINDIR)/bipc_util.o $(BINDIR)/bipc_server.o $(BINDIR)/bipc_client.o
 vpath %.c ${IPC}
 
 ifeq ($(NEXUS_MODE),)
@@ -104,7 +80,6 @@ NEXUS_BUILD_OPTIONS = NEXUS_MODE=client
 endif
 endif
 
-unexport BINDIR
 clean: clean_nexus clean_apps
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
@@ -123,10 +98,6 @@ clean_nexus:
 	${Q_}$(MAKE) $(NEXUS_BUILD_OPTIONS) -C $(NEXUS_TOP)/build clean
 endif
 
-clean_apps:
-	-$(RM) $(APPS) *.d *.o *.a
-	${Q_}BINDIR=$(BINDIR) NEXUS_TOP=$(NEXUS_TOP) $(MAKE) -f $(NEXUS_TOP)/nxclient/server/Makefile.lib clean
-
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += -g $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
@@ -137,18 +108,19 @@ CFLAGS += -MMD
 # Some systems build libnxserver.a into a .so. This could increase code size, but I don't see it.
 CFLAGS += -fPIC
 
--include *.d
+NXCLIENT_P_SHARED_LIB := $(BINDIR)/libnxclient.so
+NXCLIENT_P_LOCAL_SHARED_LIB := $(BINDIR)/libnxclient_local.so
 
-nxserver nxserverlib_ipc.o nxserverlib_ipc_verify.o: $(NXCLIENT_SHARED_LIB)
+$(BINDIR)/nxserver $(BINDIR)/nxserverlib_ipc.o $(BINDIR)/nxserverlib_ipc_verify.o: $(NXCLIENT_P_SHARED_LIB)
 
-$(NXCLIENT_SHARED_LIB): nexus
-	${Q_}BINDIR=$(BINDIR) NEXUS_TOP=$(NEXUS_TOP) $(MAKE) -f $(NEXUS_TOP)/nxclient/server/Makefile.lib
+$(NXCLIENT_P_SHARED_LIB): nexus
+	${Q_}BINDIR=$(BINDIR) NEXUS_TOP=$(NEXUS_TOP) $(MAKE) -f Makefile.lib
 
 ifeq ($(B_REFSW_ANDROID),y)
 include $(NEXUS_TOP)/build/android.inc
 LDFLAGS := $(ANDROID_SERVER_LDFLAGS)
 else
-LDFLAGS += -L${NEXUS_BIN_DIR} -lnexus -lpthread -lm
+LDFLAGS += $(NEXUS_LD_LIBRARIES) -lm
 endif
 
 ifeq ($(B_REFSW_ANDROID),y)
@@ -189,28 +161,42 @@ CFLAGS += -DB_IPC_COMPAT_SUPPORT=1
 NXSERVERLIB_SRCS += nxserverlib_compat.c
 endif
 
-NXSERVERLIB = libnxserver.a
+NXSERVERLIB = $(BINDIR)/libnxserver.a
+NXSERVERLIB_OBJS := $(addprefix $(BINDIR)/,$(patsubst %.c,%.o,$(NXSERVERLIB_SRCS)))
+NXSERVER_OBJS := $(addprefix $(BINDIR)/,$(patsubst %.c,%.o,$(NXSERVER_SRC)))
 
-%.o: %.c
-	@echo [Compile... $@]
+clean_apps:
+	-$(RM) -r $(BINDIR)
+	${Q_}BINDIR=$(BINDIR) NEXUS_TOP=$(NEXUS_TOP) $(MAKE) -f Makefile.lib clean
+
+-include $(BINDIR)/*.d
+
+$(BINDIR)/%.o: %.c
+	@echo [Compile... $(notdir $@)]
+	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -c -o $@ $(filter %.c,$<) $(CFLAGS)
 
-$(NXSERVERLIB): $(patsubst %.c,%.o,$(NXSERVERLIB_SRCS)) $(EXTRA_OBJS)
-	@echo [Archive... $@]
+$(NXSERVERLIB): $(NXSERVERLIB_OBJS) $(EXTRA_OBJS)
+	@echo [Archive... $(notdir $@)]
+	@mkdir -p $(dir $@)
 	$(Q_)$(AR) rcs $@ $^
 	$(CP) $@ ${NEXUS_BIN_DIR}
 
-nxserver: $(patsubst %.c,%.o,$(NXSERVER_SRC)) $(NXSERVERLIB)
+$(BINDIR)/nxserver: $(NXSERVER_OBJS) $(NXSERVERLIB)
 	@echo [Link... $@]
+	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -o $@ $(filter %.o %.a,$^) $(CFLAGS) $(LDFLAGS)
 	$(CP) $@ ${NEXUS_BIN_DIR}
 
+nxserver: $(BINDIR)/nxserver
+
 install: all
-	$(CP) $(APPS) ${NEXUS_BIN_DIR}
+
+all:
+	@echo [Install... nxclient to $(realpath ${NEXUS_BIN_DIR})]
+	${Q_}$(CP) $(BINDIR)/nxserver $(NXCLIENT_P_SHARED_LIB) $(NXCLIENT_P_LOCAL_SHARED_LIB) ${NEXUS_BIN_DIR}
 
 nexus_headers:
 	${Q_}echo Copying header files to ${NEXUS_BIN_DIR}/include
 	${Q_}$(MKDIR) ${NEXUS_BIN_DIR}/include
 	${Q_}${CP} $(NEXUS_TOP)/nxclient/include/* ${NEXUS_BIN_DIR}/include
-
-endif # B_REFSW_REAL_MAKE

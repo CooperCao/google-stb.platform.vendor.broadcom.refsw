@@ -51,6 +51,9 @@
 #include "bhsm_bsp_msg.h"
 #include "bhsm_keyslots_private.h"
 #include "bhsm_verify_reg.h"
+#ifdef BSP_PKL
+#include "bchp_bsp_pkl.h"
+#endif
 
 BDBG_MODULE(BHSM);
 

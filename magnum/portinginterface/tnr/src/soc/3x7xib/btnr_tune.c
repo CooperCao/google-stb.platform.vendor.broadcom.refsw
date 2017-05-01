@@ -271,7 +271,7 @@ BERR_Code BTNR_P_DPM_Control(BTNR_3x7x_ChnHandle h)
 /******************************************************************************
  BTNR_P_TunerSetMXR()
 ******************************************************************************/
-void BTNR_P_TunerSetMXR(BTNR_3x7x_ChnHandle h)
+static void BTNR_P_TunerSetMXR(BTNR_3x7x_ChnHandle h)
 {
 	/*MXR SR, pre_div reset*/
 	if (h->pTunerStatus->LO_index == 10)
@@ -313,7 +313,7 @@ void BTNR_P_TunerSetMXR(BTNR_3x7x_ChnHandle h)
 /******************************************************************************
  BTNR_P_TunerSetLO()
 ******************************************************************************/
-void BTNR_P_TunerSetLO(BTNR_3x7x_ChnHandle h)
+static void BTNR_P_TunerSetLO(BTNR_3x7x_ChnHandle h)
 {
 	/*local variables*/
 	uint8_t		index, M, N, ndiv, pdiv;

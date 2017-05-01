@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "glsl_backflow.h"
 #include "glsl_backflow_visitor.h"
@@ -56,7 +56,7 @@ static void vpmw(SchedBlock *b, uint32_t addr, Backflow *param, Backflow *dep)
    Backflow *result = tr_binop_io(BACKFLOW_STVPMV, tr_const(addr), param, dep);
    result->age = param->age;
 
-   glsl_backflow_chain_append(&b->iodeps, result);
+   glsl_backflow_chain_push_back(&b->iodeps, result);
 }
 
 static void vertex_backend(const VertexBackendState *s,
@@ -211,7 +211,7 @@ static void vertex_backend(const VertexBackendState *s,
          dep = vpmw(tr_const(0), dep, read_dep);
    }
 
-   glsl_backflow_chain_append(&block->iodeps, dep);
+   glsl_backflow_chain_push_back(&block->iodeps, dep);
 }
 
 #endif

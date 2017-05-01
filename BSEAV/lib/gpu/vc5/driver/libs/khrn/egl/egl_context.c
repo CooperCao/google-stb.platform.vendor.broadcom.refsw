@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <EGL/egl.h>
 #include "vcos.h"
 #include "egl_platform.h"
@@ -216,7 +210,7 @@ void egl_context_flush(EGL_CONTEXT_T *context)
 }
 
 bool egl_context_convert_image(EGL_CONTEXT_T *context,
-      KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src)
+      khrn_image *dst, khrn_image *src)
 {
    return context->fns->convert_image(context, dst, src);
 }

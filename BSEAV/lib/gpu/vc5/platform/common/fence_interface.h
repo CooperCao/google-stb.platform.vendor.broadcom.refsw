@@ -1,14 +1,17 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __FENCE_INTERFACE_H__
 #define __FENCE_INTERFACE_H__
 
 #include <stdint.h>
 #include <stdbool.h>
 #include "interface.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 #define FENCE_WAIT_INFINITE 0xffffffff
 
@@ -38,5 +41,9 @@ void FenceInterface_Signal(const FenceInterface *fi, int fence);
 
 void FenceInterface_WaitAndDestroy(const FenceInterface *fi,
       int *fence);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __FENCE_INTERFACE_H__ */

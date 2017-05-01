@@ -2137,12 +2137,12 @@ const BCHP_PWR_P_MuxMap BCHP_PWR_P_MuxMapList[BCHP_PWR_P_NUM_MUXES] = {
     {BCHP_PWR_MX_SMARTCARD_MUX_SELECT_SC1_CLOCK, BCHP_PWR_P_MuxTable_MX_SMARTCARD_MUX_SELECT_SC1_CLOCK},
 };
 
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH0_div[] = {{200,3,8},{200,3,0},{200,3,0},{200,3,0},{200,3,0},{200,3,0},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH1_div[] = {{200,3,6},{200,3,0},{200,3,0},{200,3,0},{200,3,0},{200,3,0},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH2_div[] = {{200,3,7},{200,3,0},{200,3,0},{200,3,0},{200,3,0},{200,3,0},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH5_div[] = {{200,3,6},{200,3,0},{200,3,0},{200,3,0},{200,3,0},{200,3,0},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_NETWORK_CTRL_CH5_div[] = {{125,3,3},{125,3,0},{125,3,0},{125,3,0},{125,3,0},{125,3,0},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_XPT_CTRL_CH4_div[] = {{120,2,7},{120,2,0},{120,2,0},{120,2,0},{120,2,0},{120,2,0},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH0_div[] = {{200,3,8},{200,3,8},{200,3,8},{200,3,0},{200,3,0},{200,3,0},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH1_div[] = {{200,3,6},{200,3,6},{200,3,6},{200,3,0},{200,3,0},{200,3,0},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH2_div[] = {{200,3,7},{200,3,7},{200,3,7},{200,3,0},{200,3,0},{200,3,0},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH5_div[] = {{200,3,6},{200,3,6},{200,3,6},{200,3,0},{200,3,0},{200,3,0},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_NETWORK_CTRL_CH5_div[] = {{125,3,3},{125,3,3},{125,3,3},{125,3,0},{125,3,0},{125,3,0},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_XPT_CTRL_CH4_div[] = {{120,2,7},{120,2,7},{120,2,7},{120,2,0},{120,2,0},{120,2,0},};
 
 const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[BCHP_PWR_P_NUM_DIVS] = {
     {BCHP_PWR_DV_HVD_CTRL_CH0_div, BCHP_PWR_P_DivTable_DV_HVD_CTRL_CH0_div},

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -111,7 +111,6 @@ NEXUS_Error nexus_simpleencoder_p_start_video(NEXUS_SimpleEncoderHandle handle);
 void nexus_simplevideodecoder_p_remove_settings_from_cache(void);
 void nexus_simpleencoder_p_stop_videoencoder(NEXUS_SimpleEncoderHandle handle, bool abort);
 
-void NEXUS_SimpleVideoDecoderModule_P_UnloadDefaultSettings(void);
 void NEXUS_SimpleAudioDecoderModule_P_UnloadDefaultSettings(void);
 
 #endif

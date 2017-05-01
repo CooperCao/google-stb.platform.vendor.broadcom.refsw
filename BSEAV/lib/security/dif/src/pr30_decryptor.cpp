@@ -1052,7 +1052,6 @@ uint32_t Playready30Decryptor::DecryptSample(
 
             if (dr != DRM_SUCCESS) {
                 LOGE(("%s: %d Reader_Decrypt failed: 0x%x", __FUNCTION__, __LINE__, (unsigned)dr));
-                bytes_processed += sampleSize;
                 return bytes_processed;
             }
         }
@@ -1082,8 +1081,6 @@ uint32_t Playready30Decryptor::DecryptSample(
         &sampleSize,
         &encrypted_buffer);
 
-    bytes_processed += sampleSize;
-
     BKNI_Free(pEncryptedRegionMappings);
 
     if (dr != DRM_SUCCESS) {
@@ -1091,6 +1088,7 @@ uint32_t Playready30Decryptor::DecryptSample(
         return bytes_processed;
     }
 
+    bytes_processed += sampleSize;
     LOGD(("%s: bytes_processed=%u", __FUNCTION__, bytes_processed));
     return bytes_processed;
 }

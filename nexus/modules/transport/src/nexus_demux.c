@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,6 @@
 BDBG_MODULE(nexus_demux);
 BDBG_FILE_MODULE(nexus_flow_pid_channel);
 
-static NEXUS_Error NEXUS_P_HwPidChannel_P_SetEnabled( NEXUS_P_HwPidChannel *pidChannel, bool enabled );
 static void NEXUS_P_HwPidChannel_RemoveSlavePidChannel( NEXUS_P_HwPidChannel *master, NEXUS_P_HwPidChannel *slave );
 static void NEXUS_P_HwPidChannel_P_Close(NEXUS_P_HwPidChannel *hwPidChannel); /* this function should only be called from NEXUS_PidChannel_P_Finalizer */
 static NEXUS_Error NEXUS_P_HwPidChannel_SetEnabled( NEXUS_P_HwPidChannel *pidChannel, bool enabled );
@@ -277,7 +276,19 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_Open(NEXUS_ParserBand parserBand, uint16
             hwPidChannel->status.parserBand = band->hwIndex;
             handle = NEXUS_PidChannel_P_Create(hwPidChannel);
             if(handle==NULL) {
-                NEXUS_P_HwPidChannel_P_Close(hwPidChannel);
+                if(BLST_S_FIRST(&hwPidChannel->swPidChannels)==NULL) {
+                    NEXUS_P_HwPidChannel_P_Close(hwPidChannel);
+                }
+            }
+            else {
+                NEXUS_Error rc;
+                handle->enabled = pSettings?((pSettings->pidChannelIndex==NEXUS_PID_CHANNEL_OPEN_INJECTION)?false:pSettings->enabled):true;
+                rc = NEXUS_P_HwPidChannel_CalcEnabled(hwPidChannel);
+                if (rc) {
+                    BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    NEXUS_PidChannel_Close(handle);
+                    handle = NULL;
+                }
             }
         }
     }
@@ -288,7 +299,28 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_Open(NEXUS_ParserBand parserBand, uint16
     return handle;
 }
 
-
+/* find unused pidChannelIndex >= first and < bound */
+static NEXUS_Error nexus_p_find_avail_pidch(unsigned first, unsigned bound, unsigned *index)
+{
+    struct NEXUS_P_HwPidChannel *p;
+    unsigned i = first;
+    /* pTransport->pidChannels is sorted by p->status.pidChannelIndex */
+    for (p=BLST_S_FIRST(&pTransport->pidChannels);p;p=BLST_S_NEXT(p,link)) {
+        if (p->status.pidChannelIndex >= bound) {
+            break;
+        }
+        else if (p->status.pidChannelIndex == i) {
+            if (++i == bound) {
+                return NEXUS_NOT_AVAILABLE;
+            }
+        }
+        else if (p->status.pidChannelIndex > i) {
+            break;
+        }
+    }
+    *index = i;
+    return NEXUS_SUCCESS;
+}
 
 NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBand, NEXUS_PlaypumpHandle playpump, unsigned combinedPid,
     const NEXUS_PidChannelSettings *pSettings, bool bandContinuityCountEnabled)
@@ -334,9 +366,11 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
                     BDBG_ERR(("pidChannelIndex %d already opened with NEXUS_PID_CHANNEL_OPEN_INJECTION", pSettings->pidChannelIndex));
                     return NULL;
                 }
-                if (!duplicatePidChannel) {
-                    duplicatePidChannel = pidChannel;
-                }
+                duplicatePidChannel = pidChannel;
+                break;
+            }
+            else if (pidChannel->status.pidChannelIndex > (unsigned)pSettings->pidChannelIndex) {
+                break;
             }
         }
     }
@@ -454,11 +488,8 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
                 return NULL;
             }
 
-            for (index=firstPidChannel;index<totalPidChannels;index++) {
-                if (pTransport->hwPidChannelRefCnt[index] == 0) {
-                    found = true;
-                    break;
-                }
+            if (!nexus_p_find_avail_pidch(firstPidChannel, totalPidChannels, &index)) {
+                found = true;
             }
             if (!found && pSettings->pidChannelIndex != NEXUS_PID_CHANNEL_OPEN_NOT_MESSAGE_CAPABLE) {
 #if NEXUS_NUM_PLAYPUMPS && NEXUS_NUM_PARSER_BANDS
@@ -466,21 +497,15 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
                 {
                     unsigned first = BXPT_GET_IB_PARSER_ALLPASS_CHNL(NEXUS_NUM_PARSER_BANDS-1) + 1;
                     unsigned bound = BXPT_GET_PLAYBACK_ALLPASS_CHNL(0);
-                    for (index=first;index<bound;index++) {
-                        if (pTransport->hwPidChannelRefCnt[index] == 0) {
-                            found = true;
-                            break;
-                        }
+                    if (!nexus_p_find_avail_pidch(first, bound, &index)) {
+                        found = true;
                     }
                 }
 #endif
                 if (!found) {
                     /* search group 1 through 3 */
-                    for (index=0;index<firstNonAllPass;index++) {
-                        if (pTransport->hwPidChannelRefCnt[index] == 0) {
-                            found = true;
-                            break;
-                        }
+                    if (!nexus_p_find_avail_pidch(0, firstNonAllPass, &index)) {
+                        found = true;
                     }
                 }
             }
@@ -520,6 +545,7 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
             BDBG_ERR(("Cannot open duplicate pid channel with different settings"));
             return NULL;
         }
+        return duplicatePidChannel;
     }
 
     pidChannel = BKNI_Malloc(sizeof(*pidChannel));
@@ -534,10 +560,34 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
     pidChannel->status.pidChannelIndex = index;
     pidChannel->combinedPid = combinedPid;
     pidChannel->settingsPrivValid = false;
-    pTransport->hwPidChannelRefCnt[index]++;
-    BKNI_EnterCriticalSection();
-    BLST_S_INSERT_HEAD(&pTransport->pidChannels, pidChannel, link);
-    BKNI_LeaveCriticalSection();
+
+    /* insert in sorted order by pidChannelIndex */
+    {
+        NEXUS_P_HwPidChannel *p, *prev;
+        bool duplicate = false;
+        BKNI_EnterCriticalSection();
+        for (prev=NULL,p=BLST_S_FIRST(&pTransport->pidChannels);p;prev=p,p=BLST_S_NEXT(p,link)) {
+            if (p->status.pidChannelIndex == index) {
+                duplicate = true;
+                break;
+            }
+            if (index < p->status.pidChannelIndex) break;
+        }
+        if (!duplicate) {
+            if (prev) {
+                BLST_S_INSERT_AFTER(&pTransport->pidChannels, prev, pidChannel, link);
+            }
+            else {
+                BLST_S_INSERT_HEAD(&pTransport->pidChannels, pidChannel, link);
+            }
+        }
+        BKNI_LeaveCriticalSection();
+        if (duplicate) {
+            BKNI_Free(pidChannel);
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            return NULL;
+        }
+    }
 
     if (playpump)
     {
@@ -564,7 +614,7 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
     pidChannel->status.remappedPid = pid;
     pidChannel->status.continuityCountErrors = 0;
 
-    if (pTransport->hwPidChannelRefCnt[index] == 1) {
+    {
 #if B_REFSW_DSS_SUPPORT
         /* If we're not in DSS mode, HD filtering needs to be disabled BEFORE configuring the PID table */
         rc = BXPT_DirecTv_ConfigHdFiltering(pTransport->xpt, pidChannel->status.pidChannelIndex,
@@ -596,7 +646,6 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
             bandContinuityCountEnabled = false;
         }
 
-#if !NEXUS_PARSER_BAND_CC_CHECK
         {
         BXPT_PidChannel_CC_Config cfg;
         BXPT_GetPidChannel_CC_Config(pTransport->xpt, pidChannel->status.pidChannelIndex, &cfg);
@@ -606,24 +655,6 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
         rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, pidChannel->status.pidChannelIndex, &cfg);
         if (rc) {rc=BERR_TRACE(rc); goto fail1;}
         }
-#endif
-    }
-    else {
-        if (duplicatePidChannel) {
-            pidChannel->status.remappedPid = duplicatePidChannel->status.remappedPid;
-        }
-        else {
-            BDBG_ERR(("refcnt error pidch[%d] = %d", index, pTransport->hwPidChannelRefCnt[index]));
-        }
-    }
-
-    /* must call NEXUS_PidChannel_SetEnabled because it may disable dups */
-    {
-        bool enabled = pidChannel->settings.pidChannelIndex==NEXUS_PID_CHANNEL_OPEN_INJECTION ? false : pSettings->enabled;
-        rc = NEXUS_P_HwPidChannel_P_SetEnabled(pidChannel, enabled);
-        if (rc) {rc=BERR_TRACE(rc); goto fail1;}
-
-        pidChannel->status.enabled = enabled;
     }
 
     if (!playpump) {
@@ -653,6 +684,12 @@ static void NEXUS_P_HwPidChannel_Disconnect(NEXUS_P_HwPidChannel *hwPidChannel)
         NEXUS_ParserBand_P_SetEnable(hwPidChannel->parserBand);
         hwPidChannel->parserBand = NULL;
     }
+    else if (hwPidChannel->dma) {
+        #if NEXUS_HAS_XPT_DMA
+        NEXUS_DmaJob_P_HwPidChannel_Disconnect(hwPidChannel->dma, hwPidChannel);
+        hwPidChannel->dma = NULL;
+        #endif
+    }
 }
 
 /* this function would close all pidchannels that were tied to a HW pidChannel */
@@ -664,8 +701,6 @@ void NEXUS_P_HwPidChannel_CloseAll(NEXUS_P_HwPidChannel *hwPidChannel)
     /* disconnect from playpump/parserband now in case refcnt keeps a SW pid channel open.
     it is now just a disabled HW pidchannel. */
     NEXUS_P_HwPidChannel_Disconnect(hwPidChannel);
-
-    NEXUS_P_HwPidChannel_P_SetEnabled(hwPidChannel, false);
 
     pidChannelNext=BLST_S_FIRST(&hwPidChannel->swPidChannels);
     while(pidChannelNext) {
@@ -698,27 +733,15 @@ static void NEXUS_P_HwPidChannel_P_Finalizer(NEXUS_P_HwPidChannel *pidChannel)
     }
 
     index = pidChannel->status.pidChannelIndex;
-    BDBG_ASSERT(pTransport->hwPidChannelRefCnt[index]);
-    pTransport->hwPidChannelRefCnt[index]--;
-    if (pTransport->hwPidChannelRefCnt[index] == 0) {
+    if (index < NEXUS_NUM_PID_CHANNELS) {
         BXPT_DisablePidChannel(pTransport->xpt, index);
         BXPT_FreePidChannel(pTransport->xpt, index);
+
+        BKNI_EnterCriticalSection();
+        BLST_S_REMOVE(&pTransport->pidChannels, pidChannel, NEXUS_P_HwPidChannel, link);
+        BKNI_LeaveCriticalSection();
     }
 
-    BKNI_EnterCriticalSection();
-    BLST_S_REMOVE(&pTransport->pidChannels, pidChannel, NEXUS_P_HwPidChannel, link);
-    BKNI_LeaveCriticalSection();
-
-    /* recalc "enabled" for remaining dups. find first dup and reapply its state. it will recalc for all. */
-    if (pTransport->hwPidChannelRefCnt[index] > 0) {
-        NEXUS_P_HwPidChannel *other;
-        for (other = BLST_S_FIRST(&pTransport->pidChannels); other; other = BLST_S_NEXT(other, link)) {
-            if (other->status.pidChannelIndex == pidChannel->status.pidChannelIndex) {
-                NEXUS_P_HwPidChannel_P_SetEnabled(other, other->settings.enabled);
-                break;
-            }
-        }
-    }
     NEXUS_OBJECT_DESTROY(NEXUS_P_HwPidChannel, pidChannel);
     BKNI_Free(pidChannel);
     return;
@@ -731,23 +754,38 @@ static void NEXUS_PidChannel_P_Release(NEXUS_PidChannelHandle pidChannel)
     NEXUS_OBJECT_UNREGISTER(NEXUS_PidChannel, pidChannel, Close);
     /* CloseAll should not call public Close again */
     pidChannel->open = false;
+
+    /* If this pidchannel is assigned to the bypassKeyslot, and if this is the last public Close,
+    then we have refcnt leak. Nexus will automatically sweep when the client exits, but this is
+    a hint for fixing an app that doesn't call NEXUS_SetPidChannelBypassKeyslot(NEXUS_BypassKeySlot_eG2GR)
+    properly and is not exiting. */
+    if (pidChannel->hwPidChannel->bypassKeyslotPidChannel) {
+        NEXUS_PidChannelHandle p;
+        for (p = BLST_S_FIRST(&pidChannel->hwPidChannel->swPidChannels);p;p = BLST_S_NEXT(p, link)) {
+            if (p->open) break;
+        }
+        if (!p) {
+            BDBG_WRN(("NEXUS_SetPidChannelBypassKeyslot PidChannel %p leak. Will only cleanup on client exit.", (void*)pidChannel));
+        }
+    }
 }
 
 static void NEXUS_PidChannel_P_Finalizer(NEXUS_PidChannelHandle pidChannel)
 {
     NEXUS_P_HwPidChannel *hwPidChannel;
+    bool wasEnabled;
     NEXUS_OBJECT_ASSERT(NEXUS_PidChannel, pidChannel);
+    wasEnabled = pidChannel->enabled;
     hwPidChannel = pidChannel->hwPidChannel;
     NEXUS_OBJECT_ASSERT(NEXUS_P_HwPidChannel, hwPidChannel);
-    if (!hwPidChannel->settings.enabled) {
-        /* dups may be enabled, so this removes the disable */
-        (void)NEXUS_P_HwPidChannel_SetEnabled(hwPidChannel, true);
-    }
     BLST_S_REMOVE(&hwPidChannel->swPidChannels, pidChannel, NEXUS_PidChannel, link);
     NEXUS_OBJECT_DESTROY(NEXUS_PidChannel, pidChannel);
     BKNI_Free(pidChannel);
     if(BLST_S_FIRST(&hwPidChannel->swPidChannels)==NULL) { /* all swPidChannels were closed */
         NEXUS_P_HwPidChannel_P_Close(hwPidChannel);
+    }
+    else if (wasEnabled) {
+        (void)NEXUS_P_HwPidChannel_CalcEnabled(hwPidChannel);
     }
     return;
 }
@@ -951,53 +989,45 @@ void NEXUS_PidChannel_RemoveAllSplicePidChannels( NEXUS_PidChannelHandle pidChan
     NEXUS_P_HwPidChannel_RemoveAllSplicePidChannels( pidChannel->hwPidChannel);
 }
 
-/* public function can filter out change */
-static NEXUS_Error NEXUS_P_HwPidChannel_SetEnabled( NEXUS_P_HwPidChannel *pidChannel, bool enabled )
-{
-    NEXUS_OBJECT_ASSERT(NEXUS_P_HwPidChannel, pidChannel);
-    if (pidChannel->settings.enabled == enabled) {
-        return NEXUS_SUCCESS;
-    }
-    if ((pidChannel->settings.pidChannelIndex==NEXUS_PID_CHANNEL_OPEN_INJECTION) && enabled) {
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-    pidChannel->settings.enabled = enabled;
-    return NEXUS_P_HwPidChannel_P_SetEnabled(pidChannel, enabled);
-}
-
 NEXUS_Error NEXUS_PidChannel_SetEnabled( NEXUS_PidChannelHandle pidChannel, bool enabled )
 {
-    return NEXUS_P_HwPidChannel_SetEnabled(pidChannel->hwPidChannel, enabled);
+    if ((pidChannel->hwPidChannel->settings.pidChannelIndex==NEXUS_PID_CHANNEL_OPEN_INJECTION) && enabled) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+    if (pidChannel->enabled != enabled) {
+        pidChannel->enabled = enabled;
+        return NEXUS_P_HwPidChannel_CalcEnabled(pidChannel->hwPidChannel);
+    }
+    else {
+        return NEXUS_SUCCESS;
+    }
 }
 
-/* private function may be called with no settings.enabled change, but status may change */
-static NEXUS_Error NEXUS_P_HwPidChannel_P_SetEnabled( NEXUS_P_HwPidChannel *pidChannel, bool enabled )
+NEXUS_Error NEXUS_P_HwPidChannel_CalcEnabled( NEXUS_P_HwPidChannel *pidChannel )
 {
-    NEXUS_P_HwPidChannel *other;
-    unsigned index = pidChannel->status.pidChannelIndex;
+    NEXUS_PidChannelHandle p;
+    bool enabled;
 
-    /* must "and" with all other SW pid channel handles for this HW pid channel (short circuit if !enabled).
-    pidChannel->settings.enabled stores SW state for each handle.
-    pidChannel->status.enabled stores HW state (must be the same for all dups). */
-    if (pTransport->hwPidChannelRefCnt[index] > 1) {
-        for (other = BLST_S_FIRST(&pTransport->pidChannels); other && enabled; other = BLST_S_NEXT(other, link)) {
-            BDBG_OBJECT_ASSERT(other, NEXUS_P_HwPidChannel);
-            if (other->status.pidChannelIndex == index) {
-                enabled &= other->settings.enabled;
-            }
-        }
+    p = BLST_S_FIRST(&pidChannel->swPidChannels);
+    enabled = (p != NULL);
+    for (;p && enabled;p=BLST_S_NEXT(p,link)) {
+        if (!p->enabled) enabled = false;
     }
     if (pidChannel->settings.pidChannelIndex == NEXUS_PID_CHANNEL_OPEN_INJECTION) {
         BDBG_ASSERT(!enabled);
     }
+    return NEXUS_P_HwPidChannel_SetEnabled(pidChannel, enabled);
+}
 
+static NEXUS_Error NEXUS_P_HwPidChannel_SetEnabled(NEXUS_P_HwPidChannel *pidChannel, bool enabled)
+{
     if ( pidChannel->status.enabled != enabled )
     {
         BERR_Code errCode;
 
         if ( enabled )
         {
-            errCode = BXPT_EnablePidChannel(pTransport->xpt, index);
+            errCode = BXPT_EnablePidChannel(pTransport->xpt, pidChannel->status.pidChannelIndex);
             if ( errCode )
             {
                 return BERR_TRACE(errCode);
@@ -1005,25 +1035,13 @@ static NEXUS_Error NEXUS_P_HwPidChannel_P_SetEnabled( NEXUS_P_HwPidChannel *pidC
         }
         else
         {
-            errCode = BXPT_DisablePidChannel(pTransport->xpt, index);
+            errCode = BXPT_DisablePidChannel(pTransport->xpt, pidChannel->status.pidChannelIndex);
             if ( errCode )
             {
                 return BERR_TRACE(errCode);
             }
         }
-
-        /* update all status */
-        if (pTransport->hwPidChannelRefCnt[index] > 1) {
-            for (other = BLST_S_FIRST(&pTransport->pidChannels); other; other = BLST_S_NEXT(other, link)) {
-                if (other->status.pidChannelIndex == index) {
-                    other->status.enabled = enabled;
-                }
-            }
-        }
-        else {
-            /* avoid search */
-            pidChannel->status.enabled = enabled;
-        }
+        pidChannel->status.enabled = enabled;
     }
 
     return NEXUS_SUCCESS;
@@ -1041,7 +1059,7 @@ static NEXUS_Error NEXUS_P_HwPidChannel_SetRemapSettings( NEXUS_P_HwPidChannel *
     BDBG_ASSERT(pSettings);
 
     if (pidChannel->status.enabled) {
-        rc = NEXUS_P_HwPidChannel_P_SetEnabled(pidChannel, false);
+        rc = NEXUS_P_HwPidChannel_SetEnabled(pidChannel, false);
         if (rc) {rc=BERR_TRACE(rc); goto fail;}
         wasEnabled = true;
     }
@@ -1060,7 +1078,6 @@ static NEXUS_Error NEXUS_P_HwPidChannel_SetRemapSettings( NEXUS_P_HwPidChannel *
         if (NEXUS_GetEnv("cont_count_ignore")) {
             bandContinuityCountEnabled = false;
         }
-#if (!NEXUS_PARSER_BAND_CC_CHECK)
         {
             BXPT_PidChannel_CC_Config cfg;
             BXPT_GetPidChannel_CC_Config(pTransport->xpt,pidChannel->status.pidChannelIndex, &cfg);
@@ -1068,7 +1085,6 @@ static NEXUS_Error NEXUS_P_HwPidChannel_SetRemapSettings( NEXUS_P_HwPidChannel *
             rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, pidChannel->status.pidChannelIndex, &cfg);
             if (rc) {rc=BERR_TRACE(rc); goto fail;}
         }
-#endif
         pidChannel->settings.remap = *pSettings;
     }
     else {
@@ -1080,7 +1096,7 @@ static NEXUS_Error NEXUS_P_HwPidChannel_SetRemapSettings( NEXUS_P_HwPidChannel *
 fail:
     if (wasEnabled) {
         /* even on failure condition, we want to reenable */
-        (void)NEXUS_P_HwPidChannel_P_SetEnabled(pidChannel, true);
+        (void)NEXUS_P_HwPidChannel_CalcEnabled(pidChannel);
     }
     return rc;
 }
@@ -1231,9 +1247,10 @@ NEXUS_Error NEXUS_PidChannel_SetSettings(
     }
 #endif
 
-    if( pSettings->enabled != pidChannel->hwPidChannel->settings.enabled )
+    if( pSettings->enabled != pidChannel->enabled )
     {
-        rc = NEXUS_P_HwPidChannel_P_SetEnabled(pidChannel->hwPidChannel, pSettings->enabled);
+        pidChannel->enabled = pSettings->enabled;
+        rc = NEXUS_P_HwPidChannel_CalcEnabled(pidChannel->hwPidChannel);
         if (rc) {rc=BERR_TRACE(rc); goto done;}
     }
 
@@ -1246,7 +1263,6 @@ NEXUS_Error NEXUS_PidChannel_SetSettings(
         if (rc) {rc=BERR_TRACE(rc); goto done;}
     }
 
-#if !NEXUS_PARSER_BAND_CC_CHECK
     if( pSettings->continuityCountEnabled != pidChannel->hwPidChannel->settings.continuityCountEnabled
     || pSettings->generateContinuityCount != pidChannel->hwPidChannel->settings.generateContinuityCount
     )
@@ -1276,7 +1292,6 @@ NEXUS_Error NEXUS_PidChannel_SetSettings(
         pidChannel->hwPidChannel->settings.continuityCountEnabled = pSettings->continuityCountEnabled;
         pidChannel->hwPidChannel->settings.generateContinuityCount = pSettings->generateContinuityCount;
     }
-#endif
 
     if( pSettings->pesFiltering.low != pidChannel->hwPidChannel->settings.pesFiltering.low
     || pSettings->pesFiltering.high != pidChannel->hwPidChannel->settings.pesFiltering.high

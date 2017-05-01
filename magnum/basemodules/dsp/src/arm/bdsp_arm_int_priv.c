@@ -79,7 +79,7 @@ void BDSP_Arm_P_AckEventCallback_isr(BTEE_ClientEvent event, void *pDeviceHandle
     int uiTaskIndex = 0;
 	BDSP_Arm_P_AckInfo sAckInfo;
 	BERR_Code ret = BERR_SUCCESS;
-	uint32_t ui32RcvMsgLen = 0;
+	size_t ui32RcvMsgLen = 0;
 	BTEE_ConnectionHandle hConnection = NULL;
 
 	BDBG_ENTER(BDSP_Arm_P_AckEventCallback_isr);
@@ -104,7 +104,7 @@ void BDSP_Arm_P_AckEventCallback_isr(BTEE_ClientEvent event, void *pDeviceHandle
 
 	if(ui32RcvMsgLen != sizeof(BDSP_Arm_P_AckInfo))
 	{
-		BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: Mismatch in size of msg recieved(%d) and expected size (%d)",ui32RcvMsgLen,sizeof(BDSP_Arm_P_AckInfo)));
+		BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: Mismatch in size of msg recieved(%d) and expected size (%d)", (unsigned int)ui32RcvMsgLen, (unsigned int)sizeof(BDSP_Arm_P_AckInfo)));
 		goto end;
 	}
 
@@ -195,7 +195,7 @@ void BDSP_Arm_P_AckEventCallback_isr(BTEE_ClientEvent event, void *pDeviceHandle
 	}
 	else
 	{
-		BDBG_ERR(("Received Unknown msg (handl=%x(hA=%x)(hH=%x) AckType=%d, params=%d",(uint32_t)hConnection,(uint32_t)pDevice->armDspApp.hConnection,(uint32_t)pDevice->armDspApp.hHbcConnection,sAckInfo.eAckType,sAckInfo.params.ui32TaskID));
+		BDBG_ERR(("Received Unknown msg (handl=%p(hA=%p)(hH=%p) AckType=%d, params=%d",(void*)hConnection,(void*)pDevice->armDspApp.hConnection,(void*)pDevice->armDspApp.hHbcConnection,sAckInfo.eAckType,sAckInfo.params.ui32TaskID));
 	}
 
 end:

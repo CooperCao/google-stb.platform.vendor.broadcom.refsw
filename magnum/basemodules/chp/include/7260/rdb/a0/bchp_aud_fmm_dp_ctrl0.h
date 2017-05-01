@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,18 +70,18 @@
 /***************************************************************************
  *AUD_FMM_DP_CTRL0 - Audio DP Control
  ***************************************************************************/
-#define BCHP_AUD_FMM_DP_CTRL0_VOLUME_RAMP_UP_STEP 0x20ca42d0 /* [RW] Volume ramp up step */
-#define BCHP_AUD_FMM_DP_CTRL0_VOLUME_RAMP_DOWN_STEP 0x20ca42d4 /* [RW] Volume ramp down step */
-#define BCHP_AUD_FMM_DP_CTRL0_DP_MISC_CTRL       0x20ca42d8 /* [RW] DP misc control */
-#define BCHP_AUD_FMM_DP_CTRL0_DP_SM              0x20ca42dc /* [RO] DP state machine values */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFA         0x20ca6100 /* [RW] Soft limiting coefa */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFB         0x20ca6104 /* [RW] Soft limiting coefb */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFD         0x20ca6108 /* [RW] Soft limiting coefd */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFE         0x20ca610c /* [RW] Soft limiting coefe */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFF         0x20ca6110 /* [RW] Soft limiting coeff */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEF_0_5      0x20ca6114 /* [RW] Soft limiting 0.5 */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEF_0_8      0x20ca6118 /* [RW] Soft limiting 0.8 */
-#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEF_1_25     0x20ca611c /* [RW] Soft limiting 1.25 */
+#define BCHP_AUD_FMM_DP_CTRL0_VOLUME_RAMP_UP_STEP 0x20ca42d0 /* [RW][32] Volume ramp up step */
+#define BCHP_AUD_FMM_DP_CTRL0_VOLUME_RAMP_DOWN_STEP 0x20ca42d4 /* [RW][32] Volume ramp down step */
+#define BCHP_AUD_FMM_DP_CTRL0_DP_MISC_CTRL       0x20ca42d8 /* [RW][32] DP misc control */
+#define BCHP_AUD_FMM_DP_CTRL0_DP_SM              0x20ca42dc /* [RO][32] DP state machine values */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFA         0x20ca6100 /* [RW][32] Soft limiting coefa */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFB         0x20ca6104 /* [RW][32] Soft limiting coefb */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFD         0x20ca6108 /* [RW][32] Soft limiting coefd */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFE         0x20ca610c /* [RW][32] Soft limiting coefe */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEFF         0x20ca6110 /* [RW][32] Soft limiting coeff */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEF_0_5      0x20ca6114 /* [RW][32] Soft limiting 0.5 */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEF_0_8      0x20ca6118 /* [RW][32] Soft limiting 0.8 */
+#define BCHP_AUD_FMM_DP_CTRL0_SOFT_COEF_1_25     0x20ca611c /* [RW][32] Soft limiting 1.25 */
 
 /***************************************************************************
  *MIXER_CONFIG%i - Mixer configuration

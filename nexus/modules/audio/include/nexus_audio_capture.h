@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,6 +109,9 @@ typedef enum NEXUS_AudioCaptureFormat
     NEXUS_AudioCaptureFormat_e24Bit5_1,       /* 5.1 Multichannel, 24 bits per sample.  The data is aligned to 32-bits, 
                                                  left-justified.  Channels will interleave 
                                                  one sample per 32-bit word, ordered L,R,Ls,Rs,C,LFE.  */
+    NEXUS_AudioCaptureFormat_e24Bit7_1,       /* 7.1 Multichannel, 24 bits per sample.  The data is aligned to 32-bits,
+                                                 left-justified.  Channels will interleave
+                                                 one sample per 32-bit word, ordered L,R,Ls,Rs,C,LFE,Lrs,Rrs.  */
     NEXUS_AudioCaptureFormat_eCompressed,     /* Compressed IEC-61937 audio up to 48 kHz for SPDIF/HDMI applications.  */
     NEXUS_AudioCaptureFormat_eMax
 } NEXUS_AudioCaptureFormat;

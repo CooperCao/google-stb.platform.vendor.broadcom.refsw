@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_platform_features.h"
@@ -706,7 +705,7 @@ static void NEXUS_Frontend_3461DeviceTestThread(void *arg)
             BSTD_UNUSED(fw);
             fw_image = bcm3461_leap_image;
 #endif
-            BDBG_ERR(("BHAB_InitAp(rev a image)"));
+            BDBG_WRN(("BHAB_InitAp(rev a image)"));
             rc = BHAB_InitAp(pDevice->hab, fw_image);
 #if NEXUS_MODE_driver
             NEXUS_Memory_Free(fw);

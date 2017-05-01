@@ -457,3 +457,165 @@ eRet CDisplayNx::removeOutput(COutput * pOutput)
 
     return(ret);
 } /* removeOutput */
+
+eRet CDisplayNx::enableOutputs(bool bEnable )
+{
+    eRet ret = eRet_Ok; /* does nothing */
+
+    if (_bOutputsEnabled == bEnable)
+    {
+        /* already in requested enable state */
+        return(ret);
+    }
+
+    _bOutputsEnabled = bEnable;
+    return(ret);
+} /* removeOutput */
+
+eDynamicRange CDisplayNx::getOutputDynamicRange()
+{
+    eDynamicRange            dynamicRange = eDynamicRange_Unknown;
+    NxClient_DisplaySettings settings;
+
+    NxClient_GetDisplaySettings(&settings);
+    if (NEXUS_HdmiOutputDolbyVisionMode_eDisabled != settings.hdmiPreferences.dolbyVision.outputMode)
+    {
+        dynamicRange = eDynamicRange_DolbyVision;
+    }
+    else
+    if (NEXUS_VideoEotf_eHdr10 == settings.hdmiPreferences.drmInfoFrame.eotf)
+    {
+        dynamicRange = eDynamicRange_HDR10;
+    }
+    else
+    if (NEXUS_VideoEotf_eHlg == settings.hdmiPreferences.drmInfoFrame.eotf)
+    {
+        dynamicRange = eDynamicRange_HLG;
+    }
+    else
+    {
+        dynamicRange = eDynamicRange_SDR;
+    }
+
+    return(dynamicRange);
+} /* getOutputDynamicRange() */
+
+#define SMD_TO_SMPTE_ST2086(X) ((X)/0.00002)
+
+static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_ZERO =
+{
+    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
+    { /* typeSettings */
+        { /* Type1 */
+            { /* MasteringDisplayColorVolume */
+                { 0, 0 }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { 0, 0 }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { 0, 0 }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { 0, 0 }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { 0, 0 }, /* displayLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
+            },
+            { /* ContentLightLevel */
+                0, /* maxContentLightLevel units of 1 cd/m2 */
+                0 /* maxFrameAverageLightLevel units of 1 cd/m2 */
+            }
+        }
+    }
+};
+
+static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_BT709 =
+{
+    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
+    { /* typeSettings */
+        { /* Type1 */
+            { /* MasteringDisplayColorVolume */
+                { SMD_TO_SMPTE_ST2086(0.64), SMD_TO_SMPTE_ST2086(0.33) }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { SMD_TO_SMPTE_ST2086(0.30), SMD_TO_SMPTE_ST2086(0.60) }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { SMD_TO_SMPTE_ST2086(0.15), SMD_TO_SMPTE_ST2086(0.06) }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { SMD_TO_SMPTE_ST2086(0.3127), SMD_TO_SMPTE_ST2086(0.3290) }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { 0, 0 }, /* displayMasteringLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
+            },
+            { /* ContentLightLevel */
+                0, /* maxContentLightLevel units of 1 cd/m2 */
+                0 /* maxFrameAverageLightLevel units of 1 cd/m2 */
+            }
+        }
+    }
+};
+
+static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_BT2020 =
+{
+    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
+    { /* typeSettings */
+        { /* Type1 */
+            { /* MasteringDisplayColorVolume */
+                { SMD_TO_SMPTE_ST2086(0.708), SMD_TO_SMPTE_ST2086(0.292) }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { SMD_TO_SMPTE_ST2086(0.170), SMD_TO_SMPTE_ST2086(0.797) }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { SMD_TO_SMPTE_ST2086(0.131), SMD_TO_SMPTE_ST2086(0.046) }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { SMD_TO_SMPTE_ST2086(0.3127), SMD_TO_SMPTE_ST2086(0.3290) }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
+                { 0, 0 }, /* displayMasteringLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
+            },
+            { /* ContentLightLevel */
+                0, /* maxContentLightLevel units of 1 cd/m2 */
+                0 /* maxFrameAverageLightLevel units of 1 cd/m2 */
+            }
+        }
+    }
+};
+
+eRet CDisplayNx::setOutputDynamicRange(eDynamicRange dynamicRange)
+{
+    eRet                     ret       = eRet_Ok;
+    NEXUS_Error              nerror    = NEXUS_SUCCESS;
+    NxClient_DisplaySettings settings;
+
+    NxClient_GetDisplaySettings(&settings);
+
+    settings.hdmiPreferences.dolbyVision.outputMode =
+        (dynamicRange == eDynamicRange_DolbyVision) ? NEXUS_HdmiOutputDolbyVisionMode_eAuto : NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
+
+    switch(dynamicRange)
+    {
+    case eDynamicRange_HDR10:
+        settings.hdmiPreferences.drmInfoFrame.eotf = NEXUS_VideoEotf_eHdr10;
+        BKNI_Memcpy(&settings.hdmiPreferences.drmInfoFrame.metadata,
+                    &SMD_BT2020,
+                    sizeof(settings.hdmiPreferences.drmInfoFrame.metadata));
+        break;
+
+    case eDynamicRange_HLG:
+        settings.hdmiPreferences.drmInfoFrame.eotf = NEXUS_VideoEotf_eHlg;
+        BKNI_Memcpy(&settings.hdmiPreferences.drmInfoFrame.metadata,
+                    &SMD_ZERO,
+                    sizeof(settings.hdmiPreferences.drmInfoFrame.metadata));
+        break;
+
+    case eDynamicRange_DolbyVision:
+        settings.hdmiPreferences.drmInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
+        BKNI_Memcpy(&settings.hdmiPreferences.drmInfoFrame.metadata,
+                    &SMD_ZERO,
+                    sizeof(settings.hdmiPreferences.drmInfoFrame.metadata));
+        break;
+
+    case eDynamicRange_SDR:
+        settings.hdmiPreferences.drmInfoFrame.eotf = NEXUS_VideoEotf_eSdr;
+        BKNI_Memcpy(&settings.hdmiPreferences.drmInfoFrame.metadata,
+                    &SMD_ZERO,
+                    sizeof(settings.hdmiPreferences.drmInfoFrame.metadata));
+        break;
+
+    default:
+        settings.hdmiPreferences.drmInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
+        BKNI_Memcpy(&settings.hdmiPreferences.drmInfoFrame.metadata,
+                    &SMD_ZERO,
+                    sizeof(settings.hdmiPreferences.drmInfoFrame.metadata));
+        break;
+    }
+
+    nerror = NxClient_SetDisplaySettings(&settings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set display settings", ret, nerror, error);
+    waitForDisplaySettingsApply();
+
+    _pModel->setLastDynamicRange(dynamicRange);
+error:
+    return(ret);
+} /* setOutputDynamicRange() */

@@ -206,10 +206,22 @@ static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffs
 {
     unsigned i;
     BERR_Code rc;
+    bool secure = false;
+    BDTU_RemapSettings *remapSettings;
+    unsigned total = 0;
+    size_t last_remapped_addr = 0;
     BDBG_WRN(("dtu_alloc BA " BDBG_UINT64_FMT ", size %u MB from %s:%u", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024), fname, line));
     if (base & (_2MB-1)) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
+    if (g_NexusCore.cfg.cma.secure_remap) {
+        secure = (heap->settings.memoryType & NEXUS_MEMORY_TYPE_SECURE);
+    }
+    remapSettings = BKNI_Malloc(sizeof(*remapSettings));
+    if (!remapSettings) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    BDTU_GetDefaultRemapSettings(remapSettings);
     for (i=0;i<size;i+=_2MB) {
         BMMA_DeviceOffset deviceAddr;
         deviceAddr = g_NexusCore.cfg.cma.alloc(heap->settings.memcIndex, _2MB, _2MB);
@@ -217,26 +229,64 @@ static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffs
             rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
             goto error;
         }
-        rc = BDTU_Remap(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, deviceAddr, deviceAddr, base + i);
-        if (rc) {
-            BERR_TRACE(rc);
-            g_NexusCore.cfg.cma.free(heap->settings.memcIndex, deviceAddr, _2MB);
-            goto error;
+
+        remapSettings->list[total].devAddr = deviceAddr;
+        remapSettings->list[total].fromPhysAddr = deviceAddr;
+        remapSettings->list[total].toPhysAddr = base+i;
+        total++;
+
+        if (total == BDTU_REMAP_LIST_TOTAL || i+_2MB>=size) {
+            if (total < BDTU_REMAP_LIST_TOTAL) {
+                remapSettings->list[total].devAddr = 0; /* terminate list */
+            }
+            if (secure) {
+                rc = g_NexusCore.cfg.cma.secure_remap(heap->settings.memcIndex, remapSettings);
+            }
+            else {
+                rc = BDTU_Remap(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, remapSettings);
+            }
+            if (rc) {
+                BERR_TRACE(rc);
+                goto error;
+            }
+            last_remapped_addr = remapSettings->list[total-1].toPhysAddr + _2MB;
+            total = 0;
         }
     }
+    BKNI_Free(remapSettings);
     return BERR_SUCCESS;
 error:
-    nexus_memory_p_dtu_free(heap, base, i);
+    /* free whatever was not remapped */
+    for (i=0;i<total;i++) {
+        g_NexusCore.cfg.cma.free(heap->settings.memcIndex, remapSettings->list[i].devAddr , _2MB);
+    }
+    /* then use nexus_memory_p_dtu_free to remap and free the remainder */
+    if (last_remapped_addr) {
+        nexus_memory_p_dtu_free(heap, base, last_remapped_addr-base);
+    }
+    BKNI_Free(remapSettings);
     return rc;
 }
 
 static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset base, size_t size)
 {
     unsigned i;
+    bool secure = false;
+    BDTU_RemapSettings *remapSettings;
+    unsigned total = 0;
     if (base & (_2MB-1)) {
         BERR_TRACE(BERR_INVALID_PARAMETER);
         return;
     }
+    if (g_NexusCore.cfg.cma.secure_remap) {
+        secure = (heap->settings.memoryType & NEXUS_MEMORY_TYPE_SECURE);
+    }
+    remapSettings = BKNI_Malloc(sizeof(*remapSettings));
+    if (!remapSettings) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return;
+    }
+    BDTU_GetDefaultRemapSettings(remapSettings);
     BDBG_WRN(("dtu_free BA " BDBG_UINT64_FMT ", size %u MB", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024)));
     for (i=0;i<size;i+=_2MB) {
         uint64_t deviceAddr;
@@ -246,15 +296,36 @@ static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset bas
             BERR_TRACE(rc);
             continue;
         }
-        /* map back to identity */
-        rc = BDTU_Remap(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, deviceAddr, base + i, deviceAddr);
-        if (rc) {
-            BERR_TRACE(rc); /* can't return to linux if we can't remap */
-        }
-        else {
-            g_NexusCore.cfg.cma.free(heap->settings.memcIndex, deviceAddr, _2MB);
+
+        remapSettings->list[total].devAddr = deviceAddr;
+        remapSettings->list[total].fromPhysAddr = base+i;
+        remapSettings->list[total].toPhysAddr = deviceAddr;
+        total++;
+
+        if (total == BDTU_REMAP_LIST_TOTAL || i+_2MB>=size) {
+            if (total < BDTU_REMAP_LIST_TOTAL) {
+                remapSettings->list[total].devAddr = 0; /* terminate list */
+            }
+            /* map back to identity */
+            if (secure) {
+                rc = g_NexusCore.cfg.cma.secure_remap(heap->settings.memcIndex, remapSettings);
+            }
+            else {
+                rc = BDTU_Remap(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, remapSettings);
+            }
+            if (rc) {
+                BERR_TRACE(rc); /* can't return to linux if we can't remap */
+            }
+            else {
+                unsigned j;
+                for (j=0;j<total;j++) {
+                    g_NexusCore.cfg.cma.free(heap->settings.memcIndex, remapSettings->list[j].devAddr, _2MB);
+                }
+            }
+            total = 0;
         }
     }
+    BKNI_Free(remapSettings);
 }
 
 static BERR_Code NEXUS_CoreModule_P_MemoryAlloc(void *context, BMMA_DeviceOffset base, size_t size, const char *fname, unsigned line)
@@ -346,10 +417,19 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, BREG_Handle reg, const 
      BMMA_Heap_GetDefaultCreateSettings(&heapSettings);
 #endif
 
+    if( (pSettings->memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED || (pSettings->memoryType & NEXUS_MEMORY_TYPE_NOT_MAPPED) == NEXUS_MEMORY_TYPE_NOT_MAPPED) {
+        /* verify that dynamic (or no) mapping is not combined with static mapping */
+        if((pSettings->memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED) == NEXUS_MEMORY_TYPE_APPLICATION_CACHED) {
+            rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto error;
+        }
+        if((pSettings->memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED) == NEXUS_MEMORY_TYPE_DRIVER_CACHED) {
+            rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto error;
+        }
+    }
     if( (pSettings->memoryType & NEXUS_MEMORY_TYPE_HIGH_MEMORY) == NEXUS_MEMORY_TYPE_HIGH_MEMORY) {
-        if( (pSettings->memoryType & NEXUS_MEMORY_TYPE_MANAGED) != NEXUS_MEMORY_TYPE_MANAGED || /* HIGH_MEMORY must be MANAGED - can't use 32-bit device address */
-            (pSettings->memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) != NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED /*  currently HIGH_MEMORY requires ONDEMAND_MAPPED - no pointers in API, since they imply use of 32-bit offset */
-            ) {
+        if( (pSettings->memoryType & NEXUS_MEMORY_TYPE_MANAGED) != NEXUS_MEMORY_TYPE_MANAGED ) { /* HIGH_MEMORY must be MANAGED - can't use 32-bit device address */
             rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
             goto error;
         }
@@ -1352,8 +1432,11 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
         BMRC_Monitor_HwBlock_ePREFETCH,
         BMRC_Monitor_HwBlock_eSCPU,
         BMRC_Monitor_HwBlock_eVICE,
-        BMRC_Monitor_HwBlock_eXPT
+        BMRC_Monitor_HwBlock_eXPT,
+        BMRC_Monitor_HwBlock_eCPU /* only for os64 */
     };
+    unsigned numSecureClients = sizeof(secureClients)/sizeof(secureClients[0]);
+    if (!g_NexusCore.cfg.os64) numSecureClients--;
 
     if (nexus_p_custom_arc()) {
         return NEXUS_SUCCESS;
@@ -1373,7 +1456,7 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
     regionSettings.addr = heap->settings.offset;
     regionSettings.length = heap->settings.length;
     if (pSettings->secure) {
-        rc = BMRC_MonitorRegion_Add(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].rmm, &heap->secureMonitorRegion, &regionSettings, secureClients, sizeof(secureClients)/sizeof(secureClients[0]));
+        rc = BMRC_MonitorRegion_Add(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].rmm, &heap->secureMonitorRegion, &regionSettings, secureClients, numSecureClients);
         if(rc!=BERR_SUCCESS) return BERR_TRACE(rc);
         if (heap->settings.memoryType & NEXUS_MEMORY_TYPE_SECURE) {
            heap->settings.memoryType &= ~NEXUS_MEMORY_TYPE_SECURE_OFF;

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:28 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,12 +70,12 @@
 /***************************************************************************
  *V3D_ERR_0 - V3D Error Registers
  ***************************************************************************/
-#define BCHP_V3D_ERR_0_DBGE                      0x21308f00 /* [RO] PSE Error Signals */
-#define BCHP_V3D_ERR_0_FDBG0                     0x21308f04 /* [RO] FEP Overrun Error Signals */
-#define BCHP_V3D_ERR_0_FDBGB                     0x21308f08 /* [RO] FEP Interface Ready and Stall Signals, FEP Busy Signals */
-#define BCHP_V3D_ERR_0_FDBGR                     0x21308f0c /* [RO] FEP Internal Ready Signals */
-#define BCHP_V3D_ERR_0_FDBGS                     0x21308f10 /* [RO] FEP Internal Stall Input Signals */
-#define BCHP_V3D_ERR_0_STAT                      0x21308f20 /* [RO] Miscellaneous Error Signals (VPM, VDW, VCD, VCM, L2C) */
+#define BCHP_V3D_ERR_0_DBGE                      0x21308f00 /* [RO][32] PSE Error Signals */
+#define BCHP_V3D_ERR_0_FDBG0                     0x21308f04 /* [RO][32] FEP Overrun Error Signals */
+#define BCHP_V3D_ERR_0_FDBGB                     0x21308f08 /* [RO][32] FEP Interface Ready and Stall Signals, FEP Busy Signals */
+#define BCHP_V3D_ERR_0_FDBGR                     0x21308f0c /* [RO][32] FEP Internal Ready Signals */
+#define BCHP_V3D_ERR_0_FDBGS                     0x21308f10 /* [RO][32] FEP Internal Stall Input Signals */
+#define BCHP_V3D_ERR_0_STAT                      0x21308f20 /* [RO][32] Miscellaneous Error Signals (VPM, VDW, VCD, VCM, L2C) */
 
 /***************************************************************************
  *DBGE - PSE Error Signals

@@ -48,6 +48,7 @@ endif
 
 # Set up paths (use shell to generate canonical paths)
 BSEAV_DIR        := $(shell cd $(BSG_DIR)/../../..            ; pwd)
+OPENSOURCE       := $(BSEAV_DIR)/lib
 NEXUS_TOP        ?= $(shell cd $(BSEAV_DIR)/../nexus         ; pwd)
 
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc

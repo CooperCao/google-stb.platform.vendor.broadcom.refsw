@@ -45,24 +45,7 @@ BDBG_MODULE(nexus_hdmi_output_extra);
 
 void NEXUS_HdmiOutput_DisplayRxEdid(NEXUS_HdmiOutputHandle handle)
 {
-#if BDBG_DEBUG_BUILD
-    BDBG_Level level ;
-    char EDID_MODULE[] = "BHDM_EDID" ;
-
-    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    RESOLVE_ALIAS(handle);
-    /* save the current debug level */
-    BDBG_GetModuleLevel(EDID_MODULE, &level) ;
-    BDBG_SetModuleLevel(EDID_MODULE, BDBG_eMsg) ;
-
-    BHDM_EDID_Initialize(handle->hdmHandle) ;
-
-    /* restore the debug level */
-    BDBG_SetModuleLevel(EDID_MODULE, level) ;
-
-#else
-	BSTD_UNUSED(handle);
-#endif
+	BHDM_EDID_DEBUG_PrintData(handle->hdmHandle) ;
 }
 
 
@@ -497,6 +480,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     bool drmChanged = false;
+    bool dbvChanged = false;
 
     BDBG_ASSERT(output);
     BDBG_ASSERT(pSettings);
@@ -519,6 +503,13 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
         drmChanged = true;
     }
 
+    if (output->extraSettings.dolbyVision.outputMode != pSettings->dolbyVision.outputMode ||
+        output->extraSettings.dolbyVision.blendInIpt != pSettings->dolbyVision.blendInIpt ||
+        output->extraSettings.dolbyVision.priorityMode != pSettings->dolbyVision.priorityMode)
+    {
+        dbvChanged = true;
+    }
+
     BKNI_Memcpy(&output->extraSettings, pSettings, sizeof(*pSettings));
 
     if (drmChanged)
@@ -527,6 +518,32 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
         if (rc) { BERR_TRACE(rc); goto error; }
     }
 
+#if NEXUS_DBV_SUPPORT
+    if (dbvChanged)
+    {
+        NEXUS_HdmiOutput_P_SetDbvMode(output);
+    }
+    /* need to update all other info, like eotf if not dolby */
+    NEXUS_TaskCallback_Fire(output->notifyDisplay);
+#endif
+
 error:
     return rc;
+}
+
+void NEXUS_HdmiOutput_GetExtraStatus(
+    NEXUS_HdmiOutputHandle output,
+    NEXUS_HdmiOutputExtraStatus *pStatus
+    )
+{
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(output);
+    if (pStatus)
+    {
+        BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+#if NEXUS_DBV_SUPPORT
+        pStatus->dolbyVision.supported = output->dbv.supported;
+        pStatus->dolbyVision.enabled = output->dbv.enabled;
+#endif
+    }
 }

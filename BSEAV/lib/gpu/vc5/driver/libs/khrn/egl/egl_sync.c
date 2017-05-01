@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "egl_sync.h"
 #include "egl_context_gl.h"
 #include "../common/khrn_process.h"
@@ -37,7 +31,7 @@ void egl_syncs_lock_deinit(void)
 }
 
 static bool sync_init_from_khrn_fence(EGL_SYNC_T* egl_sync, EGLenum type,
-      EGLenum condition, const KHRN_FENCE_T *fence)
+      EGLenum condition, const khrn_fence *fence)
 {
    egl_sync->type = type;
    egl_sync->condition = condition;
@@ -88,7 +82,7 @@ static void sync_destroy(EGL_SYNC_T *egl_sync)
 }
 
 EGL_SYNC_T* egl_sync_create(EGLenum type, EGLenum condition,
-      const KHRN_FENCE_T *fence)
+      const khrn_fence *fence)
 {
    EGL_SYNC_T *egl_sync = calloc(1, sizeof(EGL_SYNC_T));
 

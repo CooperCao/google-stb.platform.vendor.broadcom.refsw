@@ -1368,9 +1368,25 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 {
 	BERR_Code rc = BERR_SUCCESS;
 	bool bReauthReqPending = false;
+	uint8_t ucDeviceAttached = 0;
 
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_StartAuthentication);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
+
+	rc = BHDM_RxDeviceAttached(hHDCPlib->stDependencies.hHdm, &ucDeviceAttached) ;
+	if (rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error getting Hot Plug Status "));
+		rc = BERR_TRACE(rc);
+		goto done;
+	}
+
+	if (!ucDeviceAttached)
+	{
+		BDBG_LOG(("No Rx device attached. Skip authentication request"));
+		rc = BERR_SUCCESS;
+		goto done;
+	}
 
 
 	rc = BHDM_HDCP_IsReauthRequestPending(hHDCPlib->stDependencies.hHdm, &bReauthReqPending);
@@ -2860,6 +2876,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(
 			BHDCPLIB_HDCP2X_RECEIVERID_LENGTH * (stReceiverIdListData->deviceCount + stReceiverIdListData->downstreamIsRepeater);
 
 	}
+
 
 	/* Send command to SAGE */
 	rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -159,7 +159,7 @@ static int sysfs_get_string(char *path, char *in, int size)
 	return(0);
 }
 
-int set_rtc_wake(unsigned timeout)
+static int set_rtc_wake(unsigned timeout)
 {
    struct itimerspec new_value;
    struct timespec now;
@@ -208,7 +208,7 @@ static void NEXUS_Platform_P_FindSysWake(NEXUS_Platform_P_SysWake type)
     return;
 }
 
-NEXUS_Error NEXUS_Platform_P_GetSysWake(NEXUS_Platform_P_SysWake type, unsigned int *count)
+static NEXUS_Error NEXUS_Platform_P_GetSysWake(NEXUS_Platform_P_SysWake type, unsigned int *count)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     char enabled[32];
@@ -243,7 +243,7 @@ err:
     return rc;
 }
 
-NEXUS_Error NEXUS_Platform_P_SetSysWake(NEXUS_Platform_P_SysWake type, const NEXUS_PlatformStandbySettings *pSettings)
+static NEXUS_Error NEXUS_Platform_P_SetSysWake(NEXUS_Platform_P_SysWake type, const NEXUS_PlatformStandbySettings *pSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned timeout;

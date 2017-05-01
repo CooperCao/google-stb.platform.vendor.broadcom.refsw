@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Declaration of implementation-dependent configuration properties.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_INT_CONFIG_H
 #define GLXX_INT_CONFIG_H
 
@@ -34,7 +26,7 @@ Declaration of implementation-dependent configuration properties.
 #define GLXX_CONFIG_MIN_ALIASED_POINT_SIZE 0.125f
 #define GLXX_CONFIG_MAX_ALIASED_POINT_SIZE 256.0f
 #define GLXX_CONFIG_MIN_ALIASED_LINE_WIDTH 0.125f
-#define GLXX_CONFIG_MAX_ALIASED_LINE_WIDTH 32.0f
+#define GLXX_CONFIG_MAX_ALIASED_LINE_WIDTH V3D_MAX_LINE_WIDTH
 
 #define GLXX_CONFIG_MIN_MULTISAMPLE_LINE_WIDTH 0.125f
 #define GLXX_CONFIG_MAX_MULTISAMPLE_LINE_WIDTH 32.0f

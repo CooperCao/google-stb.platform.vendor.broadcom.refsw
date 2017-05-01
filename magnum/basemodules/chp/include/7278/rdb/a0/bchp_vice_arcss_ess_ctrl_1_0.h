@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 14:24:33 2016
- *                 Full Compile MD5 Checksum  2d2ed423991a1e4e4d03ca98bc390b2c
+ * Date:           Generated on               Mon Mar  6 16:19:50 2017
+ *                 Full Compile MD5 Checksum  d3a054e381114fab8d457a0fcb0bf3ef
  *                     (minus title and desc)
- *                 MD5 Checksum               8cad5c3953d7e5df4439153720b00628
+ *                 MD5 Checksum               6079d4a663f2e302418ce9b4791e9d69
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1259
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -90,7 +90,7 @@
 #define BCHP_VICE_ARCSS_ESS_CTRL_1_0_WATCHDOG_COUNTER 0x01560094 /* [RO][32] Watchdog Counter */
 #define BCHP_VICE_ARCSS_ESS_CTRL_1_0_INIT_PROC_CTRL 0x015600a0 /* [CFG][32] Processor control */
 #define BCHP_VICE_ARCSS_ESS_CTRL_1_0_INIT_PROC_CTRL2 0x015600a4 /* [CFG][32] Processor control2 */
-#define BCHP_VICE_ARCSS_ESS_CTRL_1_0_INIT_PROC_START 0x015600a8 /* [XRW][32] Processor Start */
+#define BCHP_VICE_ARCSS_ESS_CTRL_1_0_INIT_PROC_START 0x015600a8 /* [RW][32] Processor Start */
 #define BCHP_VICE_ARCSS_ESS_CTRL_1_0_DIAG        0x015600b0 /* [RO][32] Diagnostic Register */
 #define BCHP_VICE_ARCSS_ESS_CTRL_1_0_DIAG_CTRL   0x015600b4 /* [CFG][32] Diagnostic Register select */
 

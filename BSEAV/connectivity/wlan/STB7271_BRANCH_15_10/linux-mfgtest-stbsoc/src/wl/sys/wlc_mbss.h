@@ -75,7 +75,7 @@ extern void wlc_mbss_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, void *pkt, ui
                                 wlc_pkttag_t *pkttag, uint supr_status);
 extern void wlc_mbss_dotxstatus_mcmx(wlc_info_t *wlc, wlc_bsscfg_t *cfg, tx_status_t *txs);
 extern void wlc_mbss_shm_ssid_upd(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint16 *base);
-extern void wlc_mbss_txq_update_bcmc_counters(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
+extern void wlc_mbss_txq_update_bcmc_counters(wlc_info_t *wlc, wlc_bsscfg_t *cfg, void *p);
 extern void wlc_mbss_increment_ps_trans_cnt(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 extern void wlc_mbss16_upd_closednet(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 
@@ -90,6 +90,7 @@ extern wlc_pkt_t wlc_mbss_get_bcn_template(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 extern wlc_spt_t *wlc_mbss_get_bcn_spt(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 extern void wlc_mbss_set_bcn_tim_ie(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *ie);
 extern uint32 wlc_mbss_get_bcmc_pkts_sent(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
+extern void wlc_mbss_bcmc_reset(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 
 int wlc_mbss_validate_mac(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct ether_addr *addr);
 void wlc_mbss_reset_mac(wlc_info_t *wlc, wlc_bsscfg_t *cfg);

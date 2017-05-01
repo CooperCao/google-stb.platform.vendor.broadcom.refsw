@@ -153,13 +153,6 @@ ifeq ($(shell test -e $(NEXUS_PLATFORM_SPECIFIC_DIR)/src/nexus_platform_frontend
 NEXUS_PLATFORM_SOURCES += $(NEXUS_PLATFORM_SPECIFIC_DIR)/src/nexus_platform_frontend_power_management.c
 endif
 
-ifeq ($(NEXUS_FPGA_SUPPORT),y)
-NEXUS_PLATFORM_SOURCES += \
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/bfpga.c \
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/bfpga_name.c \
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_fpga.c
-endif
-
 FLOATLIB=$(NEXUS_TOP)/../BSEAV/linux/driver/floatlib
 
 LINUX_OUT ?= $(LINUX)
@@ -180,12 +173,9 @@ endif
 endif
 
 ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
-NEXUS_ASTRA_SUPPORT ?= y
 BDSP_ARM_AUDIO_SUPPORT ?= y
 NEXUS_CFLAGS += -DNEXUS_ARM_AUDIO_SUPPORT=1
-endif
 
-ifeq ($(NEXUS_ASTRA_SUPPORT),y)
 ifeq ($(B_REFSW_OS),linuxkernel)
 NEXUS_PLATFORM_PRIVATE_INCLUDES += $(BSEAV)/../astra/linux/bcm_astra
 else
@@ -381,10 +371,6 @@ endif
 
 ifeq ($(NEXUS_CONFIG_IMAGE),y)
 NEXUS_PLATFORM_DEFINES += NEXUS_CONFIG_IMAGE
-endif
-
-ifeq ($(NEXUS_FPGA_SUPPORT),y)
-NEXUS_PLATFORM_DEFINES += NEXUS_FPGA_SUPPORT
 endif
 
 ifneq ($(NEXUS_MODE),)

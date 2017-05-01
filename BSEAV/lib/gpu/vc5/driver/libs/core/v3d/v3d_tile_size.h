@@ -1,15 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "v3d_common.h"
 #include "v3d_gen.h"
 
-// Returns tile size in pixels - NOT subsamples
-static inline void v3d_tile_size_pixels(
-   uint32_t *width, uint32_t *height,
+static inline void v3d_log2_tile_size_pixels(
+   uint32_t *log2_width, uint32_t *log2_height,
    bool ms, bool double_buffer,
    uint32_t num_rts, v3d_rt_bpp_t max_rt_bpp)
 {
@@ -50,24 +48,37 @@ static inline void v3d_tile_size_pixels(
       unreachable();
    }
 
-   *width = 64; // TODO use ident
-   *height = 64;
+   *log2_width = 6; // TODO use ident
+   *log2_height = 6;
 
    for (;;)
    {
       if (!split_count)
          break;
 
-      *height /= 2;
+      --*log2_height;
       --split_count;
 
       if (!split_count)
          break;
 
-      *width /= 2;
+      --*log2_width;
       --split_count;
    }
 
-   assert(*width >= 8);
-   assert(*height >= 8);
+   assert(*log2_width >= 3);
+   assert(*log2_height >= 3);
+}
+
+// Returns tile size in pixels - NOT subsamples
+static inline void v3d_tile_size_pixels(
+   uint32_t *width, uint32_t *height,
+   bool ms, bool double_buffer,
+   uint32_t num_rts, v3d_rt_bpp_t max_rt_bpp)
+{
+   uint32_t log2_width, log2_height;
+   v3d_log2_tile_size_pixels(&log2_width, &log2_height,
+      ms, double_buffer, num_rts, max_rt_bpp);
+   *width = 1u << log2_width;
+   *height = 1u << log2_height;
 }

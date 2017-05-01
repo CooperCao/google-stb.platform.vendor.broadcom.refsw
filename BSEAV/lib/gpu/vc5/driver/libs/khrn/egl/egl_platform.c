@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "egl_platform.h"
 #include "egl_thread.h"
@@ -90,16 +84,13 @@ bool egl_platform_match_pixmap(EGLNativePixmapType pixmap,
    return fns->match_pixmap(pixmap, config);
 }
 
-EGLint egl_platform_config_get_attrib(const EGL_CONFIG_T *config,
-      EGLint attrib, bool *used)
+bool egl_platform_config_get_attrib(const EGL_CONFIG_T *config,
+      EGLint attrib, EGLint *value)
 {
    EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
    if (!fns->config_get_attrib)
-   {
-      *used = false;
-      return 0;
-   }
-   return fns->config_get_attrib(config, attrib, used);
+      return false;
+   return fns->config_get_attrib(config, attrib, value);
 }
 
 bool egl_platform_config_check_attrib(EGLint attrib, EGLint value)

@@ -1,0 +1,7 @@
+podtest:
+
+Podtest is a test utility to verify basic MPOD functions.
+It supports host interface and extended channel except DSG-CC and transport
+interface. It doen't require any other library or driver installed except pod driver.
+
+Please refer to MultistreamCablecardAppLibraryDesign.doc for detailed instruction.

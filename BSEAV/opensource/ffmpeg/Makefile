@@ -58,9 +58,6 @@ GCC_BASE ?= $(shell (test -d $(TOOLCHAIN_DIR)/lib/gcc-lib && echo $(TOOLCHAIN_DI
 GCC_VER = $(shell (ls $(GCC_BASE)))
 GCC_INC = $(GCC_BASE)/$(GCC_VER)/include
 
-
-include $(BSEAV)/build/refsw_inc.mak
-
 CFLAGS += -I. -Os -g
 CFLAGS += -fpic -fPIC
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -102,7 +99,7 @@ endif
 
 CROSS_COMPILE ?= mipsel-linux-
 
-LDFLAGS += ${B_REFSW_LDFLAGS} -lnexus -L$(NEXUS_BIN_DIR) -lpthread -lm
+LDFLAGS += -lnexus -L$(NEXUS_BIN_DIR) -lpthread -lm
 
 
 ODIR = ${FFMPEG_BIN}

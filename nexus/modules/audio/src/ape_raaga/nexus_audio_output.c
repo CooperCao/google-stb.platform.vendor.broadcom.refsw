@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -174,7 +174,7 @@ Summary:
 See Also:
     NEXUS_AudioOutput_Open
  ***************************************************************************/
-void NEXUS_AudioOutput_GetDefaultSettings(
+static void NEXUS_AudioOutput_GetDefaultSettings(
     NEXUS_AudioOutputSettings *pSettings      /* [out] Settings */
     )
 {
@@ -223,7 +223,7 @@ void NEXUS_AudioOutput_GetSettings(
 }
 
 #if NEXUS_NUM_HDMI_OUTPUTS > 0
-NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
+static NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
     NEXUS_AudioOutputHandle output,
     const NEXUS_AudioOutputSettings *pSettings
     )
@@ -263,14 +263,19 @@ NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
 
             /* Remaining settings need to be pulled from the HDMI output */
             NEXUS_HdmiOutput_GetSettings(output->pObjectHandle, &hdmiSettings);
-            NEXUS_HdmiOutput_GetStatus(output->pObjectHandle, &hdmiStatus);
-
-            if (hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eAc3])
-            {
-                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Passive;
+            errCode = NEXUS_HdmiOutput_GetStatus(output->pObjectHandle, &hdmiStatus);
+            if (errCode == BERR_SUCCESS) {
+                if (hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eAc3])
+                {
+                    maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Passive;
+                }
+                else
+                {
+                    maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
+                }
             }
-            else
-            {
+            else {
+                /* Unable to get HDMI status default to active */
                 maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
             }
 
@@ -458,7 +463,10 @@ NEXUS_Error NEXUS_AudioOutput_AddInput(
     pData->input = input;
 
 #if BDBG_DEBUG_BUILD
-    if ( output->objectType == NEXUS_AudioOutputType_eHdmi || output->objectType == NEXUS_AudioOutputType_eSpdif )
+    if ( output->objectType == NEXUS_AudioOutputType_eHdmi ||
+         output->objectType == NEXUS_AudioOutputType_eSpdif ||
+         output->objectType == NEXUS_AudioOutputType_eDac ||
+         output->objectType == NEXUS_AudioOutputType_eI2s )
     {
         NEXUS_AudioDebug_AddOutput((void *)output->port);
 
@@ -502,7 +510,10 @@ NEXUS_Error NEXUS_AudioOutput_RemoveInput(
     }
 
 #if BDBG_DEBUG_BUILD
-    if ( output->objectType == NEXUS_AudioOutputType_eHdmi || output->objectType == NEXUS_AudioOutputType_eSpdif )
+    if ( output->objectType == NEXUS_AudioOutputType_eHdmi ||
+         output->objectType == NEXUS_AudioOutputType_eSpdif ||
+         output->objectType == NEXUS_AudioOutputType_eDac ||
+         output->objectType == NEXUS_AudioOutputType_eI2s )
     {
         NEXUS_AudioDebug_RemoveOutput((void *)output->port);
     }
@@ -788,14 +799,15 @@ NEXUS_AudioOutputData *NEXUS_AudioOutput_P_CreateData(NEXUS_AudioOutputHandle ou
             {
             #if NEXUS_NUM_HDMI_OUTPUTS  /* TODO */
             case NEXUS_AudioOutputType_eHdmi:
-            {
-                NEXUS_HdmiOutputStatus hdmiStatus;
-                NEXUS_HdmiOutput_GetStatus(output->pObjectHandle, &hdmiStatus);
-                    BDBG_ASSERT(g_hdmiMapping[hdmiStatus.index].output == NULL);
-                    {
-                        BERR_Code errCode;
+                {
+                    NEXUS_HdmiOutputStatus hdmiStatus;
+                    NEXUS_Error errCode;
+                    errCode = NEXUS_HdmiOutput_GetStatus(output->pObjectHandle, &hdmiStatus);
+                    if (errCode == BERR_SUCCESS) {
                         BAPE_OutputPort mixerOutput;
                         BAPE_MaiOutputInterruptHandlers interrupts;
+
+                        BDBG_ASSERT(g_hdmiMapping[hdmiStatus.index].output == NULL);
 
                         BDBG_MSG(("Creating MAI handle"));
                         errCode = BAPE_MaiOutput_Open(NEXUS_AUDIO_DEVICE_HANDLE, hdmiStatus.index, NULL, &g_hdmiMapping[hdmiStatus.index].handle);
@@ -852,7 +864,7 @@ NEXUS_AudioOutputData *NEXUS_AudioOutput_P_CreateData(NEXUS_AudioOutputHandle ou
                         NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
                         NEXUS_AudioOutput_P_HdmiSettingsChanged(output);
                     }
-            }
+                }
                 break;
             #endif
             #if NEXUS_HAS_RFM
@@ -1024,7 +1036,7 @@ NEXUS_Error NEXUS_AudioOutput_P_SetCompressedMute(
 Summary:
     Determine if an output is connected to any inputs
  ***************************************************************************/
-bool NEXUS_AudioOutput_P_IsConnected(
+static bool NEXUS_AudioOutput_P_IsConnected(
     NEXUS_AudioOutputHandle output
     )
 {
@@ -1187,7 +1199,7 @@ void NEXUS_AudioOutput_GetDefaultEnabledOutputs(
     BKNI_Memset(pOutputs, 0, sizeof(NEXUS_AudioOutputEnabledOutputs));
 }
 
-NEXUS_Error NEXUS_AudioOutput_P_ValidateClockConfig(
+static NEXUS_Error NEXUS_AudioOutput_P_ValidateClockConfig(
     unsigned outputFamily,
     NEXUS_AudioOutputClockSource *config,
     NEXUS_AudioOutputClockSource *suggestions,
@@ -1404,4 +1416,16 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
         }
     }
     return errCode;
+}
+
+void NEXUS_AudioOutput_P_VerifyTimebase(
+    NEXUS_AudioOutputHandle handle
+    )
+{
+    NEXUS_AudioOutputSettings settings;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioOutput);
+
+    NEXUS_AudioOutput_GetSettings(handle, &settings);
+    BDBG_WRN(("%s using Timebase %ld", handle->pName, settings.timebase));
 }

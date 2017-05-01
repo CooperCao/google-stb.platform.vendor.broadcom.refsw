@@ -144,7 +144,7 @@ typedef struct BODS_P_Leap_ChannelHandle
 *   Private Module Functions
 *
 *******************************************************************************/
-BERR_Code BODS_Leap_P_EventCallback_isr(
+static BERR_Code BODS_Leap_P_EventCallback_isr(
     void * pParam1, int param2
     )
 {
@@ -212,7 +212,7 @@ BERR_Code BODS_Leap_P_EventCallback_isr(
     return retCode;
 }
 
-BERR_Code BODS_Leap_P_GetDvbtSelectiveAsyncStatus(
+static BERR_Code BODS_Leap_P_GetDvbtSelectiveAsyncStatus(
     BODS_ChannelHandle hChn,
     BODS_SelectiveStatus *pStatus   /* [out] */
     )
@@ -277,7 +277,7 @@ done:
     return retCode;
 }
 
-BERR_Code BODS_Leap_P_GetIsdbtSelectiveAsyncStatus(
+static BERR_Code BODS_Leap_P_GetIsdbtSelectiveAsyncStatus(
     BODS_ChannelHandle hChn,
     BODS_SelectiveStatus *pStatus   /* [out] */
     )
@@ -362,7 +362,7 @@ done:
     return retCode;
 }
 
-BERR_Code BODS_Leap_P_GetDvbt2SelectiveAsyncStatus(
+static BERR_Code BODS_Leap_P_GetDvbt2SelectiveAsyncStatus(
     BODS_ChannelHandle hChn,
     BODS_SelectiveAsyncStatusType type,
     BODS_SelectiveStatus *pStatus   /* [out] */
@@ -614,7 +614,7 @@ done:
     return retCode;
 }
 
-BERR_Code BODS_Leap_P_GetDvbc2SelectiveAsyncStatus(
+static BERR_Code BODS_Leap_P_GetDvbc2SelectiveAsyncStatus(
     BODS_ChannelHandle hChn,
     BODS_SelectiveAsyncStatusType type,
     BODS_SelectiveStatus *pStatus   /* [out] */

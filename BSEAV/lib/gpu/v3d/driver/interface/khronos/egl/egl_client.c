@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-EGL client-side function declarations. Dispatches EGL calls via RPC or direct call.
-New "client-side EGL" version
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 /*
    Global preconditions?
 
@@ -157,111 +148,171 @@ EGLAPI EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display_id)
    return khrn_platform_set_display_id(display_id);
 }
 
-EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigs(EGLDisplay dpy, EGLConfig *configs, EGLint config_size, EGLint *num_config)
+/*
+* Add the attribute to the list if it is not already there or
+* change its value if the attribute is in the list
+*/
+static void add_attrib_value(EGLint *attrib_list, EGLint name, EGLint value)
 {
-   CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
-   EGLBoolean result;
+   if (name == EGL_NONE)
+      return;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
-   {
-      if (!num_config) {
-         thread->error = EGL_BAD_PARAMETER;
-         result = EGL_FALSE;
+   /* find attribute and update its value*/
+   while (*attrib_list != EGL_NONE) {
+      if (*attrib_list == name) {
+         attrib_list++;
+         *attrib_list = value;
+         /* return because it might be the last pair before EGL_NONE */
+         return;
       }
-      else if (!configs) {
-         thread->error = EGL_SUCCESS;
-         *num_config = EGL_MAX_CONFIGS;
-         result = EGL_TRUE;
-      }
-      else {
-         int i;
-         for (i = 0; i < EGL_MAX_CONFIGS && i < config_size; i++)
-            configs[i] = egl_config_from_id(i);
 
-         thread->error = EGL_SUCCESS;
-         *num_config = i;
-         result = EGL_TRUE;
-      }
-      CLIENT_UNLOCK();
+      attrib_list += 2;
    }
-   else
-      result = EGL_FALSE;
 
-   return result;
+   /* if not found: add attribute and EGL_NONE to the end */
+   if (*attrib_list == EGL_NONE) {
+      *attrib_list++ = name;
+      *attrib_list++ = value;
+      *attrib_list = EGL_NONE;
+   }
 }
 
-EGLAPI EGLBoolean EGLAPIENTRY eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config)
+static void clean_attrib_list(EGLint *cleaned_attrib_list, const EGLint *attrib_list)
+{
+   while (attrib_list && *attrib_list != EGL_NONE) {
+      EGLint name = *attrib_list++;
+      EGLint value = *attrib_list++;
+      add_attrib_value(cleaned_attrib_list, name, value);
+   }
+}
+
+/*
+* Counts the number of elements (name or value) in the attribute list
+* including EGL_NONE
+*/
+static unsigned int get_size_of_attrib_list(const EGLint *attrib_list)
+{
+   unsigned int size = 0;
+
+   while (attrib_list && *attrib_list != EGL_NONE) {
+      size += 2;
+      attrib_list += 2;
+   }
+
+   /* number of elements (name or value) + EGL_NONE */
+   return size + 1;
+}
+
+static void update_sort_params(EGLint *cleaned_attrib_list, bool *use_red,
+   bool *use_green, bool *use_blue, bool *use_alpha)
+{
+   while (*cleaned_attrib_list != EGL_NONE) {
+      EGLint name = *cleaned_attrib_list++;
+      EGLint value = *cleaned_attrib_list++;
+
+      switch (name) {
+      case EGL_RED_SIZE:
+         *use_red = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      case EGL_GREEN_SIZE:
+         *use_green = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      case EGL_BLUE_SIZE:
+         *use_blue = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      case EGL_ALPHA_SIZE:
+         *use_alpha = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      default:
+         break;
+      }
+   }
+}
+
+static EGLBoolean egl_choose_config(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config)
 {
    CLIENT_THREAD_STATE_T *thread;
    CLIENT_PROCESS_STATE_T *process;
-   EGLBoolean result;
+   EGLBoolean result = EGL_FALSE;
 
    if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
    {
       if (!num_config) {
          thread->error = EGL_BAD_PARAMETER;
          result = EGL_FALSE;
+         goto end;
       }
-      else {
-         /*
-         check for invalid attributes, and find color components for which
-         we have expressed a preference
-         */
 
-         bool use_red = false;
-         bool use_green = false;
-         bool use_blue = false;
-         bool use_alpha = false;
+      /*
+       * check for invalid attributes
+      */
 
-         if (!egl_config_check_attribs(attrib_list, &use_red, &use_green, &use_blue, &use_alpha)) {
-            thread->error = EGL_BAD_ATTRIBUTE;
-            result = EGL_FALSE;
-         }
-         else {
+      if (!egl_config_check_attribs(attrib_list)) {
+         thread->error = EGL_BAD_ATTRIBUTE;
+         result = EGL_FALSE;
+         goto end;
+      }
 
-            /*
-            sort configs
-            */
-            int i, j;
-            int *ids = (int *)alloca(EGL_MAX_CONFIGS * sizeof(int));
+      unsigned int num_attrib = get_size_of_attrib_list(attrib_list);
 
-            for (i = 0; i < EGL_MAX_CONFIGS; i++)
-               ids[i] = i;
+      EGLint *cleaned_attrib_list = (EGLint *)malloc(num_attrib * sizeof(EGLint));
+      if (cleaned_attrib_list == NULL) {
+         thread->error = EGL_BAD_ALLOC;
+         result = EGL_FALSE;
+         goto end;
+      }
+      cleaned_attrib_list[0] = EGL_NONE;
+      clean_attrib_list(cleaned_attrib_list, attrib_list);
 
-            egl_config_sort(ids, use_red, use_green, use_blue, use_alpha);
+      bool use_red = false;
+      bool use_green = false;
+      bool use_blue = false;
+      bool use_alpha = false;
 
-            /*
-            return configs
-            */
+      update_sort_params(cleaned_attrib_list, &use_red, &use_green, &use_blue, &use_alpha);
 
-            j = 0;
-            for (i = 0; i < EGL_MAX_CONFIGS; i++) {
-               if (egl_config_filter(ids[i], attrib_list)) {
-                  if (configs && j < config_size) {
-                     configs[j] = egl_config_from_id(ids[i]);
-                     j++;
-                  }
-                  else if (!configs) {
-                     // If configs==NULL then we count all configs
-                     // Otherwise we only count the configs we return
-                     j++;
-                  }
-               }
+      /*
+       * sort configs
+      */
+      int *ids = (int *)alloca(EGL_MAX_CONFIGS * sizeof(int));
+
+      for (int i = 0; i < EGL_MAX_CONFIGS; i++)
+         ids[i] = i;
+
+      egl_config_sort(ids, use_red, use_green, use_blue, use_alpha);
+
+      /*
+       * return configs
+      */
+
+      int j = 0;
+      for (int i = 0; i < EGL_MAX_CONFIGS; i++) {
+         if (egl_config_filter(ids[i], cleaned_attrib_list)) {
+            if (configs && j < config_size) {
+               configs[j] = egl_config_from_id(ids[i]);
+               j++;
             }
-
-            thread->error = EGL_SUCCESS;
-            *num_config = j;
-            result = EGL_TRUE;
+            else if (!configs) {
+               /*
+                * if configs==NULL then we count all configs
+                * otherwise we only count the configs we return
+               */
+               j++;
+            }
          }
       }
 
-      CLIENT_UNLOCK();
-   }
-   else
-      result = EGL_FALSE;
+      free(cleaned_attrib_list);
+      thread->error = EGL_SUCCESS;
+      *num_config = j;
+      result = EGL_TRUE;
 
-   return result;
+end:
+      CLIENT_UNLOCK();
+      return result;
+   }
+
+   return EGL_FALSE;
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value)
@@ -351,7 +402,10 @@ Also affects global image (and possibly others?)
 EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   UNUSED(dpy);
+   CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_FALSE);
+
+   if (!process)
+      return EGL_FALSE;
 
    CLIENT_LOCK();
 
@@ -531,6 +585,9 @@ EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
 #endif
 #if EGL_KHR_lock_surface
             "EGL_KHR_lock_surface "
+#endif
+#if KHR_get_all_proc_addresses
+            "KHR_get_all_proc_addresses "
 #endif
 #if EGL_ANDROID_swap_rectangle
             "EGL_ANDROID_swap_rectangle "
@@ -731,11 +788,10 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig c
          openvg = (thread->bound_api == EGL_OPENVG_API);
 #endif /* NO_OPENVG */
 
-         if (!egl_surface_check_attribs(WINDOW, attrib_list, &linear,
-            &premult, &single, 0, 0, 0,
-            0, 0, 0,
-            &secure)) {
-            thread->error = EGL_BAD_ATTRIBUTE;
+         EGLint error = egl_surface_check_attribs(WINDOW, attrib_list, &linear, &premult, &single,
+            0, 0, 0, 0, 0, 0, &secure);
+         if (error != EGL_SUCCESS) {
+            thread->error = error;
             result = EGL_NO_SURFACE;
          } else {
             EGL_SURFACE_T *surface;
@@ -986,11 +1042,10 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
          openvg = (thread->bound_api == EGL_OPENVG_API);
 #endif /* NO_OPENVG */
 
-         if (!egl_surface_check_attribs(PBUFFER, attrib_list, &linear, &premult, 0, &width, &height,
-            &largest_pbuffer, &texture_format,
-            &texture_target, &mipmap_texture,
-            &secure)) {
-            thread->error = EGL_BAD_ATTRIBUTE;
+         EGLint error = egl_surface_check_attribs(PBUFFER, attrib_list, &linear, &premult, 0, &width, &height,
+            &largest_pbuffer, &texture_format, &texture_target, &mipmap_texture, &secure);
+         if (error != EGL_SUCCESS) {
+            thread->error = error;
             result = EGL_NO_SURFACE;
          } else if (
             (texture_format != EGL_NO_TEXTURE && (width == 0 || height == 0)) ||
@@ -1121,8 +1176,9 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePixmapSurface(EGLDisplay dpy, EGLConfig c
          openvg = (thread->bound_api == EGL_OPENVG_API);
 #endif /* NO_OPENVG */
 
-         if (!egl_surface_check_attribs(PIXMAP, attrib_list, &linear, &premult, 0, 0, 0, 0, 0, 0, 0, &secure)) {
-            thread->error = EGL_BAD_ATTRIBUTE;
+         EGLint error = egl_surface_check_attribs(PIXMAP, attrib_list, &linear, &premult, 0, 0, 0, 0, 0, 0, 0, &secure);
+         if (error != EGL_SUCCESS) {
+            thread->error = error;
             result = EGL_NO_SURFACE;
          } else {
             EGL_SURFACE_T *surface;
@@ -1395,11 +1451,10 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferFromClientBuffer(
 
          /* Ignore the width and height as specified by attrib_list */
          /* Also ignore linear and premult */
-         if (!egl_surface_check_attribs(PBUFFER, attrib_list, 0, 0, 0, 0, 0,
-            &largest_pbuffer, &texture_format,
-            &texture_target, &mipmap_texture,
-            &secure)) {
-            thread->error = EGL_BAD_ATTRIBUTE;
+         EGLint error = egl_surface_check_attribs(PBUFFER, attrib_list, 0, 0, 0, 0, 0, &largest_pbuffer, &texture_format,
+            &texture_target, &mipmap_texture, &secure);
+         if (error != EGL_SUCCESS) {
+            thread->error = error;
             result = EGL_NO_SURFACE;
          } else if (
             (texture_format == EGL_NO_TEXTURE) != (texture_target == EGL_NO_TEXTURE) ||
@@ -1641,8 +1696,9 @@ EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config,
          EGLint version = 1;
          bool secure = false;
 
-         if (!egl_context_check_attribs(attrib_list, max_version, &version, &secure)) {
-            thread->error = EGL_BAD_ATTRIBUTE;
+         EGLint error = egl_context_check_attribs(attrib_list, max_version, &version, &secure);
+         if (error != EGL_SUCCESS) {
+            thread->error = error;
             result = EGL_NO_CONTEXT;
          } else if (!(egl_config_get_api_support(egl_config_to_id(config)) &
             ((thread->bound_api == EGL_OPENVG_API) ? EGL_OPENVG_BIT :
@@ -1796,7 +1852,7 @@ static void get_color_data(EGL_SURFACE_ID_T surface_id, KHRN_IMAGE_WRAP_T *image
    while (height > 0) {
       int batch = _min(lines, height);
 
-      CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+      CLIENT_GET_THREAD_STATE();
       int adjusted_offset = (image->stride < 0) ? (offset + (batch - 1)) : offset;
 
       eglIntGetColorData_impl(
@@ -2318,4 +2374,21 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface surf, EG
       result = EGL_FALSE;
 
    return result;
+}
+
+EGLAPI EGLBoolean EGLAPIENTRY eglChooseConfig(EGLDisplay dpy,
+   const EGLint *attrib_list, EGLConfig *configs,
+   EGLint config_size, EGLint *num_config)
+{
+   return egl_choose_config(dpy, attrib_list, configs, config_size, num_config);
+}
+
+EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigs(EGLDisplay dpy,
+   EGLConfig *configs, EGLint config_size, EGLint *num_config)
+{
+   /*
+   * Technically I don't think you need to sort them for eglGetConfigs, but
+   * since if you don't, the order is unspecified, it doesn't do any harm.
+   */
+   return egl_choose_config(dpy, NULL, configs, config_size, num_config);
 }

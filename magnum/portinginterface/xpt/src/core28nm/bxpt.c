@@ -466,10 +466,6 @@ BERR_Code BXPT_Open(
             BCHP_FIELD_DATA( XPT_FE_MTSIF_RX0_CTRL1, PARSER_ENABLE, Defaults->MtsifConfig[ i ].Enable == true ? 1 : 0 )
         );
         BREG_Write32( hRegister, RegAddr, Reg );
-
-        #ifdef BCHP_XPT_FE_MTSIF_RX0_SECRET_WORD
-        BREG_Write32( hRegister, BCHP_XPT_FE_MTSIF_RX0_SECRET_WORD + (i * MTSIF_STEPSIZE), 0x829eecde );
-        #endif
     }
 #endif
 
@@ -996,7 +992,9 @@ BERR_Code BXPT_Standby(
     rc = BXPT_P_Mcpb_Standby(hXpt);
     if (rc) return BERR_TRACE(rc);
 
-    BXPT_P_PMUMemPwr_Control(hXpt->hRegister, false, pSettings);
+    if (pSettings->S3Standby) {
+        BXPT_P_PMUMemPwr_Control(hXpt->hRegister, false, pSettings);
+    }
 
 #ifdef BCHP_PWR_RESOURCE_XPT_SRAM
     BCHP_PWR_ReleaseResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_SRAM);
@@ -1047,7 +1045,9 @@ BERR_Code BXPT_Resume(
 
     /* required before any XPT register access */
     BREG_Write32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL, 0);
-    BXPT_P_PMUMemPwr_Control(hXpt->hRegister, true, NULL);
+    if( hXpt->bS3Standby ) {
+        BXPT_P_PMUMemPwr_Control(hXpt->hRegister, true, NULL);
+    }
 
 #ifdef BCHP_PWR_RESOURCE_XPT_SRAM
     BCHP_PWR_AcquireResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_SRAM);
@@ -1067,7 +1067,7 @@ BERR_Code BXPT_Resume(
 #endif
     }
 
-    if (hXpt->bS3Standby) {
+    if (hXpt->bS3Standby && hXpt->vhRave) {
         BXPT_P_RaveRamInit( (BXPT_Rave_Handle) hXpt->vhRave );
     }
 
@@ -1185,38 +1185,6 @@ BERR_Code BXPT_GetParserConfig(
 
     return( ExitCode );
 }
-
-#if (!B_REFSW_MINIMAL)
-BERR_Code BXPT_GetDefaultParserConfig(
-    BXPT_Handle hXpt,               /* [in] Handle for the transport to access. */
-    unsigned int ParserNum,             /* [in] Which parser band to access. */
-    BXPT_ParserConfig *ParserConfig /* [out] The current settings */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( ParserConfig );
-
-    /* Is the parser number within range? */
-    if( ParserNum > hXpt->MaxPidParsers )
-    {
-        /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
-    else
-    {
-        ParserConfig->ErrorInputIgnore = false;
-        ParserConfig->TsMode = BXPT_ParserTimestampMode_eAutoSelect;
-        ParserConfig->AcceptNulls = false;
-        ParserConfig->AcceptAdapt00 = false;
-        ParserConfig->ForceRestamping = true;
-    }
-
-    return( ExitCode );
-}
-#endif
 
 BERR_Code BXPT_SetParserConfig(
     BXPT_Handle hXpt,                       /* [in] Handle for the transport to access. */
@@ -1463,7 +1431,7 @@ BERR_Code BXPT_GetDefaultInputBandConfig(
 }
 #endif
 
-uint32_t BXPT_P_GetInputBandRegAddr(
+static uint32_t BXPT_P_GetInputBandRegAddr(
     BXPT_Handle hXpt,                       /* [in] Handle for the transport to access. */
     unsigned int BandNum                      /* [in] Which input band to access. */
     )

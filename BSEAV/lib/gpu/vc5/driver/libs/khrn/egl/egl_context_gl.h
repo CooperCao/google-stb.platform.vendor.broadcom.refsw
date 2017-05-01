@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_CONTEXT_GL_H
 #define EGL_CONTEXT_GL_H
 
@@ -53,15 +47,14 @@ extern GLXX_SERVER_STATE_T *egl_context_gl_server_state(
 extern gl_api_t egl_context_gl_api(const EGL_GL_CONTEXT_T *context,
       gl_api_t apis);
 
-/*
- * Returns context->base.secure
- */
+/* Returns whether the context was created as a secure context */
 extern bool egl_context_gl_secure(const EGL_GL_CONTEXT_T *context);
 
-/*
- * Returns context->base.robustness
- */
-extern EGLBoolean egl_context_gl_robustness(const EGL_GL_CONTEXT_T *context);
+/* Returns whether the context was created as a robust context */
+extern bool egl_context_gl_robustness(const EGL_GL_CONTEXT_T *context);
+
+/* Returns whether the context was created as a debug context */
+extern bool egl_context_gl_debug(const EGL_GL_CONTEXT_T *context);
 
 /*
  * Returns GL versions of context->base.notification

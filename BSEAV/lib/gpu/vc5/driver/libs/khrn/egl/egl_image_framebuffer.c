@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -21,7 +15,7 @@ FILE DESCRIPTION
 
 /* this should be changed to say which image type prefers */
 static bool framebuffer_acquire_image( const GLXX_SERVER_STATE_T *state,
-     glxx_fb_target_t target, glxx_attachment_point_t att_point, KHRN_IMAGE_T **img)
+     glxx_fb_target_t target, glxx_attachment_point_t att_point, khrn_image **img)
 {
    const GLXX_ATTACHMENT_T *att = NULL;
    GLXX_FRAMEBUFFER_T *fb;
@@ -100,7 +94,7 @@ static bool parse_attribs(const void *attrib_list,
  * original image (if the original image has more than one plane).
  * We also change the fmt of the new image from DS to RG(BA)
  */
-static KHRN_IMAGE_T* create_color_image_from_plane_in_ds(const KHRN_IMAGE_T *image,
+static khrn_image* create_color_image_from_plane_in_ds(const khrn_image *image,
       unsigned plane)
 {
    GFX_LFMT_T img_plane_lfmt = khrn_image_get_lfmt(image, plane);
@@ -108,7 +102,7 @@ static KHRN_IMAGE_T* create_color_image_from_plane_in_ds(const KHRN_IMAGE_T *ima
    assert(gfx_lfmt_has_depth(img_plane_lfmt) || gfx_lfmt_has_stencil(img_plane_lfmt));
    assert(khrn_image_get_num_planes(image) > plane);
 
-   const KHRN_BLOB_T *blob = image->blob;
+   const khrn_blob *blob = image->blob;
    GFX_BUFFER_DESC_T desc[KHRN_MAX_MIP_LEVELS];
 
    GFX_LFMT_T color_lfmt = glxx_ds_lfmt_to_color(img_plane_lfmt);
@@ -126,12 +120,12 @@ static KHRN_IMAGE_T* create_color_image_from_plane_in_ds(const KHRN_IMAGE_T *ima
       desc[i].planes[0].lfmt = gfx_lfmt_set_format(desc[i].planes[0].lfmt, color_lfmt);
    }
 
-   KHRN_BLOB_T *new_blob = khrn_blob_create_from_res_interlock(blob->res_i,
+   khrn_blob *new_blob = khrn_blob_create_from_resource(blob->res,
          desc, blob->num_mip_levels, blob->num_array_elems,
          blob->array_pitch, blob->usage, blob->secure);
 
    GFX_LFMT_T api_fmt = glxx_ds_lfmt_to_color(img_plane_lfmt);
-   KHRN_IMAGE_T *plane_img;
+   khrn_image *plane_img;
    /* this is  from a fb; it will always be one elem one slice */
    assert(khrn_image_is_one_elem_slice(image));
    plane_img = khrn_image_create_one_elem_slice(new_blob,
@@ -148,7 +142,7 @@ EGL_IMAGE_T *egl_image_framebuffer_new(EGL_CONTEXT_T *context,
 {
    EGLint error = EGL_BAD_ALLOC;
    GLXX_SERVER_STATE_T *state;
-   KHRN_IMAGE_T *image = NULL;
+   khrn_image *image = NULL;
    EGL_GL_CONTEXT_T *ctx;
    glxx_fb_target_t fb_target = 0;
    glxx_attachment_point_t att_point = 0;
@@ -198,7 +192,7 @@ EGL_IMAGE_T *egl_image_framebuffer_new(EGL_CONTEXT_T *context,
 
    if (att_point == GL_DEPTH_ATTACHMENT || att_point == GL_STENCIL_ATTACHMENT)
    {
-      KHRN_IMAGE_T *new_image;
+      khrn_image *new_image;
       unsigned plane = 0;
       if (image->api_fmt == GFX_LFMT_D32_S8X24_FLOAT_UINT)
       {

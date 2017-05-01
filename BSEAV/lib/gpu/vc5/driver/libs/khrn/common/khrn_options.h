@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #ifndef KHRN_OPTIONS_H
 #define KHRN_OPTIONS_H
@@ -10,7 +10,7 @@
 
 VCOS_EXTERN_C_BEGIN
 
-typedef struct {
+struct khrn_options {
    bool nonms_double_buffer;
 
    uint32_t render_subjobs;
@@ -72,6 +72,12 @@ typedef struct {
    bool random_centroid;
    uint32_t random_centroid_seed;
 
+#if V3D_HAS_VARY_NO_PERSP
+   bool force_noperspective;
+   bool random_noperspective;
+   uint32_t random_noperspective_seed;
+#endif
+
 #if V3D_VER_AT_LEAST(4,0,2,0)
    /* For testing sample-rate shading */
    bool force_sample_rate_shading;
@@ -79,9 +85,8 @@ typedef struct {
    uint32_t random_sample_rate_shading_seed;
 #endif
 
-   bool     force_ustream_jobs;        /* Force all UBO serialisation to execute as a CPU job */
-   bool     no_ustream_jobs;           /* Force all UBO serialisation to execute immediately */
-   bool     gl_error_assist;           /* Outputs useful info when the error occurs */
+   bool     no_async_host_reads;       /* Force all host buffer reads to stall rather than happen asynchronously. */
+   bool     force_async_host_reads;    /* Force all host buffer reads to happen asynchronously if possible. */
    bool     force_dither_off;          /* Ensure dithering is always off */
    bool     z_prepass;                 /* Z-prepass enabled */
    bool     no_empty_tile_skip;        /* No empty tile skipping. */
@@ -89,12 +94,15 @@ typedef struct {
    bool     no_compute_batching;
    uint32_t max_worker_threads;        /* Maximum number of worker threads to spawn for computing in parallel */
 
-} KHRN_OPTIONS_T;
+};
 
-extern KHRN_OPTIONS_T khrn_options;
+extern struct khrn_options khrn_options;
 
 extern void khrn_init_options(void);
 extern bool khrn_options_make_centroid(void);
+#if V3D_HAS_VARY_NO_PERSP
+extern bool khrn_options_make_noperspective(void);
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
 extern bool khrn_options_make_sample_rate_shaded(void);
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -214,7 +214,7 @@ static BERR_Code BAPE_MuxOutput_P_ParseAdtsMetadata(
     BAVC_AudioBufferDescriptor *pFrameDescriptor,
     BAVC_AudioMetadataDescriptor *pMetadataDescriptor
     );
-extern void BAPE_MuxOutput_P_ParseAdtsSegments(
+static void BAPE_MuxOutput_P_ParseAdtsSegments(
     BAPE_MuxOutputHandle hMuxOutput,
     const uint8_t *pBuffer,
     size_t bufferLength,

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_common.h"
 #include "v3d_cl_compr.h"
 #include "v3d_cl.h"
@@ -56,11 +49,8 @@ uint32_t v3d_cl_compr_size(
 #endif
    else if (v3d_cl_has_common_ind_encoding(compr_type))
       return v3d_cl_compr_ind_common_packed_size(compr_type);
-   else if (plist_fmt->d3dpvsf)
-   {
-      assert(plist_fmt->n_verts == 3);
+   else if (plist_fmt->d3dpvsf && (plist_fmt->n_verts == 3))
       return v3d_cl_compr_ind_d3dpvsf_tri_packed_size(compr_type);
-   }
    else switch (plist_fmt->n_verts)
    {
    case 3: return v3d_cl_compr_ind_tri_packed_size(compr_type);
@@ -102,9 +92,8 @@ void v3d_cl_unpack_compr(struct v3d_cl_compr *compr,
          compr->compr_type = common.type;
          memcpy(&compr->u, &common.u, sizeof(common.u));
       }
-      else if (plist_fmt->d3dpvsf)
+      else if (plist_fmt->d3dpvsf && (plist_fmt->n_verts == 3))
       {
-         assert(plist_fmt->n_verts == 3);
          V3D_CL_COMPR_IND_D3DPVSF_TRI_T tri;
          v3d_unpack_cl_compr_ind_d3dpvsf_tri(&tri, packed_compr);
          compr->compr_type = tri.type;
@@ -172,9 +161,8 @@ void v3d_cl_pack_compr(uint8_t *packed_compr,
       memcpy(&common.u, &compr->u, sizeof(common.u));
       v3d_pack_cl_compr_ind_common(packed_compr, &common);
    }
-   else if (compr->plist_fmt.d3dpvsf)
+   else if (compr->plist_fmt.d3dpvsf && (compr->plist_fmt.n_verts == 3))
    {
-      assert(compr->plist_fmt.n_verts == 3);
       V3D_CL_COMPR_IND_D3DPVSF_TRI_T tri;
       tri.type = compr->compr_type;
       memcpy(&tri.u, &compr->u, sizeof(tri.u));
@@ -233,11 +221,8 @@ void v3d_cl_print_compr(const uint8_t *packed_compr,
       v3d_unpack_cl_compr_ind_common(&common, packed_compr);
       if (common.type != V3D_CL_COMPR_TYPE_NOT_COMMON)
          v3d_print_cl_compr_ind_common(packed_compr, printer);
-      else if (plist_fmt->d3dpvsf)
-      {
-         assert(plist_fmt->n_verts == 3);
+      else if (plist_fmt->d3dpvsf && (plist_fmt->n_verts == 3))
          v3d_print_cl_compr_ind_d3dpvsf_tri(packed_compr, printer);
-      }
       else switch (plist_fmt->n_verts)
       {
       case 3: v3d_print_cl_compr_ind_tri(packed_compr, printer); break;

@@ -151,7 +151,7 @@ unsigned NEXUS_Platform_P_ReadPMapId(void)
     }
     if (pFile) {
         uint8_t buf[4];
-        if (fread(buf, sizeof(buf), 4, pFile) != 1) {
+        if (fread(buf, sizeof(buf), 1, pFile) != 1) {
             pMapId = 0;
         } else {
             pMapId = (unsigned) buf[3];

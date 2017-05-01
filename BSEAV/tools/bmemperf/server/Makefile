@@ -1,42 +1,40 @@
 ###############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#   Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom and/or its
-# licensors, and may only be used, duplicated, modified or distributed pursuant
-# to the terms and conditions of a separate, written license agreement executed
-# between you and Broadcom (an "Authorized License").  Except as set forth in
-# an Authorized License, Broadcom grants no license (express or implied), right
-# to use, or waiver of any kind with respect to the Software, and Broadcom
-# expressly reserves all rights in and to the Software and all intellectual
-# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#   This program is the proprietary software of Broadcom and/or its licensors,
+#   and may only be used, duplicated, modified or distributed pursuant to the terms and
+#   conditions of a separate, written license agreement executed between you and Broadcom
+#   (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#   no license (express or implied), right to use, or waiver of any kind with respect to the
+#   Software, and Broadcom expressly reserves all rights in and to the Software and all
+#   intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#   HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#   NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# Except as expressly set forth in the Authorized License,
+#   Except as expressly set forth in the Authorized License,
 #
-# 1. This program, including its structure, sequence and organization,
-#    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#    reasonable efforts to protect the confidentiality thereof, and to use
-#    this information only in connection with your use of Broadcom integrated
-#    circuit products.
+#   1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#   secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#   and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#   2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#   AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#   WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#   THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#   OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#   LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#   OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#   USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#   3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#   LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#   EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#   USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#   THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#   ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#   LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#   ANY LIMITED REMEDY.
+#
 ###############################################################################
 
 B_THIS_DIR:=BSEAV/tools/bmemperf/server
@@ -49,7 +47,7 @@ NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 BSEAV = $(shell cd ../../../;pwd)
 magnum = $(shell cd ../../../../magnum;pwd)
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 ifeq ($(B_REFSW_ARCH),)
@@ -98,6 +96,7 @@ endif
 
 # Added for aarch64-linux-gcc
 APP_CFLAGS += -D_LINUX_TYPES_H
+APP_CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 
 install: all
 	@echo [Installing .. $< for $(B_THIS_DIR)]
@@ -107,7 +106,7 @@ install: all
 
 clean:
 	@rm -f $(BINDIR)/bmemperf*
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa clean
 ifeq ($(ANDROID_BUILD),y)
 	@rm -f $(BINDIR)/device_node.cfg
 endif
@@ -115,7 +114,7 @@ endif
 all:	boa bmemperf_server
 
 boa:
-	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa
+	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/boa
 
 ### the awk command returns some type of error code to the Makefile; added echo at the end to signal to Makefile that awk command was successful
 $(BINDIR)/bmemperf_info.c :
@@ -139,9 +138,9 @@ else
 	@rm $(BINDIR)/bmemperf_info.tmp
 endif
 
-bmemperf_server: bmemperf_server.c ../common/bmemperf_utils.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
+bmemperf_server: bmemperf_server.c bmemperf_powerprobe.c bmemperf_powerprobe.h ../common/bmemperf_utils.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
 	@echo [Compiling ... $@]
-	@$(CC) $(APP_CFLAGS) -o $(BINDIR)/bmemperf_server bmemperf_server.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_utils.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
+	@$(CC) $(APP_CFLAGS) -o $(BINDIR)/bmemperf_server bmemperf_server.c bmemperf_powerprobe.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_utils.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
 ### if the server built successfully, delete temporary info file; otherwise leave it to help with debugging
 	@test ! -f $(BINDIR)/bmemperf_server || rm -f $(BINDIR)/bmemperf_info.c
 ifeq ($(ANDROID_BUILD),y)

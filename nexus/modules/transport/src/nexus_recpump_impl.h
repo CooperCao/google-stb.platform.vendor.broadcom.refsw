@@ -84,10 +84,11 @@ typedef struct NEXUS_Recpump_P_PidChannel {
         NEXUS_RecpumpTpitFilter filter;
         unsigned index;
     } tpit;
-    NEXUS_RecpumpAddPidChannelSettings settings;
+    NEXUS_RecpumpPidChannelSettings settings;
     NEXUS_PidChannelHandle  pidChn;
     BLST_S_ENTRY(NEXUS_Recpump_P_PidChannel) link;
     unsigned playback;
+    int assignedScd;    /* which detector is allocated, -1 if none */
 } NEXUS_Recpump_P_PidChannel;
 
 struct NEXUS_Recpump {
@@ -97,9 +98,10 @@ struct NEXUS_Recpump {
     NEXUS_RecpumpSettings settings;
     BLST_S_HEAD(NEXUS_Recpump_P_PidChannels, NEXUS_Recpump_P_PidChannel) pid_list;
     BXPT_RaveIdx_Handle tpitIdx;
-    unsigned tpitCount;
     BXPT_RaveIdx_Handle scdIdx;
-    unsigned scdPidCount;
+    unsigned scdPidCount;   /* number of detectors allocated */
+    unsigned scdUsedMap;    /* bitmap of which detectors are in use */
+    int scdMapMode;         /* track whether pidchannel or pid mapping is being used */
     bool indexing; /* was indexing started? */
     bool playback;
 
@@ -109,7 +111,7 @@ struct NEXUS_Recpump {
     unsigned rave_rec_index;
     BXPT_RaveCx_Handle extra_rave_rec;
     struct NEXUS_RecpumpBufferAlloc rave_rec_mem, extra_rave_rec_mem;
-    
+
     struct NEXUS_RecpumpFlow data, index;
     enum {
         Ready,

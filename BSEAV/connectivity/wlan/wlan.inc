@@ -53,6 +53,7 @@ endif
 #  Define the Makefile directory... probably the same dir that this file is in.
 B_WLAN_INSRC_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/connectivity/wlan)
 B_WLAN_INSRC_VER_DIR:=${B_WLAN_INSRC_DIR}/${B_WLAN_VER}/${B_WLAN_BRAND}
+B_WLAN_PLAT_INSRC_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/connectivity/wlan/wakeonwlan)
 
 B_WLAN_OOSRC_DIR:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/connectivity/wlan)
 B_WLAN_OOSRC_VER_DIR:=${B_WLAN_OOSRC_DIR}/${B_WLAN_VER}/${B_WLAN_BRAND}

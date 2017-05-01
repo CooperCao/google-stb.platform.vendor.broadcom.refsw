@@ -55,6 +55,7 @@ BDBG_MODULE(nexus_video_encoder);
 BDBG_FILE_MODULE(nexus_video_encoder_status);
 BDBG_FILE_MODULE(vce_proc);
 
+static NEXUS_VideoEncoderModuleStatistics g_NEXUS_VideoEncoderModuleStatistics;
 static void NEXUS_VideoEncoder_P_Release(NEXUS_VideoEncoderHandle encoder);
 
 static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void);
@@ -806,6 +807,7 @@ NEXUS_VideoEncoder_GetDefaultStartSettings(NEXUS_VideoEncoderStartSettings *pSet
     pSettings->bounds.inputDimension.maxInterlaced.height = encodeSettings.stBounds.stDimensions.stMaxInterlaced.uiHeight;
     pSettings->bounds.bitrate.upper.bitrateMax = encodeSettings.stBounds.stBitRate.stLargest.uiMax;
     pSettings->bounds.bitrate.upper.bitrateTarget = encodeSettings.stBounds.stBitRate.stLargest.uiTarget;
+    pSettings->bounds.streamStructure.max.framesP = encodeSettings.stBounds.stGOPStructure.uiNumberOfPFrames;
     pSettings->bounds.streamStructure.max.framesB = encodeSettings.stBounds.stGOPStructure.uiNumberOfBFrames;
     pSettings->bounds.outputFrameRate.min = NEXUS_P_FrameRate_FromMagnum_isrsafe(encodeSettings.stBounds.stFrameRate.eMin);
     pSettings->bounds.outputFrameRate.max = NEXUS_P_FrameRate_FromMagnum_isrsafe(encodeSettings.stBounds.stFrameRate.eMax);
@@ -890,6 +892,7 @@ NEXUS_VideoEncoder_P_ConvertStartSettings(NEXUS_VideoEncoderHandle encoder, cons
     startEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight = pSettings->bounds.inputDimension.maxInterlaced.height;
     startEncodeSettings->stBounds.stBitRate.stLargest.uiMax = pSettings->bounds.bitrate.upper.bitrateMax;
     startEncodeSettings->stBounds.stBitRate.stLargest.uiTarget = pSettings->bounds.bitrate.upper.bitrateTarget;
+    startEncodeSettings->stBounds.stGOPStructure.uiNumberOfPFrames = pSettings->bounds.streamStructure.max.framesP;
     startEncodeSettings->stBounds.stGOPStructure.uiNumberOfBFrames = pSettings->bounds.streamStructure.max.framesB;
     rc = NEXUS_P_FrameRate_ToMagnum_isrsafe(pSettings->bounds.outputFrameRate.min, &startEncodeSettings->stBounds.stFrameRate.eMin);
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
@@ -1001,6 +1004,7 @@ unlock:
     if(rc!=BERR_SUCCESS) goto error;
 
     encoder->started = true;
+    g_NEXUS_VideoEncoderModuleStatistics.numStarts++;
     return NEXUS_SUCCESS;
 error:
     return rc;
@@ -1440,4 +1444,9 @@ unsigned NEXUS_VideoEncoder_GetIndex_isrsafe(NEXUS_VideoEncoderHandle encoder)
 {
     BDBG_OBJECT_ASSERT(encoder, NEXUS_VideoEncoder);
     return encoder->index;
+}
+
+void NEXUS_VideoEncoderModule_GetStatistics( NEXUS_VideoEncoderModuleStatistics *pStats )
+{
+    *pStats = g_NEXUS_VideoEncoderModuleStatistics;
 }

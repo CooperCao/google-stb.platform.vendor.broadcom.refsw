@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -168,6 +168,8 @@
 #include "bchp_xpt_rave_itb_upper_thresh_cx00_31_l2_intr.h"
 #include "bchp_xpt_rave_cdb_lower_thresh_cx00_31_l2_intr.h"
 #include "bchp_xpt_rave_itb_lower_thresh_cx00_31_l2_intr.h"
+#include "bchp_xpt_rave_cdb_min_depth_thresh_cx00_31_l2_intr.h"
+#include "bchp_xpt_rave_itb_min_depth_thresh_cx00_31_l2_intr.h"
 
 #include "bchp_xpt_rave_tsio_dma_end_cx00_31_l2_intr.h"
 #include "bchp_xpt_tsio_intr_l2.h"
@@ -415,6 +417,8 @@ static const BINT_P_IntMap bint_7586[] =
     BINT_MAP(2, XPT_RAV, "ITB_UPPER_THRESH_00_31", XPT_RAVE_ITB_UPPER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
     BINT_MAP(2, XPT_RAV, "CDB_LOWER_THRESH_00_31", XPT_RAVE_CDB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
     BINT_MAP(2, XPT_RAV, "ITB_LOWER_THRESH_00_31", XPT_RAVE_ITB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
+    BINT_MAP(2, XPT_RAV, "CDB_MIN_DEPTH_THRESH_00_31", XPT_RAVE_CDB_MIN_DEPTH_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
+    BINT_MAP(2, XPT_RAV, "ITB_MIN_DEPTH_THRESH_00_31", XPT_RAVE_ITB_MIN_DEPTH_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
     BINT_MAP(2, XPT_RAV, "RAVE_TSIO_DMA_END_CX00_31", XPT_RAVE_TSIO_DMA_END_CX00_31_L2_INTR_CPU_STATUS_0_31, STANDARD, ALL, 0),
 
     BINT_MAP(2, XPT_PCR, "XPT_DPCR0", XPT_DPCR0_INTR_STATUS_REG, REGULAR, ALL, 0),

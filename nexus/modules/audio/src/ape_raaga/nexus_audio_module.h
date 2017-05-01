@@ -313,15 +313,6 @@ bool NEXUS_AudioInput_P_IsRunning(
 
 /***************************************************************************
 Summary:
-    Remove all mixer outputs attached to this object and below.  Used when an
-    an input/mixer will become invalid.
- ***************************************************************************/
-NEXUS_Error NEXUS_AudioInput_P_RemoveMixerOutputs(
-    NEXUS_AudioInputHandle input
-    );
-
-/***************************************************************************
-Summary:
     Determine format of incoming data.  All nodes upstream from the specified
     node will be searched until a format is found.
  ***************************************************************************/
@@ -401,15 +392,6 @@ Summary:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_PrepareToStart(
     NEXUS_AudioInputHandle input
-    );
-
-/***************************************************************************
-Summary:
-    Notify the input chain of a data format change (e.g. sample rate)
- ***************************************************************************/
-NEXUS_Error NEXUS_AudioInput_P_FormatChanged(
-    NEXUS_AudioInputHandle input,
-    NEXUS_AudioInputFormatData *pData
     );
 
 /***************************************************************************
@@ -653,6 +635,14 @@ NEXUS_AudioOutputData *NEXUS_AudioOutput_P_CreateData(
 
 /***************************************************************************
 Summary:
+    Print the output timebase. Used for debug.
+ ***************************************************************************/
+void NEXUS_AudioOutput_P_VerifyTimebase(
+    NEXUS_AudioOutputHandle output
+    );
+
+/***************************************************************************
+Summary:
     Get the equalizer handle for an output
  ***************************************************************************/
 NEXUS_AudioEqualizerHandle NEXUS_AudioOutput_P_GetEqualizer(
@@ -734,12 +724,6 @@ Summary:
     Set TSM state for the decoder
  ***************************************************************************/
 void NEXUS_AudioDecoder_P_SetTsm(NEXUS_AudioDecoderHandle handle);
-
-/***************************************************************************
-Summary:
-    Set Decode rate for the decoder
- ***************************************************************************/
-void NEXUS_AudioDecoder_P_SetDecodeRate(NEXUS_AudioDecoderHandle handle);
 
 /***************************************************************************
 Summary:
@@ -1035,6 +1019,14 @@ void NEXUS_AudioInput_P_ExplictlyStopFMMMixers(
 
 /***************************************************************************
 Summary:
+    Set Default Input Volume
+ ***************************************************************************/
+void NEXUS_AudioInput_P_GetDefaultInputVolume(
+    NEXUS_AudioInputHandle input
+    );
+
+/***************************************************************************
+Summary:
     Converts dB index to Linear Volume
  ***************************************************************************/
 int32_t NEXUS_Audio_P_ConvertDbToLinear(
@@ -1050,7 +1042,7 @@ int32_t NEXUS_Audio_P_ConvertDbToLinear(
 #define NEXUS_ADC_CAPTURE_INDEX_BASE (0)
 #define NEXUS_RF_CAPTURE_INDEX_BASE (0)
 #define NEXUS_AUDIO_CAPTURE_INDEX(typ, idx) (((typ)==NEXUS_AudioInputType_eInputCapture)?NEXUS_AUDIO_CAPTURE_INDEX_BASE+(idx):\
-                                             ((typ)==NEXUS_AudioInputType_eI2s)?NEXUS_I2S_CAPTURE_INDEX_BASE+(idx):\
+                                             ((typ)==NEXUS_AudioInputType_eI2s)?(NEXUS_I2S_CAPTURE_INDEX_BASE-(int)idx-1)>=0?(NEXUS_I2S_CAPTURE_INDEX_BASE-idx-1):0:\
                                              ((typ)==NEXUS_AudioInputType_eAnalogDecoder)?NEXUS_ADC_CAPTURE_INDEX_BASE+(idx):\
                                              ((typ)==NEXUS_AudioInputType_eRfDecoder)?NEXUS_RF_CAPTURE_INDEX_BASE+(idx):\
                                              (BDBG_ASSERT(0),0))

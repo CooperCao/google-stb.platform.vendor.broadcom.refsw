@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -59,6 +59,9 @@ BDBG_FILE_MODULE(BMUX_IVF_FINISH);     /* enables finish diagnostics */
 /****************************
      Static Prototypes
 ****************************/
+static BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptorsWaiting(BMUXlib_File_IVF_Handle hIVFMux);
+static void BMUXlib_File_IVF_P_Output_InputDescriptorDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
+static void BMUXlib_File_IVF_P_Output_FrameHeaderDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
 
 /*************************
 * P R I V A T E   A P I  *
@@ -82,21 +85,21 @@ BERR_Code BMUXlib_File_IVF_P_Start(BMUXlib_File_IVF_Handle hIVFMux)
 
    if (BERR_SUCCESS == rc)
    {
-      BMUXlib_Input_CreateSettings stInputSettings;
+      BMUXlib_Input_StartSettings stInputSettings;
 
       /* create the input ... */
-      BMUXlib_Input_GetDefaultCreateSettings(&stInputSettings);
+      BMUXlib_Input_GetDefaultStartSettings(&stInputSettings);
       stInputSettings.eType = BMUXlib_Input_Type_eVideo;
       stInputSettings.interface.stVideo = hIVFMux->stStartSettings.stInterface;
       /* NOTE: IVF must operate in frame mode since the frame size is required in the frame header */
       stInputSettings.eBurstMode = BMUXlib_Input_BurstMode_eFrame;
       stInputSettings.bFilterUntilMetadataSeen = true;
-      rc = BMUXlib_Input_Create(&hIVFMux->hInput, &stInputSettings);
+      rc = BMUXlib_Input_Start(hIVFMux->hInput, &stInputSettings);
    }
 
    if (BERR_SUCCESS != rc)
    {
-      BDBG_ERR(("Unable to Create Video Input"));
+      BDBG_ERR(("Unable to Start Video Input"));
    }
 
    if ( BERR_SUCCESS == rc )
@@ -148,11 +151,11 @@ void BMUXlib_File_IVF_P_Stop(BMUXlib_File_IVF_Handle hIVFMux)
       hIVFMux->hOutput = NULL;
    }
 
-   /* destroy input */
+   /* stop input */
    if (NULL != hIVFMux->hInput)
    {
-      BMUXlib_Input_Destroy(hIVFMux->hInput);
-      hIVFMux->hInput = NULL;
+      BMUXlib_Input_Stop(hIVFMux->hInput);
+
    }
 
    BDBG_LEAVE(BMUXlib_File_IVF_P_Stop);
@@ -241,7 +244,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessOutputDescriptorsCompleted(BMUXlib_File_IVF_
    Returns:
       Input interface error code
 */
-BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptorsWaiting(BMUXlib_File_IVF_Handle hIVFMux)
+static BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptorsWaiting(BMUXlib_File_IVF_Handle hIVFMux)
 {
    BERR_Code rc = BERR_SUCCESS;
 
@@ -284,7 +287,7 @@ static const unsigned BMUXlib_File_IVF_P_FrameRateLUT[BAVC_FrameRateCode_eMax] =
 
 };
 
-void BMUXlib_File_IVF_P_Output_InputDescriptorDone(
+static void BMUXlib_File_IVF_P_Output_InputDescriptorDone(
    void *pPrivateData,
    const BMUXlib_Output_Descriptor *pOutputDescriptor
    )
@@ -298,7 +301,7 @@ void BMUXlib_File_IVF_P_Output_InputDescriptorDone(
    hIVFMux->uiPendingCount--;
 }
 
-void BMUXlib_File_IVF_P_Output_FrameHeaderDone(
+static void BMUXlib_File_IVF_P_Output_FrameHeaderDone(
    void *pPrivateData,
    const BMUXlib_Output_Descriptor *pOutputDescriptor
    )

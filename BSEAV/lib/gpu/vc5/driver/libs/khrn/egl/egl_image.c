@@ -1,18 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <EGL/eglext_brcm.h>
 #include "../common/khrn_image.h"
-#include "../common/khrn_event_monitor.h"
 #include "egl_image.h"
 #include "egl_display.h"
 #include "egl_thread.h"
@@ -28,12 +21,12 @@ static void destroy(EGL_IMAGE_T* egl_image)
    free(egl_image);
 }
 
-static KHRN_IMAGE_T *get(EGL_IMAGE_T *egl_image)
+static khrn_image *get(EGL_IMAGE_T *egl_image)
 {
    return egl_image->image;
 }
 
-EGL_IMAGE_T* egl_image_create(KHRN_IMAGE_T *image)
+EGL_IMAGE_T* egl_image_create(khrn_image *image)
 {
    assert(image != NULL);
    EGL_IMAGE_T *egl_image = calloc(1, sizeof(EGL_IMAGE_T));
@@ -44,7 +37,7 @@ EGL_IMAGE_T* egl_image_create(KHRN_IMAGE_T *image)
    return egl_image;
 }
 
-void egl_image_init(EGL_IMAGE_T* egl_image, KHRN_IMAGE_T *image,
+void egl_image_init(EGL_IMAGE_T* egl_image, khrn_image *image,
    egl_image_destroy destroy, egl_image_get get)
 {
    assert(egl_image != NULL);
@@ -79,7 +72,7 @@ void egl_image_refdec(EGL_IMAGE_T *egl_image)
    }
 }
 
-KHRN_IMAGE_T *egl_image_get_image(EGL_IMAGE_T *egl_image)
+khrn_image *egl_image_get_image(EGL_IMAGE_T *egl_image)
 {
    return egl_image->get(egl_image);
 }

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:26:13 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:43:24 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,59 +70,59 @@
 /***************************************************************************
  *VICE2_VIP_0_0 - Video Input Processing Registers
  ***************************************************************************/
-#define BCHP_VICE2_VIP_0_0_FW_CONTROL            0x206ef000 /* [RW] VIP FW Control */
-#define BCHP_VICE2_VIP_0_0_CONFIG                0x206ef004 /* [DBRW] VIP Configure */
-#define BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE    0x206ef008 /* [DBRW] Current Expected Input Picture Size */
-#define BCHP_VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE   0x206ef00c /* [DBRW] Current Picture Size */
-#define BCHP_VICE2_VIP_0_0_LUMA_ADDR             0x206ef010 /* [DBRW] Current Picture Luma Frame/Top/Bottom Buffer Address */
-#define BCHP_VICE2_VIP_0_0_LUMA_NMBY             0x206ef014 /* [DBRW] Current Picture Luma Frame/Top/Bottom Buffer NMBY and Line Stride */
-#define BCHP_VICE2_VIP_0_0_DCMH1V_ADDR           0x206ef018 /* [DBRW] Current Picture Horizontal Decimated Luma Frame/Top/Bottom Buffer Address */
-#define BCHP_VICE2_VIP_0_0_DCMH1V_NMBY           0x206ef01c /* [DBRW] Current Picture Horizontal Decimated Luma Frame/Top/Bottom Buffer NMBY and Line Stride */
-#define BCHP_VICE2_VIP_0_0_DCMH2V_ADDR           0x206ef020 /* [DBRW] Current Picture Both Horizontal and Vertical Decimated Luma Frame/Top/Bottom Buffer Address */
-#define BCHP_VICE2_VIP_0_0_DCMH2V_NMBY           0x206ef024 /* [DBRW] Current Picture Both Horizontal and Vertical Decimated Luma Frame/Top/Bottom Buffer NMBY and Line Stride */
-#define BCHP_VICE2_VIP_0_0_CHROMA_420_ADDR       0x206ef028 /* [DBRW] Current Picture 420 Chroma Frame/Top/Bottom Buffer Address */
-#define BCHP_VICE2_VIP_0_0_CHROMA_420_NMBY       0x206ef02c /* [DBRW] Current Picture 420 Chroma Frame/Top/Bottom Buffer NMBY and Line Stride */
-#define BCHP_VICE2_VIP_0_0_SHIFT_CHROMA_ADDR     0x206ef030 /* [DBRW] Current Picture Shifted Chroma Frame/Top/Bottom Buffer Address */
-#define BCHP_VICE2_VIP_0_0_SHIFT_CHROMA_NMBY     0x206ef034 /* [DBRW] Current Picture Shifted Chroma Frame/Top/Bottom Buffer NMBY and Line Stride */
-#define BCHP_VICE2_VIP_0_0_PCC_LUMA_ADDR         0x206ef038 /* [DBRW] Previous Picture Frame/Top/Bottom Buffer Address for PCC */
-#define BCHP_VICE2_VIP_0_0_HIST_LUMA_ADDR        0x206ef03c /* [DBRW] Previous Picture Frame/Top/Bottom Buffer Address for Histogram */
-#define BCHP_VICE2_VIP_0_0_PCC_LINE_RANGE        0x206ef040 /* [DBRW] PCC Line Range */
-#define BCHP_VICE2_VIP_0_0_PCC_CORE_VALUE        0x206ef044 /* [DBRW] PCC Core Value */
-#define BCHP_VICE2_VIP_0_0_HIST_LINE_RANGE       0x206ef048 /* [DBRW] Histogram Line Range */
-#define BCHP_VICE2_VIP_0_0_HIST_THRESHOLD_0      0x206ef04c /* [DBRW] Histogram Threshold 0~1 and SCAD Core Value */
-#define BCHP_VICE2_VIP_0_0_HIST_THRESHOLD_1      0x206ef050 /* [DBRW] Histogram Threshold 2~4 */
-#define BCHP_VICE2_VIP_0_0_BVB_PADDING_DATA      0x206ef054 /* [DBRW] BVB PADDING DATA */
-#define BCHP_VICE2_VIP_0_0_BVB_STATUS_CLEAR      0x206ef058 /* [XRW] BVB Status Clear */
-#define BCHP_VICE2_VIP_0_0_BVB_STATUS            0x206ef05c /* [RO] BVB Status */
-#define BCHP_VICE2_VIP_0_0_SCRATCH               0x206ef060 /* [RW] Scratch Register */
-#define BCHP_VICE2_VIP_0_0_HIST_STATUS_0         0x206ef064 /* [RO] Histogram Status 0 */
-#define BCHP_VICE2_VIP_0_0_HIST_STATUS_1         0x206ef068 /* [RO] Histogram Status 1 */
-#define BCHP_VICE2_VIP_0_0_HIST_STATUS_2         0x206ef06c /* [RO] Histogram Status 2 */
-#define BCHP_VICE2_VIP_0_0_HIST_STATUS_3         0x206ef070 /* [RO] Histogram Status 3 */
-#define BCHP_VICE2_VIP_0_0_HIST_STATUS_4         0x206ef074 /* [RO] Histogram Status 4 */
-#define BCHP_VICE2_VIP_0_0_SCAD_STATUS           0x206ef078 /* [RO] SCAD Status */
-#define BCHP_VICE2_VIP_0_0_SINGLE_PCC_STATUS     0x206ef07c /* [RO] PCC Status 0 */
-#define BCHP_VICE2_VIP_0_0_DOUBLE_PCC_STATUS     0x206ef080 /* [RO] PCC Status 1 */
-#define BCHP_VICE2_VIP_0_0_STATUS                0x206ef084 /* [RO] VIP Status */
-#define BCHP_VICE2_VIP_0_0_REG_STATUS            0x206ef088 /* [RO] REG Status */
-#define BCHP_VICE2_VIP_0_0_DEBUG                 0x206ef08c /* [RO] DEBUG */
-#define BCHP_VICE2_VIP_0_0_ERR_STATUS_ENABLE     0x206ef094 /* [RW] ERR_STATUS_ENABLE */
-#define BCHP_VICE2_VIP_0_0_ERR_STATUS_CLR        0x206ef098 /* [WO] ERR_STATUS_CLR */
-#define BCHP_VICE2_VIP_0_0_ERR_STATUS            0x206ef09c /* [RO] ERR_STATUS */
-#define BCHP_VICE2_VIP_0_0_BVN_CRC_CTRL          0x206ef0a0 /* [DBRW] BVN CRC Control Register */
-#define BCHP_VICE2_VIP_0_0_BVN_CRC_Y_STATUS      0x206ef0a4 /* [RO] BVN CRC Luma Status Register */
-#define BCHP_VICE2_VIP_0_0_BVN_CRC_C_STATUS      0x206ef0a8 /* [RO] BVN CRC Chroma Status Register */
-#define BCHP_VICE2_VIP_0_0_DCXV_CFG              0x206ef100 /* [DBRW] DCXV Configuration */
-#define BCHP_VICE2_VIP_0_0_TPG_FW_CONTROL        0x206ef200 /* [RW] TPG FW Control */
-#define BCHP_VICE2_VIP_0_0_TPG_CONFIG            0x206ef204 /* [RW] TPG Configure */
-#define BCHP_VICE2_VIP_0_0_TPG_PICTURE_SIZE      0x206ef208 /* [RW] Active Picture Size */
-#define BCHP_VICE2_VIP_0_0_BLANKING_SIZE         0x206ef20c /* [RW] Blanking Period Size */
-#define BCHP_VICE2_VIP_0_0_PATTERN_SIZE          0x206ef210 /* [RW] Pattern Size */
-#define BCHP_VICE2_VIP_0_0_STEP_SIZE             0x206ef214 /* [RW] Step Size */
-#define BCHP_VICE2_VIP_0_0_YCrCb_VALUE           0x206ef218 /* [RW] YCrCb value */
-#define BCHP_VICE2_VIP_0_0_PIC_RDY_INTR_DLY      0x206ef21c /* [RW] Picture ready interrupt to ARC delay value */
-#define BCHP_VICE2_VIP_0_0_NUMBER_OF_PICS        0x206ef220 /* [RW] Number of pictures the TPG will generate */
-#define BCHP_VICE2_VIP_0_0_TPG_STATUS            0x206ef224 /* [RO] TPG status */
+#define BCHP_VICE2_VIP_0_0_FW_CONTROL            0x206ef000 /* [RW][32] VIP FW Control */
+#define BCHP_VICE2_VIP_0_0_CONFIG                0x206ef004 /* [DBRW][32] VIP Configure */
+#define BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE    0x206ef008 /* [DBRW][32] Current Expected Input Picture Size */
+#define BCHP_VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE   0x206ef00c /* [DBRW][32] Current Picture Size */
+#define BCHP_VICE2_VIP_0_0_LUMA_ADDR             0x206ef010 /* [DBRW][32] Current Picture Luma Frame/Top/Bottom Buffer Address */
+#define BCHP_VICE2_VIP_0_0_LUMA_NMBY             0x206ef014 /* [DBRW][32] Current Picture Luma Frame/Top/Bottom Buffer NMBY and Line Stride */
+#define BCHP_VICE2_VIP_0_0_DCMH1V_ADDR           0x206ef018 /* [DBRW][32] Current Picture Horizontal Decimated Luma Frame/Top/Bottom Buffer Address */
+#define BCHP_VICE2_VIP_0_0_DCMH1V_NMBY           0x206ef01c /* [DBRW][32] Current Picture Horizontal Decimated Luma Frame/Top/Bottom Buffer NMBY and Line Stride */
+#define BCHP_VICE2_VIP_0_0_DCMH2V_ADDR           0x206ef020 /* [DBRW][32] Current Picture Both Horizontal and Vertical Decimated Luma Frame/Top/Bottom Buffer Address */
+#define BCHP_VICE2_VIP_0_0_DCMH2V_NMBY           0x206ef024 /* [DBRW][32] Current Picture Both Horizontal and Vertical Decimated Luma Frame/Top/Bottom Buffer NMBY and Line Stride */
+#define BCHP_VICE2_VIP_0_0_CHROMA_420_ADDR       0x206ef028 /* [DBRW][32] Current Picture 420 Chroma Frame/Top/Bottom Buffer Address */
+#define BCHP_VICE2_VIP_0_0_CHROMA_420_NMBY       0x206ef02c /* [DBRW][32] Current Picture 420 Chroma Frame/Top/Bottom Buffer NMBY and Line Stride */
+#define BCHP_VICE2_VIP_0_0_SHIFT_CHROMA_ADDR     0x206ef030 /* [DBRW][32] Current Picture Shifted Chroma Frame/Top/Bottom Buffer Address */
+#define BCHP_VICE2_VIP_0_0_SHIFT_CHROMA_NMBY     0x206ef034 /* [DBRW][32] Current Picture Shifted Chroma Frame/Top/Bottom Buffer NMBY and Line Stride */
+#define BCHP_VICE2_VIP_0_0_PCC_LUMA_ADDR         0x206ef038 /* [DBRW][32] Previous Picture Frame/Top/Bottom Buffer Address for PCC */
+#define BCHP_VICE2_VIP_0_0_HIST_LUMA_ADDR        0x206ef03c /* [DBRW][32] Previous Picture Frame/Top/Bottom Buffer Address for Histogram */
+#define BCHP_VICE2_VIP_0_0_PCC_LINE_RANGE        0x206ef040 /* [DBRW][32] PCC Line Range */
+#define BCHP_VICE2_VIP_0_0_PCC_CORE_VALUE        0x206ef044 /* [DBRW][32] PCC Core Value */
+#define BCHP_VICE2_VIP_0_0_HIST_LINE_RANGE       0x206ef048 /* [DBRW][32] Histogram Line Range */
+#define BCHP_VICE2_VIP_0_0_HIST_THRESHOLD_0      0x206ef04c /* [DBRW][32] Histogram Threshold 0~1 and SCAD Core Value */
+#define BCHP_VICE2_VIP_0_0_HIST_THRESHOLD_1      0x206ef050 /* [DBRW][32] Histogram Threshold 2~4 */
+#define BCHP_VICE2_VIP_0_0_BVB_PADDING_DATA      0x206ef054 /* [DBRW][32] BVB PADDING DATA */
+#define BCHP_VICE2_VIP_0_0_BVB_STATUS_CLEAR      0x206ef058 /* [XRW][32] BVB Status Clear */
+#define BCHP_VICE2_VIP_0_0_BVB_STATUS            0x206ef05c /* [RO][32] BVB Status */
+#define BCHP_VICE2_VIP_0_0_SCRATCH               0x206ef060 /* [RW][32] Scratch Register */
+#define BCHP_VICE2_VIP_0_0_HIST_STATUS_0         0x206ef064 /* [RO][32] Histogram Status 0 */
+#define BCHP_VICE2_VIP_0_0_HIST_STATUS_1         0x206ef068 /* [RO][32] Histogram Status 1 */
+#define BCHP_VICE2_VIP_0_0_HIST_STATUS_2         0x206ef06c /* [RO][32] Histogram Status 2 */
+#define BCHP_VICE2_VIP_0_0_HIST_STATUS_3         0x206ef070 /* [RO][32] Histogram Status 3 */
+#define BCHP_VICE2_VIP_0_0_HIST_STATUS_4         0x206ef074 /* [RO][32] Histogram Status 4 */
+#define BCHP_VICE2_VIP_0_0_SCAD_STATUS           0x206ef078 /* [RO][32] SCAD Status */
+#define BCHP_VICE2_VIP_0_0_SINGLE_PCC_STATUS     0x206ef07c /* [RO][32] PCC Status 0 */
+#define BCHP_VICE2_VIP_0_0_DOUBLE_PCC_STATUS     0x206ef080 /* [RO][32] PCC Status 1 */
+#define BCHP_VICE2_VIP_0_0_STATUS                0x206ef084 /* [RO][32] VIP Status */
+#define BCHP_VICE2_VIP_0_0_REG_STATUS            0x206ef088 /* [RO][32] REG Status */
+#define BCHP_VICE2_VIP_0_0_DEBUG                 0x206ef08c /* [RO][32] DEBUG */
+#define BCHP_VICE2_VIP_0_0_ERR_STATUS_ENABLE     0x206ef094 /* [RW][32] ERR_STATUS_ENABLE */
+#define BCHP_VICE2_VIP_0_0_ERR_STATUS_CLR        0x206ef098 /* [WO][32] ERR_STATUS_CLR */
+#define BCHP_VICE2_VIP_0_0_ERR_STATUS            0x206ef09c /* [RO][32] ERR_STATUS */
+#define BCHP_VICE2_VIP_0_0_BVN_CRC_CTRL          0x206ef0a0 /* [DBRW][32] BVN CRC Control Register */
+#define BCHP_VICE2_VIP_0_0_BVN_CRC_Y_STATUS      0x206ef0a4 /* [RO][32] BVN CRC Luma Status Register */
+#define BCHP_VICE2_VIP_0_0_BVN_CRC_C_STATUS      0x206ef0a8 /* [RO][32] BVN CRC Chroma Status Register */
+#define BCHP_VICE2_VIP_0_0_DCXV_CFG              0x206ef100 /* [DBRW][32] DCXV Configuration */
+#define BCHP_VICE2_VIP_0_0_TPG_FW_CONTROL        0x206ef200 /* [RW][32] TPG FW Control */
+#define BCHP_VICE2_VIP_0_0_TPG_CONFIG            0x206ef204 /* [RW][32] TPG Configure */
+#define BCHP_VICE2_VIP_0_0_TPG_PICTURE_SIZE      0x206ef208 /* [RW][32] Active Picture Size */
+#define BCHP_VICE2_VIP_0_0_BLANKING_SIZE         0x206ef20c /* [RW][32] Blanking Period Size */
+#define BCHP_VICE2_VIP_0_0_PATTERN_SIZE          0x206ef210 /* [RW][32] Pattern Size */
+#define BCHP_VICE2_VIP_0_0_STEP_SIZE             0x206ef214 /* [RW][32] Step Size */
+#define BCHP_VICE2_VIP_0_0_YCrCb_VALUE           0x206ef218 /* [RW][32] YCrCb value */
+#define BCHP_VICE2_VIP_0_0_PIC_RDY_INTR_DLY      0x206ef21c /* [RW][32] Picture ready interrupt to ARC delay value */
+#define BCHP_VICE2_VIP_0_0_NUMBER_OF_PICS        0x206ef220 /* [RW][32] Number of pictures the TPG will generate */
+#define BCHP_VICE2_VIP_0_0_TPG_STATUS            0x206ef224 /* [RO][32] TPG status */
 
 /***************************************************************************
  *FW_CONTROL - VIP FW Control

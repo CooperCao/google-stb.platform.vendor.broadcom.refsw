@@ -59,12 +59,12 @@ public:
 
     virtual eRet   open(CWidgetEngine * pWidgetEngine, CStc * pStc);
     virtual CStc * close(void);
-    virtual eRet   start(CPid * pPid, CStc * pStc = NULL);
     virtual eRet   updateConnectSettings(NxClient_ConnectSettings * pSettings, int index = 0);
+    virtual eRet   setVideoWindowGeometryPercent(MRect * pRectGeomPercent = NULL);
 
     NEXUS_SurfaceClientHandle getDesktopClientVideoWin(void) { return(_surfaceClientVideoWin); }
     eRet                      setPosition(MRect rect, uint16_t zorder);
-    eRet                      setGeometryVideoWindow(MRect rect, uint8_t percent, eWinArea area, uint8_t border, uint16_t zorder);
+    eRet                      setGeometryVideoWindow(MRect rect, uint16_t percent, eWinArea area, uint16_t border, uint16_t zorder, MRect * pRectPercent = NULL);
     NEXUS_VideoFormat         getFormat(void);
 
 protected:

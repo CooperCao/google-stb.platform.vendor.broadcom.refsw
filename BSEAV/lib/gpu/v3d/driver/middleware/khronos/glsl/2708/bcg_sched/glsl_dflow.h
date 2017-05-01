@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __GLSL_DFLOW_H__
 #define __GLSL_DFLOW_H__
 
@@ -112,9 +105,9 @@ typedef enum
 
 typedef enum
 {
-   DFlowNode_CONDITION_ARM  = 0xC0000000,
+   DFlowNode_CONDITION_ARM  = (int)0xC0000000,
    DFlowNode_IF_ARM         = 0x40000000,
-   DFlowNode_ELSE_ARM       = 0x80000000,
+   DFlowNode_ELSE_ARM       = (int)0x80000000,
    DFlowNode_MASK_ARM       = ~0xC0000000
 } DFlowNode_CondBits;
 

@@ -165,6 +165,14 @@ int main(int argc, char **argv)
     gfxSettings.checkpointCallback.context = event;
     NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
 
+restart:
+    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&startSettings);
+    startSettings.lowDelayImageInput = !xdm;    /* Low delay mode bypasses xdm display management */
+    imageInput = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, &startSettings);
+    BDBG_ASSERT(imageInput);
+
+    NEXUS_VideoImageInput_GetStatus(imageInput, &imageInputStatus);
+
     NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
     surfaceCreateSettings.width  = 720;
     surfaceCreateSettings.height = 480;
@@ -174,7 +182,7 @@ int main(int argc, char **argv)
         if (!platformConfig.heap[i] || NEXUS_Heap_GetStatus(platformConfig.heap[i], &s)) continue;
         if (s.memcIndex == imageInputStatus.memcIndex && (s.memoryType & NEXUS_MemoryType_eApplication) && s.largestFreeBlock >= 960*1080*2) {
             surfaceCreateSettings.heap = platformConfig.heap[i];
-            BDBG_WRN(("found heap[%d] on MEMC%d for VideoImageInput", i, s.memcIndex));
+            BDBG_LOG(("found heap[%d] on MEMC%d for VideoImageInput", i, s.memcIndex));
             break;
         }
     }
@@ -182,20 +190,12 @@ int main(int argc, char **argv)
         BDBG_ERR(("no heap found. RTS failure likely."));
     }
     for (i=0; i<NUM_SURFACES; i++) {
+        if (g_surface[i].handle) {
+            NEXUS_Surface_Destroy(g_surface[i].handle);
+        }
         g_surface[i].handle = NEXUS_Surface_Create(&surfaceCreateSettings);
         BDBG_ASSERT(g_surface[i].handle);
-    }
 
-
-restart:
-    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&startSettings);
-    startSettings.lowDelayImageInput = !xdm;    /* Low delay mode bypasses xdm display management */
-    imageInput = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, &startSettings);
-    BDBG_ASSERT(imageInput);
-
-    NEXUS_VideoImageInput_GetStatus(imageInput, &imageInputStatus);
-
-    for (i=0; i<NUM_SURFACES; i++) {
         g_surface[i].submitted = false;
     }
     submitIdx = releaseIdx = 0;

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-EGL surface structure declarations.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_CLIENT_SURFACE_H
 #define EGL_CLIENT_SURFACE_H
 
@@ -261,7 +253,7 @@ typedef struct {
    uint32_t pixmap_server_handle[2];
 } EGL_SURFACE_T;
 
-extern bool egl_surface_check_attribs(
+extern EGLint egl_surface_check_attribs(
    EGL_SURFACE_TYPE_T type,
    const EGLint *attrib_list,
    bool *linear,

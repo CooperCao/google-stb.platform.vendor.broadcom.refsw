@@ -41,10 +41,11 @@
 # this file is included by nexus/platform/common/build/platform_modules.inc
 # you can define your platform's options here
 
-NEXUS_POWER_MANAGEMENT ?= n
+NEXUS_POWER_MANAGEMENT ?= y
 NEXUS_SECURITY_SUPPORT ?= n
 
 export NEXUS_FRONTEND_SUPPORT ?= y
+
 export NEXUS_FRONTEND_3158  ?= y
 export NEXUS_FRONTEND_3461  ?= y
 export NEXUS_FRONTEND_45216 ?= y
@@ -54,7 +55,6 @@ ifeq ($(NEXUS_FRONTEND_USE_SECOND_FEMTSIF),y)
 NEXUS_PLATFORM_DEFINES += NEXUS_FRONTEND_USE_SECOND_FEMTSIF=1
 endif
 
-B_REFSW_STRICT_PRINTF_FORMAT ?= y
 #
 # by default, we include the following
 #

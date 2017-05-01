@@ -53,7 +53,7 @@ static BAVC_HDMI_DRM_DescriptorId NEXUS_P_HdmiOutputDrmStaticMetadataType_ToMagn
     }
 }
 
-#if !BDBG_NO_MSG
+#if !BDBG_NO_LOG
 static const char * eotfStrings[] =
 {
     "sdr",
@@ -78,13 +78,13 @@ static void NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadata(const NEXUS_HdmiType1
     pMdcv = &pMetadata->masteringDisplayColorVolume;
     pCll = &pMetadata->contentLightLevel;
 
-    BDBG_MSG(("      green: (%d, %d)", pMdcv->greenPrimary.x, pMdcv->greenPrimary.y));
-    BDBG_MSG(("      blue: (%d, %d)", pMdcv->bluePrimary.x, pMdcv->bluePrimary.y));
-    BDBG_MSG(("      red: (%d, %d)", pMdcv->redPrimary.x, pMdcv->redPrimary.y));
-    BDBG_MSG(("      white: (%d, %d)", pMdcv->whitePoint.x, pMdcv->whitePoint.y));
-    BDBG_MSG(("      luma: (%d, %d)", pMdcv->luminance.max, pMdcv->luminance.min));
-    BDBG_MSG(("      cll: %d", pCll->max));
-    BDBG_MSG(("      fal: %d", pCll->maxFrameAverage));
+    BDBG_LOG(("      green: (%d, %d)", pMdcv->greenPrimary.x, pMdcv->greenPrimary.y));
+    BDBG_LOG(("      blue: (%d, %d)", pMdcv->bluePrimary.x, pMdcv->bluePrimary.y));
+    BDBG_LOG(("      red: (%d, %d)", pMdcv->redPrimary.x, pMdcv->redPrimary.y));
+    BDBG_LOG(("      white: (%d, %d)", pMdcv->whitePoint.x, pMdcv->whitePoint.y));
+    BDBG_LOG(("      luma: (%d, %d)", pMdcv->luminance.max, pMdcv->luminance.min));
+    BDBG_LOG(("      cll: %d", pCll->max));
+    BDBG_LOG(("      fal: %d", pCll->maxFrameAverage));
 }
 
 static void NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadataChanges(const NEXUS_HdmiType1DynamicRangeMasteringStaticMetadata * pOldMetadata, const NEXUS_HdmiType1DynamicRangeMasteringStaticMetadata * pNewMetadata)
@@ -99,41 +99,41 @@ static void NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadataChanges(const NEXUS_Hd
     pNewMdcv = &pNewMetadata->masteringDisplayColorVolume;
     pNewCll = &pNewMetadata->contentLightLevel;
 
-    BDBG_MSG(("      green: (%d, %d) -> (%d, %d)",
+    BDBG_LOG(("      green: (%d, %d) -> (%d, %d)",
         pOldMdcv->greenPrimary.x, pOldMdcv->greenPrimary.y,
         pNewMdcv->greenPrimary.x, pNewMdcv->greenPrimary.y));
-    BDBG_MSG(("      blue: (%d, %d) -> (%d, %d)",
+    BDBG_LOG(("      blue: (%d, %d) -> (%d, %d)",
         pOldMdcv->bluePrimary.x, pOldMdcv->bluePrimary.y,
         pNewMdcv->bluePrimary.x, pNewMdcv->bluePrimary.y));
-    BDBG_MSG(("      red: (%d, %d) -> (%d, %d)",
+    BDBG_LOG(("      red: (%d, %d) -> (%d, %d)",
         pOldMdcv->redPrimary.x, pOldMdcv->redPrimary.y,
         pNewMdcv->redPrimary.x, pNewMdcv->redPrimary.y));
-    BDBG_MSG(("      white: (%d, %d) -> (%d, %d)",
+    BDBG_LOG(("      white: (%d, %d) -> (%d, %d)",
         pOldMdcv->whitePoint.x, pOldMdcv->whitePoint.y,
         pNewMdcv->whitePoint.x, pNewMdcv->whitePoint.y));
-    BDBG_MSG(("      luma: (%d, %d) -> (%d, %d)",
+    BDBG_LOG(("      luma: (%d, %d) -> (%d, %d)",
         pOldMdcv->luminance.max, pOldMdcv->luminance.min,
         pNewMdcv->luminance.max, pNewMdcv->luminance.min));
-    BDBG_MSG(("      cll: %d -> %d",
+    BDBG_LOG(("      cll: %d -> %d",
         pOldCll->max,
         pNewCll->max));
-    BDBG_MSG(("      fal: %d -> %d",
+    BDBG_LOG(("      fal: %d -> %d",
         pOldCll->maxFrameAverage,
         pNewCll->maxFrameAverage));
 }
 
 static void NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pOldInfoFrame, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pNewInfoFrame)
 {
-    BDBG_MSG(("    DRMInfoFrame")) ;
-    BDBG_MSG(("      eotf: %s -> %s",
+    BDBG_LOG(("    DRMInfoFrame")) ;
+    BDBG_LOG(("      eotf: %s -> %s",
         eotfStrings[pOldInfoFrame->eotf],
         eotfStrings[pNewInfoFrame->eotf]));
-    BDBG_MSG(("      type: %s -> %s",
+    BDBG_LOG(("      type: %s -> %s",
         metadataTypeStrings[pOldInfoFrame->metadata.type],
         metadataTypeStrings[pNewInfoFrame->metadata.type]));
     if (pOldInfoFrame->metadata.type != pNewInfoFrame->metadata.type)
     {
-        BDBG_MSG(("      [old]"));
+        BDBG_LOG(("      [old]"));
         switch (pOldInfoFrame->metadata.type)
         {
             case NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1:
@@ -142,7 +142,7 @@ static void NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(const NEXUS_HdmiDynamicR
             default:
                 break;
         }
-        BDBG_MSG(("      [new]"));
+        BDBG_LOG(("      [new]"));
         switch (pNewInfoFrame->metadata.type)
         {
             case NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1:
@@ -201,8 +201,8 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
 
     if (BKNI_Memcmp(&output->drm.outputInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputInfoFrame)))
     {
-#if !BDBG_NO_MSG
-        BDBG_MSG(("NEXUS_HdmiOutput_P_SetDrmInfoFrame")) ;
+#if !BDBG_NO_LOG
+        BDBG_LOG(("NEXUS_HdmiOutput_P_SetDrmInfoFrame")) ;
         NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(&output->drm.outputInfoFrame, pDrmInfoFrame);
 #endif
         BKNI_Memcpy(&output->drm.outputInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputInfoFrame));

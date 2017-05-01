@@ -204,6 +204,12 @@ BERR_Code BVDC_P_Display_Create
     pDisplay->stCfc.stCapability.stBits.bRamLutScb = 1;
     pDisplay->stCfc.stCapability.stBits.bMb = 1;
     pDisplay->stCfc.stCapability.stBits.bLRngAdj = 1;
+#if BVDC_P_DBV_SUPPORT
+    if(BERR_SUCCESS != BVDC_P_Display_DbvInit(pDisplay))
+    {
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+#endif
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
 
@@ -514,6 +520,9 @@ void BVDC_P_Display_Destroy
         hDisplay->stCfcLutList.hMmaBlock = NULL;
         hDisplay->hCfcHeap  = NULL;
     }
+#if BVDC_P_DBV_SUPPORT
+    BVDC_P_Display_DbvUninit(hDisplay);
+#endif
 #endif
 
     /* [3] Remove display handle from main VDC handle */

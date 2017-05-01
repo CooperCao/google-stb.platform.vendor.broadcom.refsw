@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gmem_abstract.h"
 #include "gmem_talloc.h"
 #include "gmem_analyzer.h"
@@ -94,7 +92,7 @@ static inline BEGL_MemHandle mem_interface_wrap_external(uint64_t physaddr, size
 __attribute__((visibility("default")))
 void BEGL_RegisterMemoryInterface(BEGL_MemoryInterface *iface)
 {
-   log_trace(VCOS_FUNCTION);
+   log_trace(__FUNCTION__);
 
    if (iface != NULL)
    {
@@ -106,7 +104,7 @@ void BEGL_RegisterMemoryInterface(BEGL_MemoryInterface *iface)
       if (mem_interface_has_get_info())
          cpuCacheLine = (uint32_t)mem_interface_get_info(BEGL_MemCacheLineSize);
 
-      s_context.non_coherent_atom_size = vcos_max(V3D_MAX_CACHE_LINE_SIZE, cpuCacheLine);
+      s_context.non_coherent_atom_size = gfx_umax(V3D_MAX_CACHE_LINE_SIZE, cpuCacheLine);
 
       demand(s_context.mem_iface.Alloc != NULL);
       demand(s_context.mem_iface.Free != NULL);
@@ -125,7 +123,7 @@ void BEGL_RegisterMemoryInterface(BEGL_MemoryInterface *iface)
 
 bool gmem_init(void)
 {
-   log_trace(VCOS_FUNCTION);
+   log_trace(__FUNCTION__);
 
    demand_msg(s_context.non_coherent_atom_size != 0, "Memory interface not registered");
    demand(vcos_mutex_create(&s_context.api_mutex, "gmem mutex") == VCOS_SUCCESS);
@@ -141,7 +139,7 @@ bool gmem_init(void)
 
 void gmem_destroy(void)
 {
-   log_trace(VCOS_FUNCTION);
+   log_trace(__FUNCTION__);
 
    // Talloc thread shares the gmem lock and is still running.
    vcos_mutex_lock(&s_context.api_mutex);
@@ -201,7 +199,7 @@ gmem_alloc_item* gmem_alloc_internal(size_t size, v3d_size_t align, gmem_usage_f
 {
    assert(gfx_size_is_power_of_2(align));
 
-   log_trace("%s size=%zd, align=%zd, usage=0x%x, desc='%s'", VCOS_FUNCTION, size, (size_t)align, usage_flags, desc ? desc : "<null>");
+   log_trace("%s size=%zd, align=%zd, usage=0x%x, desc='%s'", __FUNCTION__, size, (size_t)align, usage_flags, desc ? desc : "<null>");
 
    gmem_alloc_item* item = (gmem_alloc_item *)calloc(1, sizeof(gmem_alloc_item));
    if (item == NULL)
@@ -244,10 +242,10 @@ gmem_alloc_item* gmem_alloc_internal(size_t size, v3d_size_t align, gmem_usage_f
       if (!item->v3d_addr)
          goto error;
 
-      log_trace("%s addr=0x%08x", VCOS_FUNCTION, item->v3d_addr);
+      log_trace("%s addr=0x%08x", __FUNCTION__, item->v3d_addr);
    }
 
-   log_trace("%s item=%p", VCOS_FUNCTION, item);
+   log_trace("%s item=%p", __FUNCTION__, item);
 
    /* Insert after (dummy) head of alloc-list */
    if (s_context.alloc_list.next != NULL)
@@ -356,7 +354,7 @@ gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *externa
    /* Test for a secure buffer */
    item->usage_flags = GMEM_USAGE_V3D_RW | (cpu_ptr == NULL ? GMEM_USAGE_SECURE : 0);
 
-   log_trace("%s physOffset=0x%08X%08X, cpu_ptr=%p, length=%zd, desc='%s', item=%p, usage=0x%x", VCOS_FUNCTION,
+   log_trace("%s physOffset=0x%08X%08X, cpu_ptr=%p, length=%zd, desc='%s', item=%p, usage=0x%x", __FUNCTION__,
                   (uint32_t)(physOffset >> 32), (uint32_t)(physOffset & 0xFFFFFFFF), cpu_ptr,
                    length, desc ? desc : "<null>", item, item->usage_flags);
 
@@ -391,7 +389,7 @@ void gmem_free_internal(gmem_handle_t handle)
    gmem_alloc_item *item = gmem_validate_handle(handle);
 
    log_trace("%s handle=%p, item=%p, desc='%s', type=%d, memory_handle=%p",
-                  VCOS_FUNCTION, handle, item, item->desc ? item->desc : "<null>",
+                  __FUNCTION__, handle, item, item->desc ? item->desc : "<null>",
                   item->type, item->memory_handle);
 
    switch (item->type)
@@ -610,6 +608,13 @@ void gmem_print_level(log_level_t level)
 void gmem_print(void)
 {
    gmem_print_level(LOG_ERROR);
+}
+
+v3d_size_t gmem_heap_size(void)
+{
+   if (!mem_interface_has_get_info())
+      return 0;
+   return (v3d_size_t)mem_interface_get_info(BEGL_MemTotal);
 }
 
 uint64_t gmem_get_pagetable_physical_addr(void)

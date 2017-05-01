@@ -79,9 +79,10 @@ BERR_Code BHDCPlib_FastLoadEncryptedHdcpKeys(
 		BREG_LE32(EncryptedHdcpKeys[i].HdcpKeyLo);
 		BREG_LE32(EncryptedHdcpKeys[i].HdcpKeyHi);
 
+		hHDCPlib->stDependencies.lockHsm();
 		errCode = BHSM_FastLoadEncryptedHdcpKey(
 			hHDCPlib->stDependencies.hHsm, i + BHDCPLib_KEY_OFFSET, &(EncryptedHdcpKeys[i]) ) ;
-
+		hHDCPlib->stDependencies.unlockHsm();
 		if (errCode != BERR_SUCCESS)
 		{
 			BDBG_ERR(("BHSM_FastLoadEncryptedHdcpKey errCode: %x", errCode )) ;

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 program structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <string.h>
 
 #include "../common/khrn_int_common.h"
@@ -205,7 +197,7 @@ void gl20_program_release(GL20_PROGRAM_T *program)
 }
 
 void gl20_program_save_error(GL20_PROGRAM_T *program, const char *error) {
-   KHRN_MEM_HANDLE_T handle = khrn_mem_strdup(error);
+   khrn_mem_handle_t handle = khrn_mem_strdup(error);
 
    if (handle != KHRN_MEM_HANDLE_INVALID) {
       KHRN_MEM_ASSIGN(program->mh_info, handle);

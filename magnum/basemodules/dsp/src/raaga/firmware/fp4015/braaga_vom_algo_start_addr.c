@@ -351,6 +351,8 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 		/* BDSP_AF_P_AlgoId_eFadeCtrlPostProc */
 		0x00000000,
+		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfPpAlgos */
 		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMixerFrameSync */

@@ -75,6 +75,10 @@ NEXUS_RaveCapture * NEXUS_RaveCapture_Create(const NEXUS_RaveCaptureCreateSettin
     cap->cdb.validOffsetOffset = pXptContextMap->CDB_Valid;
     cap->cdb.wrapOffsetOffset = pXptContextMap->CDB_Wrap;
     cap->cdb.base = NEXUS_OffsetToCachedAddr(baseOffset);
+    if (!NEXUS_P_CpuAccessibleAddress(cap->cdb.base)) {
+        BDBG_ERR(("unable to capture unmapped CDB"));
+        goto error;
+    }
     BDBG_ASSERT(cap->cdb.base);
 
     baseOffset = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Base);
@@ -82,12 +86,20 @@ NEXUS_RaveCapture * NEXUS_RaveCapture_Create(const NEXUS_RaveCaptureCreateSettin
     cap->itb.validOffsetOffset = pXptContextMap->ITB_Valid;
     cap->itb.wrapOffsetOffset = pXptContextMap->ITB_Wrap;
     cap->itb.base = NEXUS_OffsetToCachedAddr(baseOffset);
+    if (!NEXUS_P_CpuAccessibleAddress(cap->itb.base)) {
+        BDBG_ERR(("unable to capture unmapped ITB"));
+        goto error;
+    }
     BDBG_ASSERT(cap->itb.base);
 
     cap->createSettings = *pCreateSettings;
 
     BDBG_MSG(("%p created for rave context %u", (void*)cap, cap->index));
     return cap;
+
+error:
+    BKNI_Free(cap);
+    return NULL;
 }
 
 void NEXUS_RaveCapture_Destroy(NEXUS_RaveCapture *cap)
@@ -103,8 +115,15 @@ void NEXUS_RaveCapture_Open(NEXUS_RaveCapture *cap)
 
     BKNI_Snprintf(name, sizeof(name), "videos/rave_%u_cdb_%u.bin", cap->index, cap->no);
     cap->cdb.file = fopen(name, "w+b");
+    if (!cap->cdb.file) {
+        BERR_TRACE(-1);
+    }
+
     BKNI_Snprintf(name, sizeof(name), "videos/rave_%u_itb_%u.bin", cap->index, cap->no);
     cap->itb.file = fopen(name, "w+b");
+    if (!cap->itb.file) {
+        BERR_TRACE(-1);
+    }
 
     BDBG_MSG(("%u:%u opened", cap->index, cap->no));
 }
@@ -150,7 +169,7 @@ static void NEXUS_RaveCapture_DoWrite(NEXUS_RaveCapture * cap, const char * name
 {
     if (file && size)
     {
-        BDBG_MSG_TRACE(("%s:%u:%u %#x:%u", name, cap->index, cap->no, (unsigned)data, (unsigned)size));
+        BDBG_MSG_TRACE(("%s:%u:%u %p:%u", name, cap->index, cap->no, data, (unsigned)size));
         NEXUS_FlushCache(data, size);
         fwrite(data, size, 1, file);
         fflush(file);
@@ -173,10 +192,16 @@ static void NEXUS_RaveCapture_GetWritePointers(NEXUS_RaveCaptureDescriptor * des
         validOffset -= validOffset % 4; /* prefer efficient word-aligned access */
         desc->valid = NEXUS_OffsetToCachedAddr(validOffset);
     }
+    else {
+        desc->valid = NULL;
+    }
     if (wrapOffset)
     {
         wrapOffset += 1;
         desc->wrap = NEXUS_OffsetToCachedAddr(wrapOffset);
+    }
+    else {
+        desc->wrap = NULL;
     }
 }
 
@@ -201,9 +226,8 @@ static void NEXUS_RaveCapture_Consume(NEXUS_RaveCapture * cap, const char * name
                 moved = 1;
                 desc->read = desc->valid;
             }
-            else
+            else if (desc->wrap)
             {
-                BDBG_ASSERT(desc->wrap);
                 if (desc->read != desc->wrap)
                 {
                     BDBG_ASSERT(desc->read < desc->wrap);
@@ -213,6 +237,10 @@ static void NEXUS_RaveCapture_Consume(NEXUS_RaveCapture * cap, const char * name
                 }
 
                 desc->read = desc->base;
+            }
+            else
+            {
+                BDBG_ERR(("invalid RAVE context: valid=%p, read=%p, wrap=%p", desc->valid, desc->read, desc->wrap));
             }
         }
     }

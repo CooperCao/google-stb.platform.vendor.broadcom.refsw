@@ -287,6 +287,10 @@ ifeq ($(IP_STREAMER_DEMO_MODE),y)
     B_PLAYBACK_IP_LIB_DEFINES += IP_STREAMER_DEMO_MODE
 endif
 
+ifeq ($(PLAYBACK_IP_GCB_SUPPORT),y)
+    B_PLAYBACK_IP_LIB_DEFINES += PLAYBACK_IP_GCB_SUPPORT
+endif
+
 #
 # Define public include path(s) for this library
 #

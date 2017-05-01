@@ -102,6 +102,29 @@ public:
     eWindowType _windowType;
 };
 
+class CLabelData
+{
+public:
+    CLabelData() :
+        _zorder(0) {};
+    bool operator ==(const CLabelData &other)
+    {
+        if ((_strImagePath == other._strImagePath) &&
+            (_strText == other._strText) &&
+            (_rectGeometryPercent == other._rectGeometryPercent))
+        {
+            return(true);
+        }
+        return(false);
+    }
+
+public:
+    MString _strImagePath;
+    MString _strText;
+    MRect   _rectGeometryPercent; /* 0-1000 where 1000 == 100.0% */
+    int32_t _zorder;
+};
+
 class CChannel : public CMvcModel
 {
 public:
@@ -118,7 +141,7 @@ public:
     virtual eRet            initialize(PROGRAM_INFO_T * pProgramInfo) = 0;
     virtual bool            verify(PROGRAM_INFO_T * pProgramInfo);
     virtual eRet            tune(void * id, CConfig * pResourceLibrary, bool bWaitForLock, uint16_t index = ANY_INDEX) = 0;
-    virtual eRet            unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true)    = 0;
+    virtual eRet            unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true) = 0;
     virtual eRet            readXML(MXmlElement * xmlElemChannel);
     virtual void            writeXML(MXmlElement * xmlElemChannel);
     virtual void            updateDescription(void);
@@ -138,8 +161,8 @@ public:
     virtual bool            isStopAllowed(void)                            { return(_bStopAllowed); }
     virtual void            setPipSwapSupported(bool bPipSwapSupported)    { _bPipSwapSupported = bPipSwapSupported; }
     virtual bool            isPipSwapSupported(void)                       { return(_bPipSwapSupported); }
-    virtual eRet            start(CSimpleAudioDecode * pAudioDecode = NULL,
-            CSimpleVideoDecode *                       pVideoDecode = NULL);
+    virtual eRet            start(CSimpleAudioDecode * pAudioDecode = NULL, CSimpleVideoDecode * pVideoDecode = NULL);
+    virtual eRet            finish(void);
     virtual CPid * getPid(
             uint16_t index,
             ePidType type
@@ -153,6 +176,9 @@ public:
     virtual void     setWidth(uint16_t width)   { _width = width; }
     virtual uint16_t getHeight(void)            { return(_height); }
     virtual void     setHeight(uint16_t height) { _height = height; }
+    virtual MRect    getVideoWindowGeometryPercent(void) { return(_geomVideoWindowPercent); }
+    virtual void     setVideoWindowGeometryPercent(unsigned percentX, unsigned percentY, unsigned percentW, unsigned percentH);
+    virtual void     setVideoWindowGeometryPercent(MRect * pRectPercent);
     virtual void     gotoBackGroundRecord(void) { return; }
     virtual void     getStats(void);
     virtual void     dump(bool bForce = false);
@@ -182,15 +208,15 @@ public:
     virtual eRet    setTrickMode(bool fastFoward)                  { BSTD_UNUSED(fastFoward); return(eRet_NotSupported); }
     virtual void    setHost(const char * pString)                  { BSTD_UNUSED(pString); }
     virtual MString getHost(void)                                  { return(""); }
+    virtual MString getDescription(void)                           { return(_strDescription); }
+    virtual MString getDescriptionLong(void)                       { return(_strDescriptionLong); }
+    virtual MString getDescriptionShort(void)                      { return(_strDescriptionShort); }
     eBoardResource  getType(void)                                  { return(_type); }
     void            setType(eBoardResource resourceType)           { _type = resourceType; }
     void            setMajor(uint16_t major)                       { _major = major; }
     uint16_t        getMajor(void)                                 { return(_major); }
     void            setMinor(uint16_t minor)                       { _minor = minor; }
     uint16_t        getMinor(void)                                 { return(_minor); }
-    MString         getDescription(void)                           { return(_strDescription); }
-    MString         getDescriptionLong(void)                       { return(_strDescriptionLong); }
-    MString         getDescriptionShort(void)                      { return(_strDescriptionShort); }
     void            setProgramNum(uint16_t programNum)             { _programNum = programNum; }
     uint16_t        getprogramNum(void)                            { return(_programNum); }
     MString         getChannelNum(void)                            { return(MString(_major) + MString(".") + MString(_minor)); }
@@ -216,6 +242,18 @@ public:
     uint32_t        getNumSubChannels(void)       { return(_numSubChannels); }
     CChannel *      getParent(void)               { return(_pParent); }
     void            setParent(CChannel * pParent) { _pParent = pParent; }
+    CLabelData *    getLabelData(uint32_t index) { if (_labelList.total() > (int)index) return(_labelList[index]); }
+    CSimpleVideoDecode * getVideoDecode(void) { return(_pVideoDecode); }
+    CSimpleAudioDecode * getAudioDecode(void) { return(_pAudioDecode); }
+    eRet                 addImageLabel(MString strImagePath, MRect rectGeometryPercent = MRect(0, 0, 0, 0), unsigned zOrder = 1, MString strText = "");
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    eDynamicRange        getDynamicRange(void) { return(_dynamicRange); }
+    void                 setDynamicRange(eDynamicRange dynamicRange) { _dynamicRange = dynamicRange; }
+    bool                 isPlmEnabled(void) { return(_bPlm); }
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    bool                 isGraphicsPlmEnabled(void) { return(_bPlmGfx); }
+#endif
 
     void addMetadata(
             const char * strTag,
@@ -279,22 +317,33 @@ protected:
 #if NEXUS_HAS_FRONTEND
     CTuner * _pTuner;
 #endif
-    CRecord *        _pRecord;
-    CConfiguration * _pCfg;
-    CStc *           _pStc;
-    int              _trickModeRate;
-    eChannelTrick    _trickModeState;
-    bool             _bTunerRequired;
-    uint16_t         _width;
-    uint16_t         _height;
-    uint64_t         _durationInMsecs;
-    bool             _bStopAllowed;
-    bool             _bPipSwapSupported;
-    uint32_t         _numSubChannels;
-    CChannel *       _pParent;
-    CModel *         _pModel;
-    CWidgetEngine *  _pWidgetEngine;
-    MHash<MString>   _metadata;
+    CRecord *             _pRecord;
+    CConfiguration *      _pCfg;
+    CStc *                _pStc;
+    int                   _trickModeRate;
+    eChannelTrick         _trickModeState;
+    bool                  _bTunerRequired;
+    uint16_t              _width;
+    uint16_t              _height;
+    uint64_t              _durationInMsecs;
+    bool                  _bStopAllowed;
+    bool                  _bPipSwapSupported;
+    uint32_t              _numSubChannels;
+    CChannel *            _pParent;
+    CModel *              _pModel;
+    CWidgetEngine *       _pWidgetEngine;
+    MHash<MString>        _metadata;
+    MRect                 _geomVideoWindowPercent;
+    CSimpleVideoDecode *  _pVideoDecode;
+    CSimpleAudioDecode *  _pAudioDecode;
+    eDynamicRange         _dynamicRange; /* channels can override a stream dynamic range based on filename */
+    MAutoList<CLabelData> _labelList;
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    bool                  _bPlm;
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    bool                  _bPlmGfx;
+#endif
 };
 
 #ifdef __cplusplus

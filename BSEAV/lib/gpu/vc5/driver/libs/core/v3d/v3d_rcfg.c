@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_rcfg.h"
 #include "v3d_util.h"
 #include "v3d_tlb_decimate.h"
@@ -31,6 +29,9 @@ void v3d_rcfg_collect(
       rcfg->num_samp = common->ms_mode ? 4 : 1;
       rcfg->double_buffer = common->double_buffer;
       rcfg->cov_mode = common->cov_mode;
+
+      rcfg->ez_disable = common->ez_disable;
+      rcfg->ez_direction = common->ez_direction;
 
       v3d_tile_size_pixels(&rcfg->tile_w_px, &rcfg->tile_h_px,
          common->ms_mode, common->double_buffer,
@@ -90,18 +91,15 @@ void v3d_rcfg_collect(
       const V3D_CL_TILE_RENDERING_MODE_CFG_COLOR_T *color = &i->u.color;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-      for (unsigned i = 0; i != countof(color->rts); ++i)
-      {
-         rcfg->rts[i].type = color->rts[i].internal_type;
-         rcfg->rts[i].wps = gfx_udiv_exactly(v3d_translate_from_rt_bpp(color->rts[i].internal_bpp), 32);
-      }
+      for (unsigned i = 0; i != countof(color->rt_formats); ++i)
+         rcfg->rts[i].format = color->rt_formats[i];
 #else
       assert(color->rt < rcfg->num_rts); /* Assume common config will come first... */
       struct v3d_rt_cfg *r = &rcfg->rts[color->rt];
       struct v3d_tlb_ldst_params *ls = &r->default_ldst_params;
 
-      r->type = color->internal_type;
-      r->wps = gfx_udiv_exactly(v3d_translate_from_rt_bpp(color->internal_bpp), 32);
+      r->format.type = color->internal_type;
+      r->format.bpp = color->internal_bpp;
       r->pad = color->pad;
 
       ls->addr = color->addr;
@@ -249,8 +247,7 @@ void v3d_tlb_ldst_params_to_raw(
    case V3D_LDST_BUF_CLASS_COLOR:
    {
       const struct v3d_rt_cfg *r = &rcfg->rts[v3d_ldst_buf_rt(buf)];
-      ls->output_format.pixel = v3d_raw_mode_pixel_format(
-         r->type, v3d_translate_rt_bpp(r->wps * 32));
+      ls->output_format.pixel = v3d_raw_mode_pixel_format(r->format.type, r->format.bpp);
       break;
    }
    case V3D_LDST_BUF_CLASS_DEPTH_STENCIL:
@@ -335,26 +332,12 @@ void v3d_calc_tlb_ldst_buffer_desc(
    const struct v3d_rcfg *rcfg, v3d_ldst_buf_t buf,
    const struct v3d_tlb_ldst_params *ls)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_HAS_TLB_SWIZZLE
+   GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
+      ls->memory_format, ls->pixel_format, ls->chan_reverse, ls->rb_swap, ls->flipy);
+#elif V3D_VER_AT_LEAST(4,0,2,0)
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
       ls->memory_format, ls->pixel_format, ls->flipy);
-
-# if V3D_HAS_TLB_SWIZZLE
-   if (ls->chan_reverse) lfmt = gfx_lfmt_reverse_channels(lfmt);
-   if (ls->rb_swap) {
-      switch (gfx_lfmt_get_channels(&lfmt)) {
-         case GFX_LFMT_CHANNELS_RGBA: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_BGRA); break;
-         case GFX_LFMT_CHANNELS_RGBX: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_BGRX); break;
-         case GFX_LFMT_CHANNELS_BGRA: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_RGBA); break;
-         case GFX_LFMT_CHANNELS_BGRX: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_RGBX); break;
-         case GFX_LFMT_CHANNELS_ARGB: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_ABGR); break;
-         case GFX_LFMT_CHANNELS_XRGB: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_XBGR); break;
-         case GFX_LFMT_CHANNELS_ABGR: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_ARGB); break;
-         case GFX_LFMT_CHANNELS_XBGR: gfx_lfmt_set_channels(&lfmt, GFX_LFMT_CHANNELS_XRGB); break;
-         default: assert(0);     /* Only valid for RGBA/X images */
-      }
-   }
-# endif
 #else
    GFX_LFMT_T lfmt = calc_tlb_ldst_lfmt(buf, ls);
 #endif

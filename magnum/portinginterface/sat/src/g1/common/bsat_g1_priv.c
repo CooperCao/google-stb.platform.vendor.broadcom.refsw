@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1316,11 +1316,14 @@ BERR_Code BSAT_g1_P_GetConfig(BSAT_Handle h, uint32_t addr, uint32_t *pVal)
 BERR_Code BSAT_g1_P_SetChannelConfig(BSAT_ChannelHandle h, uint32_t addr, uint32_t val)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)h->pDevice->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
 
    BDBG_ENTER(BSAT_g1_P_SetChannelConfig);
 
-   if (addr >= BSAT_g1_CONFIG_MAX)
+   if (addr == BSAT_g1_CONFIG_SA_BUF_ADDR)
+      hDev->pSaBuf = (uint32_t*)val;
+   else if (addr >= BSAT_g1_CONFIG_MAX)
       retCode = BERR_INVALID_PARAMETER;
    else
       hChn->configParam[addr] = val;
@@ -1336,11 +1339,14 @@ BERR_Code BSAT_g1_P_SetChannelConfig(BSAT_ChannelHandle h, uint32_t addr, uint32
 BERR_Code BSAT_g1_P_GetChannelConfig(BSAT_ChannelHandle h, uint32_t addr, uint32_t *pVal)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)h->pDevice->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
 
    BDBG_ENTER(BSAT_g1_P_GetChannelConfig);
 
-   if (addr >= BSAT_g1_CONFIG_MAX)
+   if (addr == BSAT_g1_CONFIG_SA_BUF_ADDR)
+      *pVal = (uint32_t)hDev->pSaBuf;
+   else if (addr >= BSAT_g1_CONFIG_MAX)
       retCode = BERR_INVALID_PARAMETER;
    else
       *pVal = hChn->configParam[addr];
@@ -2104,4 +2110,96 @@ BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT
    BSTD_UNUSED(pStatus);
    return BERR_NOT_SUPPORTED;
 #endif
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_ScanSpectrum()
+******************************************************************************/
+BERR_Code BSAT_g1_P_ScanSpectrum(BSAT_ChannelHandle h, BSAT_ScanSpectrumSettings *pSettings)
+{
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)h->pDevice->pImpl;
+   BERR_Code retCode;
+
+   BDBG_ENTER(BSAT_g1_P_ScanSpectrum);
+
+   if (hDev->pSaBuf == 0)
+      return BERR_NOT_INITIALIZED;
+
+   if (BSAT_g1_P_IsSdsOn(h) == false)
+      return BSAT_ERR_POWERED_DOWN;
+
+   if (pSettings->adcSelect >= 4)
+      return (BERR_TRACE(BERR_INVALID_PARAMETER));
+
+   if ((pSettings->startFreq < 10000000) || (pSettings->stopFreq > 2400000000UL) ||
+       (pSettings->stopFreq <= pSettings->startFreq) || (pSettings->resBw > BSAT_ResBw_e10mhz) ||
+       (pSettings->vidBw > BSAT_VidBw_e10khz))
+      return (BERR_TRACE(BERR_INVALID_PARAMETER));
+
+   BKNI_Memcpy(&(hChn->saSettings), pSettings, sizeof(BSAT_ScanSpectrumSettings));
+
+#if 0
+   BKNI_Printf("ScanSpectrum: ADC=%d, start=%u, stop=%u, RBW_idx=%u, VBW_idx=%u\n",
+      hChn->saSettings.adcSelect, hChn->saSettings.startFreq, hChn->saSettings.stopFreq,
+      hChn->saSettings.resBw, hChn->saSettings.vidBw);
+#endif
+   BSAT_CHK_RETCODE(BSAT_g1_P_PrepareNewAcquisition(h));
+
+   hChn->acqSettings.freq = pSettings->startFreq;
+   hChn->acqSettings.adcSelect = pSettings->adcSelect;
+   hChn->acqSettings.symbolRate = 20000000;
+   hChn->acqSettings.options = 0;
+   hChn->operation = BSAT_Operation_eSa;
+   hChn->saStatus.status = BSAT_ERR_BUSY;
+   hChn->saStatus.bValid = false;
+   hChn->saStatus.numSamples = 0;
+
+   if (hChn->saSettings.resBw <= BSAT_ResBw_e300khz)
+      hChn->acqSettings.symbolRate = 1000000;
+   else if (hChn->saSettings.resBw == BSAT_ResBw_e3mhz)
+      hChn->acqSettings.symbolRate = 3000000;
+   else if (hChn->saSettings.resBw == BSAT_ResBw_e10mhz)
+      hChn->acqSettings.symbolRate = 10000000;
+   else /* (hChn->saSettings.resBw == BSAT_ResBw_e30mhz) */
+      hChn->acqSettings.symbolRate = 30000000;
+
+   BSAT_CHK_RETCODE(BSAT_g1_P_SetAdcSelect(h, pSettings->adcSelect));
+
+   hChn->bAbortAcq = false;
+   hChn->functState = 0;
+   retCode = BSAT_g1_P_EnableTimer(h, BSAT_TimerSelect_eBaudUsec, 30, BSAT_g1_P_SaStateMachine_isr);
+
+   done:
+   BDBG_LEAVE(BSAT_g1_P_ScanSpectrum);
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_GetSpectrumStatus()
+******************************************************************************/
+BERR_Code BSAT_g1_P_GetSpectrumStatus(BSAT_ChannelHandle h, BSAT_SpectrumStatus *pStatus, uint8_t *pData)
+{
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+#ifndef BSAT_HAS_LEAP
+   BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)h->pDevice->pImpl;
+   uint8_t *pBuf = (uint8_t*)((void*)hDev->pSaBuf);
+   uint32_t i;
+
+   BDBG_ASSERT(pData);
+#endif
+
+   *pStatus = hChn->saStatus;
+#ifndef BSAT_HAS_LEAP
+   if (hChn->saStatus.bValid)
+   {
+      for (i = 0; i < hChn->saStatus.numSamples; i++)
+      {
+         pData[i] = pBuf[i];
+      }
+   }
+#endif
+   return BERR_SUCCESS;
 }

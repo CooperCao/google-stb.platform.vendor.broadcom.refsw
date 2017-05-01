@@ -1,6 +1,7 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
+
 #include "glsl_dominators.h"
 #include "glsl_basic_block.h"
 #include "glsl_ir_shader.h"

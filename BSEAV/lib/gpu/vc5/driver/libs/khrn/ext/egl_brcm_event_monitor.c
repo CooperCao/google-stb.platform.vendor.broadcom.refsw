@@ -1,39 +1,24 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <EGL/eglext_brcm.h>
 #include "../egl/egl_thread.h"
 #include "../egl/egl_display.h"
 #include "../common/khrn_process.h"
-#include "../common/khrn_event_monitor.h"
 #include "libs/platform/bcm_perf_api.h"
 
 #if EGL_BRCM_event_monitor
 
 static EGLint egl_get_num_event_tracks()
 {
-   EGLint ret = 0;
-
-   ret = bcm_sched_get_num_event_tracks();
-
-   ret += khrn_driver_get_num_event_tracks();
-
-   return ret;
+   return bcm_sched_get_num_event_tracks();
 }
 
 static EGLint egl_get_num_events()
 {
-   EGLint ret = 0;
-
-   ret = bcm_sched_get_num_events();
-
-   ret += khrn_driver_get_num_events();
-
-   return ret;
+   return bcm_sched_get_num_events();
 }
 
 EGLAPI EGLint EGLAPIENTRY eglGetEventConstantBRCM(
@@ -81,9 +66,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetEventTrackInfoBRCM(
 
    ok = bcm_sched_describe_event_track(track, &desc);
 
-   if (!ok)
-      ok = khrn_driver_describe_event_track(track, &desc);
-
    if (ok)
    {
       egl_thread_set_error(EGL_SUCCESS);
@@ -117,9 +99,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetEventInfoBRCM(
       return EGL_FALSE;
 
    ok = bcm_sched_describe_event(event, &desc);
-
-   if (!ok)
-      ok = khrn_driver_describe_event(event, &desc);
 
    if (ok)
    {
@@ -162,9 +141,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetEventDataFieldInfoBRCM(
       return EGL_FALSE;
 
    ok = bcm_sched_describe_event_data(event, field, &desc);
-
-   if (!ok)
-      ok = khrn_driver_describe_event_data(event, field, &desc);
 
    if (ok)
    {
@@ -228,8 +204,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSetEventCollectionBRCM(
    else if (pname == EGL_RELEASE_EVENTS_BRCM)
       thread->events_acquired = false;
 
-   khrn_driver_poll_set_event_collection(thread->events_acquired);
-
    egl_thread_set_error(EGL_SUCCESS);
    return EGL_TRUE;
 }
@@ -244,7 +218,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetEventDataBRCM(
 {
    uint32_t      bytes = 0;
    bool          lost_sched_data;
-   bool          lost_driver_data;
    EGL_THREAD_T  *thread = egl_thread_get();
 
    if (bytesWritten)
@@ -265,18 +238,20 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetEventDataBRCM(
       return EGL_FALSE;
    }
 
-   bytes = bcm_sched_poll_event_timeline(dataBufferBytes, data, &lost_sched_data, timebase);
+   if (dataBufferBytes < 0)
+   {
+      egl_thread_set_error(EGL_BAD_PARAMETER);
+      return EGL_FALSE;
+   }
 
-   if ((data != NULL) && (dataBufferBytes - bytes > 0))
-      bytes += khrn_driver_poll_event_timeline(dataBufferBytes - bytes, (void *)((uintptr_t)data + bytes), &lost_driver_data, NULL);
-   else
-      bytes += khrn_driver_poll_event_timeline(0, NULL, &lost_driver_data, NULL);
+   bytes = bcm_sched_poll_event_timeline(dataBufferBytes, data, &lost_sched_data, timebase);
+   assert(!data || !dataBufferBytes || bytes <= (unsigned)dataBufferBytes);
 
    if (bytesWritten)
       *bytesWritten = bytes;
 
    if (overflowed)
-      *overflowed = lost_sched_data || lost_driver_data;
+      *overflowed = lost_sched_data;
 
    egl_thread_set_error(EGL_SUCCESS);
    return EGL_TRUE;

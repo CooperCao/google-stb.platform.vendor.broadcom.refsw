@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -634,17 +634,23 @@ bool BSAT_g1_P_IsAfecOn_isrsafe(BSAT_ChannelHandle h)
    uint32_t val;
    bool bIsOn = true;
 
-   if (pDev->chipFamily != BSAT_CHIP_FAMILY_GYPSUM_A0)
-   {
-      /* check AFEC clock enable */
-      val = BREG_Read32(pDev->hRegister, BSAT_afec_clock_enable_status_reg[h->channel]);
-      if ((val & 0x03) != 0x03)
-         bIsOn = false;
-   }
+   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+   if ((val & (1 << h->channel)) == 0)
+      bIsOn = false;
    else
    {
-      /* gypsum */
-      bIsOn = BSAT_g1_P_GypsumIs270MHzClockEnabled(h);
+      if (pDev->chipFamily != BSAT_CHIP_FAMILY_GYPSUM_A0)
+      {
+         /* check AFEC clock enable */
+         val = BREG_Read32(pDev->hRegister, BSAT_afec_clock_enable_status_reg[h->channel]);
+         if ((val & 0x03) != 0x03)
+            bIsOn = false;
+      }
+      else
+      {
+         /* gypsum */
+         bIsOn = BSAT_g1_P_GypsumIs270MHzClockEnabled(h);
+      }
    }
 
    return bIsOn;
@@ -657,10 +663,15 @@ bool BSAT_g1_P_IsAfecOn_isrsafe(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_AfecPowerUp_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val;
 
    if (BSAT_g1_P_IsAfecOn_isrsafe(h) == false)
    {
       BSAT_DEBUG_POWERDOWN(BDBG_ERR(("AFEC%d Power Up", h->channel)));
+
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+      val |= (1 << h->channel);
+      BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
 
       if (pDev->chipFamily != BSAT_CHIP_FAMILY_GYPSUM_A0)
       {
@@ -686,6 +697,7 @@ BERR_Code BSAT_g1_P_AfecPowerUp_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_AfecPowerDown_isrsafe(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val;
 
    if (BSAT_g1_P_IsAfecOn_isrsafe(h))
    {
@@ -704,6 +716,10 @@ BERR_Code BSAT_g1_P_AfecPowerDown_isrsafe(BSAT_ChannelHandle h)
          /* gypsum - disable 270MHz clock (shared with AFEC) */
          BSAT_g1_P_GypsumEnable270MhzClock(h, false);
       }
+
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+      val &= ~(1 << h->channel);
+      BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
    }
    done:
    return BERR_SUCCESS;

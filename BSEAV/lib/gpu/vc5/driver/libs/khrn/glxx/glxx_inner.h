@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Functions for driving the hardware for both GLES1.1 and GLES2.0.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_INNER_4_H
 #define GLXX_INNER_4_H
 
@@ -31,9 +23,5 @@ extern bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
 extern void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs);
 
 extern v3d_compare_func_t glxx_hw_convert_test_function(GLenum function);
-
-extern bool glxx_hw_render_state_discard_and_restart(
-   GLXX_SERVER_STATE_T *state,
-   GLXX_HW_RENDER_STATE_T *rs);
 
 #endif

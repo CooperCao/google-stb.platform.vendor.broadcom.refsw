@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_DECODER_H__
 #define NEXUS_VIDEO_DECODER_H__
@@ -428,6 +427,15 @@ Returns non-zero if none available.
 NEXUS_Error NEXUS_VideoDecoder_ReadMultiPassDqtData(
     NEXUS_VideoDecoderHandle handle,
     NEXUS_VideoDecoderMultiPassDqtData *pData
+    );
+
+typedef struct NEXUS_VideoDecoderModuleStatistics
+{
+    unsigned maxDecodedWidth, maxDecodedHeight; /* max with and height decoded since NEXUS_Platform_Init */
+} NEXUS_VideoDecoderModuleStatistics;
+
+void NEXUS_VideoDecoderModule_GetStatistics(
+    NEXUS_VideoDecoderModuleStatistics *pStats
     );
 
 #ifdef __cplusplus

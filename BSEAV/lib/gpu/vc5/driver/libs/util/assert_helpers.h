@@ -1,16 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef ASSERT_H
 #define ASSERT_H
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "vcos_types.h" /* For VCOS_FUNCTION */
 
 #ifdef __cplusplus
 #define assertion_abort() ::abort()
@@ -26,7 +22,7 @@ All rights reserved.
    {                                                                     \
       __android_log_print(ANDROID_LOG_ERROR, "Assert",                   \
                            "Assert at %s:%u:%s\n",                       \
-                           __FILE__, __LINE__, VCOS_FUNCTION);           \
+                           __FILE__, __LINE__, __FUNCTION__);            \
       __android_log_print(ANDROID_LOG_ERROR, "Assert", __VA_ARGS__);     \
       assertion_abort();                                                 \
    } while (0)
@@ -35,7 +31,7 @@ All rights reserved.
    do                                                                    \
    {                                                                     \
       fprintf(stderr, "\nASSERT at %s:%u:%s\n",                          \
-              __FILE__, __LINE__, VCOS_FUNCTION);                        \
+              __FILE__, __LINE__, __FUNCTION__);                         \
       fprintf(stderr, __VA_ARGS__);                                      \
       fprintf(stderr, "\n");                                             \
       assertion_abort();                                                 \
@@ -67,9 +63,13 @@ All rights reserved.
 #endif
 
 #ifdef NDEBUG
-#define assume(COND) do { if(!(COND)) { builtin_unreachable(); } } while(0)
+ #ifdef _MSC_VER
+  #define assume(COND) __assume(COND)
+ #else
+  #define assume(COND) do { if(!(COND)) { builtin_unreachable(); } } while(0)
+ #endif
 #else
-#define assume(COND) assert(COND)
+ #define assume(COND) assert(COND)
 #endif
 
 /** static_assert */

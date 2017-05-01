@@ -595,6 +595,9 @@ typedef struct BMUXlib_File_MP4_P_CreateData
 {
    BDBG_OBJECT(BMUXlib_File_MP4_P_CreateData)
 
+   BMUXlib_Input_Handle          aInputs[BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS];
+   BMUXlib_InputGroup_Handle     hInputGroup;            /* the group of inputs to use for input data */
+
    BMUXlib_File_MP4_P_ReleaseQEntry *pReleaseQFreeList;  /* list of nodes to use for constructing release queues */
    uint32_t                      uiReleaseQFreeCount;
 
@@ -653,7 +656,6 @@ typedef struct BMUXlib_File_MP4_P_Context
    BMUXlib_File_MP4_P_Input      aActiveInputs[BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS];
 
    BMUXlib_File_MP4_P_Input      *pLeadInput;            /* the "lead" input (the input that has the lowest initial DTS value) */
-   BMUXlib_InputGroup_Handle     hInputGroup;            /* the group of inputs to use for input data */
 
    BMUXlib_File_MP4_P_TrackInfo  aTracks[BMUXLIB_FILE_MP4_P_MAX_TRACKS];
    uint32_t                      uiNumTracks;            /* number of tracks in use in the Tracks array */

@@ -42,6 +42,7 @@
 #include "video_decode_nx.h"
 #include "audio_decode_nx.h"
 #include "display_nx.h"
+#include "power_nx.h"
 
 BDBG_MODULE(atlas_control);
 
@@ -347,6 +348,200 @@ error:
     return(ret);
 } /* swapPip() */
 
+bool CControlNx::checkPower(void)
+{
+    CBoardResources * pBoardResources = NULL;
+    CPowerNx *        pPowerNx        = NULL;
+    bool              powerOn         = false;
+
+
+    pBoardResources = _pConfig->getBoardResources();
+    BDBG_ASSERT(NULL != pBoardResources);
+#if POWERSTANDBY_SUPPORT
+    pPowerNx = (CPowerNx *)pBoardResources->checkoutResource(_id, eBoardResource_power);
+    if(pPowerNx == NULL) {
+        BDBG_WRN(("Power resource is not available "));
+        return false;
+    }
+
+    BDBG_MSG(("CControlNX::%s mode:S%d", __FUNCTION__,pPowerNx->getMode()));
+    powerOn = pPowerNx->checkPower();
+    pBoardResources->checkinResource(pPowerNx);
+    BKNI_Sleep(1000);
+    return powerOn;
+#else
+   BSTD_UNUSED(pPowerNx);
+   return powerOn;
+#endif
+
+}
+
+eRet CControlNx::setPowerMode(ePowerMode mode)
+{
+    eRet              ret             = eRet_Ok;
+#if POWERSTANDBY_SUPPORT
+    CBoardResources * pBoardResources = NULL;
+    CPowerNx *        pPowerNx        = NULL;
+    CDisplay *        pDisplayHD      = _pModel->getDisplay(0);
+    CDisplay *        pDisplaySD      = _pModel->getDisplay(1);
+    CGraphics *       pGraphics       = _pModel->getGraphics();
+
+    pBoardResources = _pConfig->getBoardResources();
+    BDBG_ASSERT(NULL != pBoardResources);
+    pPowerNx = (CPowerNx *)pBoardResources->checkoutResource(_id, eBoardResource_power);
+
+
+    BDBG_MSG(("CControlNx::%s mode:S%d", __FUNCTION__, mode));
+    if (pPowerNx->getMode() == mode)
+    {
+        /* requested mode matches existing mode - still call setMode() which
+         * will send out mode change notification that views may be waiting for */
+        ret = pPowerNx->setMode(mode);
+        CHECK_ERROR_GOTO("Unable to re-set power mode", ret, error);
+        goto done;
+    }
+
+    switch (mode)
+    {
+    case ePowerMode_S0:
+        /* On */
+    {
+        ret = pPowerNx->setMode(mode, pGraphics);
+        CHECK_ERROR_GOTO("unable to set power mode S0", ret, error);
+
+        if (NULL != pDisplayHD)
+        {
+            pDisplayHD->enableOutputs(true);
+        }
+        if (NULL != pDisplaySD)
+        {
+            pDisplaySD->enableOutputs(true);
+        }
+
+        /* enabling outputs only happens on vsync so add slight delay */
+        BKNI_Sleep(100);
+
+        ipServerStart();
+
+        SET(_pCfg, FIRST_TUNE, "true");
+    }
+    break;
+
+    case ePowerMode_S3:
+    /*
+     * Deep Sleep Standby
+     * fall-through
+     */
+
+    case ePowerMode_S2:
+        /*
+         * Passive Standby
+         * stop recordings and untune channels
+         */
+    {
+        stopAllRecordings();
+        stopAllEncodings();
+        stopAllPlaybacks();
+        /* Save last Channel before stopping everything */
+        {
+            CChannel * pChannel = _pModel->getCurrentChannel();
+
+            if ((NULL != pChannel) && (true == pChannel->isTuned()))
+            {
+                /* before we untune, we will save the current "last" channel because
+                   the untune command will overwrite this with the current channel.
+                   we will then restore this saved last channel after transitioning
+                   to S0 mode.  see FIRST_TUNE */
+                _pModel->saveLastTunedChannelPowerSave();
+                ret = unTuneChannel(pChannel, true);
+                CHECK_ERROR_GOTO("unable to untune channel", ret, error);
+            }
+        }
+        unTuneAllChannels();
+        ipServerStop();
+    }
+    /* fall-through */
+
+    case ePowerMode_S1:
+        /* Active Standby */
+    {
+        ret = showPip(false);
+        CHECK_ERROR_GOTO("unable to hide PiP", ret, error);
+
+        stopAllPlaybacks();
+
+        /* untune live channel */
+        {
+            CChannel * pChannel = _pModel->getCurrentChannel();
+
+            if ((NULL != pChannel) && (true == pChannel->isTuned()))
+            {
+                /* before we untune, we will save the current "last" channel because
+                   the untune command will overwrite this with the current channel.
+                   we will then restore this saved last channel after transitioning
+                   to S0 mode.  see FIRST_TUNE */
+                _pModel->saveLastTunedChannelPowerSave();
+
+                ret = unTuneChannel(pChannel, true);
+                CHECK_ERROR_GOTO("unable to untune channel", ret, error);
+            }
+        }
+    }
+
+        if (NULL != pDisplayHD)
+        {
+            pDisplayHD->enableOutputs(false);
+        }
+        if (NULL != pDisplaySD)
+        {
+            pDisplaySD->enableOutputs(false);
+        }
+
+        /* disabling outputs only happens on vsync so add slight delay */
+        BKNI_Sleep(100);
+
+        ret = pPowerNx->setMode(mode, pGraphics);
+        CHECK_ERROR_GOTO("unable to set power mode", ret, error);
+
+        break;
+
+    default:
+        break;
+    } /* switch */
+
+error:
+done:
+    pBoardResources->checkinResource(pPowerNx);
+#endif
+    return(ret);
+} /* setPower */
+
+ePowerMode CControlNx::getPowerMode()
+{
+    ePowerMode          mode            = ePowerMode_Max;
+#if POWERSTANDBY_SUPPORT
+    CPowerNx *          pPowerNx          = NULL;
+    CBoardResources *   pBoardResources = NULL;
+
+    pBoardResources = _pConfig->getBoardResources();
+    BDBG_ASSERT(NULL != pBoardResources);
+    pPowerNx = (CPowerNx *)pBoardResources->checkoutResource(_id, eBoardResource_power);
+    if(pPowerNx == NULL) {
+        mode = ePowerMode_S0;
+        goto done;
+    }
+
+    mode = pPowerNx->getMode();
+
+    pBoardResources->checkinResource(pPowerNx);
+done:
+#else
+    mode = ePowerMode_S0;
+#endif
+    return(mode);
+}
+
+
 int32_t CControlNx::getVolume(void)
 {
     MList<COutput> * pAudioOutputList = _pModel->getAudioOutputList();
@@ -471,11 +666,6 @@ eRet CControlNx::connectDecoders(
 
         if ((eWindowType_Mosaic1 <= winType) && (eWindowType_Max > winType))
         {
-            CSimpleVideoDecode * pVideoDecodeMosaic1 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic1);
-            CSimpleVideoDecode * pVideoDecodeMosaic2 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic2);
-            CSimpleVideoDecode * pVideoDecodeMosaic3 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic3);
-            CSimpleVideoDecode * pVideoDecodeMosaic4 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic4);
-
             /* disable closed caption routing in mosaic decoders */
             {
                 CDisplayNx * pDisplayHD = (CDisplayNx *)_pModel->getDisplay(0);
@@ -497,25 +687,17 @@ eRet CControlNx::connectDecoders(
                 }
             }
 
-            if (NULL != pVideoDecodeMosaic1)
+            for (int i = eWindowType_Mosaic1; i < eWindowType_Max; i++)
             {
-                BDBG_MSG(("connecting MOSAIC1"));
-                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic1)->updateConnectSettings(&settings, index++);
-            }
-            if (NULL != pVideoDecodeMosaic2)
-            {
-                BDBG_MSG(("connecting MOSAIC2"));
-                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic2)->updateConnectSettings(&settings, index++);
-            }
-            if (NULL != pVideoDecodeMosaic3)
-            {
-                BDBG_MSG(("connecting MOSAIC3"));
-                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic3)->updateConnectSettings(&settings, index++);
-            }
-            if (NULL != pVideoDecodeMosaic4)
-            {
-                BDBG_MSG(("connecting MOSAIC4"));
-                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic4)->updateConnectSettings(&settings, index++);
+                CSimpleVideoDecode * pVideoDecodeMosaic = _pModel->getSimpleVideoDecode((eWindowType)i);
+
+                if (NULL == pVideoDecodeMosaic)
+                {
+                    continue;
+                }
+
+                BDBG_MSG(("connecting MOSAIC%d", i));
+                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic)->updateConnectSettings(&settings, index++);
             }
         }
         else
@@ -537,10 +719,10 @@ eRet CControlNx::connectDecoders(
 
     if ((eWindowType_Mosaic1 <= winType) && (eWindowType_Max > winType))
     {
-        _pModel->setConnectId(connectId, eWindowType_Mosaic1);
-        _pModel->setConnectId(connectId, eWindowType_Mosaic2);
-        _pModel->setConnectId(connectId, eWindowType_Mosaic3);
-        _pModel->setConnectId(connectId, eWindowType_Mosaic4);
+        for (int i = eWindowType_Mosaic1; i < eWindowType_Max; i++)
+        {
+            _pModel->setConnectId(connectId, (eWindowType)i);
+        }
     }
     else
     {
@@ -554,6 +736,12 @@ error:
 void CControlNx::disconnectDecoders(eWindowType winType)
 {
     uint32_t connectId = _pModel->getConnectId(winType);
+    CSimpleVideoDecode * pVideoDecode = _pModel->getSimpleVideoDecode(winType);
+
+    if (NULL != pVideoDecode)
+    {
+        pVideoDecode->setChannel(NULL);
+    }
 
     if (0 == connectId)
     {
@@ -564,10 +752,10 @@ void CControlNx::disconnectDecoders(eWindowType winType)
 
     if ((eWindowType_Mosaic1 <= winType) && (eWindowType_Max > winType))
     {
-        _pModel->setConnectId(0, eWindowType_Mosaic1);
-        _pModel->setConnectId(0, eWindowType_Mosaic2);
-        _pModel->setConnectId(0, eWindowType_Mosaic3);
-        _pModel->setConnectId(0, eWindowType_Mosaic4);
+        for (int i = eWindowType_Mosaic1; i < eWindowType_Max; i++)
+        {
+            _pModel->setConnectId(0, (eWindowType)i);
+        }
     }
     else
     {

@@ -906,7 +906,7 @@ static void BCHP_PWR_P_HW_NETWORK_CH_CTRL_CH_5_POST_DIV_HOLD_CH5_Control(BCHP_Ha
     mask = (BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5_POST_DIVIDER_HOLD_CH5_MASK |
             BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5_CLOCK_DIS_CH5_MASK);
     reg &= ~mask;
-    reg |= activate?0:mask;
+    /*reg |= activate?0:mask;*/
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5, reg);
 }
 
@@ -920,7 +920,7 @@ static void BCHP_PWR_P_HW_RAAGA0_Control(BCHP_Handle handle, bool activate)
     mask = (BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_54_CLOCK_ENABLE_RAAGA0_MASK |
             BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_SCB_CLOCK_ENABLE_RAAGA0_MASK);
     reg &= ~mask;
-    reg |= activate?mask:0;
+    reg |= mask/*activate?mask:0*/;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0, reg);
 }
 
@@ -934,7 +934,7 @@ static void BCHP_PWR_P_HW_RAAGA0_AIO_Control(BCHP_Handle handle, bool activate)
     mask = (BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_GISB_CLOCK_ENABLE_RAAGA0_MASK |
             BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_108_CLOCK_ENABLE_RAAGA0_MASK);
     reg &= ~mask;
-    reg |= activate?mask:0;
+    reg |= mask/*activate?mask:0*/;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0, reg);
 }
 
@@ -947,7 +947,7 @@ static void BCHP_PWR_P_HW_RAAGA0_SRAM_Control(BCHP_Handle handle, bool activate)
     reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_RAAGA0);
     mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_RAAGA0_SRAM_PDA_IN_RAAGA0_MASK;
     reg &= ~mask;
-    reg |= activate?0:mask;
+    /*reg |= activate?0:mask;*/
     BREG_Write32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_RAAGA0, reg);
     {
         uint32_t val=0, cnt=50;
@@ -974,7 +974,7 @@ static void BCHP_PWR_P_HW_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0_Control(BCHP_Han
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0);
     mask = BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0_DSP_CLOCK_ENABLE_AIO_RAAGA0_MASK;
     reg &= ~mask;
-    reg |= activate?mask:0;
+    reg |= mask/*activate?mask:0*/;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0, reg);
 }
 
@@ -987,7 +987,7 @@ static void BCHP_PWR_P_HW_RAAGA_DSP_0_RAAGA0_DSP_RAAGA0_Control(BCHP_Handle hand
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0);
     mask = BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_DSP_CLOCK_ENABLE_RAAGA0_MASK;
     reg &= ~mask;
-    reg |= activate?mask:0;
+    reg |= mask/*activate?mask:0*/;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0, reg);
 }
 

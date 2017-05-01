@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 /*
   Overview
@@ -16,8 +16,8 @@
 #define KHRN_FMEM_POOL_4_H
 
 #include "khrn_types.h"
+#include "libs/core/v3d/v3d_barrier.h"
 #include "libs/platform/gmem.h"
-#include "libs/platform/v3d_barrier.h"
 #include "libs/util/assert_helpers.h"
 
 /* buffers are allocated on demand up to this limit */
@@ -44,7 +44,7 @@ static_assrt(KHRN_FMEM_MAX_PER_RS > 0);
 typedef struct khrn_memaccess khrn_memaccess;
 #endif
 
-typedef struct
+typedef struct khrn_fmem_buffer
 {
    bool in_use;
 
@@ -53,16 +53,16 @@ typedef struct
    v3d_addr_t hw_address;
    uint32_t bytes_used;
 
-} KHRN_FMEM_BUFFER;
+} khrn_fmem_buffer;
 
 /* each fmem state has one of these which tracks the buffers associated with a
  * frame; it is assumed that any operations on this structure is protected by the gl lock */
-typedef struct
+typedef struct khrn_fmem_pool
 {
-   KHRN_FMEM_BUFFER *buffer[KHRN_FMEM_MAX_BLOCKS];
+   khrn_fmem_buffer *buffer[KHRN_FMEM_MAX_BLOCKS];
    unsigned n_buffers;
    bool buffers_submitted;
-} KHRN_FMEM_POOL_T;
+} khrn_fmem_pool;
 
 extern bool khrn_fmem_client_pool_init(void);
 extern void khrn_fmem_client_pool_deinit(void);
@@ -73,17 +73,17 @@ extern void khrn_fmem_client_pool_deinit(void);
 extern unsigned khrn_fmem_client_pool_get_num_free_and_submitted(void);
 
 /* Used at frame creation/discarding/completion time */
-extern void khrn_fmem_pool_init(KHRN_FMEM_POOL_T *pool,
-                                KHRN_RENDER_STATE_T *render_state);
+extern void khrn_fmem_pool_init(khrn_fmem_pool *pool,
+                                khrn_render_state *render_state);
 
-extern void khrn_fmem_pool_deinit(KHRN_FMEM_POOL_T *pool);
+extern void khrn_fmem_pool_deinit(khrn_fmem_pool *pool);
 
-extern void *khrn_fmem_pool_alloc(KHRN_FMEM_POOL_T *pool);
+extern void *khrn_fmem_pool_alloc(khrn_fmem_pool *pool);
 
-extern void khrn_fmem_pool_post_cpu_write(KHRN_FMEM_POOL_T* pool);
+extern void khrn_fmem_pool_post_cpu_write(khrn_fmem_pool* pool);
 
 extern void khrn_fmem_pool_submit(
-   KHRN_FMEM_POOL_T *pool,
+   khrn_fmem_pool *pool,
 #if KHRN_DEBUG
    khrn_memaccess* memacces,
 #endif
@@ -91,16 +91,16 @@ extern void khrn_fmem_pool_submit(
    v3d_barrier_flags* render_rw_flags);
 
 /* Convert a client-side CPU address into a V3D address */
-extern v3d_addr_t khrn_fmem_pool_hw_address(KHRN_FMEM_POOL_T *pool, void *address);
+extern v3d_addr_t khrn_fmem_pool_hw_address(khrn_fmem_pool *pool, void *address);
 
 /* Return true if this render state is using too many fmem buffers.
  * Caller should flush. */
-static inline bool khrn_fmem_pool_should_flush(KHRN_FMEM_POOL_T *pool)
+static inline bool khrn_fmem_pool_should_flush(khrn_fmem_pool *pool)
 {
    return pool->n_buffers >= KHRN_FMEM_MAX_PER_RS;
 }
 
 /* Mark the end of a block allocated from khrn_fmem_pool_alloc. */
-extern void khrn_fmem_pool_finalise_end(KHRN_FMEM_POOL_T *pool, void *address);
+extern void khrn_fmem_pool_finalise_end(khrn_fmem_pool *pool, void *address);
 
 #endif

@@ -480,7 +480,7 @@ Audio decoder status
 typedef struct NEXUS_AudioDecoderStatus
 {
     bool valid; /* true successfully acquired decoder status */
-    bool    started; /* true if decoder was started */
+    NEXUS_AudioRunningState started; /* returns if stopped, running, or suspended */
 
     bool tsm;        /* AudioDecoder is in TSM (time stamp managed) mode. TSM may be not applicable (e.g. ES streams), may be disabled directly
                         by the user (setting stcChannel = NULL) or indirectly by other API's (e.g. trick modes, ASTM, etc.) */
@@ -1193,6 +1193,17 @@ typedef enum NEXUS_AudioDecoderAc4PresentationSelectionMode
 
 /***************************************************************************
 Summary:
+AC4 Programs
+***************************************************************************/
+typedef enum NEXUS_AudioDecoderAc4Program
+{
+    NEXUS_AudioDecoderAc4Program_eMain,
+    NEXUS_AudioDecoderAc4Program_eAlternate,
+    NEXUS_AudioDecoderAc4Program_eMax
+} NEXUS_AudioDecoderAc4Program;
+
+/***************************************************************************
+Summary:
 AC-4 audio decoder settings
 
 Description:
@@ -1221,38 +1232,42 @@ typedef struct NEXUS_AudioDecoderAc4Settings
                                        Valid values are -32 to 32. -32 is main only, 32 is description only.
                                        Default is -32 */
 
+    int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
+
+    unsigned certificationMode;     /* for internal use only */
+
+    bool enableAssociateMixing;     /* Enable mixing of associate program */
+
     NEXUS_AudioDecoderAc4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the presentation -
                                                                        Default setting is eAuto, allowing the decoder to choose based on the presence or absense
                                                                        of Presentation Index or Id, followed by the various personalization parameters.;
                                                                        eAuto setting should be used for certification testing */
 
-    unsigned presentationIndex;        /* Multiple "presentation" groups can exist within a single program.
-                                          To select by presentation index, set selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIndex
-                                          Valid values are 0 - 511. Default value is 0.
-                                          See NEXUS_AudioDecoderStatus/NEXUS_AudioDecoderPresentationStatus for more information. */
-
-    char presentationId[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH]; /* Multiple "presentation" groups can exist within a single program.
-                                                                    To select by presentation Id, set selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIdentifier
-                                                                    This unique id can come in short or long varieties, per the Dolby AC4 spec.
-                                                                    Presentation Ids are obtained from the Stream Status info.
-                                                                    See NEXUS_AudioDecoderStatus/NEXUS_AudioDecoderPresentationStatus for more information */
-
-    int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
-
-    unsigned certificationMode;     /* for internal use only */
-
-
-    /* optional personalization parameters */
-    bool preferLanguageOverAssociateType; /* correlates to Dolby AC4 preference for language over associate type -
-                                             Default setting is false (Associate type is prioritized over Language) */
-
+    /* program selection - program 0 is the main program.
+       program 1 is an optional alternate program, typically second language */
     struct {
-        char selection[NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
-                                                                   8 characters should be truncated. */
-    } languagePreference[NEXUS_AUDIO_AC4_NUM_LANGUAGES];
+        unsigned presentationIndex;        /* Multiple "presentation" groups can exist within a single program.
+                                              To select by presentation index, set selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIndex
+                                              Valid values are 0 - 511. Default value is 0.
+                                              See NEXUS_AudioDecoderStatus/NEXUS_AudioDecoderPresentationStatus for more information. */
 
-    NEXUS_AudioAc4AssociateType preferredAssociateType;
-    bool enableAssociateMixing;     /* Enable mixing of associate program */
+        char presentationId[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH]; /* Multiple "presentation" groups can exist within a single program.
+                                                                        To select by presentation Id, set selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIdentifier
+                                                                        This unique id can come in short or long varieties, per the Dolby AC4 spec.
+                                                                        Presentation Ids are obtained from the Stream Status info.
+                                                                        See NEXUS_AudioDecoderStatus/NEXUS_AudioDecoderPresentationStatus for more information */
+
+        /* optional personalization parameters */
+        bool preferLanguageOverAssociateType; /* correlates to Dolby AC4 preference for language over associate type -
+                                                 Default setting is false (Associate type is prioritized over Language) */
+
+        struct {
+            char selection[NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
+                                                                       8 characters should be truncated. */
+        } languagePreference[NEXUS_AUDIO_AC4_NUM_LANGUAGES];
+
+        NEXUS_AudioAc4AssociateType preferredAssociateType;
+    } programs[NEXUS_AudioDecoderAc4Program_eMax];
 
 } NEXUS_AudioDecoderAc4Settings;
 

@@ -228,8 +228,8 @@ NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettin
         BLST_S_INSERT_HEAD(&NEXUS_P_Base_State.modules, module, link);
     }
 
-    if (NEXUS_P_Base_State.settings.driverModuleInit) {
-        (NEXUS_P_Base_State.settings.driverModuleInit)(NEXUS_P_Base_State.settings.procContext, module, pModuleName, pSettings);
+    if (module->settings.dbgPrint) {
+        NEXUS_Module_RegisterProc(module, module->pModuleName, module->settings.dbgModules, module->settings.dbgPrint);
     }
 
     module->enabled = true;
@@ -260,8 +260,8 @@ NEXUS_Module_Destroy(NEXUS_ModuleHandle module)
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     NEXUS_LockModule();
 
-    if (NEXUS_P_Base_State.settings.driverModuleUninit) {
-        (NEXUS_P_Base_State.settings.driverModuleUninit)(NEXUS_P_Base_State.settings.procContext, module, module->pModuleName, &module->settings);
+    if (module->settings.dbgPrint) {
+        NEXUS_Module_UnregisterProc(module, module->pModuleName);
     }
 
     BDBG_MSG(("Destroying module %s", module->pModuleName));
@@ -889,17 +889,6 @@ NEXUS_Base_NO_OS_Scheduler_Dispatch(void)
 }
 #endif /* NO_OS_DIAGS */
 
-void
-NEXUS_Module_EnumerateAll(void (*callback)(void *context, NEXUS_ModuleHandle module, const char *pModuleName, const NEXUS_ModuleSettings *pSettings), void *context)
-{
-    NEXUS_ModuleHandle module;
-    /* Don't call NEXUS_LockModule because of possible deadlock. Do not call this function while adding/removing modules. */
-    for(module=BLST_S_FIRST(&NEXUS_P_Base_State.modules); module!=NULL; module=BLST_S_NEXT(module, link)) {
-        callback(context,module,module->pModuleName,&module->settings);
-    }
-    return ;
-}
-
 int NEXUS_StrCmp(const char *str1, const char *str2)
 {
     if(str1==NULL) {
@@ -1242,6 +1231,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "BVCE_GopRampFactor",
     "B_REFSW_BOARD_ID",
     "B_REFSW_BOXMODE",
+    "B_REFSW_DRAM_REFRESH_RATE",
     "B_REFSW_OVERRIDE_PRODUCT_ID_TO",
     "B_REFSW_PMAP_ID",
     "COMMON_DRM_CA_VENDOR_ID",
@@ -1341,7 +1331,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "sage_log",
     "sage_log_file",
     "sage_logging",
-    "sarnoff_lipsync_offset_disabled",
+    "sarnoff_lipsync_offset_enabled",
     "sarnoff_video_delay_workaround",
     "scl_coeff_chroma_h",
     "scl_coeff_chroma_v",
@@ -1447,3 +1437,17 @@ void NEXUS_P_PrintEnv(const char *mode)
     return;
 }
 #endif /* #if BDBG_DEBUG_WITH_STRINGS */
+
+void NEXUS_Module_RegisterProc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void))
+{
+    if (NEXUS_P_Base_State.settings.procInit) {
+        (NEXUS_P_Base_State.settings.procInit)(module, filename, module_name, dbgPrint);
+    }
+}
+
+void NEXUS_Module_UnregisterProc(NEXUS_ModuleHandle module, const char *filename)
+{
+    if (NEXUS_P_Base_State.settings.procUninit) {
+        (NEXUS_P_Base_State.settings.procUninit)(module, filename);
+    }
+}

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -125,6 +125,7 @@ typedef struct BIP_HttpStreamer
     BIP_TimerHandle                             hInactivityTimer;                       /* Timer to periodically check the Inactivity status of the Streamer. */
     bool                                        inactivityTimerActive;
     B_Time                                      inactivityTimerStartTime;
+    bool                                        inactivityTimerExpired;
 
     struct
     {
@@ -275,6 +276,10 @@ typedef struct BIP_HttpStreamer
     } destroyApi;
 
     BIP_HttpStreamerStats                       stats;
+
+#ifdef NEXUS_HAS_ASP
+    B_AspChannelHandle                          hAspChannel;
+#endif
 } BIP_HttpStreamer;
 
 #define BIP_HTTP_STREAMER_PRINTF_FMT  \

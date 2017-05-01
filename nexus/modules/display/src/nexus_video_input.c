@@ -190,6 +190,7 @@ NEXUS_VideoInput_P_LinkData_Init(NEXUS_VideoInput_P_LinkData *data, BAVC_SourceI
     BDBG_ASSERT(data);
     BKNI_Memset(data, 0, sizeof(*data));
     data->sourceId = sourceId;
+    data->mtg = BVDC_Mode_eOff;
     return;
 }
 
@@ -216,9 +217,6 @@ static void NEXUS_VideoInput_P_GetDefaultSettings(NEXUS_VideoInputSettings *pSet
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->video3DSettings.overrideOrientation = false;
     pSettings->video3DSettings.orientation = NEXUS_VideoOrientation_e2D;
-#if NEXUS_CRC_CAPTURE
-    pSettings->crcQueueSize = 80;
-#endif
     NEXUS_CallbackDesc_Init(&pSettings->sourceChanged);
     return;
 }
@@ -258,6 +256,7 @@ NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInp
     BKNI_CreateEvent(&link->drm.inputInfoUpdatedEvent);
     link->drm.inputInfoUpdatedEventHandler = NEXUS_RegisterEvent(link->drm.inputInfoUpdatedEvent, NEXUS_VideoInput_P_HdrInputInfoUpdated, link);
     link->drm.inputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
+    link->timebase = NEXUS_Timebase_eInvalid;
 
 #if NEXUS_VBI_SUPPORT
     /* Only default a CC buffer. All others require app to set buffer size. */
@@ -346,6 +345,14 @@ static BERR_Code nexus_p_install_videoinput_cb(NEXUS_VideoInput_P_Link *link)
     rc = BVDC_Source_InstallCallback(link->sourceVdc, NEXUS_VideoInput_P_SourceCallback_isr, link, 0);
     if (rc) return BERR_TRACE(rc);
 
+#if NEXUS_HAS_VIDEO_DECODER
+    if (link->cfg.crcQueueSize && link->input->type == NEXUS_VideoInputType_eDecoder) {
+        NEXUS_Module_Lock(pVideo->modules.videoDecoder);
+        NEXUS_VideoDecoder_EnableCrcMode_priv((NEXUS_VideoDecoderHandle)link->input->source);
+        NEXUS_Module_Unlock(pVideo->modules.videoDecoder);
+    }
+#endif
+
     return 0;
 }
 
@@ -401,14 +408,7 @@ NEXUS_VideoInput_P_Create_VdcSource(NEXUS_VideoInput source, NEXUS_VideoInput_P_
         /* This is set to true only for VideoImageInput without XDM */
         sourceCfg.bGfxSrc = data->gfxSource;
         link->mtg = data->mtg;
-#if NEXUS_MTG_DISABLED
-        sourceCfg.eMtgMode = BVDC_Mode_eOff;
-#else
-        if (!data->mtg) {
-            /* if window was not declared MTG capable in memconfig, we turn it off. */
-            sourceCfg.eMtgMode = BVDC_Mode_eOff;
-        }
-#endif
+        sourceCfg.eMtgMode = data->mtg;
 
         rc = BVDC_Source_Create(pVideo->vdc, &link->sourceVdc, data->sourceId, &sourceCfg);
         if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_source;}
@@ -501,10 +501,10 @@ NEXUS_VideoInput_P_Destroy_VdcSource(NEXUS_VideoInput_P_Link *link)
     BDBG_MSG((">NEXUS_VideoInput_P_Destroy_VdcSource input %p, link %p", (void *)link->input, (void *)link));
     BDBG_OBJECT_ASSERT(link, NEXUS_VideoInput_P_Link);
 
+    nexus_p_uninstall_videoinput_cb(link);
+
     if (!link->copiedSourceVdc && link->sourceVdc)
     {
-        nexus_p_uninstall_videoinput_cb(link);
-
         rc = BVDC_Source_Destroy(link->sourceVdc);
         if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
 
@@ -742,6 +742,28 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
     }
 }
 
+static void NEXUS_Display_P_VerifyDisplayTimebase_isr(NEXUS_VideoInput_P_Link *link)
+{
+    unsigned i, j;
+    NEXUS_Timebase timebase;
+
+    timebase = NEXUS_VideoDecoder_P_GetTimebase_isrsafe(link->input->source);
+    if(timebase != link->timebase) {
+        for (i=0;i<sizeof(pVideo->displays)/sizeof(pVideo->displays[0]);i++) {
+            NEXUS_DisplayHandle display = pVideo->displays[i];
+            if(!display) continue;
+            for(j=0; j<sizeof(display->windows)/sizeof(display->windows[0]); j++) {
+                NEXUS_VideoWindowHandle window = &display->windows[j];
+                if (!window->open) continue;
+                if((window->input == link->input)) {
+                        BDBG_WRN(("Display %u uses Timebase %ld, Decoder uses Timebase %ld", i, display->cfg.timebase, timebase));
+                }
+            }
+        }
+        link->timebase = timebase;
+    }
+}
+
 void
 NEXUS_VideoInput_P_DecoderDataReady_isr(void *input_, const BAVC_MFD_Picture *pPicture)
 {
@@ -769,6 +791,9 @@ NEXUS_VideoInput_P_DecoderDataReady_isr(void *input_, const BAVC_MFD_Picture *pP
 #endif
 
     NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(link);
+
+    if(pVideo->verifyTimebase)
+        NEXUS_Display_P_VerifyDisplayTimebase_isr(link);
 
     BVDC_Source_MpegDataReady_isr(link->sourceVdc, 0 /* unused */, (void *)pPicture);
     return;
@@ -879,11 +904,6 @@ NEXUS_VideoInput_P_DisconnectVideoDecoder(NEXUS_VideoInput_P_Link *link)
     return;
 }
 
-static bool nexus_p_window_alloc_mtg(NEXUS_VideoWindowHandle window)
-{
-    return g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].mtg;
-}
-
 NEXUS_VideoInput_P_Link *
 NEXUS_VideoInput_P_OpenDecoder(NEXUS_VideoInput input, NEXUS_VideoInput_P_Link *mosaicParent, NEXUS_VideoWindowHandle window)
 {
@@ -908,9 +928,7 @@ NEXUS_VideoInput_P_OpenDecoder(NEXUS_VideoInput input, NEXUS_VideoInput_P_Link *
     iface.disconnect = NEXUS_VideoInput_P_DisconnectVideoDecoder;
     NEXUS_VideoInput_P_LinkData_Init(&data, sourceId);
     data.heap = videoDecoderHeap;
-    if (window) {
-        data.mtg = nexus_p_window_alloc_mtg(window);
-    }
+    data.mtg = nexus_p_window_alloc_mtg(window);
 #if NEXUS_NUM_MOSAIC_DECODES
     if (mosaicParent) {
         data.sourceVdc = mosaicParent->sourceVdc;
@@ -1091,8 +1109,11 @@ NEXUS_VideoInput_P_GetForWindow(NEXUS_VideoInput input, NEXUS_VideoWindowHandle 
         switch(input->type) {
 #if NEXUS_HAS_VIDEO_DECODER && NEXUS_NUM_VIDEO_DECODERS
         case NEXUS_VideoInputType_eDecoder:
-            if (window && inputLink->mtg && !nexus_p_window_alloc_mtg(window)) {
-                /* TODO: nexus could destroy and recreate the BVDC_Source and turn off MTG */
+            if (nexus_p_input_is_mtg(inputLink) && nexus_p_window_alloc_mtg(window) == BVDC_Mode_eOff) {
+                /* TODO: If the source is MTG capable and is already created with eAuto, then all windows
+                must be MTG capable...unless we destroy and recreate the BVDC_Source with MTG off,
+                which would involved destroying and recreating windows. Note that calls like NEXUS_VideoInput_SetVbiSettings
+                will create the BVDC_Source in eAuto mode and must be deferred when connecting to non-MTG windows. */
                 BDBG_ERR(("cannot connect MTG source to MTG and non-MTG window paths"));
                 return NULL;
             }
@@ -1536,4 +1557,9 @@ void NEXUS_VideoInput_P_CheckFormatChange_isr(void *pParam)
     {
         BKNI_SetEvent_isr(pLink->checkFormatChangedEvent);
     }
+}
+
+bool nexus_p_input_is_mtg(NEXUS_VideoInput_P_Link *link)
+{
+    return link->mtg == BVDC_Mode_eAuto && link->id <= BAVC_SourceId_eMpegMax && g_pCoreHandles->boxConfig->stVdc.astSource[link->id].bMtgCapable;
 }

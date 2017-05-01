@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -84,25 +83,41 @@ static void BVC5_P_SetCoreEventTrack(
 static void BVC5_P_SetEvent(
    BVC5_P_EventMonitor    *ev,
    uint32_t               event,
-   const char             *name,
-   uint32_t                numFields
+   const char             *name
    )
 {
    _strncpy(ev->sEventDescs[event].sDesc.caName, name, BVC5_MAX_EVENT_STRING_LEN);
-   ev->sEventDescs[event].sDesc.uiNumDataFields = numFields;
+   ev->sEventDescs[event].sDesc.uiNumDataFields = 0;
+   ev->sEventDescs[event].uiSize = BVC5_P_EVENT_FIXED_BYTES;
 }
 
 static void BVC5_P_SetEventDesc(
    BVC5_P_EventDesc    *eventDesc,
-   uint32_t             id,
    BVC5_FieldType       type,
    const char          *name
    )
 {
+   uint32_t             id = eventDesc->sDesc.uiNumDataFields;
    BVC5_EventFieldDesc  *field = &eventDesc->sFieldDescs[id];
+
+   BDBG_ASSERT(id < BVC5_P_EVENT_MONITOR_MAX_FIELDS);
 
    field->eDataType = type;
    _strncpy(field->caName, name, BVC5_MAX_EVENT_STRING_LEN);
+
+   eventDesc->sDesc.uiNumDataFields++;
+
+   switch(field->eDataType)
+   {
+   case BVC5_EventInt32:
+   case BVC5_EventUInt32:
+      eventDesc->uiSize += 4;
+      break;
+   case BVC5_EventInt64:
+   case BVC5_EventUInt64:
+      eventDesc->uiSize += 8;
+      break;
+   }
 }
 
 static void BVC5_P_SetEvent3(
@@ -119,16 +134,11 @@ static void BVC5_P_SetEvent3(
 {
    BVC5_P_EventDesc  *eventDesc = &ev->sEventDescs[event];
 
-   uint32_t numFields = 3;
-   uint32_t i         = 0;
+   BVC5_P_SetEvent(ev, event, name);
 
-   BVC5_P_SetEvent(ev, event, name, numFields);
-
-   BVC5_P_SetEventDesc(eventDesc, i++, ftype1, fname1);
-   BVC5_P_SetEventDesc(eventDesc, i++, ftype2, fname2);
-   BVC5_P_SetEventDesc(eventDesc, i++, ftype3, fname3);
-
-   BDBG_ASSERT(i == numFields && i <= BVC5_P_EVENT_MONITOR_MAX_FIELDS);
+   BVC5_P_SetEventDesc(eventDesc, ftype1, fname1);
+   BVC5_P_SetEventDesc(eventDesc, ftype2, fname2);
+   BVC5_P_SetEventDesc(eventDesc, ftype3, fname3);
 }
 
 static void BVC5_P_SetEvents(
@@ -138,21 +148,16 @@ static void BVC5_P_SetEvents(
    uint32_t               extraCount
    )
 {
-   const uint32_t     numFields = 2 + extraCount;
    BVC5_P_EventDesc  *eventDesc = &ev->sEventDescs[event];
-
-   uint32_t           i = 0;
    uint32_t           n;
 
-   BVC5_P_SetEvent(ev, event, name, numFields);
+   BVC5_P_SetEvent(ev, event, name);
 
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt32, "ClientID");
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt64, "JobID");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "ClientID");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt64, "JobID");
 
    for (n = 0; n < extraCount; ++n)
-      BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt64, "Dep");
-
-   BDBG_ASSERT(i == numFields && i <= BVC5_P_EVENT_MONITOR_MAX_FIELDS);
+      BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt64, "Dep");
 }
 
 static void BVC5_P_SetEventTFU(
@@ -160,26 +165,22 @@ static void BVC5_P_SetEventTFU(
    uint32_t               extraCount
    )
 {
-   const uint32_t     numFields = 7 + extraCount;
    BVC5_P_EventDesc  *eventDesc = &ev->sEventDescs[BVC5_P_EVENT_MONITOR_TFU];
 
-   uint32_t           i = 0;
    uint32_t           n;
 
-   BVC5_P_SetEvent(ev, BVC5_P_EVENT_MONITOR_TFU, "TFU", numFields);
+   BVC5_P_SetEvent(ev, BVC5_P_EVENT_MONITOR_TFU, "TFU");
 
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt32, "ClientID");
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt64, "JobID");
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt32, "Width");
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt32, "Height");
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt32, "Stride");
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt32, "Mipmaps");
-   BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt32, "TType");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "ClientID");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt64, "JobID");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "Width");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "Height");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "Stride");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "Mipmaps");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "TType");
 
    for (n = 0; n < extraCount; ++n)
-      BVC5_P_SetEventDesc(eventDesc, i++, BVC5_EventUInt64, "Dep");
-
-   BDBG_ASSERT(i == numFields && i <= BVC5_P_EVENT_MONITOR_MAX_FIELDS);
+      BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt64, "Dep");
 }
 
 /***************************************************************************/
@@ -212,9 +213,7 @@ void BVC5_P_InitEventMonitor(
       BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK, "PTB Bin");
       BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK, "CLE Render");
       BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK, "TLB Render");
-#endif
-
-#if INCLUDE_LEGACY_EVENT_TRACKS
+#else
       BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK,    "Binner");
       BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK, "Renderer");
 #endif
@@ -225,20 +224,20 @@ void BVC5_P_InitEventMonitor(
 
    BVC5_P_SetEventTFU(&hVC5->sEventMonitor, numDeps);
 
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_BOOM, "Bin OOM", 0);
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_BIN_LOCKUP, "Bin Lockup", 0);
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_RENDER_LOCKUP, "Render Lockup", 0);
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_TFU_LOCKUP, "TFU Lockup", 0);
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_POWER_UP, "Power Up", 0);
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_POWER_DOWN, "Power Down", 0);
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_BOOM, "Bin OOM");
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_BIN_LOCKUP, "Bin Lockup");
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_RENDER_LOCKUP, "Render Lockup");
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_TFU_LOCKUP, "TFU Lockup");
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_POWER_UP, "Power Up");
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_POWER_DOWN, "Power Down");
 
    BVC5_P_SetEvent3(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_FLUSH_VC5, "Flush VC5 Caches",
                     BVC5_EventUInt32, "L3",
                     BVC5_EventUInt32, "L2C/Slice",
                     BVC5_EventUInt32, "L2T");
 
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_FLUSH_CPU, "Flush CPU Cache", 0);
-   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_PART_FLUSH_CPU, "Partial Flush CPU Cache", 0);
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_FLUSH_CPU, "Flush CPU Cache");
+   BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_PART_FLUSH_CPU, "Partial Flush CPU Cache");
 
    BKNI_ReleaseMutex(hVC5->hEventMutex);
 }
@@ -391,6 +390,8 @@ static void BVC5_P_MeasureClockSpeed(
    uint64_t uiStartUs, uiEndUs;
    uint64_t uiStartCyc, uiEndCyc;
 
+   hVC5->sEventMonitor.uiCyclesPerUs = 1;
+
    BVC5_P_GetTime_isrsafe(&uiStartUs);
    uiStartCyc = BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex);
    BKNI_Sleep(100);
@@ -496,13 +497,35 @@ BERR_Code BVC5_SetEventCollection(
    BDBG_ENTER(BVC5_SetEventCollection);
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
-   err = BVC5_P_SetEventCollection(hVC5, uiClientId, eState);
+   if (hVC5->sOpenParams.bUseClockGating || hVC5->sOpenParams.bUsePowerGating)
+   {
+      BKNI_Printf("ERROR: %s, power gating and clock gating need to be disabled for perfomance counters to function\n"
+                  "       disable via 'export V3D_USE_POWER_GATING=0' & 'export V3D_USE_CLOCK_GATING=0' prior to launch\n",
+                  __FUNCTION__);
+      err = BERR_NOT_AVAILABLE;
+   }
+   else
+      err = BVC5_P_SetEventCollection(hVC5, uiClientId, eState);
 
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_SetEventCollection);
 
    return err;
 }
+
+static void BVC5_P_SetOverflow(BVC5_Handle hVC5, bool overflow)
+{
+   BVC5_P_EventBuffer *psBuf = &hVC5->sEventMonitor.sBuffer;
+   if (psBuf->bOverflow != overflow)
+   {
+      psBuf->bOverflow = overflow;
+      if (overflow)
+         BDBG_WRN(("Event buffer overflow - event recording stopped"));
+      else
+         BDBG_WRN(("Event buffer read - event recording resumed"));
+   }
+}
+
 
 uint32_t BVC5_GetEventData(
    BVC5_Handle    hVC5,
@@ -517,6 +540,7 @@ uint32_t BVC5_GetEventData(
    uint32_t           bytes  = 0;
 
    BDBG_ENTER(BVC5_GetEventData);
+
    BKNI_AcquireMutex(hVC5->hModuleMutex);
    BKNI_AcquireMutex(hVC5->hEventMutex);
 
@@ -536,9 +560,8 @@ uint32_t BVC5_GetEventData(
       uint32_t    bytesToCopy, bytesToEnd;
       uintptr_t   end = (uintptr_t)psBuf->pBuffer + psBuf->uiCapacityBytes;
 
-      bytes = bytesToCopy = psBuf->uiBytesUsed;
-      if (uiEventBufferBytes < bytesToCopy)
-         bytesToCopy = uiEventBufferBytes;
+      bytes = bytesToCopy = psBuf->uiBytesUsed < uiEventBufferBytes ?
+         psBuf->uiBytesUsed : uiEventBufferBytes;
 
       bytesToEnd = end - (uintptr_t)psBuf->pRead;
       if (bytesToEnd > bytesToCopy)
@@ -561,6 +584,8 @@ uint32_t BVC5_GetEventData(
          psBuf->pRead = (void*)((uintptr_t)psBuf->pRead + bytesToCopy);
          psBuf->uiBytesUsed -= bytesToCopy;
       }
+
+      BVC5_P_SetOverflow(hVC5, false);
    }
 
 error:
@@ -606,10 +631,16 @@ static bool BVC5_P_Add64(
    uint64_t       uiData
    )
 {
+   BVC5_P_EventBuffer *psBuf = &hVC5->sEventMonitor.sBuffer;
    bool               ok = true;
+
+   if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < 8)
+      return false;
 
    ok = ok && BVC5_P_Add32(hVC5, (uint32_t)uiData);
    ok = ok && BVC5_P_Add32(hVC5, (uint32_t)(uiData >> 32));
+
+   BDBG_ASSERT(ok); /* Should be ok as we check for space above */
 
    return ok;
 }
@@ -625,18 +656,26 @@ static bool AddEvent(
    )
 {
    BVC5_P_EventBuffer *psBuf = &hVC5->sEventMonitor.sBuffer;
+   BVC5_P_EventDesc   *eventDesc;
    bool               ok = true;
+   uint32_t           before;
 
    if (!bAlreadyHaveEventMutex)
       BKNI_AcquireMutex(hVC5->hEventMutex);
 
-   if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < 24)
+   BDBG_ASSERT(uiEventIndex < BVC5_P_EVENT_MONITOR_NUM_EVENTS);
+   eventDesc = &hVC5->sEventMonitor.sEventDescs[uiEventIndex];
+   BDBG_ASSERT(eventDesc->uiSize >= BVC5_P_EVENT_FIXED_BYTES);
+
+   if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < eventDesc->uiSize)
    {
       /* No room for this event */
-      psBuf->bOverflow = true;
+      BVC5_P_SetOverflow(hVC5, true);
       ok = false;
       goto error;
    }
+
+   before = psBuf->uiBytesUsed;
 
    ok = ok && BVC5_P_Add64(hVC5, uiTimestamp);
    ok = ok && BVC5_P_Add32(hVC5, uiTrackIndex);
@@ -645,9 +684,10 @@ static bool AddEvent(
    ok = ok && BVC5_P_Add32(hVC5, eEventType);
 
    BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+   BDBG_ASSERT(psBuf->uiBytesUsed - before == BVC5_P_EVENT_FIXED_BYTES);
 
    if (!ok)
-      psBuf->bOverflow = true;
+      BVC5_P_SetOverflow(hVC5, true);
 
 error:
    if (!bAlreadyHaveEventMutex)
@@ -729,6 +769,7 @@ bool BVC5_P_AddFlushEvent(
    )
 {
    bool  ok = true;
+   uint32_t before;
 
    BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
 
@@ -737,22 +778,24 @@ bool BVC5_P_AddFlushEvent(
 
    BKNI_AcquireMutex(hVC5->hEventMutex);
 
-   if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < 36)
-   {
-       /* No room for this event */
-      psBuf->bOverflow = true;
-      ok = false;
-      goto error;
-   }
 
+   before = psBuf->uiBytesUsed;
    ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK, uiId, BVC5_P_EVENT_MONITOR_FLUSH_VC5, eEventType,
                              /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
+   if (ok)
+   {
+      ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL3);
+      ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL2C);
+      ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL2T);
 
-   ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL3);
-   ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL2C);
-   ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL2T);
+      BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+      BDBG_ASSERT(psBuf->uiBytesUsed - before ==
+            hVC5->sEventMonitor.sEventDescs[BVC5_P_EVENT_MONITOR_FLUSH_VC5].uiSize);
+   }
 
-error:
+   if (!ok)
+      BVC5_P_SetOverflow(hVC5, true);
+
    BKNI_ReleaseMutex(hVC5->hEventMutex);
 
    return ok;
@@ -777,44 +820,41 @@ bool BVC5_P_AddTFUJobEvent(
    {
       BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
       BVC5_JobTFU         *pTFUJob = (BVC5_JobTFU *)psJob->pBase;
-      uint32_t             depsPad = hVC5->sOpenParams.bGPUMonDeps ? BVC5_MAX_DEPENDENCIES * sizeof(uint64_t) : 0;
       uint64_t             uiJobId = psJob->uiJobId;
+      uint32_t             before;
 
       BKNI_AcquireMutex(hVC5->hEventMutex);
 
-      if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < (60 + depsPad))
-      {
-          /* No room for this event */
-         psBuf->bOverflow = true;
-         ok = false;
-         goto error;
-      }
 
+      before = psBuf->uiBytesUsed;
       ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_TFU_TRACK, (uint32_t)uiJobId, BVC5_P_EVENT_MONITOR_TFU, eEventType,
                                 /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
+      if (ok)
+      {
+         ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
+         ok = ok && BVC5_P_Add64(hVC5, uiJobId);
+         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiWidth);
+         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiHeight);
+         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sInput.uiRasterStride);
+         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiMipmapCount);
+         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sInput.uiTextureType);
+         ok = ok && BVC5_P_AddDeps(hVC5, hVC5->sOpenParams.bGPUMonDeps ? &psJob->pBase->sCompletedDependencies : NULL);
 
-      ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
-      ok = ok && BVC5_P_Add64(hVC5, uiJobId);
-      ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiWidth);
-      ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiHeight);
-      ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sInput.uiRasterStride);
-      ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiMipmapCount);
-      ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sInput.uiTextureType);
-      ok = ok && BVC5_P_AddDeps(hVC5, hVC5->sOpenParams.bGPUMonDeps ? &psJob->pBase->sCompletedDependencies : NULL);
-
-      BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+         BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+         BDBG_ASSERT(psBuf->uiBytesUsed - before ==
+               hVC5->sEventMonitor.sEventDescs[BVC5_P_EVENT_MONITOR_TFU].uiSize);
+      }
 
       if (!ok)
-         psBuf->bOverflow = true;
+         BVC5_P_SetOverflow(hVC5, true);
    }
 
-error:
    BKNI_ReleaseMutex(hVC5->hEventMutex);
 
    return ok;
 }
 
-bool BVC5_P_AddCoreEvent_priv(
+static bool BVC5_P_AddCoreEvent_priv(
    BVC5_Handle    hVC5,
    uint32_t       uiCore,
    uint32_t       uiTrack,
@@ -868,33 +908,30 @@ static bool BVC5_P_AddCoreEventCJD(
 
    {
       BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
-      uint32_t             depsPad = psDeps != NULL ? BVC5_MAX_DEPENDENCIES * sizeof(uint64_t) : 0;
       uint64_t             uiJobId = psJob->uiJobId;
+      uint32_t             before;
 
       BKNI_AcquireMutex(hVC5->hEventMutex);
 
-      if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < (36 + depsPad))
-      {
-         /* No room for this event */
-         psBuf->bOverflow = true;
-         ok = false;
-         goto error;
-      }
 
+      before = psBuf->uiBytesUsed;
       ok = BVC5_P_AddCoreEvent_priv(hVC5, uiCore, uiTrack, (uint32_t)uiJobId, uiEventIndex, eEventType,
                                     /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
+      if (ok)
+      {
+         ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
+         ok = ok && BVC5_P_Add64(hVC5, uiJobId);
+         ok = ok && BVC5_P_AddDeps(hVC5, psDeps);
 
-      ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
-      ok = ok && BVC5_P_Add64(hVC5, uiJobId);
-      ok = ok && BVC5_P_AddDeps(hVC5, psDeps);
-
-      BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+         BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+         BDBG_ASSERT(psBuf->uiBytesUsed - before ==
+               hVC5->sEventMonitor.sEventDescs[uiEventIndex].uiSize);
+      }
 
       if (!ok)
-         psBuf->bOverflow = true;
+         BVC5_P_SetOverflow(hVC5, true);
    }
 
-error:
    BKNI_ReleaseMutex(hVC5->hEventMutex);
 
    return ok;

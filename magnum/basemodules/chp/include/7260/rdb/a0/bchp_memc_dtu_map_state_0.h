@@ -44,22 +44,20 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
- * The launch point for all information concerning RDB is found at:
- *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Aug  3 10:51:20 2016
- *                 Full Compile MD5 Checksum  39ef8ca0b54cf125d4919eb2e1c61cb0
+ * Date:           Generated on               Tue Apr 12 14:45:23 2016
+ *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
  *                     (minus title and desc)
- *                 MD5 Checksum               d04c90155f9bb7cbec34e06a0e1a9eb7
+ *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     899
  *                 unknown                    unknown
  *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/

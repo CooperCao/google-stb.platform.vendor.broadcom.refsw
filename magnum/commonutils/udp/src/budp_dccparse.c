@@ -140,41 +140,12 @@ static void dump_getud_isr (
 #endif
 
 /*
- * This is the collection of methods for setting field polarity (top vs.
- * bottom) for closed caption data.
- */
-/* Uses only cc_type attribute */
-static void SetFieldsParity_SIMPLE_isr (
-    BUDP_DCCparse_ccdata* pCCdata,
-    uint8_t                  cc_count,
-    const BAVC_USERDATA_info*      pUserdata_info);
-/* Uses cc_type attribute and "top field first" attribute. */
-static void SetFieldsParity_TFF_isr (
-    BUDP_DCCparse_ccdata* pCCdata,
-    uint8_t                  cc_count,
-    const BAVC_USERDATA_info*      pUserdata_info);
-/* Uses only order of data presented. */
-static void SetFieldsParity_NOCCTYPE_isr (
-    BUDP_DCCparse_ccdata* pCCdata,
-    uint8_t                  cc_count,
-    const BAVC_USERDATA_info*      pUserdata_info);
-/* Uses field_number attribute */
-static void SetFieldsParity_FIELDNUMBER_isr (
-    BUDP_DCCparse_ccdata* pCCdata,
-    uint8_t                  cc_count,
-    const BAVC_USERDATA_info*      pUserdata_info);
-/* Special method just for CC data from SEI */
-static void SetFieldsParity_SEI_isr (
-    BUDP_DCCparse_ccdata* pCCdata,
-    uint8_t                  cc_count,
-    const BAVC_USERDATA_info*      pUserdata_info);
-
-/*
- * These macros determine which field polarity method (see above paragraph)
+ * These macros determine which field polarity method (see next paragraph)
  * to use for parsing ATSC, DVS, and SEI closed caption data. You can override
- * these choices from the compiler command line. Make a choice from the above
- * paragraph.
+ * these choices from the compiler command line. Make a choice from the
+ * following collection of methods.
  */
+
 #ifndef BUDP_SETFIELDSPARITY_ATSC_isr
 #define BUDP_SETFIELDSPARITY_ATSC_isr SetFieldsParity_SIMPLE_isr
 #endif
@@ -183,6 +154,46 @@ static void SetFieldsParity_SEI_isr (
 #endif
 #ifndef BUDP_SETFIELDSPARITY_SEI_isr
 #define BUDP_SETFIELDSPARITY_SEI_isr SetFieldsParity_SEI_isr
+#endif
+
+/*
+ * This is the collection of methods for setting field polarity (top vs.
+ * bottom) for closed caption data.
+ */
+#ifdef BUDP_SETFIELDSPARITY_ATSC_isr
+/* Uses only cc_type attribute */
+static void SetFieldsParity_SIMPLE_isr (
+    BUDP_DCCparse_ccdata* pCCdata,
+    uint8_t                  cc_count,
+    const BAVC_USERDATA_info*      pUserdata_info);
+#endif
+#if 0
+/* Uses cc_type attribute and "top field first" attribute. */
+static void SetFieldsParity_TFF_isr (
+    BUDP_DCCparse_ccdata* pCCdata,
+    uint8_t                  cc_count,
+    const BAVC_USERDATA_info*      pUserdata_info);
+#endif
+#if 0
+/* Uses only order of data presented. */
+static void SetFieldsParity_NOCCTYPE_isr (
+    BUDP_DCCparse_ccdata* pCCdata,
+    uint8_t                  cc_count,
+    const BAVC_USERDATA_info*      pUserdata_info);
+#endif
+#ifdef BUDP_SETFIELDSPARITY_DVS_isr
+/* Uses field_number attribute */
+static void SetFieldsParity_FIELDNUMBER_isr (
+    BUDP_DCCparse_ccdata* pCCdata,
+    uint8_t                  cc_count,
+    const BAVC_USERDATA_info*      pUserdata_info);
+#endif
+#ifdef BUDP_SETFIELDSPARITY_SEI_isr
+/* Special method just for CC data from SEI */
+static void SetFieldsParity_SEI_isr (
+    BUDP_DCCparse_ccdata* pCCdata,
+    uint8_t                  cc_count,
+    const BAVC_USERDATA_info*      pUserdata_info);
 #endif
 
 
@@ -1242,6 +1253,7 @@ static BERR_Code ParseSEIData2_isr (
     return eErr;
 }
 
+#if 0
 /***************************************************************************
  * This function sets the topfield/bottomfield polarity for closed caption
  * data already extracted from the bitstream.  It uses the order * in which
@@ -1326,7 +1338,9 @@ static void SetFieldsParity_NOCCTYPE_isr (
         ++pCCdata;
     }
 }
+#endif
 
+#ifdef BUDP_SETFIELDSPARITY_DVS_isr
 /***************************************************************************
  * This function sets the topfield/bottomfield polarity for closed caption
  * data already extracted from the bitstream.  It relies on the field_number
@@ -1412,7 +1426,9 @@ static void SetFieldsParity_FIELDNUMBER_isr (
         ++pCCdata;
     }
 }
+#endif
 
+#if 0
 /***************************************************************************
  * This function sets the topfield/bottomfield polarity for closed caption
  * data already extracted from the bitstream.  It uses the cc_type attribute,
@@ -1504,7 +1520,9 @@ static void SetFieldsParity_TFF_isr (
         ++pCCdata;
     }
 }
+#endif
 
+#ifdef BUDP_SETFIELDSPARITY_ATSC_isr
 /***************************************************************************
  * This function sets the topfield/bottomfield polarity for closed caption
  * data already extracted from the bitstream.  It uses only the cc_type
@@ -1628,7 +1646,9 @@ static void SetFieldsParity_SIMPLE_isr (
         ++pCCdata;
     }
 }
+#endif
 
+#ifdef BUDP_SETFIELDSPARITY_SEI_isr
 /***************************************************************************
  * This function sets the topfield/bottomfield polarity for closed caption
  * data already extracted from the bitstream.  It only uses cc_type. It is
@@ -1687,6 +1707,7 @@ static void SetFieldsParity_SEI_isr (
         ++pCCdata;
     }
 }
+#endif
 
 /***************************************************************************
  * This function reverses the order of bits in a byte.
@@ -1702,21 +1723,6 @@ static int swap_bits_isr(int src)
         src >>= 1;
     }
     return result;
-}
-
-/***************************************************************************
- * This function serves to get rid of a compiler warning
-*/
-void BUDP_P_Quiet_Compiler (
-    BUDP_DCCparse_ccdata* pCCdata,
-    uint8_t                        cc_count,
-    const BAVC_USERDATA_info*      pUserdata_info)
-{
-    SetFieldsParity_SIMPLE_isr      ( pCCdata, cc_count, pUserdata_info);
-    SetFieldsParity_TFF_isr         ( pCCdata, cc_count, pUserdata_info);
-    SetFieldsParity_NOCCTYPE_isr    ( pCCdata, cc_count, pUserdata_info);
-    SetFieldsParity_FIELDNUMBER_isr ( pCCdata, cc_count, pUserdata_info);
-    SetFieldsParity_SEI_isr         ( pCCdata, cc_count, pUserdata_info);
 }
 
 #ifdef BUDP_P_GETUD_DUMP

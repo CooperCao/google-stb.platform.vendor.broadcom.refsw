@@ -1,20 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES shared state object.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_SHARED_H
 #define GLXX_SHARED_H
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 #include "../common/khrn_map.h"
 #include "glxx_texture.h"
 #include "gl_public_api.h"
@@ -29,21 +21,21 @@ typedef struct {
    uint32_t next_renderbuffer;
    uint32_t next_fencesync;
 
-   KHRN_MAP_T pobjects;
+   khrn_map pobjects;
 
    /*
       Map of texture identifier to texture object
    */
-   KHRN_MAP_T textures;
-   KHRN_MAP_T samplers;
+   khrn_map textures;
+   khrn_map samplers;
 
    /*
       Map of buffer identifier to buffer object
    */
-   KHRN_MAP_T buffers;
+   khrn_map buffers;
 
-   KHRN_MAP_T renderbuffers;
-   KHRN_MAP_T fencesyncs;
+   khrn_map renderbuffers;
+   khrn_map fencesyncs;
 
    glxx_compute_shared compute;
 
@@ -75,7 +67,7 @@ extern void glxx_shared_delete_texture(GLXX_SHARED_T *shared, uint32_t texture);
 extern void glxx_shared_delete_sampler(GLXX_SHARED_T *shared, uint32_t sampler);
 extern void glxx_shared_delete_renderbuffer(GLXX_SHARED_T *shared, uint32_t renderbuffer);
 
-extern GLsync glxx_shared_create_fencesync(GLXX_SHARED_T *shared, const KHRN_FENCE_T *kfence);
+extern GLsync glxx_shared_create_fencesync(GLXX_SHARED_T *shared, const khrn_fence *kfence);
 extern GLXX_FENCESYNC_T* glxx_shared_get_fencesync(GLXX_SHARED_T *shared, GLsync fencesync_id);
 
 /* returns false if there is no object with id = fsync_id in the map;

@@ -6,6 +6,7 @@
 
 #include "v3d_gen.h"
 #include "vcos_types.h"
+#include "libs/util/assert_helpers.h"
 
 VCOS_EXTERN_C_BEGIN
 
@@ -23,8 +24,11 @@ void v3d_get_nv_shader_record_alloc_sizes(V3D_NV_SHADER_RECORD_ALLOC_SIZES_T *si
 // Create NV shader record
 void v3d_create_nv_shader_record(uint32_t *packed_shader_rec_ptr, v3d_addr_t packed_shader_rec_addr,
                                  uint32_t *defaults_ptr, v3d_addr_t defaults_addr, v3d_addr_t fshader_addr,
-                                 v3d_addr_t funif_addr, v3d_addr_t vdata_addr, bool does_z_writes,
-                                 v3d_threading_t threading);
+                                 v3d_addr_t funif_addr, v3d_addr_t vdata_addr,
+                                 uint32_t vdata_max_index,
+                                 bool does_z_writes,
+                                 v3d_threading_t threading
+                                 );
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 void v3d_workaround_gfxh_1276(V3D_SHADREC_GL_MAIN_T *record);
@@ -73,12 +77,11 @@ static inline v3d_threading_t v3d_translate_threading(uint32_t threadability)
 #if !V3D_HAS_RELAXED_THRSW
 static inline uint32_t v3d_get_threadability(v3d_threading_t threading)
 {
-   switch (threading) {
-   case V3D_THREADING_T1:  return 1;
-   case V3D_THREADING_T2:  return 2;
-   case V3D_THREADING_T4:  return 4;
-   default: unreachable(); return 0;
-   }
+   static_assrt(V3D_THREADING_T1 == 0);
+   static_assrt(V3D_THREADING_T2 == 1);
+   static_assrt(V3D_THREADING_T4 == 2);
+   assert(threading >= 0 && threading <= 2);
+   return 1 << threading;
 }
 #endif
 
@@ -102,6 +105,90 @@ static inline const char *v3d_desc_shader_type_br(bool render, v3d_shader_type_t
    assert(desc);
    return desc;
 }
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+
+static inline void v3d_shadrec_gl_tg_set_vpm_cfg(V3D_SHADREC_GL_TESS_OR_GEOM_T *sr,
+   const V3D_VPM_CFG_TG_T cfg[2])
+{
+#if V3D_HAS_SEP_BR_TG_PARAMS
+   sr->bin = cfg[0];
+   sr->render = cfg[1];
+#else
+   assert(cfg[0].tcs_batch_flush == cfg[1].tcs_batch_flush);
+   assert(cfg[0].max_patches_per_tcs_batch == cfg[1].max_patches_per_tcs_batch);
+   assert(cfg[0].max_patches_per_tes_batch == cfg[1].max_patches_per_tes_batch);
+   sr->tcs_batch_flush = cfg[0].tcs_batch_flush;
+   sr->per_patch_depth_bin = cfg[0].per_patch_depth;
+   sr->per_patch_depth_render = cfg[1].per_patch_depth;
+   sr->tcs_output_bin = cfg[0].tcs_output;
+   sr->tcs_output_render = cfg[1].tcs_output;
+   sr->tes_output_bin = cfg[0].tes_output;
+   sr->tes_output_render = cfg[1].tes_output;
+   sr->geom_output_bin = cfg[0].geom_output;
+   sr->geom_output_render = cfg[1].geom_output;
+   sr->max_patches_per_tcs_batch = cfg[0].max_patches_per_tcs_batch;
+   sr->max_extra_vert_segs_per_tcs_batch_bin = cfg[0].max_extra_vert_segs_per_tcs_batch;
+   sr->max_extra_vert_segs_per_tcs_batch_render = cfg[1].max_extra_vert_segs_per_tcs_batch;
+   sr->min_tcs_segs_bin = cfg[0].min_tcs_segs;
+   sr->min_tcs_segs_render = cfg[1].min_tcs_segs;
+   sr->min_per_patch_segs_bin = cfg[0].min_per_patch_segs;
+   sr->min_per_patch_segs_render = cfg[1].min_per_patch_segs;
+   sr->max_patches_per_tes_batch = cfg[0].max_patches_per_tes_batch;
+   sr->max_extra_vert_segs_per_tes_batch_bin = cfg[0].max_extra_vert_segs_per_tes_batch;
+   sr->max_extra_vert_segs_per_tes_batch_render = cfg[1].max_extra_vert_segs_per_tes_batch;
+   sr->max_tcs_segs_per_tes_batch_bin = cfg[0].max_tcs_segs_per_tes_batch;
+   sr->max_tcs_segs_per_tes_batch_render = cfg[1].max_tcs_segs_per_tes_batch;
+   sr->min_tes_segs_bin = cfg[0].min_tes_segs;
+   sr->min_tes_segs_render = cfg[1].min_tes_segs;
+   sr->max_extra_vert_segs_per_gs_batch_bin = cfg[0].max_extra_vert_segs_per_gs_batch;
+   sr->max_extra_vert_segs_per_gs_batch_render = cfg[1].max_extra_vert_segs_per_gs_batch;
+   sr->min_gs_segs_bin = cfg[0].min_gs_segs;
+   sr->min_gs_segs_render = cfg[1].min_gs_segs;
+#endif
+}
+
+static inline void v3d_shadrec_gl_tg_get_vpm_cfg(V3D_VPM_CFG_TG_T cfg[2],
+   const V3D_SHADREC_GL_TESS_OR_GEOM_T *sr)
+{
+#if V3D_HAS_SEP_BR_TG_PARAMS
+   cfg[0] = sr->bin;
+   cfg[1] = sr->render;
+#else
+   cfg[0].tcs_batch_flush = sr->tcs_batch_flush;
+   cfg[0].per_patch_depth = sr->per_patch_depth_bin;
+   cfg[0].tcs_output = sr->tcs_output_bin;
+   cfg[0].tes_output = sr->tes_output_bin;
+   cfg[0].geom_output = sr->geom_output_bin;
+   cfg[0].max_patches_per_tcs_batch = sr->max_patches_per_tcs_batch;
+   cfg[0].max_extra_vert_segs_per_tcs_batch = sr->max_extra_vert_segs_per_tcs_batch_bin;
+   cfg[0].min_tcs_segs = sr->min_tcs_segs_bin;
+   cfg[0].min_per_patch_segs = sr->min_per_patch_segs_bin;
+   cfg[0].max_patches_per_tes_batch = sr->max_patches_per_tes_batch;
+   cfg[0].max_extra_vert_segs_per_tes_batch = sr->max_extra_vert_segs_per_tes_batch_bin;
+   cfg[0].max_tcs_segs_per_tes_batch = sr->max_tcs_segs_per_tes_batch_bin;
+   cfg[0].min_tes_segs = sr->min_tes_segs_bin;
+   cfg[0].max_extra_vert_segs_per_gs_batch = sr->max_extra_vert_segs_per_gs_batch_bin;
+   cfg[0].min_gs_segs = sr->min_gs_segs_bin;
+   cfg[1].tcs_batch_flush = sr->tcs_batch_flush;
+   cfg[1].per_patch_depth = sr->per_patch_depth_render;
+   cfg[1].tcs_output = sr->tcs_output_render;
+   cfg[1].tes_output = sr->tes_output_render;
+   cfg[1].geom_output = sr->geom_output_render;
+   cfg[1].max_patches_per_tcs_batch = sr->max_patches_per_tcs_batch;
+   cfg[1].max_extra_vert_segs_per_tcs_batch = sr->max_extra_vert_segs_per_tcs_batch_render;
+   cfg[1].min_tcs_segs = sr->min_tcs_segs_render;
+   cfg[1].min_per_patch_segs = sr->min_per_patch_segs_render;
+   cfg[1].max_patches_per_tes_batch = sr->max_patches_per_tes_batch;
+   cfg[1].max_extra_vert_segs_per_tes_batch = sr->max_extra_vert_segs_per_tes_batch_render;
+   cfg[1].max_tcs_segs_per_tes_batch = sr->max_tcs_segs_per_tes_batch_render;
+   cfg[1].min_tes_segs = sr->min_tes_segs_render;
+   cfg[1].max_extra_vert_segs_per_gs_batch = sr->max_extra_vert_segs_per_gs_batch_render;
+   cfg[1].min_gs_segs = sr->min_gs_segs_render;
+#endif
+}
+
+#endif
 
 VCOS_EXTERN_C_END
 

@@ -44,6 +44,7 @@ include $(BSG_DIR)/common.inc
 # zlib and png required
 include $(NEXUS_TOP)/../BSEAV/opensource/zlib/zlib.inc
 include $(NEXUS_TOP)/../BSEAV/opensource/libpng/libpng.inc
+include $(NEXUS_TOP)/../BSEAV/opensource/freetype/freetype.inc
 
 # For spyhook_replat only
 ifeq ($(V3D_PREFIX),vc5)
@@ -70,10 +71,11 @@ INCLUDES       += $(BSG_DIR)                                                \
                   $(V3D_DIR)/../../vc5/tools/gpumon_hook
 
 LDFLAGS += -L$(NEXUS_BIN_DIR)
-LDFLAGS += -lbsg -lrt -lm -lfreetype -lnxpl -lv3ddriver -ldl
+LDFLAGS += -lbsg -lrt -lm -lnxpl -lv3ddriver -ldl
 LDFLAGS += -lnexus$(NEXUS_LIB_SUFFIX)
 LDFLAGS += $(LIBPNG_LDFLAGS)
 LDFLAGS += $(ZLIB_LDFLAGS)
+LDFLAGS += $(FREETYPE_LDFLAGS)
 
 ifeq ($(WEBCPU_MODE),y)
 LDFLAGS += -lnexus_webcpu
@@ -86,7 +88,12 @@ endif
 
 .PHONY:	all clean clean_bsg info bsg install
 
-all:	info bsg $(BSG_OBJ_DIR)/$(TARGET) install
+ifneq ($(BSG_PREBUILT),y)
+BSG_PREREQ := bsg
+BSG_CLEAN := clean_bsg
+endif
+
+all:	info $(BSG_PREREQ) $(BSG_OBJ_DIR)/$(TARGET) install
 
 info:
 	@echo "************************************************************"; \
@@ -108,19 +115,20 @@ B_REFSW_DEBUG ?= y
 
 # Create the app
 $(info Objects = $(OBJECTS))
-$(BSG_OBJ_DIR)/$(TARGET):	bsg $(OBJECTS)
+$(BSG_OBJ_DIR)/$(TARGET):	$(BSG_PREREQ) $(OBJECTS)
 	@echo Linking $(BSG_OBJ_DIR)/$(TARGET)
-	@$(CXX) $(CFLAGS) $(CXXFLAGS) $(OBJECTS) $(LDFLAGS) -o $(BSG_OBJ_DIR)/$(TARGET)
+	@$(CXX) $(CFLAGS) $(CXXFLAGS) $(OBJECTS) $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bsg_apps/common/bsg_common.a \
+		$(LDFLAGS) -o $(BSG_OBJ_DIR)/$(TARGET)
 ifneq ($(B_REFSW_DEBUG),y)
 	$(STRIP) $(BSG_OBJ_DIR)/$(TARGET)
 endif
 
-bsg:
+bsg: |info
 	@echo "Making bsg"
 	@$(MAKE) -f bsg.mk -C $(BSG_DIR)
 
 # Install
-install:	bsg $(BSG_OBJ_DIR)/$(TARGET)
+install:	$(BSG_PREREQ)  $(BSG_OBJ_DIR)/$(TARGET)
 	@mkdir -p $(TARGET_APP); \
 	chmod 777 $(TARGET_APP); \
 	cp -f $(BSG_OBJ_DIR)/$(TARGET) $(TARGET_APP); \
@@ -132,17 +140,17 @@ install:	bsg $(BSG_OBJ_DIR)/$(TARGET)
 
 clean_app:
 	@echo "Cleaning application ..."
-	-@rm -f $(OBJECTS) $(BSG_OBJ_DIR)/$(TARGET) 2> /dev/null
-	-@rm -rf $(TARGET_APP)
+	@rm -f $(OBJECTS) $(BSG_OBJ_DIR)/$(TARGET) 2> /dev/null
+	@rm -rf $(TARGET_APP)
 
-clean:	clean_app
-	-@rm -rf $(TARGET_DIR)/common
-	-@rm -rf $(TARGET_DIR)
-	$(MAKE) -C $(BSG_DIR) -f bsg.mk clean
+clean_bsg: |clean_app
+	@$(MAKE) -C $(BSG_DIR) -f bsg.mk clean
+
+clean:	clean_app $(BSG_CLEAN)
+	@rm -rf $(TARGET_DIR)
 
 # Files that are common
 $(OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp
 	@mkdir -p $(BSG_OBJ_DIR)
-	@mkdir -p $(BSG_OBJ_DIR)/../common
 	@echo Compiling $^
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@

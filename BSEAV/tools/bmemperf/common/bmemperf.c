@@ -343,7 +343,7 @@ int bmemperf_init(
 
     scbFreqInMhz = bmemperf_get_scbFreqInMhz(g_bmemperf_info.scbFreqInMhz);
     g_clock_time = ( scbFreqInMhz * 1000 );  /**1msec in scb frequency , since time is in msec unit**/
-    printf( "%s: num_memc %d; ddrFreqInMhz %d; scbFreqInMhz %d (compile %d); g_clock_time1 %d; g_interval %d \n", __FUNCTION__,
+    PRINTF( "%s: num_memc %d; ddrFreqInMhz %d; scbFreqInMhz %d (compile %d); g_clock_time1 %d; g_interval %d \n", __FUNCTION__,
             g_bmemperf_info.num_memc, g_bmemperf_info.ddrFreqInMhz, scbFreqInMhz, g_bmemperf_info.scbFreqInMhz, g_clock_time, g_interval );
 
     g_clock_time *= g_interval;
@@ -407,7 +407,7 @@ int bmemperf_init(
  *  Function: This function will return the bits accessed per DDR cycle. For a 32-bit bus width, the value
  *  returned will be 64; for a 16-bit bus width, the value returned will be 32.
  **/
-static int BitsPerCycle(
+int BitsPerCycle(
     unsigned int memc_index
     )
 {
@@ -420,7 +420,7 @@ static int BitsPerCycle(
     return( bits );
 }
 
-/** g_interval is = time*1000000 , this is for the sake of computaion and since we want result in Mbps **/
+/** g_interval is = time*1000000 , this is for the sake of computation and since we want result in Mbps **/
 /*
 Chris P. described the depth in time of the a CAS burst:
      A 32-bit interface at each DDR cycle moves 32 bits / 8 bits per byte * 2 = 8 bytes of data per cycle.
@@ -941,4 +941,45 @@ volatile unsigned int *bmemperf_get_g_pMem(
     }
 
     return( g_pMem );
+}
+
+/**
+ *  Function: This function will convert the bandwidth to utilization using the algorithm in the
+ *            file memc_perform_counts.pdf on page 9. Specifically:
+ *            Max_Data_Bandwidth = Max_Data_Utilization * Bytes_per_Cycle * DDR_frequency
+ *            If we solve the equation for Max_Data_Utilization, we get:
+ *            Max_Data_Utilization = Max_Data_Bandwidth / ( Bytes_per_Cycle * DDR_frequency )
+ *            The final value is also multiplied by 100 so that we have more precision when the
+ *            value is displayed as a percentage.
+ **/
+float bmemperf_convert_bw_to_utilization(
+    unsigned int           memc_index,
+    unsigned int           bandwidth
+    )
+{
+    float bw = bandwidth * 10.0;
+    unsigned int bpc = BitsPerCycle( memc_index ) / 8 /* want bytes per cycle */;
+    unsigned int ddr = bmemperf_get_ddrFreqInMhz( 0 );
+
+    if ( bpc == 0 || ddr == 0 )
+    {
+        return 0.0;
+    }
+    return ( ( bw )  / (bpc * ddr ) );
+}
+/**
+ *  Function: This function will convert the bandwidth to utilization using the algorithm in the
+ *            file memc_perform_counts.pdf on page 9. Specifically:
+ *            Max_Data_Bandwidth = Max_Data_Utilization * Bytes_per_Cycle * DDR_frequency
+ **/
+float bmemperf_convert_utilization_to_bw(
+    unsigned int           memc_index,
+    float                  utilization
+    )
+{
+    unsigned int Bpc = BitsPerCycle( memc_index ) / 8.0 /* convert bits to byte */;
+    unsigned int ddr = bmemperf_get_ddrFreqInMhz( 0 );
+    printf ("~DEBUG~util-to-bw ... %5.2f * Bpc (%u) * ddr (%u) = %5.2f~", utilization, Bpc, ddr, utilization * Bpc * ddr );
+
+    return ( utilization * Bpc * ddr );
 }

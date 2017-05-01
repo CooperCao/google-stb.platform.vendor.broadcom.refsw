@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,6 +43,7 @@
 #
 # BVDC_MACROVISION - If set to 'y', macrovision support will be added.
 # BVDC_DCS - If set to 'y', DCS support will be added.
+# BVDC_DBV_SUPPORT - If set to 'y', DBV support will be added.
 #
 
 ##
@@ -175,6 +176,28 @@ endif
 endif
 
 ##
+# DBV files selection
+#
+BVDC_DBV_IMPL=$(MAGNUM)/portinginterface/vdc/src/dbv
+ifneq ("$(wildcard $(BVDC_DBV_IMPL))","")
+BVDC_DBV_SUPPORT?=y
+endif
+ifeq ($(BVDC_DBV_SUPPORT),y)
+include $(MAGNUM)/portinginterface/vdc/src/dbv/bdbv_api.inc
+BVDC_DEFINES += BVDC_DBV_SUPPORT=1
+ifeq ($(BVDC_DBV_GEN_LUTS), y)
+BVDC_DEFINES += BVDC_DBV_GEN_LUTS=1
+ifeq ($(BVDC_DBV_ORIG_GEN_LUTS), y)
+BVDC_DEFINES += BVDC_DBV_ORIG_GEN_LUTS=1
+endif
+endif
+BVDC_INCLUDES += \
+    $(BDBV_ROOT)/$(BDBV_REF_VER)/src
+BVDC_SOURCES += \
+	$(BDBV_ROOT)/$(BDBV_REF_VER)/src/bvdc_cfc_dbv_priv.c
+endif
+
+##
 # Vec files selection
 #
 BVDC_SOURCES += \
@@ -182,6 +205,18 @@ BVDC_SOURCES += \
 	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displayvip_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displayhandler_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displaycabledetect_priv.c
+
+##
+# TCH files selection
+#
+BVDC_TCH_IMPL=$(MAGNUM)/portinginterface/vdc/src/tch
+ifneq ("$(wildcard $(BVDC_TCH_IMPL))","")
+BVDC_TCH_SUPPORT?=y
+endif
+ifeq ($(BVDC_TCH_SUPPORT),y)
+include $(MAGNUM)/portinginterface/vdc/src/tch/btch.inc
+BVDC_DEFINES += BVDC_TCH_SUPPORT=1
+endif
 
 ##
 # For boot loder or mini-driver to keep gfx display on
@@ -202,6 +237,9 @@ endif
 #
 ifeq ($(BVDC_CRC_CAPTURE),y)
 BVDC_DEFINES += BVDC_CRC_CAPTURE=1
+endif
+ifeq ($(BVDC_DITHER_OFF),y)
+BVDC_DEFINES += BVDC_DITHER_OFF=1
 endif
 
 ##

@@ -1,8 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2015 Broadcom.
- All rights reserved.
-==============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gfx_buffer_slow_conv_xform.h"
 #include "gfx_buffer_slow_conv_compr.h"
 #include "gfx_buffer_v3d_tfu_srgb_conversions.h"
@@ -354,9 +352,9 @@ void gfx_buffer_xform_clamp_rgb_to_alpha(
 {
    /* For now, only need to support RGBA5551... */
    assert(num_dst_planes == 1);
-   assert(dst->fmt == GFX_LFMT_A1B5G5R5_UNORM);
+   assert(dst->fmt == GFX_LFMT_A1B5G5R5_UNORM || dst->fmt == GFX_LFMT_A1R5G5B5_UNORM);
    assert(num_src_planes == 1);
-   assert(src->fmt == GFX_LFMT_A1B5G5R5_UNORM);
+   assert(src->fmt == GFX_LFMT_A1B5G5R5_UNORM || src->fmt == GFX_LFMT_A1R5G5B5_UNORM);
 
    dst->u->ui16[0] = (src->u->ui16[0] & 1u) ? src->u->ui16[0] : 0;
 }

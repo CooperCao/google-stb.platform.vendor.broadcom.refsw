@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,8 +56,8 @@ BDBG_MODULE(bsat_45308_priv);
 
 
 /* local functions */
-BERR_Code BSAT_45308_P_InterruptCallback(void *pParm1, int parm2);
-BERR_Code BSAT_45308_P_EnableChannelInterrupt(BSAT_ChannelHandle h, bool bEnable, uint32_t mask);
+static BERR_Code BSAT_45308_P_InterruptCallback(void *pParm1, int parm2);
+static BERR_Code BSAT_45308_P_EnableChannelInterrupt(BSAT_ChannelHandle h, bool bEnable, uint32_t mask);
 
 
 /******************************************************************************
@@ -1783,7 +1783,7 @@ BERR_Code BSAT_45308_P_GetNotchSettings(BSAT_Handle h, uint32_t *pNum, BSAT_Notc
 /******************************************************************************
  BSAT_45308_P_InterruptCallback()
 ******************************************************************************/
-BERR_Code BSAT_45308_P_InterruptCallback(void *pParm1, int parm2)
+static BERR_Code BSAT_45308_P_InterruptCallback(void *pParm1, int parm2)
 {
    BERR_Code retCode = BERR_SUCCESS;
    BHAB_45308_IrqStatus *pParams = (BHAB_45308_IrqStatus *)pParm1;
@@ -1880,7 +1880,7 @@ BERR_Code BSAT_45308_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n)
 /******************************************************************************
  BSAT_45308_P_EnableChannelInterrupt()
 ******************************************************************************/
-BERR_Code BSAT_45308_P_EnableChannelInterrupt(
+static BERR_Code BSAT_45308_P_EnableChannelInterrupt(
    BSAT_ChannelHandle h, /* [in] BSAT channel handle */
    bool bEnable,         /* [in] true = enable lock interrupts, false = disables lock interrupts */
    uint32_t mask         /* [in] specifies which channel interrupt(s) to enable/disable */
@@ -2331,5 +2331,88 @@ BERR_Code BSAT_45308_P_GetFastChannelStatus(BSAT_ChannelHandle h, BSAT_FastStatu
 
    done:
    BDBG_LEAVE(BSAT_45308_P_GetFastChannelStatus);
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_45308_P_ScanSpectrum()
+******************************************************************************/
+BERR_Code BSAT_45308_P_ScanSpectrum(BSAT_ChannelHandle h, BSAT_ScanSpectrumSettings *pSettings)
+{
+   BSAT_45308_P_Handle *pImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
+   BERR_Code retCode;
+   uint32_t hab[8];
+
+   BDBG_ENTER(BSAT_45308_P_ScanSpectrum);
+
+   if ((pSettings->adcSelect > 2) || (pSettings->startFreq >= pSettings->stopFreq) ||
+       (pSettings->startFreq < 10000000) || (pSettings->stopFreq > 2400000000UL) ||
+       (pSettings->resBw > BSAT_ResBw_e10mhz) || (pSettings->vidBw > BSAT_VidBw_e10khz))
+      return BERR_INVALID_PARAMETER;
+
+   hab[0] = BHAB_45308_InitHeader(0x35, h->channel, BHAB_45308_WRITE, BHAB_45308_MODULE_SAT);
+   hab[1] = pSettings->adcSelect;
+   hab[2] = pSettings->startFreq;
+   hab[3] = pSettings->stopFreq;
+   hab[4] = pSettings->resBw;
+   hab[5] = pSettings->vidBw;
+   hab[6] = 0;
+   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pImpl->hHab, hab, 8));
+
+   done:
+   BDBG_LEAVE(BSAT_45308_P_ScanSpectrum);
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_45308_P_GetSpectrumStatus()
+******************************************************************************/
+BERR_Code BSAT_45308_P_GetSpectrumStatus(BSAT_ChannelHandle h, BSAT_SpectrumStatus *pStatus, uint8_t *pSamples)
+{
+   BSAT_45308_P_Handle *pImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
+   BERR_Code retCode;
+   uint32_t hab[7], addr, i;
+   uint8_t buf[4];
+
+   BDBG_ENTER(BSAT_45308_P_GetSpectrumStatus);
+
+   if ((pStatus == NULL) || (pSamples == NULL))
+      return BERR_INVALID_PARAMETER;
+
+   hab[0] = BHAB_45308_InitHeader(0x36, h->channel, BHAB_45308_WRITE, BHAB_45308_MODULE_SAT);
+   hab[1] = 0;
+   hab[2] = 0;
+   hab[3] = 0;
+   hab[4] = 0;
+   hab[5] = 0;
+   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pImpl->hHab, hab, 7));
+
+   pStatus->status = hab[1];
+   pStatus->bValid = (hab[2] == 1) ? true : false;
+   pStatus->numSamples = hab[3];
+   pStatus->freqStep = hab[4];
+   addr = (hab[5] & 0x7FFFFFFF) + 0x80000;
+
+   if (pStatus->bValid)
+   {
+      BSAT_45308_CHK_RETCODE(BHAB_ReadMemory(pImpl->hHab, addr, (uint8_t *)pSamples, pStatus->numSamples));
+   }
+
+   for (i = 0; i < pStatus->numSamples; i += 4)
+   {
+      buf[0] = pSamples[i];
+      buf[1] = pSamples[i+1];
+      buf[2] = pSamples[i+2];
+      buf[3] = pSamples[i+3];
+      pSamples[i+3] = buf[0];
+      pSamples[i+2] = buf[1];
+      pSamples[i+1] = buf[2];
+      pSamples[i+0] = buf[3];
+   }
+
+   done:
+   BDBG_LEAVE(BSAT_45308_P_GetSpectrumStatus);
    return retCode;
 }

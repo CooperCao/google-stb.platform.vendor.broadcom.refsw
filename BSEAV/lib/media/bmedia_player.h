@@ -115,6 +115,7 @@ typedef enum bmedia_player_entry_type {
 	bmedia_player_entry_type_atom, /* player has provided  batom_t with a data */
 	bmedia_player_entry_type_async, /* player requested asyncronoush action, application must wait fo asynchronous action to complete before calling into the hmedia_player */
 	bmedia_player_entry_type_no_data, /* player temporarily wasn't able to read data from the file */
+	bmedia_player_entry_type_sleep_10msec, /* player was not able to provide any information at this time, call back after 10 msec sleep */
 	bmedia_player_entry_type_error, /* player encountered error */
 	bmedia_player_entry_type_end_of_stream /* player reached end of stream (or begining of the stream if running in reverse) */
 } bmedia_player_entry_type;
@@ -216,6 +217,10 @@ typedef struct bmedia_player_decoder_config {
       unsigned video_buffer_size; /* size of the video decoder compressed buffer, bytes */
 } bmedia_player_decoder_config;
 
+typedef struct bmedia_player_dqt_data {
+    unsigned index;
+    unsigned openGopPictures;
+} bmedia_player_dqt_data;
 
 /**
 Summary:
@@ -227,7 +232,7 @@ typedef struct bmedia_player_config {
 	  void *cntx; /* context that is passed into the user callback */
 	  void (*error_detected)(void *cntx); /* callback is called when error detected */
 	  void (*atom_ready)(void *cntx, bmedia_player_entry *entry); /* callback is called after completion of asynchronous action */
-	  int (*get_dqt_index)(void *cntx, unsigned *index, unsigned *openGopPictures);
+	  int (*get_dqt_index)(void *cntx, bmedia_player_dqt_data *data);
 	  bool timeshifting; /* true if playback file is used as timeshifting buffer */
       bool reorder_timestamps; /* reorder timestamps from display into the decode order */
       bool autoselect_player; /* auto select which player to use */

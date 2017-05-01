@@ -70,6 +70,7 @@ struct NEXUS_SimpleEncoderServer
 };
 
 static BLST_S_HEAD(NEXUS_SimpleEncoderServer_P_List, NEXUS_SimpleEncoderServer) g_NEXUS_SimpleEncoderServers;
+static NEXUS_Error NEXUS_SimpleEncoder_P_AddAuxPid(NEXUS_SimpleEncoderHandle handle, unsigned pid);
 
 struct NEXUS_SimpleEncoder
 {
@@ -122,6 +123,10 @@ struct NEXUS_SimpleEncoder
     } stack;
 #endif
     NEXUS_MessageHandle message[NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS];
+    struct {
+        unsigned total, max;
+        unsigned *pid;
+    } auxpid;
 };
 
 static NEXUS_SimpleEncoderHandle nexus_simple_encoder_p_first(void)
@@ -833,6 +838,10 @@ static void nexus_p_remove_pid_channels(NEXUS_SimpleEncoderHandle handle)
         (void)NEXUS_Recpump_SetSettings(handle->startSettings.recpump, &recpumpSettings);
     }
     NEXUS_Playpump_CloseAllPidChannels(handle->serverSettings.playpump[2]);
+    if (handle->auxpid.pid) {
+        BKNI_Free(handle->auxpid.pid);
+        BKNI_Memset(&handle->auxpid, 0, sizeof(handle->auxpid));
+    }
 }
 
 #if NEXUS_HAS_STREAM_MUX
@@ -840,14 +849,18 @@ static NEXUS_Error nexus_simpleencoder_p_create_stream_mux(NEXUS_SimpleEncoderHa
 {
     NEXUS_StreamMuxCreateSettings streamMuxCreateSettings;
     NEXUS_StreamMuxConfiguration streamMuxConfigSettings;
+    int i;
 
     BDBG_ASSERT(!handle->streamMux);
     NEXUS_StreamMux_GetDefaultCreateSettings(&streamMuxCreateSettings);
-    /* Override default stream mux mem config:
-       Allow minimum stream mux memory config with one ts user data pid.
-       TODO: expose to nxclient API */
+    /* Override default stream mux mem config: */
     NEXUS_StreamMux_GetDefaultConfiguration(&streamMuxConfigSettings);
-    streamMuxConfigSettings.userDataPids = 1;
+    streamMuxConfigSettings.userDataPids = 0;
+    for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS;i++) {
+        if (handle->startSettings.passthrough[i]) {
+            streamMuxConfigSettings.userDataPids += 1;
+        }
+    }
     streamMuxConfigSettings.nonRealTime = handle->serverSettings.nonRealTime;
     NEXUS_StreamMux_GetMemoryConfiguration(&streamMuxConfigSettings, &streamMuxCreateSettings.memoryConfiguration);
     NEXUS_CallbackHandler_PrepareCallback(handle->finishedHandler, streamMuxCreateSettings.finished);
@@ -917,11 +930,16 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
         pMuxStartSettings->audio[0].playpump = handle->serverSettings.playpump[1];
         nexus_simpleencoder_p_set_playpump(pMuxStartSettings->audio[0].playpump, tts, false);
     }
+
+    /* pcr.playpump is also used for PSI, so add unconditionally. */
+    pMuxStartSettings->pcr.playpump = handle->serverSettings.playpump[2];
+    nexus_simpleencoder_p_set_playpump(pMuxStartSettings->pcr.playpump, tts, true);
     if (handle->startSettings.output.transport.pcrPid) {
         pMuxStartSettings->pcr.pid = handle->startSettings.output.transport.pcrPid;
-        pMuxStartSettings->pcr.playpump = handle->serverSettings.playpump[2];
-        nexus_simpleencoder_p_set_playpump(pMuxStartSettings->pcr.playpump, tts, true);
         pMuxStartSettings->pcr.interval = 50;
+    }
+    else {
+        pMuxStartSettings->pcr.interval = 0;
     }
     for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS;i++) {
         if (handle->startSettings.passthrough[i]) {
@@ -967,16 +985,8 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
     }
 
     if (handle->startSettings.output.transport.pmtPid) {
-        pidChannel = NEXUS_Playpump_OpenPidChannel(handle->serverSettings.playpump[2], handle->startSettings.output.transport.pmtPid, NULL);
-        if (!pidChannel) {rc = BERR_TRACE(NEXUS_UNKNOWN); goto err_openpid;}
-        rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, pidChannel, NULL);
-        if (rc) {rc = BERR_TRACE(rc); goto err_openpid;}
-
-        /* PAT, always pid 0x0 */
-        pidChannel = NEXUS_Playpump_OpenPidChannel(handle->serverSettings.playpump[2], 0, NULL);
-        if (!pidChannel) {rc = BERR_TRACE(NEXUS_UNKNOWN); goto err_openpid;}
-        rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, pidChannel, NULL);
-        if (rc) {rc = BERR_TRACE(rc); goto err_openpid;}
+        NEXUS_SimpleEncoder_P_AddAuxPid(handle, handle->startSettings.output.transport.pmtPid);
+        NEXUS_SimpleEncoder_P_AddAuxPid(handle, 0); /* PAT */
     }
     for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS;i++) {
         if (handle->startSettings.passthrough[i]) {
@@ -998,7 +1008,7 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
     }
 
     if (muxOutput.video[0]) {
-        NEXUS_RecpumpAddPidChannelSettings settings;
+        NEXUS_RecpumpPidChannelSettings settings;
         NEXUS_Recpump_GetDefaultAddPidChannelSettings(&settings);
         if (handle->startSettings.output.video.index) {
             settings.pidType = NEXUS_PidType_eVideo;
@@ -1212,6 +1222,7 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
     return 0;
 
 err_stream_mux:
+    nexus_simpleencoder_p_stop_psi(handle);
 err_start_psi:
     nexus_simpleencoder_p_destroy_stream_mux(handle);
 err_create_stream_mux:
@@ -1352,7 +1363,9 @@ static NEXUS_Error nexus_simpleencoder_p_start_psi( NEXUS_SimpleEncoderHandle ha
     TS_PAT_program_Init(&program, 1, handle->startSettings.output.transport.pmtPid);
     TS_PAT_addProgram(&patState, &pmtState, &program, pmt_pl_buf, BTST_TS_HEADER_BUF_LENGTH);
 
-    TS_PMT_setPcrPid(&pmtState, handle->startSettings.output.transport.pcrPid);
+    if (handle->startSettings.output.transport.pcrPid) {
+        TS_PMT_setPcrPid(&pmtState, handle->startSettings.output.transport.pcrPid);
+    }
 
     if (handle->videoStarted) {
         unsigned vidStreamType;
@@ -1693,4 +1706,98 @@ NEXUS_Error NEXUS_SimpleEncoder_InsertRandomAccessPoint( NEXUS_SimpleEncoderHand
     }
 #endif
     return BERR_TRACE(BERR_NOT_AVAILABLE);
+}
+
+/* return zero if added, non-zero if already added */
+static NEXUS_Error NEXUS_SimpleEncoder_P_AddAuxPid(NEXUS_SimpleEncoderHandle handle, unsigned pid)
+{
+    unsigned i;
+    int rc;
+    NEXUS_PidChannelHandle pidChannel;
+
+    for (i=0;i<handle->auxpid.total;i++) {
+        if (handle->auxpid.pid[i] == pid) {
+            return -1; /* already added, no BERR_TRACE */
+        }
+    }
+    if (handle->auxpid.total == handle->auxpid.max) {
+        /* alloc more */
+        unsigned n = handle->auxpid.max ? handle->auxpid.max * 2 : 16;
+        void *ptr = BKNI_Malloc(n * sizeof(handle->auxpid.pid[0]));
+        if (!ptr) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        if (handle->auxpid.pid) {
+            BKNI_Memcpy(ptr, handle->auxpid.pid, handle->auxpid.total * sizeof(handle->auxpid.pid[0]));
+            BKNI_Free(handle->auxpid.pid);
+        }
+        handle->auxpid.pid = ptr;
+        handle->auxpid.max = n;
+    }
+    handle->auxpid.pid[handle->auxpid.total++] = pid;
+
+    pidChannel = NEXUS_Playpump_OpenPidChannel(handle->serverSettings.playpump[2], pid, NULL);
+    if (!pidChannel) {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
+    rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, pidChannel, NULL);
+    if (rc) {
+        NEXUS_Playpump_ClosePidChannel(handle->serverSettings.playpump[2], pidChannel);
+        return BERR_TRACE(rc);
+    }
+
+    return NEXUS_SUCCESS;
+}
+
+#if NEXUS_HAS_STREAM_MUX
+static NEXUS_Error NEXUS_SimpleEncoder_P_ScanAuxPid(NEXUS_SimpleEncoderHandle handle, const NEXUS_StreamMuxSystemData *pSystemDataBuffer)
+{
+    unsigned i, lastpid = 0x1fff;
+    if (!NEXUS_P_CpuAccessibleAddress(pSystemDataBuffer->pData)) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    for (i=0;i<pSystemDataBuffer->size;i+=188) {
+        const uint8_t *ptr = pSystemDataBuffer->pData;
+        unsigned pid = ((ptr[1]&0x1f) << 8) | ptr[2];
+        if (pid != lastpid) {
+            NEXUS_SimpleEncoder_P_AddAuxPid(handle, pid);
+            lastpid = pid;
+        }
+    }
+    return NEXUS_SUCCESS;
+}
+#endif
+
+NEXUS_Error NEXUS_SimpleEncoder_AddSystemDataBuffer( NEXUS_SimpleEncoderHandle handle, const NEXUS_StreamMuxSystemData *pSystemDataBuffer )
+{
+#if NEXUS_HAS_STREAM_MUX
+    int rc;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
+    if (!handle->streamMux || handle->startSettings.output.transport.pmtPid) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+
+    rc = NEXUS_SimpleEncoder_P_ScanAuxPid(handle, pSystemDataBuffer);
+    if (rc) return BERR_TRACE(rc);
+
+    return NEXUS_StreamMux_AddSystemDataBuffer(handle->streamMux, pSystemDataBuffer);
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSystemDataBuffer);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
+}
+
+void NEXUS_SimpleEncoder_GetCompletedSystemDataBuffers( NEXUS_SimpleEncoderHandle handle, unsigned *pCompletedCount )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
+#if NEXUS_HAS_STREAM_MUX
+    if (handle->streamMux) {
+        size_t count;
+        NEXUS_StreamMux_GetCompletedSystemDataBuffers(handle->streamMux, &count);
+        *pCompletedCount = count;
+        return;
+    }
+#endif
+    *pCompletedCount = 0;
 }

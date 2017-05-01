@@ -87,6 +87,8 @@ BDBG_OBJECT_ID_DECLARE(BVDC_GFX);
 /* fixed "color space matrix a BCHP_GFD_0_CSC_R0_MA_COEFFxx */
 #define BVDC_P_SUPPORT_GFD_VER_9           (9) /* 7439 b0 */
 
+/* BSTC with  HW7278-594 to be fixed since 7278b0*/
+#define BVDC_P_SUPPORT_GFD_VER_10           (10) /* 7268 a0/b0 7271 a0/b0 7278 a0 7586 */
 #if ((BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_4)|| \
      (BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_5))
 /* HW7231-187 transition failure between 2D->3D 3D->2D*/
@@ -267,6 +269,9 @@ typedef struct BVDC_P_GfxFeederContext
     /* CFC LUT heap */
     BMMA_Heap_Handle                 hCfcHeap; /* must be cpu accessible for LUT fill */
     BVDC_P_CfcLutLoadListInfo        stCfcLutList; /* for CFC ram table loading */
+#if BVDC_P_DBV_SUPPORT
+    bool                             bDbvEnabled;
+#endif
 #endif
     BVDC_P_CfcContext                stCfc;
 
@@ -383,10 +388,22 @@ void BVDC_P_GfxFeeder_AbortChanges
  */
 void BVDC_P_GfxFeeder_BuildRul_isr
     ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
-      BVDC_P_Source_Info *             pCurSrcInfo,
       BVDC_P_ListInfo                 *pList,
       BAVC_Polarity                    eFieldId,
       BVDC_P_State                     eVnetState );
+
+/*************************************************************************
+ * {private}
+ * BVDC_P_GfxFeeder_UpdateState_isr
+ *
+ * Update GfxFeeder state.
+ *
+ */
+void BVDC_P_GfxFeeder_UpdateState_isr
+    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
+      BVDC_P_Source_Info *             pCurSrcInfo,
+      BVDC_P_ListInfo                 *pList,
+      BAVC_Polarity                    eFieldId );
 
 /***************************************************************************
  * {private}

@@ -1,0 +1,30 @@
+# DynRng Generated Test #2301
+# RX CAPS: LEGACY SDR HDR10 HLG
+# TEST VARS: GFX = SDR; VID = N/A; OUT = HDR10
+echo "Please attach a TV with the following capabilities: HDR10
+waituser
+echo "This is a CONVERSION test case."
+echo ""
+echo "The conversion case is:"
+echo ""
+echo "GFX ONLY"
+echo "GFX SDR to HDR10"
+echo ""
+echo "Please ensure the brightness on the TV is back to normal."
+echo ""
+echo "After you hit enter, please look at the TV screen and compare to the reference image(s) for this conversion case."
+echo ""
+waituser
+plm.vid = 1
+plm.gfx = 1
+dynrng = hdr10
+layout = 0
+stream[0] =
+stream[1] =
+stream[2] =
+stream[3] =
+pig = on
+bg = epg1080p.png
+image = LifeOfPi.png
+commit
+results

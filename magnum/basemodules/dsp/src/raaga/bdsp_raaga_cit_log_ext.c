@@ -61,6 +61,7 @@ void BDSP_Raaga_P_Analyse_CIT_VideoEncode_GlobalTaskConfig(BDSP_VF_P_sENC_GLOBAL
 	BDBG_MSG(("STC Address      : 0x%x",psVideoEncGblTaskCfg->sGlobalVideoEncoderConfig.sEncoderParams.ui32StcAddr));
 	BDBG_MSG(("STC Address[HI]  : 0x%x",psVideoEncGblTaskCfg->sGlobalVideoEncoderConfig.sEncoderParams.ui32StcAddr_hi));
     BDBG_MSG(("GO BIT           : %s",DisableEnable[psVideoEncGblTaskCfg->sGlobalVideoEncoderConfig.sEncoderParams.IsGoBitInterruptEnabled]));
+	BDBG_MSG(("NRT Mode           : %s",DisableEnable[psVideoEncGblTaskCfg->sGlobalVideoEncoderConfig.sEncoderParams.IsNrtModeEnabled]));
 	for(ui32count=0;ui32count<BDSP_FW_VIDEO_ENC_MAX_INTERRUPT_TO_DSP;ui32count++)
 	{
 		BDBG_MSG(("Interrupt Bit[%d]	: 0x%x",ui32count, psVideoEncGblTaskCfg->sGlobalVideoEncoderConfig.sEncoderParams.ui32InterruptBit[ui32count]));

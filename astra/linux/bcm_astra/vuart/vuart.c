@@ -142,10 +142,10 @@
 
 /* vuart mem structure */
 struct vuart_mem {
-    uint32_t phyTxMem;
-    uint32_t phyTxSize;
-    uint32_t phyRxMem;
-    uint32_t phyRxSize;
+    uintptr_t phyTxMem;
+    uintptr_t phyTxSize;
+    uintptr_t phyRxMem;
+    uintptr_t phyRxSize;
     unsigned char *pvmemTx;
     unsigned char *pvmemRx;
 };
@@ -200,10 +200,10 @@ static void bcm_vuart_stop_rx(struct uart_port *port)
 /*
  * ring buffer offset wrap arround condition
  */
-static uint32_t offset_wrap(
+static uint64_t offset_wrap(
     struct tzioc_ring_buf *pRing,
-    uint32_t ulOffset,
-    uint32_t ulInc)
+    uint64_t ulOffset,
+    uint64_t ulInc)
 {
     ulOffset += ulInc;
     if (ulOffset >= pRing->ulBuffOffset + pRing->ulBuffSize) {

@@ -47,7 +47,7 @@ extern "C" {
 #endif
 
 
-/* 
+/*
  * Error extensions to NEXUS_Error type
  * see nexus_base_types.h for NEXUS_Error definitions
  */
@@ -60,6 +60,23 @@ extern "C" {
 
 /* A watchdog even occurred. Sage-cpu is in reset. */
 #define NEXUS_ERROR_SAGE_WATCHDOG NEXUS_MAKE_ERR_CODE(0x108, 2)
+
+/*These enums are now  shared between SAGE 2_x and 3_x.
+For Sage 2_x, only the first 4 are used */
+typedef enum SAGE_IMAGE_FirmwareID
+{
+    SAGE_IMAGE_FirmwareID_eBootLoader_Development,   /* Development (ZS) chip-compatible SAGE boot loader image */
+    SAGE_IMAGE_FirmwareID_eFramework_Development,          /* Development (ZS) chip-compatible SAGE Framework image */
+    SAGE_IMAGE_FirmwareID_eBootLoader,                   /* Production (ZB or customer specific) chip-compatible SAGE boot loader image */
+    SAGE_IMAGE_FirmwareID_eFramework,                       /* Production (ZB or customer specific) chip-compatible SAGE Framework image */
+    SAGE_IMAGE_FirmwareID_eSage_TA_SVP_Development,      /* Development (ZS) chip-compatible Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_SVP,                  /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_AR_Development,      /* Development (ZS) chip-compatible Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_AR,                  /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_AR_DB,                  /*Anti-Rollback Database (univeral across chip variants dev/non dev)*/
+    /* Add additional image IDs ABOVE this line */
+    SAGE_IMAGE_FirmwareID_Max
+} SAGE_IMAGE_FirmwareID;
 
 /***************************************************************************
 Summary:
@@ -74,6 +91,7 @@ NEXUS_SageModule_Init
 typedef struct NEXUS_SageModuleSettings
 {
     unsigned clientHeapIndex; /* heap that client requests will be using */
+    bool imageExists[SAGE_IMAGE_FirmwareID_Max];
 } NEXUS_SageModuleSettings;
 
 #ifdef __cplusplus

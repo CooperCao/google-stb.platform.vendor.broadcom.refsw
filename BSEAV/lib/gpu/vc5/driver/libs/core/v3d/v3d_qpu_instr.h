@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/util/assert_helpers.h"
@@ -79,6 +78,11 @@ typedef enum
    V3D_QPU_SIG_LDTLBU    = (1<<7),
    V3D_QPU_SIG_UCB       = (1<<8),
    V3D_QPU_SIG_ROTATE    = (1<<9),
+#if V3D_HAS_LDUNIFRF
+   V3D_QPU_SIG_LDUNIFRF  = (1<<10),
+   V3D_QPU_SIG_LDUNIFA   = (1<<11),
+   V3D_QPU_SIG_LDUNIFARF = (1<<12),
+#endif
 } v3d_qpu_sigbits_t;
 
 struct v3d_qpu_sig
@@ -86,10 +90,19 @@ struct v3d_qpu_sig
    v3d_qpu_sigbits_t sigbits;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_HAS_SIG_TO_MAGIC
+   bool magic;
+#else
    bool sig_reg;
+#endif
    uint32_t waddr;
 #endif
 };
+
+extern bool v3d_qpu_sig_has_result_write(v3d_qpu_sigbits_t sigbits);
+#if !V3D_HAS_SIG_TO_MAGIC
+extern uint32_t v3d_qpu_sig_default_reg(v3d_qpu_sigbits_t sigbits);
+#endif
 
 extern void v3d_qpu_encode_sigbits(v3d_qpu_sigbits_t sig, uint32_t* encoded);
 extern bool v3d_qpu_try_encode_sigbits(v3d_qpu_sigbits_t sig, uint32_t* encoded);
@@ -215,7 +228,7 @@ static inline void v3d_qpu_branch_params_from_ucb(
 typedef enum
 {
    V3D_QPU_MAGIC_WADDR_CLASS_ACC,
-   V3D_QPU_MAGIC_WADDR_CLASS_R5QUAD,
+   V3D_QPU_MAGIC_WADDR_CLASS_R5,
    V3D_QPU_MAGIC_WADDR_CLASS_NOP,
    V3D_QPU_MAGIC_WADDR_CLASS_TLB,
    V3D_QPU_MAGIC_WADDR_CLASS_TMU,
@@ -224,6 +237,9 @@ typedef enum
 #endif
    V3D_QPU_MAGIC_WADDR_CLASS_SYNC,
    V3D_QPU_MAGIC_WADDR_CLASS_SFU,
+#if V3D_HAS_LDUNIFRF
+   V3D_QPU_MAGIC_WADDR_CLASS_UNIF,
+#endif
    V3D_QPU_MAGIC_WADDR_CLASS_INVALID
 } v3d_qpu_magic_waddr_class_t;
 

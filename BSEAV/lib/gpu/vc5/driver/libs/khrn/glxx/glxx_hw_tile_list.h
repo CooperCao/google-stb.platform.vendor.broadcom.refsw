@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "glxx_hw_render_state.h"
@@ -45,7 +44,7 @@ static inline bool glxx_hw_tile_list_any_loads(const struct glxx_hw_tile_list_fb
       fb_ops->depth_load || fb_ops->stencil_load;
 }
 
-extern bool glxx_hw_create_generic_tile_list(v3d_addr_t addrs[2],
+extern bool glxx_hw_create_generic_tile_list(v3d_addr_range *range,
    struct glxx_hw_tile_list_rcfg *rcfg,
    GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, bool double_buffer,
    const struct glxx_hw_tile_list_fb_ops *fb_ops);

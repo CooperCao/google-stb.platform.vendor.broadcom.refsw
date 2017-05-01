@@ -51,6 +51,7 @@
 #include "stream_player.h"
 #include "scenario_player.h"
 #include "osd.h"
+#include "shell.h"
 #include <stdbool.h>
 
 typedef struct App
@@ -65,22 +66,28 @@ typedef struct App
     PlatformReceiverHandle rx;
     PlatformInputHandle input;
     PlatformModel model;
-    bool forceSdr;
-    PlatformDynamicRange forcedOutputEotf;
-    bool outputEotfSticky;
+    struct
+    {
+        PlatformDynamicRange dynrng;
+        PlatformColorSpace colorSpace;
+        bool dynrngLock;
+    } output;
     bool pig;
     struct
     {
-        PlmHandle vid;
+        PlmHandle vid[MAX_MOSAICS];
         PlmHandle gfx;
     } plm;
     Nl2lHandle nl2l;
-    StreamPlayerHandle streamPlayer;
+    StreamPlayerHandle streamPlayer[MAX_MOSAICS];
     ScenarioPlayerHandle scenarioPlayer;
     ImageViewerHandle thumbnail;
     ImageViewerHandle background;
     OsdHandle osd;
-    unsigned prevStreamIndex;
+    ShellHandle shell;
+    char * prevStreamPaths[MAX_MOSAICS];
+    unsigned streamCount;
+    unsigned layout;
 } App;
 
 void app_p_hotplug_occurred(void * context, int param);
@@ -101,8 +108,9 @@ void app_p_update_rcv_model(AppHandle app);
 void app_p_reapply_plm(AppHandle app);
 void app_p_update_model(AppHandle app);
 void app_p_apply_scenario(AppHandle app, const Scenario * pScenario);
+void app_p_set_pig_mode(AppHandle app, bool pig);
 
-void app_p_print_remote_usage(void);
+void app_p_print_remote_usage(AppHandle app);
 
 void app_p_next_video_setting(void * context, int param);
 void app_p_prev_video_setting(void * context, int param);
@@ -118,9 +126,12 @@ void app_p_toggle_pause(void * context, int param);
 void app_p_toggle_pig(void * context, int param);
 void app_p_toggle_details(void * context, int param);
 void app_p_toggle_forced_sdr(void * context, int param);
+void app_p_toggle_output_dynamic_range_lock(void * context, int param);
+void app_p_cycle_output_dynamic_range(void * context, int param);
 void app_p_cycle_colorimetry(void * context, int param);
 void app_p_cycle_background(void * context, int param);
 void app_p_run_scenario(void * context, int param);
+void app_p_run_command_shell(void * context, int param);
 void app_p_quit(void * context, int param);
 
 #endif /* APP_PRIV_H__ */

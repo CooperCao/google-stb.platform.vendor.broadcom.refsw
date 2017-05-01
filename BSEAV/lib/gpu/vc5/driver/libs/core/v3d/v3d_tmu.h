@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/core/lfmt/lfmt.h"
@@ -11,6 +10,48 @@ All rights reserved.
 
 VCOS_EXTERN_C_BEGIN
 
+// V3D_TMU_F_BITS sets # blend bits for bi/tri linear
+// e.g. 4 bits give 16 levels bend,
+// 5 = 32, .. etc.
+#define V3D_TMU_F_BITS 8
+#define V3D_TMU_F_BITS_MASK ((1 << V3D_TMU_F_BITS) - 1)
+#define V3D_TMU_F_HALF (1 << (V3D_TMU_F_BITS - 1))
+#define V3D_TMU_F_ONE (1 << V3D_TMU_F_BITS)
+
+static inline unsigned v3d_tmu_nearest_mip_level(uint32_t lod)
+{
+   // ceil(lod + 0.5) - 1
+   lod += V3D_TMU_F_HALF;
+   unsigned level = lod >> V3D_TMU_F_BITS;
+   if (!(lod & V3D_TMU_F_BITS_MASK))
+      --level;
+   return level;
+}
+
+#if V3D_HAS_SEP_ANISO_CFG
+static inline v3d_max_aniso_t v3d_tmu_translate_max_aniso(float max_aniso)
+{
+   if (max_aniso > 8.0f)
+      return V3D_MAX_ANISO_16;
+   if (max_aniso > 4.0f)
+      return V3D_MAX_ANISO_8;
+   if (max_aniso > 2.0f)
+      return V3D_MAX_ANISO_4;
+   return V3D_MAX_ANISO_2;
+}
+#else
+static inline v3d_tmu_filters_t v3d_tmu_filters_anisotropic(float max_aniso)
+{
+   if (max_aniso > 8.0f)
+      return V3D_TMU_FILTERS_ANISOTROPIC16;
+   if (max_aniso > 4.0f)
+      return V3D_TMU_FILTERS_ANISOTROPIC8;
+   if (max_aniso > 2.0f)
+      return V3D_TMU_FILTERS_ANISOTROPIC4;
+   return V3D_TMU_FILTERS_ANISOTROPIC2;
+}
+#endif
+
 static inline v3d_tmu_wrap_t v3d_tmu_wrap_from_wrap_i(v3d_tmu_wrap_i_t wrap_i)
 {
    switch (wrap_i)
@@ -18,40 +59,6 @@ static inline v3d_tmu_wrap_t v3d_tmu_wrap_from_wrap_i(v3d_tmu_wrap_i_t wrap_i)
    case V3D_TMU_WRAP_I_CLAMP:    return V3D_TMU_WRAP_CLAMP;
    case V3D_TMU_WRAP_I_BORDER:   return V3D_TMU_WRAP_BORDER;
    default:                      unreachable(); return V3D_TMU_WRAP_INVALID;
-   }
-}
-
-static inline v3d_tmu_min_filt_t v3d_tmu_mag_filt_to_min_filt(v3d_tmu_mag_filt_t mag_filt)
-{
-   switch (mag_filt)
-   {
-   case V3D_TMU_MAG_FILT_LINEAR:    return V3D_TMU_MIN_FILT_LINEAR;
-   case V3D_TMU_MAG_FILT_NEAREST:   return V3D_TMU_MIN_FILT_NEAREST;
-   default:                         unreachable(); return V3D_TMU_MIN_FILT_INVALID;
-   }
-}
-
-static inline bool v3d_tmu_min_filt_does_mipmapping(v3d_tmu_min_filt_t min_filt)
-{
-   return (min_filt != V3D_TMU_MIN_FILT_LINEAR) &&
-          (min_filt != V3D_TMU_MIN_FILT_NEAREST);
-}
-
-static inline v3d_tmu_min_filt_t v3d_tmu_min_filt_disable_mipmapping(v3d_tmu_min_filt_t min_filt)
-{
-   switch (min_filt)
-   {
-   case V3D_TMU_MIN_FILT_LINEAR:
-   case V3D_TMU_MIN_FILT_LIN_MIP_NEAR:
-   case V3D_TMU_MIN_FILT_LIN_MIP_LIN:
-      return V3D_TMU_MIN_FILT_LINEAR;
-   case V3D_TMU_MIN_FILT_NEAREST:
-   case V3D_TMU_MIN_FILT_NEAR_MIP_NEAR:
-   case V3D_TMU_MIN_FILT_NEAR_MIP_LIN:
-      return V3D_TMU_MIN_FILT_NEAREST;
-   default:
-      unreachable();
-      return V3D_TMU_MIN_FILT_INVALID;
    }
 }
 
@@ -137,14 +144,8 @@ extern uint32_t v3d_tmu_get_word_read_max(
 
 extern bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type);
 
-/* Does not consider array size to be a dimension, so eg returns 2 for 2D_ARRAY */
-extern uint32_t v3d_tmu_ltype_num_dims(v3d_tmu_ltype_t ltype);
-
-extern bool v3d_tmu_ltype_is_array(v3d_tmu_ltype_t ltype);
-extern bool v3d_tmu_ltype_is_cube(v3d_tmu_ltype_t ltype);
-
 extern void v3d_tmu_calc_mip_levels(GFX_BUFFER_DESC_T *mip_levels,
-   v3d_tmu_ltype_t ltype, bool srbg, v3d_tmu_type_t type,
+   uint32_t dims, bool srgb, v3d_tmu_type_t type,
    const struct gfx_buffer_uif_cfg *uif_cfg, uint32_t arr_str,
    uint32_t width, uint32_t height, uint32_t depth,
    uint32_t num_mip_levels);
@@ -165,7 +166,9 @@ struct v3d_tmu_cfg
 
    /* Derived from written registers */
    bool is_write; /* General too */
-   v3d_tmu_ltype_t ltype;
+   uint32_t dims; // 2 for cubemaps, does not include array index
+   bool array;
+   bool cube;
    bool shadow;
    bool fetch;
 
@@ -202,12 +205,13 @@ struct v3d_tmu_cfg
 
    /* From sampler */
    uint32_t aniso_level; /* Number of samples = 2^aniso_level. 0 means no anisotropic filtering. */
-   v3d_tmu_min_filt_t minfilt;
-   v3d_tmu_mag_filt_t magfilt;
+   v3d_tmu_filter_t magfilt;
+   v3d_tmu_filter_t minfilt;
+   v3d_tmu_mipfilt_t mipfilt;
    v3d_compare_func_t compare_func;
-   uint32_t min_lod;
-   uint32_t max_lod;
-   int32_t fixed_bias;
+   uint32_t min_lod; // .V3D_TMU_F_BITS
+   uint32_t max_lod; // .V3D_TMU_F_BITS
+   int32_t fixed_bias; // .V3D_TMU_F_BITS
    v3d_tmu_wrap_t wrap_s;
    v3d_tmu_wrap_t wrap_t;
    v3d_tmu_wrap_t wrap_r;
@@ -215,8 +219,9 @@ struct v3d_tmu_cfg
    GFX_LFMT_BLOCK_T bcolour; /* Border colour. For non-depth types will be in blend format. */
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   /* Child image. If not enabled, cx/yoff will be 0 and cwidth/height will
-    * match width/height. */
+   bool child_image;
+   /* If !child_image, cx/yoff should be 0 and cwidth/height should match
+    * width/height. */
    uint32_t cwidth;
    uint32_t cheight;
    uint32_t cxoff;

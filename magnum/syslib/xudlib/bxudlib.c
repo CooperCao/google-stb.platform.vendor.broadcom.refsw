@@ -1,27 +1,47 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 /**** Module Overview ****
  *
- * The XUD (Transcode User Data) API is a library used to rate convert user data from an input source 
+ * The XUD (Transcode User Data) API is a library used to rate convert user data from an input source
  * so as to allow it to be inserted into the transcoded video.
  *
  */
@@ -45,7 +65,7 @@ BDBG_MODULE(BXUDlib);
 
 #define B_MAX_VBI_CC_COUNT 32 /* required by UDPlib */
 #define B_MAX_708_CC_COUNT 9 /* required by ViCE */
-#define B_MAX_608_CC_COUNT 2 
+#define B_MAX_608_CC_COUNT 2
 #define BXUD_OUT_OF_SYNC_THRESHOLD 3
 
 #define BXUD_DEFAULT_QUEUE_SIZE (B_MAX_VBI_CC_COUNT * BXUD_OUT_OF_SYNC_THRESHOLD)
@@ -71,7 +91,7 @@ typedef struct BXUD_CCData
    BUDP_DCCparse_ccdata ccData;
 } BXUD_CCData;
 
-typedef struct BXUD_StdInfo 
+typedef struct BXUD_StdInfo
 {
     bool synced;
     struct
@@ -91,7 +111,7 @@ typedef struct BXUDlib_P_Context
     bool initialSync;
     bool bCurrentPolarityValid;
     BAVC_Polarity currentPolarity;
-    uint32_t decodeId; 
+    uint32_t decodeId;
     BUDP_DCCparse_Format currentFormat;
 
     BXUD_StdInfo stdInfo[BXUD_EncapsulationStd_Max];
@@ -142,8 +162,8 @@ BXUDlib_Create(BXUDlib_Handle *phXud, const BXUDlib_CreateSettings *pstXudCreate
     {
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
-    
-    BKNI_Memset(pContext, 0, sizeof(BXUDlib_P_Context)); 
+
+    BKNI_Memset(pContext, 0, sizeof(BXUDlib_P_Context));
 
     if( pstXudCreateSettings )
     {
@@ -177,7 +197,7 @@ BXUDlib_Create(BXUDlib_Handle *phXud, const BXUDlib_CreateSettings *pstXudCreate
           BKNI_Memset( pContext->stdInfo[i].type[j].astCCData, 0, sizeof( BXUD_CCData ) * pContext->createSettings.queueSize );
        }
     }
-    
+
 #if BXUDLIB_P_DUMP_INPUT_CC
     pContext->hInputCCDump = (FILE*) fopen("BXUDLIB_USERDATA_INPUT.csv", "wb");
     if ( NULL == pContext->hInputCCDump )
@@ -257,17 +277,17 @@ BXUDlib_Destroy(BXUDlib_Handle hXud)
 void
 BXUDlib_GetDefaultCreateSettings(BXUDlib_CreateSettings *pstXudCreateSettings)
 {
-    BKNI_Memset(pstXudCreateSettings, 0, sizeof(BXUDlib_CreateSettings)); 
+    BKNI_Memset(pstXudCreateSettings, 0, sizeof(BXUDlib_CreateSettings));
 
     /* default queue size */
     pstXudCreateSettings->queueSize = BXUD_DEFAULT_QUEUE_SIZE;
 }
 
 
-/* BXUDlib_SetSettings is called to change the config settings. When the outputPacketType 
+/* BXUDlib_SetSettings is called to change the config settings. When the outputPacketType
    is changed, the library will flush its queue of cc packets and start afresh.
    The library will discard all incoming user data if the sink interface is not set.
-   If the sink interface is set, the library will perform the appropriate rate 
+   If the sink interface is set, the library will perform the appropriate rate
    conversion and feed the user data to the sink interface at the STG rate
 
    BXUDlib_GetSettings can be called prior to SetSettings to get the default config settings.
@@ -309,7 +329,7 @@ static void printCcPacket_isr(BXUDlib_P_Context *pContext, char in, uint32_t stg
     {
         BKNI_Snprintf(pContext->outputStr[index], 2048, "%c:%d:%d:%d:", in, stgId, decodeId, ccCount);
     }
-    
+
     for( i = 0; i < ccCount; i++ )
     {
 
@@ -318,12 +338,12 @@ static void printCcPacket_isr(BXUDlib_P_Context *pContext, char in, uint32_t stg
             index = 1 - index;
             BKNI_Snprintf(pContext->outputStr[index], 2048, "%s[%d:%d:%d:%d:%d:%d-%d:%d]",
                 pContext->outputStr[1-index],
-                ccData[i].bIsAnalog, ccData[i].polarity, 
+                ccData[i].bIsAnalog, ccData[i].polarity,
                 ccData[i].format, ccData[i].cc_valid,
-                ccData[i].line_offset, ccData[i].seq.cc_type, 
+                ccData[i].line_offset, ccData[i].seq.cc_type,
                 ccData[i].cc_data_1, ccData[i].cc_data_2);
         }
-        
+
         valid >>= 1;
     }
 
@@ -364,9 +384,9 @@ static const uint8_t BXUDlib_P_SWAP8[256] =
 };
 
 
-/* BXUDlib_UserDataHandler_isr is called to provide XUD with user data packets (only closed 
-   captioning is used for now). All packets are associated with a "decode" picture id. XUD copies and queues the data 
-   provided in this callback for later processing.   
+/* BXUDlib_UserDataHandler_isr is called to provide XUD with user data packets (only closed
+   captioning is used for now). All packets are associated with a "decode" picture id. XUD copies and queues the data
+   provided in this callback for later processing.
 */
 BERR_Code
 BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstUserData)
@@ -375,7 +395,7 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
     uint32_t offset = 0;
 
     /*printUserData_isr(pContext, pstUserData->ulDecodePictureId, pstUserData->pUserDataBuffer, pstUserData->ui32UserDataBufSize); */
-    while (offset < pstUserData->ui32UserDataBufSize) 
+    while (offset < pstUserData->ui32UserDataBufSize)
     {
         BERR_Code rc;
         size_t bytesParsed = 0;
@@ -441,18 +461,18 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
             }
         }
 #endif /* DSS_SUPPORT */
-        if (bytesParsed==0) 
-        { 
+        if (bytesParsed==0)
+        {
             /* We aren't going anywhere...*/
             break;
         }
         offset += bytesParsed;
         /* We process bytesParsed even with error code. seems a bit dangerous. */
-        if (rc == BERR_BUDP_PARSE_ERROR) 
+        if (rc == BERR_BUDP_PARSE_ERROR)
         {
             break;
         }
-        else if (rc != BERR_SUCCESS) 
+        else if (rc != BERR_SUCCESS)
         {
             continue;
         }
@@ -502,7 +522,7 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
 
         {
            unsigned uiIndex = 0;
-           
+
            for ( uiIndex = 0; uiIndex < ccCount; uiIndex++ )
            {
               BXUD_StdInfo *pstdInfo = NULL;
@@ -585,7 +605,7 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
            }
         }
     }
-    
+
     return BERR_SUCCESS;
 }
 
@@ -593,7 +613,7 @@ static void
 BXUDlib_P_OutputUserData_isr( BXUDlib_P_Context *pContext, uint32_t stgPictureId )
 {
     void *pPrivateSinkContext;
-    BXUDlib_UserDataSink_Add userDataAdd_isr; 
+    BXUDlib_UserDataSink_Add userDataAdd_isr;
 
     BUDP_Encoder_FieldInfo *pstFieldInfo = (BUDP_Encoder_FieldInfo *) pContext->auiFieldInfo;
     BUDP_Encoder_PacketDescriptor *pstPacketDescriptor = pstFieldInfo->stPacketDescriptor;
@@ -620,26 +640,26 @@ BXUDlib_P_OutputUserData_isr( BXUDlib_P_Context *pContext, uint32_t stgPictureId
             pstPacketDescriptor[i].ePacketFormat = pContext->encoderPacketDescriptor[i].format;
             switch( pstPacketDescriptor[i].ePacketFormat ) {
 
-	        case BUDP_DCCparse_Format_DVS157:
-	            pstPacketDescriptor[i].data.stDvs157.stCC.uiNumLines = pContext->encoderPacketDescriptor[i].ccCount;
+            case BUDP_DCCparse_Format_DVS157:
+                pstPacketDescriptor[i].data.stDvs157.stCC.uiNumLines = pContext->encoderPacketDescriptor[i].ccCount;
                 pstPacketDescriptor[i].data.stDvs157.stCC.astLine = pContext->encoderPacketDescriptor[i].ccData;
-	        break;
+            break;
 
-	        case BUDP_DCCparse_Format_ATSC53:
-	            pstPacketDescriptor[i].data.stAtsc53.stCC.uiNumLines = pContext->encoderPacketDescriptor[i].ccCount;
+            case BUDP_DCCparse_Format_ATSC53:
+                pstPacketDescriptor[i].data.stAtsc53.stCC.uiNumLines = pContext->encoderPacketDescriptor[i].ccCount;
                 pstPacketDescriptor[i].data.stAtsc53.stCC.astLine = pContext->encoderPacketDescriptor[i].ccData;
-	        break;
-	        
-	        case BUDP_DCCparse_Format_DVS053:
-	            pstPacketDescriptor[i].data.stDvs053.stCC.uiNumLines = pContext->encoderPacketDescriptor[i].ccCount;
-                pstPacketDescriptor[i].data.stDvs053.stCC.astLine = pContext->encoderPacketDescriptor[i].ccData;
-	        break;
+            break;
 
-	        default:
-	        break;
+            case BUDP_DCCparse_Format_DVS053:
+                pstPacketDescriptor[i].data.stDvs053.stCC.uiNumLines = pContext->encoderPacketDescriptor[i].ccCount;
+                pstPacketDescriptor[i].data.stDvs053.stCC.astLine = pContext->encoderPacketDescriptor[i].ccData;
+            break;
+
+            default:
+            break;
             }
         }
-        
+
         userDataAdd_isr( pPrivateSinkContext, pstFieldInfo, 1, &queuedCount );
 
         if ( 1 != queuedCount )
@@ -660,7 +680,7 @@ BXUDlib_P_OutputUserData_isr( BXUDlib_P_Context *pContext, uint32_t stgPictureId
     }
 }
 
-bool
+static bool
 BXUDlib_P_DataPresent_isr( BXUDlib_P_Context *pContext, BXUD_StdInfo *pstdInfo, uint32_t decodePictureId )
 {
    unsigned int uiType;
@@ -686,7 +706,7 @@ BXUDlib_P_DataPresent_isr( BXUDlib_P_Context *pContext, BXUD_StdInfo *pstdInfo, 
 
 #define BXUD_ID_DELTA(a, b) ((a > b) ? (a - b) : (b - a))
 
-bool
+static bool
 BXUDlib_P_DiscardOutOfSyncData_isr( BXUDlib_P_Context *pContext, BXUD_StdInfo *pstdInfo, uint32_t decodePictureId, uint8_t threshold  )
 {
    unsigned int uiType;
@@ -743,8 +763,7 @@ BXUDlib_P_DiscardOutOfSyncData_isr( BXUDlib_P_Context *pContext, BXUD_StdInfo *p
    return bResult;
 }
 
-
-BERR_Code
+static BERR_Code
 BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format format, BXUD_StdInfo *pstdInfo, const BVDC_Display_CallbackData *pstDisplayCallbackData )
 {
     BXUD_EncoderPacketDescriptor *pEncoderPacketDescriptor = &pContext->encoderPacketDescriptor[pContext->numPacketDescriptors];
@@ -947,7 +966,7 @@ BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format fo
     }
 }
 
-/* BXUDlib_DisplayInterruptHandler_isr is the heartbeat of the XUD library where all the work is done.  
+/* BXUDlib_DisplayInterruptHandler_isr is the heartbeat of the XUD library where all the work is done.
    XUD gets the user data from the source for uiDecodePictureId via the BXUDlib_UserDataCallback_isr.
    On this call, XUD will appropriately redistribute the user data packets to the STG rate (rate conversion).
    XUD will add the rate converted user data to the sink per uiStgPictureId.
@@ -959,11 +978,11 @@ BXUDlib_DisplayInterruptHandler_isr(BXUDlib_Handle hXud, const BVDC_Display_Call
     BVDC_Display_CallbackData tempData = *pstDisplayCallbackData1;
     BVDC_Display_CallbackData *pstDisplayCallbackData = &tempData;
     unsigned i=0;
-    
+
     BDBG_MSG(("(%d, %d):%d", pstDisplayCallbackData->ulStgPictureId, pstDisplayCallbackData->ulDecodePictureId, pstDisplayCallbackData->ePolarity));
-    
+
     switch( pstDisplayCallbackData->sDisplayInfo.ulVertRefreshRate ) {
-    
+
     case 5994:
     case 6000:/* 1:1 mapping */
         pContext->repCnt  = 1;
@@ -973,12 +992,12 @@ BXUDlib_DisplayInterruptHandler_isr(BXUDlib_Handle hXud, const BVDC_Display_Call
     case 2400:/* 2:3 repeat cadence */
         pContext->repCnt  = (2==pContext->repCnt) ? 3 : 2;
     break;
-	
-	case 2997:
+
+    case 2997:
     case 3000:/* 2:2 repeat cadence */
         pContext->repCnt = 2;
     break;
-	
+
     default:/* Only framerates of 24, 30 and 60 are supported */
         if(pContext->initialSync || pContext->repCnt) {
             BDBG_WRN(("Unsupported CC user data STG rate = %u", pstDisplayCallbackData->sDisplayInfo.ulVertRefreshRate));
@@ -1032,7 +1051,7 @@ BXUDlib_DisplayInterruptHandler_isr(BXUDlib_Handle hXud, const BVDC_Display_Call
         pContext->numPacketDescriptors = 0;
         pContext->decodeId = pstDisplayCallbackData->ulDecodePictureId;
         BDBG_MSG(("Current field = %d", pContext->currentPolarity));
-   
+
         BXUDlib_P_Add_UserData_isr(pContext, BUDP_DCCparse_Format_DVS157, &pContext->stdInfo[BXUD_EncapsulationStd_Scte20], pstDisplayCallbackData);
         BXUDlib_P_Add_UserData_isr(pContext, BUDP_DCCparse_Format_DVS053, &pContext->stdInfo[BXUD_EncapsulationStd_Scte21], pstDisplayCallbackData);
         BXUDlib_P_Add_UserData_isr(pContext, BUDP_DCCparse_Format_ATSC53, &pContext->stdInfo[BXUD_EncapsulationStd_A53], pstDisplayCallbackData);
@@ -1046,7 +1065,3 @@ BXUDlib_DisplayInterruptHandler_isr(BXUDlib_Handle hXud, const BVDC_Display_Call
 
     return BERR_SUCCESS;
 }
-
-
-
-

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009-2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  autoclif recording interface
-
-FILE DESCRIPTION
-Drivers use this interface to trigger autoclif recording
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include <stdbool.h>
@@ -17,8 +10,12 @@ Drivers use this interface to trigger autoclif recording
 #include "khrn_process.h"
 #include "khrn_fmem.h"
 
+EXTERN_C_BEGIN
+
 typedef struct khrn_memaccess khrn_memaccess;
 
 extern void khrn_record(khrn_memaccess* ma, const V3D_BIN_RENDER_INFO_T *br_info);
+
+EXTERN_C_END
 
 #endif

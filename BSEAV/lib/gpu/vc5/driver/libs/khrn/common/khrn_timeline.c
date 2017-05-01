@@ -1,20 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-khrn timeline implementation
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_timeline.h"
 #include "khrn_render_state.h"
 
 
-static void flush_to_point(KHRN_TIMELINE_T *tl, uint64_t pt_val);
+static void flush_to_point(khrn_timeline *tl, uint64_t pt_val);
 
-void khrn_timeline_init(KHRN_TIMELINE_T *tl)
+void khrn_timeline_init(khrn_timeline *tl)
 {
    tl->next_id = 1;
    for (unsigned i = 0; i <= LAST_STATE; ++i)
@@ -22,12 +15,12 @@ void khrn_timeline_init(KHRN_TIMELINE_T *tl)
    tl->end = NULL;
 }
 
-static KHRN_TIMELINE_PT_T* point_create(uint64_t id)
+static khrn_timeline_pt* point_create(uint64_t id)
 {
-   KHRN_TIMELINE_PT_T *pt;
+   khrn_timeline_pt *pt;
 
    /* create a new point */
-   pt = calloc(1, sizeof(KHRN_TIMELINE_PT_T));
+   pt = calloc(1, sizeof(khrn_timeline_pt));
    if (!pt)
       return NULL;
 
@@ -42,7 +35,7 @@ static KHRN_TIMELINE_PT_T* point_create(uint64_t id)
    return pt;
 }
 
-static void point_destroy(KHRN_TIMELINE_PT_T *pt)
+static void point_destroy(khrn_timeline_pt *pt)
 {
    if (!pt)
       return;
@@ -51,7 +44,7 @@ static void point_destroy(KHRN_TIMELINE_PT_T *pt)
    free(pt);
 }
 
-void khrn_timeline_deinit(KHRN_TIMELINE_T *tl)
+void khrn_timeline_deinit(khrn_timeline *tl)
 {
    if (!tl->head[LAST_STATE])
       return;
@@ -60,7 +53,7 @@ void khrn_timeline_deinit(KHRN_TIMELINE_T *tl)
 
    while (tl->head[LAST_STATE] != NULL)
    {
-      KHRN_TIMELINE_PT_T *pt;
+      khrn_timeline_pt *pt;
       pt = tl->head[LAST_STATE];
       tl->head[LAST_STATE] = tl->head[LAST_STATE]->next;
       point_destroy(pt);
@@ -71,10 +64,10 @@ void khrn_timeline_deinit(KHRN_TIMELINE_T *tl)
        tl->head[i] = NULL;
 }
 
-static KHRN_TIMELINE_PT_T* find_point(const KHRN_TIMELINE_T *tl,
-      const KHRN_RENDER_STATE_T *rs)
+static khrn_timeline_pt* find_point(const khrn_timeline *tl,
+      const khrn_render_state *rs)
 {
-   KHRN_TIMELINE_PT_T *pt;
+   khrn_timeline_pt *pt;
 
    /* start at the first non-completed, as all completed points will have no
     * users */
@@ -93,9 +86,9 @@ static KHRN_TIMELINE_PT_T* find_point(const KHRN_TIMELINE_T *tl,
    return NULL;
 }
 
-bool khrn_timeline_record(KHRN_TIMELINE_T *tl, KHRN_RENDER_STATE_T *rs)
+bool khrn_timeline_record(khrn_timeline *tl, khrn_render_state *rs)
 {
-   KHRN_TIMELINE_PT_T *pt;
+   khrn_timeline_pt *pt;
    bool ok = false;
 
    /* see if we already have a point with this render state */
@@ -138,14 +131,14 @@ end:
    return ok;
 }
 
-uint64_t khrn_timeline_get_current(const KHRN_TIMELINE_T *tl)
+uint64_t khrn_timeline_get_current(const khrn_timeline *tl)
 {
    return tl->next_id - 1;
 }
 
-static void remove_head(KHRN_TIMELINE_T *tl, v3d_sched_deps_state deps_state)
+static void remove_head(khrn_timeline *tl, v3d_sched_deps_state deps_state)
 {
-   KHRN_TIMELINE_PT_T *pt;
+   khrn_timeline_pt *pt;
 
    pt = tl->head[deps_state];
    if (!pt)
@@ -165,7 +158,7 @@ static void remove_head(KHRN_TIMELINE_T *tl, v3d_sched_deps_state deps_state)
    else
    {
       tl->head[deps_state] = tl->head[deps_state]->next;
-      KHRN_TIMELINE_PT_T *new_pt = tl->head[deps_state];
+      khrn_timeline_pt *new_pt = tl->head[deps_state];
 
       for (int i = 0; i < deps_state; ++i)
       {
@@ -178,10 +171,10 @@ static void remove_head(KHRN_TIMELINE_T *tl, v3d_sched_deps_state deps_state)
    }
 }
 
-static bool point_passed_for_state(KHRN_TIMELINE_T *tl, uint64_t pt_val,
+static bool point_passed_for_state(khrn_timeline *tl, uint64_t pt_val,
       v3d_sched_deps_state deps_state)
 {
-   KHRN_TIMELINE_PT_T *pt = tl->head[deps_state];
+   khrn_timeline_pt *pt = tl->head[deps_state];
 
    while (pt && pt->id <= pt_val)
    {
@@ -195,9 +188,9 @@ static bool point_passed_for_state(KHRN_TIMELINE_T *tl, uint64_t pt_val,
    return true;
 }
 
-static void flush_to_point(KHRN_TIMELINE_T *tl, uint64_t pt_val)
+static void flush_to_point(khrn_timeline *tl, uint64_t pt_val)
 {
-   KHRN_TIMELINE_PT_T *pt;
+   khrn_timeline_pt *pt;
 
    assert(pt_val < tl->next_id);
 
@@ -211,7 +204,7 @@ static void flush_to_point(KHRN_TIMELINE_T *tl, uint64_t pt_val)
    }
 }
 
-bool khrn_timeline_check(KHRN_TIMELINE_T *tl, uint64_t pt_val,
+bool khrn_timeline_check(khrn_timeline *tl, uint64_t pt_val,
       v3d_sched_deps_state deps_state)
 {
 
@@ -222,7 +215,7 @@ bool khrn_timeline_check(KHRN_TIMELINE_T *tl, uint64_t pt_val,
    return false;
 }
 
-void khrn_timeline_wait(KHRN_TIMELINE_T *tl, uint64_t pt_val,
+void khrn_timeline_wait(khrn_timeline *tl, uint64_t pt_val,
       v3d_sched_deps_state deps_state)
 {
 
@@ -230,7 +223,7 @@ void khrn_timeline_wait(KHRN_TIMELINE_T *tl, uint64_t pt_val,
       return;
    flush_to_point(tl, pt_val);
 
-   KHRN_TIMELINE_PT_T *pt;
+   khrn_timeline_pt *pt;
 
    pt = tl->head[deps_state];
    while(pt && pt->id <= pt_val)

@@ -200,6 +200,12 @@ DBG_core_gdb_get_packet(DBG_HOST *p_dbg_host, DBG_core_debug_server *p_dbg_serve
         ch = *++p_ch_gdb_cmd_buffer;
         u8_stored_chksum += handle_hex_char(ch);
 
+        if(strncmp(p_dbg_server->gdb_packet.p_ch_gdb_pack, "qSupported", strlen("qSupported")) == 0)
+        {
+            DSPLOG_INFO("received qSupported - reset noack_mode");
+            b_noack_mode = false;
+        }
+
         if(u8_comp_chksum == u8_stored_chksum)
         {
             p_dbg_server->gdb_packet.b_gdb_pack_valid = true;

@@ -3006,6 +3006,7 @@ struct phy_info
 	uint	epagain2g;			/* iPA boards (epagain2g/5g = 2) */
 	bool	_swdiv;
 	bool _powerperchan;
+	bool phy_pay_decode_war;
 	/* ************************************************************************************ */
 	/* [PHY_REARCH] Do not add any variables here. Add them to the individual modules */
 	/* ************************************************************************************ */

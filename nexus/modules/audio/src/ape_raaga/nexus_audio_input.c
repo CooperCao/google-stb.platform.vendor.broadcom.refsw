@@ -443,6 +443,15 @@ static void NEXUS_AudioInput_P_SetDefaultInputVolume(NEXUS_AudioInputData *pData
     pData->inputVolume.muted = false;
 }
 
+void NEXUS_AudioInput_P_GetDefaultInputVolume(NEXUS_AudioInputHandle input)
+{
+    NEXUS_AudioInputData *pData;
+
+    BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
+    pData = input->pMixerData;
+    NEXUS_AudioInput_P_SetDefaultInputVolume(pData);
+}
+
 static NEXUS_AudioInputData *NEXUS_AudioInput_P_CreateData(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioInputData *pData;

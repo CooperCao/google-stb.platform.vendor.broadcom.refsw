@@ -62,8 +62,7 @@ typedef int (*TaskFunction)(void *task, void *ctx);
 typedef void (*SignalHandler)(int);
 typedef void (*SignalRestorer)();
 
-extern "C" unsigned long *excYieldCurrentTask(int, int);
-
+extern "C" void yieldCurrentTask(unsigned int, unsigned int);
 
 class TzTask {
 public:
@@ -213,7 +212,7 @@ public:
     int setCurrDir(const char *dirPath);
     int setCurrDir(int fd);
 
-    friend unsigned long *excYieldCurrentTask(int, int);
+    friend void yieldCurrentTask(unsigned int, unsigned int);
     friend void printReg();
     void yield();
 
@@ -402,6 +401,9 @@ public:
 private:
     unsigned long savedRegs[NUM_SAVED_CPU_REGS * 2];
     unsigned long *savedRegBase;
+
+    long double savedNeonRegs[NUM_SAVED_NEON_REGS * 2];
+    long double *savedNeonRegBase;
 
     State state;
     Mode mode;

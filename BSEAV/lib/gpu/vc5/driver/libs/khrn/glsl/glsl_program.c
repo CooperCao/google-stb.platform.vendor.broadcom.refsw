@@ -32,7 +32,7 @@ GLSL_PROGRAM_T *glsl_program_create() {
    ret->buffer_blocks     = malloc(GLXX_CONFIG_MAX_COMBINED_STORAGE_BLOCKS * sizeof(GLSL_BLOCK_T));
    ret->num_buffer_blocks = 0;
 
-   static const int max_ins_outs = GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS);
+   static const int max_ins_outs = GLXX_CONFIG_MAX_TESS_PATCH_COMPONENTS + GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS;
 
    ret->num_inputs           = 0;
    ret->inputs               = malloc(sizeof(GLSL_INOUT_T) * max_ins_outs);
@@ -54,10 +54,7 @@ GLSL_PROGRAM_T *glsl_program_create() {
    ret->uniform_offsets      = malloc(sizeof(unsigned) * GLXX_CONFIG_MAX_UNIFORM_LOCATIONS);
    ret->ir                   = glsl_ir_program_create();
 
-   ret->wg_size[0] = 0;
-   ret->wg_size[1] = 0;
-   ret->wg_size[2] = 0;
-   ret->shared_block_size = ~0u;
+   ret->cs_shared_block_size = ~0u;
 
    if(ret->ir == NULL                       ||
       ret->uniform_blocks == NULL           ||

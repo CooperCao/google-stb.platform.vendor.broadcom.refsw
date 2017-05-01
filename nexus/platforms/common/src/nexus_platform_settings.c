@@ -87,6 +87,16 @@ void NEXUS_Platform_GetDefaultSettings_tagged( NEXUS_PlatformSettings *pSettings
     return;
 }
 
+static void NEXUS_Platform_P_ApplyHeapStaticMapping(unsigned *memoryType, unsigned staticMaping)
+{
+    if( (*memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED || (*memoryType & NEXUS_MEMORY_TYPE_NOT_MAPPED) == NEXUS_MEMORY_TYPE_NOT_MAPPED) {
+        return;
+    } else {
+        *memoryType |= staticMaping;
+        return;
+    }
+
+}
 static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSettings)
 {
     unsigned i;
@@ -98,20 +108,20 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #error NEXUS_PLATFORM_DEFAULT_HEAP is deprecated. we should keep main heap as 0
 #endif
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+    NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType,  NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memcIndex = 1;
-    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+    NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType, NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memcIndex = 2;
-    pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+    NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memoryType, NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+    NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memoryType, NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memcIndex = 1;
-    pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+    NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memoryType, NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memcIndex = 2;
-    pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+    NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memoryType, NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].heapType |= NEXUS_HEAP_TYPE_MAIN;
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+    NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType, NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION;
     pSettings->heap[NEXUS_EXPORT_HEAP].heapType |= NEXUS_HEAP_TYPE_EXPORT_REGION;
 #if NEXUS_HAS_SAGE
@@ -187,11 +197,6 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     pSettings->cachedMemory = true; /* Default to cached memory */
 
     pSettings->openI2c = true;
-    #if (NEXUS_PLATFORM==97019)
-    pSettings->openFpga = false;
-    #else
-    pSettings->openFpga = true;
-    #endif
     pSettings->openFrontend = true;
     pSettings->openOutputs = true;
     pSettings->openCec = true;

@@ -1894,6 +1894,32 @@ typedef enum BVDC_DeinterlacerMode
 } BVDC_DeinterlacerMode;
 
 /***************************************************************************
+Summary:
+    This enumerate specifies the DBV display priority mode, used in
+    BVDC_Display_HdmiSettings to arbitrate DBV computation on which to prefer (video
+    or graphics).
+
+Description:
+    BVDC_DisplayPriorityMode_eAuto:
+        VDC internally selects priority mode acording to video window size, input video eotf etc.
+    BVDC_DisplayPriorityMode_eVideo:
+        Video is preferred when computing DBV settings.
+    BVDC_DisplayPriorityMode_eGraphics:
+        Gfx is preferred when computing DBV settings.
+
+See Also:
+    BVDC_Display_HdmiSettings
+***************************************************************************/
+typedef enum BVDC_DisplayPriorityMode
+{
+    BVDC_DisplayPriorityMode_eAuto = 0,
+    BVDC_DisplayPriorityMode_eVideo,
+    BVDC_DisplayPriorityMode_eGraphics,
+    BVDC_DisplayPriorityMode_eMax
+
+} BVDC_DisplayPriorityMode;
+
+/***************************************************************************
  * VDC data structures
  **************************************************************************/
 
@@ -5112,6 +5138,10 @@ Description:
         Application is responsible for passing the correct driver heap on
         box mode specific MEMC.  Passing incorrect will result in undefined
         system behaviors.
+    ulMinLuminance - The minimum luminance of hdmi display; used if eEotf is eDBV;
+    ulMaxLuminance - The maximum luminance of hdmi display; used if eEotf is eDBV;
+    pEdid - The hdmi edid data;
+    ulSize - edid data size in bytes;
 
 
 See Also:
@@ -5126,7 +5156,14 @@ typedef struct
     BAVC_Colorspace              eColorComponent;
     BAVC_ColorRange              eColorRange;
     BAVC_HDMI_DRM_EOTF           eEotf;
+    bool                         bDolbyVisionEnabled;
+    bool                         bBlendInIpt;
+    BVDC_DisplayPriorityMode     ePriorityMode;
     BMMA_Heap_Handle             hCfcHeap;
+    uint32_t                     ulMinLuminance;
+    uint32_t                     ulMaxLuminance;
+    /* TODO: remove previous min/max after support of VSVDB byte passing is added */
+    uint8_t                      aucVsvdbBytes[0x1A];
 } BVDC_Display_HdmiSettings;
 
 /***************************************************************************

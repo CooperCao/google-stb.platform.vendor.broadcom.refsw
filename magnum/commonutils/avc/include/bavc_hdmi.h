@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -964,6 +964,8 @@ typedef struct _HDMI_VENDOR_SPECIFIC_INFOFRAME_
 
         uint8_t uIEEE_RegId[BAVC_HDMI_IEEE_REGID_LEN] ;
 
+        bool bDolbyVisionEnabled;
+
         BAVC_HDMI_VSInfoFrame_HDMIVideoFormat  eHdmiVideoFormat ;
 
         BAVC_HDMI_VSInfoFrame_HDMIVIC eHdmiVic ;
@@ -1202,7 +1204,7 @@ typedef enum BAVC_HDMI_DRM_EOTF
     BAVC_HDMI_DRM_EOTF_eSDR,
     BAVC_HDMI_DRM_EOTF_eHDR,             /* obsolete */
     BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084,   /* HDR10, i.e. PQ */
-    BAVC_HDMI_DRM_EOTF_eHLG,          /* HLG */
+    BAVC_HDMI_DRM_EOTF_eHLG,             /* HLG */
     BAVC_HDMI_DRM_EOTF_eMax,
     BAVC_HDMI_DRM_EOTF_eFuture = BAVC_HDMI_DRM_EOTF_eHLG /* backwards compat */
 } BAVC_HDMI_DRM_EOTF ;

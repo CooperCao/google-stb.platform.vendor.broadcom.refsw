@@ -14,21 +14,19 @@ COMMON_SRC_FILES := \
 	libs/khrn/common/khrn_fmem_pool.c \
 	libs/khrn/common/khrn_fmem_debug_info.c \
 	libs/khrn/common/khrn_counters.c \
-	libs/khrn/common/khrn_event_monitor.c \
 	libs/khrn/common/khrn_render_state.c \
 	libs/khrn/common/khrn_blob.c \
 	libs/khrn/common/khrn_image.c \
-	libs/khrn/common/khrn_interlock.c \
 	libs/khrn/common/khrn_map.c \
-	libs/khrn/common/khrn_res_interlock.c \
+	libs/khrn/common/khrn_resource.c \
 	libs/khrn/common/khrn_mem.c \
 	libs/khrn/common/khrn_process.c \
 	libs/khrn/common/khrn_process_debug.c \
 	libs/khrn/common/khrn_uintptr_vector.c \
+	libs/khrn/common/khrn_vector.c \
 	libs/khrn/common/khrn_fence.c \
 	libs/khrn/common/khrn_tile_state.c \
 	libs/khrn/common/khrn_timeline.c \
-	libs/khrn/common/khrn_record.c \
 	libs/khrn/egl/egl_attrib_list.c \
 	libs/khrn/egl/egl_config.c \
 	libs/khrn/egl/egl_context_base.c \
@@ -136,6 +134,7 @@ COMMON_SRC_FILES := \
 	libs/khrn/glsl/glsl_dominators.c \
 	libs/khrn/glsl/glsl_scheduler.c \
 	libs/khrn/glsl/glsl_quals.c \
+	libs/khrn/glsl/glsl_inline_asm.c \
 	libs/khrn/glsl/prepro/glsl_prepro_directive.c \
 	libs/khrn/glsl/prepro/glsl_prepro_eval.c \
 	libs/khrn/glsl/prepro/glsl_prepro_expand.c \
@@ -186,7 +185,7 @@ COMMON_SRC_FILES := \
 	libs/khrn/glxx/glxx_image_unit.c \
 	libs/khrn/glxx/glxx_tf.c \
 	libs/khrn/glxx/glxx_debug.c \
-	libs/khrn/glxx/glxx_debug_msgs.c \
+	libs/khrn/glxx/glxx_rect.c \
 	libs/util/desc_map/desc_map.c \
 	libs/util/gfx_util/gfx_util_conv.c \
 	libs/util/gfx_util/gfx_util_morton.c \
@@ -220,6 +219,7 @@ COMMON_SRC_FILES := \
 	libs/core/v3d/v3d_cl.c \
 	libs/core/v3d/v3d_cl_compr.c \
 	libs/core/v3d/v3d_clear_shader.c \
+	libs/core/v3d/v3d_barrier.c \
 	libs/core/v3d/v3d_gen.c \
 	libs/core/v3d/v3d_gmp.c \
 	libs/core/v3d/v3d_ident.c \
@@ -234,7 +234,6 @@ COMMON_SRC_FILES := \
 	libs/platform/v3d_imgconv_neon.c \
 	libs/platform/v3d_imgconv_extra_neon.c \
 	libs/platform/v3d_imgconv_gfx_blit.c \
-	libs/platform/v3d_barrier.c \
 	libs/platform/v3d_scheduler.c \
 	libs/platform/v3d_scheduler_graph.c \
 	libs/platform/v3d_imgconv_tfu.c \

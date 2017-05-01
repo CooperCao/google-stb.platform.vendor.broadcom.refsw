@@ -51,7 +51,6 @@
 #include "bfile_stdio.h"
 
 #include "b_psip_lib.h"
-#include "tspsimgr.h"
 
 BDBG_MODULE(standby_priv);
 
@@ -445,6 +444,29 @@ static void convertStreamToPsi( TS_PMT_stream *stream, struct opts_t *psi)
             BDBG_WRN(("###### TODO: Unknown stream type: %x #####", stream->stream_type));
     }
 }
+
+typedef struct
+{
+    uint16_t    pid;
+    uint8_t     streamType;
+    uint16_t    ca_pid;
+} EPID;
+
+#define MAX_PROGRAM_MAP_PIDS    12
+typedef struct
+{
+    uint16_t    program_number;
+    uint16_t    map_pid;
+    uint8_t     version;
+    uint16_t    pcr_pid;
+    uint16_t    ca_pid;
+    uint8_t     num_video_pids;
+    EPID        video_pids[MAX_PROGRAM_MAP_PIDS];
+    uint8_t     num_audio_pids;
+    EPID        audio_pids[MAX_PROGRAM_MAP_PIDS];
+    uint8_t     num_other_pids;
+    EPID        other_pids[MAX_PROGRAM_MAP_PIDS];
+} PROGRAM_INFO_T;
 
     static void
 tsPsi_procProgDescriptors( const uint8_t *p_bfr, unsigned bfrSize, PROGRAM_INFO_T *progInfo )
@@ -1179,19 +1201,18 @@ void untune_frontend(unsigned id)
 static void qam_lock_callback(void *context, int param)
 {
     NEXUS_FrontendHandle frontend = (NEXUS_FrontendHandle)context;
-    BKNI_EventHandle statusEvent = (BKNI_EventHandle)param;
     NEXUS_FrontendFastStatus status;
 
     BSTD_UNUSED(param);
 
-    fprintf(stderr, "Lock callback, frontend 0x%08x\n", (unsigned)frontend);
+    fprintf(stderr, "Qam Frontend(%p) Lock callback\n", (void*)frontend);
 
     NEXUS_Frontend_GetFastStatus(frontend, &status);
     if(status.lockStatus == NEXUS_FrontendLockStatus_eUnlocked)
         printf("QAM Lock callback: Fast lock status = Unlocked.\n");
     else if(status.lockStatus == NEXUS_FrontendLockStatus_eLocked){
         printf("QAM Lock callback: Fast lock status = Locked.\n");
-        BKNI_SetEvent(statusEvent);
+        BKNI_SetEvent(g_StandbyNexusHandles.signalLockedEvent);
     }
     else if(status.lockStatus == NEXUS_FrontendLockStatus_eNoSignal)
         printf("QAM Lock callback: Fast lock status = NoSignal.\n");
@@ -1231,7 +1252,6 @@ int tune_qam(unsigned id)
     qamSettings.bandwidth = NEXUS_FrontendQamBandwidth_e6Mhz;
     qamSettings.lockCallback.callback = qam_lock_callback;
     qamSettings.lockCallback.context = g_StandbyNexusHandles.frontend[id];
-    qamSettings.lockCallback.param = (int)g_StandbyNexusHandles.signalLockedEvent;
 
     NEXUS_Frontend_GetUserParameters(g_StandbyNexusHandles.frontend[id], &userParams);
 
@@ -1263,19 +1283,18 @@ void untune_qam(unsigned id)
 static void ofdm_lock_callback(void *context, int param)
 {
     NEXUS_FrontendHandle frontend = (NEXUS_FrontendHandle)context;
-    BKNI_EventHandle statusEvent = (BKNI_EventHandle)param;
     NEXUS_FrontendFastStatus status;
 
     BSTD_UNUSED(param);
 
-    fprintf(stderr, "Lock callback, frontend 0x%08x\n", (unsigned)frontend);
+    fprintf(stderr, "Ofdm Frontend(%p) Lock callback\n", (void*)frontend);
 
     NEXUS_Frontend_GetFastStatus(frontend, &status);
     if(status.lockStatus == NEXUS_FrontendLockStatus_eUnlocked)
         printf("OFDM Lock callback: Fast lock status = Unlocked.\n");
     else if(status.lockStatus == NEXUS_FrontendLockStatus_eLocked){
         printf("OFDM Lock callback: Fast lock status = Locked.\n");
-        BKNI_SetEvent(statusEvent);
+        BKNI_SetEvent(g_StandbyNexusHandles.signalLockedEvent);
     }
     else if(status.lockStatus == NEXUS_FrontendLockStatus_eNoSignal)
         printf("OFDM Lock callback: Fast lock status = NoSignal.\n");
@@ -1336,7 +1355,6 @@ int tune_ofdm(unsigned id)
 
     ofdmSettings.lockCallback.callback = ofdm_lock_callback;
     ofdmSettings.lockCallback.context = g_StandbyNexusHandles.frontend[id];
-    ofdmSettings.lockCallback.param = (int)g_StandbyNexusHandles.signalLockedEvent;
 
     NEXUS_Frontend_GetUserParameters(g_StandbyNexusHandles.frontend[id], &userParams);
 
@@ -1369,16 +1387,15 @@ static void sat_lock_callback(void *context, int param)
 {
     NEXUS_FrontendHandle frontend = (NEXUS_FrontendHandle)context;
     NEXUS_FrontendSatelliteStatus status;
-    BKNI_EventHandle statusEvent = (BKNI_EventHandle)param;
 
     BSTD_UNUSED(param);
 
-    fprintf(stderr, "Frontend(%p) - lock callback\n", (void*)frontend);
+    fprintf(stderr, "Sat Frontend(%p) Lock callback\n", (void*)frontend);
 
     NEXUS_Frontend_GetSatelliteStatus(frontend, &status);
     fprintf(stderr, "  demodLocked = %d\n", status.demodLocked);
 
-    BKNI_SetEvent(statusEvent);
+    BKNI_SetEvent(g_StandbyNexusHandles.signalLockedEvent);
 }
 
 int tune_sat(unsigned id)
@@ -1407,7 +1424,6 @@ int tune_sat(unsigned id)
     satSettings.mode = g_DeviceState.frontend[id].satmode;
     satSettings.lockCallback.callback = sat_lock_callback;
     satSettings.lockCallback.context = g_StandbyNexusHandles.frontend[id];
-    satSettings.lockCallback.param = (int)g_StandbyNexusHandles.signalLockedEvent;
 
     NEXUS_Frontend_GetUserParameters(g_StandbyNexusHandles.frontend[id], &userParams);
 
@@ -2429,9 +2445,10 @@ static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
     NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_HdmiOutputSettings hdmiSettings    ;
+    NEXUS_HdmiOutputSettings hdmiSettings;
+
+    BSTD_UNUSED(iParam);
 
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     /* the app can choose to switch to the preferred format, but it's not required. */
@@ -2441,12 +2458,12 @@ static void hotplug_callback(void *pParam, int iParam)
         return ;
     }
 
-    NEXUS_Display_GetSettings(display, &displaySettings);
+    NEXUS_Display_GetSettings(g_StandbyNexusHandles.displayHD, &displaySettings);
     if ( !status.videoFormatSupported[displaySettings.format] )
     {
         BDBG_ERR(("Current format not supported by attached monitor. Switching to preferred format %d", status.preferredVideoFormat));
         displaySettings.format = status.preferredVideoFormat;
-        NEXUS_Display_SetSettings(display, &displaySettings);
+        NEXUS_Display_SetSettings(g_StandbyNexusHandles.displayHD, &displaySettings);
     }
 
     /* force HDMI updates after a hotplug */
@@ -2480,12 +2497,10 @@ void add_hdmi_output(void)
         NEXUS_HdmiOutput_GetSettings(g_StandbyNexusHandles.platformConfig.outputs.hdmi[0], &hdmiSettings);
         hdmiSettings.hotplugCallback.callback = hotplug_callback;
         hdmiSettings.hotplugCallback.context = g_StandbyNexusHandles.platformConfig.outputs.hdmi[0];
-        hdmiSettings.hotplugCallback.param = (int)g_StandbyNexusHandles.displayHD;
 
         /* MHL support */
         hdmiSettings.mhlStandbyCallback.callback = mhl_standby_callback;
         hdmiSettings.mhlStandbyCallback.context = g_StandbyNexusHandles.platformConfig.outputs.hdmi[0];
-        hdmiSettings.mhlStandbyCallback.param = (int)g_StandbyNexusHandles.displayHD;
 
         NEXUS_HdmiOutput_SetSettings(g_StandbyNexusHandles.platformConfig.outputs.hdmi[0], &hdmiSettings);
 
@@ -3074,10 +3089,12 @@ void decoder_close(unsigned id)
     g_StandbyNexusHandles.videoDecoder[id] = NULL;
 
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.audioDacs[0]));
+    if(g_StandbyNexusHandles.platformConfig.outputs.audioDacs[0])
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.audioDacs[0]));
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.spdif[0]));
+    if(g_StandbyNexusHandles.platformConfig.outputs.spdif[0])
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.spdif[0]));
 #endif
     if(g_StandbyNexusHandles.audioDecoder[id]) {
         NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(g_StandbyNexusHandles.audioDecoder[id], NEXUS_AudioDecoderConnectorType_eStereo));

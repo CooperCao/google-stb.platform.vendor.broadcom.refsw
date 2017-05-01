@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,19 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
-
+ ******************************************************************************/
 /***************************************************************************
  * PRIVATE API
  * -----------
@@ -515,6 +503,18 @@ NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(
    NEXUS_Graphicsv3dHandle hGfx,    /* [in]  */
    int                     *piFence /* [out] */
    );
+
+/**
+Summary:
+Create a fence to wait for any jobs
+**/
+NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyJob(
+   NEXUS_Graphicsv3dHandle                   hGfx,             /* [in]  */
+   const NEXUS_Graphicsv3dSchedDependencies *pCompletedDeps,   /* [in]  */
+   const NEXUS_Graphicsv3dSchedDependencies *pFinalizedDeps,   /* [in]  */
+   int                                      *piFence           /* [out] */
+   );
+
 
 /**
 Summary:

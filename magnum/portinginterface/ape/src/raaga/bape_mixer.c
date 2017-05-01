@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -444,6 +444,40 @@ BERR_Code BAPE_Mixer_SetInputVolume(
 }
 
 /*************************************************************************/
+BERR_Code BAPE_Mixer_GetInputSettings(
+    BAPE_MixerHandle handle,
+    BAPE_Connector input,
+    BAPE_MixerInputSettings *pSettings      /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != handle->interface);
+
+    if(handle->interface->getInputSettings) {
+        return handle->interface->getInputSettings(handle, input, pSettings);
+    } else {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
+/*************************************************************************/
+BERR_Code BAPE_Mixer_SetInputSettings(
+    BAPE_MixerHandle handle,
+    BAPE_Connector input,
+    const BAPE_MixerInputSettings *pSettings
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != handle->interface);
+
+    if(handle->interface->setInputSettings) {
+        return handle->interface->setInputSettings(handle, input, pSettings);
+    } else {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
+/*************************************************************************/
 BERR_Code BAPE_Mixer_GetInputStatus(
     BAPE_MixerHandle handle,
     BAPE_Connector input,
@@ -713,7 +747,7 @@ static BERR_Code BAPE_Mixer_P_PrintOutputPortObjectInfo( BAPE_OutputPortObject  
 }
 
 
-BERR_Code BAPE_Mixer_P_PrintInputPortInfo( BAPE_PathNode *pPathNode, int level, int index)
+static BERR_Code BAPE_Mixer_P_PrintInputPortInfo( BAPE_PathNode *pPathNode, int level, int index)
 {
     BERR_Code errCode=BERR_SUCCESS;
     BAPE_InputPort  inputPort = NULL;
@@ -789,11 +823,32 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
         if (decoderHandle)
         {
             const BAPE_CodecAttributes  *pCodecAttributes = BAPE_P_GetCodecAttributes_isrsafe(decoderHandle->startSettings.codec);
+            char decoderTypeName[18] ="";
+            BDSP_AF_P_DecoderType decoderType;
 
-            BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s Codec:%s DSP Index: %d", level*2, "",
+            if (BAPE_P_GetDolbyMSVersion() != BAPE_DolbyMSVersion_eNone) {
+                BAPE_Decoder_P_GetAFDecoderType(decoderHandle, &decoderType);
+                switch (decoderType) {
+                case BDSP_AF_P_DecoderType_ePrimary:
+                    BKNI_Snprintf(decoderTypeName, sizeof(decoderTypeName), "Decoder Type: PRI");
+                    break;
+                case BDSP_AF_P_DecoderType_eApplicationAudio:
+                    BKNI_Snprintf(decoderTypeName, sizeof(decoderTypeName), "Decoder Type: APP");
+                    break;
+                case BDSP_AF_P_DecoderType_eSoundEffects:
+                    BKNI_Snprintf(decoderTypeName, sizeof(decoderTypeName), "Decoder Type: SFX");
+                    break;
+                case BDSP_AF_P_DecoderType_eSecondary:
+                default:
+                    BKNI_Snprintf(decoderTypeName, sizeof(decoderTypeName), "Decoder Type: SEC");
+                    break;
+                }
+            }
+
+            BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s Codec:%s DSP Index: %d %s", level*2, "",
                                         (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
                                         BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type),
-                                        pCodecAttributes->pName, decoderHandle->dspIndex ));
+                                        pCodecAttributes->pName, decoderHandle->dspIndex, decoderTypeName ));
         }
     }
     else

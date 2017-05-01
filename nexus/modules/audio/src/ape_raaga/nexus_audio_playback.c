@@ -644,7 +644,8 @@ void NEXUS_AudioPlayback_GetStatus(
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
-    pStatus->started = handle->started;
+    pStatus->started = handle->started ? NEXUS_AudioRunningState_eStarted :
+        (handle->suspended ? NEXUS_AudioRunningState_eSuspended : NEXUS_AudioRunningState_eStopped);
     pStatus->startSettings = handle->startSettings;
 
     BAPE_Playback_GetStatus(handle->channel, &status);

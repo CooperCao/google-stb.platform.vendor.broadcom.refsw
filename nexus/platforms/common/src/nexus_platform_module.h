@@ -47,7 +47,6 @@
 #include "nexus_platform_thunks.h"
 #include "nexus_platform.h"
 #include "nexus_platform_version.h"
-#include "nexus_platform_extint.h"
 #include "nexus_platform_server.h"
 #if NEXUS_PLATFORM_CABLE_FRONTEND_EXTENSION
 #include "nexus_platform_cable_frontend.h"

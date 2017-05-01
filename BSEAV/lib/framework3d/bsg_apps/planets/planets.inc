@@ -1,13 +1,11 @@
-#############################################################################
-#    Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
-#############################################################################
+################################################################################
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+################################################################################
 
 SOURCES :=       \
      planets.cpp \
      body.cpp    \
      stars.cpp   \
-     command.cpp \
-	 ../common/bcm_help_menu.cpp
+     command.cpp
 
 TARGET := planets
-

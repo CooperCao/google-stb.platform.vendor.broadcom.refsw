@@ -133,8 +133,8 @@ const char* bcmCloseDevice
 }
 
 static bool readRegister
-    ( const unsigned long  ulAddr,
-      unsigned long       *pulVal )
+    ( const uint32_t  ulAddr,
+      uint32_t       *pulVal )
 {
     bool ret = false;
 
@@ -147,8 +147,8 @@ static bool readRegister
 }
 
 static bool writeRegister
-    ( const unsigned long ulAddr,
-      const unsigned long ulData )
+    ( const uint32_t ulAddr,
+      const uint32_t ulData )
 {
     bool ret = false;
 
@@ -161,8 +161,8 @@ static bool writeRegister
 }
 
 static bool readRegister64
-    ( const unsigned long  ulAddr,
-      unsigned long long  *pulVal )
+    ( const uint32_t  ulAddr,
+      uint64_t  *pulVal )
 {
     bool ret = false;
 
@@ -176,8 +176,8 @@ static bool readRegister64
 
 
 static bool writeRegister64
-    ( const unsigned long      ulAddr,
-      const unsigned long long ulData )
+    ( const uint32_t      ulAddr,
+      const uint64_t ulData )
 {
     bool ret = false;
 
@@ -189,26 +189,26 @@ static bool writeRegister64
     return ret;
 }
 
-static const unsigned long readMemory
-    ( const unsigned long long  ulAddr,
-      unsigned long            *pulData,
-      const unsigned long       ulCount )
+static const uint32_t readMemory
+    ( const uint64_t  ulAddr,
+      uint32_t            *pulData,
+      const uint32_t       ulCount )
 {
     if (g_useSocket)
     {
-        return (bcmSocketReadMemory(ulAddr, pulData, ulCount<<2) == 0);
+        return (bcmSocketReadMemory(ulAddr, (void *)pulData, ulCount<<2) == 0);
     }
     return 0;
 }
 
-static const unsigned long writeMemory
-    ( const unsigned long long  ulAddr,
-      unsigned long            *pulData,
-      const unsigned long       ulCount )
+static const uint32_t writeMemory
+    ( const uint64_t  ulAddr,
+      uint32_t       *pulData,
+      const uint32_t  ulCount )
 {
     if(g_useSocket)
     {
-        return (bcmSocketWriteMemory(ulAddr, pulData, ulCount<<2) == 0);
+        return (bcmSocketWriteMemory(ulAddr, (void *)pulData, ulCount<<2) == 0);
     }
     return 0;
 }
@@ -228,9 +228,9 @@ static const unsigned long writeMemory
  *   read a register content of the given address.
  ****************************************************************************/
 const char* bcmRead
-    ( const unsigned long ulAddr )
+    ( const uint32_t ulAddr )
 {
-    unsigned long ulValue = 0x00000000;
+    uint32_t ulValue = 0x00000000;
 
     if (readRegister(ulAddr, &ulValue))
     {
@@ -259,8 +259,8 @@ const char* bcmRead
  *   write a register content of the given address.
  ****************************************************************************/
 const char* bcmWrite
-    ( const unsigned long ulAddr,
-      const unsigned long ulData )
+    ( const uint32_t ulAddr,
+      const uint32_t ulData )
 {
     if (writeRegister(ulAddr, ulData))
     {
@@ -286,9 +286,9 @@ const char* bcmWrite
  *   read a register content of the given address.
  ****************************************************************************/
 const char* bcmRead64
-    ( const unsigned long ulAddr )
+    ( const uint32_t ulAddr )
 {
-    unsigned long long ulValue = 0x00000000;
+    uint64_t ulValue = 0x00000000;
 
     if (readRegister64(ulAddr, &ulValue))
     {
@@ -453,7 +453,7 @@ const char* bcmReadMemBlk
             return (const char*)NULL;
         }
 
-        ulAddr += sizeof(unsigned long);
+        ulAddr += sizeof(uint32_t);
     }
 
     bcmSnprintf(g_achResult, BUFFER_LENGTH, "%d", i);
@@ -706,8 +706,8 @@ const char* bcmWriteMemBlkFromFileFormatted
  * RETURN:  true for success, and false (undefined in perl) for failed.
 ****************************************************************************/
 const char* bcmWrite64
-    ( const unsigned long      ulAddr,
-      const unsigned long long ulData )
+    ( const uint32_t ulAddr,
+      const uint64_t ulData )
 {
     if (writeRegister64(ulAddr, ulData))
     {
@@ -729,9 +729,9 @@ const char* bcmWrite64
  *   32-bit value string in decimal.
  ****************************************************************************/
 const char* bcmReadMem
-    ( const unsigned long long ulAddr )
+    ( const uint64_t ulAddr )
 {
-    unsigned long ulData;
+    uint32_t ulData;
 
     if (readMemory(ulAddr, &ulData, 1))
     {
@@ -753,12 +753,12 @@ const char* bcmReadMem
  *   ulCount wrote.
  ****************************************************************************/
 const char* bcmWriteMem
-    ( const unsigned long long ulAddr,
-      unsigned long            ulData,
-      const unsigned long      ulCount )
+    ( const uint64_t  ulAddr,
+      uint32_t        ulData,
+      const uint32_t  ulCount )
 {
-    unsigned long i        = 0;
-    unsigned long *pulData = NULL;
+    uint32_t i        = 0;
+    uint32_t *pulData = NULL;
     int ret                = 0;
 
     if(ulCount == 1)
@@ -770,7 +770,7 @@ const char* bcmWriteMem
     }
     else /* Create a chunk and fill it with 'ulData' and send it down to the driver. */
     {
-        pulData = (unsigned long *)malloc(sizeof(unsigned long) * ulCount);
+        pulData = (uint32_t *)malloc(sizeof(uint32_t) * ulCount);
         for(i = 0; i < ulCount; i++)
         {
             pulData[i] = ulData;
@@ -805,15 +805,15 @@ const char* bcmWriteMem
  *   result are in pulData.  It returns number of SDRAM dword read.
  ****************************************************************************/
 const char* bcmReadMemBlkToFile
-    ( const unsigned long long ulAddr,
-      const unsigned long      ulCount,
-      const char              *pchMemfile )
+    ( const uint64_t  ulAddr,
+      const uint32_t  ulCount,
+      const char     *pchMemfile )
 {
     assert(pchMemfile);
     uint32_t i;
     FILE* fpMemfile = NULL;
-    unsigned long ulData;
-    unsigned long long ulTempAddr;
+    uint32_t ulData;
+    uint64_t ulTempAddr;
 
     if (fpMemfile = fopen(pchMemfile, "wb"))
     {
@@ -849,14 +849,14 @@ const char* bcmReadMemBlkToFile
  *   write the content of file to sdram (raw data).
  ****************************************************************************/
 const char* bcmWriteMemBlkFromFile
-    ( const unsigned long long  ulAddr,
-      const char               *pchMemfile)
+    ( const uint64_t  ulAddr,
+      const char     *pchMemfile)
 {
     assert(pchMemfile);
     FILE* fpMemfile = NULL;
-    unsigned long ulItemRead   = 0;
-    unsigned long ulByteOffset = 0;
-    unsigned long ulData;
+    uint32_t ulItemRead   = 0;
+    uint32_t ulByteOffset = 0;
+    uint32_t ulData;
 
     if(NULL != (fpMemfile = fopen(pchMemfile, "rb")))
     {
@@ -904,14 +904,14 @@ error:
  *   result are in pulData.  It returns number of SDRAM dword read.
  ****************************************************************************/
 const char* bcmReadMemBlkToFileFormatted
-    ( const unsigned long long ulAddr,
-      const unsigned long      ulCount,
-      const char              *pchMemfile )
+    ( const uint64_t  ulAddr,
+      const uint32_t  ulCount,
+      const char     *pchMemfile )
 {
     assert(pchMemfile);
     uint32_t i;
     FILE* fpMemfile = NULL;
-    unsigned long ulData, ulTempAddr = ulAddr;
+    uint32_t ulData, ulTempAddr = ulAddr;
 
     if(NULL != (fpMemfile = fopen(pchMemfile, "wb")))
     {
@@ -951,8 +951,8 @@ const char* bcmReadMemBlkToFileFormatted
  *   write the content of file to sdram (raw data).
  ****************************************************************************/
 const char* bcmWriteMemBlkFromFileFormatted
-    ( const unsigned long long  ulAddr,
-      const char               *pchMemfile)
+    ( const uint64_t  ulAddr,
+      const char     *pchMemfile)
 {
     assert(pchMemfile);
     return (bcmWriteMemBlkFromFile(ulAddr, pchMemfile));
@@ -984,7 +984,7 @@ const char * bcmUseI2CParallel(
     const unsigned short usPortAddr,
     const unsigned short usSlaveAddr,
     const unsigned char uchSpeed,
-    const unsigned long ulUseCOM)
+    const uint32_t ulUseCOM)
 {
     fprintf(stderr, "I2C interface not available.\n");
     return NULL;
@@ -992,7 +992,7 @@ const char * bcmUseI2CParallel(
 
 const char * bcmRunTCS(
     const char * pchFileName,
-    const unsigned long ulRegOffset)
+    const uint32_t ulRegOffset)
 {
     fprintf(stderr, "TCS is not available.\n");
     return NULL;

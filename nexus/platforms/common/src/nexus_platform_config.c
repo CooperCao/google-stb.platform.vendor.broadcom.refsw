@@ -68,9 +68,6 @@
 #include "nexus_pid_channel.h"
 #include "nexus_input_band.h"
 #endif
-#ifdef NEXUS_FPGA_SUPPORT
-#include "nexus_platform_fpga.h"
-#endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_output.h"
 #include "priv/nexus_audio_output_priv.h"
@@ -80,9 +77,6 @@
 #endif
 
 BDBG_MODULE(nexus_platform_config);
-#ifdef NEXUS_FPGA_SUPPORT
-static bool g_fpgaInit = false;
-#endif
 static void NEXUS_Platform_P_StartMonitor(void);
 static void NEXUS_Platform_P_StopMonitor(void);
 
@@ -153,33 +147,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
                 }
 
                 pConfig->i2c[i] = NEXUS_I2c_Open(i, &i2cSettings);
-                if (!pConfig->i2c[i]) {
-                    /* NEXUS_I2c index is packed, so we can be done */
-                    break;
-                }
             }
         }
-    }
-#endif
-
-
-#if NEXUS_FPGA_SUPPORT
-    if ( pSettings->openFpga )
-    {
-        if ( !pSettings->openI2c )
-        {
-            BDBG_ERR(("Cannot open FPGA without opening I2C"));
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-
-        BDBG_MSG(("FPGA"));
-        errCode = NEXUS_Fpga_Init(pConfig->i2c[4]);
-        if ( errCode )
-        {
-            errCode = BERR_TRACE(errCode);
-            goto error;
-        }
-        g_fpgaInit = true;
     }
 #endif
 
@@ -508,15 +477,6 @@ void NEXUS_Platform_P_Shutdown(void)
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
 
     NEXUS_Platform_P_StopMonitor();
-
-#if NEXUS_MAX_I2C_CHANNELS
-#ifdef NEXUS_FPGA_SUPPORT
-    if (g_fpgaInit) {
-        NEXUS_Fpga_Uninit();
-        g_fpgaInit = false;
-    }
-#endif
-#endif
 
 #if NEXUS_HAS_DISPLAY
 #if NEXUS_HAS_AUDIO

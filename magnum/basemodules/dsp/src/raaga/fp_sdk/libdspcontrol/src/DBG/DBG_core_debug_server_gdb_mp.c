@@ -206,13 +206,19 @@ DBG_core_gdb_handle_send_status_update(DBG *dbg)
 
     /*Check if the ptid info is valid */
     if( IS_INVALID_PTID(p_dbg_server->cur_ptid_info) ||
-        IS_NULL_PTID(p_dbg_server->cur_ptid_info) ||
         IS_MINUS_ONE_PTID(p_dbg_server->cur_ptid_info)
     )
     {
-        DSPLOG_ERROR("gdb_send_status_update(): Cannot read all registers for p%x.%x",
+        DSPLOG_ERROR("gdb_send_status_update(): Cannot status update for p%x.%x",
                 p_dbg_server->cur_ptid_info.pid, p_dbg_server->cur_ptid_info.tid);
         DBG_core_gdb_send_reply(dbg, "E01", true);
+        return;
+    }
+
+    if(IS_NULL_PTID(p_dbg_server->cur_ptid_info))
+    {
+        DSPLOG_INFO("gdb_send_status_update(): NULL ptid - no user process available");
+        DBG_core_gdb_send_reply(dbg, "W00", true);
         return;
     }
 
@@ -1063,22 +1069,35 @@ DBG_core_gdb_handle_h_int(DBG *dbg, bool b_err_status)
     if(p_dbg_server->hg_ptid.pid > 0)
     {
         p_pid_info = DBG_core_find_pid_info(p_dbg_server->hg_ptid.pid, &p_dbg_server->pid_info_queue);
+
+        if(p_pid_info == NULL)
+        {
+            DSPLOG_ERROR("handle_h_int(): Unable to find process %d", p_dbg_server->hg_ptid.pid);
+            DBG_core_gdb_send_reply(dbg, "E04", true);
+            return;
+        }
     }
     else if(p_dbg_server->hg_ptid.pid == 0)
     {
         p_pid_info = DBG_core_peek_pid_info(&p_dbg_server->pid_info_queue);
+
+        if(p_pid_info == NULL)
+        {
+            DSPLOG_INFO("handle_h_int(): No user process in the system");
+            /*Assign current ptid to NULL PTID*/
+            p_dbg_server->cur_ptid_info.pid = (dbg_pid_t)gdb_null_ptid.pid;
+            p_dbg_server->cur_ptid_info.tid = (dbg_pid_t)gdb_null_ptid.tid;
+            DSPLOG_INFO("handle_h_int(): Selected ptid p%x.%x",
+                        p_dbg_server->cur_ptid_info.pid, p_dbg_server->cur_ptid_info.tid);
+
+            DBG_core_gdb_send_reply(dbg, "E05", true);
+            return;
+        }
     }
     else
     {
         DSPLOG_ERROR("handle_h_int(): -1 pid is invalid");
         DBG_core_gdb_send_reply(dbg, "E03", true);
-        return;
-    }
-
-    if(p_pid_info == NULL)
-    {
-        DSPLOG_ERROR("handle_h_int(): Unable to pick a process - return error");
-        DBG_core_gdb_send_reply(dbg, "E04", true);
         return;
     }
 
@@ -1964,6 +1983,30 @@ DBG_core_parse_vCont_packet(char *p_ch_gdb_pack, int *num_actions)
  * */
 
 void
+DBG_core_gdb_process_create_resp_1(DBG *dbg, bool b_err_status)
+{
+    DBG_core_debug_server *p_dbg_server = dbg->dbg_core.p_dbg_server;
+
+    /*Respond GDB to pick any thread as we will get the thread list response later*/
+    char ch_status_response[24];
+    dbg_pid_t pid = p_dbg_server->cur_ptid_info.pid;
+
+    if(!b_err_status)
+    {
+        DSPLOG_ERROR("get_tid_list for new process %d returned false", pid);
+        sprintf(ch_status_response, "T05thread:p%x.-1;", pid);
+    }
+    else
+    {
+        DSPLOG_INFO("get_tid_list for new process %d success - pick a thread", pid);
+        dbg_core_pid_info_t *p_pid_info = DBG_core_get_current_process(p_dbg_server);
+        dbg_tid_t tid = DBG_core_peek_tid_info(&p_pid_info->thread_info_queue)->tid;
+        sprintf(ch_status_response, "T05thread:p%x.%x;", pid, tid);
+    }
+    DBG_core_gdb_send_reply(dbg, ch_status_response, true);
+}
+
+void
 DBG_core_gdb_process_create_resp(DBG *dbg, dbg_pid_t pid, bool b_err_status)
 {
     DBG_core_debug_server *p_dbg_server = dbg->dbg_core.p_dbg_server;
@@ -1978,16 +2021,11 @@ DBG_core_gdb_process_create_resp(DBG *dbg, dbg_pid_t pid, bool b_err_status)
     p_dbg_server->gdb_process_attach_cb = NULL;
     DBG_dbp_process_attach(p_dbg_server, pid);
 
+    p_dbg_server->gdb_process_get_tid_list_cb = DBG_core_gdb_process_create_resp_1;
     DBG_dbp_process_get_tid_list(p_dbg_server, pid);
 
     /*Mark the newly created process as the current process*/
     p_dbg_server->cur_ptid_info.pid = pid;
-
-    /*Respond GDB to pick any thread as we will get the thread list response later*/
-    char ch_status_response[16];
-    sprintf(ch_status_response, "T05thread:p%x.-1;", pid);
-
-    DBG_core_gdb_send_reply(dbg, ch_status_response, true);
 }
 
 static void
@@ -2866,8 +2904,16 @@ DBG_core_gdb_handle_qAttached(DBG *dbg)
 
     if(p_pid_info != NULL)
     {
-        DSPLOG_INFO("Attach to an existing process");
-        DBG_core_gdb_send_reply(dbg, "1", true);
+        if(DBG_core_is_process_created(p_pid_info))
+        {
+            DSPLOG_INFO("Debug service created a new process");
+            DBG_core_gdb_send_reply(dbg, "0", true);
+        }
+        else
+        {
+            DSPLOG_INFO("Attach to an existing process");
+            DBG_core_gdb_send_reply(dbg, "1", true);
+        }
     }
     else
     {
@@ -2875,7 +2921,8 @@ DBG_core_gdb_handle_qAttached(DBG *dbg)
          * as there is no guarentee that the kernel will not
          * throw away the process before we reply - so keep it simple -
          * let GDB know the process doesn't exist and we need to create it*/
-        DBG_core_gdb_send_reply(dbg, "0", true);
+        DSPLOG_ERROR("qAttached: The process %d doesn't exist", pid);
+        DBG_core_gdb_send_reply(dbg, "E02", true);
     }
 
     return;
@@ -3295,4 +3342,32 @@ void
 DBG_core_gdb_notify_library_change(DBG *dbg)
 {
     DBG_core_gdb_send_reply(dbg, "T05library:;", true);
+}
+
+void
+DBG_core_gdb_notify_process_terminate(DBG *dbg, dbg_pid_t pid, DBP_FAULT_ID fault)
+{
+    char ch_process_terminate[20];
+    DBG_GDB_SIGNALS signal=DBG_GDB_SIGNAL_NONE;
+    switch(fault)
+    {
+        case DBP_FAULT_CODE_UNMAPPED:
+        case DBP_FAULT_MISALIGNED_PC:
+        case DBP_FAULT_INVALID_INSN:
+            signal = DBG_GDB_SIGNAL_ILL;
+            break;
+
+        case DBP_FAULT_INVALID_SVC:
+        case DBP_FAULT_DATA_UNMAPPED:
+        case DBP_FAULT_BUS:
+            signal = DBG_GDB_SIGNAL_BUS;
+            break;
+
+        case DBP_FAULT_UNKNOWN:
+        default:
+            signal = DBG_GDB_SIGNAL_SEGV;
+            break;
+    }
+    sprintf(ch_process_terminate, "X%x;process:%x",signal, pid);
+    DBG_core_gdb_send_reply(dbg, ch_process_terminate, true);
 }

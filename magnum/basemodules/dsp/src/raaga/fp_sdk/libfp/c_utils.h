@@ -236,7 +236,6 @@
 /** For weak declarations */
 #define  __weak                         __attribute__((weak))
 
-
 /** Functions that should not be dictionary compressed */
 #if defined(__FP4014_ONWARDS__) || defined(__FPM1015_ONWARDS__)
 #  define __nocompress                  /* no-op on non-FP20xx machines */
@@ -244,25 +243,23 @@
 #  define __nocompress                  __attribute__((nocompress))
 #endif
 
-
 /** Compile function in debug mode */
 #define __debug                         __attribute__((optimize("-O0")))
-
 
 /** Force inlining */
 #define __alwaysinline                  __attribute__((always_inline))
 
-
 /** Disable inlining */
 #define __noinline                      __attribute__((noinline))
-
 
 /** Mark as not used */
 #define __unused                        __attribute__((unused))
 
-
 /** Avoid extra padding in structs and enums */
 #define __packed                        __attribute__((packed))
+
+/** Instruct the compiler to align a variable on an n-byte boundary */
+#define __align(n)                      __attribute__((aligned(n)))
 
 
 #if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L

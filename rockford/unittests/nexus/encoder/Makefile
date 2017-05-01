@@ -35,18 +35,10 @@
 #*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #*  ANY LIMITED REMEDY.
 #**************************************************************************
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP ?= $(shell cd ../../../../nexus && cd)
-else
-NEXUS_TOP ?= $(shell cd ../../../../nexus; pwd)
-endif
 
-BSEAV ?= ${NEXUS_TOP}/../BSEAV
+NEXUS_TOP ?= $(shell cd ../../../../nexus; pwd)
 MAGNUM ?= ${NEXUS_TOP}/../magnum
+BSEAV ?= ${NEXUS_TOP}/../BSEAV
 
 APPS = \
     encode \
@@ -104,14 +96,6 @@ MODULES += BMEDIA_PROBE
 # add namevalue
 CFLAGS += -I$(NEXUS_TOP)/utils
 
-#
-# kludge: UDP parser is needed to parse the raw user data from nexus API for cc test purpose.
-# This part is to compile UDP of magnum and link with transcode unittests.
-BMMA_USE_STUB?=n
-ifeq (${BMMA_USE_STUB}, y)
-include $(MAGNUM)/basemodules/mem/bmem.inc
-MODULES += BMEM
-endif
 include $(MAGNUM)/basemodules/mma/bmma.inc
 include $(MAGNUM)/commonutils/avc/bavc.inc
 include $(MAGNUM)/commonutils/fmt/bfmt.inc
@@ -122,10 +106,9 @@ include $(MAGNUM)/commonutils/vlc/bvlc.inc
 MODULES += BMMA BAVC BFMT BPXL BSUR BUDP BVLC
 MAGNUM_MODULES:=
 
-
 CFLAGS +=$(addprefix -I,$(sort $(foreach module, $(MODULES) ${API_MODULES}, $($(module)_INCLUDES))))
 CFLAGS += $(addprefix -D,$(sort $(foreach module, $(MODULES) ${API_MODULES}, $($(module)_DEFINES))))
 EXTRA_SRC += $(notdir $(sort $(foreach module, $(MODULES), $($(module)_SOURCES))))
 vpath %c $(dir $(sort $(foreach module, $(MODULES), $($(module)_SOURCES))))
 
-include ${NEXUS_TOP}/../rockford/unittests/nexus/common/Makefile.inc
+include ../common/Makefile.inc

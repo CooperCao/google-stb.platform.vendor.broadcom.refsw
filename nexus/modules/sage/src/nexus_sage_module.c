@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,8 +53,6 @@
 
 #include "nexus_dma.h"
 #include "nexus_memory.h"
-/* Grant access to BCHP_SAGE_Reset in order to reset SAGE */
-BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
 
 NEXUS_SageModule_P_Handle g_NEXUS_sageModule;
 
@@ -100,9 +98,9 @@ static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(NEXUS_Addr offset, uint32
 static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void);
 static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void);
 static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int clear);
-static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(NEXUS_SageMemoryBlock *block, size_t size, NEXUS_MemoryAllocationSettings *allocSettings);
+static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(NEXUS_SageMemoryBlock *block, size_t size);
 static void NEXUS_Sage_P_CleanBootVars(void);
-static void NEXUS_Sage_P_MonitorBoot(void);
+static NEXUS_Error NEXUS_Sage_P_MonitorBoot(void);
 
 /****************************************
  * Macros
@@ -442,6 +440,9 @@ void NEXUS_SageModule_GetDefaultSettings(NEXUS_SageModuleSettings *pSettings)
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->clientHeapIndex = NEXUS_MAX_HEAPS;
+#if !defined(NEXUS_MODE_driver)
+    NEXUS_SageImage_SetImageExists_priv(pSettings);
+#endif
 }
 
 void NEXUS_SageModule_GetDefaultInternalSettings(NEXUS_SageModuleInternalSettings *pInternalSettings)
@@ -482,14 +483,14 @@ static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int
 /* Allocate a memory block using alloc settings. */
 static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(
     NEXUS_SageMemoryBlock *block,
-    size_t size,
-    NEXUS_MemoryAllocationSettings *allocSettings)
+    size_t size)
 {
-    NEXUS_Error rc;
+    NEXUS_Error rc = BERR_SUCCESS;
     void *pMem;
 
-    rc = NEXUS_Memory_Allocate(size, allocSettings, &pMem);
-    if (rc != NEXUS_SUCCESS) {
+    pMem = NEXUS_Sage_P_Malloc(size);
+    if (pMem == NULL) {
+        rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
         BDBG_ERR(("%s - Error, allocating (%u bytes)",
                   __FUNCTION__, (unsigned)size));
         goto err;
@@ -690,7 +691,12 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     BDBG_ASSERT(pInternalSettings);
 
     BKNI_Memset(&g_NEXUS_sageModule, 0, sizeof(g_NEXUS_sageModule));
-    g_NEXUS_sageModule.reset = 1;
+
+    if((BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
+        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK))
+    {
+        g_NEXUS_sageModule.reset = 1;
+    }
 
     rc = BKNI_CreateEvent(&g_NEXUS_sageModule.sageReadyEvent);
     if (rc != BERR_SUCCESS) {
@@ -835,7 +841,19 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     BIMG_Interface img_interface;
     BERR_Code magnum_rc;
     BSAGElib_BootSettings bootSettings;
-    bool bRunning=false;
+    bool reconnect = false;
+
+    g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
+
+    /* Check agian (may be called for watchdog/standby) */
+    if((BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
+        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK)) {
+        g_NEXUS_sageModule.reset = 1;
+        reconnect = false;
+    } else {
+        g_NEXUS_sageModule.reset = 0;
+        reconnect = true;
+    }
 
     frameworkImg.raw = &g_sage_module.framework;
     blImg.raw = &bl;
@@ -891,16 +909,9 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
         }
     }
 
-    if(!(BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
-        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK))
-    {
-        bRunning=true;
-    }
+    BDBG_MSG(("SAGE is %s", g_NEXUS_sageModule.reset ? "STOPPED" : "RUNNING"));
 
-    BDBG_MSG(("SAGE is %s", bRunning ? "RUNNING" : "STOPPED"));
-
-    if(!bRunning)
-    {
+    if(g_NEXUS_sageModule.reset) {
         /* Take SAGE CPU out of reset */
         magnum_rc = BSAGElib_Boot_Launch(g_NEXUS_sageModule.hSAGElib, &bootSettings);
     } else {
@@ -919,31 +930,46 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     /* end of init is deferred in first NEXUS_Sage_Open() call */
 
     /* Check if SAGE BOOT happened and unblock BSageLib */
-    NEXUS_Sage_P_MonitorBoot();
-
-    /* Init AR and system Crit */
-    rc=NEXUS_Sage_P_ARInit();
-    if(rc!=NEXUS_SUCCESS)
+    rc = NEXUS_Sage_P_MonitorBoot();
+    if(rc != NEXUS_SUCCESS)
     {
-        rc=BERR_TRACE(rc);
+        rc = BERR_TRACE(rc);
         goto err;
     }
 
-    if(bRunning)
+    /* Init AR and system Crit */
+    rc = NEXUS_Sage_P_ARInit(&g_sage_module.settings);
+    if(rc != NEXUS_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto err;
+    }
+
+    if(reconnect)
     {
         /* Need to have SAGE verify region info has not changed.... */
-        rc=NEXUS_Sage_P_SystemCritRestartCheck((void *)&bootSettings);
-        if(rc!=NEXUS_SUCCESS)
+        rc = NEXUS_Sage_P_SystemCritRestartCheck((void *)&bootSettings);
+        if(rc != NEXUS_SUCCESS)
         {
-            rc=BERR_TRACE(rc);
+            rc = BERR_TRACE(rc);
             goto err;
         }
     }
 
-    /* Set this event so that everybody else knows SAGE is booted up */
-    BKNI_SetEvent(g_NEXUS_sageModule.sageReadyEvent);
+    /* No issues detected getting SW running */
+    g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eRunning;
 
 err:
+    if(rc != NEXUS_SUCCESS)
+    {
+        /* Some error happened in the SW boot process */
+        g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eError;
+    }
+
+    /* Set this event so that everyone (NEXUS_Sage_P_CheckSageBooted) knows SAGE is booted up
+    * or otherwise FAILED to start */
+    BKNI_SetEvent(g_NEXUS_sageModule.sageReadyEvent);
+
     if (img_context) {
         Nexus_SageModule_P_Img_Destroy(img_context);
     }
@@ -1076,7 +1102,7 @@ NEXUS_Error NEXUS_SageModule_P_Load(
 
             BDBG_MSG(("alloc '%s' %u bytes", holder->name, alloc_size));
             /* TODO: use nexus_sage_util functions for alloc */
-            rc = NEXUS_SageModule_P_MemoryBlockAllocate(holder->raw, alloc_size/* PADD CHEAT */, NULL);
+            rc = NEXUS_SageModule_P_MemoryBlockAllocate(holder->raw, alloc_size/* PADD CHEAT */);
             if(rc != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s - Error allocating %u bytes memory for '%s' buffer",
                           __FUNCTION__, *size, holder->name));
@@ -1140,7 +1166,7 @@ err:
 #define SAGE_SECUREBOOT_ARC_PRESCREEN_NUMBER_BAD_BIT_EXCEEDED  (0x60D)
 #define SAGE_SECUREBOOT_ARC_PRESCREEN_MSP_PROG_FAILURE         (0x60E)
 
-static void
+static NEXUS_Error
 NEXUS_Sage_P_MonitorBoot(void)
 {
     int totalBootTimeUs;
@@ -1149,8 +1175,6 @@ NEXUS_Sage_P_MonitorBoot(void)
     uint32_t timer;
     uint32_t lastStatus=0x42;
     BSAGElib_BootState bootState = {BSAGElibBootStatus_eNotStarted, 0};
-
-    g_NEXUS_sageModule.booted = 0;
 
     /* This will calculate the time already consumed by the SAGE init process before we reach this point */
     if(BTMR_ReadTimer(g_NEXUS_sageModule.hTimer, &timer) != BERR_SUCCESS) {
@@ -1254,25 +1278,33 @@ err:
             BDBG_ERR(("* Please check your sage_bl%s.bin", _flavor));
         }
         BDBG_ERR(("*******  SAGE ERROR  <<<<<"));
-        BKNI_Sleep(200);
-        BDBG_ASSERT(false && "SAGE CANNOT BOOT");
+        return NEXUS_UNKNOWN;
     }
+
     NEXUS_Sage_P_CleanBootVars();
+    return NEXUS_SUCCESS;
 }
 
 
 int NEXUS_Sage_P_CheckSageBooted(void)
 {
     BERR_Code rc;
+    int ret = 0;
 
-    if (!g_NEXUS_sageModule.booted) {
+    if (g_NEXUS_sageModule.SWState == NEXUS_SageSWState_eUnknown) {
         BDBG_MSG(("BKNI_WaitForEvent"));
         rc = BKNI_WaitForEvent(g_NEXUS_sageModule.sageReadyEvent, BKNI_INFINITE);
-        if (rc == BERR_SUCCESS) {
-            g_NEXUS_sageModule.booted = 1;
+        if(rc != BERR_SUCCESS)
+        {
+            rc = BERR_TRACE(rc);
         }
     }
-    return g_NEXUS_sageModule.booted;
+
+    if (g_NEXUS_sageModule.SWState == NEXUS_SageSWState_eRunning) {
+        ret = 1;
+    }
+
+    return ret;
 }
 
 NEXUS_Error NEXUS_Sage_P_Status(NEXUS_SageStatus *pStatus)

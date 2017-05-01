@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-abstract platform layer
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdlib.h>
 
 #include "interface/khronos/common/khrn_int_common.h"
@@ -281,7 +274,6 @@ bool platform_lock_buffer(void * opaque_buffer_handle, BEGL_WindowState *windowS
 
 bool platform_get_pixmap_info(EGLNativePixmapType pixmap, KHRN_IMAGE_WRAP_T *image)
 {
-   MEM_HANDLE_T handle = MEM_INVALID_HANDLE;
    BEGL_BufferSettings bufferSettings;
    BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
 
@@ -452,7 +444,8 @@ bool khrn_platform_decode_native(EGLClientBuffer buffer,
             break;
          }
 
-         if (khrn_image_prefer_lt(f, *w, *h))
+         /* only convert to lt for tf images.  RSO should travel through as normal */
+         if (khrn_image_is_tformat(f) && khrn_image_prefer_lt(f, *w, *h))
             *format = khrn_image_to_lt_format(f);
          else
             *format = f;

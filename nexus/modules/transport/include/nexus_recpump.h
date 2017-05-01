@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,7 +57,7 @@ Each Recpump Interface captures two streams: data and index.
 The data stream is typically an MPEG2 TS stream with all of the selected pids muxed together. (See NEXUS_RecpumpSettings.outputTransportType for other output formats).
 The index stream, which is optional, contains SCT (start code table) entries which point to start codes in the data stream.
 
-To record without indexing, just leave NEXUS_RecpumpAddPidChannelSettings.pidTypeSettings.XXX.index = false when you add a pid channel.
+To record without indexing, just leave NEXUS_RecpumpPidChannelSettings.pidTypeSettings.XXX.index = false when you add a pid channel.
 
 See nexus/examples/dvr/recpump.c for an example application.
 
@@ -228,9 +228,9 @@ typedef struct NEXUS_RecpumpSettings
                                                    replace them with new timestamps.
                                                    If you are recording a live stream that already has timestamps, you should set NEXUS_InputBandSettings.packetLength to strip
                                                    the incoming timestamps. Then, this setting can be used to add new timestamps if desired. */
-	bool adjustTimestampUsingPcrs;		/* Adjsut timestamps using PCR information. This removes the timestamp jitter induced by the trip through the hw DRAM buffers. The end result
-										is that the time delta between timestamps will closely match the delta between PCRs. */
-	NEXUS_PidChannelHandle pcrPidChannel;		/* The timestamp jitter removal needs to know which PID channel is carrying the PCRs. */
+    bool adjustTimestampUsingPcrs;      /* Adjust timestamps using PCR information. This removes the timestamp jitter induced by the trip through the hw DRAM buffers. The end result
+                                        is that the time delta between timestamps will closely match the delta between PCRs. */
+    NEXUS_PidChannelHandle pcrPidChannel;       /* The timestamp jitter removal needs to know which PID channel is carrying the PCRs. */
 
     NEXUS_TransportType outputTransportType; /* NEXUS_TransportType_eTs (default), eDssEs, eDssPes, eMpeg2Pes and eEs supported.
                                          Recpump can strip TS or PES headers, but cannot add TS or PES headers.
@@ -238,8 +238,7 @@ typedef struct NEXUS_RecpumpSettings
     bool dropBtpPackets; /* If true, search for BPPs and drop them from record output */
     bool localTimestamp; /* if set use timestamps from the BPP packet, otherwise use the arrival timestamps of incoming packets */
 
-    /* The following TPIT settings are only applied at NEXUS_Recpump_Start time. They apply to every TPIT filter in this Recpump.
-    You must create a pid channel and set at least one TPIT filter before calling Start in order for them to take effect. */
+    /* These TPIT settings are only applied in NEXUS_Recpump_Start and SetTpitFilter, not SetSettings. They apply to every TPIT filter in this Recpump. */
     struct {
         bool countRecordedPackets;  /* If true, then the recorded count in TPIT entries will be in units of packets; otherwise, bytes. */
         bool storePcrMsb;           /* Store the 32 MSB of the PCR if true; store the 32 LSB if false (default) */
@@ -429,7 +428,7 @@ typedef struct NEXUS_RecpumpTpitFilter
 Summary:
 Settings used for NEXUS_Recpump_AddPidChannel
 **/
-typedef struct NEXUS_RecpumpAddPidChannelSettings
+typedef struct NEXUS_RecpumpPidChannelSettings
 {
     NEXUS_PidType pidType;
     struct
@@ -451,7 +450,9 @@ typedef struct NEXUS_RecpumpAddPidChannelSettings
         } other; /* settings for pidType == NEXUS_PidType_eOther */
     } pidTypeSettings;
     bool useRPipe;
-} NEXUS_RecpumpAddPidChannelSettings;
+} NEXUS_RecpumpPidChannelSettings;
+
+typedef NEXUS_RecpumpPidChannelSettings NEXUS_RecpumpAddPidChannelSettings;
 
 /**
 Summary:
@@ -462,7 +463,7 @@ This is required in order to make application code resilient to the addition of 
 You can use default settings for all pids except an indexed video pid.
 **/
 void NEXUS_Recpump_GetDefaultAddPidChannelSettings(
-    NEXUS_RecpumpAddPidChannelSettings *pSettings /* [out] */
+    NEXUS_RecpumpPidChannelSettings *pSettings /* [out] */
     );
 
 /*
@@ -476,7 +477,35 @@ You cannot change the pid channel being indexed after starting.
 NEXUS_Error NEXUS_Recpump_AddPidChannel(
     NEXUS_RecpumpHandle handle,
     NEXUS_PidChannelHandle pidChannel,
-    const NEXUS_RecpumpAddPidChannelSettings *pSettings /* attr{null_allowed=y} NULL is allowed for default settings. */
+    const NEXUS_RecpumpPidChannelSettings *pSettings /* attr{null_allowed=y} NULL is allowed for default settings. */
+    );
+
+/**
+Summary:
+Get current NEXUS_RecpumpPidChannelSettings
+**/
+NEXUS_Error NEXUS_Recpump_GetPidChannelSettings(
+    NEXUS_RecpumpHandle handle,
+    NEXUS_PidChannelHandle pidChannel,
+    NEXUS_RecpumpPidChannelSettings *pSettings /* [out] */
+    );
+
+/**
+Summary:
+Set new NEXUS_RecpumpPidChannelSettings.
+
+Description:
+You can update pid channel settings before or after
+NEXUS_Recpump_Start. You can safely reconfigure a pids indexing
+state after start, so long as the outcome is not increasing the
+number of detectors in use, except from 0 to 1. Otherwise, the
+indexer and detectors may be reallocated and reconfigured, and
+events may be lost
+**/
+NEXUS_Error NEXUS_Recpump_SetPidChannelSettings(
+    NEXUS_RecpumpHandle handle,
+    NEXUS_PidChannelHandle pidChannel,
+    const NEXUS_RecpumpPidChannelSettings *pSettings
     );
 
 /*
@@ -536,8 +565,9 @@ Summary:
 Notify Recpump of how much data the application consumed from the buffer.
 
 Description:
-You can only call NEXUS_Recpump_DataReadComplete once after a NEXUS_Recpump_GetDataBuffer call.
-After calling it, you must call NEXUS_Recpump_GetDataBuffer before adding more data.
+NEXUS_Recpump_DataReadComplete may be called multiple times after a single NEXUS_Recpump_GetDataBuffer call. This call
+is destructive in that each call will mark the next region of the buffer as 'read' and therefore available
+to hardware to store more data.
 **/
 NEXUS_Error NEXUS_Recpump_DataReadComplete(
     NEXUS_RecpumpHandle handle,
@@ -584,8 +614,9 @@ Summary:
 Notify Recpump of how much data the application consumed from the buffer.
 
 Description:
-You can only call NEXUS_Recpump_IndexReadComplete once after a NEXUS_Recpump_GetIndexBuffer call.
-After calling it, you must call NEXUS_Recpump_GetIndexBuffer before adding more data.
+NEXUS_Recpump_IndexReadComplete may be called multiple times after a single NEXUS_Recpump_GetIndexBuffer call. This call
+is destructive in that each call will mark the next region of the buffer as 'read' and therefore available
+to hardware to store more data.
 **/
 NEXUS_Error NEXUS_Recpump_IndexReadComplete(
     NEXUS_RecpumpHandle handle,

@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 ifeq ($(URSR_TOP),)
 #$(warning URSR_TOP is not defined! setting to ../../../../)
@@ -138,9 +137,9 @@ endif # end of ANDROID_LINKER_SYSROOT
 PRDY_LDFLAGS += -lnexus -llog
 
 ifeq ($(SAGE_VERSION), 2x)
-PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib/$(SAGE_VERSION)
+PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/lib/$(SAGE_VERSION)
 else
-PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib
+PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/lib
 endif
 
 
@@ -377,9 +376,9 @@ DRM_BUILD_PROFILE   := 900
 CFLAGS              += -DDRM_BUILD_PROFILE=$(DRM_BUILD_PROFILE)
 CFLAGS              += ${NXCLIENT_CFLAGS}
 ifeq ($(SAGE_VERSION), 2x)
-CFLAGS              += -I$(URSR_TOP)/BSEAV/lib/playready/2.5/inc/2x -DTARGET_LITTLE_ENDIAN=1
+CFLAGS              += -I$(URSR_TOP)/BSEAV/thirdparty/playready/2.5/inc/2x -DTARGET_LITTLE_ENDIAN=1
 else
-CFLAGS              += -I$(URSR_TOP)/BSEAV/lib/playready/2.5/inc -DTARGET_LITTLE_ENDIAN=1
+CFLAGS              += -I$(URSR_TOP)/BSEAV/thirdparty/playready/2.5/inc -DTARGET_LITTLE_ENDIAN=1
 endif
 CFLAGS              += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
 

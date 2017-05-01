@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Utility functions
-
-FILE DESCRIPTION
-Miscellaneous utility functions.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_INT_UTIL_H
 #define KHRN_INT_UTIL_H
 
@@ -41,6 +33,9 @@ static INLINE int32_t _max(int32_t x, int32_t y)
 #if defined(_MSC_VER)
 static INLINE int32_t _msb(uint32_t x)
 {
+#if defined(__clang__)
+   return x ? (31 - __builtin_clz(x)) : -1;
+#else
    int32_t l = -1;
 
    if (x)
@@ -50,6 +45,7 @@ static INLINE int32_t _msb(uint32_t x)
       }
 
    return l;
+#endif
 }
 #elif defined(__GNUC__)
 static INLINE int32_t _msb(uint32_t x)

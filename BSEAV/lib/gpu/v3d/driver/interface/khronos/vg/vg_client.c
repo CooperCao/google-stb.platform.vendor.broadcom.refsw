@@ -1,17 +1,8 @@
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+
 //#define VG_NO_STROKING
-
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  VG client
-
-FILE DESCRIPTION
-VG client-side function definitions. Dispatches VG calls via RPC or direct
-call. Some functions require support for control messages just over 1kB in
-length, 2kB should be fine for all functions.
-=============================================================================*/
 
 /*
    Potential spec bugs:
@@ -195,13 +186,13 @@ helpers
 
 static void clear_error(void)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgClearError_impl();
 }
 
 static void set_error(VGErrorCode error)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgSetError_impl(error);
 }
 
@@ -481,7 +472,7 @@ static VGHandle get_stem(VG_CLIENT_STATE_T *state)
    platform_mutex_acquire(&state->shared_state->mutex);
 
    if (state->shared_state->stems_count == 0) {
-      CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+      CLIENT_GET_THREAD_STATE();
       state->shared_state->stems_count = vgCreateStems_impl(VG_CLIENT_STEMS_COUNT_MAX,
                                                             state->shared_state->stems);
    }
@@ -494,7 +485,7 @@ static VGHandle get_stem(VG_CLIENT_STATE_T *state)
 
 static void destroy_stem(VGHandle vg_handle)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgDestroyStem_impl(vg_handle);
 }
 
@@ -771,7 +762,7 @@ static INLINE bool is_matrix_affine(VGMatrixMode matrix_mode)
 
 static void sync_matrix(VG_CLIENT_STATE_T *state, VGMatrixMode matrix_mode)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    VG_MAT3X3_SYNC_T *matrix_sync = get_matrix_sync(state, matrix_mode);
    if (!vg_mat3x3_identical(&matrix_sync->server, &matrix_sync->client)) {
       vgLoadMatrix_impl(matrix_mode,
@@ -832,7 +823,7 @@ static void set_iv_server(
    VGuint count,
    const VGint *values)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgSetiv_impl(param_type, count, values);
 }
 
@@ -841,7 +832,7 @@ static void set_fv_server(
    VGuint count,
    const VGfloat *values)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgSetfv_impl(param_type, count, values);
 }
 
@@ -850,7 +841,7 @@ static void get_fv_server(
    VGint count,
    VGfloat *values)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgGetfv_impl(param_type, count, values);
 }
 
@@ -861,7 +852,7 @@ static void set_parameter_iv_server(
    VGint count,
    const VGint *values)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgSetParameteriv_impl(vg_handle,
                          object_type,
                          param_type,
@@ -876,7 +867,7 @@ static void set_parameter_fv_server(
    VGuint count,
    const VGfloat *values)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    vgSetParameterfv_impl(vg_handle,
                          object_type,
                          param_type,
@@ -891,7 +882,7 @@ static bool get_parameter_iv_server(
    VGint count,
    VGint *values)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    return vgGetParameteriv_impl(vg_handle,
                                 object_type,
                                 param_type,

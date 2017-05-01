@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #if defined(BVC5_HARDWARE_NONE)
 
 #include "bstd.h"
@@ -203,6 +202,6 @@ void BVC5_P_NullWriteRegister(
 #endif
 
 /* Avoid compiler warning about empty translation unit */
-void BVC5_P_NullDummy(void)
+static void BVC5_P_NullDummy(void)
 {
 }

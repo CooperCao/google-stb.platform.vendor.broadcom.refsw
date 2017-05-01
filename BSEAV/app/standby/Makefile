@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,46 +35,19 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# File Description:
-#
 #############################################################################
-# Nexus examples
 
-PHONY := all nexus api clean clean_apps install
-.PHONY: ${PHONY}
+.PHONY: all nexus api clean clean_apps install
 
-THEAPPS = \
+APPS = \
 	standby
-
-APPS = $(THEAPPS)
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifeq ($(NEXUS_PLATFORM),)
 $(error NEXUS_PLATFORM is not defined)
 endif
 
-ifeq ($(B_REFSW_REAL_MAKE),)
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP := $(shell cd ../../../nexus && cd)
-else
-NEXUS_TOP := $(shell cd ../../../nexus; pwd)
-endif
-
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-BINDIR := ${B_REFSW_OBJ_ROOT}/BSEAV/app/standby
-
-${PHONY} ${APPS}: ${BINDIR}/exists
-	@${MAKE} -C ${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
-
-${BINDIR}/exists:
-	@mkdir -p $@
-
-else # B_REFSW_REAL_MAKE
-
-NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
-
+NEXUS_TOP := $(shell cd ../../../nexus;pwd)
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 # do "make api" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
 include $(NEXUS_BIN_DIR)/include/platform_app.inc
@@ -83,18 +56,19 @@ else
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
+BINDIR := $(B_REFSW_OBJ_ROOT)/BSEAV/app/standby
 
-
-OBJDIR=./obj
-vpath %.c ${NEXUS_TOP}/../BSEAV/app/standby
 all: $(APPS)
 
-$(OBJDIR)/exists:
-	mkdir -p $(OBJDIR)
-	@touch $@
-
-ifneq ($(NEXUS_PREBUILT_BINARY),y)
-$(APPS): $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
+# Clean api except on binary version
+ifeq ($(NEXUS_PREBUILT_BINARY),y)
+nexus api:
+clean_nexus clean_api:
+else
+nexus api:
+	@$(MAKE) $(NEXUS_BUILD_OPTIONS) -C $(NEXUS_TOP)/build
+clean_nexus clean_api:
+	@$(MAKE) $(NEXUS_BUILD_OPTIONS) -C $(NEXUS_TOP)/build clean
 endif
 
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
@@ -104,10 +78,6 @@ include $(NEXUS_TOP)/build/android.inc
 LDFLAGS := $(ANDROID_LDFLAGS)
 endif
 
-
-# This builds the Nexus api
-nexus api:
-	$(MAKE) -C $(NEXUS_TOP)/build
 
 # needed to link with nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -142,7 +112,7 @@ endif
 
 # needed for Android
 ifeq ($(B_REFSW_ANDROID),y)
-GLOB_PATH=$(NEXUS_TOP)/../BSEAV/lib/glob
+GLOB_PATH=$(NEXUS_TOP)/../BSEAV/opensource/glob
 vpath %.c $(GLOB_PATH)
 
 CFLAGS += -I$(GLOB_PATH)
@@ -191,43 +161,35 @@ CFLAGS += $(addprefix -I,$(B_OS_LIB_PUBLIC_INCLUDES))
 LDFLAGS += -lb_psip -lb_os
 endif
 
-
-include $(BSEAV)/lib/bfile/bfile.inc
-ifeq ($(MEDIA_AVI_SUPPORT),y)
-include $(BSEAV)/lib/avi/bavi.inc
-endif
-ifeq ($(MEDIA_ASF_SUPPORT),y)
-include $(BSEAV)/lib/asf/basf.inc
-endif
-ifeq ($(MEDIA_RMFF_SUPPORT),y)
-include $(BSEAV)/lib/media/rmff/brmff.inc
-endif
+# media probe
 include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
-CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES)) -I$(BSEAV)/lib/mpeg2_ts_parse -I$(BSEAV)/lib/tspsi
+CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES))
 CFLAGS += $(addprefix -D,$(BMEDIA_PROBE_DEFINES))
 
+STANDBY_OBJS = $(addprefix $(BINDIR)/,$(notdir $(patsubst %.c, %.o, $(STANDBY_SRCS))))
 
-STANDBY_OBJS = $(foreach file, $(STANDBY_SRCS), $(OBJDIR)/$(notdir $(patsubst %.c, %.o, $(file))))
-
-$(OBJDIR)/%.o: %.c ${OBJDIR}/exists
+$(BINDIR)/%.o: %.c
 	@echo [Compile... $(notdir $<)]
+	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -c -o $@ $< $(CFLAGS) ${CDEP_FLAG}
 
-$(APPS): $(STANDBY_OBJS) libs
-	@echo [Link... $@]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
+$(BINDIR)/standby: $(STANDBY_OBJS) libs $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
+	@echo [Install... $@ to $(NEXUS_BIN_DIR)]
+	@mkdir -p $(dir $@)
+	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(LDFLAGS)
 	cp -f $@ $(NEXUS_BIN_DIR)
+
+.PHONY: standby
+standby: $(BINDIR)/standby
 
 # This cleans nexus and local apps
 clean: clean_apps
 	$(MAKE) -C $(NEXUS_TOP)/build clean
 
 clean_apps:
-	-$(RM) -r $(APPS) $(OBJDIR)
+	-$(RM) -r $(BINDIR)
 
 install: all
 
--include ${OBJDIR}/*.d
-
-endif # B_REFSW_REAL_MAKE
+-include ${BINDIR}/*.d

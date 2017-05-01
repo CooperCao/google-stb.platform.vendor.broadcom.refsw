@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,6 +42,9 @@
 
 #include "b_os_lib.h"
 #include "b_playback_ip_lib.h"
+#ifdef NEXUS_HAS_ASP
+#include "b_asp_lib.h"
+#endif
 
 #include "bdbg.h"
 #include "bkni.h"

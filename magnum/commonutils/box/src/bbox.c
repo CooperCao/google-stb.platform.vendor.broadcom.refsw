@@ -1,52 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 *
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -61,7 +50,6 @@
 BDBG_MODULE(BBOX);
 BDBG_FILE_MODULE(BBOX_CFG);
 BDBG_OBJECT_ID(BBOX_BOX);
-
 
 void BBOX_P_PrintBoxConfig
     ( BBOX_Config                     *pBoxConfig )
@@ -119,7 +107,7 @@ void BBOX_P_PrintBoxConfig
         BDBG_MODULE_MSG(BBOX_CFG, ("        available: %s", (pBoxVdcCap->astDisplay[i].bAvailable == true) ? "true" : "false"));
         BDBG_MODULE_MSG(BBOX_CFG, ("        max format: %d", pBoxVdcCap->astDisplay[i].eMaxVideoFmt));
         BDBG_MODULE_MSG(BBOX_CFG, ("        max HDMI format: %d", pBoxVdcCap->astDisplay[i].eMaxHdmiDisplayFmt));
-		BDBG_MODULE_MSG(BBOX_CFG, ("        mosaic mode class: %d", pBoxVdcCap->astDisplay[i].eMosaicModeClass));
+        BDBG_MODULE_MSG(BBOX_CFG, ("        mosaic mode class: %d", pBoxVdcCap->astDisplay[i].eMosaicModeClass));
         if (pBoxVdcCap->astDisplay[i].stStgEnc.ulStgId == BBOX_FTR_INVALID)
         {
             BDBG_MODULE_MSG(BBOX_CFG, ("        Stg %s:", BBOX_VDC_FTR_INVALID));
@@ -137,6 +125,9 @@ void BBOX_P_PrintBoxConfig
         for (j=0; j<BBOX_VDC_WINDOW_COUNT_PER_DISPLAY; j++)
         {
             uint32_t ulWidthFraction, ulHeightFraction, ulMad;
+            BBOX_Vdc_Resource_Capture eCap;
+            BBOX_Vdc_Resource_Feeder eVfd;
+            BBOX_Vdc_Resource_Scaler eScl;
             BBOX_Vdc_SclCapBias eSclCapBias;
 
             BDBG_MODULE_MSG(BBOX_CFG, ("        Window %d:", j));
@@ -179,6 +170,59 @@ void BBOX_P_PrintBoxConfig
                     BDBG_MODULE_MSG(BBOX_CFG, ("            deinterlacer: %x", ulMad));
                 }
             }
+
+            eCap = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eCap;
+            if (eCap == BBOX_Vdc_Resource_Capture_eUnknown)
+            {
+                BDBG_MODULE_MSG(BBOX_CFG, ("            capture: invalid"));
+            }
+            else
+            {
+                if (eCap == BBOX_VDC_DISREGARD)
+                {
+                    BDBG_MODULE_MSG(BBOX_CFG, ("            capture: %s", BBOX_VDC_DEFAULT));
+                }
+                else
+                {
+                    BDBG_MODULE_MSG(BBOX_CFG, ("            capture: %x", eCap));
+                }
+            }
+
+            eVfd = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eVfd;
+            if (eVfd == BBOX_Vdc_Resource_Feeder_eUnknown)
+            {
+                BDBG_MODULE_MSG(BBOX_CFG, ("            feeder: invalid"));
+            }
+            else
+            {
+                if (eVfd == BBOX_VDC_DISREGARD)
+                {
+                    BDBG_MODULE_MSG(BBOX_CFG, ("            feeder: %s", BBOX_VDC_DEFAULT));
+                }
+                else
+                {
+                    BDBG_MODULE_MSG(BBOX_CFG, ("            feeder: %x", eVfd));
+                }
+            }
+
+            eScl = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eScl;
+            if (eScl == BBOX_Vdc_Resource_Scaler_eUnknown)
+            {
+                BDBG_MODULE_MSG(BBOX_CFG, ("            scaler: invalid"));
+            }
+            else
+            {
+                if (eScl == BBOX_VDC_DISREGARD)
+                {
+                    BDBG_MODULE_MSG(BBOX_CFG, ("            scaler: %s", BBOX_VDC_DEFAULT));
+                }
+                else
+                {
+                    BDBG_MODULE_MSG(BBOX_CFG, ("            scaler: %x", eScl));
+                }
+            }
+
+
         }
     }
 
@@ -434,9 +478,16 @@ BBOX_GetConfig_Done:
 /***************************************************************************
  *
  */
+
+void BBOX_GetDefaultLoadRtsSettings( BBOX_LoadRtsSettings *pSettings )
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
 BERR_Code BBOX_LoadRts
-    ( BBOX_Handle                      hBox,
-      const BREG_Handle                hReg )
+    ( BBOX_Handle                 hBox,
+      const BREG_Handle           hReg,
+      const BBOX_LoadRtsSettings *pSettings )
 {
     BERR_Code err = BERR_SUCCESS;
 
@@ -454,7 +505,16 @@ BERR_Code BBOX_LoadRts
     }
     else
     {
-        err = BBOX_P_LoadRts(hReg, hBox->stBoxConfig.stBox.ulBoxId);
+#if BBOX_LOAD_RTS
+        BBOX_DramRefreshRate eRefreshRate;
+
+        BDBG_ASSERT(pSettings->eRefreshRate < BBOX_DramRefreshRate_eInvalid);
+
+        eRefreshRate = (pSettings->eRefreshRate == BBOX_DramRefreshRate_eDefault) ?
+                        hBox->stBoxConfig.stMemConfig.eRefreshRate : pSettings->eRefreshRate;
+
+        err = BBOX_P_LoadRts(hReg, hBox->stBoxConfig.stBox.ulBoxId, eRefreshRate);
+#endif
         if (err != BERR_SUCCESS)
         {
             BDBG_ERR(("Failed to load RTS for Box Mode %d", hBox->stBoxConfig.stBox.ulBoxId));

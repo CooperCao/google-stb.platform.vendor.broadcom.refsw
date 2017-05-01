@@ -466,10 +466,10 @@ static const char * const BAVC_HDMI_BitsPerPixel_Text[]=
 
 static const char * const BAVC_HDMI_DRMInfoFrame_Text_EOTF[] =
 {
-    BDBG_STRING("Traditional gamma - SDR Luminance Range"),
-    BDBG_STRING("Traditional gamma - HDR Luminance Range"),
-    BDBG_STRING("SMPTE ST 2084 [2]"),
-    BDBG_STRING("Future EOTF")
+    BDBG_STRING("SDR"),
+    BDBG_STRING("HDR Gamma"),
+    BDBG_STRING("HDR10 PQ"),
+    BDBG_STRING("HLG")
 } ;
 
 

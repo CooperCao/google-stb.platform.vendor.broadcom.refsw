@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,50 +70,50 @@
 /***************************************************************************
  *AON_HDMI_TX - AON HDMI TX Registers
  ***************************************************************************/
-#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_CFG1     0x20410800 /* [RW] CEC Energystar Configuration 1 */
-#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_CFG2     0x20410804 /* [RW] CEC Energystar Configuration 2 */
-#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_CNTRL    0x20410808 /* [RW] CEC_ENERGYSTAR_CNTRL */
-#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_STATUS   0x2041080c /* [RO] CEC Energystar Status */
-#define BCHP_AON_HDMI_TX_CEC_CNTRL_1             0x20410810 /* [RW] CEC Control Register 1 */
-#define BCHP_AON_HDMI_TX_CEC_CNTRL_2             0x20410814 /* [RW] CEC Control Register 2 */
-#define BCHP_AON_HDMI_TX_CEC_CNTRL_3             0x20410818 /* [RW] CEC Control Register 3 */
-#define BCHP_AON_HDMI_TX_CEC_CNTRL_4             0x2041081c /* [RW] CEC Control Register 4 */
-#define BCHP_AON_HDMI_TX_CEC_CNTRL_5             0x20410820 /* [RW] CEC Control Register 5 */
-#define BCHP_AON_HDMI_TX_CEC_CNTRL_6             0x20410824 /* [RW] CEC Control Register 6 */
-#define BCHP_AON_HDMI_TX_CEC_TX_DATA_1           0x20410828 /* [RW] CEC Transmitting DATA 1 */
-#define BCHP_AON_HDMI_TX_CEC_TX_DATA_2           0x2041082c /* [RW] CEC Transmitting DATA 2 */
-#define BCHP_AON_HDMI_TX_CEC_TX_DATA_3           0x20410830 /* [RW] CEC Transmitting DATA 3 */
-#define BCHP_AON_HDMI_TX_CEC_TX_DATA_4           0x20410834 /* [RW] CEC Transmitting DATA 4 */
-#define BCHP_AON_HDMI_TX_CEC_RX_DATA_1           0x20410838 /* [RO] CEC Receiving DATA 1 */
-#define BCHP_AON_HDMI_TX_CEC_RX_DATA_2           0x2041083c /* [RO] CEC Receiving DATA 2 */
-#define BCHP_AON_HDMI_TX_CEC_RX_DATA_3           0x20410840 /* [RO] CEC Receiving DATA 3 */
-#define BCHP_AON_HDMI_TX_CEC_RX_DATA_4           0x20410844 /* [RO] CEC Receiving DATA 4 */
-#define BCHP_AON_HDMI_TX_HDMI_HOTPLUG_STATUS     0x20410848 /* [RO] HOTPLUG Interrupt Register */
-#define BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONTROL    0x2041084c /* [RW] HOTPLUG Register */
-#define BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG     0x20410850 /* [RW] HOTPLUG Register */
-#define BCHP_AON_HDMI_TX_DVP_GEN_1MS_CONFIG      0x20410854 /* [RW] DVP_GEN_1MS Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CFG            0x20410858 /* [RW] AUTO_CEC_CFG Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CNTRL          0x2041085c /* [RW] AUTO_CEC_CNTRL Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_FEATURE_ABORT_CFG 0x20410860 /* [RW] AUTO_CEC_FEATURE_ABORT_CFG Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_POWER_STATUS_CFG 0x20410864 /* [RW] AUTO_CEC_POWER_STATUS_CFG */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_GIVE_FEATURES_CFG_0 0x20410868 /* [RW] AUTO_CEC_GIVE_FEATURES_CFG_0 */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_GIVE_FEATURES_CFG_1 0x2041086c /* [RW] AUTO_CEC_GIVE_FEATURES_CFG_1 */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_GIVE_VERSION_CFG 0x20410870 /* [RW] AUTO_CEC_GIVE_VERSION_CFG */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_STANDBY_CFG 0x20410874 /* [RW] AUTO_CEC_CHECK_STANDBY_CFG Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_0 0x20410878 /* [RW] AUTO_CEC_CHECK_WAKE1_CFG_0 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_1 0x2041087c /* [RW] AUTO_CEC_CHECK_WAKE1_CFG_1 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_2 0x20410880 /* [RW] AUTO_CEC_CHECK_WAKE1_CFG_2 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_3 0x20410884 /* [RW] AUTO_CEC_CHECK_WAKE1_CFG_3 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE2_CFG_0 0x20410888 /* [RW] AUTO_CEC_CHECK_WAKE2_CFG_0 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE2_CFG_1 0x2041088c /* [RW] AUTO_CEC_CHECK_WAKE2_CFG_1 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE3_CFG_0 0x20410890 /* [RW] AUTO_CEC_CHECK_WAKE3_CFG_0 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE3_CFG_1 0x20410894 /* [RW] AUTO_CEC_CHECK_WAKE3_CFG_1 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE3_CFG_2 0x20410898 /* [RW] AUTO_CEC_CHECK_WAKE3_CFG_2 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE4_CFG_0 0x2041089c /* [RW] AUTO_CEC_CHECK_WAKE4_CFG_0 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE4_CFG_1 0x204108a0 /* [RW] AUTO_CEC_CHECK_WAKE4_CFG_1 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE4_CFG_2 0x204108a4 /* [RW] AUTO_CEC_CHECK_WAKE4_CFG_2 Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_STATUS_0       0x204108a8 /* [RO] AUTO_CEC_STATUS Register */
-#define BCHP_AON_HDMI_TX_AUTO_CEC_STATUS_1       0x204108ac /* [RO] AUTO_CEC_STATUS Register */
+#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_CFG1     0x20410800 /* [RW][32] CEC Energystar Configuration 1 */
+#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_CFG2     0x20410804 /* [RW][32] CEC Energystar Configuration 2 */
+#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_CNTRL    0x20410808 /* [RW][32] CEC_ENERGYSTAR_CNTRL */
+#define BCHP_AON_HDMI_TX_CEC_ENERGYSTAR_STATUS   0x2041080c /* [RO][32] CEC Energystar Status */
+#define BCHP_AON_HDMI_TX_CEC_CNTRL_1             0x20410810 /* [RW][32] CEC Control Register 1 */
+#define BCHP_AON_HDMI_TX_CEC_CNTRL_2             0x20410814 /* [RW][32] CEC Control Register 2 */
+#define BCHP_AON_HDMI_TX_CEC_CNTRL_3             0x20410818 /* [RW][32] CEC Control Register 3 */
+#define BCHP_AON_HDMI_TX_CEC_CNTRL_4             0x2041081c /* [RW][32] CEC Control Register 4 */
+#define BCHP_AON_HDMI_TX_CEC_CNTRL_5             0x20410820 /* [RW][32] CEC Control Register 5 */
+#define BCHP_AON_HDMI_TX_CEC_CNTRL_6             0x20410824 /* [RW][32] CEC Control Register 6 */
+#define BCHP_AON_HDMI_TX_CEC_TX_DATA_1           0x20410828 /* [RW][32] CEC Transmitting DATA 1 */
+#define BCHP_AON_HDMI_TX_CEC_TX_DATA_2           0x2041082c /* [RW][32] CEC Transmitting DATA 2 */
+#define BCHP_AON_HDMI_TX_CEC_TX_DATA_3           0x20410830 /* [RW][32] CEC Transmitting DATA 3 */
+#define BCHP_AON_HDMI_TX_CEC_TX_DATA_4           0x20410834 /* [RW][32] CEC Transmitting DATA 4 */
+#define BCHP_AON_HDMI_TX_CEC_RX_DATA_1           0x20410838 /* [RO][32] CEC Receiving DATA 1 */
+#define BCHP_AON_HDMI_TX_CEC_RX_DATA_2           0x2041083c /* [RO][32] CEC Receiving DATA 2 */
+#define BCHP_AON_HDMI_TX_CEC_RX_DATA_3           0x20410840 /* [RO][32] CEC Receiving DATA 3 */
+#define BCHP_AON_HDMI_TX_CEC_RX_DATA_4           0x20410844 /* [RO][32] CEC Receiving DATA 4 */
+#define BCHP_AON_HDMI_TX_HDMI_HOTPLUG_STATUS     0x20410848 /* [RO][32] HOTPLUG Interrupt Register */
+#define BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONTROL    0x2041084c /* [RW][32] HOTPLUG Register */
+#define BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG     0x20410850 /* [RW][32] HOTPLUG Register */
+#define BCHP_AON_HDMI_TX_DVP_GEN_1MS_CONFIG      0x20410854 /* [RW][32] DVP_GEN_1MS Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CFG            0x20410858 /* [RW][32] AUTO_CEC_CFG Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CNTRL          0x2041085c /* [RW][32] AUTO_CEC_CNTRL Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_FEATURE_ABORT_CFG 0x20410860 /* [RW][32] AUTO_CEC_FEATURE_ABORT_CFG Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_POWER_STATUS_CFG 0x20410864 /* [RW][32] AUTO_CEC_POWER_STATUS_CFG */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_GIVE_FEATURES_CFG_0 0x20410868 /* [RW][32] AUTO_CEC_GIVE_FEATURES_CFG_0 */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_GIVE_FEATURES_CFG_1 0x2041086c /* [RW][32] AUTO_CEC_GIVE_FEATURES_CFG_1 */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_GIVE_VERSION_CFG 0x20410870 /* [RW][32] AUTO_CEC_GIVE_VERSION_CFG */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_STANDBY_CFG 0x20410874 /* [RW][32] AUTO_CEC_CHECK_STANDBY_CFG Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_0 0x20410878 /* [RW][32] AUTO_CEC_CHECK_WAKE1_CFG_0 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_1 0x2041087c /* [RW][32] AUTO_CEC_CHECK_WAKE1_CFG_1 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_2 0x20410880 /* [RW][32] AUTO_CEC_CHECK_WAKE1_CFG_2 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE1_CFG_3 0x20410884 /* [RW][32] AUTO_CEC_CHECK_WAKE1_CFG_3 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE2_CFG_0 0x20410888 /* [RW][32] AUTO_CEC_CHECK_WAKE2_CFG_0 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE2_CFG_1 0x2041088c /* [RW][32] AUTO_CEC_CHECK_WAKE2_CFG_1 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE3_CFG_0 0x20410890 /* [RW][32] AUTO_CEC_CHECK_WAKE3_CFG_0 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE3_CFG_1 0x20410894 /* [RW][32] AUTO_CEC_CHECK_WAKE3_CFG_1 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE3_CFG_2 0x20410898 /* [RW][32] AUTO_CEC_CHECK_WAKE3_CFG_2 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE4_CFG_0 0x2041089c /* [RW][32] AUTO_CEC_CHECK_WAKE4_CFG_0 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE4_CFG_1 0x204108a0 /* [RW][32] AUTO_CEC_CHECK_WAKE4_CFG_1 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_CHECK_WAKE4_CFG_2 0x204108a4 /* [RW][32] AUTO_CEC_CHECK_WAKE4_CFG_2 Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_STATUS_0       0x204108a8 /* [RO][32] AUTO_CEC_STATUS Register */
+#define BCHP_AON_HDMI_TX_AUTO_CEC_STATUS_1       0x204108ac /* [RO][32] AUTO_CEC_STATUS Register */
 
 /***************************************************************************
  *CEC_ENERGYSTAR_CFG1 - CEC Energystar Configuration 1

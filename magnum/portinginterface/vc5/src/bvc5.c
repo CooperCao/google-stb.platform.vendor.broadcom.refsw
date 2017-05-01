@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -417,7 +416,7 @@ void BVC5_GetInfo(
  *
  * Generate unique client id.
  */
-uint32_t BVC5_P_GetFreeClientId(BVC5_Handle hVC5)
+static uint32_t BVC5_P_GetFreeClientId(BVC5_Handle hVC5)
 {
    hVC5->uiNextClientId++;
 
@@ -493,7 +492,7 @@ exit:
 }
 
 /***************************************************************************/
-BERR_Code BVC5_P_UnregisterClient(
+static BERR_Code BVC5_P_UnregisterClient(
    BVC5_Handle hVC5,
    uint32_t    uiClientId
 )
@@ -1079,6 +1078,32 @@ BERR_Code BVC5_MakeFenceForAnyNonFinalizedJob(
    return berr;
 }
 
+BERR_Code BVC5_MakeFenceForAnyJob(
+   BVC5_Handle                   hVC5,
+   uint32_t                      uiClientId,
+   const BVC5_SchedDependencies *pCompletedDeps,
+   const BVC5_SchedDependencies *pFinalizedDeps,
+   int                          *piFence
+)
+{
+   BVC5_ClientHandle hClient;
+   BERR_Code berr;
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+      berr = BERR_INVALID_PARAMETER;
+   else
+      berr = BVC5_P_ClientMakeFenceForAnyJob(hVC5, hClient,
+         pCompletedDeps, pFinalizedDeps, piFence);
+
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   return berr;
+}
+
 BERR_Code BVC5_FenceRegisterWaitCallback(
    BVC5_Handle    hVC5,
    int            iFence,
@@ -1204,15 +1229,25 @@ BERR_Code BVC5_GetUsermode(
    BVC5_Usermode              *psUsermode
    )
 {
-   bool                  haveJob       = false;
-   BVC5_P_UsermodeState *usermodeState = &hVC5->sUsermodeState;
+   BERR_Code             ret     = BERR_SUCCESS;
+   bool                  haveJob = false;
+   BVC5_ClientHandle     hClient;
+   BVC5_P_UsermodeState *usermodeState;
 
    if (psUsermode == NULL)
       return BERR_INVALID_PARAMETER;
 
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
-   BSTD_UNUSED(uiClientId); /* Would be needed if we allowed more than one usermode job to be active at a time */
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+   {
+      ret = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   usermodeState = &hClient->sUsermodeState;
 
    if (uiPrevJobId != 0)
    {
@@ -1220,8 +1255,6 @@ BERR_Code BVC5_GetUsermode(
 
       if (psJob != NULL) /* It really ought not to be NULL */
       {
-         BVC5_ClientHandle    hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, psJob->uiClientId);
-
          BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, psJob);
 
          usermodeState->psRunningJob = NULL;
@@ -1247,9 +1280,10 @@ BERR_Code BVC5_GetUsermode(
 
    psUsermode->bHaveJob = haveJob;
 
+exit:
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
 
-   return BERR_SUCCESS;
+   return ret;
 }
 
 BERR_Code BVC5_GetCompletions(
@@ -1419,6 +1453,17 @@ BERR_Code BVC5_GetTime(uint64_t *pMicroseconds)
    BDBG_LEAVE(BVC5_GetTime);
 
    return err;
+}
+
+/***************************************************************************/
+
+/* BVC5_HasBrcmv3dko
+ */
+bool BVC5_HasBrcmv3dko(
+   void
+   )
+{
+   return BVC5_P_HasBrcmv3dko();
 }
 
 /* End of File */

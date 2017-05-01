@@ -1,66 +1,39 @@
-#############################################################################
-#    Broadcom Proprietary and Confidential. (c)2013-2014 Broadcom. All rights reserved.
-#
-# This program is the proprietary software of Broadcom and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#
-# Except as expressly set forth in the Authorized License,
-#
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
-#
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# USE OR PERFORMANCE OF THE SOFTWARE.
-#
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# ANY LIMITED REMEDY.
-#
-#############################################################################
+################################################################################
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+################################################################################
 
-apps:
-	$(MAKE) -C geom_viewer
-	$(MAKE) -C hello_anim
-	$(MAKE) -C hello_cube
-	$(MAKE) -C hello_fbo
-	$(MAKE) -C hello_task
-	$(MAKE) -C hello_text
-	$(MAKE) -C hello_lod
-	$(MAKE) -C logo_menu
-	$(MAKE) -C pg
-	$(MAKE) -C planets
-	$(MAKE) -C spytool_replay
-	$(MAKE) -C video_texturing_decoder
+.PHONY: bsg bsg_clean common common_clean
 
-clean:
-	$(MAKE) -C geom_viewer clean
-	$(MAKE) -C hello_anim clean
-	$(MAKE) -C hello_cube clean
-	$(MAKE) -C hello_fbo clean
-	$(MAKE) -C hello_task clean
-	$(MAKE) -C hello_text clean
-	$(MAKE) -C hello_lod clean
-	$(MAKE) -C logo_menu clean
-	$(MAKE) -C pg clean
-	$(MAKE) -C planets clean
-	$(MAKE) -C spytool_replay clean
-	$(MAKE) -C video_texturing_decoder clean
+export BSG_PREBUILT := y
+
+BSG_APPS := geom_viewer hello_anim hello_cube hello_fbo hello_task hello_text hello_lod logo_menu pg \
+	    planets spytool_replay video_texturing_decoder
+
+apps: bsg common $(foreach app,$(BSG_APPS),$(app))
+
+clean: bsg_clean common_clean $(foreach app,$(BSG_APPS),$(app)_clean)
+
+bsg:
+	$(MAKE) -C ../bsg -f bsg.mk
+
+bsg_clean:
+	$(MAKE) -C ../bsg -f bsg.mk clean
+
+common:
+	$(MAKE) -C ./common -f common.mk
+
+common_clean:
+	$(MAKE) -C ./common -f common.mk clean
+
+define BSG_APP_template
+.PHONY: $1 $1_clean
+
+$1: bsg common
+	@$$(MAKE) -C $1
+
+$1_clean: bsg_clean common_clean
+	@$$(MAKE) -C $1 clean
+endef
+
+# Define rules for each app
+$(foreach app,$(BSG_APPS),$(eval $(call BSG_APP_template,$(app))))

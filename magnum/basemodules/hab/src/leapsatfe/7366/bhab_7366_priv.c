@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -112,25 +112,25 @@ BDBG_MODULE(bhab_7366_priv);
 
 
 /* local private functions */
-BERR_Code BHAB_7366_P_RunAp(BHAB_Handle h);
-BERR_Code BHAB_7366_P_ServiceHab(BHAB_Handle h, uint32_t *read_buf, uint16_t read_len);
-BERR_Code BHAB_7366_P_CheckHab(BHAB_Handle h);
-BERR_Code BHAB_7366_P_DecodeHabError(BHAB_Handle h);
-BERR_Code BHAB_7366_P_DisableLeapInterrupts(BHAB_Handle h);
-bool BHAB_7366_P_IsLeapRunning(BHAB_Handle h);
-BERR_Code BHAB_7366_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec);
-BERR_Code BHAB_7366_P_DecodeInterrupt_isr(BHAB_Handle h);
+static BERR_Code BHAB_7366_P_RunAp(BHAB_Handle h);
+static BERR_Code BHAB_7366_P_ServiceHab(BHAB_Handle h, uint32_t *read_buf, uint16_t read_len);
+static BERR_Code BHAB_7366_P_CheckHab(BHAB_Handle h);
+static BERR_Code BHAB_7366_P_DecodeHabError(BHAB_Handle h);
+static BERR_Code BHAB_7366_P_DisableLeapInterrupts(BHAB_Handle h);
+static bool BHAB_7366_P_IsLeapRunning(BHAB_Handle h);
+static BERR_Code BHAB_7366_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec);
+static BERR_Code BHAB_7366_P_DecodeInterrupt_isr(BHAB_Handle h);
 #if BHAB_CHIP==4548
-BERR_Code BHAB_4548_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable);
-BERR_Code BHAB_4548_P_UnlockSerialInterface(BHAB_Handle h);
-BERR_Code BHAB_4548_P_WriteBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint32_t n);
-BERR_Code BHAB_4548_P_ReadBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint32_t n);
-BERR_Code BHAB_4548_P_ReadRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
-BERR_Code BHAB_4548_P_WriteRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
-BERR_Code BHAB_4548_P_Reset(BHAB_Handle h);
-BERR_Code BHAB_4548_P_ClearHirq(BHAB_Handle h);
-BERR_Code BHAB_4548_P_DownloadFirmware(BHAB_Handle h, uint32_t start_addr, const uint8_t *buf, uint32_t n);
-BERR_Code BHAB_4548_P_DecodeInterrupt(BHAB_Handle h);
+static BERR_Code BHAB_4548_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable);
+static BERR_Code BHAB_4548_P_UnlockSerialInterface(BHAB_Handle h);
+static BERR_Code BHAB_4548_P_WriteBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint32_t n);
+static BERR_Code BHAB_4548_P_ReadBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint32_t n);
+static BERR_Code BHAB_4548_P_ReadRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
+static BERR_Code BHAB_4548_P_WriteRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
+static BERR_Code BHAB_4548_P_Reset(BHAB_Handle h);
+static BERR_Code BHAB_4548_P_ClearHirq(BHAB_Handle h);
+static BERR_Code BHAB_4548_P_DownloadFirmware(BHAB_Handle h, uint32_t start_addr, const uint8_t *buf, uint32_t n);
+static BERR_Code BHAB_4548_P_DecodeInterrupt(BHAB_Handle h);
 #endif
 #ifdef BHAB_VERIFY_DOWNLOAD
 bool BHAB_7366_VerifyMemory(BHAB_Handle h, uint32_t addr, const uint8_t *pHexImage, uint32_t len);
@@ -665,14 +665,17 @@ BERR_Code BHAB_7366_P_ReadMemory(BHAB_Handle h, uint32_t start_addr, uint8_t *bu
    if ((n == 0) || (start_addr & 0x03))
       return BERR_TRACE(BERR_INVALID_PARAMETER);
 
+#if 0
    /* make sure length is multiple of 4 bytes */
    if (n & 0x3)
       return BERR_TRACE(BERR_INVALID_PARAMETER);
+#endif
 
    bIsRunning = BHAB_7366_P_IsLeapRunning(h);
 
    if (!pImpl->settings.bUseInternalMemory) {
-       BMEM_Heap_FlushCache(pImpl->settings.heap,(void *)start_addr,n);
+      if (start_addr > 0x4007E000)
+         BMEM_Heap_FlushCache(pImpl->settings.heap,(void *)start_addr,n);
    }
 
    /* calculate end_addr and nReadsLeft */
@@ -1023,7 +1026,7 @@ BERR_Code BHAB_7366_P_Reset(BHAB_Handle h)
 /******************************************************************************
  BHAB_7366_P_RunAp()
 ******************************************************************************/
-BERR_Code BHAB_7366_P_RunAp(BHAB_Handle h)
+static BERR_Code BHAB_7366_P_RunAp(BHAB_Handle h)
 {
    uint32_t ctrl;
 
@@ -1065,7 +1068,7 @@ BERR_Code BHAB_7366_P_RunAp(BHAB_Handle h)
 /******************************************************************************
  BHAB_7366_P_ServiceHab()
 ******************************************************************************/
-BERR_Code BHAB_7366_P_ServiceHab(
+static BERR_Code BHAB_7366_P_ServiceHab(
    BHAB_Handle h,      /* [in] BHAB handle */
    uint32_t *read_buf,  /* [out] holds the data read from the HAB */
    uint16_t read_len   /* [in] number of words to read from the HAB (including the checksum) */
@@ -1185,7 +1188,7 @@ BERR_Code BHAB_7366_P_HandleInterrupt_isr(
 /******************************************************************************
  BHAB_7366_P_DecodeInterrupt_isr()
 ******************************************************************************/
-BERR_Code BHAB_7366_P_DecodeInterrupt_isr(BHAB_Handle h)
+static BERR_Code BHAB_7366_P_DecodeInterrupt_isr(BHAB_Handle h)
 {
    BHAB_7366_P_Handle *pImpl = (BHAB_7366_P_Handle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -1364,7 +1367,7 @@ BERR_Code BHAB_7366_P_DecodeInterrupt_isr(BHAB_Handle h)
 /******************************************************************************
  BHAB_7366_P_IsLeapRunning()
 ******************************************************************************/
-bool BHAB_7366_P_IsLeapRunning(
+static bool BHAB_7366_P_IsLeapRunning(
    BHAB_Handle h  /* [in] BHAB handle */
 )
 {
@@ -1382,7 +1385,7 @@ bool BHAB_7366_P_IsLeapRunning(
 /******************************************************************************
  BHAB_7366_P_CheckHab()
 ******************************************************************************/
-BERR_Code BHAB_7366_P_CheckHab(
+static BERR_Code BHAB_7366_P_CheckHab(
    BHAB_Handle h    /* [in] BHAB handle */
 )
 {
@@ -1413,7 +1416,7 @@ BERR_Code BHAB_7366_P_CheckHab(
 /******************************************************************************
  BHAB_7366_P_DecodeHabError() - called when the command was not ack'd
 ******************************************************************************/
-BERR_Code BHAB_7366_P_DecodeHabError(BHAB_Handle h)
+static BERR_Code BHAB_7366_P_DecodeHabError(BHAB_Handle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t status0, spare2, spare3, leap_status, clear0 = 0, hab_error, fw_error;
@@ -1486,7 +1489,7 @@ BERR_Code BHAB_7366_P_DecodeHabError(BHAB_Handle h)
 /******************************************************************************
  BHAB_7366_P_DisableLeapInterrupts()
 ******************************************************************************/
-BERR_Code BHAB_7366_P_DisableLeapInterrupts(
+static BERR_Code BHAB_7366_P_DisableLeapInterrupts(
    BHAB_Handle h   /* [in] BHAB handle */
 )
 {
@@ -1556,7 +1559,7 @@ bool BHAB_7366_VerifyMemory(BHAB_Handle h, uint32_t addr, const uint8_t *pHexIma
 /******************************************************************************
  BERR_Code BHAB_7366_P_WaitForEvent()
 ******************************************************************************/
-BERR_Code BHAB_7366_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec)
+static BERR_Code BHAB_7366_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int timeoutMsec)
 {
 #if BHAB_CHIP==4548
    BHAB_7366_P_Handle *pImpl = (BHAB_7366_P_Handle *)(h->pImpl);
@@ -1593,7 +1596,7 @@ BERR_Code BHAB_7366_P_WaitForEvent(BHAB_Handle h, BKNI_EventHandle hEvent, int t
 /******************************************************************************
  BHAB_4548_P_ClearHirq()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_ClearHirq(BHAB_Handle h)
+static BERR_Code BHAB_4548_P_ClearHirq(BHAB_Handle h)
 {
    uint32_t val = 1;
    return BHAB_4548_P_WriteRegister(h, BCHP_GIO_DATA_LO, &val);
@@ -1603,7 +1606,7 @@ BERR_Code BHAB_4548_P_ClearHirq(BHAB_Handle h)
 /******************************************************************************
  BHAB_4548_P_Reset()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_Reset(BHAB_Handle h)
+static BERR_Code BHAB_4548_P_Reset(BHAB_Handle h)
 {
    BERR_Code retCode;
    uint32_t val;
@@ -1701,7 +1704,7 @@ BERR_Code BHAB_4548_P_ProcessInterruptEvent(BHAB_Handle handle)
 /******************************************************************************
  BERR_Code BHAB_4548_P_UnlockSerialInterface()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_UnlockSerialInterface(BHAB_Handle h)
+static BERR_Code BHAB_4548_P_UnlockSerialInterface(BHAB_Handle h)
 {
    BERR_Code retCode;
    uint32_t unlock, csr_config, i;
@@ -1742,7 +1745,7 @@ BERR_Code BHAB_4548_P_UnlockSerialInterface(BHAB_Handle h)
 /******************************************************************************
  BHAB_4548_P_DownloadFirmware()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_DownloadFirmware(BHAB_Handle h, uint32_t start_addr, const uint8_t *buf, uint32_t n)
+static BERR_Code BHAB_4548_P_DownloadFirmware(BHAB_Handle h, uint32_t start_addr, const uint8_t *buf, uint32_t n)
 {
    BERR_Code retCode;
    uint32_t csr_config, phy_address, i;
@@ -1813,7 +1816,7 @@ BERR_Code BHAB_4548_P_DownloadFirmware(BHAB_Handle h, uint32_t start_addr, const
 /******************************************************************************
  BHAB_4548_P_EnableHostInterrupt()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable)
+static BERR_Code BHAB_4548_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable)
 {
    BKNI_EnterCriticalSection();
    h->settings.interruptEnableFunc(bEnable, h->settings.interruptEnableFuncParam);
@@ -1825,7 +1828,7 @@ BERR_Code BHAB_4548_P_EnableHostInterrupt(BHAB_Handle h, bool bEnable)
 /******************************************************************************
  BHAB_4548_P_WriteBbsi()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_WriteBbsi(
+static BERR_Code BHAB_4548_P_WriteBbsi(
    BHAB_Handle h,    /* [in] BHAB PI Handle */
    uint8_t     addr, /* [in] address */
    uint8_t     *buf, /* [in] data to write */
@@ -1851,7 +1854,7 @@ BERR_Code BHAB_4548_P_WriteBbsi(
 /******************************************************************************
  BHAB_4548_P_ReadBbsi()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_ReadBbsi(
+static BERR_Code BHAB_4548_P_ReadBbsi(
     BHAB_Handle h,    /* [in] BHAB PI Handle */
     uint8_t     addr, /* [in] address */
     uint8_t     *buf, /* [out] buffer that holds the data */
@@ -1877,7 +1880,7 @@ BERR_Code BHAB_4548_P_ReadBbsi(
 /******************************************************************************
 BHAB_4548_P_ReadRbus()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_ReadRbus(
+static BERR_Code BHAB_4548_P_ReadRbus(
     BHAB_Handle h,    /* [in] BHAB PI Handle */
     uint32_t    addr, /* [in] address */
     uint32_t    *buf, /* [in] data to write */
@@ -1962,7 +1965,7 @@ BERR_Code BHAB_4548_P_ReadRbus(
 /******************************************************************************
 BHAB_4548_P_WriteRbus()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_WriteRbus(
+static BERR_Code BHAB_4548_P_WriteRbus(
     BHAB_Handle h,    /* [in] BHAB PI Handle */
     uint32_t    addr, /* [in] address */
     uint32_t    *buf, /* [out] buffer that holds the data */
@@ -2011,7 +2014,7 @@ BERR_Code BHAB_4548_P_WriteRbus(
          BHAB_4548_P_ReadBbsi(h, BCHP_CSR_STATUS, &csr_status, 1);
          if (csr_status & (CSR_STATUS_TXFR_W_OVERUN | CSR_STATUS_TXFR_TIMEOUT | CSR_STATUS_TXFR_ERR | CSR_STATUS_TXFR_PENDING))
          {
-            BDBG_ERR(("BHAB_7366_P_WriteRbus Error(Addr 0x%X) : Status 0x%X",addr,csr_status));
+            BDBG_ERR(("BHAB_4548_P_WriteRbus Error(Addr 0x%X) : Status 0x%X",addr,csr_status));
          }
       }
    }
@@ -2023,7 +2026,7 @@ BERR_Code BHAB_4548_P_WriteRbus(
 /******************************************************************************
  BHAB_4548_P_DecodeInterrupt()
 ******************************************************************************/
-BERR_Code BHAB_4548_P_DecodeInterrupt(BHAB_Handle h)
+static BERR_Code BHAB_4548_P_DecodeInterrupt(BHAB_Handle h)
 {
    BHAB_7366_P_Handle *pImpl = (BHAB_7366_P_Handle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;

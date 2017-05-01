@@ -16,6 +16,16 @@
  */
 
 
+#ifdef BCMINTDBG
+/*
+ * Policy notes:
+ * This source file generates both the "wl" command and the
+ * more restricted "wl-tool" manufacturing test command (-DWL_TOOL).
+ * - wl driver wlc_ioctl() commands which are enclosed within #ifdef BCMINTDBG
+ * should be enclosed within #ifdef BCMINTDBG in wlu.c .
+ * - exposing any new commands in wl-tool requires an "ok" from romanb.
+ */
+#endif /* BCMINTDBG */
 
 #ifdef WIN32
 #include <windows.h>
@@ -300,6 +310,10 @@ static cmd_func_t wl_roamparms, wl_roam_prof;
 #ifdef WLRCC
 static cmd_func_t wl_roamchannels;
 #endif /* WLRCC */
+#ifdef BCMINTDBG
+static cmd_func_t wl_sendprb;
+static cmd_func_t wl_send_frame;
+#endif /* BCMINTDBG */
 static cmd_func_t wl_dump_chanlist, wl_measure_req, wl_send_quiet;
 static cmd_func_t wl_pm_mute_tx;
 static cmd_func_t wl_dump_chanspecs, wl_dump_chanspecs_defset;
@@ -332,6 +346,10 @@ static cmd_func_t wl_leap;
 static void wl_rate_histo_print(wl_mac_ratehisto_res_t *rate_histo_res);
 static cmd_func_t wl_rate_histo;
 static cmd_func_t wl_mac_rate_histo;
+#ifdef BCMINTDBG
+static cmd_func_t wlu_ratedump, wlu_fixrate;
+static cmd_func_t wl_send_wpa_m1;
+#endif /* BCMINTDBG */
 static cmd_func_t wme_tx_params;
 static cmd_func_t wme_maxbw_params;
 
@@ -373,6 +391,9 @@ static cmd_func_t wl_sarlimit;
 static cmd_func_t wl_ie;
 static cmd_func_t wl_ccode_info;
 
+#if defined(BCMINTDBG)
+static cmd_func_t wl_nwoe_ifconfig;
+#endif /* BCMINTDBG */
 
 #ifdef SERDOWNLOAD
 static cmd_func_t dhd_upload;
@@ -527,6 +548,9 @@ static cmd_func_t wl_utrace_capture;
 static cmd_func_t wl_gpaio;
 #endif
 
+#ifdef BCMINTDBG
+static cmd_func_t wl_mac_captr;
+#endif
 
 static cmd_func_t wl_nd_ra_limit_intv;
 
@@ -873,8 +897,14 @@ cmd_t wl_cmds[] = {
 	"\t0 (IBSS)\n"
 	"\t1 (Infra BSS)\n"
 	"Note: use \"wl infra_configuration\" to query the configuration.\n"},
+#ifdef BCMINTDBG
+	{ "bssid", wl_bssid, WLC_GET_BSSID, WLC_SET_BSSID,
+	"Set or get the BSS ID value\n"
+	"\t(mac address, e.g. 00:11:20:11:33:33, colons optional)" },
+#else
 	{ "bssid", wl_bssid, WLC_GET_BSSID, -1,
 	"Get the BSSID value, error if STA and not associated"},
+#endif /* BCMINTDBG */
 	{ "bssmax", wl_bss_max, WLC_GET_VAR, -1,
 	"get number of BSSes " },
 	{ "channel", wl_channel, WLC_GET_CHANNEL, WLC_SET_CHANNEL,
@@ -980,6 +1010,47 @@ cmd_t wl_cmds[] = {
 	"\tmacreg offset size[2,4] [ value ] [ band ]" },
 	{ "ucantdiv", wl_int, WLC_GET_UCANTDIV, WLC_SET_UCANTDIV,
 	"Enable/disable ucode antenna diversity (1/0 or on/off)" },
+#ifdef BCMINTDBG
+	{ "help", wl_cmd_help, -1, -1,
+	"List commands by category"},
+	{"iov", wl_iov_names, -1, -1,
+	"Get information on driver IOVARs"},
+	{"iovars", wl_iov_names, -1, -1,
+	"Get information on driver IOVARs"},
+	{ "shownetworks", wl_dump_networks, WLC_SCAN_RESULTS, -1,
+	"Pretty-print the BSSID list" },
+	{ "loop", wl_int, WLC_GET_LOOP, WLC_SET_LOOP,
+	"enable mac-level or mii-level loopback" },
+	{ "piomode", wl_int, WLC_GET_PIOMODE, WLC_SET_PIOMODE,
+	"Get/Set piomode" },
+	{ "shmem_dump", wl_print_deprecate, -1, -1, "Deprecated. Folded under 'wl dump shmem'" },
+	{ "pcieregdump", wl_print_deprecate, -1, -1, "Deprecated.Folded under 'wl dump pcieregs'" },
+	{ "gpiodump", wl_print_deprecate, -1, -1, "Deprecated. Folded under 'wl dump gpio'" },
+	{ "tsf_dump", wl_print_deprecate, -1, -1, "Deprecated. Folded under 'wl dump tsf'" },
+	{ "ampdu_dump", wl_print_deprecate, -1, -1, "Deprecated. Folded under 'wl dump ampdu'" },
+	{ "amsdu_dump", wl_print_deprecate, -1, -1, "Deprecated. Folded under 'wl dump amsdu'" },
+	{ "amsdu_clear_counters", wl_var_void, -1, WLC_SET_VAR,
+	"clear amsdu counters"},
+	{ "fixrate", wlu_fixrate, WLC_GET_FIXRATE, WLC_SET_FIXRATE,
+	"get/set the fixrate per scb/ac:\n"
+	"To get: wl fixrate xx:xx:xx:xx:xx:xx (the remote mac addr).\n"
+	"To set: wl fixrate xx:xx:xx:xx:xx:xx <ac> <rateid>, \n"
+	"\twhere <ac> = -1 means for all ACs, and \n"
+	"\t<rateid> is the index to the rate set, -1 means auto."},
+	{ "ratedump", wlu_ratedump, WLC_DUMP_RATE, -1,
+	"Print driver rate selection tunables and per-scb state to stdout\n"
+	"\tbased on remote station mac address[xx:xx:xx:xx:xx:xx]" },
+	{ "bpind", wlu_reg3args, WLC_GET_VAR, WLC_SET_VAR,
+	"<high addr> <low addr> [value] \n"
+	"\tMSB bit in high addr has to be set to access host addr\n"
+	"\tsample: wl bpind 0x80000000 0x0001e040\n"},
+	{ "n_bw", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
+	"get/set mimo channel bandwidth (10=10MHz, 20=20Mhz, 40=40Mhz), will cause phy to reset"},
+	{ "mimo_ofdm", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
+	"get/set stf mode for legacy ofdm frame (0=SISO, 1=CDD)"},
+	{ "hwkeys", wl_var_getandprintstr, WLC_GET_VAR, -1,
+	"Dump all keys in h/w"},
+#endif /* BCMINTDBG */
 	{ "actframe", wl_actframe, -1, WLC_SET_VAR,
 	"Send a Vendor specific Action frame to a channel\n"
 	"\tusage: wl actframe <Dest Mac Addr> <data> channel dwell-time <BSSID>" },
@@ -1051,6 +1122,16 @@ cmd_t wl_cmds[] = {
 	"set/get 802.11i RSN capabilities" },
 	{ "set_pmk", wl_set_pmk, -1, WLC_SET_WSEC_PMK,
 	"Set passphrase for PMK in driver-resident supplicant." },
+#ifdef BCMINTDBG
+	{ "sendprb", wl_sendprb, -1, WLC_SET_VAR,
+	"Send a probe request.\n"
+	"\t-s S, --ssid=S\t\tSSIDs to scan\n"
+	"\t-b MAC, --bssid=MAC\tparticular BSSID MAC address, xx:xx:xx:xx:xx:xx\n"
+	"\t-d MAC, --da=MAC\tDestnation Address" },
+	{ "send_frame", wl_send_frame, -1, WLC_SET_VAR,
+	"send the ethernet frame provided in hex"
+	},
+#endif /* BCMINTDBG */
 	{ "scan", wl_scan, -1, WLC_SCAN,
 	"Initiate a scan.\n" SCAN_USAGE
 	},
@@ -1525,6 +1606,13 @@ cmd_t wl_cmds[] = {
 	"\t\t\turx = RX unicast antenna configuration\n"
 	"\t\t\tdtx = TX default (non-unicast) antenna configuration\n"
 	"\t\t\tdrx = RX default (non-unicast) antenna configuration"
+#ifdef BCMINTDBG
+	"\n\tadvanced paramaters to set: <utx> <urx> <dtx> <drx>\n"
+	"\t\twhere utx = TX unicast antenna configuration -1 = AUTO\n"
+	"\t\t\turx = RX unicast antenna configuration, -1 = AUTO\n"
+	"\t\t\tdtx = TX default (non-unicast) antenna configuration, -1 = AUTO\n"
+	"\t\t\tdrx = RX default (non-unicast) antenna configuration, -1 = AUTO"
+#endif
 	},
 	{ "txfifo_sz", wl_txfifo_sz, WLC_GET_VAR, WLC_SET_VAR,
 	"set/get the txfifo size; usage: wl txfifo_sz <fifonum> <size_in_bytes>" },
@@ -1549,6 +1637,17 @@ cmd_t wl_cmds[] = {
 	{"rate_histo", wl_rate_histo, -1, WLC_GET_VAR,
 	"Get rate hostrogram"
 	},
+#ifdef BCMINTDBG
+	{ "auth_rekey_init", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
+	"init/de-init group key rekey(for send_wpa_m1 cmd)\n"
+	"\t   Must be enabled before connection for sending"},
+	{ "wpa_m1", wl_send_wpa_m1, -1, WLC_SET_VAR,
+	"send a WPA M1 to mac address\n"
+	"\tUsage: wl wpa_m1 <ptk | gtk | gtk_bad> xx:xx:xx:xx:xx:xx\n"
+	"\tptk: Send a WPA PTK M1\n"
+	"\tgtk: Send a WPA GTK M1\n"
+	"\tgtk_bad: Send a invalid WPA GTK M1"},
+#endif /* BCMINTDBG */
 	{ "wme_apsd_trigger", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
 	"Set Periodic APSD Trigger Frame Timer timeout in ms (0=off)"},
 	{ "wme_autotrigger", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
@@ -1696,6 +1795,10 @@ cmd_t wl_cmds[] = {
 	"\t     For get: wl ie type" },
 	{ "mempool", wlu_mempool, WLC_GET_VAR, -1,
 	"Get memory pool statistics" },
+#ifdef BCMINTDBG
+	{ "sr_enable", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
+	"\tGet/Set SaveRestore functionality"},
+#endif
 #ifdef SR_DEBUG
 	{ "sr_dump_pmu", wl_dump_pmu, WLC_GET_VAR, WLC_SET_VAR,
 	"Dump value of PMU registers"},
@@ -1709,6 +1812,11 @@ cmd_t wl_cmds[] = {
 	"              ?-> 1 power_island on\n"
 	"              eg: wl sr_power_island 0x1101"},
 #endif /* SR_DEBUG */
+#ifdef BCMINTDBG
+	{ "nwoe_ifconfig", wl_nwoe_ifconfig, WLC_GET_VAR, WLC_SET_VAR,
+	"Configure the network offload interface, or display current settings\n"
+	"\tUsage: wl nwoe_ifconfig [<ip> <netmask> <gateway>]\n"},
+#endif
 	{ "antdiv_bcnloss", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
 	"0	- Disable Rx antenna flip feature based on consecutive beacon loss\n"
 	"\tX - beacon loss count after which Rx ant will be flipped\n"
@@ -1867,6 +1975,22 @@ cmd_t wl_cmds[] = {
 	"<bitmap> : 32-bit value\n"
 	"<w_val> : write value to the registers\n"
 	"-r option is used to specify internal address:"},
+#ifdef BCMINTDBG
+	{"mac_capture", wl_mac_captr, WLC_GET_VAR, WLC_SET_VAR,
+	" wl mac_capture <gpiosel> [la] [stop|<c>] "
+	"[-s <start_ptr] [-e <stop_ptr>] [-sm <store mask>]"
+	"-tv <trigger val> -tm <trigger mask> -mv <match val> -mm <match mask> -xm <trans mask>\n\n"
+	" <gpiosel> : Output Selection\n"
+	"la: Logic Analyzer Mode ON\n"
+	"stop: Stop\n"
+	"c: Continue\n"
+	"-s <start_ptr> (<start_ptr> is 4-byte aligned)\n"
+	"-e <stop_ptr> (<stop_ptr> is 4-byte aligned)\n"
+	"-sm <store mask>\n"
+	"-tv <trigger val> -tm <trigger mask>: Trigger based on value / mask\n"
+	"-mv <trigger val> -mm <trigger mask>: Store matching value / mask\n"
+	"-xm <trans mask>: Store on transition on masked bits\n"},
+#endif /* BCMINTDBG */
 	{ "vasip_counters_clear", wl_var_void, -1, WLC_SET_VAR,
 	"clear vasip counters"},
 	{"svmp_mem", wl_svmp_mem, WLC_GET_VAR, WLC_SET_VAR,
@@ -2199,6 +2323,8 @@ wlu_init(void)
 #ifdef WL_NAN
 	wluc_nan_module_init();
 #endif /* WL_NAN */
+#ifdef BCMINTDBG
+#endif /* BCMINTDBG */
 #ifdef WLNDOE
 	wluc_ndoe_module_init();
 #endif /* WLNDOE */
@@ -3767,6 +3893,11 @@ wl_gmode(void *wl, cmd_t *cmd, char **argv)
 		case GMODE_ONLY:
 			gconfig = "54g Only";
 			break;
+#ifdef BCMINTDBG
+		case GMODE_B_DEFERRED:
+			gconfig = "54g B Deferred";
+			break;
+#endif
 		case GMODE_PERFORMANCE:
 			gconfig = "54g Performance";
 			break;
@@ -3789,6 +3920,10 @@ wl_gmode(void *wl, cmd_t *cmd, char **argv)
 			val = GMODE_AUTO;
 		else if (!strnicmp(*argv, "gonly", 5))
 			val = GMODE_ONLY;
+#ifdef BCMINTDBG
+		else if (!strnicmp(*argv, "bdefer", 6))
+			val = GMODE_B_DEFERRED;
+#endif
 		else if (!strnicmp(*argv, "perf", 4))
 			val = GMODE_PERFORMANCE;
 		else if (!strnicmp(*argv, "lrs", 3))
@@ -5299,6 +5434,99 @@ error:
 	return ret;
 }
 
+#ifdef BCMINTDBG
+static int
+wlu_fixrate(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret = 0;
+	link_val_t link_val;
+
+	if (!*++argv)
+		return BCME_USAGE_ERROR;
+
+	/* get link mac address */
+	if (!wl_ether_atoe(*argv++, &link_val.ea))
+		return BCME_USAGE_ERROR;
+
+	link_val.ac = 0xFF;
+	if (argv[0]) {
+		link_val.ac = atoi(argv[0]);
+		if (link_val.ac != -1 && (link_val.ac < 0 || link_val.ac > 3)) {
+			printf("ac %d out of range [0, 3] or -1 to indicate all\n", link_val.ac);
+		}
+
+		if (argv[1]) {
+			link_val.val = atoi(argv[1]);
+			ret = wlu_set(wl, cmd->set, &link_val, sizeof(link_val));
+		} else {
+			printf("too few parameters.\n");
+			ret = BCME_USAGE_ERROR;
+		}
+	} else {
+		memcpy(buf, &link_val.ea, sizeof(struct ether_addr));
+		if ((ret = wlu_get(wl, cmd->get, buf, WLC_IOCTL_MAXLEN)) < 0)
+			return ret;
+		fputs(buf, stdout);
+		return 0;
+	}
+
+	return ret;
+}
+
+static int
+wlu_ratedump(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret;
+	uint8 maclist_buf[WLC_IOCTL_MEDLEN];
+	struct ether_addr *ea;
+	uint i, max = (WLC_IOCTL_MEDLEN - sizeof(int)) / ETHER_ADDR_LEN;
+	struct maclist *maclist = (struct maclist *)&maclist_buf;
+
+	if (cmd->get < 0)
+		return -1;
+
+	if (!*++argv) {
+		/* Find all destinations of this interface */
+		maclist->count = htod32(max);
+		if ((ret = wlu_get(wl, WLC_GET_ASSOCLIST, maclist, WLC_IOCTL_MEDLEN)) < 0) {
+			/* If AP codes are not built, try WLC_GET_BSSID */
+			ret = wlu_get(wl, WLC_GET_BSSID, &maclist->ea[0], ETHER_ADDR_LEN);
+			if (ret == BCME_OK) {
+				maclist->count = 1;
+			} else {
+				return ret;
+			}
+		} else {
+			maclist->count = dtoh32(maclist->count);
+		}
+
+		if (maclist->count == 0) {
+			return BCME_NOTASSOCIATED;
+		}
+	} else {
+		if (wl_ether_atoe(*argv, &maclist->ea[0])) {
+			maclist->count = 1;
+		} else {
+			return BCME_USAGE_ERROR;
+		}
+	}
+
+	for (i = 0, ea = maclist->ea; i < maclist->count && i < max; i++, ea++) {
+		memset(buf, 0, WLC_IOCTL_MAXLEN);
+		fprintf(stderr, "Destination: %s\n", wl_ether_etoa(ea));
+		memcpy(buf, ea, ETHER_ADDR_LEN);
+		if ((ret = wlu_get(wl, cmd->get, buf, WLC_IOCTL_MAXLEN)) < 0) {
+			fprintf(stderr, "Could not find corresponding scb"
+				" from given mac address.\n");
+			return ret;
+		}
+		fputs(buf, stdout);
+		fprintf(stderr, "\n");
+	}
+
+	return 0;
+}
+#endif /* BCMINTDBG */
 
 static int
 wlu_srdump(void *wl, cmd_t *cmd, char **argv)
@@ -7195,6 +7423,7 @@ static dbg_msg_t wl_msgs2[] = {
 	{WL_PCIE_VAL, "pcie"},
 	{WL_MESH_VAL,	"mesh"},
 	{WL_NATOE_VAL,	"natoe"},
+	{WL_CMDS_VAL,	"wlcmds"},
 	{0,		NULL}
 };
 
@@ -10672,6 +10901,169 @@ exit:
 	return err;
 }
 
+#ifdef BCMINTDBG
+/* Send a probe request frame.
+ * user can specify BSSID, MAC, and SSID
+ * unspecified params default to broadcast
+ */
+static int
+wl_sendprb(void *wl, cmd_t *cmd, char **argv)
+{
+	int params_size = sizeof(wl_probe_params_t);
+	wl_probe_params_t *params;
+	int err = 0;
+	wlc_ssid_t ssids[1];
+	int nssid = 0;
+	char key[64];
+	int keylen;
+	char *p, *eq, *valstr;
+	char opt;
+	bool opt_end;
+
+	UNUSED_PARAMETER(cmd);
+	params = (wl_probe_params_t*)malloc(params_size);
+	if (params == NULL) {
+		fprintf(stderr, "Error allocating %d bytes for probe params\n", params_size);
+		return BCME_NOMEM;
+	}
+	memset(params, 0, params_size);
+
+	/* skip the command name */
+	argv++;
+
+	opt_end = FALSE;
+	while ((p = *argv) != NULL) {
+
+		argv++;
+		memset(key, 0, sizeof(key));
+		opt = '\0';
+		valstr = NULL;
+
+		if (opt_end) {
+			valstr = p;
+		}
+		else if (!strcmp(p, "--")) {
+			opt_end = TRUE;
+			continue;
+		}
+		else if (!strncmp(p, "--", 2)) {
+			eq = strchr(p, '=');
+			if (eq == NULL) {
+				fprintf(stderr,
+				"missing \" = \" in long param \"%s\"\n", p);
+				err = BCME_USAGE_ERROR;
+				goto exit;
+			}
+			keylen = eq - (p + 2);
+			if (keylen > 63)
+				keylen = 63;
+			memcpy(key, p + 2, keylen);
+
+			valstr = eq + 1;
+			if (*valstr == '\0') {
+				fprintf(stderr,
+				"missing value after \" = \" in long param \"%s\"\n", p);
+				err = BCME_USAGE_ERROR;
+				goto exit;
+			}
+		}
+		else if (!strncmp(p, "-", 1)) {
+			opt = p[1];
+			if (strlen(p) > 2) {
+				fprintf(stderr,
+				        "only single char options, error on param \"%s\"\n", p);
+				err = BCME_BADARG;
+				goto exit;
+			}
+			if (*argv == NULL) {
+				fprintf(stderr, "missing value parameter after \"%s\"\n", p);
+				err = BCME_USAGE_ERROR;
+				goto exit;
+			}
+			valstr = *argv;
+			argv++;
+		} else {
+			valstr = p;
+		}
+
+		if (opt == 's' || !strcmp(key, "ssid")) {
+			nssid = wl_parse_ssid_list(valstr, ssids, nssid, WL_SCAN_PARAMS_SSID_MAX);
+			if (nssid != 1) {
+				fprintf(stderr, "doesn't support multiple ssids\n");
+				err = BCME_BADARG;
+				goto exit;
+			}
+			if (nssid == 1) {
+				nssid = 0;
+				memcpy(&params->ssid, &ssids[0], sizeof(ssids[0]));
+			}
+			fprintf(stderr, "\"%s\" ssid\n", valstr);
+
+		} else if (opt == 'b' || !strcmp(key, "bssid")) {
+			if (!wl_ether_atoe(valstr, &params->bssid)) {
+				fprintf(stderr,
+				"could not parse \"%s\" as an ethernet MAC address\n", valstr);
+				err = BCME_USAGE_ERROR;
+				goto exit;
+			}
+			fprintf(stderr, "\"%s\" bssid address\n", valstr);
+
+		} else if (opt == 'd' || !strcmp(key, "da")) {
+			if (!wl_ether_atoe(valstr, &params->mac)) {
+				fprintf(stderr,
+				"could not parse \"%s\" as an ethernet MAC address\n", valstr);
+				err = BCME_USAGE_ERROR;
+				goto exit;
+			}
+			fprintf(stderr, "\"%s\" MAC address\n", valstr);
+		} else {
+			fprintf(stderr, "\"%s\" ignored\n", valstr);
+		}
+	}
+
+	/* Default to broadcast address for MAC and BSSID if user didn't specify one */
+	if (ETHER_ISNULLADDR(&params->mac))
+	    memcpy(&params->mac, &ether_bcast, ETHER_ADDR_LEN);
+	if (ETHER_ISNULLADDR(&params->bssid))
+	    memcpy(&params->bssid, &ether_bcast, ETHER_ADDR_LEN);
+
+	err = wlu_iovar_setbuf(wl, "sendprb", params, params_size, buf, WLC_IOCTL_MAXLEN);
+
+exit:
+	free(params);
+	return err;
+}
+
+static int
+wl_send_frame(void *wl, cmd_t *cmd, char **argv)
+{
+	static /* const */ uint8 pkt[] = {
+		0xe0, 0x0c, 0x7f, 0x40, 0x15, 0xeb, /* DA */
+		0x00, 0x1a, 0x70, 0x9c, 0x3c, 0x78, /* SA */
+		0x88, 0x8e, /* Type */
+		/* EAPOL Version 2, KEY  */
+		0x02, 0x03, 0x00, 0x5f, 0x02, 0x03, 0x0a, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x90, 0x71, 0x3b, 0x4d, 0x19, 0xca, 0xf3,
+		0x4a, 0xc2, 0xe8, 0x68, 0xf4, 0x0e, 0xdf, 0xa4,
+		0x50, 0x00, 0x00
+	};
+
+	UNUSED_PARAMETER(cmd);
+	UNUSED_PARAMETER(argv);
+
+	return wlu_iovar_setbuf(wl, "send_frame", pkt, sizeof(pkt),
+		buf, WLC_IOCTL_MAXLEN);
+}
+#endif /* BCMINTDBG */
 
 static int
 wl_roamparms(void *wl, cmd_t *cmd, char **argv)
@@ -20989,6 +21381,47 @@ wl_pattern_atoh(char *src, char *dst)
 	return i;
 }
 
+#ifdef BCMINTDBG
+static int
+wl_send_wpa_m1(void *wl, cmd_t *cmd, char **argv)
+{
+	char *arg = buf;
+	const char *str;
+	char *dst;
+	uint tot;
+
+	UNUSED_PARAMETER(cmd);
+
+	if (!*++argv)
+		return BCME_USAGE_ERROR;
+
+	if (strncmp(*argv, "ptk", strlen("ptk")) == 0)
+		str = "auth_ptk_m1";
+	else if (strncmp(*argv, "gtk_bad", strlen("gtk_bad")) == 0)
+		str = "auth_gtk_bad_m1";
+	else if (strncmp(*argv, "gtk", strlen("gtk")) == 0)
+		str = "auth_gtk_m1";
+	else {
+		printf("Unknown option\n");
+		return BCME_USAGE_ERROR;
+	}
+
+	if (!*++argv) {
+		printf("Mac address missing\n");
+		return BCME_USAGE_ERROR;
+	}
+
+	strncpy(arg, str, strlen(str));
+	arg[strlen(str)] = '\0';
+	dst = arg + strlen(str) + 1;
+	tot = strlen(str) + 1;
+	if (!wl_ether_atoe(*argv, (struct ether_addr*)dst))
+		return BCME_USAGE_ERROR;
+	tot += ETHER_ADDR_LEN;
+
+	return (wlu_set(wl, WLC_SET_VAR, arg, tot));
+}
+#endif /* BCMINTDBG */
 
 #define MAX_PWR_STAT_TYPES	32
 
@@ -24084,6 +24517,51 @@ wl_ie(void *wl, cmd_t *cmd, char **argv)
 
 /* Restore the ignored warnings status */
 
+#ifdef BCMINTDBG
+static int
+wl_nwoe_ifconfig(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret;
+	struct ipv4_addr ipa_set;
+	nwoe_ifconfig_t ifconfig;
+	uint8 *bufptr;
+
+	int i;
+	int argc;
+
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++)
+		;
+
+	if (argc == 4) {
+		/* Add host addresses, a list of ip, netmask, gateway */
+		bufptr = (uint8*)&ifconfig;
+
+		for (i = 1; i < argc; i++)
+		{
+			if (!wl_atoip(argv[i], &ipa_set))
+				return BCME_USAGE_ERROR;
+			memcpy(bufptr, &ipa_set.addr[0], IPV4_ADDR_LEN);
+			bufptr += IPV4_ADDR_LEN;
+		}
+		return wlu_var_setbuf(wl, cmd->name, &ifconfig, sizeof(ifconfig));
+	}
+	else {
+		void *ptr = NULL;
+		nwoe_ifconfig_t *if_get;
+		if ((ret = wlu_var_getbuf(wl, cmd->name, &ifconfig, sizeof(ifconfig), &ptr)) < 0)
+			return ret;
+
+		if_get = (nwoe_ifconfig_t *)ptr;
+		printf("ip: %s ", wl_iptoa((struct ipv4_addr *)&if_get->ipaddr));
+		printf("netmask: %s ", wl_iptoa((struct ipv4_addr *)&if_get->ipaddr_netmask));
+		printf("gw: %s\n", wl_iptoa((struct ipv4_addr *)&if_get->ipaddr_gateway));
+	}
+
+	return 0;
+}
+
+#endif /* BCMINTDBG */
 
 static int
 wl_sleep_ret_ext(void *wl, cmd_t *cmd, char **argv)
@@ -25296,6 +25774,257 @@ wl_gpaio(void *wl, cmd_t *cmd, char **argv)
 }
 #endif /* ATE_BUILD */
 
+#ifdef BCMINTDBG
+/* wl mac_capture <gpiosel> [-la] [--stop|-c] [-s <start_ptr] [-e <stop_ptr>] [-sm <store mask>]
+ * -tv <trigger val> -tm <trigger mask> -mv <match val> -mm <match mask> -xm <trans mask>
+ * <gpiosel> : Output Selection
+ * -la: Logic Analyzer Mode ON
+ * --stop: Stop
+ * -c: Continue
+ * -s <start_ptr> (<start_ptr> is 4-byte aligned)
+ * -e <stop_ptr> (<stop_ptr> is 4-byte aligned)
+ * -sm <store mask> : Store based on the mask
+ * -tv <trigger val> -tm <trigger mask>: Trigger based on value / mask
+ * -mv <trigger val> -mm <trigger mask>: Store matching value / mask
+ * -xm <trans mask>: Store on transition on masked bits
+ */
+static int
+wl_mac_captr(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret = BCME_OK;
+	wl_maccapture_params_t *sc_prms = NULL;
+	char *retbuf;
+	uint sc_prms_size;
+	char *cmd_name;
+	char *endptr;
+
+	/* Skip command name */
+	cmd_name = *argv++;
+
+	if (!*argv) {
+		/* If no arg supplied, get */
+		if ((retbuf = malloc(WL_DUMP_BUF_LEN)) == NULL) {
+			fprintf(stderr, "Error allocating return buffer for MAC sample capture\n");
+			return BCME_NOMEM;
+		}
+
+		if ((ret = wlu_iovar_getbuf(wl, cmd_name, NULL, 0, retbuf, WL_DUMP_BUF_LEN)) < 0) {
+			ret = BCME_ERROR;
+		} else {
+			fputs(retbuf, stdout);
+			ret = BCME_OK;
+		}
+
+		if (retbuf)
+			free(retbuf);
+		goto exit;
+	}
+
+	/* Otherwise set */
+	sc_prms_size = sizeof(wl_maccapture_params_t);
+	if ((sc_prms = malloc(sc_prms_size)) == NULL) {
+		fprintf(stderr, "Error allocating %d bytes for sample capture params\n",
+			sc_prms_size);
+		return BCME_NOMEM;
+	}
+
+	memset(sc_prms, 0, sc_prms_size);
+
+	/* pause sample capture - ignore rest of the input */
+	if (!stricmp(*argv, "--stop")) {
+		sc_prms->cmd = WL_MACCAPT_STOP;
+		goto set;
+	} else if (!stricmp(*argv, "-c") || !stricmp(*argv, "--cont")) {
+		 /* revive paused sample capture - ignore rest of the input */
+		sc_prms->cmd = WL_MACCAPT_STRT;
+		goto set;
+	} else if (!stricmp(*argv, "-rst") || !stricmp(*argv, "--reset")) {
+		 /* reset sample capture - ignore rest of the input */
+		sc_prms->cmd = WL_MACCAPT_RST;
+		goto set;
+	}
+
+	/* Output must always be selected */
+	sc_prms->gpio_sel = (uint8)(strtoul(*argv, &endptr, 0));
+
+	/* Options */
+	while (*++argv) {
+		/* specified start ptr */
+		if (!stricmp(*argv, "-s") ||
+		    !stricmp(*argv, "--start_address") ||
+		    !stricmp(*argv, "--start_ptr")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+					"after \"-s\" keyword "
+				        "but command line ended.\n", wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->start_ptr =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+			}
+		}
+
+		/* specified stop ptr */
+		else if (!stricmp(*argv, "-e") ||
+		         !stricmp(*argv, "--end_address") ||
+		         !stricmp(*argv, "--stop_ptr")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+				        "after \"-e\" keyword "
+				        "but command line ended.\n", wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->stop_ptr =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+
+				if (sc_prms->stop_ptr < sc_prms->start_ptr) {
+					fprintf(stderr, "%s %s: Stop ptr less than "
+					        "start ptr.\n", wlu_av0, cmd_name);
+					ret = BCME_BADARG;
+					goto exit;
+				}
+			}
+		}
+
+		/* specified logic analyzer mode */
+		else if (!stricmp(*argv, "-la") ||
+		         !stricmp(*argv, "--logic_analyze")) {
+			sc_prms->la_mode = TRUE;
+		}
+
+		/* specified sample capture mask */
+		else if (!stricmp(*argv, "-sm") || !stricmp(*argv, "--store_mask")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+					"after \"-m\" keyword but command line ended.\n",
+					wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->optn_bmp |= (1 << WL_MACCAPT_STORE);
+				sc_prms->s_mask =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+			}
+		}
+
+		/* specified sample capture match value */
+		else if (!stricmp(*argv, "-mv") || !stricmp(*argv, "--match_value")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+					"after \"-mv\" keyword but command line ended.\n",
+					wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->m_val =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+				sc_prms->optn_bmp |= (1 << WL_MACCAPT_MATCH);
+			}
+		}
+
+		/* specified sample capture match mask */
+		else if (!stricmp(*argv, "-mm") || !stricmp(*argv, "--match_mask")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+					"after \"-mm\" keyword but command line ended.\n",
+					wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->m_mask =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+			}
+		}
+
+		/* specified sample capture trigger value */
+		else if (!stricmp(*argv, "-tv") || !stricmp(*argv, "--trigger_value")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+					"after \"-tv\" keyword but command line ended.\n",
+					wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->tr_val =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+				sc_prms->optn_bmp |= (1 << WL_MACCAPT_TRIG);
+			}
+		}
+
+		/* specified sample capture trigger mask */
+		else if (!stricmp(*argv, "-tm") || !stricmp(*argv, "--trigger_mask")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+					"after \"-tm\" keyword but command line ended.\n",
+					wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->tr_mask =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+			}
+		}
+
+		/* specified sample capture transition mask */
+		else if (!stricmp(*argv, "-xm") || !stricmp(*argv, "--xition_mask")) {
+			if (!*++argv) {
+				fprintf(stderr, "%s %s: expected argument "
+					"after \"-xm\" keyword but command line ended.\n",
+					wlu_av0, cmd_name);
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			} else {
+				sc_prms->x_mask =
+					htod32((uint32)(strtoul(*argv, &endptr, 0)));
+				sc_prms->optn_bmp |= (1 << WL_MACCAPT_TRANS);
+			}
+		}
+
+	}
+
+	if (sc_prms->start_ptr) {
+		if (!(sc_prms->stop_ptr)) {
+			/* If user has not supplied it, use a default size
+			 * to set the end ptr
+			 */
+			sc_prms->stop_ptr = sc_prms->start_ptr
+					+ WL_MACCAPTR_DEFSZ;
+		}
+	} else {
+		/* Use default start/stop adresses */
+		sc_prms->start_ptr = WL_MACCAPTR_DEFSTART_PTR;
+		sc_prms->stop_ptr = WL_MACCAPTR_DEFSTOP_PTR;
+	}
+
+	/* If Match Mode is chosen, check mask */
+	if (sc_prms->m_val) {
+		if (!sc_prms->m_mask) {
+			printf("%s: MAC Capture Match val. chosen but not the mask\n"
+					"Default mask (0xFFFFFFFF) used\n", cmd_name);
+			sc_prms->m_mask = WL_MACCAPTR_DEF_MASK;
+		}
+	}
+
+	/* If Trigger Mode is chosen, check mask */
+	if (sc_prms->tr_val) {
+		if (!sc_prms->tr_mask) {
+			printf("%s: MAC Capture Trigger val. chosen but not the mask\n"
+				"Default mask (0xFFFFFFFF) used\n", cmd_name);
+			sc_prms->tr_mask = WL_MACCAPTR_DEF_MASK;
+		}
+	}
+
+set:
+	ret = wlu_iovar_set(wl, cmd->name, (void *)sc_prms, sc_prms_size);
+
+exit:
+	if (sc_prms)
+		free(sc_prms);
+	return ret;
+}
+#endif /* BCMINTDBG */
 
 static int
 wl_macdbg_pmac(void *wl, cmd_t *cmd, char **argv)

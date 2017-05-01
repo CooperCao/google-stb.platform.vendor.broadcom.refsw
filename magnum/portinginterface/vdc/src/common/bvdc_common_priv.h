@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -103,7 +103,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI_VER              (0)
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_PEP_VER                (1)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_TNT                    (1)
@@ -178,7 +178,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1)
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (0)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -265,7 +264,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI                  (1)
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_PEP_VER                (1)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_TNT                    (1)
@@ -358,7 +357,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1)
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -453,7 +451,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_MEM_PWR_GATING         (0)  /*Dynamic Memory Power Gating*/
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1) /* Number of PEP HW, see CMP_x */
+#define BVDC_P_SUPPORT_PEP                    (0) /* Number of PEP HW, see CMP_x */
 #define BVDC_P_SUPPORT_PEP_VER                (1) /* PEP HW version */
 #define BVDC_P_SUPPORT_HIST                   (1) /* Number of HIST HW */
 #define BVDC_P_SUPPORT_TNT                    (1) /* Number of TNT HW */
@@ -524,7 +522,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1) /* TODO: phase out? */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (0)
 
@@ -598,7 +595,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HSCL_VER               (6) /* HSCL HW version */
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1) /* Number of PEP HW, see CMP_x */
+#define BVDC_P_SUPPORT_PEP                    (0) /* Number of PEP HW, see CMP_x */
 #define BVDC_P_SUPPORT_PEP_VER                (1) /* PEP HW version */
 #define BVDC_P_SUPPORT_HIST                   (1) /* Number of HIST HW */
 #define BVDC_P_SUPPORT_TNT                    (1) /* Number of TNT HW */
@@ -668,7 +665,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1) /* TODO: phase out? */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -723,7 +719,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI                  (1)
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_PEP_VER                (1)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_TNT                    (1)
@@ -807,7 +803,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1)
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -874,7 +869,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI_VER              (0)
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_PEP_VER                (1)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_TNT                    (1)
@@ -945,7 +940,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1)
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (0)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -1011,7 +1005,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI_VER              (0) /* HDDVI HW version */
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1) /* Number of PEP HW, see CMP_x */
+#define BVDC_P_SUPPORT_PEP                    (0) /* Number of PEP HW, see CMP_x */
 #define BVDC_P_SUPPORT_PEP_VER                (1) /* PEP HW version */
 #define BVDC_P_SUPPORT_HIST                   (1) /* Number of HIST HW */
 #define BVDC_P_SUPPORT_TNT                    (1) /* Number of TNT HW */
@@ -1087,7 +1081,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1) /* TODO: phase out? */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -1146,7 +1139,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI_VER              (0) /* HDDVI HW version */
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1) /* Number of PEP HW, see CMP_x */
+#define BVDC_P_SUPPORT_PEP                    (0) /* Number of PEP HW, see CMP_x */
 #define BVDC_P_SUPPORT_PEP_VER                (1) /* PEP HW version */
 #define BVDC_P_SUPPORT_HIST                   (1) /* Number of HIST HW */
 #define BVDC_P_SUPPORT_TNT                    (1) /* Number of TNT HW */
@@ -1225,7 +1218,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1) /* TODO: phase out? */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (5)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (0)
 
 #define BVDC_P_MAX_DACS                       (1) /* Number of DAC output */
@@ -1282,7 +1274,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI                  (1)
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_PEP_VER                (6) /* TODO: add support for PEP change */
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_TNT                    (1) /* TODO: add support to new TNT */
@@ -1363,7 +1355,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1)
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_ITU656_OUT             (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -1402,7 +1393,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_CAP_VER                (7) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
 #define BVDC_P_SUPPORT_MFD                    (4)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_MFD_VER                (16)/* MFD HW version */
 #define BVDC_P_SUPPORT_MCDI_VER               (9) /* MCDI HW version */
 #define BVDC_P_SUPPORT_MADR                   (3) /* Number of MAD-R HW */
@@ -1434,7 +1424,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI_VER              (11)
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_TNT                    (2)
 #define BVDC_P_SUPPORT_TNT_VER                (6)
@@ -1532,7 +1522,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_MANR_VER               (5) /* ANR in MCVP version */
 #define BVDC_P_SUPPORT_CAP_VER                (7) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_MFD                    (3)
 #define BVDC_P_SUPPORT_MFD_VER                (16)/* MFD HW version */
 #define BVDC_P_SUPPORT_MCDI_VER               (8) /* MCDI HW version */
@@ -1566,7 +1555,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_MANR_VER               (4) /* ANR in MCVP version */
 #define BVDC_P_SUPPORT_CAP_VER                (6) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (6)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_MFD                    (2)
 #define BVDC_P_SUPPORT_MFD_VER                (14)/* MFD HW version */
 #define BVDC_P_SUPPORT_MCDI_VER               (7) /* MCDI HW version */
@@ -1604,7 +1592,7 @@ extern "C" {
 
 /* BVN */
 #define BVDC_P_SUPPORT_VFC                    (0) /* Number of stand alone VFC HW */
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_TNT                    (2)
 #define BVDC_P_SUPPORT_TNT_VER                (6)
@@ -1744,7 +1732,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_VFC                    (0) /* Number of stand alone VFC HW */
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1) /* Number of PEP HW, see CMP_x */
+#define BVDC_P_SUPPORT_PEP                    (0) /* Number of PEP HW, see CMP_x */
 #define BVDC_P_SUPPORT_PEP_VER                (5) /* TODO: PEP HW version */
 #define BVDC_P_SUPPORT_HIST                   (1) /* Number of HIST HW */
 #define BVDC_P_SUPPORT_TNT                    (1) /* Number of TNT HW */
@@ -1828,11 +1816,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
 #define BVDC_P_SUPPORT_DVI_OUT                (1) /* TODO: phase out? */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
-#if (BCHP_CHIP==7364 || (BCHP_CHIP==7250 && BCHP_VER>=BCHP_VER_B0))
-#define BVDC_P_SUPPORT_MHL                    (1)
-#else
-#define BVDC_P_SUPPORT_MHL                    (0)
-#endif
 #define BVDC_P_SUPPORT_ITU656_OUT             (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 
@@ -1874,8 +1857,8 @@ extern "C" {
 #define BVDC_P_SUPPORT_GFD                    (2) /* Number of GFD HW */
 #define BVDC_P_SUPPORT_MFD                    (2) /* Number of MFD HW */
 #define BVDC_P_SUPPORT_MTG                    (2) /* MFD Trigger Generator */
-#define BVDC_P_SUPPORT_GFD_VER                (4) /* GFD_0 HW version */
-#define BVDC_P_SUPPORT_GFD1_VER               (4) /* GFD_1 HW version */
+#define BVDC_P_SUPPORT_GFD_VER               (10) /* GFD_0 HW version */
+#define BVDC_P_SUPPORT_GFD1_VER               (9) /* GFD_1 HW version */
 #define BVDC_P_SUPPORT_HDDVI                  (1) /* Number of HDDVI HW */
 #define BVDC_P_SUPPORT_HDDVI_VER              (12) /* HDDVI HW version */
 #define BVDC_P_SUPPORT_DRAIN_F                (2) /* Number of VNET_F_DRAIN_x_SRC */
@@ -1892,7 +1875,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_MEM_PWR_GATING         (0)  /*Dynamic Memory Power Gating*/
 
 /* BVN */
-#define BVDC_P_SUPPORT_PEP                    (1) /* Number of PEP HW, see CMP_x */
+#define BVDC_P_SUPPORT_PEP                    (0) /* Number of PEP HW, see CMP_x */
 #define BVDC_P_SUPPORT_PEP_VER                (5) /* PEP HW version */
 #define BVDC_P_SUPPORT_HIST                   (1) /* Number of HIST HW */
 #define BVDC_P_SUPPORT_TNT                    (1) /* Number of TNT HW */
@@ -2026,7 +2009,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_CAP_VER                (8) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
 #define BVDC_P_SUPPORT_MFD                    (2)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_MFD_VER                (17)/* MFD HW version */
 #define BVDC_P_SUPPORT_MCDI_VER               (0) /* MCDI HW version */
 #define BVDC_P_SUPPORT_MADR_VER               (11)/* MAD-R HW version */
@@ -2044,7 +2026,7 @@ extern "C" {
 
 /* source */
 #define BVDC_P_SUPPORT_GFD                    (2)
-#define BVDC_P_SUPPORT_GFD_VER                (9)
+#define BVDC_P_SUPPORT_GFD_VER                (10)
 #define BVDC_P_SUPPORT_GFD1_VER               (9)
 #define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
@@ -2062,7 +2044,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_VFC                    (1) /* Number of stand alone VFC HW */
 #else
 #define BVDC_P_SUPPORT_MASK_DITHER            (1)
-#define BVDC_P_SUPPORT_PEP                    (1)
+#define BVDC_P_SUPPORT_PEP                    (0)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_VFC                    (0) /* Number of stand alone VFC HW */
 #endif
@@ -2158,7 +2140,7 @@ extern "C" {
 
 /* source */
 #define BVDC_P_SUPPORT_GFD                    (4)
-#define BVDC_P_SUPPORT_GFD_VER                (9)
+#define BVDC_P_SUPPORT_GFD_VER                (10)
 #define BVDC_P_SUPPORT_GFD1_VER               (9)
 #define BVDC_P_SUPPORT_XSRC                   (3) /* Number of stand alone XSRC HW */
 #define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
@@ -2169,7 +2151,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
 #define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
 #define BVDC_P_SUPPORT_LPDDR4                 (1)
-#define BVDC_P_SUPPORT_MHL                    (0)
 #define BVDC_P_SUPPORT_MFD                    (4)
 #define BVDC_P_SUPPORT_MFD_VER                (17)/* MFD HW version */
 #define BVDC_P_SUPPORT_DNR                    (4) /* Number of DNR_x core */
@@ -2314,6 +2295,23 @@ extern "C" {
 #define BVDC_P_CMP_CFCS                       BVDC_P_CMP_0_MOSAIC_CFCS
 #else
 #define BVDC_P_CMP_CFCS                       2 /* primary and demo */
+#endif
+
+/* and condition we internally must be able to disable BVDC_DBV_SUPPORT */
+#if (BVDC_P_CMP_CFC_VER >= 3) && BVDC_DBV_SUPPORT
+#define BVDC_P_DBV_SUPPORT (1)
+/* DBV in or out would NOT make CMP bg_color as RGB either */
+#define BVDC_P_CMP_OUTPUT_IPT(hCompositor) \
+    ((hCompositor->hDisplay && hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled) || \
+     (hCompositor->pstDbv && hCompositor->pstDbv->metadataPresent))
+#else
+#define BVDC_P_DBV_SUPPORT (0)
+#endif
+
+#if (BVDC_P_CMP_CFC_VER >= 3) && BVDC_TCH_SUPPORT
+#define BVDC_P_TCH_SUPPORT (1)
+#else
+#define BVDC_P_TCH_SUPPORT (0)
 #endif
 
 /***************************************************************************
@@ -3013,6 +3011,12 @@ DCX macro
 #define BVDC_P_DCXM_BUFFERHEAP_INCREASE_WORKAROUND   (0)
 #endif
 
+    /*SWSTB-4378  HW7278-594 mask the gfd error when compression is enabled */
+#if (10 == BVDC_P_SUPPORT_GFD_VER)
+#define BVDC_P_MASK_GFD_BSTC_MIN_GT_MAX              (1)
+#else
+#define BVDC_P_MASK_GFD_BSTC_MIN_GT_MAX              (0)
+#endif
 /*SW7439-400:SWSTB-2319: 72 pixel restriction */
 #if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER >= BVDC_P_VIDEO_TESTFEATURE1_VER_8)
 #define BVDC_P_DCXM_72PIXELS   (0)

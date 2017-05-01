@@ -56,6 +56,7 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
     NEXUS_SurfaceHandle fb;
     NEXUS_SurfaceCreateSettings fbCreateSettings;
     NEXUS_Error rc = NEXUS_SUCCESS;
+    unsigned i, j, windowCnt=0;
 
     gfx = BKNI_Malloc(sizeof(*gfx));
     BDBG_ASSERT(gfx);
@@ -84,7 +85,49 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
         bfont_get_height(gfx->font, &gfx->textHeight);
     }
 
-    gfx->video = NEXUS_SurfaceClient_AcquireVideoWindow(bgui_surface_client(gfx->gui), 0);
+    for (i=0; i<NEXUS_MAX_VIDEO_DECODERS; i++) {
+        if (!platform->videoCaps.memory[i].mosaic.maxNumber) break;
+        gfx->sc[i].numWindows = platform->videoCaps.memory[i].mosaic.maxNumber;
+        gfx->maxMosaics += gfx->sc[i].numWindows;
+        if (gfx->maxMosaics >= MAX_MOSAICS) break;
+    }
+    if (gfx->maxMosaics) {
+        if (gfx->maxMosaics < MAX_MOSAICS) {
+            BDBG_ASSERT((MAX_MOSAICS - gfx->maxMosaics) == 1); /* Can we have more than 1 pip for mosaic?? */
+            gfx->sc[i].numWindows = MAX_MOSAICS - gfx->maxMosaics ;
+        }
+    } else {
+        BDBG_ASSERT(gfx->sc[0].numWindows == 0);
+        gfx->sc[0].numWindows = 1;
+        BDBG_WRN(("No Mosaic Support!!"));
+    }
+
+
+    for (i=0; i<(sizeof(gfx->sc)/sizeof(gfx->sc[0])); i++) {
+        if (!gfx->sc[i].numWindows) continue;
+        if (i == 0) {
+            gfx->sc[i].surfaceClient = bgui_surface_client(gfx->gui);
+            gfx->sc[i].id = bgui_surface_client_id(gfx->gui);
+        } else {
+            NxClient_AllocSettings allocSettings;
+            NxClient_AllocResults allocResults;
+            NxClient_GetDefaultAllocSettings(&allocSettings);
+            allocSettings.surfaceClient = 1; /* surface client required for video window */
+            rc = NxClient_Alloc(&allocSettings, &allocResults);
+            if (rc) BERR_TRACE(rc);
+
+            gfx->sc[i].surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
+            gfx->sc[i].id = allocResults.surfaceClient[0].id;
+        }
+
+        for (j=0; j<gfx->sc[i].numWindows; j++) {
+            gfx->video[windowCnt] = NEXUS_SurfaceClient_AcquireVideoWindow(gfx->sc[i].surfaceClient, j);
+            if(j == 0) gfx->nonMosaicWindowId = windowCnt; /* First window on the last surface client */
+            windowCnt++;
+        }
+    }
+
+    if (gfx->maxMosaics) BDBG_ASSERT(windowCnt == MAX_MOSAICS);
 
     platform->gfx = gfx;
     gfx->platform = platform;
@@ -94,8 +137,12 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
 
 void platform_graphics_close(PlatformGraphicsHandle gfx)
 {
+    unsigned i;
+
     if (!gfx) return;
-    if (gfx->video) { NEXUS_SurfaceClient_Release(gfx->video); }
+    for(i=0; i<MAX_MOSAICS; i++) {
+        if (gfx->video[i]) { NEXUS_SurfaceClient_Release(gfx->video[i]); }
+    }
     if (gfx->font) bfont_close(gfx->font);
     if (gfx->gui) bgui_destroy(gfx->gui);
     BKNI_Free(gfx);
@@ -208,9 +255,9 @@ void platform_graphics_render_text(PlatformGraphicsHandle gfx, const char * text
     BDBG_ASSERT(gfx->gui);
     BDBG_ASSERT(gfx->font);
 
-    BDBG_CASSERT(bfont_halign_left == PlatformHorizontalAlignment_eLeft);
-    BDBG_CASSERT(bfont_halign_center == PlatformHorizontalAlignment_eCenter);
-    BDBG_CASSERT(bfont_halign_right == PlatformHorizontalAlignment_eRight);
+    BDBG_CASSERT(bfont_halign_left == (bfont_halign)PlatformHorizontalAlignment_eLeft);
+    BDBG_CASSERT(bfont_halign_center == (bfont_halign)PlatformHorizontalAlignment_eCenter);
+    BDBG_CASSERT(bfont_halign_right == (bfont_halign)PlatformHorizontalAlignment_eRight);
 
     surface = bgui_surface(gfx->gui);
     bfont_get_surface_desc(surface, &desc);
@@ -222,7 +269,7 @@ void platform_graphics_render_text(PlatformGraphicsHandle gfx, const char * text
     rect.width = pSettings->rect.width;
     rect.height = pSettings->rect.height;
     rc = bfont_draw_text_ex(&desc, gfx->font, &rect, text, -1, pSettings->color, &fontsettings);
-    if (rc) BERR_TRACE(rc);
+    if (rc) rc = BERR_TRACE(rc);
     NEXUS_Surface_Flush(surface);
 }
 
@@ -234,7 +281,7 @@ void platform_graphics_render_video(PlatformGraphicsHandle gfx, const PlatformRe
     platform_graphics_clear(gfx, pRect);
 }
 
-void platform_graphics_scale_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect)
+void platform_graphics_scale_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect, unsigned id)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_SurfaceClientSettings settings;
@@ -243,29 +290,35 @@ void platform_graphics_scale_video(PlatformGraphicsHandle gfx, const PlatformRec
     BDBG_ASSERT(gfx->gui);
     BDBG_ASSERT(pRect);
 
-    NEXUS_SurfaceClient_GetSettings(gfx->video, &settings);
-    settings.composition.virtualDisplay.width = gfx->guiSettings.width;
-    settings.composition.virtualDisplay.height = gfx->guiSettings.height;
-    settings.composition.position.width = pRect->width;
-    settings.composition.position.height = pRect->height;
-    NEXUS_SurfaceClient_SetSettings(gfx->video, &settings);
-}
-
-void platform_graphics_move_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_SurfaceClientSettings settings;
-
-    BDBG_ASSERT(gfx);
-    BDBG_ASSERT(gfx->gui);
-    BDBG_ASSERT(pRect);
-
-    NEXUS_SurfaceClient_GetSettings(gfx->video, &settings);
+    NEXUS_SurfaceClient_GetSettings(gfx->video[id], &settings);
     settings.composition.virtualDisplay.width = gfx->guiSettings.width;
     settings.composition.virtualDisplay.height = gfx->guiSettings.height;
     settings.composition.position.x = pRect->x;
     settings.composition.position.y = pRect->y;
-    NEXUS_SurfaceClient_SetSettings(gfx->video, &settings);
+    settings.composition.position.width = pRect->width;
+    settings.composition.position.height = pRect->height;
+    rc = NEXUS_SurfaceClient_SetSettings(gfx->video[id], &settings);
+    if (rc) rc = BERR_TRACE(rc);
+}
+
+void platform_graphics_move_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect, unsigned id)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_SurfaceClientSettings settings;
+
+    BDBG_ASSERT(gfx);
+    BDBG_ASSERT(gfx->gui);
+    BDBG_ASSERT(pRect);
+
+    NEXUS_SurfaceClient_GetSettings(gfx->video[id], &settings);
+    settings.composition.virtualDisplay.width = gfx->guiSettings.width;
+    settings.composition.virtualDisplay.height = gfx->guiSettings.height;
+    settings.composition.position.x = pRect->x;
+    settings.composition.position.y = pRect->y;
+    settings.composition.position.width = pRect->width;
+    settings.composition.position.height = pRect->height;
+    rc = NEXUS_SurfaceClient_SetSettings(gfx->video[id], &settings);
+    if (rc) rc = BERR_TRACE(rc);
 }
 
 void platform_graphics_submit(PlatformGraphicsHandle gfx)
@@ -294,4 +347,11 @@ const PlatformRect * platform_graphics_get_fb_rect(PlatformGraphicsHandle gfx)
 {
     BDBG_ASSERT(gfx);
     return &gfx->fbRect;
+}
+
+unsigned platform_graphics_get_non_mosaic_window_id(PlatformGraphicsHandle gfx)
+{
+    BDBG_ASSERT(gfx);
+    return gfx->nonMosaicWindowId;
+
 }

@@ -37,20 +37,12 @@
 #
 ###########################################################################
 
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP := $(shell cd ../../.. && cd)
-else
 NEXUS_TOP := $(shell cd ../../..; pwd)
-endif
 BSEAV := ${NEXUS_TOP}/../BSEAV
 MAGNUM := ${NEXUS_TOP}/../magnum
 ifdef B_REFSW_ARCH
 CUSTOM_FLAGS := 1
 endif
-
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 
 # include cross-compiler definitions
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
@@ -67,10 +59,6 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
 
 
-
-# need this for CHIP definitions
-include $(BSEAV)/api/build/tools.mak
-
 ifndef CUSTOM_FLAGS
 CFLAGS += $(NEXUS_CFLAGS) 
 else
@@ -79,11 +67,7 @@ endif
 CFLAGS += $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
    
    
-
-
-include $(BSEAV)/build/refsw_inc.mak
-
-ODIR = ${B_REFSW_OBJ_ROOT}/nexus/lib/ipc/build/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)
+ODIR = ${B_REFSW_OBJ_ROOT}/nexus/lib/ipc/build/$(B_REFSW_ARCH)
 OS = ${B_REFSW_OS}
 
 include $(MAGNUM)/basemodules/kni/bkni.inc

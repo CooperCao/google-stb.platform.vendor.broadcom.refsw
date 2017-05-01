@@ -1,10 +1,8 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-#ifndef __PACKET_H__
-#define __PACKET_H__
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
@@ -29,6 +27,7 @@ typedef float    GLfloat;
 #endif
 
 #include <vector>
+#include <memory>
 
 enum eDataType
 {
@@ -51,6 +50,8 @@ class Comms;
 class PacketItem
 {
 public:
+   static size_t GetPointerSize() { return 4; }
+
    PacketItem(eDataType t, uint32_t data);
    PacketItem(eDataType t, uint32_t data, uint32_t numBytes);
    PacketItem(GLbyte b);
@@ -140,9 +141,10 @@ public:
    Packet(ePacketType type = eUNKNOWN) : m_type(type) {}
    ~Packet() {}
 
-   void Reset() { m_type = eUNKNOWN; m_items.clear(); }
+   void Reset() { m_type = eUNKNOWN; m_items.clear(); m_buffers.clear(); }
    bool IsValid() const { return m_type != eUNKNOWN; }
 
+   std::shared_ptr<uint8_t> AddBuffer(size_t size);
    void AddItem(const PacketItem &item) { m_items.push_back(item); }
    void Send(Remote *rem);
    void Send(Comms *comms);
@@ -155,6 +157,5 @@ public:
 private:
    ePacketType             m_type;
    std::vector<PacketItem> m_items;
+   std::vector<std::shared_ptr<uint8_t>> m_buffers;
 };
-
-#endif /* __PACKET_H__ */

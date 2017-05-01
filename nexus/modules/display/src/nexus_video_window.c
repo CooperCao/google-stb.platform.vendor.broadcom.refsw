@@ -136,12 +136,42 @@ static BERR_Code NEXUS_VideoWindow_P_RecreateWindow(NEXUS_VideoWindowHandle wind
     return 0;
 }
 
-static bool nexus_p_synclock_capable(NEXUS_VideoInput input)
+BVDC_Mode nexus_p_window_alloc_mtg(NEXUS_VideoWindowHandle window)
 {
-    NEXUS_VideoInput_P_Link *link;
-    if (!input) return false;
-    link = input->destination;
-    return input->type == NEXUS_VideoInputType_eDecoder && link && !link->mtg;
+#if NEXUS_MTG_DISABLED
+    return BVDC_Mode_eOff;
+#else
+    if (window && !g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].mtg) {
+        return BVDC_Mode_eOff;
+    }
+    return BVDC_Mode_eAuto;
+#endif
+}
+
+static bool nexus_p_synclock_capable(NEXUS_VideoInput input, NEXUS_VideoWindowHandle window)
+{
+#if NEXUS_HAS_VIDEO_DECODER
+    if (input && input->type == NEXUS_VideoInputType_eDecoder) {
+        BAVC_SourceId sourceId;
+        NEXUS_VideoInput_P_Link *link;
+        link = input->destination;
+        if (link) {
+            sourceId = link->id;
+        }
+        else {
+            NEXUS_Module_Lock(pVideo->modules.videoDecoder);
+            NEXUS_VideoDecoder_GetSourceId_priv(input->source, &sourceId);
+            NEXUS_Module_Unlock(pVideo->modules.videoDecoder);
+        }
+        if (g_pCoreHandles->boxConfig->stVdc.astSource[sourceId].bMtgCapable && nexus_p_window_alloc_mtg(window) != BVDC_Mode_eOff) {
+            /* this input is or will be mtg, so not synclocked */
+            return false;
+        }
+        /* this input and window path is capable of being synclocked */
+        return true;
+    }
+#endif
+    return false;
 }
 
 static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
@@ -149,7 +179,7 @@ static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
     unsigned j;
     bool foundSyncLockedWindow = false;
 
-    if (!window->status.isSyncLocked && nexus_p_synclock_capable(window->input))
+    if (!window->status.isSyncLocked && nexus_p_synclock_capable(window->input, window))
     {
         /* if there's another digital window on this display, destroy & recreate it. then this window will become sync-locked. */
         /* if there's another digital window for this source on another display, destroy & recreate it. then this window will become sync-locked. */
@@ -165,7 +195,7 @@ static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
 
                 /* if the other window shares the same source or
                 another digital source on the same display, then it contends for sync lock. */
-                if (w->input == window->input || (d == window->display && nexus_p_synclock_capable(w->input)))
+                if (w->input == window->input || (d == window->display && nexus_p_synclock_capable(w->input, w)))
                 {
                     foundSyncLockedWindow = true;
                     break;
@@ -196,7 +226,7 @@ static void NEXUS_VideoWindow_P_DestroyForSyncLock(NEXUS_VideoWindowHandle windo
         window->status.isSyncLocked ||
         window->display->index != 0) return;
 
-    if (!nexus_p_synclock_capable(input)) {
+    if (!nexus_p_synclock_capable(input, window)) {
         return;
     }
 
@@ -1015,7 +1045,7 @@ NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
         /* attempt to throw isSyncLocked = true to another window on this display */
         for (i=0;i<NEXUS_NUM_VIDEO_WINDOWS;i++) {
             NEXUS_VideoWindowHandle w = &window->display->windows[i];
-            if (w != window && w->open && nexus_p_synclock_capable(w->input)) {
+            if (w != window && w->open && nexus_p_synclock_capable(w->input, w)) {
                 w->status.isSyncLocked = true;
                 BDBG_WRN(("throw synclock to window %d.%d", w->display->index, w->index));
                 break;
@@ -1728,7 +1758,7 @@ void NEXUS_VideoWindow_GetSyncSettings_priv( NEXUS_VideoWindowHandle window, NEX
 NEXUS_Error NEXUS_VideoWindow_SetSyncSettings_priv( NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowSyncSettings *pSyncSettings )
 {
     BERR_Code rc;
-    BVDC_Window_Handle windowVdc = window->vdcState.window;
+    BVDC_Window_Handle windowVdc;
     bool hookingUp = false;
 
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
@@ -1739,6 +1769,14 @@ NEXUS_Error NEXUS_VideoWindow_SetSyncSettings_priv( NEXUS_VideoWindowHandle wind
 
     window->syncSettings = *pSyncSettings;
 
+    if (!window->mosaic.parent)
+    {
+        windowVdc = window->vdcState.window;
+    }
+    else
+    {
+        windowVdc = window->mosaic.parent->vdcState.window;
+    }
     if (windowVdc)
     {
         rc = BVDC_Window_SetDelayOffset(windowVdc, window->cfg.delay + window->syncSettings.delay);
@@ -2145,11 +2183,7 @@ void NEXUS_VideoWindow_P_InitState(NEXUS_VideoWindowHandle window, unsigned pare
     window->cfg.zorder = index;
     window->cfg.scaleFactorRounding.enabled = true;
     window->cfg.scaleFactorRounding.horizontalTolerance = 3; /* only scale if >3%. for instance, 704 will not be scaled to 720. */
-#if NEXUS_CRC_CAPTURE
-    window->cfg.scaleFactorRounding.verticalTolerance = 0;
-#else
     window->cfg.scaleFactorRounding.verticalTolerance = 3; /* only scale if >3%. for instance, 480 will not be scaled to 482. */
-#endif
     window->cfg.colorKey.luma.enabled = false;
     window->cfg.colorKey.luma.lower = 0;
     window->cfg.colorKey.luma.upper = 0xff;

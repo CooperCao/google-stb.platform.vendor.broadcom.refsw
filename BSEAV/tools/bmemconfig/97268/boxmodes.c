@@ -63,10 +63,10 @@ int Memconfig_GetBoxModeDefaultSettings(
             break;
         }
 /************* 97271 Box modes *****************/
-        case 1:
+                case 1:
         {
             pSettings->boxModeId = boxMode;
-            pSettings->boxModeDescription          = "Display:UHD; Video:UHD Main/no PIP/Multi-PIP,Transcode:None; LPDDR4-3200";
+            pSettings->boxModeDescription          = "Display:UHD/SD; Video:UHD Main/NO PIP/Multi-PIP,Transcode:None; LPDDR4-3200";
 
             pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
             pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
@@ -76,12 +76,21 @@ int Memconfig_GetBoxModeDefaultSettings(
 
             pSettings->display[0].property         = Memconfig_DisplayProperty_ePrimary;
             pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
-            pSettings->display[0].usageMain        = "Primary Display Main Window";
+            pSettings->display[0].usageMain        = "Primary Display - MAIN";
+
+            pSettings->display[1].property = Memconfig_DisplayProperty_eSecondary;
+            pSettings->display[1].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[1].usageMain                = "Display Secondary - MAIN";
 
             pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
             pSettings->graphics[0].used            = true;
             pSettings->graphics[0].heapIdx         = NEXUS_MEMC0_GRAPHICS_HEAP;
             pSettings->graphics[0].usage           = "M2MC, 3D, Primary Display FB";
+
+			pSettings->graphics[1].property        = Memconfig_DisplayProperty_eSecondary;
+            pSettings->graphics[1].heapIdx         = NEXUS_MEMC0_GRAPHICS_HEAP;
+            pSettings->graphics[1].usage           = "3D,M2MC,Secondary Display FB";
+            pSettings->graphics[1].used            = true;
 
             pSettings->graphics3d.used             = true;
             pSettings->graphics3d.heapIdx          = NEXUS_MEMC0_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
@@ -153,28 +162,21 @@ int Memconfig_GetBoxModeDefaultSettings(
         case 4:
         {
             pSettings->boxModeId = boxMode;
-            pSettings->boxModeDescription                            = "Display:HD/SD; Video:HD Main/HD PIP; Transcode:None; LPDDR4-1600";
+            pSettings->boxModeDescription                            = "Display:HD/SD; Video:HD Main/NO PIP; Transcode:None; LPDDR4-1600";
             pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
             pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
             pSettings->videoDecoder[0].usage                         = "Vid Decoder 0";
             pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
             pSettings->videoDecoder[0].secondaryUsage                = "Vid Decoder 0 Chroma for HEVC";
 
-            pSettings->videoDecoder[1].property             = Memconfig_VideoDecoderProperty_ePip;
-            pSettings->videoDecoder[1].pictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
-            pSettings->videoDecoder[1].usage                = "Vid Decoder 1";
 
             pSettings->display[0].property = Memconfig_DisplayProperty_ePrimary;
             pSettings->display[1].property = Memconfig_DisplayProperty_eSecondary;
 
             pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
             pSettings->display[0].usageMain                = "Display Primary-MAIN";
-            pSettings->display[0].pipPictureBufferHeapIdx  = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
-            pSettings->display[0].usagePip = "Display Primary-PIP";
             pSettings->display[1].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
             pSettings->display[1].usageMain                = "Display Secondary-MAIN";
-            pSettings->display[1].pipPictureBufferHeapIdx  = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
-            pSettings->display[1].usagePip = "Display Secondary-PIP";
 
             pSettings->graphics[0].used            = true;
             pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
@@ -184,7 +186,6 @@ int Memconfig_GetBoxModeDefaultSettings(
             pSettings->graphics[1].property        = Memconfig_DisplayProperty_eSecondary;
             pSettings->graphics[1].heapIdx         = NEXUS_MEMC0_GRAPHICS_HEAP;
             pSettings->graphics[1].usage           = "3D,M2MC,Secondary Display FB";
-            pSettings->graphics[1].used            = true;
 
             pSettings->graphics3d.used             = true;
             pSettings->graphics3d.heapIdx          = NEXUS_MEMC0_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
@@ -255,6 +256,108 @@ int Memconfig_GetBoxModeDefaultSettings(
             pSettings->graphics3d.heapIdx          = NEXUS_MEMC0_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
             pSettings->graphics3d.usage            = "V3D";
 
+            rc = 0;
+            break;
+        }
+		case 7:
+        {
+            pSettings->boxModeId = boxMode;
+            pSettings->boxModeDescription          = "Display:UHD; Video:UHD Main/PIP,Transcode:None; LPDDR4-3733";
+
+            pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
+            pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].usage                         = "Video Decoder 0 Luma";
+            pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].secondaryUsage                = "Video Decoder 0 Chroma";
+
+            pSettings->videoDecoder[1].property                      = Memconfig_VideoDecoderProperty_ePip;
+            pSettings->videoDecoder[1].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[1].usage                         = "Video Decoder 1";
+            pSettings->videoDecoder[1].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[1].secondaryUsage                = "Video Decoder 1";
+
+            pSettings->display[0].property         = Memconfig_DisplayProperty_ePrimary;
+            pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[0].usageMain        = "Primary Display Main Window";
+
+            pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
+            pSettings->graphics[0].used            = true;
+            pSettings->graphics[0].heapIdx         = NEXUS_MEMC0_GRAPHICS_HEAP;
+            pSettings->graphics[0].usage           = "M2MC, 3D, Primary Display FB";
+
+            pSettings->graphics3d.used             = true;
+            pSettings->graphics3d.heapIdx          = NEXUS_MEMC0_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
+            pSettings->graphics3d.usage            = "V3D";
+
+            rc = 0;
+            break;
+        }
+		case 8:
+        {
+            pSettings->boxModeId = boxMode;
+            pSettings->boxModeDescription          = "Display:UHD; Video:UHD Main/PIP(with mosaic capabilities),Transcode:None; LPDDR4-3733";
+
+            pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
+            pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].usage                         = "Video Decoder 0 Luma";
+            pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].secondaryUsage                = "Video Decoder 0 Chroma";
+
+            pSettings->videoDecoder[1].property                      = Memconfig_VideoDecoderProperty_ePip;
+            pSettings->videoDecoder[1].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[1].usage                         = "Video Decoder 1";
+            pSettings->videoDecoder[1].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[1].secondaryUsage                = "Video Decoder 1";
+
+            pSettings->display[0].property         = Memconfig_DisplayProperty_ePrimary;
+            pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[0].usageMain        = "Primary Display Main Window";
+
+            pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
+            pSettings->graphics[0].used            = true;
+            pSettings->graphics[0].heapIdx         = NEXUS_MEMC0_GRAPHICS_HEAP;
+            pSettings->graphics[0].usage           = "M2MC, 3D, Primary Display FB";
+
+            pSettings->graphics3d.used             = true;
+            pSettings->graphics3d.heapIdx          = NEXUS_MEMC0_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
+            pSettings->graphics3d.usage            = "V3D";
+
+            rc = 0;
+            break;
+        }
+		case 9:
+        {
+            pSettings->boxModeId = boxMode;
+            pSettings->boxModeDescription                            = "Display:UHD/SD; Video:UHD Main only/NO PIP; Transcode:None; LPDDR4-3200-2x ";
+            pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
+            pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].usage                         = "Vid Decoder 0 Luma for HEVC";
+            pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].secondaryUsage                = "Vid Decoder 0 Chroma for HEVC";
+
+
+            pSettings->display[0].property = Memconfig_DisplayProperty_ePrimary;
+            pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[0].usageMain                = "Display Primary-MAIN";
+
+            pSettings->display[1].property = Memconfig_DisplayProperty_eSecondary;
+            pSettings->display[1].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[1].usageMain                = "Display Secondary-MAIN";
+
+            pSettings->graphics[0].used            = true;
+            pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
+            pSettings->graphics[0].heapIdx         = NEXUS_MEMC0_GRAPHICS_HEAP;
+            pSettings->graphics[0].usage           = "3D,M2MC,Primary Display FB";
+
+            pSettings->graphics[1].used            = true;
+            pSettings->graphics[1].property        = Memconfig_DisplayProperty_eSecondary;
+            pSettings->graphics[1].heapIdx         = NEXUS_MEMC0_GRAPHICS_HEAP;
+            pSettings->graphics[1].usage           = "3D,M2MC,Secondary Display FB";
+
+
+            pSettings->graphics3d.used             = true;
+            pSettings->graphics3d.heapIdx          = NEXUS_MEMC0_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
+            pSettings->graphics3d.usage            = "V3D";
             rc = 0;
             break;
         }

@@ -63,7 +63,7 @@ Dataflow **glsl_shader_interface_create_uniform_dataflow(const Symbol *symbol, i
                case PRIM_UINT:     type = DF_USAMPLER; break;
                default: assert(0); type = DF_INVALID;  break;
             }
-            df[i] = glsl_dataflow_construct_const_sampler(type, ids[i],
+            df[i] = glsl_dataflow_construct_const_image(type, ids[i],
                /* Shadow lookups are always 16-bit */
                !psi->shadow && (symbol->u.var_instance.prec_qual == PREC_HIGHP));
             assert(symbol->u.var_instance.layout_format_specified == false);
@@ -82,10 +82,10 @@ Dataflow **glsl_shader_interface_create_uniform_dataflow(const Symbol *symbol, i
                case PRIM_UINT:     type = DF_UIMAGE;  break;
                default: assert(0); type = DF_INVALID; break;
             }
-            df[i] = glsl_dataflow_construct_const_sampler(type, ids[i], (symbol->u.var_instance.prec_qual == PREC_HIGHP));
+            df[i] = glsl_dataflow_construct_const_image(type, ids[i], (symbol->u.var_instance.prec_qual == PREC_HIGHP));
             assert(symbol->u.var_instance.layout_format_specified == true);
-            df[i]->u.const_sampler.format_valid = true;
-            df[i]->u.const_sampler.format = symbol->u.var_instance.layout_format;
+            df[i]->u.const_image.format_valid = true;
+            df[i]->u.const_image.format = symbol->u.var_instance.layout_format;
          } else {
             df[i] = glsl_dataflow_construct_buffer(DATAFLOW_UNIFORM, glsl_prim_index_to_df_type(type_index), ids[i], 0);
          }

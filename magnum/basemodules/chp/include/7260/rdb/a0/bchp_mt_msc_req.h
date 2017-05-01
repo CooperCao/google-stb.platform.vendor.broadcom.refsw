@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,22 +70,22 @@
 /***************************************************************************
  *MT_MSC_REQ - CBUS Translation Layer MSC Requester Registers
  ***************************************************************************/
-#define BCHP_MT_MSC_REQ_CTRL                     0x20d83b00 /* [WO] MSC Requester Control Register */
-#define BCHP_MT_MSC_REQ_CFG_0                    0x20d83b04 /* [RW] MSC Requester Configuration Register 0 */
-#define BCHP_MT_MSC_REQ_CFG_1                    0x20d83b08 /* [RW] MSC Requester Configuration Register 1 */
-#define BCHP_MT_MSC_REQ_STATUS                   0x20d83b0c /* [RO] MSC Requester Status Register */
-#define BCHP_MT_MSC_REQ_PACKET_00_01             0x20d83b40 /* [RW] Packet 00 and 01 */
-#define BCHP_MT_MSC_REQ_PACKET_02_03             0x20d83b44 /* [RW] Packet 02 and 03 */
-#define BCHP_MT_MSC_REQ_PACKET_04_05             0x20d83b48 /* [RW] Packet 04 and 05 */
-#define BCHP_MT_MSC_REQ_PACKET_06_07             0x20d83b4c /* [RW] Packet 06 and 07 */
-#define BCHP_MT_MSC_REQ_PACKET_08_09             0x20d83b50 /* [RW] Packet 08 and 09 */
-#define BCHP_MT_MSC_REQ_PACKET_10_11             0x20d83b54 /* [RW] Packet 10 and 11 */
-#define BCHP_MT_MSC_REQ_PACKET_12_13             0x20d83b58 /* [RW] Packet 12 and 13 */
-#define BCHP_MT_MSC_REQ_PACKET_14_15             0x20d83b5c /* [RW] Packet 14 and 15 */
-#define BCHP_MT_MSC_REQ_PACKET_16_17             0x20d83b60 /* [RW] Packet 16 and 17 */
-#define BCHP_MT_MSC_REQ_PACKET_18_19             0x20d83b64 /* [RW] Packet 18 and 19 */
-#define BCHP_MT_MSC_REQ_PACKET_20_21             0x20d83b68 /* [RW] Packet 20 and 21 */
-#define BCHP_MT_MSC_REQ_PACKET_22_23             0x20d83b6c /* [RW] Packet 22 and 23 */
+#define BCHP_MT_MSC_REQ_CTRL                     0x20d83b00 /* [WO][32] MSC Requester Control Register */
+#define BCHP_MT_MSC_REQ_CFG_0                    0x20d83b04 /* [RW][32] MSC Requester Configuration Register 0 */
+#define BCHP_MT_MSC_REQ_CFG_1                    0x20d83b08 /* [RW][32] MSC Requester Configuration Register 1 */
+#define BCHP_MT_MSC_REQ_STATUS                   0x20d83b0c /* [RO][32] MSC Requester Status Register */
+#define BCHP_MT_MSC_REQ_PACKET_00_01             0x20d83b40 /* [RW][32] Packet 00 and 01 */
+#define BCHP_MT_MSC_REQ_PACKET_02_03             0x20d83b44 /* [RW][32] Packet 02 and 03 */
+#define BCHP_MT_MSC_REQ_PACKET_04_05             0x20d83b48 /* [RW][32] Packet 04 and 05 */
+#define BCHP_MT_MSC_REQ_PACKET_06_07             0x20d83b4c /* [RW][32] Packet 06 and 07 */
+#define BCHP_MT_MSC_REQ_PACKET_08_09             0x20d83b50 /* [RW][32] Packet 08 and 09 */
+#define BCHP_MT_MSC_REQ_PACKET_10_11             0x20d83b54 /* [RW][32] Packet 10 and 11 */
+#define BCHP_MT_MSC_REQ_PACKET_12_13             0x20d83b58 /* [RW][32] Packet 12 and 13 */
+#define BCHP_MT_MSC_REQ_PACKET_14_15             0x20d83b5c /* [RW][32] Packet 14 and 15 */
+#define BCHP_MT_MSC_REQ_PACKET_16_17             0x20d83b60 /* [RW][32] Packet 16 and 17 */
+#define BCHP_MT_MSC_REQ_PACKET_18_19             0x20d83b64 /* [RW][32] Packet 18 and 19 */
+#define BCHP_MT_MSC_REQ_PACKET_20_21             0x20d83b68 /* [RW][32] Packet 20 and 21 */
+#define BCHP_MT_MSC_REQ_PACKET_22_23             0x20d83b6c /* [RW][32] Packet 22 and 23 */
 
 /***************************************************************************
  *CTRL - MSC Requester Control Register

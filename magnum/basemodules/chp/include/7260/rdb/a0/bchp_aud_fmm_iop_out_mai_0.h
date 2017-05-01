@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,36 +70,36 @@
 /***************************************************************************
  *AUD_FMM_IOP_OUT_MAI_0
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL    0x20cb0320 /* [RW] SPDIF Control */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_0 0x20cb0324 /* [RW] Channel status bits word_0 */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_1 0x20cb0328 /* [RW] Channel status bits word_1 */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_2 0x20cb032c /* [RW] Channel status bits word_2 */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST 0x20cb0330 /* [RW] Stream ramp and pause/null burst control */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE 0x20cb0334 /* [RW] ramp steps in overwite mode */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MAI_FORMAT_CFG 0x20cb0340 /* [RW] MAI formatter configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MAI_FORMAT_WORD 0x20cb0344 /* [RW] MAI format word */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MAI_CROSSBAR  0x20cb0348 /* [RW] MAI crossbar control */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0    0x20cb0360 /* [RW] MCLK configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LOW_LATENCY_PASSTHROUGH_CFG 0x20cb0364 /* [RW] low latency passthrough configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_HONOR_HW_MUTE 0x20cb0368 /* [RW] Honor HardWare mute in low latency passthrough mode */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LONG_TERM_MUTE_DETECTOR_INTERVAL 0x20cb036c /* [WO] long term mute detector timer for low latency passthrough mode */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_FORMAT_WORD_TRANSMITTED 0x20cb0370 /* [RO] Mai format word */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L0_DATA       0x20cb0374 /* [RO] Mai L0 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R0_DATA       0x20cb0378 /* [RO] Mai R0 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L1_DATA       0x20cb037c /* [RO] Mai L1 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R1_DATA       0x20cb0380 /* [RO] Mai R1 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L2_DATA       0x20cb0384 /* [RO] Mai L2 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R2_DATA       0x20cb0388 /* [RO] Mai R2 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L3_DATA       0x20cb038c /* [RO] Mai L3 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R3_DATA       0x20cb0390 /* [RO] Mai R3 data */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LOW_LATENCY_PASSTHROUGH_STATUS 0x20cb0394 /* [RO] Low latency passthrough status */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LONG_TERM_MUTE_DETECTOR_COUNT 0x20cb0398 /* [RO] long term mute detector count */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_STATUS    0x20cb03a0 /* [RO] Error Status Register */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_STATUS_SET 0x20cb03a4 /* [WO] Error Set Register */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_STATUS_CLEAR 0x20cb03a8 /* [WO] Error Clear Register */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_MASK      0x20cb03ac /* [RO] Mask Status Register */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_MASK_SET  0x20cb03b0 /* [WO] Mask Set Register */
-#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_MASK_CLEAR 0x20cb03b4 /* [WO] Mask Clear Register */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL    0x20cb0320 /* [RW][32] SPDIF Control */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_0 0x20cb0324 /* [RW][32] Channel status bits word_0 */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_1 0x20cb0328 /* [RW][32] Channel status bits word_1 */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_2 0x20cb032c /* [RW][32] Channel status bits word_2 */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST 0x20cb0330 /* [RW][32] Stream ramp and pause/null burst control */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE 0x20cb0334 /* [RW][32] ramp steps in overwite mode */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MAI_FORMAT_CFG 0x20cb0340 /* [RW][32] MAI formatter configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MAI_FORMAT_WORD 0x20cb0344 /* [RW][32] MAI format word */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MAI_CROSSBAR  0x20cb0348 /* [RW][32] MAI crossbar control */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0    0x20cb0360 /* [RW][32] MCLK configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LOW_LATENCY_PASSTHROUGH_CFG 0x20cb0364 /* [RW][32] low latency passthrough configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_HONOR_HW_MUTE 0x20cb0368 /* [RW][32] Honor HardWare mute in low latency passthrough mode */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LONG_TERM_MUTE_DETECTOR_INTERVAL 0x20cb036c /* [WO][32] long term mute detector timer for low latency passthrough mode */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_FORMAT_WORD_TRANSMITTED 0x20cb0370 /* [RO][32] Mai format word */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L0_DATA       0x20cb0374 /* [RO][32] Mai L0 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R0_DATA       0x20cb0378 /* [RO][32] Mai R0 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L1_DATA       0x20cb037c /* [RO][32] Mai L1 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R1_DATA       0x20cb0380 /* [RO][32] Mai R1 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L2_DATA       0x20cb0384 /* [RO][32] Mai L2 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R2_DATA       0x20cb0388 /* [RO][32] Mai R2 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_L3_DATA       0x20cb038c /* [RO][32] Mai L3 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_R3_DATA       0x20cb0390 /* [RO][32] Mai R3 data */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LOW_LATENCY_PASSTHROUGH_STATUS 0x20cb0394 /* [RO][32] Low latency passthrough status */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_LONG_TERM_MUTE_DETECTOR_COUNT 0x20cb0398 /* [RO][32] long term mute detector count */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_STATUS    0x20cb03a0 /* [RO][32] Error Status Register */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_STATUS_SET 0x20cb03a4 /* [WO][32] Error Set Register */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_STATUS_CLEAR 0x20cb03a8 /* [WO][32] Error Clear Register */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_MASK      0x20cb03ac /* [RO][32] Mask Status Register */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_MASK_SET  0x20cb03b0 /* [WO][32] Mask Set Register */
+#define BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_MASK_CLEAR 0x20cb03b4 /* [WO][32] Mask Clear Register */
 
 /***************************************************************************
  *STREAM_CFG_%i - Stream configuration

@@ -1,27 +1,21 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image plane
-
-FILE DESCRIPTION
-  wrap an plane from an image
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_IMAGE_PLANE_H
 #define KHRN_IMAGE_PLANE_H
 
 #include "khrn_image.h"
 #include "khrn_fmem.h"
 
-typedef struct {
-   KHRN_IMAGE_T *image;
+typedef struct khrn_image_plane
+{
+   khrn_image *image;
    uint32_t plane_idx;
-} KHRN_IMAGE_PLANE_T;
+} khrn_image_plane;
 
 
-static inline uint32_t khrn_image_plane_equal(const KHRN_IMAGE_PLANE_T *lhs,
-   const KHRN_IMAGE_PLANE_T *rhs)
+static inline uint32_t khrn_image_plane_equal(const khrn_image_plane *lhs,
+   const khrn_image_plane *rhs)
 {
    /* If both images are missing, consider image planes equal */
    if ((lhs->image == NULL) && (rhs->image == NULL))
@@ -41,13 +35,13 @@ static inline uint32_t khrn_image_plane_equal(const KHRN_IMAGE_PLANE_T *lhs,
 }
 
 static inline
-GFX_LFMT_T khrn_image_plane_lfmt(const KHRN_IMAGE_PLANE_T *img_plane)
+GFX_LFMT_T khrn_image_plane_lfmt(const khrn_image_plane *img_plane)
 {
    return khrn_image_get_lfmt(img_plane->image, img_plane->plane_idx);
 
 }
 static inline
-GFX_LFMT_T khrn_image_plane_lfmt_maybe(const KHRN_IMAGE_PLANE_T *img_plane)
+GFX_LFMT_T khrn_image_plane_lfmt_maybe(const khrn_image_plane *img_plane)
 {
    return (img_plane && img_plane->image) ?
       khrn_image_get_lfmt(img_plane->image, img_plane->plane_idx) :
@@ -61,12 +55,12 @@ typedef enum
    KHRN_CHANGRP_ALL = KHRN_CHANGRP_STENCIL | KHRN_CHANGRP_NONSTENCIL
 } khrn_changrps_t;
 
-static inline khrn_interlock_parts_t khrn_image_plane_interlock_parts(
-   const KHRN_IMAGE_PLANE_T *img_plane, khrn_changrps_t changrps, bool subset)
+static inline khrn_resource_parts_t khrn_image_plane_resource_parts(
+   const khrn_image_plane *img_plane, khrn_changrps_t changrps, bool subset)
 {
    assert(changrps);
 
-   const KHRN_IMAGE_T *img = img_plane->image;
+   const khrn_image *img = img_plane->image;
    if (!img)
       return 0;
 
@@ -86,7 +80,7 @@ static inline khrn_interlock_parts_t khrn_image_plane_interlock_parts(
          ((changrps & KHRN_CHANGRP_NONSTENCIL) ? 1 : 0);
    }
 
-   return khrn_blob_interlock_parts(img->blob,
+   return khrn_blob_resource_parts(img->blob,
       img->start_elem, img->num_array_elems,
       img->level,
       start_changrp, num_changrps,
@@ -94,12 +88,12 @@ static inline khrn_interlock_parts_t khrn_image_plane_interlock_parts(
       subset);
 }
 
-static inline void khrn_image_plane_invalidate(KHRN_IMAGE_PLANE_T *img_plane,
+static inline void khrn_image_plane_invalidate(khrn_image_plane *img_plane,
    khrn_changrps_t changrps)
 {
    if (img_plane->image)
-      khrn_interlock_invalidate(khrn_image_get_interlock(img_plane->image),
-         khrn_image_plane_interlock_parts(img_plane, changrps, /*subset=*/true));
+      khrn_resource_mark_undefined(khrn_image_get_resource(img_plane->image),
+         khrn_image_plane_resource_parts(img_plane, changrps, /*subset=*/true));
 }
 
 #endif

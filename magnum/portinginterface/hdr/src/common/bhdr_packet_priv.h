@@ -110,11 +110,13 @@ BERR_Code BHDR_P_GetGamutPacketData_isr(
 BERR_Code BHDR_P_ParseGamutMetadataPacket_isr(
 	BHDR_Handle hHDR, BAVC_HDMI_GamutPacket *Packet) ;
 
+#if BHDR_CONFIG_ISRC_PACKET_SUPPORT
 void BHDR_P_ParseISRC1_isr(
 	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet) ;
 
 void BHDR_P_ParseISRC2_isr(
 	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet) ;
+#endif
 
 BERR_Code BHDR_P_ProcessStoppedPackets_isr(BHDR_Handle hHDR) ;
 

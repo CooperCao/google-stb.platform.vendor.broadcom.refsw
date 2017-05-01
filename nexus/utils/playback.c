@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1694,17 +1694,17 @@ int main(int argc, const char *argv[])
     BDBG_ASSERT(!rc);
 
     if (opts.mfd_crc) {
-#if NEXUS_CRC_CAPTURE
-        BDBG_WRN(("using MFD CRC with internal settings (NEXUS_CRC_CAPTURE defined)"));
-#else
-        NEXUS_VideoInputSettings  inputSettings;
+        NEXUS_VideoInputSettings inputSettings;
         NEXUS_VideoInput_GetSettings(NEXUS_VideoDecoder_GetConnector(videoDecoder),
             &inputSettings);
         inputSettings.crcQueueSize = 60; /* This enables the CRC capture */
         NEXUS_VideoInput_SetSettings(NEXUS_VideoDecoder_GetConnector(videoDecoder),
             &inputSettings);
-        BDBG_WRN(("using MFD CRC with external settings"));
-#endif
+        NEXUS_VideoWindow_GetSettings(window, &windowSettings);
+        windowSettings.scaleFactorRounding.enabled = true;
+        windowSettings.scaleFactorRounding.verticalTolerance = 0;
+        windowSettings.scaleFactorRounding.horizontalTolerance = 3;
+        rc = NEXUS_VideoWindow_SetSettings(window, &windowSettings);
     }
 
     if (opts.avd_crc) {
@@ -1948,7 +1948,7 @@ int main(int argc, const char *argv[])
                 "  4k  - toggle 4k2k hdmi output format\n");
                 printf(
                 "  Picture Quality Controls\n"
-                "    anr - toggle anr (Analog Noise Reduction) filter\n"
+                "    anr(#|OFF) - enable anr (Analog Noise Reduction) and set level or turn off\n"
                 "    dnr - toggle dnr (Digital Noise Reduction) filter\n"
                 "    mad - toggle mad (Deinterlacer)\n"
                 "    cap - toggle cap (Forced Capture)\n"
@@ -2470,11 +2470,21 @@ int main(int argc, const char *argv[])
             else if (strstr(buf, "anr") == buf) {
                 NEXUS_VideoWindowAnrSettings anrSettings;
                 NEXUS_VideoWindow_GetAnrSettings(window, &anrSettings);
-                anrSettings.anr.mode = (NEXUS_VideoWindowFilterMode_eEnable == anrSettings.anr.mode)
-                    ? NEXUS_VideoWindowFilterMode_eDisable : NEXUS_VideoWindowFilterMode_eEnable;
+                if (strstr(buf, "anr(") != buf) { /* backward compat */
+                    anrSettings.anr.mode = (NEXUS_VideoWindowFilterMode_eEnable == anrSettings.anr.mode)
+                        ? NEXUS_VideoWindowFilterMode_eDisable : NEXUS_VideoWindowFilterMode_eEnable;
+                }
+                else if (!strcasecmp(buf+4, "off")) {
+                    anrSettings.anr.mode = NEXUS_VideoWindowFilterMode_eDisable;
+                }
+                else {
+                    anrSettings.anr.mode = NEXUS_VideoWindowFilterMode_eEnable;
+                    anrSettings.anr.level = atoi(buf+4);
+                }
                 rc = NEXUS_VideoWindow_SetAnrSettings(window, &anrSettings);
-                printf("anr is %s\n", (NEXUS_VideoWindowFilterMode_eEnable == anrSettings.anr.mode)
-                    ? "on" : "off");
+                BERR_TRACE(rc);
+                printf("anr is %s, level %d\n", (NEXUS_VideoWindowFilterMode_eEnable == anrSettings.anr.mode) ? "on" : "off",
+                    anrSettings.anr.level);
             }
             else if (strstr(buf, "dnr") == buf) {
                 NEXUS_VideoWindowDnrSettings dnrSettings;
@@ -2689,6 +2699,16 @@ int main(int argc, const char *argv[])
             else if (strstr(buf, "hdmi_eotf") == buf) {
                 hdmi_drm_do_cmd(&hdmiDrmContext, buf);
             }
+            else if (strstr(buf, "hdmi_dolby") == buf) {
+                NEXUS_HdmiOutputExtraSettings settings;
+                NEXUS_HdmiOutput_GetExtraSettings(platformConfig.outputs.hdmi[0], &settings);
+                if (!strcmp(buf, "hdmi_dolby(on)")) {
+                    settings.dolbyVision.outputMode = NEXUS_HdmiOutputDolbyVisionMode_eEnabled;
+                } else if (!strcmp(buf, "hdmi_dolby(off)")) {
+                    settings.dolbyVision.outputMode = NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
+                }
+                NEXUS_HdmiOutput_SetExtraSettings(platformConfig.outputs.hdmi[0], &settings);
+            }
 #endif
             else if (strstr(buf, "display_format") == buf) {
                 NEXUS_HdmiOutputStatus hdmiOutputStatus ;
@@ -2732,6 +2752,7 @@ int main(int argc, const char *argv[])
                 if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
                     unsigned i;
                     BDBG_ERR(("numPresentations %lu", (unsigned long)audStatus.codecStatus.ac4.numPresentations));
+                    BDBG_ERR(("currentPresentationIndex %lu", (unsigned long)audStatus.codecStatus.ac4.currentPresentationIndex));
                     for (i = 0; i<audStatus.codecStatus.ac4.numPresentations; i++) {
                         NEXUS_AudioDecoderPresentationStatus presentStatus;
                         NEXUS_AudioDecoder_GetPresentationStatus(audioDecoder, i, &presentStatus);
@@ -2762,7 +2783,7 @@ int main(int argc, const char *argv[])
                 {
                     BDBG_ERR(("Selecting Presentation id %lu", (unsigned long)presentationIndex));
                     NEXUS_AudioDecoder_GetCodecSettings(audioDecoder, audStatus.codec, &codecSettings);
-                    codecSettings.codecSettings.ac4.presentationIndex = presentationIndex;
+                    codecSettings.codecSettings.ac4.programs[NEXUS_AudioDecoderAc4Program_eMain].presentationIndex = presentationIndex;
                     NEXUS_AudioDecoder_SetCodecSettings(audioDecoder, &codecSettings);
                 }
             }

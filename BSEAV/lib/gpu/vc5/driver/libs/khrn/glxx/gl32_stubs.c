@@ -1,18 +1,9 @@
-/*=============================================================================
- * Broadcom Proprietary and Confidential. (c)2015 Broadcom.
- * All rights reserved.
- *
- * Project  :  khronos
- * Module   :  glxx
- *
- * FILE DESCRIPTION
- * Stub functions for ES3.2
- * =============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl_public_api.h"
 #include "glxx_int_config.h"
 #include "libs/util/log/log.h"
-#include "vcos.h"
 #include <stdio.h>
 
 #if KHRN_GLES32_DRIVER || GLXX_HAS_TNG
@@ -24,7 +15,7 @@ static inline void not_implemented(const char *func)
    log_error("ES3.2 function '%s' not implemented yet", func);
 }
 
-#define NOT_IMPLEMENTED not_implemented(VCOS_FUNCTION)
+#define NOT_IMPLEMENTED not_implemented(__FUNCTION__)
 
 #endif
 

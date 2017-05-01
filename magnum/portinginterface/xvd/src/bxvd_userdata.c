@@ -361,25 +361,31 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
 
       BMMA_FlushCache_isr(hXvdCh->hFWGenMemBlock, (uint8_t *)userDataPtr + sizeof(UD_HDR), pHdrInfo->size);
 
-      /*
-       * Enqueue the data. The uiDecodePictureId member was added for transcode
-       * userdata support. Jira: SW7425-1780
-       */
-      rc = BXVD_P_Userdata_QueueInsert_isr(&((hXvdCh->pUserData)->queue),
-                                           protocol,
-                                           userDataPtr,
-                                           ((sizeof(UD_HDR)+((pHdrInfo->size+3))) & ~3), /* Make sure we copy long words, endianess issue */
-                                           ulFlags,
-                                           ulPulldown,
-                                           ulPTS,
-                                           uiDecodePictureId,
-                                           hXvdCh->pUserData->sUserdataSettings);
-      if (rc != BERR_SUCCESS)
+      /* SWSTB-3950: don't copy non user data onto the user data queue. */
+
+      if ( !( pHdrInfo->type & BXVD_P_PPB_METADATA_PRESENT ) )
       {
-         BXVD_DBG_ERR(hXvdCh, ("Could not enqueue user data packet"));
-         hXvdCh->pUserData->errForwardError = rc;
-         goto doCallback;
-         /*return rc;*/
+         /*
+          * Enqueue the data. The uiDecodePictureId member was added for transcode
+          * userdata support. Jira: SW7425-1780
+          */
+         rc = BXVD_P_Userdata_QueueInsert_isr(&((hXvdCh->pUserData)->queue),
+                                              protocol,
+                                              userDataPtr,
+                                              ((sizeof(UD_HDR)+((pHdrInfo->size+3))) & ~3), /* Make sure we copy long words, endianess issue */
+                                              ulFlags,
+                                              ulPulldown,
+                                              ulPTS,
+                                              uiDecodePictureId,
+                                              hXvdCh->pUserData->sUserdataSettings);
+         if (rc != BERR_SUCCESS)
+         {
+            BXVD_DBG_ERR(hXvdCh, ("Could not enqueue user data packet"));
+            hXvdCh->pUserData->errForwardError = rc;
+            goto doCallback;
+            /*return rc;*/
+         }
+
       }
 
       /* Get the next user data packet, if any */

@@ -83,6 +83,7 @@ LOCAL_SRC_FILES := \
 	spyhook.cpp \
 	archive.cpp \
 	packet.cpp \
+	packetreader.cpp \
 	platform.cpp \
 	remote.cpp
 

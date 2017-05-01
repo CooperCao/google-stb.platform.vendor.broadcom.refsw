@@ -125,7 +125,6 @@ static unsigned char gVceFirmwareSignatures[NEXUS_NUM_VCE_DEVICES][NEXUS_VIDEO_E
 
 #define LE_TO_BE_32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
 #define SWAP_BYTES_32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
-#define FILE_DATA_SIZE 10*1024*1024
 #define RSA_KEY_SIZE_BITS 2048
 #define RSA_KEY_SIZE_BYTES (RSA_KEY_SIZE_BITS/8)
 #define RSA_KEY_SIZE_WORDS (RSA_KEY_SIZE_BYTES/4)
@@ -258,5 +257,13 @@ typedef enum CpuType_e
 
 
 Param_u SigningParameters;
+
+void Generate_Audio_C_file(unsigned char *data, unsigned int size, char * file_name);
+void Generate_SID_C_file(unsigned char *data, unsigned int size, char * file_name);
+void Generate_RAVE_C_file(unsigned char *data, unsigned int size, char * file_name);
+void Generate_AVD_C_file(unsigned char *data_file_name, char * file_name);
+void Generate_VICE_C_file(unsigned char *data_file_name, char * file_name);
+void WriteBinAndParamsToFile(FwParam_u FwParams, char * DataFileName, char *FileName, unsigned int LittleEndianInput);
+void Generate_C_Array(unsigned char *data_file_name, char * file_name, char * var_name);
 
 #endif

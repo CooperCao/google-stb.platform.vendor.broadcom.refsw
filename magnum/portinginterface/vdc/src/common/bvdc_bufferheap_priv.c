@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,7 +63,7 @@ BDBG_OBJECT_ID(BVDC_BFH);
 #else
 #define BVDC_P_HEAP_FULL_SPLIT             (0)
 #endif
-#define BVDC_MAX_BUFFERHEAP_NODES          (200)
+#define BVDC_MAX_BUFFERHEAP_NODES          (300)
 
 /***************************************************************************
  *
@@ -73,15 +73,15 @@ static void BVDC_P_BufferHeap_DumpHeapNode_isr
 {
 /*#if 1*/
 #if (BDBG_DEBUG_BUILD)
-    /* ulBufIndex (ulNodeCntPerParent eOrigBufHeapId) (Continous)
-     *       (Used - ulNumChildNodeUsed) at ullDeviceOffset (pvBufAddr) */
+    /* uiBufIndex (ucNodeCntPerParent eOrigBufHeapId) (Continous)
+     *       (Used - ucNumChildNodeUsed) at ullDeviceOffset (pvBufAddr) */
     BDBG_MSG(("    - Node %p %2d (%s) (%s) (%s - %d/%d) at " BDBG_UINT64_FMT ", block offset 0x%x",
     (void *)pBufferHeapNode,
-    pBufferHeapNode->ulBufIndex,
+    pBufferHeapNode->uiBufIndex,
     BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(pBufferHeapNode->eOrigBufHeapId),
     pBufferHeapNode->bContinous? "c" : "n",
     pBufferHeapNode->bUsed ? "x" : " ",
-    pBufferHeapNode->ulNumChildNodeUsed, pBufferHeapNode->ulNumChildNodeSplit,
+    pBufferHeapNode->ucNumChildNodeUsed, pBufferHeapNode->ucNumChildNodeSplit,
     BDBG_UINT64_ARG(pBufferHeapNode->ullDeviceOffset),
     pBufferHeapNode->ulBlockOffset));
 #else
@@ -96,7 +96,7 @@ static void BVDC_P_BufferHeap_DumpHeapNode_isr
 static  void BVDC_P_BufferHeap_DumpHeapInfo_isr
     ( const BVDC_P_BufferHeap_Info    *pHeapInfo )
 {
-    uint32_t i;
+    uint16_t i;
 
     BDBG_MSG((" "));
     BDBG_MODULE_MSG(BVDC_WIN_BUF, ("%s Heap",
@@ -123,15 +123,15 @@ static  void BVDC_P_BufferHeap_DumpHeapInfo_isr
     }
 
     BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    pHeapInfo          = %p:",    (void *)pHeapInfo));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulNodeCntPerParent = 0x%x:",  pHeapInfo->ulNodeCntPerParent));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulPrimaryBufCnt    = %d:",    pHeapInfo->ulPrimaryBufCnt));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulTotalBufCnt      = %d:",    pHeapInfo->ulTotalBufCnt));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ucNodeCntPerParent = 0x%x:",  pHeapInfo->ucNodeCntPerParent));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    uiPrimaryBufCnt    = %d:",    pHeapInfo->uiPrimaryBufCnt));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    uiTotalBufCnt      = %d:",    pHeapInfo->uiTotalBufCnt));
     BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulBufSize          = %d:",    pHeapInfo->ulBufSize));
     BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    hMmaBlock          = %p:",    (void *)pHeapInfo->hMmaBlock));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulBufUsed          = 0x%d:",  pHeapInfo->ulBufUsed));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    uiBufUsed          = 0x%d:",  pHeapInfo->uiBufUsed));
     BDBG_MSG(("    Node list:"));
 
-    for(i = 0; i < pHeapInfo->ulTotalBufCnt; i++)
+    for(i = 0; i < pHeapInfo->uiTotalBufCnt; i++)
     {
         BVDC_P_BufferHeap_DumpHeapNode_isr(&(pHeapInfo->pBufList[i]));
     }
@@ -245,8 +245,8 @@ uint32_t BVDC_P_BufferHeap_GetHeapSize
 
 /***************************************************************************
  * Fill out const properties:
- *    eBufHeapId, ulBufSize, ulPrimaryBufCnt, pParentHeapInfo,
- *    ulNodeCntPerParent
+ *    eBufHeapId, ulBufSize, uiPrimaryBufCnt, pParentHeapInfo,
+ *    ucNodeCntPerParent
  */
 void BVDC_P_BufferHeap_GetHeapOrder
     ( const BVDC_Heap_Settings      *pSettings,
@@ -271,7 +271,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
     uint32_t ulUnalignedSDPipBufSize, ulUnalignedHDPipBufSize;
     uint32_t ulUnaligned2HDPipBufSize, ulUnaligned4HDPipBufSize;
     uint32_t  aulUnAlignedBufSize[BVDC_P_BufferHeapId_eCount];
-    uint32_t  aulNodeCntPerParent[BVDC_P_BufferHeapId_eCount];
+    uint8_t   aucNodeCntPerParent[BVDC_P_BufferHeapId_eCount];
 
     /* Heap settings */
     const BFMT_VideoInfo *pSDFmt = BFMT_GetVideoFormatInfoPtr(pSettings->eBufferFormat_SD);
@@ -326,7 +326,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
     if(pBufferHeap)
     {
         pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_e4HD;
-        pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_4HD;
+        pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_4HD;
         pBufferHeap->astHeapInfo[i].ulWidth      = ul4HDBufWidth;
         pBufferHeap->astHeapInfo[i].ulHeight     = ul4HDBufHeight;
         pBufferHeap->astHeapInfo[i].ulBufSize    = ul4HDBufSize;
@@ -343,7 +343,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_e2HD;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_2HD;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_2HD;
             pBufferHeap->astHeapInfo[i].ulWidth      = ul2HDBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ul2HDBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ul2HDBufSize;
@@ -357,7 +357,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_e4HD_Pip;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_4HD_Pip;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_4HD_Pip;
             pBufferHeap->astHeapInfo[i].ulWidth      = ul4HDPipBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ul4HDPipBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ul4HDPipBufSize;
@@ -374,7 +374,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_e4HD_Pip;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_4HD_Pip;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_4HD_Pip;
             pBufferHeap->astHeapInfo[i].ulWidth      = ul4HDPipBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ul4HDPipBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ul4HDPipBufSize;
@@ -388,7 +388,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_e2HD;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_2HD;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_2HD;
             pBufferHeap->astHeapInfo[i].ulWidth      = ul2HDBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ul2HDBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ul2HDBufSize;
@@ -406,7 +406,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_eHD;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_HD;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_HD;
             pBufferHeap->astHeapInfo[i].ulWidth      = ulHDBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ulHDBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ulHDBufSize;
@@ -420,7 +420,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_e2HD_Pip;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_2HD_Pip;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_2HD_Pip;
             pBufferHeap->astHeapInfo[i].ulWidth      = ul2HDPipBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ul2HDPipBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ul2HDPipBufSize;
@@ -437,7 +437,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_e2HD_Pip;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_2HD_Pip;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_2HD_Pip;
             pBufferHeap->astHeapInfo[i].ulWidth      = ul2HDPipBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ul2HDPipBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ul2HDPipBufSize;
@@ -451,7 +451,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_eHD;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_HD;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_HD;
             pBufferHeap->astHeapInfo[i].ulWidth      = ulHDBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ulHDBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ulHDBufSize;
@@ -469,7 +469,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_eSD;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_SD;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_SD;
             pBufferHeap->astHeapInfo[i].ulWidth      = ulSDBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ulSDBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ulSDBufSize;
@@ -483,7 +483,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_eHD_Pip;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_HD_Pip;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_HD_Pip;
             pBufferHeap->astHeapInfo[i].ulWidth      = ulHDPipBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ulHDPipBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ulHDPipBufSize;
@@ -500,7 +500,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_eHD_Pip;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_HD_Pip;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_HD_Pip;
             pBufferHeap->astHeapInfo[i].ulWidth      = ulHDPipBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ulHDPipBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ulHDPipBufSize;
@@ -514,7 +514,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         if(pBufferHeap)
         {
             pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_eSD;
-            pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_SD;
+            pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_SD;
             pBufferHeap->astHeapInfo[i].ulWidth      = ulSDBufWidth;
             pBufferHeap->astHeapInfo[i].ulHeight     = ulSDBufHeight;
             pBufferHeap->astHeapInfo[i].ulBufSize    = ulSDBufSize;
@@ -529,7 +529,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
     if(pBufferHeap)
     {
         pBufferHeap->astHeapInfo[i].eBufHeapId   = BVDC_P_BufferHeapId_eSD_Pip;
-        pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt = pSettings->ulBufferCnt_SD_Pip;
+        pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt = pSettings->ulBufferCnt_SD_Pip;
         pBufferHeap->astHeapInfo[i].ulWidth      = ulSDPipBufWidth;
         pBufferHeap->astHeapInfo[i].ulHeight     = ulSDPipBufHeight;
         pBufferHeap->astHeapInfo[i].ulBufSize    = ulSDPipBufSize;
@@ -545,35 +545,35 @@ void BVDC_P_BufferHeap_GetHeapOrder
         /* Initalize settings */
         if(pBufferHeap)
         {
-            pBufferHeap->astHeapInfo[i].ulBufUsed     = 0;
+            pBufferHeap->astHeapInfo[i].uiBufUsed     = 0;
             pBufferHeap->astHeapInfo[i].hBufferHeap   = pBufferHeap;
-            pBufferHeap->astHeapInfo[i].ulTotalBufCnt = pBufferHeap->astHeapInfo[i].ulPrimaryBufCnt;
+            pBufferHeap->astHeapInfo[i].uiTotalBufCnt = pBufferHeap->astHeapInfo[i].uiPrimaryBufCnt;
         }
 
         if( i == 0 )
         {
-            aulNodeCntPerParent[i] = 0;
+            aucNodeCntPerParent[i] = 0;
             if(pBufferHeap)
             {
                 pBufferHeap->astHeapInfo[i].pParentHeapInfo    = NULL;
-                pBufferHeap->astHeapInfo[i].ulNodeCntPerParent = 0;
-                BDBG_ASSERT(aulNodeCntPerParent[i] == pBufferHeap->astHeapInfo[i].ulNodeCntPerParent);
+                pBufferHeap->astHeapInfo[i].ucNodeCntPerParent = 0;
+                BDBG_ASSERT(aucNodeCntPerParent[i] == pBufferHeap->astHeapInfo[i].ucNodeCntPerParent);
             }
         }
         else
         {
-            aulNodeCntPerParent[i] = BVDC_P_MAX(
+            aucNodeCntPerParent[i] = BVDC_P_MAX(
                 pHeapSizeInfo->aulBufSize[i-1] / pHeapSizeInfo->aulBufSize[i],
                 aulUnAlignedBufSize[i-1] / aulUnAlignedBufSize[i]);
             if(pBufferHeap)
             {
                 pBufferHeap->astHeapInfo[i].pParentHeapInfo
                     = &pBufferHeap->astHeapInfo[i-1];
-                pBufferHeap->astHeapInfo[i].ulNodeCntPerParent
+                pBufferHeap->astHeapInfo[i].ucNodeCntPerParent
                     = BVDC_P_MAX(
                     pBufferHeap->astHeapInfo[i-1].ulBufSize / pBufferHeap->astHeapInfo[i].ulBufSize,
                     pBufferHeap->astHeapInfo[i-1].ulBufSizeByFmt / pBufferHeap->astHeapInfo[i].ulBufSizeByFmt);
-                BDBG_ASSERT(aulNodeCntPerParent[i] == pBufferHeap->astHeapInfo[i].ulNodeCntPerParent);
+                BDBG_ASSERT(aucNodeCntPerParent[i] == pBufferHeap->astHeapInfo[i].ucNodeCntPerParent);
             }
         }
 
@@ -594,7 +594,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
     if(pBufferHeap)
     {
         uint32_t   ulIntNum, ulFrac;
-        /* recalculate ulNodeCntPerParent */
+        /* recalculate ucNodeCntPerParent */
         for( i = 1; i < BVDC_P_BufferHeapId_eCount; i++ )
         {
             ulIntNum =
@@ -608,8 +608,8 @@ void BVDC_P_BufferHeap_GetHeapOrder
             {
                 ulIntNum++;
             }
-            aulNodeCntPerParent[i] = ulIntNum;
-            pBufferHeap->astHeapInfo[i].ulNodeCntPerParent = ulIntNum;
+            aucNodeCntPerParent[i] = ulIntNum;
+            pBufferHeap->astHeapInfo[i].ucNodeCntPerParent = ulIntNum;
         }
     }
 #endif
@@ -617,7 +617,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
     /* Adjust buf size for alignment: from bottom up */
     for( i = BVDC_P_BufferHeapId_eCount - 1; i > 0; i-- )
     {
-        ulNewBufSize = aulNodeCntPerParent[i] * pHeapSizeInfo->aulBufSize[i];
+        ulNewBufSize = aucNodeCntPerParent[i] * pHeapSizeInfo->aulBufSize[i];
 
 #if BVDC_P_MEMC_ALIGNMENT
         ulNewBufSize = BVDC_P_ALIGN_UP(ulNewBufSize, BVDC_P_HEAP_ALIGN_BYTES);
@@ -648,42 +648,43 @@ static BERR_Code BVDC_P_BufferHeap_BuildPrimaryNodeList
     ( BMMA_Heap_Handle             hMemory,
       BVDC_P_BufferHeap_Info      *pHeapInfo )
 {
-    uint32_t               i, ulBlockOffset = 0;
+    uint16_t               i;
+    uint32_t               ulBlockOffset = 0;
     BMMA_DeviceOffset      ullDeviceOffset = 0;
     uint32_t               ulBufSize = pHeapInfo->ulBufSize;
-    uint32_t               ulPrimaryBufCnt = pHeapInfo->ulPrimaryBufCnt;
+    uint16_t               uiPrimaryBufCnt = pHeapInfo->uiPrimaryBufCnt;
     BERR_Code              err = BERR_SUCCESS;
     BVDC_P_BufferHeapNode *pBufferHeapNode;
 
     BSTD_UNUSED(hMemory);
 
-    if (ulPrimaryBufCnt)
+    if (uiPrimaryBufCnt)
     {
         ullDeviceOffset = BMMA_LockOffset(pHeapInfo->hMmaBlock);
     }
 
-    for(i = 0; i < ulPrimaryBufCnt; i++)
+    for(i = 0; i < uiPrimaryBufCnt; i++)
     {
         pBufferHeapNode = &(pHeapInfo->pBufList[i]);
 
         /* Initialize fields. */
-        pBufferHeapNode->ulBufIndex   = i;
+        pBufferHeapNode->uiBufIndex   = i;
         pBufferHeapNode->pHeapInfo    = pHeapInfo;
         pBufferHeapNode->bUsed        = false;
         pBufferHeapNode->ullDeviceOffset = ullDeviceOffset;
         pBufferHeapNode->ulBlockOffset  = ulBlockOffset;
-        pBufferHeapNode->ulNumChildNodeUsed = 0;
-        pBufferHeapNode->ulNumChildNodeSplit = 0;
+        pBufferHeapNode->ucNumChildNodeUsed = 0;
+        pBufferHeapNode->ucNumChildNodeSplit = 0;
         pBufferHeapNode->bContinous = true;
         pBufferHeapNode->eOrigBufHeapId = pHeapInfo->eBufHeapId;
-        pBufferHeapNode->ulParentNodeBufIndex = 0xffffffff;
-        pBufferHeapNode->ulFirstChildNodeBufIndex = 0xffffffff;
+        pBufferHeapNode->uiParentNodeBufIndex = BVDC_P_HEAP_INVAID_BUF_INDEX;
+        pBufferHeapNode->uiFirstChildNodeBufIndex = BVDC_P_HEAP_INVAID_BUF_INDEX;
 
         ullDeviceOffset += ulBufSize;
         ulBlockOffset += ulBufSize;
     }
 
-    if(ulPrimaryBufCnt && !pHeapInfo->hBufferHeap->ullMosaicDrainOffset)
+    if(uiPrimaryBufCnt && !pHeapInfo->hBufferHeap->ullMosaicDrainOffset)
     {
         pHeapInfo->hBufferHeap->ullMosaicDrainOffset = ullDeviceOffset;
     }
@@ -718,7 +719,7 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
     ulBufSize = pHeapInfo->ulBufSize;
 
 #if (!BVDC_P_HEAP_FULL_SPLIT)
-    if((pParentHeapInfo->ulTotalBufCnt * pHeapInfo->ulNodeCntPerParent)
+    if((pParentHeapInfo->uiTotalBufCnt * pHeapInfo->ucNodeCntPerParent)
         > BVDC_MAX_BUFFERHEAP_NODES)
     {
         uint32_t  ulSplitCnt = 1;
@@ -730,11 +731,11 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
         while(pParentHeap)
         {
             aulNumNodesSplit[pParentHeap->eBufHeapId] = 0;
-            ulSplitCnt *= pTempHeap->ulNodeCntPerParent;
+            ulSplitCnt *= pTempHeap->ucNodeCntPerParent;
             aulMaxParentNodes2Split[pParentHeap->eBufHeapId] =
                 (BVDC_MAX_BUFFERHEAP_NODES + ulSplitCnt - 1) / ulSplitCnt;
             aulMaxParentNodes2Split[pParentHeap->eBufHeapId] *=
-                (ulSplitCnt/pHeapInfo->ulNodeCntPerParent);
+                (ulSplitCnt/pHeapInfo->ucNodeCntPerParent);
 
             pTempHeap = pParentHeap;
             pParentHeap = pParentHeap->pParentHeapInfo;
@@ -742,14 +743,14 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
     }
 #endif
 
-    for(j = 0; j < pParentHeapInfo->ulTotalBufCnt; j++)
+    for(j = 0; j < pParentHeapInfo->uiTotalBufCnt; j++)
     {
         /* Break a larger buffer into smaller buffers */
         pParentHeapNode = &(pParentHeapInfo->pBufList[j]);
         ullDeviceOffset = pParentHeapNode->ullDeviceOffset;
         ulBlockOffset = 0;
 
-        for(i = 0; i < pHeapInfo->ulNodeCntPerParent; i++ )
+        for(i = 0; i < pHeapInfo->ucNodeCntPerParent; i++ )
         {
 #if (!BVDC_P_HEAP_FULL_SPLIT)
             if(bLimitSplt)
@@ -764,24 +765,24 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
 #endif
 
             /* Initialize fields. */
-            pBufferHeapNode = &(pHeapInfo->pBufList[pHeapInfo->ulTotalBufCnt]);
+            pBufferHeapNode = &(pHeapInfo->pBufList[pHeapInfo->uiTotalBufCnt]);
 
-            pBufferHeapNode->ulBufIndex   = pHeapInfo->ulTotalBufCnt;
+            pBufferHeapNode->uiBufIndex   = pHeapInfo->uiTotalBufCnt;
             pBufferHeapNode->pHeapInfo    = pHeapInfo;
             pBufferHeapNode->bUsed        = false;
-            pBufferHeapNode->ulNumChildNodeUsed = 0;
-            pBufferHeapNode->ulNumChildNodeSplit = 0;
+            pBufferHeapNode->ucNumChildNodeUsed = 0;
+            pBufferHeapNode->ucNumChildNodeSplit = 0;
             pBufferHeapNode->ullDeviceOffset = ullDeviceOffset;
             pBufferHeapNode->ulBlockOffset = ulBlockOffset;
-            pBufferHeapNode->ulParentNodeBufIndex = pParentHeapNode->ulBufIndex;
+            pBufferHeapNode->uiParentNodeBufIndex = pParentHeapNode->uiBufIndex;
             pBufferHeapNode->eOrigBufHeapId = pParentHeapNode->eOrigBufHeapId;
 
             if( i == 0 )
             {
-                pParentHeapNode->ulFirstChildNodeBufIndex = pBufferHeapNode->ulBufIndex;
+                pParentHeapNode->uiFirstChildNodeBufIndex = pBufferHeapNode->uiBufIndex;
                 pBufferHeapNode->bContinous = pParentHeapNode->bContinous;
-                if( (pHeapInfo->ulPrimaryBufCnt != 0) &&
-                    (pBufferHeapNode->ulBufIndex == pHeapInfo->ulPrimaryBufCnt) )
+                if( (pHeapInfo->uiPrimaryBufCnt != 0) &&
+                    (pBufferHeapNode->uiBufIndex == pHeapInfo->uiPrimaryBufCnt) )
                 {
                     pBufferHeapNode->bContinous = false;
                 }
@@ -790,12 +791,12 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
             {
                 pBufferHeapNode->bContinous = true;
             }
-            pParentHeapNode->ulNumChildNodeSplit++;
+            pParentHeapNode->ucNumChildNodeSplit++;
 
             ullDeviceOffset += ulBufSize;
             ulBlockOffset += ulBufSize;
 
-            pHeapInfo->ulTotalBufCnt++;
+            pHeapInfo->uiTotalBufCnt++;
         }
     }
 
@@ -810,9 +811,9 @@ static BERR_Code BVDC_P_BufferHeap_CreateHeapInfo
     ( BMMA_Heap_Handle             hMemory,
       BVDC_P_BufferHeap_Info      *pHeapInfo )
 {
-    uint32_t               ulTotalBufCnt;
+    uint16_t               uiTotalBufCnt;
     uint32_t               ulBufSize = pHeapInfo->ulBufSize;
-    uint32_t               ulPrimaryBufCnt = pHeapInfo->ulPrimaryBufCnt;
+    uint16_t               uiPrimaryBufCnt = pHeapInfo->uiPrimaryBufCnt;
     BERR_Code              err = BERR_SUCCESS;
 
     BDBG_MSG(("Create heapInfo [%p]: %7s Heap size: %8d (%d, %d)",
@@ -821,7 +822,7 @@ static BERR_Code BVDC_P_BufferHeap_CreateHeapInfo
         ulBufSize, pHeapInfo->ulWidth, pHeapInfo->ulHeight));
 
     /* A size of 0 yields a valid MMA block pointer so catch it here. */
-    if (ulBufSize * ulPrimaryBufCnt == 0)
+    if (ulBufSize * uiPrimaryBufCnt == 0)
     {
         /* coverity[assign_zero] */
         pHeapInfo->hMmaBlock = NULL;
@@ -839,23 +840,23 @@ static BERR_Code BVDC_P_BufferHeap_CreateHeapInfo
 
         /* Allocate MMA block from heap. */
         pHeapInfo->hMmaBlock = BMMA_Alloc(hMemory,
-            ulBufSize * ulPrimaryBufCnt + ulExtraBufSize4MosaicDrain,
+            ulBufSize * uiPrimaryBufCnt + ulExtraBufSize4MosaicDrain,
             1<<BVDC_P_HEAP_MEMORY_ALIGNMENT, NULL);
-        if( !pHeapInfo->hMmaBlock && (0 != ulPrimaryBufCnt) )
+        if( !pHeapInfo->hMmaBlock && (0 != uiPrimaryBufCnt) )
         {
-            BDBG_ERR(("Not enough device memory[%d]!", ulBufSize * ulPrimaryBufCnt));
+            BDBG_ERR(("Not enough device memory[%d]!", ulBufSize * uiPrimaryBufCnt));
             BDBG_ASSERT(0);
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
     }
 
     /* (2) Create buffer heap node list */
-    ulTotalBufCnt = ulPrimaryBufCnt;
+    uiTotalBufCnt = uiPrimaryBufCnt;
     if(pHeapInfo->pParentHeapInfo)
-        ulTotalBufCnt += pHeapInfo->ulNodeCntPerParent * pHeapInfo->pParentHeapInfo->ulTotalBufCnt;
+        uiTotalBufCnt += pHeapInfo->ucNodeCntPerParent * pHeapInfo->pParentHeapInfo->uiTotalBufCnt;
 
     pHeapInfo->pBufList =
-        (BVDC_P_BufferHeapNode *)BKNI_Malloc(sizeof(BVDC_P_BufferHeapNode)*ulTotalBufCnt);
+        (BVDC_P_BufferHeapNode *)BKNI_Malloc(sizeof(BVDC_P_BufferHeapNode)*uiTotalBufCnt);
 
     if( !pHeapInfo->pBufList )
     {
@@ -920,7 +921,7 @@ static BERR_Code BVDC_P_BufferHeap_MarkParentNode_isr
     ( BVDC_P_BufferHeap_Info      *pParentHeapInfo,
       BVDC_P_BufferHeapNode       *pCurrentNode )
 {
-    uint32_t    ulParentNodeBufIndex;
+    uint16_t    uiParentNodeBufIndex;
     BVDC_P_BufferHeapNode   *pParentHeapNode;
 
     if( !pParentHeapInfo || !pCurrentNode )
@@ -929,21 +930,21 @@ static BERR_Code BVDC_P_BufferHeap_MarkParentNode_isr
     }
 
     /* Don't need to mark parent of primary nodes */
-    if(pCurrentNode->ulParentNodeBufIndex == 0xffffffff)
+    if(pCurrentNode->uiParentNodeBufIndex == BVDC_P_HEAP_INVAID_BUF_INDEX)
     {
         return BERR_SUCCESS;
     }
 
-    ulParentNodeBufIndex = pCurrentNode->ulParentNodeBufIndex;
-    BDBG_ASSERT(ulParentNodeBufIndex < pParentHeapInfo->ulTotalBufCnt);
-    pParentHeapNode = &pParentHeapInfo->pBufList[ulParentNodeBufIndex];
+    uiParentNodeBufIndex = pCurrentNode->uiParentNodeBufIndex;
+    BDBG_ASSERT(uiParentNodeBufIndex < pParentHeapInfo->uiTotalBufCnt);
+    pParentHeapNode = &pParentHeapInfo->pBufList[uiParentNodeBufIndex];
     if( pParentHeapNode )
     {
-        pParentHeapNode->ulNumChildNodeUsed++;
+        pParentHeapNode->ucNumChildNodeUsed++;
         if( !pParentHeapNode->bUsed )
         {
             pParentHeapNode->bUsed = true;
-            pParentHeapInfo->ulBufUsed++;
+            pParentHeapInfo->uiBufUsed++;
             BDBG_MSG(("Mark parent node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pParentHeapNode->ullDeviceOffset)));
             BVDC_P_BufferHeap_DumpHeapNode_isr(pParentHeapNode);
 
@@ -963,27 +964,27 @@ static BERR_Code BVDC_P_BufferHeap_MarkChildNodes_isr
 {
     uint32_t                  i = 0;
     BVDC_P_BufferHeapNode    *pChildNode;
-    uint32_t                  ulFirstChildNodeBufIndex;
+    uint16_t                  uiFirstChildNodeBufIndex;
 
     if( !pChildHeapInfo || !pCurrentNode )
     {
         return BERR_SUCCESS;
     }
 
-    ulFirstChildNodeBufIndex = pCurrentNode->ulFirstChildNodeBufIndex;
-    if(ulFirstChildNodeBufIndex == 0xffffffff)
+    uiFirstChildNodeBufIndex = pCurrentNode->uiFirstChildNodeBufIndex;
+    if(uiFirstChildNodeBufIndex == BVDC_P_HEAP_INVAID_BUF_INDEX)
     {
         return BERR_SUCCESS;
     }
 
-    while(i < pCurrentNode->ulNumChildNodeSplit)
+    while(i < pCurrentNode->ucNumChildNodeSplit)
     {
-        pChildNode = &pChildHeapInfo->pBufList[ulFirstChildNodeBufIndex+i];
+        pChildNode = &pChildHeapInfo->pBufList[uiFirstChildNodeBufIndex+i];
         if( pChildNode )
         {
             pChildNode->bUsed = true;
-            pChildHeapInfo->ulBufUsed++;
-            pCurrentNode->ulNumChildNodeUsed++;
+            pChildHeapInfo->uiBufUsed++;
+            pCurrentNode->ucNumChildNodeUsed++;
             BDBG_MSG(("Mark child node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pChildNode->ullDeviceOffset)));
             BVDC_P_BufferHeap_DumpHeapNode_isr(pChildNode);
 
@@ -1007,7 +1008,7 @@ static BERR_Code BVDC_P_BufferHeap_MarkNode_isr
 {
     /* Mark the found node */
     pBufferHeapNode->bUsed = true;
-    pHeapInfo->ulBufUsed++;
+    pHeapInfo->uiBufUsed++;
     BDBG_MSG(("Mark node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pBufferHeapNode->ullDeviceOffset)));
     BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapNode);
 
@@ -1038,25 +1039,25 @@ static BERR_Code BVDC_P_BufferHeap_UnmarkParentNode_isr
     }
 
     /* Don't need to unmark parent of primary nodes */
-    if(pCurrentNode->ulParentNodeBufIndex == 0xffffffff)
+    if(pCurrentNode->uiParentNodeBufIndex == BVDC_P_HEAP_INVAID_BUF_INDEX)
     {
         return BERR_SUCCESS;
     }
 
-    BDBG_ASSERT(pCurrentNode->ulParentNodeBufIndex < pParentHeapInfo->ulTotalBufCnt);
-    pParentHeapNode = &pParentHeapInfo->pBufList[pCurrentNode->ulParentNodeBufIndex];
+    BDBG_ASSERT(pCurrentNode->uiParentNodeBufIndex < pParentHeapInfo->uiTotalBufCnt);
+    pParentHeapNode = &pParentHeapInfo->pBufList[pCurrentNode->uiParentNodeBufIndex];
 
     if(pParentHeapNode)
     {
-        pParentHeapNode->ulNumChildNodeUsed--;
+        pParentHeapNode->ucNumChildNodeUsed--;
         BDBG_MSG(("Check parent node: "));
 
-        if( pParentHeapNode->ulNumChildNodeUsed == 0 )
+        if( pParentHeapNode->ucNumChildNodeUsed == 0 )
         {
             if( pParentHeapNode->bUsed )
             {
                 pParentHeapNode->bUsed = false;
-                pParentHeapInfo->ulBufUsed--;
+                pParentHeapInfo->uiBufUsed--;
                 BDBG_MSG(("Unmark parent node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pParentHeapNode->ullDeviceOffset)));
                 BVDC_P_BufferHeap_DumpHeapNode_isr(pParentHeapNode);
             }
@@ -1077,7 +1078,7 @@ static BERR_Code BVDC_P_BufferHeap_UnmarkChildNodes_isr
     ( BVDC_P_BufferHeap_Info      *pChildHeapInfo,
       BVDC_P_BufferHeapNode       *pCurrentNode )
 {
-    uint32_t    i = 0, ulFirstChildNodeBufIndex;
+    uint16_t    i = 0, uiFirstChildNodeBufIndex;
     BVDC_P_BufferHeapNode   *pChildNode;
 
     if( !pChildHeapInfo || !pCurrentNode )
@@ -1085,19 +1086,19 @@ static BERR_Code BVDC_P_BufferHeap_UnmarkChildNodes_isr
         return BERR_SUCCESS;
     }
 
-    ulFirstChildNodeBufIndex = pCurrentNode->ulFirstChildNodeBufIndex;
-    if(ulFirstChildNodeBufIndex == 0xffffffff)
+    uiFirstChildNodeBufIndex = pCurrentNode->uiFirstChildNodeBufIndex;
+    if(uiFirstChildNodeBufIndex == BVDC_P_HEAP_INVAID_BUF_INDEX)
     {
         return BERR_SUCCESS;
     }
 
-    while(i < pCurrentNode->ulNumChildNodeSplit)
+    while(i < pCurrentNode->ucNumChildNodeSplit)
     {
-        pChildNode = &pChildHeapInfo->pBufList[ulFirstChildNodeBufIndex+i];
+        pChildNode = &pChildHeapInfo->pBufList[uiFirstChildNodeBufIndex+i];
 
         pChildNode->bUsed = false;
-        pChildHeapInfo->ulBufUsed--;
-        pCurrentNode->ulNumChildNodeUsed--;
+        pChildHeapInfo->uiBufUsed--;
+        pCurrentNode->ucNumChildNodeUsed--;
         BVDC_P_BufferHeap_DumpHeapNode_isr(pChildNode);
         BDBG_MSG(("Unmark child node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pChildNode->ullDeviceOffset)));
         BVDC_P_BufferHeap_UnmarkChildNodes_isr(pChildHeapInfo->pChildHeapInfo,
@@ -1120,9 +1121,9 @@ static BERR_Code BVDC_P_BufferHeap_UnmarkNode_isr
     /* Unmark the found node */
     pBufferHeapNode->bUsed = false;
     /*
-    pBufferHeapNode->ulNumChildNodeUsed = 0;
+    pBufferHeapNode->ucNumChildNodeUsed = 0;
     */
-    pHeapInfo->ulBufUsed--;
+    pHeapInfo->uiBufUsed--;
     BDBG_MSG(("Unmark node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pBufferHeapNode->ullDeviceOffset)));
     BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapNode);
 
@@ -1159,7 +1160,7 @@ static BERR_Code BVDC_P_BufferHeap_AllocateNodes_isr
     for( i = 0; i < ulCount; i++ )
     {
         bFound = false;
-        while((j < pHeapInfo->ulTotalBufCnt) && !bFound)
+        while((j < pHeapInfo->uiTotalBufCnt) && !bFound)
         {
             pBufferHeapNode = &pHeapInfo->pBufList[j];
 
@@ -1225,7 +1226,7 @@ static BERR_Code BVDC_P_BufferHeap_FreeNode_isr
 
     /* Find the node first */
     pTempNode = &pHeapInfo->pBufList[0];
-    while((i < pHeapInfo->ulTotalBufCnt) && !bFound)
+    while((i < pHeapInfo->uiTotalBufCnt) && !bFound)
     {
         pTempNode = &pHeapInfo->pBufList[i];
         if(pTempNode->ullDeviceOffset != pHeapNode->ullDeviceOffset)
@@ -1250,11 +1251,11 @@ static BERR_Code BVDC_P_BufferHeap_FreeNode_isr
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    BDBG_ASSERT(pHeapInfo->ulBufUsed <= pHeapInfo->ulTotalBufCnt);
+    BDBG_ASSERT(pHeapInfo->uiBufUsed <= pHeapInfo->uiTotalBufCnt);
 
-    if(!pHeapInfo->ulBufUsed)
+    if(!pHeapInfo->uiBufUsed)
     {
-        for(i = 0; i < pHeapInfo->ulTotalBufCnt; i++)
+        for(i = 0; i < pHeapInfo->uiTotalBufCnt; i++)
         {
             BDBG_ASSERT(!pHeapInfo->pBufList[i].bUsed);
         }
@@ -1287,7 +1288,7 @@ static BERR_Code BVDC_P_BufferHeap_AllocateContNodes_isr
     {
         /* Get the first node */
         bStartNodeFound = false;
-        while((j < pHeapInfo->ulTotalBufCnt) && !bStartNodeFound)
+        while((j < pHeapInfo->uiTotalBufCnt) && !bStartNodeFound)
         {
             ulStartNodeIndex = j;
             pBufferHeapNodeStart = &pHeapInfo->pBufList[j];
@@ -1312,7 +1313,7 @@ static BERR_Code BVDC_P_BufferHeap_AllocateContNodes_isr
 
         bNext = true;
         pBufferHeapTempNode = pBufferHeapNodeStart;
-        while( (ulAllocCnt < ulCount) && (j < pHeapInfo->ulTotalBufCnt))
+        while( (ulAllocCnt < ulCount) && (j < pHeapInfo->uiTotalBufCnt))
         {
             pBufferHeapTempNode= &pHeapInfo->pBufList[j];
             if( pBufferHeapTempNode->bUsed )
@@ -1407,7 +1408,7 @@ static BERR_Code BVDC_P_BufferHeap_FreeContNodes_isr
     pTempNode = &pHeapInfo->pBufList[0];
 
     /* Find the node first */
-    while((j < pHeapInfo->ulTotalBufCnt) && !bFound)
+    while((j < pHeapInfo->uiTotalBufCnt) && !bFound)
     {
         ulStartNodeIndex = j;
         pTempNode = &pHeapInfo->pBufList[j];
@@ -1445,10 +1446,10 @@ static BERR_Code BVDC_P_BufferHeap_FreeContNodes_isr
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    BDBG_ASSERT(pHeapInfo->ulBufUsed <= pHeapInfo->ulTotalBufCnt);
-    if(!pHeapInfo->ulBufUsed)
+    BDBG_ASSERT(pHeapInfo->uiBufUsed <= pHeapInfo->uiTotalBufCnt);
+    if(!pHeapInfo->uiBufUsed)
     {
-        for(i = 0; i < pHeapInfo->ulTotalBufCnt; i++)
+        for(i = 0; i < pHeapInfo->uiTotalBufCnt; i++)
         {
             BDBG_ASSERT(!pHeapInfo->pBufList[i].bUsed);
         }
@@ -1594,7 +1595,7 @@ BERR_Code BVDC_P_BufferHeap_AllocateBuffers_isr
     BDBG_ASSERT(pHeapInfo->eBufHeapId == eBufferHeapId);
 
     /* Get buffer heap */
-    ulBufferAvailable = pHeapInfo->ulTotalBufCnt - pHeapInfo->ulBufUsed;
+    ulBufferAvailable = pHeapInfo->uiTotalBufCnt - pHeapInfo->uiBufUsed;
 
     if( ulCount > ulBufferAvailable )
     {
@@ -1805,7 +1806,7 @@ BERR_Code BVDC_P_BufferHeap_CheckHeapMemcIndex
     for(i = 0; i < BVDC_P_BufferHeapId_eCount; i++)
     {
         pHeapInfo = &pHeap->astHeapInfo[i];
-        if(pHeapInfo->ulPrimaryBufCnt)
+        if(pHeapInfo->uiPrimaryBufCnt)
         {
             BSTD_DeviceOffset ulHeapStartOffset = (uint64_t)pHeapInfo->pBufList[0].ullDeviceOffset;
             if( !BCHP_OffsetOnMemc(pHeap->hVdc->hChip, ulHeapStartOffset, ulMemcIndex) )

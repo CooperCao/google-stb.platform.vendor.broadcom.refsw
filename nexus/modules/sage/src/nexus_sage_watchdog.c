@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2013 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -135,7 +135,7 @@ void NEXUS_Sage_RemoveWatchdogEvent_priv(BKNI_EventHandle event)
 static void NEXUS_Sage_P_WatchdogIntHandler_isr(void)
 {
     g_NEXUS_sageModule.reset = 1;
-    g_NEXUS_sageModule.booted = 0;
+    g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
     BDBG_MSG(("%s: Reset interrupt", __FUNCTION__));
 

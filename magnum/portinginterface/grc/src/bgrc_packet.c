@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,7 +45,6 @@
 #include "bkni.h"
 #include "bint.h"
 #include "bchp.h"
-#include "bmem.h"
 #include "bint.h"
 #include "breg_mem.h"
 #include "bgrc_errors.h"
@@ -113,6 +112,7 @@
 #include "bgrc_packet_priv.h"
 
 BDBG_MODULE(BGRC);
+BDBG_FILE_MODULE(BGRC_LISTSTATUS);
 BDBG_OBJECT_ID(BGRC);
 BDBG_OBJECT_ID(BGRC_PacketContext);
 
@@ -149,13 +149,6 @@ BDBG_OBJECT_ID(BGRC_PacketContext);
 #define BGRC_PACKET_P_M2MC1_INT_ID   BCHP_INT_ID_CREATE(BCHP_M2MC1_L2_CPU_STATUS, BCHP_M2MC1_L2_CPU_STATUS_M2MC_INTR_SHIFT)
 #elif defined(BCHP_M2MC1_REG_START)
 #define BGRC_PACKET_P_M2MC1_INT_ID   BCHP_INT_ID_CREATE(BCHP_M2MC1_L2_CPU_STATUS, BCHP_M2MC_L2_CPU_STATUS_M2MC_INTR_SHIFT)
-#endif
-
-/***************************************************************************/
-#if 0
-#define BGRC_PACKET_MEMORY_MAX         (128*1024)
-#define BGRC_OPERATION_MAX             (2*1024)
-#define BGRC_WAIT_TIMEOUT              10
 #endif
 
 /***************************************************************************/
@@ -1065,6 +1058,24 @@ BERR_Code BGRC_Packet_AdvancePackets(
     BDBG_OBJECT_ASSERT(hGrc, BGRC);
     BGRC_P_ENTER(hGrc);
 
+#if BGRC_PACKET_P_BLIT_WORKAROUND
+    if(hGrc->eListStatus ==BGRC_P_List_eReadytoSubmit)
+    {
+        /*BKNI_ResetEvent(hGrc->hListDoneEvent);*/
+        BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
+                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
+                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
+        hGrc->eListStatus = BGRC_P_List_eSubmitted;
+        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus ReadytoSubmit => Submitted"));
+    }
+    else
+    {
+        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus %s => Finished", hGrc->eListStatus?"Submitted":"Finished"));
+        hGrc->eListStatus = BGRC_P_List_eFinished;
+    }
+#endif
+
     hCurrContext = bgrc_p_first_context(hGrc);
 
     /* loop through contexts */
@@ -1765,52 +1776,6 @@ BERR_Code BGRC_Packet_SetMirrorPacket( BGRC_Handle hGrc, void **ppPacket,
     return BERR_SUCCESS;
 }
 
-#if !B_REFSW_MINIMAL
-/*****************************************************************************
- * Deprecated.
- */
-BERR_Code BGRC_Packet_SetFixedScalePacket( BGRC_Handle hGrc, void **ppPacket,
-    int32_t hor_phase, int32_t ver_phase, uint32_t hor_step, uint32_t ver_step, uint32_t shift )
-{
-    BM2MC_PACKET_PacketFixedScale *pPacket = (BM2MC_PACKET_PacketFixedScale *) (*ppPacket);
-    BM2MC_PACKET_INIT( pPacket, FixedScale, false );
-    pPacket->hor_phase = hor_phase;
-    pPacket->ver_phase = ver_phase;
-    pPacket->hor_step = hor_step;
-    pPacket->ver_step = ver_step;
-    pPacket->shift = shift;
-    BM2MC_PACKET_TERM( pPacket );
-
-    *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
-    return BERR_SUCCESS;
-}
-
-/*****************************************************************************
- * Deprecated.
- */
-BERR_Code BGRC_Packet_SetDestripeFixedScalePacket( BGRC_Handle hGrc, void **ppPacket,
-    BM2MC_PACKET_Rectangle *pChromaRect, int32_t hor_luma_phase, int32_t ver_luma_phase, int32_t hor_chroma_phase, int32_t ver_chroma_phase,
-    uint32_t hor_luma_step, uint32_t ver_luma_step, uint32_t shift )
-{
-    BM2MC_PACKET_PacketDestripeFixedScale *pPacket = (BM2MC_PACKET_PacketDestripeFixedScale *) (*ppPacket);
-    BM2MC_PACKET_INIT( pPacket, DestripeFixedScale, false );
-    pPacket->chroma_rect = *pChromaRect;
-    pPacket->hor_luma_phase = hor_luma_phase;
-    pPacket->ver_luma_phase = ver_luma_phase;
-    pPacket->hor_chroma_phase = hor_chroma_phase;
-    pPacket->ver_chroma_phase = ver_chroma_phase;
-    pPacket->hor_luma_step = hor_luma_step;
-    pPacket->ver_luma_step = ver_luma_step;
-    pPacket->shift = shift;
-    BM2MC_PACKET_TERM( pPacket );
-
-    *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
-    return BERR_SUCCESS;
-}
-#endif /* #if !B_REFSW_MINIMAL */
-
 /*****************************************************************************/
 BERR_Code BGRC_Packet_SetBlitPacket( BGRC_Handle hGrc, void **ppPacket,
     BM2MC_PACKET_Rectangle *pSrcRect, BM2MC_PACKET_Point *pOutPoint, BM2MC_PACKET_Point *pDstPoint )
@@ -1881,63 +1846,5 @@ BERR_Code BGRC_SetSecureMode( BGRC_Handle hGrc, bool secure )
     hGrc->hLastSyncCtx = NULL;
     return BERR_SUCCESS;
 }
-
-#if !B_REFSW_MINIMAL
-/*****************************************************************************/
-BERR_Code BGRC_Packet_SetDestripeBlitPacket( BGRC_Handle hGrc, void **ppPacket,
-    BM2MC_PACKET_Rectangle *pSrcRect, BM2MC_PACKET_Rectangle *pOutRect,
-    uint32_t stripeWidth, uint32_t lumaStripeHeight, uint32_t chromaStripeHeight )
-{
-    BM2MC_PACKET_PacketDestripeBlit *pPacket = (BM2MC_PACKET_PacketDestripeBlit *) (*ppPacket);
-    BM2MC_PACKET_INIT( pPacket, DestripeBlit, true );
-    pPacket->src_rect = *pSrcRect;
-    pPacket->out_rect = *pOutRect;
-    pPacket->dst_point = *((BM2MC_PACKET_Point *) pOutRect);
-    pPacket->source_stripe_width = stripeWidth;
-    pPacket->luma_stripe_height = lumaStripeHeight;
-    pPacket->chroma_stripe_height = chromaStripeHeight;
-    BM2MC_PACKET_TERM( pPacket );
-
-    *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
-    return BERR_SUCCESS;
-}
-
-/*****************************************************************************/
-BERR_Code BGRC_Packet_SetResetState( BGRC_Handle hGrc, void **ppPacket )
-{
-    BM2MC_PACKET_PacketResetState *pPacket = (BM2MC_PACKET_PacketResetState *) (*ppPacket);
-    BM2MC_PACKET_INIT( pPacket, ResetState, false );
-    BM2MC_PACKET_TERM( pPacket );
-
-    *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
-    return BERR_SUCCESS;
-}
-
-/*****************************************************************************/
-BERR_Code BGRC_Packet_SetSaveState( BGRC_Handle hGrc, void **ppPacket )
-{
-    BM2MC_PACKET_PacketSaveState *pPacket = (BM2MC_PACKET_PacketSaveState *) (*ppPacket);
-    BM2MC_PACKET_INIT( pPacket, SaveState, false );
-    BM2MC_PACKET_TERM( pPacket );
-
-    *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
-    return BERR_SUCCESS;
-}
-
-/*****************************************************************************/
-BERR_Code BGRC_Packet_SetRestoreState( BGRC_Handle hGrc, void **ppPacket )
-{
-    BM2MC_PACKET_PacketRestoreState *pPacket = (BM2MC_PACKET_PacketRestoreState *) (*ppPacket);
-    BM2MC_PACKET_INIT( pPacket, RestoreState, false );
-    BM2MC_PACKET_TERM( pPacket );
-
-    *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
-    return BERR_SUCCESS;
-}
-#endif /* #if !B_REFSW_MINIMAL */
 
 /* End of File */

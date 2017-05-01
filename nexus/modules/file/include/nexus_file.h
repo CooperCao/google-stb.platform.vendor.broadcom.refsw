@@ -187,7 +187,20 @@ NEXUS_FileRecordHandle NEXUS_FileRecord_OpenPosix(
 
 /**
 Summary:
-Synchronous file I/O using posix open/write calls that appends to the existing file.
+Synchronous file I/O using posix open/write calls that append to the existing file.
+
+Description:
+There are significant limitations to this feature.
+Unless the ES data is formed correctly, the splice point in the stream will be seen as extended macroblocking
+or audio glitching. The splice point is not tracked, so there is no way for the application to stop and
+restart decode at that point. Also, there can be no pid or codec change.
+
+Instead, we recommend the application splice together separate recordings in the user interface.
+For instance, if there is a box reboot during a recording, or a channel change in the timeshift buffer, instead of
+appending to the previous record, the application can keep track of the separate recordings and manage a clean transition
+between them. When playback of the first recording ends, the application receives a callback and can start the second.
+The transition is very fast and the playback and decoder stop/start is exactly what is required to make the transition
+clean and general purpose.
 **/
 NEXUS_FileRecordHandle NEXUS_FileRecord_AppendPosix(
     const char *dataFileName,
@@ -348,7 +361,8 @@ typedef struct NEXUS_FileRecordOpenSettings
         const char *filename; /* relative path from current directory. use NULL if file is unused. */
         bool sync; /* immediate write to disk */
     } index;
-    bool append; /* controls whether new file created or data gets appended to the existing file. */
+    bool append; /* controls whether new file created or data gets appended to the existing file.
+                    see NEXUS_FileRecord_AppendPosix for limitations. */
 } NEXUS_FileRecordOpenSettings;    
     
 /**

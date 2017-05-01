@@ -144,7 +144,7 @@ typedef struct glxx_texture
     *      and two-dimensional arrays texture targets
     *    - and six sets of mipmap arrays for the cube map texture targets
     */
-   KHRN_IMAGE_T *img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
+   khrn_image *img[MAX_FACES][KHRN_MAX_MIP_LEVELS];
 
    /* helper data */
    enum glxx_tex_binding   binding;
@@ -333,7 +333,7 @@ extern void glxx_tex_transform_offsets_for_target(enum glxx_tex_target target,
 extern bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
       glxx_context_fences *fences, GLenum *error);
 
-extern bool glxx_texture_bind_teximage(GLXX_TEXTURE_T *texture, KHRN_IMAGE_T
+extern bool glxx_texture_bind_teximage(GLXX_TEXTURE_T *texture, khrn_image
       **images, unsigned num_images, unsigned mip_level,
       glxx_context_fences *fences);
 
@@ -352,7 +352,7 @@ extern void glxx_texture_remove_observer(GLXX_TEXTURE_T *texture);
  * *img can be NULL if there is no texture image for that face/level
  */
 bool glxx_texture_acquire_one_elem_slice(GLXX_TEXTURE_T* texture,
-      unsigned face, unsigned level, unsigned layer, KHRN_IMAGE_T **img);
+      unsigned face, unsigned level, unsigned layer, khrn_image **img);
 
 /* Call this when you want to share a slice from a texture with an eglimage;
  * You should call this function only on an unbound texture or an egl image
@@ -364,7 +364,7 @@ bool glxx_texture_acquire_one_elem_slice(GLXX_TEXTURE_T* texture,
  * *img can be NULL if there is no texture image for that face/level
  */
 bool glxx_texture_acquire_from_eglimage(GLXX_TEXTURE_T *texture, unsigned face,
-      unsigned level, unsigned layer, KHRN_IMAGE_T **img);
+      unsigned level, unsigned layer, khrn_image **img);
 
 /* return true if the texture has texel array outside the range levels
  * (range includes num_levels starting from the start_level) */
@@ -375,13 +375,13 @@ extern bool glxx_texture_has_images_outside_range(const GLXX_TEXTURE_T
 void glxx_texture_set_crop_rect(GLXX_TEXTURE_T *texture, const GLint * params);
 
 extern bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, unsigned face,
-      unsigned level, GFX_LFMT_T dst_fmt, KHRN_IMAGE_T *src,
+      unsigned level, GFX_LFMT_T dst_fmt, khrn_image *src,
       int src_x, int src_y, int width, int height,
       glxx_context_fences *fences);
 
 extern bool glxx_texture_copy_sub_image(GLXX_TEXTURE_T *texture, unsigned face,
       unsigned level, int dst_x, int dst_y, int dst_z,
-      KHRN_IMAGE_T *src, int src_x, int src_y, int width, int height,
+      khrn_image *src, int src_x, int src_y, int width, int height,
       glxx_context_fences *fences);
 
 bool glxx_texture_get_fixed_sample_locations(const GLXX_TEXTURE_T *texture);

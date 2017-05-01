@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
     NxClient_JoinSettings joinSettings;
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
-    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "openssl_rsa_sage");
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "sage_manufacturing");
     rc_nexus = NxClient_Join(&joinSettings);
     if (rc_nexus != NEXUS_SUCCESS) {
         BDBG_ERR(("Error joining NxClient: please check if nxserver is running already!!\n"));

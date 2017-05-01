@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -396,8 +396,10 @@ struct bfile_io_write_net {
     int residualBytesLength;    /* # of bytes that were not encrypted in the previous encrypt operation due to AES block size limitation of 16 bytes */
     char residualBytesToEncrypt[ENCRYPTION_PADDING]; /* actual bytes to encrypt */
 #endif
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY
     NEXUS_KeySlotHandle pvrDecKeyHandle; /* handle for pvr decryption */
+#endif
+#if NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA
     NEXUS_DmaHandle dmaHandle;
     NEXUS_DmaJobHandle dmaJobHandle;
     BKNI_EventHandle event;

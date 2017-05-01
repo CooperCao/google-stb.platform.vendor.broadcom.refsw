@@ -1,39 +1,39 @@
-/****************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -41,22 +41,25 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Sun Oct 11 12:14:04 2015
- *                 Full Compile MD5 Checksum  d9086034aa2cc6f9a99dc8c63a00d9b3
+ * Date:           Generated on               Mon May  1 14:05:29 2017
+ *                 Full Compile MD5 Checksum  9816b322f0b73277caebc1634dfa6aee
  *                     (minus title and desc)
- *                 MD5 Checksum               5b6751e69633ab9bdfaa661db7820c66
+ *                 MD5 Checksum               46f06c49c4aef22b70e6455f0d975028
  *
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                unknown
- *                 RDB.pm                     360
+ *                 RDB.pm                     1395
  *                 generate_int_id.pl         1.0
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/generate_int_id.pl
- *                 DVTSWVER                   current
+ *                 Script Source              home/pntruong/sbin/generate_int_id.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/generate_int_id.pl
  *
  *
- ***************************************************************************/
+********************************************************************************/
 
 #include "bchp.h"
 #include "bchp_mpm_host_l2.h"
@@ -64,23 +67,22 @@
 #ifndef BCHP_INT_ID_MPM_HOST_L2_H__
 #define BCHP_INT_ID_MPM_HOST_L2_H__
 
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_reserved0 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_reserved0_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_A2R_BAD_SIZE_INTR BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_A2R_BAD_SIZE_INTR_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_A2R_TIMEOUT_INTR BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_A2R_TIMEOUT_INTR_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE0 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE0_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE1 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE1_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE2 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE2_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE3 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE3_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_MSPI_INTR_0 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MSPI_INTR_0_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_MSPI_INTR_1 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MSPI_INTR_1_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_S0_TO_S3 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_S0_TO_S3_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_S3_TO_S0 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_S3_TO_S0_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_SW_INTR_0 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_0_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_SW_INTR_1 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_1_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_SW_INTR_2 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_2_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_SW_INTR_3 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_3_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_SW_INTR_4 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_4_SHIFT)
-#define BCHP_INT_ID_MPM_HOST_L2_CPU_STATUS_SW_INTR_5 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_5_SHIFT)
+#define BCHP_INT_ID_A2R_BAD_SIZE_INTR         BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_A2R_BAD_SIZE_INTR_SHIFT)
+#define BCHP_INT_ID_A2R_TIMEOUT_INTR          BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_A2R_TIMEOUT_INTR_SHIFT)
+#define BCHP_INT_ID_MPM_INTR_SPARE0           BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE0_SHIFT)
+#define BCHP_INT_ID_MPM_INTR_SPARE1           BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE1_SHIFT)
+#define BCHP_INT_ID_MPM_INTR_SPARE2           BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE2_SHIFT)
+#define BCHP_INT_ID_MPM_INTR_SPARE3           BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MPM_INTR_SPARE3_SHIFT)
+#define BCHP_INT_ID_MSPI_INTR_0               BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MSPI_INTR_0_SHIFT)
+#define BCHP_INT_ID_MSPI_INTR_1               BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_MSPI_INTR_1_SHIFT)
+#define BCHP_INT_ID_S0_TO_S3                  BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_S0_TO_S3_SHIFT)
+#define BCHP_INT_ID_S3_TO_S0                  BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_S3_TO_S0_SHIFT)
+#define BCHP_INT_ID_SW_INTR_0                 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_0_SHIFT)
+#define BCHP_INT_ID_SW_INTR_1                 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_1_SHIFT)
+#define BCHP_INT_ID_SW_INTR_2                 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_2_SHIFT)
+#define BCHP_INT_ID_SW_INTR_3                 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_3_SHIFT)
+#define BCHP_INT_ID_SW_INTR_4                 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_4_SHIFT)
+#define BCHP_INT_ID_SW_INTR_5                 BCHP_INT_ID_CREATE(BCHP_MPM_HOST_L2_CPU_STATUS, BCHP_MPM_HOST_L2_CPU_STATUS_SW_INTR_5_SHIFT)
 
 #endif /* #ifndef BCHP_INT_ID_MPM_HOST_L2_H__ */
 

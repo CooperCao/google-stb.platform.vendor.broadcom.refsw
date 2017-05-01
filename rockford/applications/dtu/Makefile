@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,16 +34,14 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
 ############################################################
 ROCKFORD=$(shell cd ../..;pwd)
 MAGNUM=$(shell cd $(ROCKFORD)/../magnum;pwd)
-NEXUS_TOP=$(MAGNUM)/../nexus
+NEXUS_TOP=$(shell cd $(MAGNUM)/../nexus;pwd)
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
-
-ODIR=obj
+BINDIR := $(B_REFSW_OBJ_ROOT)/rockford/applications/dtu
 
 include $(MAGNUM)/basemodules/std/bstd.inc
 include $(MAGNUM)/basemodules/kni/bkni.inc
@@ -68,37 +66,30 @@ include $(MAGNUM)/commonutils/pxl/bpxl.inc
 CFLAGS += $(addprefix -D,$(NEXUS_APP_DEFINES)) $(NEXUS_CFLAGS)
 CFLAGS += $(addprefix -D,$(foreach module,$(MAGNUM_MODULES),$($(module)_DEFINES)))
 CFLAGS += $(addprefix -I,$(foreach module,$(MAGNUM_MODULES),$($(module)_INCLUDES)))
-MAGNUM_OBJS += $(patsubst %.c,%.o,$(BSTD_SOURCES) $(BKNI_SOURCES) $(BDBG_SOURCES) $(BCHP_SOURCES) $(BERR_SOURCES) $(BLST_SOURCES) $(BREG_SOURCES) $(BDTU_SOURCES))
-CFLAGS += -I.
+MAGNUM_OBJS += $(addprefix $(BINDIR)/,$(notdir $(patsubst %.c,%.o,$(BSTD_SOURCES) $(BKNI_SOURCES) $(BDBG_SOURCES) $(BCHP_SOURCES) $(BERR_SOURCES) $(BLST_SOURCES) $(BREG_SOURCES) $(BDTU_SOURCES))))
+vpath %.c $(dir $(BSTD_SOURCES) $(BKNI_SOURCES) $(BDBG_SOURCES) $(BCHP_SOURCES) $(BERR_SOURCES) $(BLST_SOURCES) $(BREG_SOURCES) $(BDTU_SOURCES))
 LFLAGS += -lpthread
 
 APPS=dtutool
 all: $(APPS)
 
-$(ODIR):
-	mkdir $(ODIR)
-
 Q_ ?= @
 
-dtutool: $(ODIR) $(ODIR)/dtutool.o $(MAGNUM_OBJS)
+.PHONY: dtutool
+dtutool: $(BINDIR)/dtutool
+ifneq ($(DESTDIR),)
+	$(CP) $(BINDIR)/dtutool $(DESTDIR)
+endif
+
+$(BINDIR)/dtutool: $(BINDIR)/dtutool.o $(MAGNUM_OBJS)
 	$(Q_)echo [link $@]
+	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -o $@ $(LFLAGS) $(filter %.o,$^)
 
-$(ODIR)/%.o: %.c
+$(BINDIR)/%.o: %.c
 	$(Q_)echo [compile $@]
-	$(Q_)$(Q_)$(CC) -c -o $@ $(CFLAGS) $^
-
-%.o: %.c
-	$(Q_)echo [compile $@]
+	@mkdir -p $(dir $@)
 	$(Q_)$(Q_)$(CC) -c -o $@ $(CFLAGS) $^
 
 clean:
-	$(Q_)$(RM) -r $(ODIR) $(APPS) $(MAGNUM_OBJS)
-
-ifeq ($(DESTDIR),)
-install:
-	@echo Must define DESTDIR
-else
-install:
-	cp $(APPS) $(DESTDIR)
-endif
+	$(Q_)$(RM) -r $(BINDIR)

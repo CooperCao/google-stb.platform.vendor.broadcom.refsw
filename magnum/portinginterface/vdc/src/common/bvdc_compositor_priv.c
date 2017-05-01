@@ -51,7 +51,6 @@
 #include "bvdc_feeder_priv.h"
 #include "bvdc_csc_priv.h"
 
-
 #define BVDC_P_MAKE_CMP(pCmp, id)                                     \
 {                                                                     \
     (pCmp)->ulCoreResetAddr = BCHP_BMISC_SW_INIT;                     \
@@ -323,6 +322,24 @@ BERR_Code BVDC_P_Compositor_Create
             pCompositor->stCfcCapability[i].stBits.bRamNL2L = pCompositor->stCfcCapability[i].stBits.bNL2L;
             pCompositor->stCfcCapability[i].stBits.bRamL2NL = pCompositor->stCfcCapability[i].stBits.bL2NL;
         }
+#if BVDC_P_DBV_SUPPORT
+        if(pCompositor->stCfcCapability[0].stBits.bDbvToneMapping) {
+            eStatus = BVDC_P_Compositor_DbvInit(pCompositor);
+            if(BERR_SUCCESS != eStatus)
+            {
+                goto BVDC_P_Compositor_Create_Done;
+            }
+        }
+#endif
+#if BVDC_P_TCH_SUPPORT
+        if(pCompositor->stCfcCapability[0].stBits.bTpToneMapping) {
+            eStatus = BVDC_P_Compositor_TchInit(pCompositor);
+            if(BERR_SUCCESS != eStatus)
+            {
+                goto BVDC_P_Compositor_Create_Done;
+            }
+        }
+#endif
     }
 #endif /* #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG */
 
@@ -552,6 +569,16 @@ void BVDC_P_Compositor_Destroy
         BRDC_List_Destroy(hCompositor->ahList[i]);
     }
 
+#if BVDC_P_DBV_SUPPORT
+    if(hCompositor->stCfcCapability[0].stBits.bDbvToneMapping) {
+        BVDC_P_Compositor_DbvUninit(hCompositor);
+    }
+#endif
+#if BVDC_P_TCH_SUPPORT
+    if(hCompositor->stCfcCapability[0].stBits.bTpToneMapping) {
+        BVDC_P_Compositor_TchUninit(hCompositor);
+    }
+#endif
     BDBG_OBJECT_DESTROY(hCompositor, BVDC_CMP);
     /* [1] Release context in system memory */
     BKNI_Free((void*)hCompositor);
@@ -1438,6 +1465,14 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
             }
         }
 
+#if BVDC_P_TCH_SUPPORT
+        if ((hCompositor->stCfcCapability[0].stBits.bTpToneMapping) &&
+            (eVId == BVDC_P_WindowId_eComp0_V0 && BVDC_P_IS_TCH(hCompositor->ahWindow[eVId]->pMainCfc->stColorSpaceIn.stAvcColorSpace.stMetaData.stTchInput.stHdrMetadata.eType)))
+        {
+            BVDC_P_Compositor_BuildTchVsyncRul_isr(hCompositor, pList);
+        }
+#endif
+
         if(hCompositor->ulDitherChange[eVId])
         {
             BVDC_Window_Handle hWindow = hCompositor->ahWindow[eVId];
@@ -1551,7 +1586,11 @@ static void BVDC_P_Compositor_BuildRul_isr
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_CMP_0_BG_COLOR - BCHP_CMP_0_CANVAS_SIZE) / sizeof(uint32_t)) + 1);
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CMP_0_CANVAS_SIZE + hCompositor->ulRegOffset);
     *pList->pulCurrent++ = BVDC_P_CMP_OFFSET_GET_REG_DATA(CMP_0_CANVAS_SIZE, 0);
-    *pList->pulCurrent++ = (BVDC_P_NEED_BLEND_MATRIX(hCompositor))?
+    *pList->pulCurrent++ = ((BVDC_P_NEED_BLEND_MATRIX(hCompositor))
+#if BVDC_P_DBV_SUPPORT /* DBV in or out would NOT make CMP bg_color as RGB either */
+        && !BVDC_P_CMP_OUTPUT_IPT(hCompositor)
+#endif
+        ) ?
         (BCHP_FIELD_DATA(CMP_0_BG_COLOR, Y,  hCompositor->stCurInfo.ucRed)   |
          BCHP_FIELD_DATA(CMP_0_BG_COLOR, CB, hCompositor->stCurInfo.ucGreen) |
          BCHP_FIELD_DATA(CMP_0_BG_COLOR, CR, hCompositor->stCurInfo.ucBlue)) :
@@ -1749,15 +1788,6 @@ void BVDC_P_Compositor_BuildSyncLockRul_isr
                     BVDC_P_BUILD_IMM_EXEC_OPS(pList->pulCurrent, hSource->aulImmTriggerAddr[
                         hSource->bFieldSwap ? BVDC_P_NEXT_POLARITY(eFieldId) : eFieldId]);
 
-                /* PsF: source refresh rate is frame rate */
-                /* The refresh rate of this source is driven by refresh rate
-                 * of this display */
-                if(!(hSource->stCurInfo.bPsfEnable || hSource->stCurInfo.bForceFrameCapture))
-                {
-                    /* this value may differentiate 59.94 vs 60 for HD formats that support
-                        multiple frame rates. */
-                    hSource->ulVertFreq = hCompositor->hDisplay->stCurInfo.ulVertFreq;
-                }
                 hSource->ulDispVsyncFreq = hCompositor->hDisplay->stCurInfo.ulVertFreq;
             }
 
@@ -1924,6 +1954,10 @@ void BVDC_P_Compositor_WindowsReader_isr
     int                       i;
     uint32_t                  ulVSize, ulHSize;
     BVDC_Window_Handle        hWindow;
+    BVDC_Window_Handle        hWindow0 = NULL;
+#if BVDC_P_DBV_SUPPORT
+    BVDC_P_GfxFeeder_Handle   hGfxFeeder = NULL;
+#endif
     bool                      bWidthTrim = true;
     BVDC_DisplayTg            eMasterTg;
     bool                      bDTg;
@@ -1964,7 +1998,16 @@ void BVDC_P_Compositor_WindowsReader_isr
                 bEnableDcxm = hWindow->pCurReaderNode->bEnableDcxm;
         }
 #endif
-
+        if((BVDC_P_WindowId)i == BVDC_P_CMP_GET_V0ID(hCompositor))
+        {
+            hWindow0 = hWindow;
+        }
+#if BVDC_P_DBV_SUPPORT
+        if(BVDC_P_WIN_IS_GFX_WINDOW(hWindow->eId))
+        {
+            hGfxFeeder = hWindow->stCurInfo.hSource->hGfxFeeder;
+        }
+#endif
         /* turn off 704-sample feature if any window is larger than 704 width */
         if(BVDC_P_WIN_GET_FIELD_NAME(CMP_0_V0_DISPLAY_SIZE, HSIZE) > 704)
         {
@@ -2012,20 +2055,6 @@ void BVDC_P_Compositor_WindowsReader_isr
     stSrcInfo.bFullRate = hCompositor->bFullRate;
 
     BVDC_P_Display_SetSourceInfo_isr(hCompositor->hDisplay, &stSrcInfo);
-
-    /* Update BG matrixCoeffs to match base on src/disp changes */
-    if(bBgCsc)
-    {
-        uint32_t ulBgColorYCrCb;
-        ulBgColorYCrCb = BVDC_P_Compositor_Update_Canvas_Background_isrsafe(hCompositor,
-            hCompositor->stCurInfo.ucRed,
-            hCompositor->stCurInfo.ucGreen,
-            hCompositor->stCurInfo.ucBlue);
-
-        hCompositor->stNewInfo.ulBgColorYCrCb = ulBgColorYCrCb;
-        hCompositor->stCurInfo.ulBgColorYCrCb = ulBgColorYCrCb;
-        BVDC_P_CMP_SET_REG_DATA(CMP_0_BG_COLOR, ulBgColorYCrCb);
-    }
 
     /* set compositor size -- number of lines. */
     eMasterTg = hCompositor->hDisplay->eMasterTg;
@@ -2075,6 +2104,47 @@ void BVDC_P_Compositor_WindowsReader_isr
 
     BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_CTRL) = (
         BCHP_FIELD_DATA(CMP_0_CMP_CTRL, BVB_VIDEO, eOrientation));
+
+#if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
+#if BVDC_P_DBV_SUPPORT
+    /* clear the flag first no matter input has dbv or not */
+    if(hCompositor->pstDbv) hCompositor->pstDbv->metadataPresent = false;
+
+    /* DBV will compose video inputs together */
+    if ((hCompositor->stCfcCapability[0].stBits.bDbvCmp) &&
+        (hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled ||
+        (hWindow0)))
+    {
+        BVDC_P_Compositor_ApplyDbvSettings_isr(hCompositor, hGfxFeeder);
+    } else if(hGfxFeeder) {
+        hGfxFeeder->bDbvEnabled = false;/* gfd exits dvs mode */
+    }
+#endif
+#if BVDC_P_TCH_SUPPORT
+    if ((hCompositor->stCfcCapability[0].stBits.bTpToneMapping) &&
+        (hWindow0 && BVDC_P_IS_TCH(hWindow0->pMainCfc->stColorSpaceIn.stAvcColorSpace.stMetaData.stTchInput.stHdrMetadata.eType)))
+    {
+        BVDC_P_Compositor_ApplyTchSettings_isr(hCompositor);
+    }
+#endif
+#else
+    BSTD_UNUSED(hWindow0);
+#endif
+
+    /* Update BG matrixCoeffs to match base on src/disp changes */
+    bBgCsc = bBgCsc || hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace;
+    if(bBgCsc)
+    {
+        uint32_t ulBgColorYCrCb;
+        ulBgColorYCrCb = BVDC_P_Compositor_Update_Canvas_Background_isrsafe(hCompositor,
+            hCompositor->stCurInfo.ucRed,
+            hCompositor->stCurInfo.ucGreen,
+            hCompositor->stCurInfo.ucBlue);
+
+        hCompositor->stNewInfo.ulBgColorYCrCb = ulBgColorYCrCb;
+        hCompositor->stCurInfo.ulBgColorYCrCb = ulBgColorYCrCb;
+        BVDC_P_CMP_SET_REG_DATA(CMP_0_BG_COLOR, ulBgColorYCrCb);
+    }
 
     BDBG_LEAVE(BVDC_P_Compositor_WindowsReader_isr);
     return;

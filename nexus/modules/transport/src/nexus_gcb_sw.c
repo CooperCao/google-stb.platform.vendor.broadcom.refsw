@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,15 @@
 #include "nexus_playpump_impl.h"
 #include "nexus_recpump_impl.h"
 
+/* the number of chunks per second is constant, but the pid-filtered bitrate can vary greatly.
+   need enough descriptors to keep feeding the playpump through low=bitrate sections */
+#define NUM_PLAYPUMP_DESCS 2000
+/* data size is driven by datarate through playpump and playback_ip buffering requirements
+   e.g. to buffer 0.5 second of data, for 100Mbps stream will need 6.25MB and twice that in the recpump */
+#define RECPUMP_DATA_SIZE  (3145728 * 4)
+/* one entry is 48 bytes and need at least as many as number of playpump descriptors */
+#define RECPUMP_INDEX_SIZE (18432 * 5)
+
 BDBG_MODULE(nexus_gcb_sw);
 
 #if 0
@@ -52,6 +61,12 @@ BDBG_MODULE(nexus_gcb_sw);
 #define BDBG_MSG_TRACE_SUBMIT(x) BDBG_MSG(x)
 #else
 #define BDBG_MSG_TRACE_SUBMIT(x)
+#endif
+
+#if 0
+#define BDBG_MSG_TRACE_SUBMIT_SUMMARY(x) BDBG_MSG(x)
+#else
+#define BDBG_MSG_TRACE_SUBMIT_SUMMARY(x)
 #endif
 
 #if 0
@@ -96,7 +111,7 @@ NEXUS_GcbSwHandle NEXUS_Gcb_P_Open(unsigned index, const NEXUS_ParserBandStartBo
     hGcb->startSettings = *pSettings;
 
     NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-    playpumpOpenSettings.numDescriptors = 200;
+    playpumpOpenSettings.numDescriptors = NUM_PLAYPUMP_DESCS;
     hGcb->playpump = NEXUS_Playpump_Open(pSettings->soft.playpumpIndex, &playpumpOpenSettings);
 
     if (hGcb->playpump==NULL) {
@@ -125,6 +140,7 @@ NEXUS_GcbSwHandle NEXUS_Gcb_P_Open(unsigned index, const NEXUS_ParserBandStartBo
         playpumpSettings.timestamp.pcrPacingPid = pSettings->soft.pcrPid;
         playpumpSettings.timestamp.pacing = true;
         playpumpSettings.timestamp.pacingMaxError = 0xffff;
+        playpumpSettings.timestamp.resetPacing = true; /* for wraparound */
         rc = NEXUS_Playpump_SetSettings(hGcb->playpump, &playpumpSettings);
         if (rc) {
             BERR_TRACE(rc); /* keep going */
@@ -134,10 +150,10 @@ NEXUS_GcbSwHandle NEXUS_Gcb_P_Open(unsigned index, const NEXUS_ParserBandStartBo
     return hGcb;
 
 error:
-    if (hGcb->playpump) {
+    if (hGcb && hGcb->playpump) {
         NEXUS_Playpump_Close(hGcb->playpump);
     }
-    if (hGcb->pacing.timebaseFreerun) {
+    if (hGcb && hGcb->pacing.timebaseFreerun) {
         NEXUS_Timebase_Close(hGcb->pacing.timebaseFreerun);
     }
     if (hGcb) {
@@ -174,6 +190,10 @@ NEXUS_Error NEXUS_Gcb_P_ReplicatePidChannels(NEXUS_GcbSwHandle hGcb)
     unsigned i, j, numPids;
     NEXUS_Error rc;
     NEXUS_PlaypumpStatus playpumpStatus;
+
+#if RECORD_ALLPASS
+    return NEXUS_SUCCESS;
+#endif
 
     NEXUS_Playpump_GetStatus(hGcb->playpump, &playpumpStatus);
 
@@ -212,7 +232,7 @@ NEXUS_Error NEXUS_Gcb_P_AddParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBandHa
     NEXUS_RecpumpStatus recpumpStatus;
     NEXUS_PidChannelHandle bipPidChannel;
     NEXUS_PidChannelSettings pidChannelSettings;
-    NEXUS_RecpumpAddPidChannelSettings addPidChannelSettings;
+    NEXUS_RecpumpPidChannelSettings addPidChannelSettings;
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_Error rc;
 
@@ -221,6 +241,10 @@ NEXUS_Error NEXUS_Gcb_P_AddParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBandHa
 
     NEXUS_ParserBand_P_GetSettings(band, &parserBandSettings);
     parserBandSettings.continuityCountEnabled = false; /* needed */
+#if RECORD_ALLPASS
+    parserBandSettings.acceptNullPackets = true;
+    parserBandSettings.allPass = true;
+#endif
     NEXUS_ParserBand_P_SetSettings(band, &parserBandSettings);
 
     for (i=0; i<MAX_PARSERS; i++) {
@@ -244,12 +268,22 @@ NEXUS_Error NEXUS_Gcb_P_AddParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBandHa
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 
+#if BAND_RECORD_DEBUG_MODE
+    NEXUS_ParserBand_P_GetSettings(band, &parserBandSettings);
+    parserBandSettings.forceRestamping = true;
+    NEXUS_ParserBand_P_SetSettings(band, &parserBandSettings);
+{
+    char fname[128];
+    BKNI_Snprintf(fname, sizeof(fname), "videos/band%u_tts.mpg", index);
+    hGcb->parsers[index].recFile = fopen(fname, "wb");
+    BDBG_ASSERT(hGcb->parsers[index].recFile);
+}
+#endif
+
     /* default buffer sizes are 3,145,728 and 18,432 */
     NEXUS_Recpump_GetDefaultOpenSettings(&recpumpOpenSettings);
-    #if 0
-    recpumpOpenSettings.data.bufferSize *= 4;
-    recpumpOpenSettings.index.bufferSize *= 4;
-    #endif
+    recpumpOpenSettings.data.bufferSize = RECPUMP_DATA_SIZE;
+    recpumpOpenSettings.index.bufferSize = RECPUMP_INDEX_SIZE;
     recpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
     if (recpump==NULL) { return BERR_TRACE(NEXUS_UNKNOWN); }
 
@@ -268,10 +302,16 @@ NEXUS_Error NEXUS_Gcb_P_AddParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBandHa
     recpumpSettings.data.overflow.context = "data";
     recpumpSettings.index.overflow.callback = overflow_callback;
     recpumpSettings.index.overflow.context = "index";
+#if BAND_RECORD_DEBUG_MODE
+    recpumpSettings.timestampType = NEXUS_TransportTimestampType_e32_Binary;
+#endif
     rc = NEXUS_Recpump_SetSettings(recpump, &recpumpSettings);
 
     NEXUS_PidChannel_GetDefaultSettings(&pidChannelSettings);
     pidChannelSettings.continuityCountEnabled = false;
+#if RECORD_ALLPASS
+    NEXUS_ParserBand_GetAllPassPidChannelIndex(parserIndex, &pidChannelSettings.pidChannelIndex);
+#endif
     bipPidChannel = NEXUS_PidChannel_Open(parserIndex, hGcb->bondingPid, &pidChannelSettings);
 
     NEXUS_Recpump_GetDefaultAddPidChannelSettings(&addPidChannelSettings);
@@ -394,8 +434,12 @@ void NEXUS_Gcb_P_ProcessItb(NEXUS_GcbSwHandle hGcb)
             BFIFO_WRITE_COMMIT(&hGcb->parsers[i].chunkFifo, 1);
 
             pitb += ITB_WORDS*2;
-            index_buffer_size -= ITB_PAIR_SIZE;
             numItb++;
+            if (index_buffer_size >= ITB_PAIR_SIZE) {
+                index_buffer_size -= ITB_PAIR_SIZE;
+            }
+            else { break; }
+
 #if 0 /* for debug. print all ITBs that come in and throw away */
             BDBG_MSG_TRACE_ITB(("[%u] seqNum %6u", i, seqNum));
             BFIFO_READ_COMMIT(&hGcb->parsers[i].chunkFifo, 1);
@@ -412,7 +456,7 @@ void NEXUS_Gcb_P_ProcessItb(NEXUS_GcbSwHandle hGcb)
         if (numItb) {
             numLeft = BFIFO_WRITE_LEFT(&hGcb->parsers[i].chunkFifo);
             chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
-            BDBG_MSG_TRACE_ITB(("[%u] ITB +%u, seqNum %6u:%6u. %2u/%2u", i, numItb, chunk->seqNum, seqNum, CHUNK_FIFO_SIZE-numLeft, CHUNK_FIFO_SIZE));
+            BDBG_MSG_TRACE_ITB(("[%u] ITB +%u, seqNum %6u:%6u, offsetEnd %10u, fifo %2u/%2u", i, numItb, chunk->seqNum, seqNum, (unsigned)offsetCdbNext, CHUNK_FIFO_SIZE-numLeft, CHUNK_FIFO_SIZE));
             NEXUS_Recpump_IndexReadComplete(recpump, numItb*ITB_PAIR_SIZE);
         }
     }
@@ -435,40 +479,12 @@ void NEXUS_Gcb_P_Submit(NEXUS_GcbSwHandle hGcb)
     NEXUS_PlaypumpStatus playpumpStatus;
     size_t numDescConsumed;
     size_t numDescAvail, totalBytes;
-    NEXUS_RecpumpStatus recpumpStatus;
     bool wait = false;
 
     if (hGcb->state.numDesc) {
         numDesc = hGcb->state.numDesc;
         totalBytes = hGcb->state.totalBytes;
         goto submit;
-    }
-
-    /* move the read pointer along */
-    /* TODO: to be precise, this should occur when the playpump is finished with the data, or some fixed time later */
-    for (i=0; i<hGcb->numParsers; i++) {
-        size_t avail, submit;
-        recpump = hGcb->parsers[i].recpump;
-
-        rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &data_buffer, &data_buffer_size, &data_buffer_wrap, &data_buffer_size_wrap);
-        if (rc) { BERR_TRACE(rc); }
-
-        avail = data_buffer_size + data_buffer_size_wrap;
-        if (avail > hGcb->parsers[i].submitSize) {
-            submit = hGcb->parsers[i].submitSize;
-        }
-        else {
-        #if 1
-            continue; /* defer to next time */
-        #else
-            submit = avail-188; /* never read everything as this appears to cause weird issues with the next GetDataBuffer call */
-        #endif
-        }
-        rc = NEXUS_Recpump_DataReadComplete(recpump, submit);
-        if (rc) { BERR_TRACE(rc); }
-
-        BDBG_MSG_TRACE_SUBMIT(("[%u] recpump read complete %u:%u", i, submit, hGcb->parsers[i].submitSize));
-        hGcb->parsers[i].submitSize -= submit;
     }
 
     /* find how many descriptors we can submit */
@@ -502,10 +518,16 @@ void NEXUS_Gcb_P_Submit(NEXUS_GcbSwHandle hGcb)
             }
         }
 
-        /* check if we're wrapping around */
-        rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &data_buffer, &data_buffer_size, &data_buffer_wrap, &data_buffer_size_wrap);
-        if (rc) { BERR_TRACE(rc); }
+        if (i<hGcb->numParsers) {
+            rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &(hGcb->parsers[next].data_buffer), &(hGcb->parsers[next].data_buffer_size), &(hGcb->parsers[next].data_buffer_wrap), &(hGcb->parsers[next].data_buffer_size_wrap));
+            if (rc) { BERR_TRACE(rc); break; }
+        }
+        data_buffer = hGcb->parsers[next].data_buffer;
+        data_buffer_size = hGcb->parsers[next].data_buffer_size;
+        data_buffer_wrap = hGcb->parsers[next].data_buffer_wrap;
+        data_buffer_size_wrap = hGcb->parsers[next].data_buffer_size_wrap;
 
+        /* check if we're wrapping around */
         read = (uint8_t*)data_buffer - hGcb->parsers[next].bufferBase; /* the READ ptr offset, i.e. where we've consumed up to */
 
         if (data_buffer_wrap==0) {
@@ -544,15 +566,24 @@ void NEXUS_Gcb_P_Submit(NEXUS_GcbSwHandle hGcb)
         }
         BFIFO_READ_COMMIT(&hGcb->parsers[next].chunkFifo, 1);
 
-        NEXUS_Recpump_GetStatus(recpump, &recpumpStatus);
-        BDBG_MSG_TRACE_SUBMIT(("[%u] seqNum %6u, desc %8u - %8u. buff %8u %8u %8u %8u, r%2u%% w%2u%% d%2u%%", next, chunk->seqNum,
+        BDBG_MSG_TRACE_SUBMIT(("[%u] seqNum %6u, desc %8u - %8u. buff %8u %8u %8u %8u, r%2u%% w%2u%%", next, chunk->seqNum,
             (uint8_t*)hGcb->state.desc[numDesc].addr - hGcb->parsers[next].bufferBase, (uint8_t*)hGcb->state.desc[numDesc].addr + hGcb->state.desc[numDesc].length - hGcb->parsers[next].bufferBase,
             read, write, wrap, hGcb->parsers[next].bufferSize,
             read*100/hGcb->parsers[next].bufferSize,
-            write*100/hGcb->parsers[next].bufferSize,
-            recpumpStatus.data.fifoDepth*100 / hGcb->parsers[next].bufferSize
+            write*100/hGcb->parsers[next].bufferSize
             ));
         BDBG_ASSERT(chunk_start < hGcb->parsers[next].bufferSize);
+
+        if (i >= numChunks - hGcb->numParsers) {
+            uintoff_t descEnd = (uintoff_t)((uint8_t*)hGcb->state.desc[numDesc].addr + hGcb->state.desc[numDesc].length - hGcb->parsers[next].bufferBase);
+            BDBG_MSG_TRACE_SUBMIT_SUMMARY(("[%u] seqNum %6u, descEnd %8u (%10u), buff %8u %8u %8u %8u, wdelta %8u", next, chunk->seqNum,
+                (unsigned)descEnd,
+                (unsigned)(descEnd + hGcb->parsers[next].offsetAccum),
+                read, write, wrap, hGcb->parsers[next].bufferSize,
+                (write >= hGcb->parsers[next].last_write_offset) ? write - hGcb->parsers[next].last_write_offset : 0));
+            BSTD_UNUSED(descEnd);
+            hGcb->parsers[next].last_write_offset = write;
+        }
 
         numDesc++;
         totalBytes += chunk->size;
@@ -572,18 +603,150 @@ submit:
         hGcb->state.numDesc = numDesc;
         hGcb->state.totalBytes = totalBytes;
     }
-    BDBG_MSG(("Playpump status: desc %3u/%3u/%u, bytes %7u:%7u %s", numDesc, (unsigned)numDescAvail, (unsigned)playpumpStatus.descFifoSize, (unsigned)totalBytes, (unsigned)playpumpStatus.fifoDepth,
+    if (numDescAvail < hGcb->state.minDescAvail) {
+        hGcb->state.minDescAvail = numDescAvail;
+    }
+
+#if 0
+    BDBG_MSG(("Playpump status: desc %3u/%3u/%3u (min %3u), bytes %7u:%7u %s", numDesc, (unsigned)numDescAvail, (unsigned)playpumpStatus.descFifoSize, hGcb->state.minDescAvail,
+        (unsigned)totalBytes, (unsigned)playpumpStatus.fifoDepth,
         wait?"(WAIT)":""));
+#endif
     if (wait) { goto done; }
 
     rc = NEXUS_Playpump_SubmitScatterGatherDescriptor(hGcb->playpump, hGcb->state.desc, numDesc, &numDescConsumed);
     if (rc) { BERR_TRACE(rc); goto done; }
+
+    for (i=0; i<hGcb->numParsers; i++) {
+        size_t avail, submit;
+        recpump = hGcb->parsers[i].recpump;
+        submit = hGcb->parsers[i].submitSize;
+
+        rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &data_buffer, &data_buffer_size, &data_buffer_wrap, &data_buffer_size_wrap);
+        if (rc) { BERR_TRACE(rc); }
+
+        avail = data_buffer_size + data_buffer_size_wrap;
+        if (avail <= hGcb->parsers[i].submitSize) {
+            BDBG_WRN(("[%u] recpump depth (%u) less than advance amount %u", i, (uint32_t)avail, (uint32_t)hGcb->parsers[i].submitSize));
+            submit = avail;
+        }
+
+        rc = NEXUS_Recpump_DataReadComplete(recpump, submit);
+        if (rc) { BERR_TRACE(rc); }
+
+        BDBG_MSG_TRACE_SUBMIT(("[%u] recpump read complete %u:%u:%u", i, submit, hGcb->parsers[i].submitSize, avail));
+        hGcb->parsers[i].submitSize -= submit;
+    }
+
     hGcb->state.numDesc = 0;
     hGcb->state.totalBytes = 0;
 
 done:
     return;
 }
+
+/* assume unbonded data on one RAVE context. send it to playback right away */
+#if UNBONDED_DEBUG_MODE
+static void NEXUS_Gcb_P_SubmitDebug(NEXUS_GcbSwHandle hGcb)
+{
+    unsigned numDesc, numDescConsumed;
+    NEXUS_Error rc;
+    NEXUS_RecpumpHandle recpump;
+    const void *data_buffer, *data_buffer_wrap;
+    const void *index_buffer;
+    size_t data_buffer_size, data_buffer_size_wrap;
+    size_t index_buffer_size;
+    NEXUS_PlaypumpScatterGatherDescriptor *desc;
+#if BAND_RECORD_DEBUG_MODE
+    int n;
+#endif
+
+    recpump = hGcb->parsers[0].recpump;
+    rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &data_buffer, &data_buffer_size, &data_buffer_wrap, &data_buffer_size_wrap);
+    if (rc) { BERR_TRACE(rc); }
+
+    desc = &hGcb->state.desc[0];
+    if (data_buffer_size_wrap==0) {
+        desc->addr = (void*)data_buffer;
+        desc->length = data_buffer_size;
+        numDesc = 1;
+    }
+    else {
+        desc->addr = (void*)data_buffer;
+        desc->length = data_buffer_size;
+        desc++;
+        desc->addr = (void*)data_buffer_wrap;
+        desc->length = data_buffer_size_wrap;
+        numDesc = 2;
+    }
+
+    rc = NEXUS_Playpump_SubmitScatterGatherDescriptor(hGcb->playpump, hGcb->state.desc, numDesc, &numDescConsumed);
+    if (rc) { BERR_TRACE(rc); goto done; }
+
+    BDBG_MSG(("[%u] %u", 0, data_buffer_size+data_buffer_size_wrap));
+
+#if BAND_RECORD_DEBUG_MODE
+    if (data_buffer_size) {
+        n = fwrite(data_buffer, 1, data_buffer_size, hGcb->parsers[0].recFile);
+        if (n < 0) {BDBG_ERR(("fwrite error\n")); }
+    }
+    if (data_buffer_size_wrap) {
+        n = fwrite(data_buffer_wrap, 1, data_buffer_size_wrap, hGcb->parsers[0].recFile);
+        if (n < 0) {BDBG_ERR(("fwrite error\n")); }
+    }
+#endif
+
+    rc = NEXUS_Recpump_DataReadComplete(recpump, data_buffer_size + data_buffer_size_wrap);
+    if (rc) { BERR_TRACE(rc); }
+
+    rc = NEXUS_Recpump_GetIndexBuffer(recpump, &index_buffer, &index_buffer_size);
+    if (rc) { BERR_TRACE(rc); }
+    rc = NEXUS_Recpump_IndexReadComplete(recpump, index_buffer_size);
+    if (rc) { BERR_TRACE(rc); }
+
+done:
+    return;
+}
+#endif
+
+#if BAND_RECORD_DEBUG_MODE
+static void NEXUS_Gcb_P_SubmitDebug2(NEXUS_GcbSwHandle hGcb)
+{
+    unsigned numDesc, numDescConsumed;
+    NEXUS_Error rc;
+    NEXUS_RecpumpHandle recpump;
+    const void *data_buffer, *data_buffer_wrap;
+    size_t data_buffer_size, data_buffer_size_wrap;
+    const void *index_buffer;
+    size_t index_buffer_size;
+    NEXUS_PlaypumpScatterGatherDescriptor *desc;
+    unsigned i;
+    int n;
+
+    for (i=0; i<hGcb->numParsers; i++) {
+        recpump = hGcb->parsers[i].recpump;
+        rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &data_buffer, &data_buffer_size, &data_buffer_wrap, &data_buffer_size_wrap);
+        if (rc) { BERR_TRACE(rc); }
+
+        if (data_buffer_size) {
+            n = fwrite(data_buffer, 1, data_buffer_size, hGcb->parsers[i].recFile);
+            if (n < 0) {BDBG_ERR(("[%u] fwrite error\n", i)); }
+        }
+        if (data_buffer_size_wrap) {
+            n = fwrite(data_buffer_wrap, 1, data_buffer_size_wrap, hGcb->parsers[i].recFile);
+            if (n < 0) {BDBG_ERR(("[%u] fwrite error\n", i)); }
+        }
+
+        BDBG_MSG(("[%u] %u %u", i, data_buffer_size, data_buffer_size_wrap));
+        rc = NEXUS_Recpump_DataReadComplete(recpump, data_buffer_size + data_buffer_size_wrap);
+        if (rc) { BERR_TRACE(rc); }
+
+        NEXUS_Recpump_GetIndexBuffer(recpump, &index_buffer, &index_buffer_size);
+        NEXUS_Recpump_IndexReadComplete(recpump, index_buffer_size);
+    }
+    return;
+}
+#endif
 
 void NEXUS_Gcb_P_Timer(void *arg)
 {
@@ -594,90 +757,36 @@ void NEXUS_Gcb_P_Timer(void *arg)
 
     NEXUS_Error rc;
     unsigned i;
+    unsigned min = 0xFFFFFFFF, max = 0;
 
+#if UNBONDED_DEBUG_MODE
+    hGcb->state.state = sstate_lockMode;
+    NEXUS_Gcb_P_SubmitDebug(hGcb);
+    goto done;
+#endif
 
-#if DEBUG_WRITE_ITB_TO_FILE
-    for (i=0; i<hGcb->numParsers; i++) {
-        recpump = hGcb->parsers[i].recpump;
-        rc = NEXUS_Recpump_GetDataBuffer(recpump, &data_buffer, &data_buffer_size);
-        BDBG_ASSERT(!rc);
-        rc = NEXUS_Recpump_GetIndexBuffer(recpump, &index_buffer, &index_buffer_size);
-        BDBG_ASSERT(!rc);
-
-        size_t n;
-        n = fwrite(index_buffer, 1, ITB_WORDS*4, hGcb->parsers[i].file);
-        BDBG_ASSERT(n==ITB_WORDS*4);
-        fflush(hGcb->parsers[i].file);
-    }
+#if BAND_RECORD_DEBUG_MODE
+    hGcb->state.state = sstate_lockMode;
+    NEXUS_Gcb_P_SubmitDebug2(hGcb);
+    goto done;
 #endif
 
     NEXUS_Gcb_P_ProcessItb(hGcb);
 
-    /* advance CDB READ ptr to boundary of first chunk */
     if (hGcb->state.state==sstate_findInit) {
-        uintoff_t offsetCdb;
-#if 1
         GcbChunk *chunk;
+        /* look for first seqNum and calculate trim to beginning of that chunk */
         for (i=0; i<hGcb->numParsers; i++) {
             if (BFIFO_READ_LEFT(&hGcb->parsers[i].chunkFifo)) {
+                rc = NEXUS_Recpump_GetDataBuffer(hGcb->parsers[i].recpump, &data_buffer, &data_buffer_size);
+                if (rc) { BERR_TRACE(rc); }
+
                 chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
                 hGcb->parsers[i].seqNum = chunk->seqNum;
-                offsetCdb = chunk->offset - hGcb->parsers[i].offsetAccum;
-                BDBG_MSG(("[%u] seqNum %u, CDB offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT, i, hGcb->parsers[i].seqNum, BDBG_UINT64_ARG(chunk->offset), BDBG_UINT64_ARG(offsetCdb)));
-
-                /* advance CDB upto start of marker packet */
-                recpump = hGcb->parsers[i].recpump;
-                if (offsetCdb) {
-                    rc = NEXUS_Recpump_GetDataBuffer(recpump, &data_buffer, &data_buffer_size);
-                    if (rc) { BERR_TRACE(rc); }
-                    rc = NEXUS_Recpump_DataReadComplete(recpump, offsetCdb);
-                    if (rc) { BERR_TRACE(rc); }
-                }
+                hGcb->parsers[i].submitSize = chunk->offset - hGcb->parsers[i].offsetAccum - (unsigned)((uint8_t*)data_buffer - hGcb->parsers[i].bufferBase);
+                BDBG_MSG(("[%u] seqNum %u, CDB offset " BDBG_UINT64_FMT ", CDB advance %u", i, hGcb->parsers[i].seqNum, BDBG_UINT64_ARG(chunk->offset), hGcb->parsers[i].submitSize));
             }
         }
-#else
-        const uint32_t *pitb;
-        for (i=0; i<hGcb->numParsers; i++) {
-            recpump = hGcb->parsers[i].recpump;
-            rc = NEXUS_Recpump_GetDataBuffer(recpump, &data_buffer, &data_buffer_size);
-            if (rc) { BERR_TRACE(rc); }
-            rc = NEXUS_Recpump_GetIndexBuffer(recpump, &index_buffer, &index_buffer_size);
-            if (rc) { BERR_TRACE(rc); }
-
-            pitb = index_buffer;
-            while (index_buffer_size >= ITB_PAIR_SIZE) {
-                if (ITB_WORD0_GET_TYPE(pitb[0]) == 0x84) {
-                    hGcb->parsers[i].seqNum = pitb[5];
-                    offsetCdb = pitb[3];
-#if SUPPORT_40BIT_OFFSETS
-                    offsetCdb = GET_40BIT_OFFSET(pitb[2], pitb[3]);
-#endif
-                    BDBG_ASSERT(offsetCdb < hGcb->parsers[i].bufferSize); /* sanity check */
-
-                    #if 0 /* do not actually move the CDB READ ptr, since doing so forces us to keep track of how much we moved */
-                    if (offsetCdb > data_buffer_size) { break; } /* CDB hasn't filled yet */
-                    BDBG_MSG(("[%u] seqNum %u, CDB advance %u", i, hGcb->parsers[i].seqNum, offsetCdb));
-
-                    if (offsetCdb) {
-                        rc = NEXUS_Recpump_DataReadComplete(recpump, offsetCdb); /* advance CDB upto start of marker packet */
-                        if (rc) { BERR_TRACE(rc); }
-                    }
-                    #else
-                    BDBG_MSG(("[%u] seqNum %u, CDB offset %u", i, hGcb->parsers[i].seqNum, offsetCdb));
-                    #endif
-
-                    break;
-                }
-                else {
-                    BDBG_WRN(("[%u] Unexpected ITB entry (%#x). Advancing to next entry", i, ITB_WORD0_GET_TYPE(pitb[0])));
-                    rc = NEXUS_Recpump_IndexReadComplete(recpump, ITB_PAIR_SIZE/2);
-                    if (rc) { BERR_TRACE(rc); }
-                    index_buffer_size -= ITB_PAIR_SIZE/2;
-                    pitb += ITB_WORDS;
-                }
-            }
-        }
-#endif
 
         for (i=0; i<hGcb->numParsers; i++) {
             if (hGcb->parsers[i].seqNum==-1) {
@@ -689,7 +798,23 @@ void NEXUS_Gcb_P_Timer(void *arg)
                 hGcb->state.seqThreshold = hGcb->parsers[i].seqNum;
                 hGcb->state.seqThresholdParser = i;
             }
+            if ((unsigned)hGcb->parsers[i].seqNum < min) {
+                min = hGcb->parsers[i].seqNum;
+            }
+            if ((unsigned)hGcb->parsers[i].seqNum > max) {
+                max = hGcb->parsers[i].seqNum;
+            }
         }
+        #define MAX_SEQNUM_SKEW 200
+        if ((max<=min) || (max-min>MAX_SEQNUM_SKEW)) {
+            BDBG_MSG(("Large seqNum skew detected (%u), attempting to rebase..", max-min));
+            for (i=0; i<hGcb->numParsers; i++) {
+                chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
+                BFIFO_READ_COMMIT(&hGcb->parsers[i].chunkFifo, 1);
+            }
+            goto done;
+        }
+
         BDBG_MSG(("Found initThreshold %u on band %u", hGcb->state.seqThreshold, hGcb->state.seqThresholdParser));
         hGcb->state.state = sstate_crossInit;
     }
@@ -699,6 +824,8 @@ void NEXUS_Gcb_P_Timer(void *arg)
         unsigned priband;
         BDBG_MSG(("Reacquire"));
 
+        min = 0xFFFFFFFF;
+        max = 0;
         hGcb->state.seqThreshold = -1;
         hGcb->state.reacquire = true;
 
@@ -707,6 +834,12 @@ void NEXUS_Gcb_P_Timer(void *arg)
                 chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
                 hGcb->parsers[i].seqNum = chunk->seqNum;
                 BDBG_MSG(("[%u] seqNum %u", i, hGcb->parsers[i].seqNum));
+                if (chunk->seqNum < min) {
+                    min = chunk->seqNum;
+                }
+                if (chunk->seqNum > max) {
+                    max = chunk->seqNum;
+                }
             }
             else {
                 hGcb->parsers[i].seqNum = -1;
@@ -716,9 +849,16 @@ void NEXUS_Gcb_P_Timer(void *arg)
 
         priband = hGcb->state.primaryParser;
         BDBG_ASSERT(hGcb->state.seqThresholdParser==priband);
-        hGcb->state.seqThreshold = hGcb->parsers[priband].seqNum;
-        BDBG_MSG(("Priband (%u) seqThreshold %u", priband, hGcb->state.seqThreshold));
-        hGcb->state.state = sstate_crossPriBand;
+
+        if ((max-min < hGcb->numParsers) && (min==(unsigned)(hGcb->parsers[hGcb->state.primaryParser].seqNum))) {
+            /* this is a special case that allows us to wraparound cleanly */
+            hGcb->state.seqThreshold = hGcb->parsers[priband].seqNum;
+            BDBG_MSG(("Priband (%u) seqThreshold %u", priband, hGcb->state.seqThreshold));
+            hGcb->state.state = sstate_crossPriBand;
+        }
+        else {
+            hGcb->state.state = sstate_findInit;
+        }
     }
     else if (hGcb->state.state==sstate_restart) { /* experimental code: start over from scratch */
         BDBG_MSG(("Restart"));
@@ -730,67 +870,22 @@ void NEXUS_Gcb_P_Timer(void *arg)
 cross_priband:
     if (hGcb->state.state==sstate_crossInit || hGcb->state.state==sstate_crossPriBand) {
         int seqNum;
-        uintoff_t offsetCdb, offsetItb, advanceCdb;
+        uintoff_t offsetCdb, offsetItb;
         GcbChunk *chunk;
 
         for (i=0; i<hGcb->numParsers; i++) {
             if (hGcb->parsers[i].seqNum >= hGcb->state.seqThreshold) { continue; }
 
-#if 1
             seqNum = -1;
-            offsetCdb = 0, offsetItb = 0, advanceCdb = 0;
+            offsetCdb = 0, offsetItb = 0;
             while (BFIFO_READ_LEFT(&hGcb->parsers[i].chunkFifo)) {
                 chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
                 seqNum = chunk->seqNum;
                 BDBG_MSG(("[%u] seqNum %u, offset " BDBG_UINT64_FMT ", size %u", i, seqNum, BDBG_UINT64_ARG(chunk->offset), chunk->size));
                 if (seqNum > hGcb->state.seqThreshold) { break; }
                 BFIFO_READ_COMMIT(&hGcb->parsers[i].chunkFifo, 1);
-                advanceCdb += chunk->size;
+                hGcb->parsers[i].submitSize += chunk->size;
             }
-            recpump = hGcb->parsers[i].recpump;
-            rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &data_buffer, &data_buffer_size, &data_buffer_wrap, &data_buffer_size_wrap);
-            if (rc) { BERR_TRACE(rc); }
-#else
-            recpump = hGcb->parsers[i].recpump;
-            rc = NEXUS_Recpump_GetDataBuffer(recpump, &data_buffer, &data_buffer_size);
-            if (rc) { BERR_TRACE(rc); }
-            rc = NEXUS_Recpump_GetIndexBuffer(recpump, &index_buffer, &index_buffer_size);
-            if (rc) { BERR_TRACE(rc); }
-
-            if (index_buffer_size < ITB_PAIR_SIZE) { continue; }
-
-            pitb = index_buffer;
-            seqNum = -1;
-            offsetCdb = 0, offsetItb = 0;
-
-            while (index_buffer_size >= ITB_PAIR_SIZE) {
-                if (ITB_WORD0_GET_TYPE(pitb[0]) != 0x84) {
-                    BDBG_ERR(("[%u] Unexpected ITB type %x", i, pitb[0]));
-                    hGcb->state.state = sstate_findInit;
-                    goto done;
-                }
-                seqNum = pitb[5];
-                offsetCdb = pitb[3];
-#if SUPPORT_40BIT_OFFSETS
-                offsetCdb = GET_40BIT_OFFSET(pitb[2], pitb[3]);
-#endif
-                BDBG_MSG(("[%u] seqNum %u, CDB offset %u", i, seqNum, offsetCdb));
-                if (seqNum > hGcb->state.seqThreshold) { break; }
-
-                /* move to next 0x84 entry */
-                pitb += ITB_WORDS*2;
-                index_buffer_size -= ITB_PAIR_SIZE;
-                offsetItb += ITB_PAIR_SIZE;
-            }
-            BDBG_ASSERT(offsetItb > 0); /* need to move by at least one ITB pair */
-            /* TODO: have seen at least one random failure here. but seems like frontend just temporarily went out-of-lock */
-#endif
-
-            BDBG_MSG(("[%u] seqNum %u->%u, advance " BDBG_UINT64_FMT, i, hGcb->parsers[i].seqNum, seqNum, BDBG_UINT64_ARG(advanceCdb)));
-
-            rc = NEXUS_Recpump_DataReadComplete(recpump, offsetCdb);
-            if (rc) { BERR_TRACE(rc); }
-
             if (seqNum >= hGcb->state.seqThreshold) {
                 BDBG_MSG(("[%u] cross seqThreshold (%u >= %u)", i, seqNum, hGcb->state.seqThreshold));
                 hGcb->parsers[i].seqNum = seqNum;
@@ -824,6 +919,21 @@ cross_priband:
         }
         else {
             BDBG_MSG(("All parsers crossed priBandThreshold %u", hGcb->state.seqThreshold));
+
+            /* now advance the CDB to the starting point */
+            for (i=0; i<hGcb->numParsers; i++) {
+                chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
+                seqNum = chunk->seqNum;
+                BDBG_MSG(("[%u] seqNum ->%u, CDB offset " BDBG_UINT64_FMT ", CDB advance %u", i, seqNum, BDBG_UINT64_ARG(chunk->offset), hGcb->parsers[i].submitSize));
+
+                recpump = hGcb->parsers[i].recpump;
+                rc = NEXUS_Recpump_GetDataBufferWithWrap(recpump, &data_buffer, &data_buffer_size, &data_buffer_wrap, &data_buffer_size_wrap);
+                if (rc) { BERR_TRACE(rc); }
+                rc = NEXUS_Recpump_DataReadComplete(recpump, hGcb->parsers[i].submitSize);
+                if (rc) { BERR_TRACE(rc); }
+                hGcb->parsers[i].submitSize = 0;
+            }
+
             hGcb->state.state = sstate_lockMode;
         }
 
@@ -885,6 +995,7 @@ NEXUS_Error NEXUS_Gcb_P_Start(NEXUS_GcbSwHandle hGcb)
     hGcb->state.totalBytes = 0;
     hGcb->state.seqThreshold = -1;
     hGcb->state.seqThresholdParser = 0;
+    hGcb->state.minDescAvail = 0xFFFFFFFF;
 
     /* user opens play pid channels via playpump
        these play pidchannels now need to be replicated on all gcb parsers */
@@ -905,7 +1016,7 @@ NEXUS_Error NEXUS_Gcb_P_Start(NEXUS_GcbSwHandle hGcb)
     }
 
     NEXUS_Playpump_Start(hGcb->playpump);
-    hGcb->timer = NEXUS_ScheduleTimer(0, NEXUS_Gcb_P_Timer, hGcb);
+    hGcb->timer = NEXUS_ScheduleTimer(100, NEXUS_Gcb_P_Timer, hGcb);
     return 0;
 }
 

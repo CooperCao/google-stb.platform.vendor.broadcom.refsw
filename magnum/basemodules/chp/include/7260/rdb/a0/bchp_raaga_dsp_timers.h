@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,29 +70,29 @@
 /***************************************************************************
  *RAAGA_DSP_TIMERS - Raaga DSP Timers Control Registers
  ***************************************************************************/
-#define BCHP_RAAGA_DSP_TIMERS_TSM_TIMER          0x20c21000 /* [RW] TSM Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE    0x20c21004 /* [RO] Time of the TSM Timer */
-#define BCHP_RAAGA_DSP_TIMERS_DSP_CLK_TIMER      0x20c21008 /* [RW] DSP Core Clock Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_DSP_CLK_TIMER_VALUE 0x20c2100c /* [RO] Time of the DSP Core Clock Timer */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER0     0x20c21010 /* [RW] Sys Clock Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE0 0x20c21014 /* [RO] Time of the Sys Clock Timer */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER1     0x20c21018 /* [RW] Sys Clock Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE1 0x20c2101c /* [RO] Time of the Sys Clock Timer */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER2     0x20c21020 /* [RW] Sys Clock Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE2 0x20c21024 /* [RO] Time of the Sys Clock Timer */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER3     0x20c21028 /* [RW] Sys Clock Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE3 0x20c2102c /* [RO] Time of the Sys Clock Timer */
-#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER0     0x20c21030 /* [RW] Profile Timer 0 Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER_VALUE0 0x20c21034 /* [RO] Time of the Profile Timer 0 */
-#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER1     0x20c21038 /* [RW] Profile Timer 1 Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER_VALUE1 0x20c2103c /* [RO] Time of the Profile Timer 1 */
-#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_CTRL 0x20c21040 /* [RW] Daisy Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_LS 0x20c21044 /* [RW] Daisy Chain Timer LS  Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_VALUE_LS 0x20c21048 /* [RO] Time of the Daisy Chain Timer LS */
-#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_MS 0x20c2104c /* [RW] Daisy Chain Timer MS Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_VALUE_MS 0x20c21050 /* [RO] Time of the Daisy Chain Timer MS */
-#define BCHP_RAAGA_DSP_TIMERS_WATCHDOG_TIMER     0x20c21054 /* [RW] Watchdog Timer Control Register */
-#define BCHP_RAAGA_DSP_TIMERS_WATCHDOG_TIMER_VALUE 0x20c21058 /* [RO] Time of the Watchdog Timer */
+#define BCHP_RAAGA_DSP_TIMERS_TSM_TIMER          0x20c21000 /* [RW][32] TSM Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE    0x20c21004 /* [RO][32] Time of the TSM Timer */
+#define BCHP_RAAGA_DSP_TIMERS_DSP_CLK_TIMER      0x20c21008 /* [RW][32] DSP Core Clock Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_DSP_CLK_TIMER_VALUE 0x20c2100c /* [RO][32] Time of the DSP Core Clock Timer */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER0     0x20c21010 /* [RW][32] Sys Clock Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE0 0x20c21014 /* [RO][32] Time of the Sys Clock Timer */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER1     0x20c21018 /* [RW][32] Sys Clock Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE1 0x20c2101c /* [RO][32] Time of the Sys Clock Timer */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER2     0x20c21020 /* [RW][32] Sys Clock Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE2 0x20c21024 /* [RO][32] Time of the Sys Clock Timer */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER3     0x20c21028 /* [RW][32] Sys Clock Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_SYS_CLK_TIMER_VALUE3 0x20c2102c /* [RO][32] Time of the Sys Clock Timer */
+#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER0     0x20c21030 /* [RW][32] Profile Timer 0 Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER_VALUE0 0x20c21034 /* [RO][32] Time of the Profile Timer 0 */
+#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER1     0x20c21038 /* [RW][32] Profile Timer 1 Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_PROFILE_TIMER_VALUE1 0x20c2103c /* [RO][32] Time of the Profile Timer 1 */
+#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_CTRL 0x20c21040 /* [RW][32] Daisy Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_LS 0x20c21044 /* [RW][32] Daisy Chain Timer LS  Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_VALUE_LS 0x20c21048 /* [RO][32] Time of the Daisy Chain Timer LS */
+#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_MS 0x20c2104c /* [RW][32] Daisy Chain Timer MS Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_DAISY_CHAIN_TIMER_VALUE_MS 0x20c21050 /* [RO][32] Time of the Daisy Chain Timer MS */
+#define BCHP_RAAGA_DSP_TIMERS_WATCHDOG_TIMER     0x20c21054 /* [RW][32] Watchdog Timer Control Register */
+#define BCHP_RAAGA_DSP_TIMERS_WATCHDOG_TIMER_VALUE 0x20c21058 /* [RO][32] Time of the Watchdog Timer */
 
 /***************************************************************************
  *TSM_TIMER - TSM Timer Control Register

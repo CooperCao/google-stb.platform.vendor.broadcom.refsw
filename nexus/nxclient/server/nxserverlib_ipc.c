@@ -502,7 +502,12 @@ int nxclient_p_display_set_wss(nxclient_ipc_t client, uint16_t wssData)
 
 int nxclient_p_display_set_cgms(nxclient_ipc_t client, uint32_t cgmsData)
 {
-    return NxClient_P_Display_SetCgms(client->client, cgmsData);
+    return NxClient_P_Display_SetCgmsAorB(client->client, cgmsData, NULL);
+}
+
+int  nxclient_p_display_set_cgms_b(nxclient_ipc_t client, const nxclient_p_set_cgms_b_data *pdata)
+{
+    return NxClient_P_Display_SetCgmsAorB(client->client, 0, pdata);
 }
 
 int nxclient_p_reconfig(nxclient_ipc_t client, const NxClient_ReconfigSettings *pSettings)
@@ -651,4 +656,9 @@ int  nxclient_p_get_callback_status(nxclient_ipc_t _client, NxClient_CallbackSta
 int  nxclient_p_get_audio_status(nxclient_ipc_t _client, NxClient_AudioStatus *pStatus )
 {
     return NxClient_P_GetAudioStatus(_client->client, pStatus);
+}
+
+int  nxclient_p_set_client_mode(nxclient_ipc_t _client, const NxClient_ClientModeSettings *pSettings )
+{
+    return NxClient_P_SetClientMode(_client->client, pSettings);
 }

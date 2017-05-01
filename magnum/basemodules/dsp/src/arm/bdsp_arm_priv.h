@@ -137,11 +137,7 @@ typedef struct BDSP_Arm
 {
     BDBG_OBJECT(BDSP_Arm)
     BDSP_Device device;
-#if 1
     BDSP_ArmDspApp armDspApp;
-#else
-    BDSP_ArmDspApp *parmDspApp;
-#endif
     BDSP_ArmSettings settings;
     BCHP_Handle chpHandle;
     BREG_Handle regHandle;
@@ -211,36 +207,13 @@ typedef struct BDSP_Arm_P_TaskCallBacks
 
     BDSP_ARM_CIT_P_Output   citOutput;
     BDSP_ARM_CTB_Output     ctbOutput;
-#if 0
-    BDSP_CIT_P_VideoCITOutput   videoCitOutput;
-    BDSP_CIT_P_ScmCITOutput   scmCitOutput;
-#endif
     BDSP_Arm_P_MsgQueueHandle hAsyncMsgQueue; /* Asynchronous message queue belonging to this task */
     BDSP_Arm_P_MsgQueueHandle hSyncMsgQueue; /* Synchronous message queue belonging to this task */
-#if 0
-    BDSP_Raaga_P_TaskCallBacks    interruptCallbacks;
-    unsigned commandCounter;
-    BDSP_CTB_Output ctbOutput;
-    bool    decLocked;
-    bool    paused;
-#endif
     BDSP_Arm_P_TaskMemoryInfo taskMemGrants; /* Memory for contiguous Async Msgs */
     uint32_t        eventEnabledMask;        /* Contains information abt. event ids already enabled */
     BDSP_TaskSchedulingMode schedulingMode;
     BDSP_MMA_Memory FeedbackBuffer;             /* Feedback buffer between Tasks(Master writes-Slaves read) */
     BDSP_Arm_MapTableEntry       sTaskMapTable[BDSP_ARM_MAX_ALLOC_TASK];
-#if 0
-    BDSP_Raaga_P_MsgQueueHandle      hPDQueue;      /* Picture Delivery queue(PDQ)*/
-    BDSP_Raaga_P_MsgQueueHandle      hPRQueue;      /* Picture Release queue(PRQ)*/
-    BDSP_Raaga_P_MsgQueueHandle      hDSQueue;      /* Display queue(DSQ)*/
-    /* Handles for video encoder queue's */
-    BDSP_Raaga_P_MsgQueueHandle      hRDQueue;      /* Raw Picture Delivery queue(RDQ)*/
-    BDSP_Raaga_P_MsgQueueHandle      hRRQueue;      /* Raw Picture Release queue(RRQ)*/
-    BDSP_Raaga_P_MsgQueueHandle      hCCDQueue;     /* CC data queue(CCDQ)*/
-/* PAUSE-UNPAUSE */
-    bool frozen;
-/* PAUSE-UNPAUSE */
-#endif
 } BDSP_ArmTask;
 
 typedef struct BDSP_ArmStage
@@ -268,11 +241,6 @@ typedef struct BDSP_ArmStage
     /* Extra buffer to on-the-fly program cfg params */
     BDSP_P_FwBuffer  sDramUserConfigSpareBuffer;
 
-#if 0
-    /*get these details during BDSP_Stage_SetAlgorithm*/
-    BDSP_AF_P_sDRAM_BUFFER   sDramAlgoCodeBuffer;
-    BDSP_AF_P_sDRAM_BUFFER   sDramLookupTablesBuffer;
-#endif
     unsigned                     totalInputs;
     unsigned                     totalOutputs; /* Outputs of any type */
     unsigned                     numOutputs[BDSP_ConnectionType_eMax]; /* Outputs of each particular type */
@@ -298,10 +266,17 @@ typedef struct BDSP_ArmStage
 void BDSP_Arm_P_Close(
     void *pDeviceHandle);
 
+
+BERR_Code BDSP_Arm_P_DownloadSystemCodeToAstra(
+	BTEE_ClientHandle hClient,
+	BDSP_Arm *pDevice,
+	BDSP_Arm_SystemImgId ImgId);
+
+
 BERR_Code BDSP_Arm_P_DownloadFwToAstra(
-    BTEE_ClientHandle hClient,
-    BDSP_Arm *pDevice,
-    BDSP_Arm_SystemImgId ImgId);
+	BTEE_ClientHandle hClient,
+	BDSP_Arm *pDevice,
+	BDSP_ARM_AF_P_AlgoId AlgoId);
 
 BERR_Code BDSP_Arm_P_StartHbcMonitor(
     BDSP_Arm *pDevice);

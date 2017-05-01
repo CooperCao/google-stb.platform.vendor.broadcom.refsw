@@ -92,6 +92,7 @@ typedef void (*DBG_core_gdb_get_pid_list_cb_t)(DBG *dbg, bool b_err_status);
 typedef void (*DBG_core_gdb_get_pid_state_cb_t)(DBG *dbg, bool b_err_status);
 typedef void (*DBG_core_gdb_process_freeze_cb_t)(DBG *dbg, bool b_err_status);
 typedef void (*DBG_core_gdb_process_attach_cb_t)(DBG *dbg, bool b_err_status);
+typedef void (*DBG_core_gdb_process_get_tid_list_cb_t)(DBG *dbg, bool b_err_status);
 
 typedef void (*DBG_core_gdb_thread_freeze_cb_t)(DBG *dbg, bool b_err_status);
 
@@ -136,6 +137,7 @@ struct dbg_core_debug_server_mp
     DBG_core_gdb_get_pid_state_cb_t             gdb_get_pid_state_cb;
     DBG_core_gdb_process_freeze_cb_t            gdb_process_freeze_cb;
     DBG_core_gdb_process_attach_cb_t            gdb_process_attach_cb;
+    DBG_core_gdb_process_get_tid_list_cb_t      gdb_process_get_tid_list_cb;
     DBG_core_gdb_thread_freeze_cb_t             gdb_thread_freeze_cb;
     DBG_core_gdb_process_get_dso_count_cb_t     gdb_process_get_dso_count_cb;
     DBG_core_gdb_process_get_dso_sonames_cb_t   gdb_process_get_dso_sonames_cb;

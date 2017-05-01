@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,7 +40,6 @@
 APPS = \
     alloc \
     audio_description \
-    audio_ms12_mixing \
     cec \
     client \
     dma \
@@ -56,12 +55,19 @@ APPS = \
     palette \
     pip_swap \
     shared_handle \
-    smooth_video
+    smooth_video \
+    stats_client \
+    status_client
+
+ifeq ($(shell test -f audio_ms12_mixing.c && echo y),y)
+APPS += audio_ms12_mixing
+endif
 
 all: $(APPS)
 
 NEXUS_TOP ?= $(shell cd ../../; pwd)
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+BINDIR := $(B_REFSW_OBJ_ROOT)/nexus/nxclient/examples
 
 # NEXUS flags
 CFLAGS += -g $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -71,10 +77,18 @@ include $(NEXUS_TOP)/nxclient/include/nxclient.inc
 CFLAGS += $(NXCLIENT_CFLAGS)
 LDFLAGS += $(NXCLIENT_LDFLAGS)
 
-$(APPS): %: %.c
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
-	$(CP) $@ ${NEXUS_BIN_DIR}
+define app_rule
+$$(BINDIR)/$1: $1.c
+	@echo [Compile... $$<]
+	@mkdir -p $$(dir $$@)
+	$$(Q_)$$(CC) -o $$@ $$(filter %.c %.s %.o, $$^) $$(CFLAGS) $$(LDFLAGS)
+	cp -f $$@ $${NEXUS_BIN_DIR}
+
+$1: $$(BINDIR)/$1
+	@test 1
+endef
+
+$(foreach app, $(APPS), $(eval $(call app_rule,$(strip $(app)))))
 
 clean clean_apps:
-	$(RM) $(APPS)
+	$(RM) $(addprefix $(BINDIR)/,$(APPS))

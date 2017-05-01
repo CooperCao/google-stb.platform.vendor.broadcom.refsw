@@ -64,11 +64,12 @@ BDBG_MODULE(bpiff_encoder);
  *  DEFINES
  ************/
 #define DUMP_DATA_HEX(string,data,size) {        \
+   uint8_t *ptr = (uint8_t*)data;                \
    char tmp[512]= "\0";                          \
    uint32_t i=0, l=strlen(string);               \
    sprintf(tmp,"%s",string);                     \
    while( i<size && l < 512) {                   \
-    sprintf(tmp+l," %02x", data[i]); ++i; l+=3;} \
+    sprintf(tmp+l," %02x", ptr[i]); ++i; l+=3;} \
    printf(tmp); printf("\n");                    \
    BDBG_MSG((tmp));                              \
 } 
@@ -77,14 +78,6 @@ BDBG_MODULE(bpiff_encoder);
 #define DMA_BLK_POOL_SIZE           100
 
 #define BMP4_ISO_FTYP_MINOR_VER     1
-#define BMP4_ISO_FTYP               BMP4_TYPE('f','t','y','p')
-#define BMP4_ISO_BRAND_MP42         BMP4_TYPE('m','p','4','2')
-#define BMP4_ISO_BRAND_MP41         BMP4_TYPE('m','p','4','1')
-#define BMP4_ISO_CENC               BMP4_TYPE('c','e','n','c')
-#define BMP4_PIFF_SCHEMETYPE        BMP4_TYPE('p','i','f','f')
-#define BMP4_AVC1_BRAND             BMP4_TYPE('a','v','c','1')
-#define BMP4_MP4A_BRAND             BMP4_TYPE('m','p','4','a')
-#define BMP4_SAMPLE_MP4V            BMP4_TYPE('m','p','4','v')
 
 #define BMP4_ISO_AVCC_NUM_PIC_PARAM_SETS 1
 #define BMP4_ISO_AVCC_NALU_LENGTH_SIZE_MINUS_1 0x3
@@ -105,17 +98,12 @@ BDBG_MODULE(bpiff_encoder);
 #define BMP4_ISO_RATE_1_0            0x00010000
 #define BMP4_ISO_VOLUME_1_0          0x0100
 #define BMP4_ISO_RESERVED            0         /* MUST have the value zero */
-#define BMP4_ISO_TIMESCALE_90KHZ     90000 
 
 #define BMP4_SCHM_PIFF_VERSION       0x00010001  
 #define BMP4_SCHM_PIFF_1_3_VERSION   0x00010000  
-#define BOX_HEADER_SIZE              8 
 #define BUF_SIZE                     1024 * 1024 * 2  /* 2MB */
-#define MAX_NAL_BUF_SIZE             1024 * 512 /* 512KB */ 
+#define MAX_NAL_BUF_SIZE             1024 * 512 /* 512KB */
 #define MAX_NUM_SAMPLES_TRUN         128 
-
-#define PIFF_MAX_SAMPLES             1024 
-#define PIFF_MAX_ENTRIES_PER_SAMPLE  10   /*Max number of entries per sample */
 
                                      /* version + flags + sample_count */
 #define TRUN_BOX_DATA_OFFSET_SIZE   (sizeof(uint32_t)+sizeof(uint32_t))
@@ -166,7 +154,6 @@ static const uint32_t IdentityMatrix[9] =
 			((uint16_t)(((uint8_t *)(p))[(off)+1])))
 
 #define FRAGMENT_HEADER_SIZE 4096
-#define MAX_PPS_SPS          256
 
 extern size_t bdrm_map_cursor_to_dmablks(batom_cursor *cursor, size_t count, NEXUS_DmaJobBlockSettings *blks, uint32_t nb_blks_avail, uint32_t *nb_blks_used);
 
@@ -214,6 +201,7 @@ struct fragment_entry {
     uint64_t start_time;
 };
 
+/*#define HOLD_SRC_DATA*/ /* Hold source data in temporary area */
 typedef struct audio_payload {
     uint32_t alloc_size;
     uint32_t actual_size;
@@ -225,6 +213,12 @@ typedef struct nal_payload {
     uint32_t actual_size;
     uint8_t  type;
     uint8_t *data; /*dynamically allocated buffer, make sure to release the memory after */
+#ifdef OPAQUE_ENCRYPT
+    uint8_t *data_src; /* hold source pointer from encoder */
+#ifdef HOLD_SRC_DATA
+    uint8_t *data_tmp;
+#endif
+#endif
 }nal_payload;
 
 typedef struct trun_sample {
@@ -674,7 +668,7 @@ int init_license( bpiff_encoder_context * piff_cx, PIFF_Encoder_Settings * pSett
                                              NULL,
                                              &piff_cx->phLicense) != DRM_Prdy_ok)
     {
-        BDBG_ERR(("failed to create license.", __FUNCTION__));
+        BDBG_ERR(("%s: failed to create license.", __FUNCTION__));
         return -1;
     } 
 
@@ -978,7 +972,6 @@ int encrypt_sample(piff_media_context *media_cx, bpiff_encoder_context *piff_cx,
     uint32_t     currentSize = 0;
     uint32_t     rc=0;
     uint8_t      jj=0;
-    uint8_t     *encBuf=NULL;
 
     BKNI_AcquireMutex(piff_cx->lock);
 
@@ -992,16 +985,13 @@ int encrypt_sample(piff_media_context *media_cx, bpiff_encoder_context *piff_cx,
         /* printf("Encrypt Audio sample...\n");
          */
         nal_payload *nal = &sample->nals[0];
-        DRM_Prdy_sample_t   payload;
-        DRM_Prdy_subSample_t s_sample;
-        s_sample.size = nal->actual_size; 
-        s_sample.sample = nal->data; 
-
-        payload.numOfSubsamples=1; 
-        payload.subsamples=&s_sample; 
 
         if(DRM_Prdy_LocalLicense_EncryptSample( piff_cx->phLicense,
+#ifdef OPAQUE_ENCRYPT
+                                                nal->data_src,
+#else
                                                 nal->data, 
+#endif
                                                 nal->data, 
                                                 nal->actual_size, 
                                                 &sample->iv[8]) != DRM_Prdy_ok)
@@ -1010,69 +1000,95 @@ int encrypt_sample(piff_media_context *media_cx, bpiff_encoder_context *piff_cx,
             rc = -1;
             goto ErrorExit;
         };
+#ifdef HOLD_SRC_DATA
+        NEXUS_Memory_Free(nal->data_tmp);
+#endif
     }
     else 
     {
         DRM_Prdy_sample_t     payload;
-        DRM_Prdy_subSample_t  s_sample;
         DRM_Prdy_subSample_t *pSubSamples;
+#ifdef OPAQUE_ENCRYPT
+        DRM_Prdy_sample_t     payload_src;
+        DRM_Prdy_subSample_t *pSubSamples_src;
+#endif
         uint32_t              numOfNals = sample->numOfNals;
 
         currentSize = 0;
 
         /* consturct the DRM_Prdy_sample_t structure */
-        pSubSamples = BKNI_Malloc( sizeof(DRM_Prdy_subSample_t) * numOfNals);  
-        for(jj = 0; jj < sample->numOfNals; ++jj) {
+        pSubSamples = BKNI_Malloc(sizeof(DRM_Prdy_subSample_t) * numOfNals);
+#ifdef OPAQUE_ENCRYPT
+        pSubSamples_src = BKNI_Malloc(sizeof(DRM_Prdy_subSample_t) * numOfNals);
+#endif
+        for(jj = 0; jj < numOfNals; ++jj) {
             nal_payload *nal = &sample->nals[jj]; 
             if( (currentSize + nal->actual_size) > sample->size) {
                 BDBG_ERR(("%s - Incorrect NAL size detected: accumulated NAL size %d > sample size %d , can't encrypt the layload." ,
                             __FUNCTION__,
                             currentSize+nal->actual_size,
                             sample->size));
-
-                if( encBuf != NULL) {
-                    NEXUS_Memory_Free(encBuf);
-                }
-
                 rc = -1;
                 goto ErrorExit;
             }
             pSubSamples[jj].sample = nal->data;
             pSubSamples[jj].size = nal->actual_size;
+#ifdef OPAQUE_ENCRYPT
+#ifdef HOLD_SRC_DATA
+            pSubSamples_src[jj].sample = nal->data_tmp;
+#else
+            pSubSamples_src[jj].sample = nal->data_src;
+#endif
+            pSubSamples_src[jj].size = nal->actual_size;
+#endif
             currentSize += nal->actual_size;
         }
 
         /* encrypt the sample using SDK */
-        s_sample.size = currentSize; 
-        s_sample.sample = encBuf; 
-        payload.numOfSubsamples=sample->numOfNals; 
-        payload.subsamples=pSubSamples; 
+        payload.numOfSubsamples = numOfNals;
+        payload.subsamples = pSubSamples;
+#ifdef OPAQUE_ENCRYPT
+        payload_src.numOfSubsamples = numOfNals;
+        payload_src.subsamples = pSubSamples_src;
+#endif
         if(DRM_Prdy_LocalLicense_EncryptSubsamples( piff_cx->phLicense,
+#ifdef OPAQUE_ENCRYPT
+                                                   &payload_src,
+#else
                                                    &payload,
+#endif
                                                    &payload,
                                                    &sample->iv[8]) != DRM_Prdy_ok)
         {
             BDBG_ERR(("%s - DRM_Prday_LocalLicense_EncryptSubsamples failed. No encryption has been done.", __FUNCTION__));
-            if( encBuf != NULL) { 
-                NEXUS_Memory_Free(encBuf);
+            if (pSubSamples != NULL) {
+                BKNI_Free(pSubSamples);
             }
-            if( pSubSamples != NULL) { 
-                BKNI_Free(pSubSamples); 
+#ifdef OPAQUE_ENCRYPT
+            if (pSubSamples_src != NULL) {
+                BKNI_Free(pSubSamples_src);
             }
-
+#endif
             rc = -1;
             goto ErrorExit;
         };
 
-        if( pSubSamples != NULL) {
-            BKNI_Free(pSubSamples); 
+        if (pSubSamples != NULL) {
+            BKNI_Free(pSubSamples);
         }
-
-        /* free the temporary encrypted buffer */
-        if( encBuf != NULL) NEXUS_Memory_Free(encBuf);
-
+#ifdef OPAQUE_ENCRYPT
+        if (pSubSamples_src != NULL) {
+            BKNI_Free(pSubSamples_src);
+        }
+#endif
+#ifdef HOLD_SRC_DATA
+        for (jj = 0; jj < numOfNals; ++jj) {
+            nal_payload *nal = &sample->nals[jj];
+            NEXUS_Memory_Free(nal->data_tmp);
+        }
+#endif
     } /* else */
-          
+
 ErrorExit:
 
     BKNI_ReleaseMutex(piff_cx->lock);
@@ -1320,7 +1336,7 @@ int write_mdat_box(piff_media_context *media_cx, bpiff_encoder_context *piff_cx)
                 write_uint32_be(fout,nal->actual_size+1); /* include the 1 byte type field */ 
                 BDBG_MSG(("  write the type field = %d",nal->type));
                 write_uint8(fout,nal->type);
-                BDBG_MSG(("  write the data field with address 0x%08x with size = %d",nal->data,nal->actual_size));
+                BDBG_MSG(("  write the data field with address %p with size = %d", nal->data,nal->actual_size));
                 write_data(fout,(uint8_t *)nal->data,nal->actual_size);
                 /* we can now safely release the nal data buffer */
                 BDBG_MSG(("the NAL is encrypted, releasing the memory size=%d", nal->alloc_size));
@@ -2031,21 +2047,21 @@ int write_minf_box(piff_media_context * media_cx, bpiff_encoder_context *piff_cx
          * create the "smhd" box for audio
          **********************************/
        uint32_t smhd_offset=0; 
-       smhd_offset = start_mp4_fullbox(fout,"smhd", 0, 0);  
+       smhd_offset = start_mp4_fullbox(fout,"smhd", 0, 0);
        write_uint16_be(fout,0); /* balance */
-       write_uint16_be(fout,BMP4_ISO_RESERVED); 
+       write_uint16_be(fout,BMP4_ISO_RESERVED);
        finish_mp4_box(fout,smhd_offset);
     }
 
     /************************
      * create the "dinf" box
      ************************/
-    write_dinf_box( media_cx,piff_cx); 
+    write_dinf_box( media_cx,piff_cx);
 
     /************************
      * create the "stbl" box
      ************************/
-    write_stbl_box( media_cx,piff_cx); 
+    write_stbl_box( media_cx,piff_cx);
 
     finish_mp4_box(fout,minf_offset);
 
@@ -2320,7 +2336,7 @@ void memory_buffer_reset(memory_buffer *m)
 static 
 int memory_buffer_start_nal(memory_buffer *m, uint8_t nalu)
 {
-    BDBG_MSG(("%p, %u,nal:%#x", m, m->offset, nalu));
+    BDBG_MSG(("%p, %u,nal:%#x", (void*)m, m->offset, nalu));
     if(m->offset + 2 + 1>= sizeof(m->buf)) {
         return -1;
     }
@@ -2337,7 +2353,7 @@ int memory_buffer_add_data(memory_buffer *m, const void *data, size_t len)
 {
     size_t nalu_len;
 
-    BDBG_MSG(("%p, %d data:%#x,%#x", m, len, ((uint8_t *)data)[0], ((uint8_t *)data)[1]));
+    BDBG_MSG(("%p, %d data:%#x,%#x", (void*)m, len, ((uint8_t *)data)[0], ((uint8_t *)data)[1]));
     if(m->offset + len >= sizeof(m->buf)) {
         return -1;
     }
@@ -2352,34 +2368,107 @@ int memory_buffer_add_data(memory_buffer *m, const void *data, size_t len)
     return 0;
 }
 
-static 
+#ifdef OPAQUE_ENCRYPT
+static
+int accum_nal_to_memory_for_opaque( nal_payload *nal, const void *data, size_t len)
+{
+    uint32_t need_size = len;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_MemoryAllocationSettings allocSettings;
+
+    BDBG_MSG(("%s - Entering function", __FUNCTION__));
+
+    if(nal != NULL) {
+        need_size += nal->actual_size;
+        if (nal->alloc_size >= need_size)
+        {
+            BDBG_MSG(("    adding nal size=%d", len));
+#ifdef HOLD_SRC_DATA
+            BKNI_Memcpy(nal->data_tmp+nal->actual_size, data, len);
+#endif
+            nal->actual_size += len;
+        }
+        else
+        {
+            NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+            /* need to increase the buffer size but try not to over allocate */
+            if( (nal->actual_size == 0) && (need_size < MAX_NAL_BUF_SIZE))
+            {
+                BDBG_MSG(("    allocating memory for nal size=%d, alloc size=%d", len,MAX_NAL_BUF_SIZE));
+                /* first time allocation
+                 * allocate MAX_NAL_BUF_SIZE, it should be big enough
+                 * for one complete NAL within a sample */
+                rc = NEXUS_Memory_Allocate(MAX_NAL_BUF_SIZE, &allocSettings, (void *)&nal->data);
+                if(rc != NEXUS_SUCCESS) {
+                    BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for the NAL, rc = %d\n", __FUNCTION__, rc));
+                    rc = -1;
+                    goto ErrorExit;
+                }
+#ifdef HOLD_SRC_DATA
+                rc = NEXUS_Memory_Allocate(MAX_NAL_BUF_SIZE, &allocSettings, (void *)&nal->data_tmp);
+                if(rc != NEXUS_SUCCESS) {
+                    BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for the NAL, rc = %d\n", __FUNCTION__, rc));
+                    rc = -1;
+                    goto ErrorExit;
+                }
+                BKNI_Memset(nal->data_tmp, 0, MAX_NAL_BUF_SIZE);
+                BKNI_Memcpy(nal->data_tmp, data, len);
+#endif
+                BKNI_Memset(nal->data, 0, MAX_NAL_BUF_SIZE);
+                nal->alloc_size = MAX_NAL_BUF_SIZE;
+                nal->actual_size = len;
+                nal->data_src = (uint8_t*)data;
+            }
+            else
+            {
+                BDBG_MSG(("    allocating new memory for nal, original size=%d, new size=%d", nal->actual_size,need_size));
+                rc = NEXUS_Memory_Allocate(need_size, &allocSettings, (void *)&nal->data);
+                if(rc != NEXUS_SUCCESS) {
+                    BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for the new NAL size, rc = %d\n", __FUNCTION__, rc));
+                    rc = -1;
+                    goto ErrorExit;
+                }
+                if (nal->actual_size == 0)
+                    nal->data_src = (uint8_t*)data;
+                nal->alloc_size = need_size;
+                nal->actual_size = need_size;
+            }
+        }
+    }
+
+ErrorExit:
+    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    return rc;
+}
+#endif
+static
 int accum_nal_to_memory( nal_payload *nal, const void *data, size_t len)
 {
     uint32_t need_size = len;
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_MemoryAllocationSettings allocSettings;
-    
+
     BDBG_MSG(("%s - Entering function", __FUNCTION__));
 
     if(nal != NULL) {
         need_size += nal->actual_size;
-        if( nal->alloc_size >= need_size) 
+        if( nal->alloc_size >= need_size)
         {
             /* append this partial nal to the existing nal's buffer */
             BDBG_MSG(("    adding nal size=%d", len));
-            BKNI_Memcpy(nal->data+nal->actual_size, data, len);	
+            BKNI_Memcpy(nal->data+nal->actual_size, data, len);
             nal->actual_size += len;
         }
-        else 
+        else
         {
             NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
             /* need to increase the buffer size but try not to over allocate */
-            if( (nal->actual_size == 0) && (need_size < MAX_NAL_BUF_SIZE)) 
+            if( (nal->actual_size == 0) && (need_size < MAX_NAL_BUF_SIZE))
             {
                 BDBG_MSG(("    allocating memory for nal size=%d, alloc size=%d", len,MAX_NAL_BUF_SIZE));
-                /* first time allocation 
-                 * allocate MAX_NAL_BUF_SIZE, it should be big enough 
-                 * for one complete NAL within a sample */  
+                /* first time allocation
+                 * allocate MAX_NAL_BUF_SIZE, it should be big enough
+                 * for one complete NAL within a sample */
                 rc = NEXUS_Memory_Allocate(MAX_NAL_BUF_SIZE, &allocSettings, (void *)&nal->data);
                 if(rc != NEXUS_SUCCESS) {
                     BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for the NAL, rc = %d\n", __FUNCTION__, rc));
@@ -2387,18 +2476,18 @@ int accum_nal_to_memory( nal_payload *nal, const void *data, size_t len)
                     goto ErrorExit;
                 }
                 BKNI_Memset(nal->data, 0, MAX_NAL_BUF_SIZE);
-                nal->alloc_size = MAX_NAL_BUF_SIZE; 
+                nal->alloc_size = MAX_NAL_BUF_SIZE;
 
                 /* cpy the nal */
-                BKNI_Memcpy(nal->data, data, len);	
+                BKNI_Memcpy(nal->data, data, len);
                 nal->actual_size = len;
             }
-            else 
+            else
             {
-                /* This is a very rare case, but still need to handle it if happens 
-                 * So, resize the original buffer and move over everthing into it  */ 
+                /* This is a very rare case, but still need to handle it if happens
+                 * So, resize the original buffer and move over everthing into it  */
                 uint8_t *tmp;
-                if(nal->actual_size > 0) 
+                if(nal->actual_size > 0)
                 {
                     BDBG_MSG(("    allocating temp memory for nal, size=%d", nal->actual_size));
                     rc = NEXUS_Memory_Allocate(nal->actual_size, &allocSettings, (void *)&tmp);
@@ -2407,7 +2496,7 @@ int accum_nal_to_memory( nal_payload *nal, const void *data, size_t len)
                         rc = -1;
                         goto ErrorExit;
                     }
-                    BKNI_Memcpy(tmp, nal->data, nal->actual_size);	
+                    BKNI_Memcpy(tmp, nal->data, nal->actual_size);
                     NEXUS_Memory_Free(nal->data);
 
                     BDBG_MSG(("    allocating new memory for nal, original size=%d, new size=%d", nal->actual_size,need_size));
@@ -2419,14 +2508,14 @@ int accum_nal_to_memory( nal_payload *nal, const void *data, size_t len)
                         goto ErrorExit;
                     }
                     /* allocate the new size */
-                    BKNI_Memcpy(nal->data, tmp, nal->actual_size);	
-                    BKNI_Memcpy(nal->data+nal->actual_size, data, len);	
+                    BKNI_Memcpy(nal->data, tmp, nal->actual_size);
+                    BKNI_Memcpy(nal->data+nal->actual_size, data, len);
 
                     /* release the tmp buffer */
                     BDBG_MSG(("    releasing temp memory for nal, size=%d", nal->actual_size));
                     NEXUS_Memory_Free(tmp);
                 }
-                else 
+                else
                 {
                     BDBG_MSG(("    allocating new memory for nal, original size=%d, new size=%d", nal->actual_size,need_size));
                     rc = NEXUS_Memory_Allocate(need_size, &allocSettings, (void *)&nal->data);
@@ -2435,11 +2524,11 @@ int accum_nal_to_memory( nal_payload *nal, const void *data, size_t len)
                         rc = -1;
                         goto ErrorExit;
                     }
-                    BKNI_Memcpy(nal->data, data, len);	
+                    BKNI_Memcpy(nal->data, data, len);
                 }
-                nal->alloc_size = need_size; 
+                nal->alloc_size = need_size;
                 nal->actual_size = need_size;
-            }             
+            }
         }
     }
 
@@ -2448,7 +2537,7 @@ ErrorExit:
     return rc;
 }
 
-static 
+static
 void nal_writer_start(struct nal_writer *w, uint8_t nal_type, nal_payload *nal)
 {
     w->nal_size = 1;  /* 1 means that the total size of the nal will include the 1-byte type field */
@@ -2459,6 +2548,12 @@ void nal_writer_start(struct nal_writer *w, uint8_t nal_type, nal_payload *nal)
         nal->actual_size = 0;
         nal->type = nal_type;
         nal->data = NULL;
+#ifdef OPAQUE_ENCRYPT
+        nal->data_src = NULL;
+#ifdef HOLD_SRC_DATA
+        nal->data_tmp = NULL;
+#endif
+#endif
     }
 }
 
@@ -2479,7 +2574,11 @@ void audio_add_data( const void *data, size_t len, nal_payload *audio_payload)
 
     /* We want to encrypt before writing to the file.  */
     if( audio_payload != NULL) {
+#ifdef OPAQUE_ENCRYPT
+        accum_nal_to_memory_for_opaque(audio_payload, data, len);
+#else
         accum_nal_to_memory(audio_payload,data,len);
+#endif
     }
     BDBG_MSG(("%s - Exiting function", __FUNCTION__));
 }
@@ -2496,7 +2595,11 @@ void nal_writer_add_data(struct nal_writer *w, void *data, size_t len, nal_paylo
     w->nal_size += len;
     
     if( nal != NULL) {
+#ifdef OPAQUE_ENCRYPT
+        accum_nal_to_memory_for_opaque(nal, data, len);
+#else
         accum_nal_to_memory(nal,data,len);
+#endif
     }
     BDBG_MSG(("%s - Exiting function", __FUNCTION__));
 }
@@ -2632,7 +2735,7 @@ int avc_decoder_configuration_make(struct decoder_configuration *d, const memory
     d->data[3] = sps->buf[6]; /*AVCLevelIndication */
     d->data[4] = 0xFF;        /* lengthSizeMinusOne == 2 */
     d->data[5] = 0xE0 | sps->entries;
-    BDBG_MSG(("sps:%p(%u) pps:%p(%u)", sps, sps->offset, pps, pps->offset));
+    BDBG_MSG(("sps:%p(%u) pps:%p(%u)", (void*)sps, sps->offset, (void*)pps, pps->offset));
     BKNI_Memcpy(d->data+6, sps->buf, sps->offset);
     pps_offset = 6 + sps->offset;
     d->data[pps_offset] = pps->entries;
@@ -2792,7 +2895,7 @@ int process_audio_frame(piff_media_context              *media_cx,
                         finish_fragment(media_cx,piff_context);
                         /* check if needs to terminate */ 
                         if( terminate(piff_context)) {
-                            BDBG_MSG(("Terminating..."));
+                            BDBG_LOG(("%s: Terminating...", __FUNCTION__));
                             return -1;
                         }
                     }
@@ -2802,7 +2905,7 @@ int process_audio_frame(piff_media_context              *media_cx,
                     audio_data_init(&media_cx->fragment.trun.samples[media_cx->fragment.trun.nsamples].nals[0]); 
                 }
                 frame_state_set_pts(&frame, d->pts);
-                BDBG_MSG(("P:%p:frame:%u pts:%u", d, media_cx->frame_no, (unsigned)(d->pts/2)));
+                BDBG_MSG(("P:%p:frame:%u pts:%u", (void*)d, media_cx->frame_no, (unsigned)(d->pts/2)));
             }
             if(frame_started) {
                 if(d->rawDataLength) {
@@ -2902,7 +3005,7 @@ int process_video_frame(piff_media_context *media_cx,
                 default: type = "Unknown"; break;
                 }
 
-                BDBG_MSG(("P:%p:frame:%u nal:%#x(%u:%s)", d, media_cx->frame_no, d->dataUnitType, nal_unit_type, type));
+                BDBG_MSG(("P:%p:frame:%u nal:%#x(%u:%s)", (void*)d, media_cx->frame_no, d->dataUnitType, nal_unit_type, type));
                 if(nal_writer_started) {
                     nal_writer_started = false;
                     frame_size += nal_writer_finish(&nal_writer);
@@ -2925,7 +3028,7 @@ int process_video_frame(piff_media_context *media_cx,
 
                             /* check if needs to terminate */ 
                             if( terminate(piff_context)) {
-                                BDBG_MSG(("Terminating..."));
+                                BDBG_LOG(("%s: Terminating...", __FUNCTION__));
                                 return -1;
                             }
                         }
@@ -2949,7 +3052,7 @@ int process_video_frame(piff_media_context *media_cx,
                 if(d->flags & NEXUS_VIDEOENCODERDESCRIPTOR_VIDEOFLAG_DTS_VALID) {
                     frame_state_set_dts(&frame, d->dts);
                 }
-                BDBG_MSG(("P:%p:frame:%u pts:%u dts:%u", d, media_cx->frame_no, (unsigned)(d->pts/2), (unsigned)(d->dts/2)));
+                BDBG_MSG(("P:%p:frame:%u pts:%u dts:%u", (void*)d, media_cx->frame_no, (unsigned)(d->pts/2), (unsigned)(d->dts/2)));
             }
 
             if(nal_valid) 
@@ -3121,7 +3224,7 @@ void * encode_video( void * context)
             continue;
         }
 
-        BDBG_MSG(("descs:%p[%u],%p[%u]", desc[0],size[0],desc[1],size[1]));
+        BDBG_MSG(("descs:%p[%u],%p[%u]", (void*)desc[0], size[0], (void*)desc[1], size[1]));
         for(frame_start_i=0, frame_start_j=0,descs=0,i=0,j=0;;) 
         {
             const NEXUS_VideoEncoderDescriptor *d;
@@ -3136,7 +3239,7 @@ void * encode_video( void * context)
             i++;
             if(d->flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_FRAME_START) 
             {
-                BDBG_MSG(("%p:frame %u", d, frame_no));
+                BDBG_MSG(("%p:frame %u", (void*)d, frame_no));
                 if(frame_no!=0) {
                     if(j==frame_start_j) {
                         descs += i-frame_start_i;
@@ -3241,11 +3344,19 @@ void * encode_audio( void * context)
         unsigned frame_no=0;
 
         NEXUS_AudioMuxOutput_GetBuffer(audioMuxOutput, &desc[0], &size[0], &desc[1], &size[1]);
-        if(size[0]==0 && size[1]==0) {
+        if (size[0] == 0 && size[1] == 0) {
+            if (piff_ctx->lock != NULL) {
+                BKNI_AcquireMutex(piff_ctx->lock);
+                if ((piff_ctx->state & STATE_CONTEXT_TERMINATE_ENCODE) == STATE_CONTEXT_TERMINATE_ENCODE) {
+                    BKNI_ReleaseMutex(piff_ctx->lock);
+                    goto done_encoding;
+                }
+                BKNI_ReleaseMutex(piff_ctx->lock);
+            }
             BKNI_Sleep(30);
             continue;
         }
-        BDBG_MSG(("descs:%p[%u],%p[%u]", desc[0],size[0],desc[1],size[1]));
+        BDBG_MSG(("descs:%p[%u],%p[%u]", (void*)desc[0], size[0], (void*)desc[1], size[1]));
         for(frame_start_i=0, frame_start_j=0,descs=0,i=0,j=0;;) {
             const NEXUS_AudioMuxOutputFrame *d;
             if(i>=size[j]) {
@@ -3267,7 +3378,7 @@ void * encode_audio( void * context)
                 media_ctx->codec.aac.aac_config_valid = true;
             }
             if(d->flags & NEXUS_AUDIOMUXOUTPUTFRAME_FLAG_FRAME_START) {
-                BDBG_MSG(("%p:frame %u", d, frame_no));
+                BDBG_MSG(("%p:frame %u", (void*)d, frame_no));
                 if(frame_no!=0) {
                     if(j==frame_start_j) {
                         descs += i-frame_start_i;
@@ -3286,7 +3397,7 @@ void * encode_audio( void * context)
                 frame_no++;
             }
             if((d->flags & NEXUS_AUDIOMUXOUTPUTFRAME_FLAG_PTS_VALID)) {
-               BDBG_MSG(("%p:frame:%u pts:%u" , d, frame_no, (unsigned)(d->pts/2)));
+               BDBG_MSG(("%p:frame:%u pts:%u" , (void*)d, frame_no, (unsigned)(d->pts/2)));
             }
         }
         if(descs) {
@@ -3508,7 +3619,7 @@ PIFF_encoder_handle piff_create_encoder_handle(PIFF_Encoder_Settings *pSettings,
     BDBG_MSG(("license XML string: %s\n",handle->pLicAcqXMLStr));
 
     if( BKNI_CreateMutex(&handle->lock) != BERR_SUCCESS) {
-        BDBG_ERR(("failed to create mutex.", __FUNCTION__));
+        BDBG_ERR(("%s: failed to create mutex.", __FUNCTION__));
         goto ErrorExit;
     }
 

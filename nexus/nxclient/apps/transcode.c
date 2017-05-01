@@ -326,7 +326,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     printf(
         "  -audio_passthrough    audio codec passthrough\n"
         "  -audio_samplerate     audio output sample rate in HZ\n"
-        "  -audio_bitrate  output audio bitrate in bps"
+        "  -audio_bitrate  output audio bitrate in bps\n"
         "  -loop          loop playback\n"
         "  -timeout SECONDS\n"
         "  -ramp_bitrate  to ramp up output bitrate from a quarter of video_bitrate\n"

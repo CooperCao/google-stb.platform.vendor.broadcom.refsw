@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,23 +35,10 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# Module Description:
-#
 ############################################################
-# Nexus examples
-B_THIS_DIR:=nexus/examples/graphics
 
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
-show_webp: CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/media -I$(NEXUS_TOP)/../BSEAV/lib/utils
-
-THEAPPS := \
-    bad_rac_blit \
+APPS := \
     blit \
     blit_with_alpha_blend \
     checkpoint \
@@ -87,4 +74,6 @@ THEAPPS := \
     surface_heap \
     show_yuv
 
-include ${NEXUS_TOP}/examples/Makefile.inc
+include ../Makefile.inc
+
+show_webp: CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/media -I$(NEXUS_TOP)/../BSEAV/lib/utils

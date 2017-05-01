@@ -333,11 +333,18 @@ typedef struct BVDC_P_CompositorContext
     uint32_t                          aulNLCfg[BVDC_P_MAX_VIDEO_WINS_PER_CMP][BVDC_P_CMP_NL_CFG_REGS]; /* V0 and V1, 8 regs */
 #endif
     BVDC_P_Cfc_Capability             stCfcCapability[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
-#if BVDC_P_CMP_CFC_VER >= 3
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
     /* CFC LUT heap */
     BMMA_Heap_Handle                  hCfcHeap; /* must be cpu accessible for LUT fill */
     BVDC_P_CfcLutLoadListInfo         stCfcLutList; /* for CFC ram table loading */
-#endif
+    /* DBV support */
+#if BVDC_P_DBV_SUPPORT
+    BVDC_P_DBV_Info                  * pstDbv;
+#endif /* BVDC_P_DBV_SUPPORT */
+#if BVDC_P_TCH_SUPPORT
+    BVDC_P_TCH_Info                  * pstTch;
+#endif /* BVDC_P_DVS_SUPPORT */
+#endif /* BVDC_P_CMP_CFC_VER >= 3 */
 
     /* this affects dvi dither setting */
     bool                              bIs10BitCore;

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-GL-functions which do something on both skin and fruit
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "libs/util/dglenum/dglenum.h"
 #include "../common/khrn_int_util.h"
@@ -18,6 +11,7 @@ GL-functions which do something on both skin and fruit
 #include "../common/khrn_process.h"
 
 #include "libs/util/snprintf.h"
+#include "libs/core/v3d/v3d_ident.h"
 
 static bool is_precision_type(GLenum type);
 static bool is_float_type(GLenum type);
@@ -40,19 +34,6 @@ GL_API void GL_APIENTRY glEnableVertexAttribArray(GLuint index)
    attrib_enable(index, true);
 }
 
-static const char* get_string_renderer()
-{
-   // The format is "VideoCore V HW (V3D-<H><S><T>)" where...
-   // <H> is "5" for v3dv3
-   // <S> is the number of slices per core
-   // <T> is (texture units per core - 1) * 5
-   static char renderer[30] = { 0 };
-   unsigned int slices = khrn_get_num_slices_per_core();
-   unsigned int tmus = khrn_get_num_tmus_per_core();
-   snprintf(renderer, sizeof(renderer), "VideoCore V HW (V3D-5%u%u)", slices, (tmus - 1) * 5);
-   return renderer;
-}
-
 GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
@@ -72,7 +53,7 @@ GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
 #endif
          break;
       case GL_RENDERER:
-         result = get_string_renderer();
+         result = khrn_get_device_name();
          break;
       case GL_VERSION:
          result = "OpenGL ES-CM 1.1";
@@ -96,7 +77,7 @@ GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
 #endif
          break;
       case GL_RENDERER:
-         result = get_string_renderer();
+         result = khrn_get_device_name();
          break;
       case GL_VERSION:
          if (KHRN_GLES32_DRIVER)

@@ -120,7 +120,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 
 			BDBG_MSG(("chn %p: Creating timer %p(%d)", (void*)hChn, (void*)psTimer, i));
 			rc = hChn->sSettings.cbTimer.pfCreate(pvParm1, iParm2, &psTimer->hTimer);
-			if (rc) 
+			if (rc)
 			{
 				BKNI_Free(psTimer);
 				goto error;
@@ -310,8 +310,8 @@ BERR_Code BSYNClib_Channel_P_CancelTimer_isr(
 		if (hChn->sSettings.cbTimer.pfCancel_isr)
 		{
 			rc = hChn->sSettings.cbTimer.pfCancel_isr(
-				hChn->sSettings.cbTimer.pvParm1, 
-				hChn->sSettings.cbTimer.iParm2, 
+				hChn->sSettings.cbTimer.pvParm1,
+				hChn->sSettings.cbTimer.iParm2,
 				psTimer->hTimer);
 			if (rc) goto error;
 		}
@@ -879,9 +879,9 @@ bool BSYNClib_Channel_P_AudioAudioSyncCheck(BSYNClib_Channel_Handle hChn)
 
 		psSink = (BSYNClib_AudioSink *)BSYSlib_List_Next(hIterator);
 
-		if (psSink->sElement.sSnapshot.bSynchronize) 
+		if (psSink->sElement.sSnapshot.bSynchronize)
 		{
-			uiAudioSyncCount++; 
+			uiAudioSyncCount++;
 		}
 	}
 
@@ -916,7 +916,7 @@ bool BSYNClib_Channel_P_VideoVideoSyncCheck(BSYNClib_Channel_Handle hChn)
 		/* invisible windows are ignored */
 		if ((psSink->sSnapshot.bVisible && psSink->sElement.sSnapshot.bSynchronize) || bResetDelay)
 		{
-			uiVideoSyncCount++; 
+			uiVideoSyncCount++;
 		}
 	}
 
@@ -1083,9 +1083,6 @@ BERR_Code BSYNClib_Channel_P_GenerateCallbacks(BSYNClib_Channel_Handle hChn)
 
 		rc = BSYNClib_Channel_P_GenerateDelayCallback(hChn->sSettings.sVideo.sSource.cbDelay.pfSetDelay, pvParm1, iParm2, psSource->sElement.uiIndex, &psSource->sElement);
 		if (rc) goto error;
-
-		/* PR49294 20081125 bandrews - added precision lipsync flag */
-		psSource->sElement.sNotification.sResults.bEnabled &= hChn->bPrecisionLipsyncEnabled;
 
 		rc = BSYNClib_Channel_P_GenerateDelayNotificationCallback(hChn->sSettings.sVideo.sSource.cbDelay.pfSetDelayNotification, pvParm1, iParm2, psSource->sElement.uiIndex, &psSource->sElement);
 		if (rc) goto error;

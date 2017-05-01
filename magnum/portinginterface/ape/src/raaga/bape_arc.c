@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -193,7 +193,7 @@ BERR_Code BAPE_AudioReturnChannel_SetSettings(
 /***************************************************************************
         BAPE Internal APIs: From bape_fmm_priv.h
 ***************************************************************************/
-
+#if !B_REFSW_MINIMAL
 BERR_Code BAPE_AudioReturnChannel_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 {
     BERR_Code   errCode = BERR_SUCCESS;
@@ -223,6 +223,7 @@ BERR_Code BAPE_AudioReturnChannel_P_ResumeFromStandby(BAPE_Handle bapeHandle)
     }
     return errCode;
 }
+#endif
 
 /***************************************************************************
         Private callbacks: Protyped above
@@ -373,10 +374,13 @@ BERR_Code BAPE_AudioReturnChannel_SetSettings(
 
     return BERR_NOT_SUPPORTED;
 }
+
+#if !B_REFSW_MINIMAL
 BERR_Code BAPE_AudioReturnChannel_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 {
     BSTD_UNUSED(bapeHandle);
     return BERR_SUCCESS;
 }
+#endif
 
 #endif /* BAPE_CHIP_MAX_AUDIO_RETURN_CHANNELS */

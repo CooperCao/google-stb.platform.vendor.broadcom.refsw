@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "egl_surface_base.h"
@@ -163,7 +157,7 @@ bool egl_surface_base_get_attrib(const EGL_SURFACE_T *surface,
       {
          if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW)
          {
-            KHRN_IMAGE_T *back_buffer = egl_surface_get_back_buffer(surface);
+            khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
 
             if (back_buffer)
             {
@@ -184,7 +178,7 @@ bool egl_surface_base_get_attrib(const EGL_SURFACE_T *surface,
       {
          if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW)
          {
-            KHRN_IMAGE_T *back_buffer = egl_surface_get_back_buffer(surface);
+            khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
 
             if (back_buffer)
             {
@@ -319,11 +313,18 @@ EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
    return EGL_BAD_ATTRIBUTE;
 }
 
+static GFX_LFMT_T base_color_fmt(const EGL_SURFACE_T *surface)
+{
+   GFX_LFMT_T color_format = egl_config_colorformat(surface->config,
+      surface->colorspace,
+      surface->alpha_format);
+   return color_format;
+}
+
 bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
 {
    const EGL_CONFIG_T *config = surface->config;
-   GFX_LFMT_T color_format = egl_surface_base_colorformat(surface);
-   egl_aux_buf_t i;
+   GFX_LFMT_T color_format = base_color_fmt(surface);
 
    // TODO This currently only handles single plane image formats,
    //      formats like D32 S8 would need some extra work.
@@ -381,7 +382,7 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
 
    if (config->samples == 4)
    {
-      for (i = AUX_DEPTH; i <= AUX_STENCIL; i++)
+      for (egl_aux_buf_t i = AUX_DEPTH; i <= AUX_STENCIL; i++)
       {
          params[i].multiplier *= 2;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -393,7 +394,7 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
    {
       assert(config->samples == 0);
 
-      for (i = AUX_DEPTH; i <= AUX_STENCIL; i++)
+      for (egl_aux_buf_t i = AUX_DEPTH; i <= AUX_STENCIL; i++)
          /* For glBlitFramebuffer */
          params[i].flags |= GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_RENDER_TARGET;
 
@@ -403,27 +404,20 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
 
    bool secure = !!(surface->secure);
 
-   for (i = 0; i < AUX_MAX; i++)
+   for (egl_aux_buf_t i = 0; i < AUX_MAX; i++)
    {
-      KHRN_BLOB_T *blob;
-      KHRN_IMAGE_T *image;
-      unsigned k;
-      GFX_LFMT_T lfmt;
-
       if (params[i].api_fmt == GFX_LFMT_NONE)
          continue;
 
-      k = params[i].multiplier;
-
-      lfmt = gfx_lfmt_to_2d(params[i].image_fmt);
-
-      blob = khrn_blob_create_no_storage(
-         k * surface->width,
-         k * surface->height, 1, 1, 1, &lfmt, 1,
-         params[i].flags, secure);
+      GFX_LFMT_T lfmt = gfx_lfmt_to_2d(params[i].image_fmt);
+      unsigned   k    = params[i].multiplier;
+      khrn_blob *blob = khrn_blob_create_no_storage(
+                              k * surface->width,
+                              k * surface->height, 1, 1, 1, &lfmt, 1,
+                              params[i].flags, secure);
       if (!blob) return false;
 
-      image = khrn_image_create(blob, 0, 1, 0, params[i].api_fmt);
+      khrn_image *image = khrn_image_create(blob, 0, 1, 0, params[i].api_fmt);
       KHRN_MEM_ASSIGN(blob, NULL);
       if (!image) return false;
 
@@ -445,7 +439,7 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
    return true;
 }
 
-KHRN_IMAGE_T *egl_surface_base_get_aux_buffer(const EGL_SURFACE_T *surface,
+khrn_image *egl_surface_base_get_aux_buffer(const EGL_SURFACE_T *surface,
       egl_aux_buf_t which)
 {
    assert(which < AUX_MAX);
@@ -454,11 +448,7 @@ KHRN_IMAGE_T *egl_surface_base_get_aux_buffer(const EGL_SURFACE_T *surface,
 
 GFX_LFMT_T egl_surface_base_colorformat(const EGL_SURFACE_T *surface)
 {
-   GFX_LFMT_T color_format = egl_config_colorformat(surface->config,
-      surface->colorspace,
-      surface->alpha_format);
-   color_format = gfx_lfmt_to_2d(color_format);
-   return color_format;
+   return gfx_lfmt_to_2d(base_color_fmt(surface));
 }
 
 void egl_surface_base_delete_aux_bufs(EGL_SURFACE_T *surface)

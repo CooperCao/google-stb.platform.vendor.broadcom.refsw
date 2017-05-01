@@ -63,8 +63,15 @@ BDBG_MODULE(b_tts_throttle);
 #define TTS_PWM_STEP_SIZE               47          /* !!! 7Hz !!! (Hz/bit = 4386/0x7fff = 0.13385 Hz/bit, ie. 0.00494 ppm/bit) */
 #define TTS_PWM_STEPS_PER_SLEW          8
 
-#define TTS_MAX_PPM_VALUE               60      /* default to 60 ppm */
+#define TTS_MAX_PPM_VALUE               60       /* default to 60 ppm */
 #define TTS_MIN_PPM_VALUE               (-TTS_MAX_PPM_VALUE)
+
+#if PLAYBACK_IP_GCB_SUPPORT
+#undef TTS_MAX_PPM_VALUE
+#undef TTS_MIN_PPM_VALUE
+#define TTS_MAX_PPM_VALUE               200
+#define TTS_MIN_PPM_VALUE               (-TTS_MAX_PPM_VALUE)
+#endif
 
 /* pwm_value is 0.00494 ppm/bit, eg 200 ppm = 40486, and 1 ppm = approx 202 (actually 202.43)
  * to convert ppm values into pwm values, multiply by 202
@@ -901,7 +908,7 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
         }
         break;
     case B_PlaybackIpBufferState_ePlaying:
-        if(pumpStatus.fifoDepth >= pumpStatus.fifoSize-(IP_MAX_PKT_SIZE*PKTS_PER_CHUNK)) {
+        if( (pumpStatus.fifoDepth >= pumpStatus.fifoSize-(IP_MAX_PKT_SIZE*PKTS_PER_CHUNK)) && !ttsThrottle->params.scatterGatherPlaypump) {
             BDBG_WRN(("tts throttle: %p, Approaching playback buffer overflow, flushing buffers!", (void *)ttsThrottle));
             NEXUS_Playpump_Flush(ttsThrottle->playPump);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePreCharging;

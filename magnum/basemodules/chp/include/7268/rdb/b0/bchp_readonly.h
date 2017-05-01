@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Dec 13 15:41:05 2016
- *                 Full Compile MD5 Checksum  19d947b9ca8075283158749828f3af9b
+ * Date:           Generated on               Mon May  1 14:04:35 2017
+ *                 Full Compile MD5 Checksum  72ff1615f403dd870dba62731cefa0ee
  *                     (minus title and desc)
- *                 MD5 Checksum               e73b28b118a55eb7f41ab706fca72cfd
+ *                 MD5 Checksum               ccc06938d4d906ceb66489d51f076904
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1139
+ *                 RDB.pm                     1395
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -2138,13 +2135,13 @@ BCHP_REGISTER_READONLY_32BIT(BCHP_IT_0_BVB_RSTATUS                    ,0x206e005
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_0_VEC_CTRL_STAT                  ,0x206e0060) /* [RO][32] VEC Control BUS Status Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_0_IT_LCNTR                       ,0x206e0064) /* [RO][32] Line Counter Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_0_ACCESS_STATUS                  ,0x206e0074) /* [RO][32] VEC Access Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_IT_0_MSSYNC_STATUS                  ,0x206e01d8) /* [RO][32] "Status register for MSSYNC" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_IT_0_MSSYNC_STATUS                  ,0x206e01d8) /* [RO][32] \"Status register for MSSYNC\" */
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_1_IT_REV_ID                      ,0x206e1000) /* [RO][32] Revision ID register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_1_BVB_RSTATUS                    ,0x206e1050) /* [RO][32] BVB status read Register. */
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_1_VEC_CTRL_STAT                  ,0x206e1060) /* [RO][32] VEC Control BUS Status Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_1_IT_LCNTR                       ,0x206e1064) /* [RO][32] Line Counter Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_IT_1_ACCESS_STATUS                  ,0x206e1074) /* [RO][32] VEC Access Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_IT_1_MSSYNC_STATUS                  ,0x206e11d8) /* [RO][32] "Status register for MSSYNC" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_IT_1_MSSYNC_STATUS                  ,0x206e11d8) /* [RO][32] \"Status register for MSSYNC\" */
 BCHP_REGISTER_READONLY_32BIT(BCHP_VF_0_VF_REV_ID                      ,0x206e2000) /* [RO][32] Revision ID register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_VF_0_VIDEOBUS_SA_CH0_STATUS         ,0x206e2108) /* [RO][32] VIDEO-BUS CHANNEL0 SA  STATUS REGISTER */
 BCHP_REGISTER_READONLY_32BIT(BCHP_VF_0_VIDEOBUS_SA_CH1_STATUS         ,0x206e210c) /* [RO][32] VIDEO-BUS CHANNEL1 SA  STATUS REGISTER */
@@ -2176,7 +2173,7 @@ BCHP_REGISTER_READONLY_32BIT(BCHP_ANA_DEBUG_0_DEBUG_STATUS_STATISTICS_8 ,0x206e2
 BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_DTG_0_DTG_REV_ID             ,0x206e3000) /* [RO][32] Revision ID register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_DTG_0_DTG_BVB_RSTATUS        ,0x206e3024) /* [RO][32] BVB status read Register. */
 BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_DTG_0_DTG_CTRL_STAT          ,0x206e303c) /* [RO][32] DTG Control Bus Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_DTG_0_DTG_MSSYNC_STATUS      ,0x206e305c) /* [RO][32] "Status register for MSSYNC" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_DTG_0_DTG_MSSYNC_STATUS      ,0x206e305c) /* [RO][32] \"Status register for MSSYNC\" */
 BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_DTG_0_DTG_LCNTR              ,0x206e3170) /* [RO][32] DTG Line Counter Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_DTG_0_DTG_HW_CONFIGURATION   ,0x206e317c) /* [RO][32] Hardware Configuration Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_ITU656_CSC_0_CSC_REV_ID             ,0x206e3600) /* [RO][32] Revision ID register */
@@ -2190,7 +2187,7 @@ BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_CFC_0_VEC_HDR_CONFIG            ,0x206e419
 BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_0_DTG_REV_ID                ,0x206e6000) /* [RO][32] Revision ID register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_0_DTG_BVB_RSTATUS           ,0x206e6024) /* [RO][32] BVB status read Register. */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_0_DTG_CTRL_STAT             ,0x206e603c) /* [RO][32] DTG Control Bus Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_0_DTG_MSSYNC_STATUS         ,0x206e605c) /* [RO][32] "Status register for MSSYNC" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_0_DTG_MSSYNC_STATUS         ,0x206e605c) /* [RO][32] \"Status register for MSSYNC\" */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_0_DTG_LCNTR                 ,0x206e6170) /* [RO][32] DTG Line Counter Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_0_DTG_HW_CONFIGURATION      ,0x206e617c) /* [RO][32] Hardware Configuration Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DVI_DTG_RM_0_INTEGRATOR_HI_STATUS   ,0x206e682c) /* [RO][32] Loop Filter Integrator HI Status */
@@ -2652,7 +2649,7 @@ BCHP_REGISTER_READONLY_32BIT(BCHP_SID_OUTPUT_STATUS_WR                ,0x20980c3
 BCHP_REGISTER_READONLY_32BIT(BCHP_SID_OUTPUT_STATUS_FRAG              ,0x20980c40) /* [RO][32] Status bits for frag count (debug) */
 BCHP_REGISTER_READONLY_32BIT(BCHP_SID_ARC_CPU_INT_STAT                ,0x20980f14) /* [RO][32] CPU Interrupt Status */
 BCHP_REGISTER_READONLY_32BIT(BCHP_SID_ARC_SDRAM_STATUS                ,0x20980f50) /* [RO][32] SDRAM Status register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_SID_ARCDMA_STATUS                   ,0x20981840) /* [RO][32] "DMA status" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_SID_ARCDMA_STATUS                   ,0x20981840) /* [RO][32] \"DMA status\" */
 BCHP_REGISTER_READONLY_32BIT(BCHP_SID_PEEK_BITS_START_PEEK            ,0x20982b00) /* [RO][32] Peek Bits */
 BCHP_REGISTER_READONLY_32BIT(BCHP_SID_PEEK_BITS_END_PEEK              ,0x20982b3c) /* [RO][32] Peek Bits */
 BCHP_REGISTER_READONLY_32BIT(BCHP_SID_EXTRACT_BITS_START_AD           ,0x20982b40) /* [RO][32] Extract Bits */
@@ -3754,15 +3751,6 @@ BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_OUT_MAI_0_LOW_LATENCY_PASSTHROUGH_
 BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_OUT_MAI_0_LONG_TERM_MUTE_DETECTOR_COUNT ,0x20cb0398) /* [RO][32] long term mute detector count */
 BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_STATUS    ,0x20cb03a0) /* [RO][32] Error Status Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_OUT_MAI_0_ESR_MASK      ,0x20cb03ac) /* [RO][32] Mask Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_HIFIDAC_CTRL_0_REVISION             ,0x20cb0800) /* [RO][32] Hifidac Revision Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_HIFIDAC_CTRL_0_STATUS               ,0x20cb0834) /* [RO][32] Hifidac status */
-BCHP_REGISTER_READONLY_32BIT(BCHP_HIFIDAC_RM_0_INTEGRATOR_HI_STATUS   ,0x20cb0a2c) /* [RO][32] Loop Filter Integrator HI Status */
-BCHP_REGISTER_READONLY_32BIT(BCHP_HIFIDAC_RM_0_INTEGRATOR_LO_STATUS   ,0x20cb0a30) /* [RO][32] Loop Filter Integrator LO Status */
-BCHP_REGISTER_READONLY_32BIT(BCHP_HIFIDAC_RM_0_STATUS                 ,0x20cb0a34) /* [RO][32] Rate Manager Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_HIFIDAC_ESR_0_STATUS                ,0x20cb0b00) /* [RO][32] Error Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_HIFIDAC_ESR_0_MASK                  ,0x20cb0b0c) /* [RO][32] Mask Status Register */
-BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3 ,0x20cb0c3c) /* [RO][32] ANALOG_DAC_Control Reg 3 */
-BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_CNTR_STATUS_0 ,0x20cb0ca0) /* [RO][32] Analog DAC related counter status */
 BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_NDIV       ,0x20cb0d40) /* [RO][32] Audio PLL Active Ndiv Controls */
 BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_CTLBUS_HI  ,0x20cb0d44) /* [RO][32] Audio PLL Active Control Word HI */
 BCHP_REGISTER_READONLY_32BIT(BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_CTLBUS_LO  ,0x20cb0d48) /* [RO][32] Audio PLL Active Control Word LO */
@@ -4314,9 +4302,9 @@ BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_RTS_ERR_7                ,0x2110144
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_SCB_ARBITER_DEBUG_REGISTER ,0x2110145c) /* [RO][32] MEMC SCB Interface and Arbiter State Machine and FIFO Debug Register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_SPARE_RO_1               ,0x21101468) /* [RO][32] Read only Spare Register 1 . */
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_SPARE_RO_2               ,0x2110146c) /* [RO][32] Read only Spare Register 2 . */
-BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT ,0x21101478) /* [RO][32] "Client init error interrupt" */
-BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   ,0x21101480) /* [RO][32] "Client init error violation info" */
-BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       ,0x21101488) /* [RO][32] "Client init status and debug register" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT ,0x21101478) /* [RO][32] \"Client init error interrupt\" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   ,0x21101480) /* [RO][32] \"Client init error violation info\" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       ,0x21101488) /* [RO][32] \"Client init status and debug register\" */
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_LCA_VALID_REQ_0          ,0x2110148c) /* [RO][32] LCA Valid Requests for Clients 0 to 31 */
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_LCA_VALID_REQ_1          ,0x21101490) /* [RO][32] LCA Valid Requests for Clients 32 to 63 */
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_ARB_0_LCA_VALID_REQ_2          ,0x21101494) /* [RO][32] LCA Valid Requests for Clients 64 to 95 */
@@ -4672,9 +4660,9 @@ BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_DTU_CONFIG_0_ERR_INTEG_INFO    ,0x2110918
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_DTU_CONFIG_0_ERR_INTEG_ENTRY_INFO ,0x21109188) /* [RO][32] Failed entry integrity: table entry general information */
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_DTU_CONFIG_0_ERR_INTEG_ENTRY_PAGES ,0x2110918c) /* [RO][32] Failed entry integrity: table entry page information */
 BCHP_REGISTER_READONLY_32BIT(BCHP_MEMC_DTU_CONFIG_0_ERR_INTEG_ENTRY_SYNDROME ,0x21109190) /* [RO][32] Failed entry integrity: table entry syndrome bits */
-BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_PRIMARY_REVISION ,0x21120000) /* [RO][32] "Primary revision information" */
-BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_SECONDARY_REVISION ,0x21120004) /* [RO][32] "Secondary revision information" */
-BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_FEATURE     ,0x21120008) /* [RO][32] "PHY features" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_PRIMARY_REVISION ,0x21120000) /* [RO][32] \"Primary revision information\" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_SECONDARY_REVISION ,0x21120004) /* [RO][32] \"Secondary revision information\" */
+BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_FEATURE     ,0x21120008) /* [RO][32] \"PHY features\" */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_PLL_STATUS  ,0x21120010) /* [RO][32] PHY PLL status register */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_FREQUENCY_CHANGE_STATUS ,0x21120038) /* [RO][32] PHY Frequency change status */
 BCHP_REGISTER_READONLY_32BIT(BCHP_DDR34_PHY_COMMON_REGS_0_VDL_CALIB_STATUS1 ,0x21120044) /* [RO][32] PHY VDL calibration status register #1 */

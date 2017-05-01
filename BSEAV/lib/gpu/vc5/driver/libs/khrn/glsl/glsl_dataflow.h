@@ -70,7 +70,7 @@ typedef enum {
    DATAFLOW_EXTERNAL,
 
    DATAFLOW_LOGICAL_NOT,
-   DATAFLOW_CONST_SAMPLER,
+   DATAFLOW_CONST_IMAGE,
    DATAFLOW_FTOI_TRUNC,
    DATAFLOW_FTOI_NEAREST,
    DATAFLOW_FTOU,
@@ -278,7 +278,7 @@ struct _Dataflow
          Dataflow *d;       /* may be NULL */
          Dataflow *b;       /* may be NULL */
          Dataflow *off;     /* may be NULL */
-         Dataflow *sampler; /* may be NULL */
+         Dataflow *image;
       } texture;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -287,20 +287,20 @@ struct _Dataflow
          Dataflow *y;
          Dataflow *z;
          Dataflow *i;
-         Dataflow *sampler;
+         Dataflow *image;
       } texture_addr;
 #endif
 
       struct {
-         Dataflow *sampler;
+         Dataflow *image;
       } texture_size;
 
       struct {
-         Dataflow *sampler;
+         Dataflow *image;
       } image_info_param;
 
       struct {
-         Dataflow *sampler;
+         Dataflow *image;
       } texbuffer_info_param;
    } d;
 
@@ -312,13 +312,13 @@ struct _Dataflow
          const_value value;
       } constant;
 
-      // DATAFLOW_CONST_SAMPLER
+      // DATAFLOW_CONST_IMAGE
       struct {
          const_value location;
          bool is_32bit;
          bool format_valid;  /* true for images*/
          FormatQualifier format;
-      } const_sampler;
+      } const_image;
 
       // DATAFLOW_IN
       struct {
@@ -383,7 +383,7 @@ Dataflow *glsl_dataflow_construct_const_bool(bool value);
 Dataflow *glsl_dataflow_construct_const_int(int value);
 Dataflow *glsl_dataflow_construct_const_uint(unsigned value);
 Dataflow *glsl_dataflow_construct_const_float(float value);
-Dataflow *glsl_dataflow_construct_const_sampler(DataflowType type, const_value location, bool is_32bit);
+Dataflow *glsl_dataflow_construct_const_image(DataflowType type, const_value location, bool is_32bit);
 Dataflow *glsl_dataflow_construct_linkable_value(DataflowFlavour flavour, DataflowType type, const_value row);
 Dataflow *glsl_dataflow_construct_buffer(DataflowFlavour flavour, DataflowType type, const_value index, const_value offset);
 Dataflow *glsl_dataflow_construct_vector_load(DataflowType type, Dataflow *address);
@@ -406,9 +406,9 @@ Dataflow *glsl_dataflow_construct_get_vec4_component(uint32_t component_index, D
 void glsl_dataflow_construct_frag_get_col(Dataflow **out, DataflowType type,
                                           uint32_t required_components,
                                           int render_target);
-void glsl_dataflow_construct_texture_gadget(Dataflow **r_out, Dataflow **g_out,
+void glsl_dataflow_construct_texture_lookup(Dataflow **r_out, Dataflow **g_out,
                                             Dataflow **b_out, Dataflow **a_out,
-                                            uint32_t bits, Dataflow *sampler,
+                                            uint32_t bits, Dataflow *image,
                                             Dataflow *coords,
                                             Dataflow *d, Dataflow *b, Dataflow *off,
                                             uint32_t required_components,

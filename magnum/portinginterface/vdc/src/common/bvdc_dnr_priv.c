@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -422,7 +422,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
       const BVDC_P_PictureNodePtr      pPicture )
 {
     uint32_t ulSrcVSize, ulSrcHSize;
-    uint32_t ulMnrQp, ulBnrQp, ulDcrQp;
+    uint32_t ulMnrQp, ulBnrQp;
     uint32_t ulAdjQp, ulVOffset, ulHOffset;
     uint32_t ulDitherEn, ulDcrFiltEn;
     uint32_t ulBright0, ulBright1, ulBright2;
@@ -451,19 +451,16 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
     pSrcInfo     = &hDnr->hSource->stCurInfo;
     pDnrSettings = &hDnr->hSource->stCurInfo.stDnrSettings;
 
-        /* remapping DNR level according to ARBVN-41 */
-        iBnrLevel =
-                (pDnrSettings->iBnrLevel <= 100) ?
-                (-20 + (4 * pDnrSettings->iBnrLevel / 5)) :
-                (-80 + (14 * pDnrSettings->iBnrLevel / 10));
-        iMnrLevel =
-                (pDnrSettings->iMnrLevel <= 100) ?
-                (-20 + (4 * pDnrSettings->iMnrLevel / 5)) :
-                (-80 + (14 * pDnrSettings->iMnrLevel / 10));
-        iDcrLevel =
-                (pDnrSettings->iDcrLevel <= 100) ?
-                (-20 + (4 * pDnrSettings->iDcrLevel / 5)) :
-                (-80 + (14 * pDnrSettings->iDcrLevel / 10));
+    /* remapping DNR level according to ARBVN-41 */
+    iBnrLevel =
+            (pDnrSettings->iBnrLevel <= 100) ?
+            (-20 + (4 * pDnrSettings->iBnrLevel / 5)) :
+            (-80 + (14 * pDnrSettings->iBnrLevel / 10));
+    iMnrLevel =
+            (pDnrSettings->iMnrLevel <= 100) ?
+            (-20 + (4 * pDnrSettings->iMnrLevel / 5)) :
+            (-80 + (14 * pDnrSettings->iMnrLevel / 10));
+    iDcrLevel = (pDnrSettings->iDcrLevel);
 
     ulAdjQp = (pDnrSettings->ulQp != 0) ?
         pDnrSettings->ulQp : pPicture->ulAdjQp;
@@ -477,13 +474,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
     ulBnrQp = (pDnrSettings->eBnrMode == BVDC_FilterMode_eEnable)
         ? BVDC_P_DNR_CLAMP(0, BVDC_P_DNR_MAX_HW_QP_STEPS, (ulAdjQp *
          (iBnrLevel + BVDC_QP_ADJUST_STEPS)/ BVDC_QP_ADJUST_STEPS))
-        : 0;
-
-    /* No need to support Qp-dependent DCR adjustment. */
-    ulDcrQp = (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable)
-        ? BVDC_P_DNR_CLAMP(0, BVDC_P_DNR_MAX_HW_QP_STEPS,
-         ((BVDC_P_DNR_MAX_HW_QP_STEPS / 2) *
-         (iDcrLevel + BVDC_QP_ADJUST_STEPS)/ BVDC_QP_ADJUST_STEPS))
         : 0;
 
     /* Every Vsync settings */
@@ -525,7 +515,8 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
      * unnecessary computations. */
     if((hDnr->ulMnrQp != ulMnrQp) ||
        (hDnr->ulBnrQp != ulBnrQp) ||
-       (hDnr->ulDcrQp != ulDcrQp) ||
+       (hDnr->iDcrLevel != iDcrLevel) ||
+       (hDnr->eDcrMode != pDnrSettings->eDcrMode) ||
        (hDnr->eOrientation != eOrientation ) ||
        (pSrcInfo->stDirty.stBits.bDnrAdjust) ||
        !BVDC_P_DNR_COMPARE_FIELD_DATA(DNR_0_SRC_PIC_SIZE, HSIZE, ulSrcHSize) ||
@@ -696,17 +687,17 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_BLOCK_BOUND, 1         ) |
             BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_LIMIT, pMnrCfg->ulLimit));
 
-        pDcrCfg = (BVDC_P_DcrCfgEntry *)BVDC_P_Dnr_GetDcrCfg_isr(ulDcrQp,
+        pDcrCfg = (BVDC_P_DcrCfgEntry *)BVDC_P_Dnr_GetDcrCfg_isr(iDcrLevel,
             pSrcInfo->pFmtInfo, pDnrSettings->pvUserInfo);
         hDnr->stDcrCfg = *pDcrCfg;
         pDcrCfg = &hDnr->stDcrCfg;
 
-        ulDitherEn = (hDnr->b10BitMode) ? 0: (ulDcrQp > 0);
-        if(hDnr->ulDcrQp != ulDcrQp)
+        ulDitherEn = (hDnr->b10BitMode) ? 0: (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable);
+        if(hDnr->eDcrMode != pDnrSettings->eDcrMode)
         {
             BDBG_MODULE_MSG(BVDC_DITHER,("DNR%d DITHER: %s", hDnr->eId, ulDitherEn ? "ENABLE" : "DISABLE"));
         }
-        ulDcrFiltEn = (ulDcrQp > 0);
+        ulDcrFiltEn = (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable);
         ulBright0 = 0;
         ulBright1 = 1;
         ulBright2 = 0;
@@ -754,7 +745,8 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         pSrcInfo->stDirty.stBits.bDnrAdjust = false;
         hDnr->ulMnrQp = ulMnrQp;
         hDnr->ulBnrQp = ulBnrQp;
-        hDnr->ulDcrQp = ulDcrQp;
+        hDnr->iDcrLevel = iDcrLevel;
+        hDnr->eDcrMode = pDnrSettings->eDcrMode;
         hDnr->eOrientation = eOrientation;
         hDnr->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
 
@@ -766,7 +758,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         BDBG_MSG(("ulAdjQp        : %d", ulAdjQp));
         BDBG_MSG(("iBnrLevel: %d - ulBnrQp: %d", iBnrLevel, ulBnrQp));
         BDBG_MSG(("iMnrLevel: %d - ulMnrQp: %d", iMnrLevel, ulMnrQp));
-        BDBG_MSG(("iDcrLevel: %d - ulDcrQp: %d", iDcrLevel, ulDcrQp));
+        BDBG_MSG(("iDcrLevel: %d", iDcrLevel));
         BDBG_MSG(("SrcPolarity    : %d", pPicture->PicComRulInfo.eSrcOrigPolarity));
     }
 

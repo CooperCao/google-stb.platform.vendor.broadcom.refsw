@@ -192,11 +192,14 @@ int main(int argc, char **argv)
     audioServer = NEXUS_SimpleAudioDecoderServer_Create();
     {
         NEXUS_SimpleAudioDecoderServerSettings settings;
+        NEXUS_AudioCapabilities audioCapabilities;
         unsigned i;
 
         NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(&settings);
         settings.primary = audioDecoder0;
         settings.secondary = audioDecoder1;
+
+        NEXUS_GetAudioCapabilities(&audioCapabilities);
 
         /* any mixed output must be connected outside of the simple decoder and are not configurable per codec.
         they are used for primary decoder PCM output as well as PCM playback. */
@@ -206,33 +209,37 @@ int main(int argc, char **argv)
         BDBG_ASSERT(!rc);
         rc = NEXUS_AudioMixer_AddInput(audioMixer, NEXUS_AudioPlayback_GetConnector(audioPlayback[1]));
         BDBG_ASSERT(!rc);
-#if NEXUS_NUM_AUDIO_DACS
-        rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]), NEXUS_AudioMixer_GetConnector(audioMixer));
-        BDBG_ASSERT(!rc);
-#endif
+
+        if (audioCapabilities.numOutputs.dac > 0) {
+            rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]), NEXUS_AudioMixer_GetConnector(audioMixer));
+            BDBG_ASSERT(!rc);
+        }
+
         for (i=0;i<NEXUS_AudioCodec_eMax;i++) {
             switch (i) {
 #if 0
-/* This causes audio_client's PCM playback to not be heard, to don't enable it. 
+/* This causes audio_client's PCM playback to not be heard, to don't enable it.
 If you enable this, HDMI/SPDIF will get compressed for ac3, mixed pcm for all other codecs. */
             case NEXUS_AudioCodec_eAc3:
-                settings.hdmi.input[i] = 
+                settings.hdmi.input[i] =
                 settings.spdif.input[i] = NEXUS_AudioDecoder_GetConnector(audioDecoder1, NEXUS_AudioDecoderConnectorType_eCompressed);
                 break;
 #endif
             case NEXUS_AudioCodec_eUnknown: /* used for playback-only case */
             default:
-                settings.hdmi.input[i] = 
+                settings.hdmi.input[i] =
                 settings.spdif.input[i] = NEXUS_AudioMixer_GetConnector(audioMixer);
                 break;
-            }    
+            }
         }
 #if NEXUS_NUM_HDMI_OUTPUTS
         settings.hdmi.outputs[0] = platformConfig.outputs.hdmi[0];
 #endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        settings.spdif.outputs[0] = platformConfig.outputs.spdif[0];
-#endif
+
+        if (audioCapabilities.numOutputs.spdif > 0) {
+            settings.spdif.outputs[0] = platformConfig.outputs.spdif[0];
+        }
+
         simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Create(audioServer, 0, &settings);
     }
 

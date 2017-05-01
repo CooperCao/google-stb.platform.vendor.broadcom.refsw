@@ -130,7 +130,13 @@ static void breg_write(uint32_t addr, uint32_t value)
 #define BERR_TRACE(rc) do {if (rc) PERR("error %d at line %d\n", rc, __LINE__);}while(0)
 #define BDBG_CWARNING(expr) do {if(0){int unused = 1/(expr);unused++;}} while(0)
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
+/* Kernel newer than 3.8.1: utilize an irq_start_index of 32 (works for
+ * ARM, ARM64)
+ * Kernel newer than 3.14 on MIPS: utilize an irq_start_index of 32
+ * (works for MIPS on 4.1 kernel w/ Device Tree)
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1) && !defined(CONFIG_MIPS) || \
+    (LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) && defined(CONFIG_MIPS))
 #if defined(CONFIG_ARM) || defined(CONFIG_ARM64)
 #include "bcmdriver_arm.c"
 #include "linux/brcmstb/cma_driver.h"

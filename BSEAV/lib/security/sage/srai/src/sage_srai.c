@@ -1077,7 +1077,7 @@ static int _srai_get_heap(NEXUS_MemoryType memoryType, unsigned heapType, NEXUS_
     if (validHeap) {
         NEXUS_Memory_GetDefaultAllocationSettings(pSecureAllocSettings);
         pSecureAllocSettings->heap = validHeap;
-        pSecureAllocSettings->alignment = 32; /* align 32 for SAGE-side flush concerns. */
+        pSecureAllocSettings->alignment = 4096; /* align 4096 for SAGE-side concerns. */
         BDBG_MSG(("%s: secure alloc settings: heap: %p of type %d",
                   __FUNCTION__, (void *)validHeap, memoryType));
         rc = 0;
@@ -1425,9 +1425,9 @@ uint8_t *SRAI_Memory_Allocate(uint32_t size, SRAI_MemoryType memoryType)
 
     _srai_init_vars();
 
-    /* size is rounded up to a multiple of 16 bytes for SAGE-side flush concerns. */
-    if (size & 0x1F) {
-        size = (size | 0x1F) + 1;
+    /* size is rounded up to a multiple of 4096 bytes for SAGE-side concerns. */
+    if (size & 0xFFF) {
+        size = (size | 0xFFF) + 1;
     }
 
     switch (memoryType) {
@@ -1700,38 +1700,42 @@ _srai_is_sdl_valid(
 
     BDBG_ASSERT(sizeof(pHeader->ucSsfVersion) == sizeof(status.framework.version));
 
-    if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
-         pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
-        rc = (BKNI_Memcmp(pHeader->ucSsfVersion, status.framework.version, sizeof(status.framework.version)) == 0);
-        if (rc != true) {
-            BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
-                      __FUNCTION__,
-                      pHeader->ucSsfVersion[0], pHeader->ucSsfVersion[1],
-                      pHeader->ucSsfVersion[2], pHeader->ucSsfVersion[3]));
-            BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
-                      __FUNCTION__));
-            BDBG_ERR(("%s: The SDL shall be recompiled using SAGE version %u.%u.%u.%u SDK",
-                      __FUNCTION__,
-                      status.framework.version[0], status.framework.version[1],
-                      status.framework.version[2], status.framework.version[3]));
-            goto end;
-        }
-    }
-    else {
-        BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", __FUNCTION__));
-    }
-
     sdlTHLSigShort = *((uint32_t *)(pHeader->ucSsfThlShortSig));
 
-    rc = (sdlTHLSigShort == status.framework.THLShortSig);
-    if (rc != true) {
-        BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
-                  __FUNCTION__, sdlTHLSigShort, status.framework.THLShortSig));
-        BDBG_ERR(("%s: The SDL shall be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
-                  __FUNCTION__));
-        goto end;
-    }
+    if (sdlTHLSigShort != 0) {
+        rc = (sdlTHLSigShort == status.framework.THLShortSig);
+        if (rc != true) {
+            if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
+                 pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
+                rc = (BKNI_Memcmp(pHeader->ucSsfVersion, status.framework.version, sizeof(status.framework.version)) == 0);
+                if (rc != true) {
+                    BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
+                              __FUNCTION__,
+                              pHeader->ucSsfVersion[0], pHeader->ucSsfVersion[1],
+                              pHeader->ucSsfVersion[2], pHeader->ucSsfVersion[3]));
+                    BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
+                              __FUNCTION__));
+                    BDBG_ERR(("%s: The SDL must be recompiled using SAGE version %u.%u.%u.%u SDK",
+                              __FUNCTION__,
+                              status.framework.version[0], status.framework.version[1],
+                              status.framework.version[2], status.framework.version[3]));
+                    goto end;
+                }
+            }
+            else {
+                BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", __FUNCTION__));
+            }
 
+            BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
+                      __FUNCTION__, sdlTHLSigShort, status.framework.THLShortSig));
+            BDBG_ERR(("%s: The SDL shall be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
+                      __FUNCTION__));
+            goto end;
+        }
+    } else {
+        BDBG_MSG(("%s: SDL THL zero signature indicates Load-Time-Resolution", __FUNCTION__));
+        rc = true;
+    }
 end:
     return rc;
 }

@@ -500,6 +500,8 @@ typedef struct {
     unsigned int pmqovfl;
 } WiFiCounters_t;
 
+typedef char BWL_MAC_ADDRESS[20];
+
 int32_t BWL_GetCounters(BWL_Handle hBwl, WiFiCounters_t *pCounters);
 int32_t BWL_ResetCounter(BWL_Handle hBwl);
 int32_t BWL_GetRevInfo(BWL_Handle hBwl, RevInfo_t *pRevInfo);
@@ -911,5 +913,7 @@ int32_t BWL_SetMchanBw(BWL_Handle hBwl, uint32_t ulBw);
 int32_t BWL_SetMchanSchedMode(BWL_Handle hBwl, uint32_t ulMode);
 char *  BWL_GetDriverVersion( BWL_Handle hBwl );
 int     BWL_ClearCounters( BWL_Handle hBwl );
+int     BWL_SendWakeOnWlan( BWL_Handle hBwl, char *pkt_len, char *destination_frame, char *macAddress, char *pkt_type );
+int     BWL_GetMacAssocList( BWL_Handle hBwl, BWL_MAC_ADDRESS *outputList, int outputListLen );
 
 #endif /* BWL_H__ */

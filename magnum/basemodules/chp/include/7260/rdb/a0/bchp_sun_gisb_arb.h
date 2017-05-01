@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,135 +70,135 @@
 /***************************************************************************
  *SUN_GISB_ARB - GISB Arbiter registers
  ***************************************************************************/
-#define BCHP_SUN_GISB_ARB_REVISION               0x20400000 /* [RO] GISB ARBITER REVISION */
-#define BCHP_SUN_GISB_ARB_REQ_MASK               0x20400004 /* [RW] GISB ARBITER Master Request Mask Register */
-#define BCHP_SUN_GISB_ARB_TIMER                  0x20400008 /* [RW] GISB ARBITER Timer Value Register */
-#define BCHP_SUN_GISB_ARB_BP_CTRL                0x2040000c /* [CFG] GISB ARBITER Breakpoint Control Register */
-#define BCHP_SUN_GISB_ARB_BP_CAP_CLR             0x20400010 /* [WO] GISB ARBITER Breakpoint Capture Clear Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_0     0x20400014 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 0 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0        0x20400018 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 0 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_0       0x2040001c /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 0 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0          0x20400020 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 0 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_0              0x20400024 /* [CFG] GISB ARBITER Breakpoint Master Read Control 0 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_0             0x20400028 /* [CFG] GISB ARBITER Breakpoint Master Write Control 0 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_0            0x2040002c /* [CFG] GISB ARBITER Breakpoint Enable 0 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_1     0x20400030 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 1 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1        0x20400034 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 1 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_1       0x20400038 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 1 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1          0x2040003c /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 1 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_1              0x20400040 /* [CFG] GISB ARBITER Breakpoint Master Read Control 1 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_1             0x20400044 /* [CFG] GISB ARBITER Breakpoint Master Write Control 1 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_1            0x20400048 /* [CFG] GISB ARBITER Breakpoint Enable 1 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_2     0x2040004c /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 2 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2        0x20400050 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 2 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_2       0x20400054 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 2 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2          0x20400058 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 2 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_2              0x2040005c /* [CFG] GISB ARBITER Breakpoint Master Read Control 2 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_2             0x20400060 /* [CFG] GISB ARBITER Breakpoint Master Write Control 2 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_2            0x20400064 /* [CFG] GISB ARBITER Breakpoint Enable 2 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_3     0x20400068 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 3 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3        0x2040006c /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 3 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_3       0x20400070 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 3 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3          0x20400074 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 3 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_3              0x20400078 /* [CFG] GISB ARBITER Breakpoint Master Read Control 3 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_3             0x2040007c /* [CFG] GISB ARBITER Breakpoint Master Write Control 3 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_3            0x20400080 /* [CFG] GISB ARBITER Breakpoint Enable 3 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_4     0x20400084 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 4 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4        0x20400088 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 4 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_4       0x2040008c /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 4 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4          0x20400090 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 4 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_4              0x20400094 /* [CFG] GISB ARBITER Breakpoint Master Read Control 4 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_4             0x20400098 /* [CFG] GISB ARBITER Breakpoint Master Write Control 4 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_4            0x2040009c /* [CFG] GISB ARBITER Breakpoint Enable 4 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_5     0x204000a0 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 5 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5        0x204000a4 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 5 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_5       0x204000a8 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 5 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5          0x204000ac /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 5 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_5              0x204000b0 /* [CFG] GISB ARBITER Breakpoint Master Read Control 5 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_5             0x204000b4 /* [CFG] GISB ARBITER Breakpoint Master Write Control 5 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_5            0x204000b8 /* [CFG] GISB ARBITER Breakpoint Enable 5 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_6     0x204000bc /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 6 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6        0x204000c0 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 6 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_6       0x204000c4 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 6 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6          0x204000c8 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 6 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_6              0x204000cc /* [CFG] GISB ARBITER Breakpoint Master Read Control 6 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_6             0x204000d0 /* [CFG] GISB ARBITER Breakpoint Master Write Control 6 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_6            0x204000d4 /* [CFG] GISB ARBITER Breakpoint Enable 6 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_7     0x204000d8 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 7 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7        0x204000dc /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 7 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_7       0x204000e0 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 7 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7          0x204000e4 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 7 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_7              0x204000e8 /* [CFG] GISB ARBITER Breakpoint Master Read Control 7 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_7             0x204000ec /* [CFG] GISB ARBITER Breakpoint Master Write Control 7 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_7            0x204000f0 /* [CFG] GISB ARBITER Breakpoint Enable 7 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_8     0x204000f4 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 8 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8        0x204000f8 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 8 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_8       0x204000fc /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 8 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8          0x20400100 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 8 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_8              0x20400104 /* [CFG] GISB ARBITER Breakpoint Master Read Control 8 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_8             0x20400108 /* [CFG] GISB ARBITER Breakpoint Master Write Control 8 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_8            0x2040010c /* [CFG] GISB ARBITER Breakpoint Enable 8 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_9     0x20400110 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 9 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9        0x20400114 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 9 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_9       0x20400118 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 9 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9          0x2040011c /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 9 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_9              0x20400120 /* [CFG] GISB ARBITER Breakpoint Master Read Control 9 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_9             0x20400124 /* [CFG] GISB ARBITER Breakpoint Master Write Control 9 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_9            0x20400128 /* [CFG] GISB ARBITER Breakpoint Enable 9 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_10    0x2040012c /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 10 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10       0x20400130 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 10 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_10      0x20400134 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 10 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10         0x20400138 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 10 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_10             0x2040013c /* [CFG] GISB ARBITER Breakpoint Master Read Control 10 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_10            0x20400140 /* [CFG] GISB ARBITER Breakpoint Master Write Control 10 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_10           0x20400144 /* [CFG] GISB ARBITER Breakpoint Enable 10 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_11    0x20400148 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 11 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11       0x2040014c /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 11 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_11      0x20400150 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 11 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11         0x20400154 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 11 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_11             0x20400158 /* [CFG] GISB ARBITER Breakpoint Master Read Control 11 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_11            0x2040015c /* [CFG] GISB ARBITER Breakpoint Master Write Control 11 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_11           0x20400160 /* [CFG] GISB ARBITER Breakpoint Enable 11 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_12    0x20400164 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 12 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12       0x20400168 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 12 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_12      0x2040016c /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 12 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12         0x20400170 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 12 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_12             0x20400174 /* [CFG] GISB ARBITER Breakpoint Master Read Control 12 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_12            0x20400178 /* [CFG] GISB ARBITER Breakpoint Master Write Control 12 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_12           0x2040017c /* [CFG] GISB ARBITER Breakpoint Enable 12 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_13    0x20400180 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 13 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13       0x20400184 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 13 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_13      0x20400188 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 13 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13         0x2040018c /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 13 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_13             0x20400190 /* [CFG] GISB ARBITER Breakpoint Master Read Control 13 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_13            0x20400194 /* [CFG] GISB ARBITER Breakpoint Master Write Control 13 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_13           0x20400198 /* [CFG] GISB ARBITER Breakpoint Enable 13 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_14    0x2040019c /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 14 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14       0x204001a0 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 14 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_14      0x204001a4 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 14 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14         0x204001a8 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 14 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_14             0x204001ac /* [CFG] GISB ARBITER Breakpoint Master Read Control 14 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_14            0x204001b0 /* [CFG] GISB ARBITER Breakpoint Master Write Control 14 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_14           0x204001b4 /* [CFG] GISB ARBITER Breakpoint Enable 14 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_15    0x204001b8 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 15 Register */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15       0x204001bc /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 15 Register */
-#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_15      0x204001c0 /* [CFG] GISB ARBITER Breakpoint Upper 8 Bits of End Address 15 Register */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15         0x204001c4 /* [CFG] GISB ARBITER Breakpoint Lower 32 Bits of End Address 15 Register */
-#define BCHP_SUN_GISB_ARB_BP_READ_15             0x204001c8 /* [CFG] GISB ARBITER Breakpoint Master Read Control 15 Register */
-#define BCHP_SUN_GISB_ARB_BP_WRITE_15            0x204001cc /* [CFG] GISB ARBITER Breakpoint Master Write Control 15 Register */
-#define BCHP_SUN_GISB_ARB_BP_ENABLE_15           0x204001d0 /* [CFG] GISB ARBITER Breakpoint Enable 15 Register */
-#define BCHP_SUN_GISB_ARB_BP_CAP_HI_ADDR         0x204001d4 /* [RO] GISB ARBITER Breakpoint Upper 8 Bits of Capture Address Register */
-#define BCHP_SUN_GISB_ARB_BP_CAP_ADDR            0x204001d8 /* [RO] GISB ARBITER Breakpoint Lower 32 Bits of Capture Address Register */
-#define BCHP_SUN_GISB_ARB_BP_CAP_DATA            0x204001dc /* [RO] GISB ARBITER Breakpoint Capture Data Register */
-#define BCHP_SUN_GISB_ARB_BP_CAP_STATUS          0x204001e0 /* [RO] GISB ARBITER Breakpoint Capture Status Register */
-#define BCHP_SUN_GISB_ARB_BP_CAP_MASTER          0x204001e4 /* [RO] GISB ARBITER Breakpoint Capture GISB Master Register */
-#define BCHP_SUN_GISB_ARB_ERR_CAP_CLR            0x204007e4 /* [WO] GISB ARBITER Error Capture Clear Register */
-#define BCHP_SUN_GISB_ARB_ERR_CAP_HI_ADDR        0x204007e8 /* [RO] GISB ARBITER Error Capture upper 8bit Address Register */
-#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR           0x204007ec /* [RO] GISB ARBITER Error Capture Lower 32bit Address Register */
-#define BCHP_SUN_GISB_ARB_ERR_CAP_DATA           0x204007f0 /* [RO] GISB ARBITER Error Capture Data Register */
-#define BCHP_SUN_GISB_ARB_ERR_CAP_STATUS         0x204007f4 /* [RO] GISB ARBITER Error Capture Status Register */
-#define BCHP_SUN_GISB_ARB_ERR_CAP_MASTER         0x204007f8 /* [RO] GISB ARBITER Error Capture GISB Master Register */
-#define BCHP_SUN_GISB_ARB_SCRATCH                0x204007fc /* [CFG] GISB ARBITER Scratch Register */
+#define BCHP_SUN_GISB_ARB_REVISION               0x20400000 /* [RO][32] GISB ARBITER REVISION */
+#define BCHP_SUN_GISB_ARB_REQ_MASK               0x20400004 /* [RW][32] GISB ARBITER Master Request Mask Register */
+#define BCHP_SUN_GISB_ARB_TIMER                  0x20400008 /* [RW][32] GISB ARBITER Timer Value Register */
+#define BCHP_SUN_GISB_ARB_BP_CTRL                0x2040000c /* [CFG][32] GISB ARBITER Breakpoint Control Register */
+#define BCHP_SUN_GISB_ARB_BP_CAP_CLR             0x20400010 /* [WO][32] GISB ARBITER Breakpoint Capture Clear Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_0     0x20400014 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 0 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0        0x20400018 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 0 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_0       0x2040001c /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 0 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0          0x20400020 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 0 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_0              0x20400024 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 0 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_0             0x20400028 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 0 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_0            0x2040002c /* [CFG][32] GISB ARBITER Breakpoint Enable 0 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_1     0x20400030 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 1 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1        0x20400034 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 1 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_1       0x20400038 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 1 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1          0x2040003c /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 1 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_1              0x20400040 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 1 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_1             0x20400044 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 1 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_1            0x20400048 /* [CFG][32] GISB ARBITER Breakpoint Enable 1 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_2     0x2040004c /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 2 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2        0x20400050 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 2 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_2       0x20400054 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 2 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2          0x20400058 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 2 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_2              0x2040005c /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 2 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_2             0x20400060 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 2 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_2            0x20400064 /* [CFG][32] GISB ARBITER Breakpoint Enable 2 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_3     0x20400068 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 3 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3        0x2040006c /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 3 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_3       0x20400070 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 3 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3          0x20400074 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 3 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_3              0x20400078 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 3 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_3             0x2040007c /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 3 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_3            0x20400080 /* [CFG][32] GISB ARBITER Breakpoint Enable 3 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_4     0x20400084 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 4 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4        0x20400088 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 4 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_4       0x2040008c /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 4 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4          0x20400090 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 4 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_4              0x20400094 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 4 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_4             0x20400098 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 4 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_4            0x2040009c /* [CFG][32] GISB ARBITER Breakpoint Enable 4 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_5     0x204000a0 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 5 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5        0x204000a4 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 5 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_5       0x204000a8 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 5 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5          0x204000ac /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 5 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_5              0x204000b0 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 5 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_5             0x204000b4 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 5 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_5            0x204000b8 /* [CFG][32] GISB ARBITER Breakpoint Enable 5 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_6     0x204000bc /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 6 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6        0x204000c0 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 6 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_6       0x204000c4 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 6 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6          0x204000c8 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 6 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_6              0x204000cc /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 6 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_6             0x204000d0 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 6 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_6            0x204000d4 /* [CFG][32] GISB ARBITER Breakpoint Enable 6 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_7     0x204000d8 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 7 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7        0x204000dc /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 7 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_7       0x204000e0 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 7 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7          0x204000e4 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 7 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_7              0x204000e8 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 7 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_7             0x204000ec /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 7 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_7            0x204000f0 /* [CFG][32] GISB ARBITER Breakpoint Enable 7 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_8     0x204000f4 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 8 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8        0x204000f8 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 8 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_8       0x204000fc /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 8 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8          0x20400100 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 8 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_8              0x20400104 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 8 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_8             0x20400108 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 8 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_8            0x2040010c /* [CFG][32] GISB ARBITER Breakpoint Enable 8 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_9     0x20400110 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 9 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9        0x20400114 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 9 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_9       0x20400118 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 9 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9          0x2040011c /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 9 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_9              0x20400120 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 9 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_9             0x20400124 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 9 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_9            0x20400128 /* [CFG][32] GISB ARBITER Breakpoint Enable 9 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_10    0x2040012c /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 10 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10       0x20400130 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 10 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_10      0x20400134 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 10 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10         0x20400138 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 10 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_10             0x2040013c /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 10 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_10            0x20400140 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 10 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_10           0x20400144 /* [CFG][32] GISB ARBITER Breakpoint Enable 10 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_11    0x20400148 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 11 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11       0x2040014c /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 11 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_11      0x20400150 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 11 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11         0x20400154 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 11 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_11             0x20400158 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 11 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_11            0x2040015c /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 11 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_11           0x20400160 /* [CFG][32] GISB ARBITER Breakpoint Enable 11 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_12    0x20400164 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 12 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12       0x20400168 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 12 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_12      0x2040016c /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 12 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12         0x20400170 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 12 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_12             0x20400174 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 12 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_12            0x20400178 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 12 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_12           0x2040017c /* [CFG][32] GISB ARBITER Breakpoint Enable 12 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_13    0x20400180 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 13 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13       0x20400184 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 13 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_13      0x20400188 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 13 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13         0x2040018c /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 13 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_13             0x20400190 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 13 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_13            0x20400194 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 13 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_13           0x20400198 /* [CFG][32] GISB ARBITER Breakpoint Enable 13 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_14    0x2040019c /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 14 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14       0x204001a0 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 14 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_14      0x204001a4 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 14 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14         0x204001a8 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 14 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_14             0x204001ac /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 14 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_14            0x204001b0 /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 14 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_14           0x204001b4 /* [CFG][32] GISB ARBITER Breakpoint Enable 14 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_START_ADDR_15    0x204001b8 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of Start Address 15 Register */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15       0x204001bc /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of Start Address 15 Register */
+#define BCHP_SUN_GISB_ARB_BP_HI_END_ADDR_15      0x204001c0 /* [CFG][32] GISB ARBITER Breakpoint Upper 8 Bits of End Address 15 Register */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15         0x204001c4 /* [CFG][32] GISB ARBITER Breakpoint Lower 32 Bits of End Address 15 Register */
+#define BCHP_SUN_GISB_ARB_BP_READ_15             0x204001c8 /* [CFG][32] GISB ARBITER Breakpoint Master Read Control 15 Register */
+#define BCHP_SUN_GISB_ARB_BP_WRITE_15            0x204001cc /* [CFG][32] GISB ARBITER Breakpoint Master Write Control 15 Register */
+#define BCHP_SUN_GISB_ARB_BP_ENABLE_15           0x204001d0 /* [CFG][32] GISB ARBITER Breakpoint Enable 15 Register */
+#define BCHP_SUN_GISB_ARB_BP_CAP_HI_ADDR         0x204001d4 /* [RO][32] GISB ARBITER Breakpoint Upper 8 Bits of Capture Address Register */
+#define BCHP_SUN_GISB_ARB_BP_CAP_ADDR            0x204001d8 /* [RO][32] GISB ARBITER Breakpoint Lower 32 Bits of Capture Address Register */
+#define BCHP_SUN_GISB_ARB_BP_CAP_DATA            0x204001dc /* [RO][32] GISB ARBITER Breakpoint Capture Data Register */
+#define BCHP_SUN_GISB_ARB_BP_CAP_STATUS          0x204001e0 /* [RO][32] GISB ARBITER Breakpoint Capture Status Register */
+#define BCHP_SUN_GISB_ARB_BP_CAP_MASTER          0x204001e4 /* [RO][32] GISB ARBITER Breakpoint Capture GISB Master Register */
+#define BCHP_SUN_GISB_ARB_ERR_CAP_CLR            0x204007e4 /* [WO][32] GISB ARBITER Error Capture Clear Register */
+#define BCHP_SUN_GISB_ARB_ERR_CAP_HI_ADDR        0x204007e8 /* [RO][32] GISB ARBITER Error Capture upper 8bit Address Register */
+#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR           0x204007ec /* [RO][32] GISB ARBITER Error Capture Lower 32bit Address Register */
+#define BCHP_SUN_GISB_ARB_ERR_CAP_DATA           0x204007f0 /* [RO][32] GISB ARBITER Error Capture Data Register */
+#define BCHP_SUN_GISB_ARB_ERR_CAP_STATUS         0x204007f4 /* [RO][32] GISB ARBITER Error Capture Status Register */
+#define BCHP_SUN_GISB_ARB_ERR_CAP_MASTER         0x204007f8 /* [RO][32] GISB ARBITER Error Capture GISB Master Register */
+#define BCHP_SUN_GISB_ARB_SCRATCH                0x204007fc /* [CFG][32] GISB ARBITER Scratch Register */
 
 /***************************************************************************
  *REVISION - GISB ARBITER REVISION

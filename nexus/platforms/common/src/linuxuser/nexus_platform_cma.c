@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -241,7 +241,7 @@ static NEXUS_Error NEXUS_Platform_P_GetMemoryInfo(nexus_p_memory_info *info)
 }
 
 /* convert unsigned to/from non-null pointer for api compat */
-struct cma_dev *cma_dev_get_cma_dev(unsigned region)
+static struct cma_dev *cma_dev_get_cma_dev(unsigned region)
 {
     return (struct cma_dev *)((unsigned long)region+1);
 }
@@ -1088,7 +1088,7 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
             int j;
             BDBG_MSG(("MEMC%d BMEM %uMBytes(%u) at " BDBG_UINT64_FMT, NEXUS_Platform_P_GetMemcForRange(info, info->bmem.range[i].addr, info->bmem.range[i].size), (unsigned)(info->bmem.range[i].size/(1024*1024)), (unsigned)info->bmem.range[i].size, BDBG_UINT64_ARG(info->bmem.range[i].addr)));
             for(j=0;j<info->lowmem.count;j++) {
-                if(NEXUS_Platform_P_RangeTestIntersect(&info->lowmem.range[j], info->bmem.range[i].addr, info->bmem.range[i].size)) {
+                if(NEXUS_Platform_P_RangeTestIntersect(&info->lowmem.range[j], info->bmem.range[i].addr, info->bmem.range[i].size) && !NEXUS_Platform_P_IsOs64()) {
                     BDBG_ERR(("MEMC%d BMEM %uMBytes(%u) at " BDBG_UINT64_FMT " intersects with lowmem %uMBytes(%u) at " BDBG_UINT64_FMT, NEXUS_Platform_P_GetMemcForRange(info, info->bmem.range[i].addr, info->bmem.range[i].size), (unsigned)(info->bmem.range[i].size/(1024*1024)), (unsigned)info->bmem.range[i].size, BDBG_UINT64_ARG(info->bmem.range[i].addr), (unsigned)(info->lowmem.range[j].size/(1024*1024)), (unsigned)info->lowmem.range[j].size, BDBG_UINT64_ARG(info->lowmem.range[j].addr)));
                 }
             }
@@ -1203,12 +1203,7 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
     if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
 
     rc = NEXUS_Platform_P_GetMemoryInfo(&state->info);
-    if (rc) {
-        BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &state->memoryInfo);
-        /* Running on Linux 3.14-1.7 and earlier (no bmem) requires emulating Linux's report of memory layout. */
-        BKNI_Memset(&state->info, 0, sizeof(state->info));
-        state->info.memc[0].range[0].size = state->memoryInfo.memc[0].size;
-    }
+    if (rc) return BERR_TRACE(rc);
 
     BDBG_CASSERT(BCHP_MAX_MEMC_REGIONS <= NEXUS_NUM_MEMC_REGIONS);
     BDBG_CASSERT(NEXUS_MAX_MEMC <= sizeof(pMemory->memc)/sizeof(pMemory->memc[0]));

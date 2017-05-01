@@ -507,6 +507,7 @@ static void NEXUS_Frontend_P_3466_UnTune(void *handle)
     {
     case NEXUS_3466_DVBT2_CHN:
     case NEXUS_3466_DVBT_CHN:
+        NEXUS_Frontend_P_UnsetMtsifConfig(pDevice->terrestrial.frontendHandle[pChannel->chn_num]);
         if(pDevice->terrestrial.isPoweredOn[pChannel->chn_num]) {
             rc = BODS_EnablePowerSaver(pDevice->terrestrial.ods_chn[pChannel->chn_num], &pwrSettings);
             if(rc){rc = BERR_TRACE(rc); goto done;}

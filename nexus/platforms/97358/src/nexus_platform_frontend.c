@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,8 +45,6 @@
 #if NEXUS_HAS_I2C && NEXUS_HAS_FRONTEND
 #include "priv/nexus_core.h"
 #include "nexus_i2c.h"
-#include "bfpga.h"
-#include "bfpga_name.h"
 #include "nexus_frontend.h"
 #include "nexus_platform_features.h"
 #include "nexus_platform.h"

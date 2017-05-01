@@ -274,6 +274,24 @@ b_os: $(B_OS_BUILD)
 clean_b_os: $(B_OS_CLEAN)
 install_b_os: $(B_OS_INSTALL)
 
+ifeq ($(NEXUS_ASP_SUPPORT), y)
+###############################################################################
+#  b_asp Targets
+###############################################################################
+include $(NEXUS_TOP)/lib/asp/b_asp_lib_targets.inc
+
+ifneq ($(B_BUILD_DEPS),n)
+    B_ASP_BUILD := b_asp_lib_target_build
+    B_ASP_CLEAN := b_asp_lib_target_clean_all
+    B_ASP_INSTALL := $(B_ASP_BUILD)
+endif
+endif
+
+.PHONY: b_asp clean_b_asp install_b_asp
+b_asp: $(B_ASP_BUILD)
+clean_b_asp: $(B_ASP_CLEAN)
+install_b_asp: $(B_ASP_INSTALL)
+
 #########################################################################################
 #  livemedia Targets
 #########################################################################################

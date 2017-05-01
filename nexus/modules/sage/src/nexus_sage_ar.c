@@ -51,6 +51,7 @@
 
 #include "antirollback_module_ids.h"
 #include "nexus_sage_image.h"
+#include "nexus_sage_types.h"
 
 
 BDBG_MODULE(nexus_sage_ar);
@@ -82,6 +83,7 @@ static struct sageARInfo *lHandle;
 #define SAGERESPONSE_TIMEOUT 5000 /* in ms */
 
 NEXUS_SageMemoryBlock ar_ta;         /* raw ta binary in memory */
+NEXUS_SageMemoryBlock ar_db;         /* AR db binary in memory */
 
 static void NEXUS_Sage_AR_P_SageResponseCallback_isr(
     BSAGElib_RpcRemoteHandle sageRpcHandle,
@@ -168,7 +170,12 @@ done:
 void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode)
 {
     NEXUS_Error rc;
-    BDBG_ASSERT(lHandle);
+
+    if(!lHandle)
+    {
+        /* Nothing to do */
+        return;
+    }
 
     /* Close AR:Monitor module */
     if (lHandle->hSagelibRpcModuleHandle != NULL)
@@ -217,6 +224,13 @@ void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode)
         NEXUS_Memory_Free(ar_ta.buf);
         ar_ta.buf = NULL;
         ar_ta.len = 0;
+    }
+
+    if(ar_db.buf != NULL)
+    {
+        NEXUS_Memory_Free(ar_db.buf);
+        ar_db.buf = NULL;
+        ar_db.len = 0;
     }
 
     /* Free dma descriptor */
@@ -329,7 +343,7 @@ EXIT:
 /* Some of the init needs to be delayed until SAGE is running */
 /* TODO: Move some of this (platform open/init, module open/init, into
 * more generic functions that can be used across nexus */
-NEXUS_Error NEXUS_Sage_P_ARInit()
+NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings)
 {
     BSAGElib_ClientSettings sagelibClientSettings;
     BERR_Code rc;
@@ -343,6 +357,9 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
 
     NEXUS_SageImageHolder arTAImg =
         {"AR TA", SAGE_IMAGE_FirmwareID_eSage_TA_AR, NULL};
+
+    NEXUS_SageImageHolder arDBImg =
+        {"AR DB", SAGE_IMAGE_FirmwareID_eSage_AR_DB, NULL};
 
     if(lHandle){
         NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyModeOn);
@@ -461,6 +478,30 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
 
     /* Initialize platform */
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
+
+    if(pSettings->imageExists[arDBImg.id])
+    {
+        ar_db.buf = NULL;
+        ar_db.len = 0;
+        arDBImg.raw = &ar_db;
+
+        /* Load AR DB into memory */
+        rc = NEXUS_SageModule_P_Load(&arDBImg, &img_interface, img_context);
+        if(rc != NEXUS_SUCCESS) {
+            BDBG_LOG(("%s - Cannot load AR database %s, AR will use builtin database ", __FUNCTION__, arDBImg.name));
+        }
+        else
+        {
+            /*If db exists, pass info to platform init*/
+            lHandle->sageContainer->blocks[0].len = arDBImg.raw->len;
+            lHandle->sageContainer->blocks[0].data.ptr = arDBImg.raw->buf;
+        }
+    }
+    else
+    {
+        BDBG_LOG(("%s - Skipping AR Database load, file does not exist...", __FUNCTION__));
+    }
+
     rc = BSAGElib_Rai_Platform_Init(lHandle->hSagelibRpcPlatformHandle, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     if (rc != BERR_SUCCESS)
     {
@@ -475,6 +516,12 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
     if (rc != BERR_SUCCESS)
     {
         goto EXIT;
+    }
+    else
+    {
+        BDBG_LOG(("Sage AR TA running with %s database version %u",
+                lHandle->sageContainer->basicOut[1]?"Loadable":"Builtin",
+                  lHandle->sageContainer->basicOut[0]));
     }
     BDBG_MSG(("Initialized AR SAGE platform: assignedAsyncId [0x%x]", lHandle->uiLastAsyncId));
 

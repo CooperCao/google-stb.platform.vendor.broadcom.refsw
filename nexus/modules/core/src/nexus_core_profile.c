@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2012 Broadcom Corporation
+*  Copyright (C) 2006-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #include "nexus_core_module.h"
 
@@ -172,7 +162,7 @@ b_symtable_get_name(unsigned long addr, char *buf, size_t buf_len)
     if (offset < 4096) { /* maximum function size */
         BKNI_Snprintf(buf, buf_len, "%s+0x%x", name, offset);
     } else {
-        BKNI_Snprintf(buf, buf_len, "0x%08x", addr);
+        BKNI_Snprintf(buf, buf_len, "0x%08lx", addr);
     }
     return buf;
 }

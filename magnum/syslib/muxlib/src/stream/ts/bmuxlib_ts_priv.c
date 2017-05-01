@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -260,6 +260,97 @@ const BMUXlib_TS_P_TSPacket s_stDefaultBTPPacket =
  },
 };
 
+const BMUXlib_TS_P_SourceType BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXlib_Input_Type_eMax] =
+{
+   BMUXlib_TS_P_SourceType_eVideo, /* BMUXlib_Input_Type_eVideo */
+   BMUXlib_TS_P_SourceType_eAudio, /* BMUXlib_Input_Type_eAudio */
+};
+
+typedef struct BMUXlib_P_PESInfo
+{
+      BMUXlib_TS_P_SourceType eSourceType;
+      unsigned uiTransportChannelIndex;
+      uint8_t uiPESStreamID;
+
+      uint64_t uiPTS;
+      uint64_t uiDTS;
+      uint32_t uiESCR;
+      uint16_t uiTicksPerBit;
+      int16_t iSHR;
+
+      unsigned uiFrameSize;
+
+      bool bSourceTypeValid;
+      bool bTransportChannelIndexValid;
+
+      bool bPTSValid;
+      bool bDTSValid;
+      bool bESCRValid;
+      bool bTicksPerBitValid;
+      bool bSHRValid;
+      bool bFrameSizeValid;
+
+      bool bRAI;
+      bool bPESPacking;
+} BMUXlib_P_PESInfo;
+
+typedef struct BMUXlib_P_BPPInfo
+{
+      bool bSourceTypeValid;
+      bool bTransportChannelIndexValid;
+      bool bSkippedDescriptorsValid;
+      bool bInputIndexValid;
+      bool bESCRValid;
+      bool bPacket2PacketDeltaValid;
+      bool bDataTypeValid;
+
+      BMUXlib_TS_P_SourceType eSourceType;
+      unsigned uiTransportChannelIndex;
+      unsigned uiSkippedDescriptors;
+      unsigned uiInputIndex;
+      uint32_t uiESCR; /* 27 Mhz */
+      uint32_t uiPacket2PacketDelta; /* 27 Mhz */
+
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData) *pEntry;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_MTUBPPData) *pMTUEntry;
+      size_t uiLength;
+
+      BMUXlib_TS_P_DataType eDataType;
+} BMUXlib_P_BPPInfo;
+
+typedef struct BMUXlib_P_TransportInfo
+{
+      BMUXlib_TS_P_SourceType eSourceType;
+      unsigned uiTransportChannelIndex;
+
+      BMMA_Block_Handle hBlock;
+      unsigned uiBlockOffset;
+      size_t uiLength;
+
+      unsigned uiSkippedDescriptors;
+      unsigned uiInputIndex;
+
+      bool bSourceTypeValid;
+      bool bTransportChannelIndexValid;
+      bool bBufferValid;
+      bool bLengthValid;
+      bool bSkippedDescriptorsValid;
+      bool bInputIndexValid;
+} BMUXlib_P_TransportInfo;
+
+
+static BERR_Code BMUXlib_TS_P_CalculateNextESCR(uint32_t uiCurrentESCR, size_t uiLength, uint32_t uiPacket2PacketDeltaTimestamp, uint32_t *puiNextESCR, unsigned uiPacketSize);
+static BERR_Code BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(BMUXlib_TS_Handle hMuxTS, const BMUXlib_Input_Descriptor *pstDescriptor,
+         BMUXlib_P_PESInfo *pstPESInfo, bool bPESPacking);
+static void BMUXlib_TS_P_UpdateTotalPacketTimestampDelta(BMUXlib_TS_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_InsertBPP(BMUXlib_TS_Handle hMuxTS, BMUXlib_P_BPPInfo *pstBPPInfo);
+static BERR_Code BMUXlib_TS_P_InsertPESHeader(BMUXlib_TS_Handle hMuxTS, BMUXlib_P_PESInfo *pstPESInfo);
+static BERR_Code BMUXlib_TS_P_PopulateTransportInfoFromInputDescriptor(const BMUXlib_Input_Descriptor *pstDescriptor, BMUXlib_P_TransportInfo *pstTransportInfo);
+static BERR_Code BMUXlib_TS_P_InsertTransportDescriptor(BMUXlib_TS_Handle hMuxTS, BMUXlib_P_TransportInfo *pstTransportInfo);
+static BERR_Code BMUXlib_TS_P_InsertNULLTransportDescriptor(BMUXlib_TS_Handle hMuxTS, unsigned uiTransportChannelIndex, uint32_t uiESCR, uint32_t uiPacket2PacketDelta,
+         BMUXlib_TS_P_DataType eDataType, BMUXlib_TS_P_SourceType eSourceType, unsigned uiInputIndex);
+static void BMUXlib_TS_S_StallTransport(BMUXlib_TS_Handle hMuxTS, unsigned uiTransportChannelIndex, bool bStalled);
+
 uint64_t
 BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS(
    BMUXlib_TS_Handle hMuxTS,
@@ -382,6 +473,35 @@ BMUXlib_TS_P_ConfigureTransport(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+void bmuxlib_p_lock_metadata_memory(BMUXlib_TS_P_TransportDescriptorMetaData *pDesc, BMMA_Block_Handle block, const char *file, int line)
+{
+    BDBG_ASSERT(!pDesc->hBufferBaseBlock);
+    BDBG_ASSERT(!pDesc->uiBufferBaseOffset);
+    pDesc->hBufferBaseBlock = block;
+#if BDBG_DEBUG_BUILD
+    pDesc->uiBufferBaseOffset = BMMA_LockOffset_tagged(block, file, line);
+#else
+    pDesc->uiBufferBaseOffset = BMMA_LockOffset(block);
+#endif
+    if (pDesc->uiBufferBaseOffset == BMUXLIB_TS_P_INVALID_OFFSET) {
+        BDBG_ERR(("failed lock %p", (void*)block));
+    }
+}
+
+static void bmuxlib_p_unlock_metadata_memory(BMUXlib_TS_P_TransportDescriptorMetaData *pDesc)
+{
+    if (pDesc->hBufferBaseBlock) {
+        BMMA_UnlockOffset( pDesc->hBufferBaseBlock, pDesc->uiBufferBaseOffset );
+        pDesc->hBufferBaseBlock = NULL;
+        pDesc->uiBufferBaseOffset = BMUXLIB_TS_P_INVALID_OFFSET;
+    }
+    else {
+        if (pDesc->uiBufferBaseOffset != BMUXLIB_TS_P_INVALID_OFFSET) {
+            BDBG_ERR(("invalid BMUXlib_TS_P_TransportDescriptorMetaData uiBufferBaseOffset " BDBG_UINT64_FMT, BDBG_UINT64_ARG(pDesc->uiBufferBaseOffset)));
+        }
+    }
+}
+
 /* TODO: define "VideoSettings struct" to increase code modularity */
 BERR_Code
 BMUXlib_TS_P_ProcessCompletedBuffers(
@@ -401,6 +521,7 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
    /* Get Completed Transport Descriptors */
    {
       size_t uiCompleted;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstCurrentTransportDescriptorEntry = NULL;
       BMUXlib_TS_TransportDescriptor *pstCurrentTransportDescriptor = NULL;
       BMUXlib_TS_P_TransportDescriptorMetaData *pstCurrentTransportDescriptorMetaData = NULL;
       uint32_t uiTransportChannelIndex;
@@ -427,15 +548,12 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
 #if 1
                BMUXlib_TS_TransportStatus stTransportStatus;
 
-               BERR_TRACE( BMUXlib_List_GetHead(
-                        hMuxTS->hTransportDescriptorMetaDataPendingList[uiTransportChannelIndex],
-                        (void**) &pstCurrentTransportDescriptorMetaData
-                        ) );
-
-               BERR_TRACE( BMUXlib_List_GetHead(
-                        hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex],
-                        (void**) &pstCurrentTransportDescriptor
-                        ) );
+               BMUXLIB_LIST_FIRST(
+                        &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex],
+                        &pstCurrentTransportDescriptorEntry
+                        );
+               pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstCurrentTransportDescriptorEntry);
+               pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstCurrentTransportDescriptorEntry);
 
                hMuxTS->status.stStartSettings.transport.stDeviceInterface.fGetTransportStatus(
                         hMuxTS->status.stStartSettings.transport.stDeviceInterface.pContext,
@@ -452,31 +570,18 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                   {
                      if ( ( pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp - stTransportStatus.uiESCR ) < 0x80000000 )
                      {
-#if 0
-                        BDBG_ERR(("Descriptor (type:%d) returned prematurely (0x%08x > 0x%08x) %d ms ([%d]%d pending)",
-                           pstCurrentTransportDescriptorMetaData->eDataType,
-                           pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp,
-                           stTransportStatus.uiESCR,
-                           (pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp - stTransportStatus.uiESCR)/27000,
-                           uiTransportChannelIndex,
-                           uiCompleted
-                        ));
-#endif
                         break;
                      }
                   }
                }
 #endif
 
-               BERR_TRACE( BMUXlib_List_Remove(
-                        hMuxTS->hTransportDescriptorMetaDataPendingList[uiTransportChannelIndex],
-                        (void**) &pstCurrentTransportDescriptorMetaData
-                        ) );
-
-               BERR_TRACE( BMUXlib_List_Remove(
-                        hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex],
-                        (void**) &pstCurrentTransportDescriptor
-                        ) );
+               BMUXLIB_LIST_REMOVE(
+                        &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex],
+                        &pstCurrentTransportDescriptorEntry
+                        );
+               pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstCurrentTransportDescriptorEntry);
+               pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstCurrentTransportDescriptorEntry);
 
                /* Reclaim any internal buffers */
                switch ( pstCurrentTransportDescriptorMetaData->eDataType )
@@ -491,18 +596,18 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
 
                   case BMUXlib_TS_P_DataType_ePESHeader:
                      /* Put PES Header back on Free List */
-                     BERR_TRACE( BMUXlib_List_Add(
-                              hMuxTS->hPESHeaderFreeList,
-                              (void*) pstCurrentTransportDescriptorMetaData->pBufferAddress
-                              ) );
+                     BMUXLIB_LIST_ADD(
+                              &hMuxTS->stPESHeaderFreeList,
+                              pstCurrentTransportDescriptorMetaData->uListEntry.pPESHeader
+                              );
                      break;
 
-                  case BMUXlib_TS_P_DataType_ePCRPacket:
+                  case BMUXlib_TS_P_DataType_eTSPacket:
                      /* Put PCR Packet back on Free List (TS) */
-                     BERR_TRACE( BMUXlib_List_Add(
-                              hMuxTS->hTSPacketFreeList,
-                              (void*) pstCurrentTransportDescriptorMetaData->pBufferAddress
-                              ) );
+                     BMUXLIB_LIST_ADD(
+                              &hMuxTS->stTSPacketFreeList,
+                              pstCurrentTransportDescriptorMetaData->uListEntry.pTSPacket
+                              );
                      break;
 
                   case BMUXlib_TS_P_DataType_eBPP:
@@ -512,19 +617,16 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                         auiInputDescriptorsConsumed[pstCurrentTransportDescriptorMetaData->uiInputIndex] += pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount;
                      }
 
-                     BERR_TRACE( BMUXlib_List_Add(
-                              hMuxTS->hBPPFreeList,
-                              (void*) pstCurrentTransportDescriptorMetaData->pBufferAddress
-                              ) );
+                     BMUXLIB_LIST_ADD(
+                              &hMuxTS->stBPPFreeList,
+                              pstCurrentTransportDescriptorMetaData->uListEntry.pBPPData
+                              );
                      break;
 
                   case BMUXlib_TS_P_DataType_eUserdataPTS:
                   {
-                     BERR_Code rc;
                      /* return the userdata PTS entry to the free list */
-                     rc = BERR_TRACE(BMUXlib_List_Add(hMuxTS->hUserdataPTSFreeList, (void *)pstCurrentTransportDescriptorMetaData->pBufferAddress));
-                     /* there should always be room for the PTS entry on the free list */
-                     BDBG_ASSERT(BERR_SUCCESS == rc);
+                     BMUXLIB_LIST_ADD(&hMuxTS->stUserdataPTSFreeList, pstCurrentTransportDescriptorMetaData->uListEntry.pUserDataPTSEntry);
                      break;
                   }
 
@@ -541,10 +643,10 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                         auiInputDescriptorsConsumed[pstCurrentTransportDescriptorMetaData->uiInputIndex] += pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount;
                      }
 
-                     BERR_TRACE( BMUXlib_List_Add(
-                              hMuxTS->hMTUBPPFreeList,
-                              (void*) pstCurrentTransportDescriptorMetaData->pBufferAddress
-                              ) );
+                     BMUXLIB_LIST_ADD(
+                              &hMuxTS->stMTUBPPFreeList,
+                              pstCurrentTransportDescriptorMetaData->uListEntry.pMTUBPPData
+                              );
                      break;
 
                   case BMUXlib_TS_P_DataType_eMax:
@@ -558,12 +660,6 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                   case BMUXlib_TS_P_SourceType_eVideo:
                      if ( BMUXlib_TS_P_DataType_eCDB == pstCurrentTransportDescriptorMetaData->eDataType )
                      {
-                        if ( ( BMUXLIB_TS_P_INVALID_OFFSET != pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset ) && ( NULL != pstCurrentTransportDescriptorMetaData->hBufferBaseBlock ) )
-                        {
-                           BMMA_UnlockOffset( pstCurrentTransportDescriptorMetaData->hBufferBaseBlock, pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset );
-                           pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset = BMUXLIB_TS_P_INVALID_OFFSET;
-                           pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = NULL;
-                        }
                         auiInputDescriptorsConsumed[pstCurrentTransportDescriptorMetaData->uiInputIndex] += pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount;
                      }
                      break;
@@ -574,14 +670,10 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
 
                         for ( i = 0; i < pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount; i++ )
                         {
-                           if ( ( BMUXLIB_TS_P_INVALID_OFFSET != pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset ) && ( NULL != pstCurrentTransportDescriptorMetaData->hBufferBaseBlock ) )
-                           {
-                              BMMA_UnlockOffset( pstCurrentTransportDescriptorMetaData->hBufferBaseBlock, pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset );
-                              pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset = BMUXLIB_TS_P_INVALID_OFFSET;
-                              pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = NULL;
-                           }
-                           hMuxTS->status.uiSystemDataPendingListReadOffset++;
-                           hMuxTS->status.uiSystemDataPendingListReadOffset %= hMuxTS->status.uiSystemDataMaxCount;
+                           BMUXLIB_LIST_ADD(
+                                    &hMuxTS->stSystemDataFreeList,
+                                    pstCurrentTransportDescriptorMetaData->uListEntry.pSystemData
+                                    );
                         }
                      }
                      BMUXLIB_TS_P_GET_SYS_DATA_COMP_CNT(hMuxTS) += pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount;
@@ -593,17 +685,6 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                         pstCurrentTransportDescriptorMetaData->uiSequenceID, pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount));
                      BMUXlib_TS_P_Userdata_AddToReleaseQ(hMuxTS, pstCurrentTransportDescriptorMetaData->uiInputIndex, pstCurrentTransportDescriptor->uiBufferLength,
                         pstCurrentTransportDescriptorMetaData->uiSequenceID, pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount);
-                     /* unlock this offset since we are done with the data */
-                     if (BMUXlib_TS_P_DataType_eCDB == pstCurrentTransportDescriptorMetaData->eDataType)
-                     {
-                        if ((BMUXLIB_TS_P_INVALID_OFFSET != pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset)
-                             && (NULL != pstCurrentTransportDescriptorMetaData->hBufferBaseBlock))
-                        {
-                           BMMA_UnlockOffset(pstCurrentTransportDescriptorMetaData->hBufferBaseBlock, pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset);
-                           pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset = BMUXLIB_TS_P_INVALID_OFFSET;
-                           pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = NULL;
-                        }
-                     }
                      break;
 
                   case BMUXlib_TS_P_SourceType_eUnknown:
@@ -669,7 +750,7 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                      }
                      break;
 
-                  case BMUXlib_TS_P_DataType_ePCRPacket:
+                  case BMUXlib_TS_P_DataType_eTSPacket:
                      hMuxTS->status.stStatus.stSystem.uiCurrentTimestamp = pstCurrentTransportDescriptorMetaData->uiTimestamp;
                      break;
 
@@ -724,15 +805,11 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                   hMuxTS->status.stEfficiencyStats.uiTotalBytesWritten += pstCurrentTransportDescriptor->uiBufferLength;
                }
 
-               BERR_TRACE( BMUXlib_List_Add(
-                        hMuxTS->hTransportDescriptorMetaDataFreeList,
-                        pstCurrentTransportDescriptorMetaData
-                        ) );
-
-               BERR_TRACE( BMUXlib_List_Add(
-                        hMuxTS->hTransportDescriptorFreeList,
-                        pstCurrentTransportDescriptor
-                        ) );
+               bmuxlib_p_unlock_metadata_memory(pstCurrentTransportDescriptorMetaData);
+               BMUXLIB_LIST_ADD(
+                        &hMuxTS->stTransportDescriptorFreeList,
+                        pstCurrentTransportDescriptorEntry
+                        );
 
                hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued--;
 
@@ -766,7 +843,7 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_CalculateNextESCR(
          uint32_t uiCurrentESCR,
          size_t uiLength,
@@ -793,10 +870,11 @@ BERR_Code
 BMUXlib_TS_P_AddTransportDescriptor(
    BMUXlib_TS_Handle hMuxTS,
    unsigned uiTransportChannelIndex,
-   BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
-   BMUXlib_TS_P_TransportDescriptorMetaData *pstTransportDescriptorMetaData
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstTransportDescriptorEntry
    )
 {
+   BMUXlib_TS_TransportDescriptor *pstTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstTransportDescriptorEntry);
+   BMUXlib_TS_P_TransportDescriptorMetaData *pstTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstTransportDescriptorEntry);
 
    BDBG_ASSERT( BMUXLIB_TS_P_INVALID_OFFSET != pstTransportDescriptor->uiBufferOffset );
 
@@ -830,49 +908,17 @@ BMUXlib_TS_P_AddTransportDescriptor(
    }
 
    /* SW7425-296: Coalesce contiguous buffer descriptors */
-   if ( false == BMUXlib_List_IsEmpty( hMuxTS->hTransportDescriptorMetaDataPendingList[uiTransportChannelIndex] ) )
+   if ( false == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex] ) )
    {
-      BMUXlib_TS_TransportDescriptor **astTransportDescriptors[2];
-      BMUXlib_TS_P_TransportDescriptorMetaData **astTransportDescriptorsMetadata[2];
-      const void *pDescriptors[2];
-      size_t uiNumTransportDescriptors[2];
-
-      /* Get the previous pending descriptor */
-      BMUXlib_List_GetEntries(
-               hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex],
-               &pDescriptors[0],
-               &uiNumTransportDescriptors[0],
-               &pDescriptors[1],
-               &uiNumTransportDescriptors[1]
-               );
-
-      astTransportDescriptors[0] = (BMUXlib_TS_TransportDescriptor **) pDescriptors[0];
-      astTransportDescriptors[1] = (BMUXlib_TS_TransportDescriptor **) pDescriptors[1];
-
-      BMUXlib_List_GetEntries(
-               hMuxTS->hTransportDescriptorMetaDataPendingList[uiTransportChannelIndex],
-               &pDescriptors[0],
-               &uiNumTransportDescriptors[0],
-               &pDescriptors[1],
-               &uiNumTransportDescriptors[1]
-               );
-
-      astTransportDescriptorsMetadata[0] = (BMUXlib_TS_P_TransportDescriptorMetaData **) pDescriptors[0];
-      astTransportDescriptorsMetadata[1] = (BMUXlib_TS_P_TransportDescriptorMetaData **) pDescriptors[1];
-
-      if ( hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued < ( uiNumTransportDescriptors[0] + uiNumTransportDescriptors[1] ) )
+      if ( hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued < BMUXLIB_LIST_COUNT(&hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex] ) )
       {
-         BMUXlib_TS_TransportDescriptor *pstPreviousTransportDescriptor;
-         BMUXlib_TS_P_TransportDescriptorMetaData *pstPreviousTransportDescriptorMetaData;
-         unsigned uiQueueIndex = 0;
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstPreviousTransportDescriptorEntry = NULL;
+         BMUXlib_TS_TransportDescriptor *pstPreviousTransportDescriptor = NULL;
+         BMUXlib_TS_P_TransportDescriptorMetaData *pstPreviousTransportDescriptorMetaData = NULL;
 
-         if ( 0 != uiNumTransportDescriptors[1] )
-         {
-            uiQueueIndex = 1;
-         }
-
-         pstPreviousTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) astTransportDescriptors[uiQueueIndex][uiNumTransportDescriptors[uiQueueIndex] - 1];
-         pstPreviousTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) astTransportDescriptorsMetadata[uiQueueIndex][uiNumTransportDescriptors[uiQueueIndex] - 1];
+         BMUXLIB_LIST_LAST( &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex], &pstPreviousTransportDescriptorEntry );
+         pstPreviousTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstPreviousTransportDescriptorEntry);
+         pstPreviousTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstPreviousTransportDescriptorEntry);
 
          if ( ( ( (unsigned) pstPreviousTransportDescriptor->uiBufferOffset + pstPreviousTransportDescriptor->uiBufferLength ) == (unsigned) pstTransportDescriptor->uiBufferOffset )
               && ( BMUXlib_TS_P_DataType_eCDB == pstTransportDescriptorMetaData->eDataType )
@@ -894,75 +940,27 @@ BMUXlib_TS_P_AddTransportDescriptor(
                (int)pstPreviousTransportDescriptor->uiBufferLength
                ));
 
-            if ( ( BMUXLIB_TS_P_INVALID_OFFSET != pstTransportDescriptorMetaData->uiBufferBaseOffset ) && ( NULL != pstTransportDescriptorMetaData->hBufferBaseBlock ) )
-            {
-               BMMA_UnlockOffset( pstTransportDescriptorMetaData->hBufferBaseBlock, pstTransportDescriptorMetaData->uiBufferBaseOffset );
-               pstTransportDescriptorMetaData->uiBufferBaseOffset = BMUXLIB_TS_P_INVALID_OFFSET;
-               pstTransportDescriptorMetaData->hBufferBaseBlock = NULL;
-            }
-
             /* Don't add the new descriptor to the pending queue, instead, return them to the free list */
-            BERR_TRACE( BMUXlib_List_Add(
-                     hMuxTS->hTransportDescriptorMetaDataFreeList,
-                     pstTransportDescriptorMetaData
-                     ) );
-
-            BERR_TRACE( BMUXlib_List_Add(
-                     hMuxTS->hTransportDescriptorFreeList,
-                     pstTransportDescriptor
-                     ) );
+            bmuxlib_p_unlock_metadata_memory(pstTransportDescriptorMetaData);
+            BMUXLIB_LIST_ADD(
+                     &hMuxTS->stTransportDescriptorFreeList,
+                     pstTransportDescriptorEntry
+                     );
 
             return BERR_TRACE( BERR_SUCCESS );
          }
       }
    }
 
-   BERR_TRACE( BMUXlib_List_Add(
-            hMuxTS->hTransportDescriptorMetaDataPendingList[uiTransportChannelIndex],
-            pstTransportDescriptorMetaData
-            ) );
+   BMUXLIB_LIST_ADD(
+            &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex],
+            pstTransportDescriptorEntry
+            );
 
-   return BERR_TRACE( BMUXlib_List_Add(
-            hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex],
-            pstTransportDescriptor
-            ) );
+   return BERR_SUCCESS;
 }
 
-typedef struct BMUXlib_P_PESInfo
-{
-      BMUXlib_TS_P_SourceType eSourceType;
-      unsigned uiTransportChannelIndex;
-      uint8_t uiPESStreamID;
-
-      uint64_t uiPTS;
-      uint64_t uiDTS;
-      uint32_t uiESCR;
-      uint16_t uiTicksPerBit;
-      int16_t iSHR;
-
-      unsigned uiFrameSize;
-
-      bool bSourceTypeValid;
-      bool bTransportChannelIndexValid;
-
-      bool bPTSValid;
-      bool bDTSValid;
-      bool bESCRValid;
-      bool bTicksPerBitValid;
-      bool bSHRValid;
-      bool bFrameSizeValid;
-
-      bool bRAI;
-      bool bPESPacking;
-} BMUXlib_P_PESInfo;
-
-const BMUXlib_TS_P_SourceType BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXlib_Input_Type_eMax] =
-{
-   BMUXlib_TS_P_SourceType_eVideo, /* BMUXlib_Input_Type_eVideo */
-   BMUXlib_TS_P_SourceType_eAudio, /* BMUXlib_Input_Type_eAudio */
-};
-
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
          BMUXlib_TS_Handle hMuxTS,
          const BMUXlib_Input_Descriptor *pstDescriptor,
@@ -1037,7 +1035,7 @@ BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-void
+static void
 BMUXlib_TS_P_UpdateTotalPacketTimestampDelta(
    BMUXlib_TS_Handle hMuxTS
    )
@@ -1071,30 +1069,7 @@ BMUXlib_TS_P_UpdateTotalPacketTimestampDelta(
    hMuxTS->status.uiTotalPacket2PacketTimestampDeltaMod300 = ((hMuxTS->status.uiTotalPacket2PacketTimestampDelta / 300) << 9) | (hMuxTS->status.uiTotalPacket2PacketTimestampDelta % 300);
 }
 
-typedef struct BMUXlib_P_BPPInfo
-{
-      bool bSourceTypeValid;
-      bool bTransportChannelIndexValid;
-      bool bSkippedDescriptorsValid;
-      bool bInputIndexValid;
-      bool bESCRValid;
-      bool bPacket2PacketDeltaValid;
-      bool bDataTypeValid;
-
-      BMUXlib_TS_P_SourceType eSourceType;
-      unsigned uiTransportChannelIndex;
-      unsigned uiSkippedDescriptors;
-      unsigned uiInputIndex;
-      uint32_t uiESCR; /* 27 Mhz */
-      uint32_t uiPacket2PacketDelta; /* 27 Mhz */
-
-      void *pBuffer;
-      size_t uiLength;
-
-      BMUXlib_TS_P_DataType eDataType;
-} BMUXlib_P_BPPInfo;
-
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_InsertBPP(
          BMUXlib_TS_Handle hMuxTS,
          BMUXlib_P_BPPInfo *pstBPPInfo
@@ -1102,16 +1077,17 @@ BMUXlib_TS_P_InsertBPP(
 {
    {
       /* Allocate Transport Descriptor */
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstCurrentTransportDescriptorEntry = NULL;
       BMUXlib_TS_TransportDescriptor *pstCurrentTransportDescriptor = NULL;
       BMUXlib_TS_P_TransportDescriptorMetaData *pstCurrentTransportDescriptorMetaData = NULL;
-      void *pEntry = NULL;
 
-      BERR_TRACE( BMUXlib_List_Remove(
-               hMuxTS->hTransportDescriptorMetaDataFreeList,
-               &pEntry
-               ) );
+      BMUXLIB_LIST_REMOVE(
+               &hMuxTS->stTransportDescriptorFreeList,
+               &pstCurrentTransportDescriptorEntry
+               );
 
-      pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+      pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA( pstCurrentTransportDescriptorEntry );
+      pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA( pstCurrentTransportDescriptorEntry );
 
       /* Populate Transport Meta Data */
       BKNI_Memset(
@@ -1120,6 +1096,8 @@ BMUXlib_TS_P_InsertBPP(
                sizeof( BMUXlib_TS_P_TransportDescriptorMetaData )
                );
 
+      pstCurrentTransportDescriptorMetaData->uListEntry.pBPPData = pstBPPInfo->pEntry;
+      if ( NULL != pstBPPInfo->pMTUEntry ) pstCurrentTransportDescriptorMetaData->uListEntry.pMTUBPPData = pstBPPInfo->pMTUEntry;
       pstCurrentTransportDescriptorMetaData->eDataType = pstBPPInfo->bDataTypeValid ? pstBPPInfo->eDataType : BMUXlib_TS_P_DataType_eBPP;
       pstCurrentTransportDescriptorMetaData->eSourceType = pstBPPInfo->eSourceType;
 
@@ -1132,13 +1110,6 @@ BMUXlib_TS_P_InsertBPP(
             pstCurrentTransportDescriptorMetaData->uiInputIndex = pstBPPInfo->uiInputIndex;
          }
       }
-
-      BERR_TRACE( BMUXlib_List_Remove(
-               hMuxTS->hTransportDescriptorFreeList,
-               &pEntry
-               ) );
-
-      pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
 
       /* Populate Transport Descriptor */
       BKNI_Memset(
@@ -1162,8 +1133,9 @@ BMUXlib_TS_P_InsertBPP(
       }
 
       /* Set Buffer Info */
-      pstCurrentTransportDescriptorMetaData->pBufferAddress = pstBPPInfo->pBuffer;
-      pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
+      pstCurrentTransportDescriptorMetaData->pBufferAddress = BMUXLIB_LIST_ENTRY_DATA(pstBPPInfo->pEntry);
+      if ( NULL != pstBPPInfo->pMTUEntry ) pstCurrentTransportDescriptorMetaData->pBufferAddress = BMUXLIB_LIST_ENTRY_DATA(pstBPPInfo->pMTUEntry);
+      BMUXLIB_P_LOCK_METADATA_MEMORY(pstCurrentTransportDescriptorMetaData, hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock);
       pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
       pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
       pstCurrentTransportDescriptor->uiBufferLength = pstBPPInfo->uiLength;
@@ -1171,15 +1143,14 @@ BMUXlib_TS_P_InsertBPP(
       BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
          hMuxTS,
          pstBPPInfo->uiTransportChannelIndex,
-         pstCurrentTransportDescriptor,
-         pstCurrentTransportDescriptorMetaData
+         pstCurrentTransportDescriptorEntry
          ) );
    }
 
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_InsertPESHeader(
          BMUXlib_TS_Handle hMuxTS,
          BMUXlib_P_PESInfo *pstPESInfo
@@ -1187,21 +1158,21 @@ BMUXlib_TS_P_InsertPESHeader(
 {
    BDBG_ASSERT( true == pstPESInfo->bTransportChannelIndexValid );
 
-   if ( false == BMUXlib_List_IsEmpty(
-                 hMuxTS->hPESHeaderFreeList
+   if ( false == BMUXLIB_LIST_ISEMPTY(
+                 &hMuxTS->stPESHeaderFreeList
                  )
       )
    {
-      void *pEntry = NULL;
+      BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_PESHeader ) *pPESHeaderEntry;
       /* Allocate PES Header */
       BMUXlib_TS_P_PESHeader *pstCurrentPESHeader = NULL;
 
-      BERR_TRACE( BMUXlib_List_Remove(
-               hMuxTS->hPESHeaderFreeList,
-               &pEntry
-               ) );
+      BMUXLIB_LIST_REMOVE(
+               &hMuxTS->stPESHeaderFreeList,
+               &pPESHeaderEntry
+               );
 
-      pstCurrentPESHeader = (BMUXlib_TS_P_PESHeader *) pEntry;
+      pstCurrentPESHeader = BMUXLIB_LIST_ENTRY_DATA(pPESHeaderEntry);
 
       /* Populate PES Header */
       BKNI_Memcpy(
@@ -1249,16 +1220,17 @@ BMUXlib_TS_P_InsertPESHeader(
 
       {
          /* Allocate Transport Descriptor */
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_TransportDescriptor ) *pstCurrentTransportDescriptorEntry;
          BMUXlib_TS_TransportDescriptor *pstCurrentTransportDescriptor = NULL;
          BMUXlib_TS_P_TransportDescriptorMetaData *pstCurrentTransportDescriptorMetaData = NULL;
-         void *pEntry = NULL;
 
-         BERR_TRACE( BMUXlib_List_Remove(
-                  hMuxTS->hTransportDescriptorMetaDataFreeList,
-                  &pEntry
-                  ) );
+         BMUXLIB_LIST_REMOVE(
+                  &hMuxTS->stTransportDescriptorFreeList,
+                  &pstCurrentTransportDescriptorEntry
+                  );
 
-         pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+         pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstCurrentTransportDescriptorEntry);
+         pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstCurrentTransportDescriptorEntry);
 
          /* Populate Transport Meta Data */
          BKNI_Memset(
@@ -1267,15 +1239,9 @@ BMUXlib_TS_P_InsertPESHeader(
                   sizeof( BMUXlib_TS_P_TransportDescriptorMetaData )
                   );
 
+         pstCurrentTransportDescriptorMetaData->uListEntry.pPESHeader = pPESHeaderEntry;
          pstCurrentTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_ePESHeader;
          pstCurrentTransportDescriptorMetaData->eSourceType = pstPESInfo->eSourceType;
-
-         BERR_TRACE( BMUXlib_List_Remove(
-                  hMuxTS->hTransportDescriptorFreeList,
-                  &pEntry
-                  ) );
-
-         pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
 
          /* Populate Transport Descriptor */
          BKNI_Memset(
@@ -1286,7 +1252,7 @@ BMUXlib_TS_P_InsertPESHeader(
 
          /* Set Buffer Info */
          pstCurrentTransportDescriptorMetaData->pBufferAddress = pstCurrentPESHeader;
-         pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
+         BMUXLIB_P_LOCK_METADATA_MEMORY(pstCurrentTransportDescriptorMetaData, hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock);
          pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
          pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
          pstCurrentTransportDescriptor->uiBufferLength = BMUXlib_TS_P_PESHeader_MINSIZE + BMUXlib_TS_P_PESHeader_GetHeaderLength(pstCurrentPESHeader->data);
@@ -1479,6 +1445,7 @@ BMUXlib_TS_P_InsertPESHeader(
                   unsigned i;
 
                   BMUXlib_P_BPPInfo stBPPInfo;
+                  BMUXlib_TS_P_MTUBPPData *pMTUBPPData;
 
                   BKNI_Memset( &stBPPInfo, 0, sizeof( BMUXlib_P_BPPInfo ) );
 
@@ -1497,13 +1464,15 @@ BMUXlib_TS_P_InsertPESHeader(
                   stBPPInfo.bDataTypeValid = true;
                   stBPPInfo.eDataType = BMUXlib_TS_P_DataType_eMTUBPP;
 
-                  BERR_TRACE( BMUXlib_List_Remove(
-                           hMuxTS->hMTUBPPFreeList,
-                           &stBPPInfo.pBuffer
-                           ) );
+                  BMUXLIB_LIST_REMOVE(
+                           &hMuxTS->stMTUBPPFreeList,
+                           &stBPPInfo.pMTUEntry
+                           );
+
+                  pMTUBPPData = BMUXLIB_LIST_ENTRY_DATA(stBPPInfo.pMTUEntry);
 
                   BKNI_Memcpy(
-                           stBPPInfo.pBuffer,
+                           pMTUBPPData,
                            &s_stDefaultBPPData,
                            sizeof ( BMUXlib_TS_P_BPPData )
                            );
@@ -1515,24 +1484,24 @@ BMUXlib_TS_P_InsertPESHeader(
                    * However, if there isn't a video PID, then just use the audio PID.
                    */
                   BMUXlib_TS_P_BPPData_SetStreamID(
-                              stBPPInfo.pBuffer,
+                              pMTUBPPData,
                               ( 0 == hMuxTS->status.stStartSettings.uiNumValidVideoPIDs ) ? pstPESInfo->uiPESStreamID : hMuxTS->status.stStartSettings.video[0].uiPESStreamID
                               );
 
                   BMUXlib_TS_P_BPPData_SetControlWord(
-                     stBPPInfo.pBuffer,
+                     pMTUBPPData,
                      BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_COMMAND_OFFSET,
                      BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_COMMAND
                      );
 
                   BMUXlib_TS_P_BPPData_SetControlWord(
-                     stBPPInfo.pBuffer,
+                     pMTUBPPData,
                      BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_TIMESTAMP_CTRL_OFFSET,
                      0x2 /* Only PKT2PKT_DELTA_TIMESTAMP in BPP is valid */
                      );
 
                   BMUXlib_TS_P_BPPData_SetControlWord(
-                     stBPPInfo.pBuffer,
+                     pMTUBPPData,
                      BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_PKT2PKT_DELTA_TIMESTAMP_OFFSET,
                      hMuxTS->status.uiTotalPacket2PacketTimestampDeltaMod300
                      );
@@ -1543,8 +1512,8 @@ BMUXlib_TS_P_InsertPESHeader(
                   for ( i = 1; i < BMUXlib_TS_P_MTUBPPData_NUMCONSECUTIVEPACKETS; i++ )
                   {
                      BKNI_Memcpy(
-                              (uint8_t*) stBPPInfo.pBuffer + ( sizeof ( BMUXlib_TS_P_BPPData ) * i),
-                              stBPPInfo.pBuffer,
+                              (uint8_t*) pMTUBPPData + ( sizeof ( BMUXlib_TS_P_BPPData ) * i),
+                              pMTUBPPData,
                               sizeof ( BMUXlib_TS_P_BPPData )
                               );
 
@@ -1593,8 +1562,7 @@ BMUXlib_TS_P_InsertPESHeader(
          BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
             hMuxTS,
             pstPESInfo->uiTransportChannelIndex,
-            pstCurrentTransportDescriptor,
-            pstCurrentTransportDescriptorMetaData
+            pstCurrentTransportDescriptorEntry
             ) );
       }
    }
@@ -1606,28 +1574,7 @@ BMUXlib_TS_P_InsertPESHeader(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-
-typedef struct BMUXlib_P_TransportInfo
-{
-      BMUXlib_TS_P_SourceType eSourceType;
-      unsigned uiTransportChannelIndex;
-
-      BMMA_Block_Handle hBlock;
-      unsigned uiBlockOffset;
-      size_t uiLength;
-
-      unsigned uiSkippedDescriptors;
-      unsigned uiInputIndex;
-
-      bool bSourceTypeValid;
-      bool bTransportChannelIndexValid;
-      bool bBufferValid;
-      bool bLengthValid;
-      bool bSkippedDescriptorsValid;
-      bool bInputIndexValid;
-} BMUXlib_P_TransportInfo;
-
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_PopulateTransportInfoFromInputDescriptor(
          const BMUXlib_Input_Descriptor *pstDescriptor,
          BMUXlib_P_TransportInfo *pstTransportInfo
@@ -1655,16 +1602,16 @@ BMUXlib_TS_P_PopulateTransportInfoFromInputDescriptor(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_InsertTransportDescriptor (
          BMUXlib_TS_Handle hMuxTS,
          BMUXlib_P_TransportInfo *pstTransportInfo
          )
 {
    /* Allocate Transport Descriptor */
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstCurrentTransportDescriptorEntry = NULL;
    BMUXlib_TS_TransportDescriptor *pstCurrentTransportDescriptor = NULL;
    BMUXlib_TS_P_TransportDescriptorMetaData *pstCurrentTransportDescriptorMetaData = NULL;
-   void *pEntry = NULL;
 
    BDBG_ASSERT( pstTransportInfo );
    BDBG_ASSERT( pstTransportInfo->bSourceTypeValid );
@@ -1672,12 +1619,13 @@ BMUXlib_TS_P_InsertTransportDescriptor (
    BDBG_ASSERT( pstTransportInfo->bBufferValid );
    BDBG_ASSERT( pstTransportInfo->bLengthValid );
 
-   BERR_TRACE( BMUXlib_List_Remove(
-            hMuxTS->hTransportDescriptorMetaDataFreeList,
-            &pEntry
-            ) );
+   BMUXLIB_LIST_REMOVE(
+            &hMuxTS->stTransportDescriptorFreeList,
+            &pstCurrentTransportDescriptorEntry
+            );
 
-   pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+   pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstCurrentTransportDescriptorEntry);
+   pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstCurrentTransportDescriptorEntry);
 
    /* Populate Transport Meta Data */
    BKNI_Memset(
@@ -1709,13 +1657,6 @@ BMUXlib_TS_P_InsertTransportDescriptor (
       }
    }
 
-   BERR_TRACE( BMUXlib_List_Remove(
-            hMuxTS->hTransportDescriptorFreeList,
-            &pEntry
-            ) );
-
-   pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
-
    /* Populate Transport Descriptor */
    BKNI_Memset(
             pstCurrentTransportDescriptor,
@@ -1724,22 +1665,20 @@ BMUXlib_TS_P_InsertTransportDescriptor (
             );
 
    /* Set Buffer Info */
-   pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset = BMMA_LockOffset( pstTransportInfo->hBlock );
-   pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = pstTransportInfo->hBlock;
+   BMUXLIB_P_LOCK_METADATA_MEMORY(pstCurrentTransportDescriptorMetaData, pstTransportInfo->hBlock);
    pstCurrentTransportDescriptor->uiBufferOffset = pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset + pstTransportInfo->uiBlockOffset;
    pstCurrentTransportDescriptor->uiBufferLength = pstTransportInfo->uiLength;
 
    BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
       hMuxTS,
       pstTransportInfo->uiTransportChannelIndex,
-      pstCurrentTransportDescriptor,
-      pstCurrentTransportDescriptorMetaData
+      pstCurrentTransportDescriptorEntry
       ) );
 
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_InsertNULLTransportDescriptor (
          BMUXlib_TS_Handle hMuxTS,
          unsigned uiTransportChannelIndex,
@@ -1751,18 +1690,19 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
          )
 {
    /* Allocate Transport Descriptor */
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstCurrentTransportDescriptorEntry = NULL;
    BMUXlib_TS_TransportDescriptor *pstCurrentTransportDescriptor = NULL;
    BMUXlib_TS_P_TransportDescriptorMetaData *pstCurrentTransportDescriptorMetaData = NULL;
-   void *pEntry = NULL;
 
    BDBG_ASSERT( hMuxTS );
 
-   BERR_TRACE( BMUXlib_List_Remove(
-            hMuxTS->hTransportDescriptorMetaDataFreeList,
-            &pEntry
-            ) );
+   BMUXLIB_LIST_REMOVE(
+            &hMuxTS->stTransportDescriptorFreeList,
+            &pstCurrentTransportDescriptorEntry
+            );
 
-   pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+   pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstCurrentTransportDescriptorEntry);
+   pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstCurrentTransportDescriptorEntry);
 
    /* Populate Transport Meta Data */
    BKNI_Memset(
@@ -1778,13 +1718,6 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
       pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount = 1;
       pstCurrentTransportDescriptorMetaData->uiInputIndex = uiInputIndex;
    }
-
-   BERR_TRACE( BMUXlib_List_Remove(
-            hMuxTS->hTransportDescriptorFreeList,
-            &pEntry
-            ) );
-
-   pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
 
    /* Populate Transport Descriptor */
    BKNI_Memset(
@@ -1803,7 +1736,7 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
    if ( uiTransportChannelIndex == hMuxTS->status.stInput.system.uiTransportChannelIndex )
    {
       pstCurrentTransportDescriptorMetaData->pBufferAddress = hMuxTS->status.pNullTSPacketBuffer;
-      pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
+      BMUXLIB_P_LOCK_METADATA_MEMORY(pstCurrentTransportDescriptorMetaData, hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock);
       pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
       pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
       pstCurrentTransportDescriptor->uiBufferLength = 0;
@@ -1811,7 +1744,7 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
    else
    {
       pstCurrentTransportDescriptorMetaData->pBufferAddress = hMuxTS->status.pDummyPESBuffer;
-      pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
+      BMUXLIB_P_LOCK_METADATA_MEMORY(pstCurrentTransportDescriptorMetaData, hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock);
       pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
       pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
       pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_BPPData );
@@ -1820,8 +1753,7 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
    BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
       hMuxTS,
       uiTransportChannelIndex,
-      pstCurrentTransportDescriptor,
-      pstCurrentTransportDescriptorMetaData
+      pstCurrentTransportDescriptorEntry
       ) );
 
    return BERR_TRACE( BERR_SUCCESS );
@@ -1833,6 +1765,7 @@ BMUXlib_TS_P_ProcessSystemData(
          )
 {
    BMUXlib_TS_P_TSPacket *pstPCRPacket = NULL;
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstCurrentTransportDescriptorEntry = NULL;
    BMUXlib_TS_TransportDescriptor *pstCurrentTransportDescriptor = NULL;
    BMUXlib_TS_P_TransportDescriptorMetaData *pstCurrentTransportDescriptorMetaData = NULL;
    uint32_t uiLastPendingESCR = 0xFFFFFFFF;
@@ -1842,7 +1775,7 @@ BMUXlib_TS_P_ProcessSystemData(
 
    BDBG_ASSERT( hMuxTS );
 
-   if ( BMUXlib_List_IsFull ( hMuxTS->hTransportDescriptorPendingList[hMuxTS->status.stInput.system.uiTransportChannelIndex] ) )
+   if ( true == BMUXLIB_TS_TRANSPORT_IS_FULL( hMuxTS, hMuxTS->status.stInput.system.uiTransportChannelIndex ) )
    {
       if ( false == hMuxTS->status.stStartSettings.bNonRealTimeMode )
       {
@@ -1876,8 +1809,8 @@ BMUXlib_TS_P_ProcessSystemData(
       for ( uiTransportChannelIndex = 0; uiTransportChannelIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiTransportChannelIndex++ )
       {
          if ( ( true == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].bActive )
-              && ( false == BMUXlib_List_IsEmpty(
-                     hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex]
+              && ( false == BMUXLIB_LIST_ISEMPTY(
+                     &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex]
                   )
               )
               && ( uiTransportChannelIndex != hMuxTS->status.stInput.system.uiTransportChannelIndex )
@@ -1906,20 +1839,17 @@ BMUXlib_TS_P_ProcessSystemData(
          We use 188 bytes, because we are always sending complete TS packets on the system data channel */
       uint64_t uiPacket2PacketTimestampDelta = ((uint64_t)BMUXlib_TS_P_TSPacket_MAXSIZE * 8 * 27000000) / hMuxTS->status.stMuxSettings.uiSystemDataBitRate;
 
-      while ( ( false == BMUXlib_List_IsEmpty(
-               hMuxTS->hTransportDescriptorFreeList
+      while ( ( false == BMUXLIB_LIST_ISEMPTY(
+               &hMuxTS->stTransportDescriptorFreeList
                )
            )
            &&
-           ( false == BMUXlib_List_IsEmpty(
-                    hMuxTS->hTSPacketFreeList
+           ( false == BMUXLIB_LIST_ISEMPTY(
+                    &hMuxTS->stTSPacketFreeList
                     )
            )
            &&
-           ( false == BMUXlib_List_IsFull(
-                    hMuxTS->hTransportDescriptorPendingList[hMuxTS->status.stInput.system.uiTransportChannelIndex]
-                    )
-           )
+           ( false == BMUXLIB_TS_TRANSPORT_IS_FULL( hMuxTS, hMuxTS->status.stInput.system.uiTransportChannelIndex ) )
            /* FIXME: In here make sure we use max of these last pending ESCRs and starting ESCR + Mux service period to ensure we have enough time to insert
               userdata even if video frames are very short */
            && ((((hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF) < uiLastPendingESCR) /* Next PCR's ESCR is smaller than last pending ESCR */
@@ -1930,7 +1860,7 @@ BMUXlib_TS_P_ProcessSystemData(
          )
 
       {
-         void *pEntry = NULL;
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) *pTSPacketEntry = NULL;
          /* calculate Next PCR's expected ESCR value for future reference */
          uint64_t uiNextESCR = BMUXLIB_TS_P_MOD300_ADD32(hMuxTS->status.stPCRInfo.uiESCR, hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz);
 
@@ -1942,18 +1872,19 @@ BMUXlib_TS_P_ProcessSystemData(
             size_t uiNumTSPacketsFree;
             size_t uiNumPendingFree;
 
-            BMUXlib_List_GetNumEntries(
-                     hMuxTS->hTransportDescriptorFreeList,
+            BMUXLIB_LIST_GETNUMENTRIES(
+                     &hMuxTS->stTransportDescriptorFreeList,
                      &uiNumTransportDescriptorsFree
                      );
 
-            BMUXlib_List_GetNumEntries(
-                     hMuxTS->hTSPacketFreeList,
+            BMUXLIB_LIST_GETNUMENTRIES(
+                     &hMuxTS->stTSPacketFreeList,
                      &uiNumTSPacketsFree
                      );
 
-            BMUXlib_List_GetNumFree(
-                     hMuxTS->hTransportDescriptorPendingList[hMuxTS->status.stInput.system.uiTransportChannelIndex],
+            BMUXLIB_TS_TRANSPORT_GET_NUM_FREE(
+                     hMuxTS,
+                     hMuxTS->status.stInput.system.uiTransportChannelIndex,
                      &uiNumPendingFree
                      );
 
@@ -1970,12 +1901,12 @@ BMUXlib_TS_P_ProcessSystemData(
          if ( 0 != hMuxTS->status.stStartSettings.stPCRData.uiInterval )
          {
             /* Insert PCR */
-            BERR_TRACE( BMUXlib_List_Remove(
-                     hMuxTS->hTSPacketFreeList,
-                     &pEntry
-                     ) );
+            BMUXLIB_LIST_REMOVE(
+                     &hMuxTS->stTSPacketFreeList,
+                     &pTSPacketEntry
+                     );
 
-            pstPCRPacket = (BMUXlib_TS_P_TSPacket *) pEntry;
+            pstPCRPacket = BMUXLIB_LIST_ENTRY_DATA(pTSPacketEntry);
 
 #if 0
             BDBG_ERR(("PCR --> %08x/%08x "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT") "BDBG_UINT64_FMT" @%p",
@@ -2021,12 +1952,13 @@ BMUXlib_TS_P_ProcessSystemData(
                      hMuxTS->status.stPCRInfo.uiExtension
                      );
 
-            BERR_TRACE( BMUXlib_List_Remove(
-                     hMuxTS->hTransportDescriptorMetaDataFreeList,
-                     &pEntry
-                     ) );
+            BMUXLIB_LIST_REMOVE(
+                     &hMuxTS->stTransportDescriptorFreeList,
+                     &pstCurrentTransportDescriptorEntry
+                     );
 
-            pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+            pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstCurrentTransportDescriptorEntry);
+            pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstCurrentTransportDescriptorEntry);
 
             /* Populate Transport Meta Data */
             BKNI_Memset(
@@ -2034,17 +1966,9 @@ BMUXlib_TS_P_ProcessSystemData(
                      0,
                      sizeof( BMUXlib_TS_P_TransportDescriptorMetaData )
                      );
-
-            pstCurrentTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_ePCRPacket;
+            pstCurrentTransportDescriptorMetaData->uListEntry.pTSPacket = pTSPacketEntry;
+            pstCurrentTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_eTSPacket;
             pstCurrentTransportDescriptorMetaData->eSourceType = BMUXlib_TS_P_SourceType_eSystem;
-
-            BERR_TRACE( BMUXlib_List_Remove(
-                     hMuxTS->hTransportDescriptorFreeList,
-                     &pEntry
-                     ) );
-
-            pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
-            BDBG_ASSERT(pstCurrentTransportDescriptor);
 
             /* Populate Transport Descriptor */
             /* coverity[deref_ptr_in_call] */
@@ -2064,7 +1988,7 @@ BMUXlib_TS_P_ProcessSystemData(
 
             /* Set Buffer Info */
             pstCurrentTransportDescriptorMetaData->pBufferAddress = (void *) pstPCRPacket;
-            pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
+            BMUXLIB_P_LOCK_METADATA_MEMORY(pstCurrentTransportDescriptorMetaData, hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock);
             pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
             pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
             pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
@@ -2106,18 +2030,19 @@ BMUXlib_TS_P_ProcessSystemData(
                 */
                if ( false == hMuxTS->status.bBTPSent )
                {
+                  BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) *pBTPBufferEntry = NULL;
                   BMUXlib_TS_P_TSPacket *pBTPBuffer = NULL;
-                  BMUXlib_TS_P_TransportDescriptorMetaData *pstBTPTransportDescriptorMetaData = NULL;
+                  BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstBTPTransportDescriptorEntry = NULL;
                   BMUXlib_TS_TransportDescriptor *pstBTPTransportDescriptor = NULL;
-
+                  BMUXlib_TS_P_TransportDescriptorMetaData *pstBTPTransportDescriptorMetaData = NULL;
 
                   /* Insert MUX_TIMESTAMP_UPDATE BTP */
-                  BERR_TRACE( BMUXlib_List_Remove(
-                           hMuxTS->hTSPacketFreeList,
-                           &pEntry
-                           ) );
+                  BMUXLIB_LIST_REMOVE(
+                           &hMuxTS->stTSPacketFreeList,
+                           &pBTPBufferEntry
+                           );
 
-                  pBTPBuffer = (BMUXlib_TS_P_TSPacket *) pEntry;
+                  pBTPBuffer = BMUXLIB_LIST_ENTRY_DATA(pBTPBufferEntry);
 
                   /* Populate BTP packet */
                   BKNI_Memcpy(
@@ -2144,12 +2069,13 @@ BMUXlib_TS_P_ProcessSystemData(
                      hMuxTS->status.uiTotalPacket2PacketTimestampDeltaMod300
                      );
 
-                  BERR_TRACE( BMUXlib_List_Remove(
-                           hMuxTS->hTransportDescriptorMetaDataFreeList,
-                           &pEntry
-                           ) );
+                  BMUXLIB_LIST_REMOVE(
+                           &hMuxTS->stTransportDescriptorFreeList,
+                           &pstBTPTransportDescriptorEntry
+                           );
 
-                  pstBTPTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+                  pstBTPTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstBTPTransportDescriptorEntry);
+                  pstBTPTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstBTPTransportDescriptorEntry);
 
                   /* Populate Transport Meta Data */
                   BKNI_Memset(
@@ -2158,16 +2084,9 @@ BMUXlib_TS_P_ProcessSystemData(
                            sizeof( BMUXlib_TS_P_TransportDescriptorMetaData )
                            );
 
-                  pstBTPTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_ePCRPacket;
+                  pstBTPTransportDescriptorMetaData->uListEntry.pTSPacket = pBTPBufferEntry;
+                  pstBTPTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_eTSPacket;
                   pstBTPTransportDescriptorMetaData->eSourceType = BMUXlib_TS_P_SourceType_eSystem;
-
-                  BERR_TRACE( BMUXlib_List_Remove(
-                           hMuxTS->hTransportDescriptorFreeList,
-                           &pEntry
-                           ) );
-
-                  pstBTPTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
-                  BDBG_ASSERT(pstBTPTransportDescriptor);
 
                   /* Populate Transport Descriptor */
                   /* coverity[deref_ptr_in_call] */
@@ -2187,8 +2106,8 @@ BMUXlib_TS_P_ProcessSystemData(
 
                   /* Set Buffer Info */
                   pstBTPTransportDescriptorMetaData->pBufferAddress = (void *) pBTPBuffer->data;
-                  pstBTPTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-                  pstBTPTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+                  BMUXLIB_P_LOCK_METADATA_MEMORY(pstBTPTransportDescriptorMetaData, hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock);
+                  pstBTPTransportDescriptor->uiBufferOffset = (uint8_t *) pstBTPTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
                   pstBTPTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
                   pstBTPTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
 
@@ -2206,8 +2125,7 @@ BMUXlib_TS_P_ProcessSystemData(
                   BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
                      hMuxTS,
                      hMuxTS->status.stInput.system.uiTransportChannelIndex,
-                     pstBTPTransportDescriptor,
-                     pstBTPTransportDescriptorMetaData
+                     pstBTPTransportDescriptorEntry
                      ) );
 
                   /* Adjust transport descriptor to not set ESCR, since ESCR is set by the BTP packet */
@@ -2224,8 +2142,7 @@ BMUXlib_TS_P_ProcessSystemData(
             BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
                hMuxTS,
                hMuxTS->status.stInput.system.uiTransportChannelIndex,
-               pstCurrentTransportDescriptor,
-               pstCurrentTransportDescriptorMetaData
+               pstCurrentTransportDescriptorEntry
                ) );
 
 #if BMUXLIB_TS_P_DUMP_PCR
@@ -2284,7 +2201,7 @@ BMUXlib_TS_P_ProcessSystemData(
          hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR =
                   ((hMuxTS->status.stPCRInfo.uiNextESCR - hMuxTS->status.stPCRInfo.uiESCR) / uiPacket2PacketTimestampDelta) - 1;
          if ((0 == hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR) &&
-             (false == BMUXlib_List_IsEmpty(hMuxTS->hSystemDataPendingList)))
+             (false == BMUXLIB_LIST_ISEMPTY(&hMuxTS->stSystemDataPendingList)))
             BDBG_WRN(("Insufficient System Data bitrate to insert system data packets"));
 
          /* if there is userdata, schedule it after the PCR ... */
@@ -2292,18 +2209,15 @@ BMUXlib_TS_P_ProcessSystemData(
 
          /* if there is still space, schedule system data ... */
          while ( ( hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR != 0 ) /* We have space in between PCR packets for more system data */
-                    && ( false == BMUXlib_List_IsEmpty( /* We have transport descriptors available */
-                             hMuxTS->hTransportDescriptorFreeList
+                    && ( false == BMUXLIB_LIST_ISEMPTY( /* We have transport descriptors available */
+                             &hMuxTS->stTransportDescriptorFreeList
                              )
                        )
-                    && ( false == BMUXlib_List_IsEmpty( /* We have system data available */
-                             hMuxTS->hSystemDataPendingList
+                    && ( false == BMUXLIB_LIST_ISEMPTY( /* We have system data available */
+                             &hMuxTS->stSystemDataPendingList
                              )
                          )
-                    && ( false == BMUXlib_List_IsFull(
-                             hMuxTS->hTransportDescriptorPendingList[hMuxTS->status.stInput.system.uiTransportChannelIndex]
-                         )
-                       )
+                    && ( false == BMUXLIB_TS_TRANSPORT_IS_FULL( hMuxTS, hMuxTS->status.stInput.system.uiTransportChannelIndex ) )
                   )
          {
             BMUXlib_TS_P_SystemDataInfo *pSystemDataInfo = &hMuxTS->status.stSystemDataInfo;
@@ -2311,17 +2225,17 @@ BMUXlib_TS_P_ProcessSystemData(
             uint32_t uiPacketsNeeded;
             uint32_t uiPacketsToMux;
             BMUXlib_TS_SystemData *pstSystemDataBuffer = NULL;
-            void *pEntry = NULL;
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData) *pSystemDataEntry = NULL;
             uint32_t uiMinInsertionTime = pSystemDataInfo->uiESCR;
 
             BDBG_MODULE_MSG(BMUXLIB_TS_SYSDATA, ("Curr ESCR: %x, Next PCR: %x", pSystemDataInfo->uiESCR, uiNextPCRESCR));
 
-            BMUXlib_List_GetHead(
-                     hMuxTS->hSystemDataPendingList,
-                     &pEntry
+            BMUXLIB_LIST_FIRST(
+                     &hMuxTS->stSystemDataPendingList,
+                     &pSystemDataEntry
                      );
 
-            pstSystemDataBuffer = (BMUXlib_TS_SystemData *) pEntry;
+            pstSystemDataBuffer = BMUXLIB_LIST_ENTRY_DATA(pSystemDataEntry);
 
             /* SW7425-1188: Pace system data insertion according to specified timestamp delta */
             /* if first system data packet, insert it straight away regardless of its timestamp delta */
@@ -2388,12 +2302,13 @@ BMUXlib_TS_P_ProcessSystemData(
             uiPacketsToMux = ( uiPacketsNeeded < pSystemDataInfo->uiPacketsUntilNextPCR ) ? ( uiPacketsNeeded ) : pSystemDataInfo->uiPacketsUntilNextPCR;
             BDBG_MODULE_MSG(BMUXLIB_TS_SYSDATA, ("Packets Needed = %d, Packets to Mux = %d", uiPacketsNeeded, uiPacketsToMux));
 
-            BERR_TRACE( BMUXlib_List_Remove(
-                     hMuxTS->hTransportDescriptorMetaDataFreeList,
-                     &pEntry
-                     ) );
+            BMUXLIB_LIST_REMOVE(
+                     &hMuxTS->stTransportDescriptorFreeList,
+                     &pstCurrentTransportDescriptorEntry
+                     );
 
-            pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+            pstCurrentTransportDescriptor = BMUXLIB_LIST_ENTRY_DATA(pstCurrentTransportDescriptorEntry);
+            pstCurrentTransportDescriptorMetaData = BMUXLIB_LIST_ENTRY_METADATA(pstCurrentTransportDescriptorEntry);
 
             /* Populate Transport Meta Data */
             BKNI_Memset(
@@ -2402,16 +2317,9 @@ BMUXlib_TS_P_ProcessSystemData(
                      sizeof( BMUXlib_TS_P_TransportDescriptorMetaData )
                      );
 
+            pstCurrentTransportDescriptorMetaData->uListEntry.pSystemData = pSystemDataEntry;
             pstCurrentTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_eCDB;
             pstCurrentTransportDescriptorMetaData->eSourceType = BMUXlib_TS_P_SourceType_eSystem;
-
-            BERR_TRACE( BMUXlib_List_Remove(
-                     hMuxTS->hTransportDescriptorFreeList,
-                     &pEntry
-                     ) );
-
-            pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
-            BDBG_ASSERT(pstCurrentTransportDescriptor);
 
             /* Populate Transport Descriptor */
             /* coverity[deref_ptr_in_call] */
@@ -2432,16 +2340,14 @@ BMUXlib_TS_P_ProcessSystemData(
             }
 
             /* Set Buffer Info */
-            pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = pstSystemDataBuffer->hBlock;
-            pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset = BMMA_LockOffset( pstSystemDataBuffer->hBlock );
+            BMUXLIB_P_LOCK_METADATA_MEMORY(pstCurrentTransportDescriptorMetaData, pstSystemDataBuffer->hBlock);
             pstCurrentTransportDescriptor->uiBufferOffset = pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset + pstSystemDataBuffer->uiBlockOffset + pSystemDataInfo->uiPacketsMuxedSoFar * BMUXlib_TS_P_TSPacket_MAXSIZE;
             pstCurrentTransportDescriptor->uiBufferLength = uiPacketsToMux * BMUXlib_TS_P_TSPacket_MAXSIZE;
 
             BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
                hMuxTS,
                hMuxTS->status.stInput.system.uiTransportChannelIndex,
-               pstCurrentTransportDescriptor,
-               pstCurrentTransportDescriptorMetaData
+               pstCurrentTransportDescriptorEntry
             ) );
 
             /* Compute the ESCR of the next system data packet */
@@ -2457,10 +2363,10 @@ BMUXlib_TS_P_ProcessSystemData(
             pSystemDataInfo->uiPacketsUntilNextPCR -= uiPacketsToMux;
             if ( pSystemDataInfo->uiPacketsMuxedSoFar == ( pstSystemDataBuffer->uiSize / BMUXlib_TS_P_TSPacket_MAXSIZE ) )
             {
-               BERR_TRACE( BMUXlib_List_Remove(
-                        hMuxTS->hSystemDataPendingList,
-                        (void**) &pstSystemDataBuffer
-                        ) );
+               BMUXLIB_LIST_REMOVE(
+                        &hMuxTS->stSystemDataPendingList,
+                        &pSystemDataEntry
+                        );
                pSystemDataInfo->uiPacketsMuxedSoFar = 0;
                pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount = 1;
             }
@@ -2478,7 +2384,7 @@ BMUXlib_TS_P_ProcessSystemData(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-void
+static void
 BMUXlib_TS_S_StallTransport(
    BMUXlib_TS_Handle hMuxTS,
    unsigned uiTransportChannelIndex,
@@ -2507,11 +2413,11 @@ BMUXlib_TS_P_ProcessNewBuffers(
       {
          uint32_t uiTransportChannelIndex = hMuxTS->status.stInputMetaData[uiInputIndex].uiTransportChannelIndex;
 
-         if ( true == BMUXlib_List_IsFull( hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex] ) )
+         if ( true == BMUXLIB_TS_TRANSPORT_IS_FULL( hMuxTS, uiTransportChannelIndex ) )
          {
             /* disable this input (do not consider this input for selection until the next MSP) */
             BMUXlib_TS_S_StallTransport( hMuxTS, uiTransportChannelIndex, true );
-            rc = BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hMuxTS->status.stInputMetaData[uiInputIndex].hInput, false);
+            rc = BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hMuxTS->status.stInputMetaData[uiInputIndex].hInput, false);
             if (rc != BERR_SUCCESS)
                /* this should always succeed */
                return rc;
@@ -2531,7 +2437,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
             rc = BMUXlib_Input_ProcessNewDescriptors( hMuxTS->status.stInputMetaData[uiInputIndex].hInput );
             if (rc != BERR_SUCCESS)
                return rc;
-            rc = BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hMuxTS->status.stInputMetaData[uiInputIndex].hInput, true);
+            rc = BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hMuxTS->status.stInputMetaData[uiInputIndex].hInput, true);
             if (rc != BERR_SUCCESS)
                /* this should always succeed */
                return rc;
@@ -2539,12 +2445,12 @@ BMUXlib_TS_P_ProcessNewBuffers(
       }
    }
 
-   while ( false == BMUXlib_List_IsEmpty( /* We have transport descriptors available */
-                  hMuxTS->hTransportDescriptorFreeList
+   while ( false == BMUXLIB_LIST_ISEMPTY( /* We have transport descriptors available */
+                  &hMuxTS->stTransportDescriptorFreeList
                   ) )
    {
       BMUXlib_InputGroup_GetStatus(
-         hMuxTS->status.hInputGroup,
+         hMuxTS->hInputGroup,
          &stStatus);
 
       if ( 0 == stStatus.uiNumActiveInputs )
@@ -2557,7 +2463,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
        * and then getting data on the other input whose transmission time is in the past */
       {
          BMUXlib_InputGroup_Settings stSettings;
-         BMUXlib_InputGroup_GetSettings(hMuxTS->status.hInputGroup, &stSettings);
+         BMUXlib_InputGroup_GetSettings(hMuxTS->hInputGroup, &stSettings);
 
          if ( ( true == hMuxTS->status.stStartSettings.bSupportTTS ) || ( true == hMuxTS->status.stStartSettings.bInsertPtsOnlyOnFirstKeyFrameOfSegment ) )
          {
@@ -2575,11 +2481,11 @@ BMUXlib_TS_P_ProcessNewBuffers(
          }
          hMuxTS->status.bWaitForAllInputs = stSettings.bWaitForAllInputs;
 
-         rc = BMUXlib_InputGroup_SetSettings(hMuxTS->status.hInputGroup, &stSettings);
+         rc = BMUXlib_InputGroup_SetSettings(hMuxTS->hInputGroup, &stSettings);
          if (rc != BERR_SUCCESS)
             return rc;
 
-         BMUXlib_InputGroup_GetNextInput(hMuxTS->status.hInputGroup, &hSelectedInput);
+         BMUXlib_InputGroup_GetNextInput(hMuxTS->hInputGroup, &hSelectedInput);
 
          if ( ( true == stSettings.bWaitForAllInputs )
               && ( NULL != hSelectedInput ) )
@@ -2605,8 +2511,11 @@ BMUXlib_TS_P_ProcessNewBuffers(
             for ( i = 0; i < uiDescriptorCount; i++ )
             {
                BMUXlib_Input_Descriptor stDescriptor;
+               bool bDescAvail = false;
 
-               BDBG_ASSERT( BMUXlib_Input_PeekAtDescriptor( hVideoInput, i, &stDescriptor ) );
+               bDescAvail = BMUXlib_Input_PeekAtDescriptor( hVideoInput, i, &stDescriptor );
+               /* there must always be a descriptor available since we are looping on the descriptor count */
+               BDBG_ASSERT(true == bDescAvail);
 
                if ( ( true == BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor ) )
                   && ( true == BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stDescriptor ) ) )
@@ -2646,10 +2555,10 @@ BMUXlib_TS_P_ProcessNewBuffers(
             (i.e. only on video and only on start of frame) */
          bool bProcessUserdata = false;
          bool bDescAvail;
-         BMUXlib_Input_CreateSettings stSettings;
+         BMUXlib_Input_StartSettings stSettings;
 
          /* fetch the source metadata pointer for this input */
-         BMUXlib_Input_GetCreateSettings(hSelectedInput, &stSettings);
+         BMUXlib_Input_GetStartSettings(hSelectedInput, &stSettings);
          pInputMetadata = (BMUXlib_TS_P_InputMetaData *)stSettings.pMetadata;
          BDBG_ASSERT(pInputMetadata != NULL);
 
@@ -2768,8 +2677,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
                   /* Frame Start requires a PES Header and Transport Descriptor */
                   uiNumTransportDescriptorsRequired++;
 
-                  if ( true == BMUXlib_List_IsEmpty(
-                                hMuxTS->hPESHeaderFreeList
+                  if ( true == BMUXLIB_LIST_ISEMPTY(
+                                &hMuxTS->stPESHeaderFreeList
                                 )
                      )
                   {
@@ -2777,7 +2686,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                      /* SW7425-659: Since MUX_TIMESTAMP_UPDATE BTP/BPP requires descriptors to be processed in ESCR sequential
                       * order, if an input is stalled, we don't want to process any inputs.
                       */
-                     BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+                     BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                      if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                      {
@@ -2802,7 +2711,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                   if (!BMUXLIB_P_Userdata_CheckResources(hMuxTS))
                   {
                      BDBG_MSG(("Insufficient userdata resources.  Will be processed next time."));
-                     BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+                     BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
                      continue;
                   }
                } /* end: is framestart */
@@ -2823,8 +2732,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
 
 
             /* VERIFY at enough transport descriptors are available */
-            BMUXlib_List_GetNumEntries(
-                     hMuxTS->hTransportDescriptorFreeList,
+            BMUXLIB_LIST_GETNUMENTRIES(
+                     &hMuxTS->stTransportDescriptorFreeList,
                      &uiNumTransportDescriptorsFree
                      );
 
@@ -2832,7 +2741,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
             {
                BDBG_MSG(("Transport descriptors not available.  Will be processed next time."));
 
-               BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+               BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                {
@@ -2846,12 +2755,12 @@ BMUXlib_TS_P_ProcessNewBuffers(
                continue;
             }
 
-            BMUXlib_List_GetNumFree( hMuxTS->hTransportDescriptorPendingList[pInputMetadata->uiTransportChannelIndex], &uiSpaceAvailable );
+            BMUXLIB_TS_TRANSPORT_GET_NUM_FREE( hMuxTS, pInputMetadata->uiTransportChannelIndex, &uiSpaceAvailable );
             if ( uiSpaceAvailable < uiNumTransportDescriptorsRequired )
             {
                BDBG_MSG(("Space not available in output.  Will be processed next time."));
                BMUXlib_TS_S_StallTransport( hMuxTS, pInputMetadata->uiTransportChannelIndex, true );
-               BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+               BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                {
@@ -2865,15 +2774,15 @@ BMUXlib_TS_P_ProcessNewBuffers(
                continue;
             }
 
-            BMUXlib_List_GetNumEntries(
-               hMuxTS->hBPPFreeList,
+            BMUXLIB_LIST_GETNUMENTRIES(
+               &hMuxTS->stBPPFreeList,
                &uiNumBPPFree
                );
 
             if ( uiNumBPPFree < uiNumBPPRequired )
             {
                BDBG_MSG(("BPP not available.  Will be processed next time."));
-               BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+               BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                {
@@ -2906,7 +2815,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                         )))
                {
                   BDBG_ERR(("Transport descriptors not available.  Will be processed next time."));
-                  BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+                  BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                   if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                   {
@@ -2973,7 +2882,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                         )
                      {
                         BDBG_ERR(("PES descriptors not available.  Will be processed next time."));
-                        BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+                        BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                         if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                         {
@@ -3080,7 +2989,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                      )
                   {
                      BDBG_ERR(("Transport descriptors not available!"));
-                     BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+                     BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                      if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                      {
@@ -3104,6 +3013,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                {
                   /* Insert LAST BPP */
                   BMUXlib_P_BPPInfo stBPPInfo;
+                  BMUXlib_TS_P_BPPData *pstBPPData;
 
                   BKNI_Memset( &stBPPInfo, 0, sizeof( BMUXlib_P_BPPInfo ) );
 
@@ -3125,23 +3035,25 @@ BMUXlib_TS_P_ProcessNewBuffers(
                   stBPPInfo.bPacket2PacketDeltaValid = true;
                   stBPPInfo.uiPacket2PacketDelta = 0;
 
-                  BERR_TRACE( BMUXlib_List_Remove(
-                           hMuxTS->hBPPFreeList,
-                           &stBPPInfo.pBuffer
-                           ) );
+                  BMUXLIB_LIST_REMOVE(
+                           &hMuxTS->stBPPFreeList,
+                           &stBPPInfo.pEntry
+                           );
+
+                  pstBPPData = BMUXLIB_LIST_ENTRY_DATA( stBPPInfo.pEntry );
 
                   BKNI_Memcpy(
-                           stBPPInfo.pBuffer,
+                           pstBPPData,
                            &s_stDefaultBPPData,
                            sizeof ( BMUXlib_TS_P_BPPData )
                            );
 
                   BMUXlib_TS_P_BPPData_SetCommand(
-                     stBPPInfo.pBuffer,
+                        pstBPPData,
                      0x82); /* "LAST" BTP/BPP op-code*/
 
                   BMUXlib_TS_P_BPPData_SetStreamID(
-                              stBPPInfo.pBuffer,
+                              pstBPPData,
                               pInputMetadata->uiPESStreamID
                               );
 
@@ -3154,7 +3066,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                      )
                   {
                      BDBG_ERR(("Transport descriptors not available.  Will be processed next time."));
-                     BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+                     BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
 
                      if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
                      {
@@ -3174,7 +3086,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                      pInputMetadata->uiInputIndex));
 
                pInputMetadata->bEOSSeen = true;
-               BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+               BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
             } /* end: EOS Seen */
          } /* end: else not metadata */
 
@@ -3301,77 +3213,32 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
            && ( NULL != pTransportInterface->fAddTransportDescriptors )
          )
       {
-         const void *pDescriptors[2];
-         const BMUXlib_TS_TransportDescriptor **astTransportDescriptors[2];
-         size_t uiNumTransportDescriptors[2];
-         const BMUXlib_TS_P_TransportDescriptorMetaData **astTransportDescriptorsMetaData[2];
-         size_t uiNumTransportDescriptorsMetaData[2];
          size_t uiTotalQueued = 0;
-         uint32_t i;
+         unsigned i;
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_TransportDescriptor ) *pstTransportDescriptorEntry;
 
-         BMUXlib_List_GetEntries(
-                  hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex],
-                  &pDescriptors[0],
-                  &uiNumTransportDescriptors[0],
-                  &pDescriptors[1],
-                  &uiNumTransportDescriptors[1]
-                  );
-
-         astTransportDescriptors[0] = (const BMUXlib_TS_TransportDescriptor **) pDescriptors[0];
-         astTransportDescriptors[1] = (const BMUXlib_TS_TransportDescriptor **) pDescriptors[1];
-
-         BMUXlib_List_GetEntries(
-                  hMuxTS->hTransportDescriptorMetaDataPendingList[uiTransportChannelIndex],
-                  &pDescriptors[0],
-                  &uiNumTransportDescriptorsMetaData[0],
-                  &pDescriptors[1],
-                  &uiNumTransportDescriptorsMetaData[1]
-                  );
-
-         astTransportDescriptorsMetaData[0] = (const BMUXlib_TS_P_TransportDescriptorMetaData **) pDescriptors[0];
-         astTransportDescriptorsMetaData[1] = (const BMUXlib_TS_P_TransportDescriptorMetaData **) pDescriptors[1];
+         BMUXLIB_LIST_FIRST( &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex], &pstTransportDescriptorEntry );
 
          /* Ignore the descriptors that are queued */
+         for ( i = 0; i < hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued; i++ )
          {
-            uint32_t uiQueuedPreviously = hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued;
-
-            for ( i = 0; ( i < 2 ) && ( 0 != uiQueuedPreviously ) ; i++ )
-            {
-               if ( uiQueuedPreviously < uiNumTransportDescriptors[i] )
-               {
-                  astTransportDescriptors[i] += uiQueuedPreviously;
-                  astTransportDescriptorsMetaData[i] += uiQueuedPreviously;
-                  uiNumTransportDescriptors[i] -= uiQueuedPreviously;
-                  uiQueuedPreviously -= uiQueuedPreviously;
-               }
-               else
-               {
-                  astTransportDescriptors[i] = NULL;
-                  astTransportDescriptorsMetaData[i] = NULL;
-                  uiQueuedPreviously -= uiNumTransportDescriptors[i];
-                  uiNumTransportDescriptors[i] = 0;
-               }
-            }
-
-            if (0 != uiQueuedPreviously)
+            if ( NULL == pstTransportDescriptorEntry )
             {
                BDBG_ERR(("Mismatch between queued transport descriptors and total descriptors"));
+               break;
             }
+            pstTransportDescriptorEntry = BMUXLIB_LIST_ENTRY_NEXT( pstTransportDescriptorEntry );
          }
 
          {
-            unsigned j;
-
             uiTotalDescriptorsToQueue = 0;
 
-            for ( i = 0; i < 2; i++ )
+            while ( NULL != pstTransportDescriptorEntry )
             {
-               for ( j = 0; j < uiNumTransportDescriptors[i]; j++)
-               {
-                  hMuxTS->astTransportDescriptorTemp[uiTotalDescriptorsToQueue] = *astTransportDescriptors[i][j];
-                  hMuxTS->astTransportDescriptorMetaDataTemp[uiTotalDescriptorsToQueue] = *astTransportDescriptorsMetaData[i][j];
-                  uiTotalDescriptorsToQueue++;
-               }
+               hMuxTS->astTransportDescriptorTemp[uiTotalDescriptorsToQueue] = *BMUXLIB_LIST_ENTRY_DATA(pstTransportDescriptorEntry);
+               hMuxTS->astTransportDescriptorMetaDataTemp[uiTotalDescriptorsToQueue] = *BMUXLIB_LIST_ENTRY_METADATA(pstTransportDescriptorEntry);
+               uiTotalDescriptorsToQueue++;
+               pstTransportDescriptorEntry = BMUXLIB_LIST_ENTRY_NEXT( pstTransportDescriptorEntry );
             }
 
             if ( 0 != uiTotalDescriptorsToQueue )
@@ -3699,7 +3566,7 @@ BMUXlib_TS_P_Flush(
       for ( uiTransportChannelIndex = 0; uiTransportChannelIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiTransportChannelIndex++ )
       {
          if ( ( true == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].bActive )
-              && ( false == BMUXlib_List_IsEmpty( hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex] ) )
+              && ( false == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex] ) )
               && ( ( ( ( hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stTimingPending.uiNextExpectedESCR > uiLastPendingESCR )
                        && ( ( hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stTimingPending.uiNextExpectedESCR - uiLastPendingESCR ) < 0x80000000 ) )
                      || ( ( hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stTimingPending.uiNextExpectedESCR < uiLastPendingESCR )
@@ -3730,7 +3597,7 @@ BMUXlib_TS_P_Flush(
          return true;
       }
 
-      BMUXlib_InputGroup_GetStatus(hMuxTS->status.hInputGroup, &stStatus);
+      BMUXlib_InputGroup_GetStatus(hMuxTS->hInputGroup, &stStatus);
 
       /* Process each transport channel */
       for ( uiTransportChannelIndex = 0; uiTransportChannelIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiTransportChannelIndex++ )
@@ -3769,8 +3636,8 @@ BMUXlib_TS_P_Flush(
 
                if ( true == bAllInputsForTransportChannelHasSeenEOS )
                {
-                  if ( ( true == BMUXlib_List_IsEmpty( hMuxTS->hTransportDescriptorFreeList ) ) /* There is an available descriptor */
-                       || ( true == BMUXlib_List_IsFull( hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex]) ) /* There is room to insert the entry */
+                  if ( ( true == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorFreeList ) ) /* There is an available descriptor */
+                       || ( true == BMUXLIB_TS_TRANSPORT_IS_FULL( hMuxTS, uiTransportChannelIndex ) ) /* There is room to insert the entry */
                      )
                   {
                      BDBG_MODULE_WRN( BMUXLIB_TS_EOS, ("Not enough resources to insert NULL entry on transport[%d]", uiTransportChannelIndex));

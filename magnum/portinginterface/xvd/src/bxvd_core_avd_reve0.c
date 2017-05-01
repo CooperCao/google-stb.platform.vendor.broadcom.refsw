@@ -43,6 +43,7 @@
 #include "bxvd_reg.h"
 #include "bxvd_userdata.h"
 #include "bxvd_platform.h"
+#include "bxvd_relf.h"
 #include "bmma.h"
 #include "bchp_common.h"
 
@@ -209,13 +210,6 @@ void BXVD_P_DetermineStripeInfo_RevE0( BCHP_DramType ddrType,
    }
 }
 #endif
-
-extern BERR_Code BXVD_P_Relf_RelocateELF(BXVD_Handle hXvd,
-                     uint8_t  *image,
-                     uint32_t image_size,
-                     uint32_t code_base,
-                     uint32_t load_base,
-                     uint32_t *end_of_code);
 
 #if BXVD_P_USE_FW_LOAD_CORE_REVE0
 #define BXVD_IMAGE_FW_CHUNK_SIZE 16384

@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -139,7 +139,7 @@ MAKE_SUFFIX:=APPS=
 .$(B_LIBNL_NAME): .source .configure
 ifneq ($(B_REFSW_LIBNL_IS_EXTERNAL),y)
 	@echo "[Build.... (libnl)]"
-	@${MAKE} ${MAKE_OPTIONS} -C ${B_LIBNL_SOURCE_PATH} ${MAKE_SUFFIX}  ${B_LIBNL_COMPILE_REDIR}
+	@DESTDIR= ${MAKE} ${MAKE_OPTIONS} -C ${B_LIBNL_SOURCE_PATH} ${MAKE_SUFFIX}  ${B_LIBNL_COMPILE_REDIR}
 endif   #  ifeq ($(B_REFSW_LIBNL_IS_EXTERNAL),y)
 
 ifdef INSTALL_DIR
@@ -157,7 +157,7 @@ endif
 install: .$(B_LIBNL_NAME)
 ifneq ($(B_REFSW_LIBNL_IS_EXTERNAL),y)
 	@echo "[Install.. (libnl)]"
-	@${MAKE} -C ${B_LIBNL_SOURCE_PATH} install ${MAKE_SUFFIX} ${B_LIBNL_COMPILE_REDIR}
+	@DESTDIR= ${MAKE} -C ${B_LIBNL_SOURCE_PATH} install ${MAKE_SUFFIX} ${B_LIBNL_COMPILE_REDIR}
 ifdef B_LIBNL_INSTALL_DIR
 	@mkdir -p $(B_LIBNL_INSTALL_DIR)
 	@cp -fp $(B_LIBNL_LIB_INSTALL_DIR)/libnl-3.so* $(B_LIBNL_LIB_INSTALL_DIR)/libnl-genl-3.so* $(B_LIBNL_INSTALL_DIR)
@@ -170,6 +170,6 @@ target-clean: clean
 clean:
 ifneq ($(B_REFSW_LIBNL_IS_EXTERNAL),y)
 	@echo "[Clean.... (libnl)]"
-	@${MAKE} -C ${B_LIBNL_SOURCE_PATH} uninstall ${MAKE_SUFFIX} ${B_LIBNL_COMPILE_REDIR}
+	@DESTDIR= ${MAKE} -C ${B_LIBNL_SOURCE_PATH} uninstall ${MAKE_SUFFIX} ${B_LIBNL_COMPILE_REDIR}
 	@rm -rf ${B_LIBNL_SOURCE_PATH}
 endif   #  ifeq ($(B_REFSW_LIBNL_IS_EXTERNAL),y)

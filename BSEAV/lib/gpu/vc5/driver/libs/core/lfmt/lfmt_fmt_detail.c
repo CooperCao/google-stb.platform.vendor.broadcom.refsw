@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "lfmt_fmt_detail.h"
 
 static void set_all_types(GFX_LFMT_FMT_DETAIL_T *fd, GFX_LFMT_TYPE_T type)

@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "EGL/egl.h"
 #include "nexus_memory.h"
 #include "nexus_platform.h"
@@ -190,6 +188,19 @@ static void PrintDRMDriverInfo(int fd)
    fprintf(stderr, "DRM: %s Version %d.%d.%d %s, %s\n",
       v.name, v.version_major, v.version_minor, v.version_patchlevel,
       v.date, v.desc);
+}
+
+static uint64_t GetMemTotal(int fd)
+{
+   struct drm_v3d_mem_total s;
+
+   if (ioctl(fd, DRM_IOCTL_V3D_GET_MEM_TOTAL, &s) < 0)
+   {
+      perror("Failed to get total memory managed by DRM device");
+      return 0;
+   }
+
+   return s.size;
 }
 
 static int GetMmuPagetable(DRM_MemoryContext *ctx)
@@ -595,6 +606,9 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
       /* What CAN do we do here if anything? nothing seems to use it */
       break;
 
+   case BEGL_MemTotal:
+      return GetMemTotal(ctx->fd);
+
    case BEGL_MemPrintHeapData:
       PrintDRMDriverInfo(ctx->fd);
       break;
@@ -613,13 +627,24 @@ static bool ConfigureNexusHeapMappings(DRM_MemoryContext *ctx)
 #ifndef SINGLE_PROCESS
    NEXUS_ClientConfiguration clientConfig;
    NEXUS_Platform_GetClientConfiguration(&clientConfig);
+
+   if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
+      heap = clientConfig.heap[0];
+   else
+#ifdef NXCLIENT_SUPPORT
+      heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+#else
+      /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
+      heap = NULL;
 #endif
 
+#else
    /*
     * The unsecure heap used for bin memory in the magnum module will always
     * be this one.
     */
    heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+#endif
 
    if (heap == NULL)
    {
@@ -649,7 +674,12 @@ static bool ConfigureNexusHeapMappings(DRM_MemoryContext *ctx)
 
    /* Now for the secure heap */
 #ifndef SINGLE_PROCESS
+#ifdef NXCLIENT_SUPPORT
    heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
+#else
+   /* not available in NEXUS_CLIENT_SUPPORT=y mode */
+   heap = NULL;
+#endif
 #else
    heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
 #endif

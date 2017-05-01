@@ -15,6 +15,12 @@ nexus_core_priv.h
 nexus_audio_capture.h
 nexus_parser_band.h
 
+# hdmi output (using NEXUS_ALIAS_ID)
+nexus_hdmi_output_control.h
+nexus_hdmi_output_extra.h
+nexus_hdmi_output.h
+nexus_hdmi_output_hdcp.h
+
 # simple decoder
 nexus_simple_video_decoder.h
 nexus_simple_audio_decoder.h

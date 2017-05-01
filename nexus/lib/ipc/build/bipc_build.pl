@@ -333,7 +333,6 @@ sub make_ipc
     my %ipc_types;
     my %referenced_structs;
 
-    print STDERR "$mode 1\n";
     open(FILE, '>', $file) or die "Can't open '$file'";
     print FILE "/*********************************\n";
     print FILE "*\n";

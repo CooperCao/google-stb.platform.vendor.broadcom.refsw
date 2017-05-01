@@ -55,6 +55,9 @@
 #include "priv/nexus_core_img_id.h"
 #include "priv/nexus_core_img.h"
 #include "priv/nexus_hdmi_output_priv.h"
+#if NEXUS_DBV_SUPPORT
+#include "nexus_hdmi_output_dbv_impl.h"
+#endif
 
 #if NEXUS_HAS_SAGE && NEXUS_HAS_HDCP_2X_SUPPORT
 #include "bchp_common.h"
@@ -158,7 +161,7 @@ typedef struct NEXUS_HdmiOutput
     uint8_t checkRxSenseCount ;
     uint8_t lastReceiverSense ;
 
-    bool aspectRatioChangeOnly;
+    bool contentChangeOnly;
 
     BAVC_AudioSamplingRate sampleRate;
     BAVC_AudioBits audioBits;
@@ -207,6 +210,7 @@ typedef struct NEXUS_HdmiOutput
 #endif
     bool resumeFromS3;
     BHDM_Settings hdmSettings;
+    bool edidProcDebugDisplayed ;
     bool invalidEdid ;
     bool invalidEdidReported ;
     bool edidHdmiDevice ;
@@ -230,6 +234,13 @@ typedef struct NEXUS_HdmiOutput
         bool connected;
         NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
     } drm;
+
+    NEXUS_HdmiVendorSpecificInfoFrame vsif;
+    NEXUS_HdmiAviInfoFrame avif;
+
+#if NEXUS_DBV_SUPPORT
+    NEXUS_HdmiOutputDbvState dbv;
+#endif
 } NEXUS_HdmiOutput;
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
@@ -284,12 +295,21 @@ void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output);
 
 void NEXUS_HdmiOutput_P_CloseHdcp(NEXUS_HdmiOutputHandle output);
 
+NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_P_GetHandle(unsigned index);
+const char * NEXUS_HdmiOutput_P_ColorSpace_ToText(NEXUS_ColorSpace colorSpace);
+
 /* Proxy conversion */
 #define NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE(num) ((num)*sizeof(NEXUS_HdmiOutputHdcpKsv))
 
 NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle output); /* call from SetExtendedSettings */
 void NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(NEXUS_HdmiOutputHandle output); /* call from hotplug */
 
+#if NEXUS_DBV_SUPPORT
+void NEXUS_HdmiOutput_P_DbvConnectionChanged(NEXUS_HdmiOutputHandle output);
+void NEXUS_HdmiOutput_P_SetDbvMode(NEXUS_HdmiOutputHandle output);
+NEXUS_Error NEXUS_HdmiOutput_P_SetDolbyVisionVendorSpecificInfoFrame(NEXUS_HdmiOutputHandle handle);
+NEXUS_Error NEXUS_HdmiOutput_P_SetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle);
+#endif
 #endif /* #ifndef NEXUS_HDMI_OUTPUT_MODULE_H__ */
 
 

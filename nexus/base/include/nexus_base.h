@@ -120,9 +120,8 @@ typedef struct NEXUS_Base_Settings
     NEXUS_ThreadSettings threadSettings[NEXUS_ModulePriority_eMax];
 
     /* callbacks for per-module driver registration */
-    NEXUS_Error (*driverModuleInit)(void *context, NEXUS_ModuleHandle module, const char *name, const NEXUS_ModuleSettings *pSettings);
-    void (*driverModuleUninit)(void *context, NEXUS_ModuleHandle module, const char *name, const NEXUS_ModuleSettings *pSettings);
-    void *procContext;
+    NEXUS_Error (*procInit)(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void));
+    void (*procUninit)(NEXUS_ModuleHandle module, const char *filename);
 } NEXUS_Base_Settings;
 
 /**
@@ -1165,5 +1164,7 @@ void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *func
 void NEXUS_P_PrintEnv(const char *mode);
 void NEXUS_P_CheckEnv(const char *name);
 
-#endif /* !defined NEXUS_BASE_H */
+void NEXUS_Module_RegisterProc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void));
+void NEXUS_Module_UnregisterProc(NEXUS_ModuleHandle module, const char *filename);
 
+#endif /* !defined NEXUS_BASE_H */

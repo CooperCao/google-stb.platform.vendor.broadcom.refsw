@@ -418,7 +418,6 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
     BDBG_MSG(("%s: NEXUS_Playpump_GetBuffer return buffer %p, size %u",
               __FUNCTION__, playpumpBuffer, bufferSize));
 
-    app->outBufSize = 0;
     bytes_processed = 0;
     if (frag_info->samples_enc->sample_count != 0) {
         /* Iterate through the samples within the fragment */
@@ -429,15 +428,14 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
             pSample = &frag_info->samples_enc->samples[i];
             sampleSize = frag_info->sample_info[i].size;
 
+            pOutBuf = app->pOutBuf;
+            app->outBufSize = 0;
             if (frag_info->trackType == BMP4_SAMPLE_ENCRYPTED_VIDEO) {
                 if (!vc1_stream) {
                     /* H.264 Decoder configuration parsing */
                     uint8_t avcc_hdr[BPIFF_MAX_PPS_SPS];
                     size_t avcc_hdr_size;
                     size_t nalu_len = 0;
-
-                    pOutBuf = app->pOutBuf;
-                    app->outBufSize = 0;
 
                     parse_avcc_config(avcc_hdr, &avcc_hdr_size, &nalu_len, decoder_data, decoder_len);
 
@@ -470,19 +468,25 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                     }
 
                     decrypt_offset = nalu_len;
+                } else {
+                    bmedia_pes_info_init(&pes_info, REPACK_VIDEO_PES_ID);
+                    frag_duration = app->last_video_fragment_time +
+                        (int32_t)frag_info->sample_info[i].composition_time_offset;
+                    app->last_video_fragment_time += frag_info->sample_info[i].duration;
 
-                    piff_playback_dma_buffer(commonCryptoHandle, (uint8_t *)playpumpBuffer + outSize,
-                            app->pOutBuf, app->outBufSize, true);
-                    outSize += app->outBufSize;
+                    pes_info.pts_valid = true;
+                    pes_info.pts = CALCULATE_PTS(frag_duration);
+
+                    pes_header_len = bmedia_pes_header_init(pes_header, sampleSize, &pes_info);
+                    BKNI_Memcpy(pOutBuf, &pes_header, pes_header_len);
+                    pOutBuf += pes_header_len;
+                    app->outBufSize += pes_header_len;
                 }
             } else if (frag_info->trackType == BMP4_SAMPLE_ENCRYPTED_AUDIO) {
                 if (!vc1_stream) {
                     /* AAC information parsing */
                     bmedia_adts_hdr hdr;
                     bmedia_info_aac *info_aac = (bmedia_info_aac *)decoder_data;
-
-                    pOutBuf = app->pOutBuf;
-                    app->outBufSize = 0;
 
                     parse_esds_config(&hdr, info_aac, sampleSize);
 
@@ -503,15 +507,35 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                     app->outBufSize += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
 
                     decrypt_offset = 0;
+                } else {
+                    bmedia_pes_info_init(&pes_info, REPACK_AUDIO_PES_ID);
+                    frag_duration = app->last_audio_fragment_time +
+                        (int32_t)frag_info->sample_info[i].composition_time_offset;
+                    app->last_audio_fragment_time += frag_info->sample_info[i].duration;
 
-                    piff_playback_dma_buffer(commonCryptoHandle, (uint8_t *)playpumpBuffer + outSize,
-                            app->pOutBuf, app->outBufSize, true);
-                    outSize += app->outBufSize;
+                    pes_info.pts_valid = true;
+                    pes_info.pts = CALCULATE_PTS(frag_duration);
+
+                    pes_header_len = bmedia_pes_header_init(pes_header,
+                            (bmedia_frame_bcma.len + sizeof(uint32_t) + decoder_len + sampleSize), &pes_info);
+                    BKNI_Memcpy(pOutBuf, &pes_header, pes_header_len);
+                    pOutBuf += pes_header_len;
+                    BKNI_Memcpy(pOutBuf, bmedia_frame_bcma.base, bmedia_frame_bcma.len);
+                    pOutBuf += bmedia_frame_bcma.len;
+                    B_MEDIA_SAVE_UINT32_BE(pOutBuf, sampleSize);
+                    pOutBuf += sizeof(uint32_t);
+                    BKNI_Memcpy(pOutBuf, decoder_data, decoder_len);
+                    pOutBuf += decoder_len;
+                    app->outBufSize += pes_header_len + bmedia_frame_bcma.len + sizeof(uint32_t) + decoder_len;
                 }
             } else {
                 BDBG_WRN(("%s Unsupported track type %d detected", __FUNCTION__, frag_info->trackType));
                 return -1;
             }
+
+            piff_playback_dma_buffer(commonCryptoHandle, (uint8_t *)playpumpBuffer + outSize,
+                    app->pOutBuf, app->outBufSize, true);
+            outSize += app->outBufSize;
 
             /* Process and decrypt samples */
 
@@ -626,7 +650,7 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
             bytes_processed += numOfByteDecrypted + decrypt_offset;
         }
         BDBG_MSG(("%s: NEXUS_Playpump_WriteComplete buffer %p, size %u",
-                  __FUNCTION__, playpumpBuffer, bufferSize));
+                  __FUNCTION__, playpumpBuffer, outSize));
         NEXUS_Playpump_WriteComplete(playpump, 0, outSize);
     }
 
@@ -1049,7 +1073,7 @@ int playback_piff( NEXUS_VideoDecoderHandle videoDecoder,
 #endif
     audioPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &audioplaypumpOpenSettings);
     if (!audioPlaypump) {
-        BDBG_ERR(("@@@ Video Playpump Open FAILED----"));
+        BDBG_ERR(("@@@ Audio Playpump Open FAILED----"));
         goto clean_up;
     }
     BDBG_ASSERT(audioPlaypump != NULL);

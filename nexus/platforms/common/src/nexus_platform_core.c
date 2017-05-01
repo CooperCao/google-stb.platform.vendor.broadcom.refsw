@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,9 +37,6 @@
  *****************************************************************************/
 #include "nexus_platform_priv.h"
 #include "priv/nexus_core.h"
-#ifdef NEXUS_FPGA_SUPPORT
-#include "nexus_platform_fpga.h"
-#endif
 #include "breg_mem.h"
 #if NEXUS_CONFIG_IMAGE
 #include "nexus_img_kernel.h"
@@ -65,6 +62,9 @@
 
 #if NEXUS_HAS_SECURITY
 #include "priv/nexus_security_priv.h"
+#endif
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_priv.h"
 #endif
 
 #ifdef DIAGS_MEM_DMA_TEST
@@ -103,6 +103,7 @@ static void NEXUS_Platform_P_MemcBsp_isr(void *pParam, int iParam)
 
 static void NEXUS_Platform_P_MemcEventHandler(void * context)
 {
+    bool os64 = NEXUS_Platform_P_IsOs64();
     BSTD_UNUSED(context);
 #if NEXUS_HAS_SECURITY
     if(g_NEXUS_platformHandles.security /* if NEXUS_Platform_P_MemcEventHandler called when there is no secure module */
@@ -111,12 +112,14 @@ static void NEXUS_Platform_P_MemcEventHandler(void * context)
 #endif
       ) {
         NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
-        NEXUS_Security_PrintArchViolation_priv();
+        NEXUS_Security_PrintArchViolation_priv(os64?BMRC_Monitor_HwBlock_eCPU:BMRC_Monitor_HwBlock_eInvalid);
         NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
     }
 #endif
-    BDBG_LOG(("Detected SECURE MEMC ARCH violation. Terminating...."));
-    BKNI_Fail();
+    if (!os64) {
+        BDBG_LOG(("Detected SECURE MEMC ARCH violation. Terminating...."));
+        BKNI_Fail();
+    }
     return;
 }
 
@@ -500,6 +503,9 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
 #if NEXUS_USE_CMA
     g_coreSettings.cma.alloc = NEXUS_Platform_P_AllocDeviceMemory;
     g_coreSettings.cma.free = NEXUS_Platform_P_FreeDeviceMemory;
+#if NEXUS_HAS_SAGE
+    g_coreSettings.cma.secure_remap = NEXUS_Sage_SecureRemap;
+#endif
 #endif
 #if NEXUS_CONFIG_IMAGE
     g_coreSettings.imgInterface.create = Nexus_IMG_Driver_Create;
@@ -519,6 +525,8 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
         goto err_core;
     }
 #endif
+    g_coreSettings.os64 = NEXUS_Platform_P_IsOs64();
+
     /* Initialize core module */
     intr_cfg = BINT_GETSETTINGS();
     BDBG_ASSERT(intr_cfg);
@@ -676,6 +684,8 @@ static void NEXUS_Platform_P_UnmapRegion(NEXUS_Core_MemoryRegion *region)
 #if !NEXUS_USE_CMA
 /* macros found in magnum/basemodules/chp */
 #include "../../src/common/bchp_memc_offsets_priv.h"
+
+
 NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
 {
     BCHP_MemoryInfo info;
@@ -697,8 +707,9 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
         /* coverity[dead_error_begin: FALSE] */
         default: return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
-        pMemory->memc[memcIndex].size = info.memc[memcIndex].size;
-        pMemory->memc[memcIndex].region[0].size = info.memc[memcIndex].size;
+        /* this size calculation is not valid for LPDDR4. only use for older silicon. */
+        pMemory->memc[memcIndex].size = (uint64_t)info.memc[memcIndex].deviceTech / 8 * (info.memc[memcIndex].width/info.memc[memcIndex].deviceWidth) * 1024 * 1024;
+        pMemory->memc[memcIndex].region[0].size = pMemory->memc[memcIndex].size;
         /* MIPS register hole */
         if (memcIndex == 0 && pMemory->memc[0].region[0].size > 0x10000000) {
             pMemory->memc[0].region[1].addr = 0x20000000;

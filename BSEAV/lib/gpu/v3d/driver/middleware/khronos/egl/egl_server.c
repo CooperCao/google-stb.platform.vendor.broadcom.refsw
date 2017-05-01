@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Minimal EGL server, handling creation of buffers and contexts and "make
-current". Most of the EGL state machine now lives on the client side.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #define KHRN_LATE_COLOR_BUFFER_ALLOC
 
 #include "middleware/khronos/glxx/glxx_buffer.h"
@@ -52,9 +44,6 @@ extern void khdispatch_send_async(uint32_t command, uint64_t pid, uint32_t sem);
 #include "interface/khronos/common/khrn_api_interposer.h"
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/egl/egl_client_config.h"
-
-#define LOGGING_GENERAL 0
-static INLINE void logging_message(int x, ...) { UNUSED(x); }
 
 #include <string.h>
 #include <stdlib.h>
@@ -283,9 +272,6 @@ void egl_server_surface_term(MEM_HANDLE_T handle)
 }
 
 EGL_SERVER_STATE_T egl_server_state;
-
-static uint32_t override_size = 0;
-static uint32_t override_handles_size = 0;
 
 extern void khrn_init_api_interposer(void);
 
@@ -716,7 +702,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
       {
          MEM_HANDLE_T himage = glxx_image_create_ms(COL_32_TLBD,
             width, height,
-            color_image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
+            (color_image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE) & ~IMAGE_CREATE_FLAG_TEXTURE, secure);
          if (himage == MEM_INVALID_HANDLE)
             goto final;
 
@@ -2366,94 +2352,6 @@ static int get_mem_usage(MEM_HANDLE_T handle)
    }
 
    return usage;
-}
-
-typedef struct {
-   uint64_t pid;
-   uint32_t private_usage;
-   uint32_t shared_usage;
-} USAGE_RECORD_T;
-
-typedef struct {
-   USAGE_RECORD_T *data;
-   uint32_t count;
-} USAGE_USERDATA_T;
-
-static USAGE_RECORD_T *find_record(USAGE_USERDATA_T *user, uint64_t pid)
-{
-   uint32_t i;
-   for (i = 0; i < user->count; i++) {
-      if (!user->data[i].pid || user->data[i].pid == pid) {
-         user->data[i].pid = pid;
-
-         return &user->data[i];
-      }
-   }
-
-   return NULL;
-}
-
-static void glcontext_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *user)
-{
-   MEM_TERM_T term = mem_get_term(value);
-
-   int usage = get_mem_usage(value);
-
-   UNUSED(map);
-   UNUSED(key);
-
-   if (flag == MEM_FLAG_USER) {
-      USAGE_RECORD_T *record = NULL;
-
-      if (term == glxx_server_state_term) {
-         record = find_record((USAGE_USERDATA_T *)user, ((GLXX_SERVER_STATE_T *)mem_lock(value, NULL))->pid);
-         mem_unlock(value);
-      } else
-         UNREACHABLE();
-
-      if (record)
-         record->private_usage += usage;
-   }
-}
-
-#ifndef NO_OPENVG
-static void vgcontext_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *user)
-{
-   VG_SERVER_STATE_T *state = (VG_SERVER_STATE_T *)mem_lock(value, NULL);
-
-   int usage = get_mem_usage(value);
-
-   UNUSED(map);
-   UNUSED(key);
-
-   if (flag == MEM_FLAG_USER) {
-      USAGE_RECORD_T *record = find_record((USAGE_USERDATA_T *)user, state->pid);
-
-      if (record)
-         record->private_usage += usage;
-   }
-
-   mem_unlock(value);
-}
-#endif /* NO_OPENVG */
-
-static void surface_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *user)
-{
-   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(value, NULL);
-
-   int usage = get_mem_usage(value);
-
-   UNUSED(map);
-   UNUSED(key);
-
-   if (flag == MEM_FLAG_USER) {
-      USAGE_RECORD_T *record = find_record((USAGE_USERDATA_T *)user, surface->pid);
-
-      if (record)
-         record->private_usage += usage;
-   }
-
-   mem_unlock(value);
 }
 
 EGL_SYNC_ID_T eglIntCreateSync_impl(uint32_t type, int32_t condition, int32_t status, uint32_t sem)

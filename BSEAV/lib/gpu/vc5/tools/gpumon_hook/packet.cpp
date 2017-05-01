@@ -1,18 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "packet.h"
+
+#include "datasink.h"
 
 #include <stdio.h>
 #include <memory.h>
+#include <assert.h>
 
 static const char *PacketTypeToName(ePacketType t)
 {
@@ -92,6 +87,10 @@ PacketItem::PacketItem(eDataType t, uintptr_t data, uint32_t numBytes) :
    case eCHAR_PTR:
    case eBYTE_ARRAY:
       m_data.p = (void*)data;
+      break;
+   case eLAST_ITEM_TYPE:
+   default:
+      assert(false); //should not be here
       break;
    }
 }
@@ -176,6 +175,22 @@ void PacketItem::DebugPrint() const
    printf(" Item type %s, numBytes = %d, data = %08X\n", ItemTypeToName(m_type), m_numBytes, m_data.i);
 }
 
+template< typename T >
+struct ArrayDeleter
+{
+  void operator ()( T const * p)
+  {
+    delete[] p;
+  }
+};
+
+std::shared_ptr<uint8_t> Packet::AddBuffer(size_t size)
+{
+   std::shared_ptr<uint8_t> buffer(new uint8_t[size], ArrayDeleter<uint8_t>());
+   m_buffers.push_back(buffer);
+   return buffer;
+}
+
 void Packet::DebugPrint() const
 {
    printf("Packet type %s has %d items:\n", PacketTypeToName(m_type), (int)m_items.size());
@@ -183,87 +198,30 @@ void Packet::DebugPrint() const
       m_items[i].DebugPrint();
 }
 
-
-#ifndef BuildingGPUMonitor
-
-#include "remote.h"
-
-void PacketItem::Send(Remote *rem)
+void PacketItem::Send(DataSink *sink)
 {
    uint32_t t = m_type;
-   rem->Send((uint8_t*)&t, sizeof(t));
-   rem->Send((uint8_t*)&m_numBytes, sizeof(m_numBytes));
+   sink->Write((uint8_t*)&t, sizeof(t));
+   sink->Write((uint8_t*)&m_numBytes, sizeof(m_numBytes));
    if (m_type != eBYTE_ARRAY && m_type != eCHAR_PTR)
-      rem->Send((uint8_t*)&m_data, m_numBytes, false);
+   {
+      sink->Write(&m_data, m_numBytes);
+   }
    else
-      rem->Send((uint8_t*)m_data.p, m_numBytes, m_type == eBYTE_ARRAY);
+      sink->Write(m_data.p, m_numBytes);
 }
 
-void Packet::Send(Remote *rem)
+void Packet::Send(DataSink *sink)
 {
    uint32_t t = m_type;
-   rem->Send((uint8_t*)&t, sizeof(t));
+   sink->Write((uint8_t*)&t, sizeof(t));
 
    t = m_items.size();
-   rem->Send((uint8_t*)&t, sizeof(t));
+   sink->Write((uint8_t*)&t, sizeof(t));
 
    std::vector<PacketItem>::iterator iter;
    for (iter = m_items.begin(); iter != m_items.end(); ++iter)
-      (*iter).Send(rem);
+      (*iter).Send(sink);
 
-   rem->Flush();
+   sink->Flush();
 }
-
-void PacketItem::Send(Comms *)
-{
-}
-
-void Packet::Send(Comms *)
-{
-}
-
-#else
-
-#include "Comms.h"
-
-void PacketItem::Send(Comms *comms)
-{
-   if (comms != NULL)
-   {
-      uint32_t t = m_type;
-      comms->QueuedSend((uint8_t*)&t, sizeof(t));
-      comms->QueuedSend((uint8_t*)&m_numBytes, sizeof(m_numBytes));
-      if (m_type != eBYTE_ARRAY && m_type != eCHAR_PTR)
-         comms->QueuedSend((uint8_t*)&m_data, m_numBytes);
-      else
-         comms->QueuedSend((uint8_t*)m_data.p, m_numBytes);
-   }
-}
-
-void Packet::Send(Comms *comms)
-{
-   if (comms != NULL)
-   {
-      uint32_t t = m_type;
-      comms->QueuedSend((uint8_t*)&t, sizeof(t));
-
-      t = m_items.size();
-      comms->QueuedSend((uint8_t*)&t, sizeof(t));
-
-      std::vector<PacketItem>::iterator iter;
-      for (iter = m_items.begin(); iter != m_items.end(); ++iter)
-         (*iter).Send(comms);
-
-      comms->FlushQueue();
-   }
-}
-
-void PacketItem::Send(Remote *)
-{
-}
-
-void Packet::Send(Remote *)
-{
-}
-
-#endif

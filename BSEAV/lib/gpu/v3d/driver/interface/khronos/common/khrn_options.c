@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-
-FILE DESCRIPTION
-Environment configurable, one-shot options.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_options.h"
 
 #include <memory.h>
@@ -56,9 +48,9 @@ static void read_string_option(const char *name, char *res, size_t len)
    }
 }
 
+#ifdef ANDROID
 static uint32_t read_uint32_option(const char *name, uint32_t cur)
 {
-#ifdef ANDROID
    char val[PROPERTY_VALUE_MAX];
    char __default[PROPERTY_VALUE_MAX];
 
@@ -68,18 +60,8 @@ static uint32_t read_uint32_option(const char *name, uint32_t cur)
    property_get(name, val, __default);
 
    return atoi(val);
-#else
-   char *val = getenv(name);
-
-   if (val == NULL)
-      return cur;
-
-   if (val[0] != '\0')
-      return atoi(val);
-
-   return 0;
-#endif
 }
+#endif
 
 void khrn_init_options(void)
 {

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)20016 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Transform feedback
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_tf.h"
 #include "glxx_hw_render_state.h"
 
@@ -25,9 +18,9 @@ static void tf_term(void *v, size_t size)
 
    if (glxx_tf_is_active(tf))
    {
-      khrn_res_interlock_refdec(tf->res_i);
+      khrn_resource_refdec(tf->res);
       for (unsigned i = 0; i < tf->num_active_buffers; i++)
-         khrn_res_interlock_refdec(tf->active_buffers[i].res_i);
+         khrn_resource_refdec(tf->active_buffers[i].res);
       KHRN_MEM_ASSIGN(tf->program, NULL);
    }
 
@@ -106,7 +99,7 @@ bool glxx_tf_draw_mode_allowed(const GLXX_TRANSFORM_FEEDBACK_T *tf,
 
 // Return false if operation is invalid and rs requires flush,
 // or we ran out of memory.
-bool glxx_tf_add_interlock_writes(const GLXX_TRANSFORM_FEEDBACK_T *tf,
+bool glxx_tf_add_resource_writes(const GLXX_TRANSFORM_FEEDBACK_T *tf,
       const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
       GLXX_HW_RENDER_STATE_T *rs,
       bool *requires_flush)
@@ -118,9 +111,9 @@ bool glxx_tf_add_interlock_writes(const GLXX_TRANSFORM_FEEDBACK_T *tf,
    {
       const glxx_tf_active_buffer *active = &tf->active_buffers[i];
 
-      if (!khrn_fmem_record_res_interlock_self_read_conflicting_write(
-            &rs->fmem, active->res_i, KHRN_INTERLOCK_STAGE_BIN,
-            KHRN_INTERLOCK_PARTS_ALL, requires_flush))
+      if (!khrn_fmem_record_resource_self_read_conflicting_write(
+            &rs->fmem, active->res, KHRN_STAGE_BIN,
+            KHRN_RESOURCE_PARTS_ALL, requires_flush))
          return false;
    }
 
@@ -289,7 +282,7 @@ unsigned glxx_tf_update_stream_pos(GLXX_TRANSFORM_FEEDBACK_T *tf,
 static bool emit_specs_and_buff_addrs(const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
       bool point_size_used,
       unsigned num_active_buffers, const glxx_tf_active_buffer *active_buffers,
-      KHRN_FMEM_T *fmem)
+      khrn_fmem *fmem)
 {
    assert(ptf->varying_count > 0);
 
@@ -317,7 +310,7 @@ static bool emit_specs_and_buff_addrs(const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
 static bool emit_specs(const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
-         bool point_size_used, KHRN_FMEM_T *fmem)
+         bool point_size_used, khrn_fmem *fmem)
 {
    assert((ptf->varying_count > 0));
 
@@ -333,10 +326,10 @@ static bool emit_specs(const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
    return true;
 }
 
-static bool emit_load_buffers_state(gmem_handle_t handle, KHRN_FMEM_T *fmem)
+static bool emit_load_buffers_state(gmem_handle_t handle, khrn_fmem *fmem)
 {
    assert(handle != GMEM_HANDLE_INVALID);
-   v3d_addr_t addr = khrn_fmem_lock_and_sync(fmem, handle, V3D_BARRIER_PTB_PCF_READ, 0);
+   v3d_addr_t addr = khrn_fmem_sync_and_get_addr(fmem, handle, V3D_BARRIER_PTB_PCF_READ, 0);
 
    uint8_t *instr = khrn_fmem_cle(fmem, V3D_CL_PRIM_COUNTS_FEEDBACK_SIZE);
    if (!instr)
@@ -347,7 +340,7 @@ static bool emit_load_buffers_state(gmem_handle_t handle, KHRN_FMEM_T *fmem)
 
 static bool emit_buff_addrs(unsigned num_active_buffers,
       const glxx_tf_active_buffer *active_buffers,
-      KHRN_FMEM_T *fmem)
+      khrn_fmem *fmem)
 {
    unsigned size = V3D_CL_TRANSFORM_FEEDBACK_BUFFER_SIZE * num_active_buffers;
    uint8_t *instr = khrn_fmem_cle(fmem, size);
@@ -367,15 +360,15 @@ static bool emit_buff_addrs(unsigned num_active_buffers,
 }
 #endif
 
-static void fmem_lock_and_sync_active_buffers(unsigned num_active_buffers,
+static void fmem_sync_active_buffers(unsigned num_active_buffers,
       const glxx_tf_active_buffer *active_buffers,
-      KHRN_FMEM_T *fmem)
+      khrn_fmem *fmem)
 {
    for (unsigned i = 0; i < num_active_buffers; ++i)
    {
       const glxx_tf_active_buffer *active = &active_buffers[i];
-      v3d_addr_t addr = khrn_fmem_lock_and_sync(fmem, active->res_i->handle, V3D_BARRIER_PTB_TF_WRITE, 0);
-      assert(addr == active->addr);
+      khrn_fmem_sync(fmem, active->res->handle, V3D_BARRIER_PTB_TF_WRITE, 0);
+      assert(active->addr == gmem_get_addr(active->res->handle));
    }
 }
 
@@ -385,9 +378,9 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
       bool point_size_used)
 {
    assert(glxx_tf_in_use(tf) && (ptf->varying_count > 0));
-   KHRN_FMEM_T *fmem = &rs->fmem;
+   khrn_fmem *fmem = &rs->fmem;
 
-   if (rs->tf.res_i == tf->res_i)
+   if (rs->tf.res == tf->res)
    {
 #if V3D_VER_AT_LEAST(4,0,2,0)
       /* if not enabled, just enable the previous specs, otherwise, we are done; */
@@ -411,23 +404,23 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
          return false;
 #endif
       // record that we are writing to this resource
-      if (!khrn_fmem_record_res_interlock_write(fmem, tf->res_i, KHRN_INTERLOCK_STAGE_BIN,
-            KHRN_INTERLOCK_PARTS_ALL, NULL))
+      if (!khrn_fmem_record_resource_write(fmem, tf->res, KHRN_STAGE_BIN,
+            KHRN_RESOURCE_PARTS_ALL, NULL))
          return false;
 
       assert(ptf->addr_count == tf->num_active_buffers);
-      fmem_lock_and_sync_active_buffers(tf->num_active_buffers, tf->active_buffers, fmem);
+      fmem_sync_active_buffers(tf->num_active_buffers, tf->active_buffers, fmem);
 
       bool res;
 #if V3D_VER_AT_LEAST(4,0,2,0)
-      if (tf->res_i->handle == GMEM_HANDLE_INVALID)
+      if (tf->res->handle == GMEM_HANDLE_INVALID)
          res = emit_buff_addrs(tf->num_active_buffers, tf->active_buffers, fmem);
       else
-         res = emit_load_buffers_state(tf->res_i->handle, fmem);
+         res = emit_load_buffers_state(tf->res->handle, fmem);
       res &= emit_specs(ptf, point_size_used, fmem);
 #else
       /* we can't do store/load on previous hw */
-      assert(tf->res_i->handle == GMEM_HANDLE_INVALID);
+      assert(tf->res->handle == GMEM_HANDLE_INVALID);
 
       res = emit_specs_and_buff_addrs(ptf, point_size_used,
             tf->num_active_buffers, tf->active_buffers, fmem);
@@ -436,9 +429,9 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
          return false;
 
       KHRN_MEM_ASSIGN(rs->tf.last_used, tf);
-      /* no need to take a refcount of tf->res_i since we already got one in
-       * fmem with khrn_fmem_record_res_interlock */
-      rs->tf.res_i = tf->res_i;
+      /* no need to take a refcount of tf->res since we already got one in
+       * fmem with khrn_fmem_record_resource */
+      rs->tf.res = tf->res;
    }
 
    rs->tf.enabled = true;
@@ -461,16 +454,13 @@ bool glxx_tf_record_disable(GLXX_HW_RENDER_STATE_T *rs)
    return true;
 }
 
-static bool alloc_storage(KHRN_RES_INTERLOCK_T *res_i)
+static bool alloc_storage(khrn_resource *res)
 {
    /* alloc 8 32 bit words */
-   gmem_handle_t handle = gmem_alloc(8 * sizeof(uint32_t), V3D_PRIM_COUNTS_ALIGN,
-         GMEM_USAGE_V3D_RW | GMEM_USAGE_HINT_DYNAMIC,
-         "tf_storage");
-   if (handle != GMEM_HANDLE_INVALID)
-      khrn_res_interlock_set_handle(res_i, handle);
-
-   return (handle != GMEM_HANDLE_INVALID);
+   return khrn_resource_alloc(
+      res, 8 * sizeof(uint32_t), V3D_PRIM_COUNTS_ALIGN,
+      GMEM_USAGE_V3D_RW | GMEM_USAGE_HINT_DYNAMIC,
+      "tf_storage");
 }
 
 bool glxx_store_tf_buffers_state(GLXX_HW_RENDER_STATE_T *rs)
@@ -481,18 +471,18 @@ bool glxx_store_tf_buffers_state(GLXX_HW_RENDER_STATE_T *rs)
       return true;
 
    /* we started a new BeginTF on the same tf, no point to store */
-   if (rs->tf.res_i != tf->res_i)
+   if (rs->tf.res != tf->res)
       return true;
 
-   KHRN_RES_INTERLOCK_T *res_i = rs->tf.res_i;
+   khrn_resource *res = rs->tf.res;
 
-   if(res_i->handle == GMEM_HANDLE_INVALID)
+   if(res->handle == GMEM_HANDLE_INVALID)
    {
-      if (!alloc_storage(tf->res_i))
+      if (!alloc_storage(tf->res))
          return false;
    }
 
-   v3d_addr_t addr = khrn_fmem_lock_and_sync(&rs->fmem, res_i->handle, V3D_BARRIER_PTB_PCF_WRITE, 0);
+   v3d_addr_t addr = khrn_fmem_sync_and_get_addr(&rs->fmem, res->handle, V3D_BARRIER_PTB_PCF_WRITE, 0);
 
    uint8_t *instr = khrn_fmem_cle(&rs->fmem, V3D_CL_PRIM_COUNTS_FEEDBACK_SIZE);
    if (!instr)
@@ -522,26 +512,24 @@ void glxx_tf_incr_start_count(GLXX_HW_RENDER_STATE_T *rs)
    rs->tf.started_count += 1;
 }
 
-bool glxx_tf_post_draw(GLXX_HW_RENDER_STATE_T *rs,
-      GLXX_TRANSFORM_FEEDBACK_T *tf, const GLXX_PROGRAM_TFF_POST_LINK_T *ptf)
+bool glxx_tf_post_draw(GLXX_HW_RENDER_STATE_T *rs, const GLXX_TRANSFORM_FEEDBACK_T *tf)
 {
    assert(rs->tf.last_used == tf && glxx_tf_is_active(rs->tf.last_used));
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
    if (!emit_explicit_tf_flush_count(rs))
-         return false;
+      return false;
 #endif
 
    glxx_tf_incr_start_count(rs);
 
    /* Record the counter of the last TF-enabled draw call that wrote to this
     * buffer; used for wait tf*/
-   for (unsigned i = 0; i < ptf->addr_count; ++i)
+   for (unsigned i = 0; i < tf->num_active_buffers; ++i)
    {
-      const GLXX_INDEXED_BINDING_POINT_T *binding = &tf->binding_points[i];
-      GLXX_BUFFER_T *buffer = binding->buffer.obj;
-      assert(buffer);
-      buffer->last_tf_write_count = rs->tf.started_count;
+      khrn_resource *res = tf->active_buffers[i].res;
+      assert(khrn_resource_get_write_stages(res, (khrn_render_state *)rs) & KHRN_STAGE_BIN);
+      res->last_tf_write_count = rs->tf.started_count;
    }
    return true;
 }

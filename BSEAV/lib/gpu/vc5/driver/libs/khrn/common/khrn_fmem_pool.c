@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "khrn_fmem_pool.h"
 #include "khrn_int_common.h"
@@ -17,7 +17,7 @@ LOG_DEFAULT_CAT("khrn_fmem_pool")
 typedef struct khrn_fmem_client_pool
 {
    VCOS_MUTEX_T lock;
-   KHRN_FMEM_BUFFER buffer[KHRN_FMEM_MAX_BLOCKS];
+   khrn_fmem_buffer buffer[KHRN_FMEM_MAX_BLOCKS];
    unsigned n_free_buffers;   /* number of fmem free buffers */
    unsigned n_submitted_buffers; /* number of fmem buffers that were submitted;
                                   waiting on all the completion callbacks in this client,
@@ -34,7 +34,7 @@ bool khrn_fmem_client_pool_init(void)
 
    for (unsigned i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
    {
-      KHRN_FMEM_BUFFER* buffer = &client_pool.buffer[i];
+      khrn_fmem_buffer* buffer = &client_pool.buffer[i];
       buffer->in_use = false;
       buffer->bytes_used = ~0u;
       buffer->cpu_address = NULL;
@@ -51,7 +51,7 @@ void khrn_fmem_client_pool_deinit(void)
 {
    for (unsigned i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
    {
-      KHRN_FMEM_BUFFER* buffer = &client_pool.buffer[i];
+      khrn_fmem_buffer* buffer = &client_pool.buffer[i];
       assert(!buffer->in_use);
       if (buffer->handle != GMEM_HANDLE_INVALID)
       {
@@ -63,9 +63,9 @@ void khrn_fmem_client_pool_deinit(void)
 }
 
 /* get a free buffer from the client_pool if possible, return NULL otherwise */
-static KHRN_FMEM_BUFFER* client_pool_get_buffer(void)
+static khrn_fmem_buffer* client_pool_get_buffer(void)
 {
-   KHRN_FMEM_BUFFER *buffer = NULL;
+   khrn_fmem_buffer *buffer = NULL;
 
    vcos_mutex_lock(&client_pool.lock);
 
@@ -93,7 +93,7 @@ end:
    was_submitted is true if this buffer became free after it was flushed, false
    if we've not submitted this buffer;
 */
-static void client_pool_release_buffer(KHRN_FMEM_BUFFER *buffer, bool was_submitted)
+static void client_pool_release_buffer(khrn_fmem_buffer *buffer, bool was_submitted)
 {
    vcos_mutex_lock(&client_pool.lock);
    buffer->in_use = false;
@@ -120,13 +120,13 @@ unsigned khrn_fmem_client_pool_get_num_free_and_submitted()
    return count;
 }
 
-void khrn_fmem_pool_init(KHRN_FMEM_POOL_T *pool, KHRN_RENDER_STATE_T *render_state)
+void khrn_fmem_pool_init(khrn_fmem_pool *pool, khrn_render_state *render_state)
 {
    pool->n_buffers = 0;
    pool->buffers_submitted = false;
 }
 
-void khrn_fmem_pool_deinit(KHRN_FMEM_POOL_T *pool)
+void khrn_fmem_pool_deinit(khrn_fmem_pool *pool)
 {
    for (unsigned i = 0; i < pool->n_buffers; i++)
    {
@@ -134,11 +134,11 @@ void khrn_fmem_pool_deinit(KHRN_FMEM_POOL_T *pool)
    }
 }
 
-void* khrn_fmem_pool_alloc(KHRN_FMEM_POOL_T *pool)
+void* khrn_fmem_pool_alloc(khrn_fmem_pool *pool)
 {
    assert(!pool->buffers_submitted);
 
-   KHRN_FMEM_BUFFER *buffer = client_pool_get_buffer();
+   khrn_fmem_buffer *buffer = client_pool_get_buffer();
    if (buffer == NULL)
    {
       /* no free buffers, see if we have some submitted ones that we can wait
@@ -154,8 +154,7 @@ void* khrn_fmem_pool_alloc(KHRN_FMEM_POOL_T *pool)
       }
       else
       {
-         log_warn("%s: all fmems are in use",
-               VCOS_FUNCTION);
+         log_warn("%s: all fmems are in use", __FUNCTION__);
          return NULL;
       }
    }
@@ -166,7 +165,7 @@ void* khrn_fmem_pool_alloc(KHRN_FMEM_POOL_T *pool)
             GMEM_USAGE_V3D_READ, "Fmem buffer");
       if (buffer->handle == GMEM_HANDLE_INVALID)
       {
-         log_error("[%s] gmem_alloc failed", VCOS_FUNCTION);
+         log_error("[%s] gmem_alloc failed", __FUNCTION__);
          goto fail;
       }
 
@@ -191,18 +190,18 @@ fail:
    return NULL;
 }
 
-void khrn_fmem_pool_post_cpu_write(KHRN_FMEM_POOL_T* pool)
+void khrn_fmem_pool_post_cpu_write(khrn_fmem_pool* pool)
 {
    for (unsigned i=0; i < pool->n_buffers; i++)
    {
-      KHRN_FMEM_BUFFER *buffer = pool->buffer[i];
+      khrn_fmem_buffer *buffer = pool->buffer[i];
       assert(buffer->bytes_used != ~0u);
       gmem_flush_mapped_range(buffer->handle, 0, buffer->bytes_used);
    }
 }
 
 void khrn_fmem_pool_submit(
-   KHRN_FMEM_POOL_T *pool,
+   khrn_fmem_pool *pool,
 #if KHRN_DEBUG
    khrn_memaccess* memaccess,
 #endif
@@ -233,7 +232,7 @@ void khrn_fmem_pool_submit(
    {
       for (unsigned i=0; i < pool->n_buffers; i++)
       {
-         KHRN_FMEM_BUFFER *buffer = pool->buffer[i];
+         khrn_fmem_buffer *buffer = pool->buffer[i];
          khrn_memaccess_add_buffer(memaccess, buffer->handle, *bin_rw_flags, *render_rw_flags);
       }
    }
@@ -244,13 +243,13 @@ void khrn_fmem_pool_submit(
    client_pool_add_submitted_buffers(pool->n_buffers);
 }
 
-static bool buffer_contains(const KHRN_FMEM_BUFFER *buffer, void *address)
+static bool buffer_contains(const khrn_fmem_buffer *buffer, void *address)
 {
    uintptr_t offset = (uintptr_t)address - (uintptr_t)buffer->cpu_address;
    return offset < KHRN_FMEM_BUFFER_SIZE;
 }
 
-static KHRN_FMEM_BUFFER *get_buffer_containing(const KHRN_FMEM_POOL_T *pool, void *address)
+static khrn_fmem_buffer *get_buffer_containing(const khrn_fmem_pool *pool, void *address)
 {
    static unsigned lastMatchedBufIndx = 0;
 
@@ -280,15 +279,15 @@ static KHRN_FMEM_BUFFER *get_buffer_containing(const KHRN_FMEM_POOL_T *pool, voi
    return NULL;
 }
 
-v3d_addr_t khrn_fmem_pool_hw_address(KHRN_FMEM_POOL_T *pool, void *address)
+v3d_addr_t khrn_fmem_pool_hw_address(khrn_fmem_pool *pool, void *address)
 {
-   KHRN_FMEM_BUFFER *buffer = get_buffer_containing(pool, address);
+   khrn_fmem_buffer *buffer = get_buffer_containing(pool, address);
    return buffer->hw_address + ((char *)address - (char *)buffer->cpu_address);
 }
 
-void khrn_fmem_pool_finalise_end(KHRN_FMEM_POOL_T *pool, void *address)
+void khrn_fmem_pool_finalise_end(khrn_fmem_pool *pool, void *address)
 {
-   KHRN_FMEM_BUFFER *buffer = get_buffer_containing(pool, address);
+   khrn_fmem_buffer *buffer = get_buffer_containing(pool, address);
    assert(buffer->bytes_used == ~0u);
    buffer->bytes_used = (char*)address - (char*)buffer->cpu_address;
 }

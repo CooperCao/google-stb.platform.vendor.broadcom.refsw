@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -214,7 +213,7 @@ void BVC5_GetPerfCounterGroupInfo(
    BDBG_LEAVE(BVC5_GetPerfCounterGroupInfo);
 }
 
-BERR_Code BVC5_SetPerfCounting(
+static BERR_Code BVC5_P_SetPerfCounting(
    BVC5_Handle             hVC5,
    uint32_t                uiClientId,
    BVC5_CounterState       eState
@@ -223,9 +222,6 @@ BERR_Code BVC5_SetPerfCounting(
    BVC5_P_PerfCounters  *psPerf;
    uint32_t             i;
    BERR_Code            err = BERR_SUCCESS;
-
-   BDBG_ENTER(BVC5_SetPerfCounting);
-   BKNI_AcquireMutex(hVC5->hModuleMutex);
 
    psPerf = &hVC5->sPerfCounters;
 
@@ -315,6 +311,22 @@ BERR_Code BVC5_SetPerfCounting(
    }
 
 error:
+   return err;
+}
+
+BERR_Code BVC5_SetPerfCounting(
+   BVC5_Handle             hVC5,
+   uint32_t                uiClientId,
+   BVC5_CounterState       eState
+   )
+{
+   BERR_Code err;
+
+   BDBG_ENTER(BVC5_SetPerfCounting);
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   err = BVC5_P_SetPerfCounting(hVC5, uiClientId, eState);
+
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_SetPerfCounting);
 
@@ -682,8 +694,8 @@ void BVC5_P_PerfCountersRemoveClient(
 {
    if (hVC5->sPerfCounters.bAcquired && hVC5->sPerfCounters.uiClientId == uiClientId)
    {
-      BVC5_SetPerfCounting(hVC5, uiClientId, BVC5_CtrStop);
-      BVC5_SetPerfCounting(hVC5, uiClientId, BVC5_CtrRelease);
+      BVC5_P_SetPerfCounting(hVC5, uiClientId, BVC5_CtrStop);
+      BVC5_P_SetPerfCounting(hVC5, uiClientId, BVC5_CtrRelease);
    }
 }
 

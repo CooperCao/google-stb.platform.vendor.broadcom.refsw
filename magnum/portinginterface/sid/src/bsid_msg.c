@@ -396,7 +396,9 @@ void BSID_P_Dispatch_isr(void *pv_Param1, int iParam2)
                     psQueueEntry->rspHeader.header == BSID_MSG_HDR_GETSTREAMINFO)
                 {
                     if (hSidCh->bAbortInitiated)
+                    {
                         BKNI_SetEvent(hSidCh->hAbortedEvent);
+                    }
 
                     pvCallbackFunc_isr = hSidCh->sChSettings.u_ChannelSpecific.still.p_CallbackFunc_isr;
                     ui32_CallbackEvents = hSidCh->sChSettings.u_ChannelSpecific.still.ui32_CallbackEvents;
@@ -495,7 +497,7 @@ void BSID_P_Dispatch_isr(void *pv_Param1, int iParam2)
             {
                 hSidCh->e_ChannelState = BSID_ChannelState_eReady;
             }
-        }
+        } /* --- end: if IRQ source is this channel --- */
 
         /* get ready to test next channel */
         BSID_INCR_INDEX(ui32_ChannelNumber, BSID_MAX_CHANNELS);
@@ -1215,26 +1217,26 @@ void BSID_P_SetDmaChunkInfo(
         BDBG_WRN(("SetDmaChunkInfo:: Decode is not active"));
     }
 
+    BKNI_EnterCriticalSection();
     if (hSidCh->bAbortInitiated)
     {
+        BKNI_LeaveCriticalSection();
         BDBG_WRN(("SetDmaChunkInfo:: Abort in progress - DMA request ignored"));
         return;
     }
 
-    BKNI_EnterCriticalSection();
     pDmaInfo->ui32_Offset       = ps_DmaChunkInfo->ui32_Offset;
     pDmaInfo->ui32_Size         = ps_DmaChunkInfo->ui32_Size;
     pDmaInfo->ui32_LastDmaChunk = (ps_DmaChunkInfo->ui32_LastDmaChunk > 0) ? 0x1 : 0x0;
     pDmaInfo->ui32_Reserved     = 0x0;  /* Reserved field is the AbortDma flag */
 
-    BDBG_MSG(("next dma is off 0x%x size 0x%x last %d", pDmaInfo->ui32_Offset, pDmaInfo->ui32_Size, ps_DmaChunkInfo->ui32_LastDmaChunk));
-
     psQueueHeader->ui32_WaitForData = 0x0;
-
-    BKNI_LeaveCriticalSection();
 
     BMMA_FlushCache(hInpDmaBlock, (void *)pDmaInfo, sizeof(BSID_DmaChunkInfo));
     BMMA_FlushCache(hRelQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+
+    BKNI_LeaveCriticalSection();
+    BDBG_MSG(("next dma is off 0x%x size 0x%x last %d", ps_DmaChunkInfo->ui32_Offset, ps_DmaChunkInfo->ui32_Size, ps_DmaChunkInfo->ui32_LastDmaChunk));
     return;
 }
 
@@ -1705,6 +1707,7 @@ BERR_Code BSID_P_DisableForFlush(BSID_ChannelHandle hSidCh)
         BKNI_Delay(500);
         BMMA_FlushCache(hPbReadQueueBlock, (void *)psPbReadQueueHeader, sizeof(BSID_PlaybackReadQueueHeader));
     }
+    BSID_SET_CH_STATE(hSidCh, Ready);
 
     /*
      * FW suspended.

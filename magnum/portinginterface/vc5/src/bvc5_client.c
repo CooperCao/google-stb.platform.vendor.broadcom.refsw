@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
+ ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "bvc5_priv.h"
@@ -701,22 +699,46 @@ static BVC5_P_InternalJob *BVC5_P_PopUntilNotFinalizedJob(
 static BVC5_P_JobDependentFence *BVC5_P_AllocJobDependentFence(
    BVC5_Handle                   hVC5,
    BVC5_ClientHandle             hClient,
-   const BVC5_SchedDependencies *psNotCompleted,
-   const BVC5_SchedDependencies *psNotFinalized,
-   int                          *piFence
+   const BVC5_SchedDependencies  *psNotCompleted,
+   const BVC5_SchedDependencies  *psNotFinalized,
+   const BVC5_P_SharedFenceInfo  *psSharedFenceInfo
 )
 {
    BVC5_P_JobDependentFence *psFence = BKNI_Malloc(sizeof(*psFence));
    if (psFence == NULL)
       return NULL;
 
-   *piFence = BVC5_P_FenceCreate(hVC5->hFences, hClient->uiClientId, &psFence->pFenceSignalData);
-   if (*piFence == -1)
+   if (psSharedFenceInfo == NULL)
    {
-      BKNI_Free(psFence);
-      return NULL;
+      /* Create a new fence */
+      psFence->psSharedFenceInfo = BKNI_Malloc(sizeof(BVC5_P_SharedFenceInfo));
+      if (psFence->psSharedFenceInfo == NULL)
+      {
+         BKNI_Free(psFence);
+         return NULL;
+      }
+
+      BKNI_Memset(psFence->psSharedFenceInfo, 0, sizeof(BVC5_P_SharedFenceInfo));
+
+      psFence->psSharedFenceInfo->iFence = BVC5_P_FenceCreate(hVC5->hFences, hClient->uiClientId, &psFence->psSharedFenceInfo->pFenceSignalData);
+      if (psFence->psSharedFenceInfo->iFence == -1)
+      {
+         BKNI_Free(psFence->psSharedFenceInfo);
+         BKNI_Free(psFence);
+         return NULL;
+      }
+
+      psFence->psSharedFenceInfo->bSignalled = false;
+   }
+   else
+   {
+      /* Use an existing fence */
+      psFence->psSharedFenceInfo->bSignalled = psSharedFenceInfo->bSignalled;
+      psFence->psSharedFenceInfo->pFenceSignalData = psSharedFenceInfo->pFenceSignalData;
+      psFence->psSharedFenceInfo->iFence = psSharedFenceInfo->iFence;
    }
 
+   psFence->psSharedFenceInfo->uCountRef++;
    psFence->sNotCompleted = *psNotCompleted;
    psFence->sNotFinalized = *psNotFinalized;
 
@@ -745,7 +767,22 @@ static void BVC5_P_SignalAndFreeOrAddToJob(
       return;
    }
 
-   BVC5_P_FenceSignalAndCleanup(hVC5->hFences, psFence->pFenceSignalData);
+   /* All jobs have completed/finalised: signal the fence */
+
+   BDBG_ASSERT(psFence->psSharedFenceInfo != NULL);
+   if (!psFence->psSharedFenceInfo->bSignalled)
+   {
+      BVC5_P_FenceSignalAndCleanup(hVC5->hFences, psFence->psSharedFenceInfo->pFenceSignalData);
+      psFence->psSharedFenceInfo->pFenceSignalData = NULL;
+      psFence->psSharedFenceInfo->bSignalled = true;
+   }
+   psFence->psSharedFenceInfo->uCountRef--;
+   if (psFence->psSharedFenceInfo->uCountRef == 0)
+   {
+      BKNI_Free(psFence->psSharedFenceInfo);
+      psFence->psSharedFenceInfo = NULL;
+   }
+
    BKNI_Free(psFence);
 }
 
@@ -758,16 +795,19 @@ BERR_Code BVC5_P_ClientMakeFenceForJobs(
    int                          *piFence
 )
 {
-   BVC5_SchedDependencies sNotCompleted = *pCompletedDeps,
-                          sNotFinalized = *pFinalizedDeps;
+   BVC5_SchedDependencies  sNotCompleted = *pCompletedDeps,
+                           sNotFinalized = *pFinalizedDeps;
+   BVC5_P_InternalJob      *psJob = BVC5_P_PopUntilNotCompletedJob(hClient, &sNotCompleted);
 
-   BVC5_P_InternalJob *psJob = BVC5_P_PopUntilNotCompletedJob(hClient, &sNotCompleted);
+   *piFence = -1;
+
    if (psJob)
    {
       BVC5_P_JobDependentFence *psFence = BVC5_P_AllocJobDependentFence(
-         hVC5, hClient, &sNotCompleted, &sNotFinalized, piFence);
+         hVC5, hClient, &sNotCompleted, &sNotFinalized, NULL);
       if (psFence == NULL)
          return BERR_OUT_OF_SYSTEM_MEMORY;
+      *piFence = psFence->psSharedFenceInfo->iFence;
       psFence->psNext = psJob->psOnCompletedFenceList;
       psJob->psOnCompletedFenceList = psFence;
       return BERR_SUCCESS;
@@ -777,9 +817,10 @@ BERR_Code BVC5_P_ClientMakeFenceForJobs(
    if (psJob)
    {
       BVC5_P_JobDependentFence *psFence = BVC5_P_AllocJobDependentFence(
-         hVC5, hClient, &sNotCompleted, &sNotFinalized, piFence);
+         hVC5, hClient, &sNotCompleted, &sNotFinalized, NULL);
       if (psFence == NULL)
          return BERR_OUT_OF_SYSTEM_MEMORY;
+      *piFence = psFence->psSharedFenceInfo->iFence;
       psFence->psNext = psJob->psOnFinalizedFenceList;
       psJob->psOnFinalizedFenceList = psFence;
       return BERR_SUCCESS;
@@ -822,13 +863,85 @@ BERR_Code BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(
 
    sNoDeps.uiNumDeps = 0;
    psFence = BVC5_P_AllocJobDependentFence(
-      hVC5, hClient, &sNoDeps, &sNoDeps, piFence);
+      hVC5, hClient, &sNoDeps, &sNoDeps, NULL);
    if (psFence == NULL)
       return BERR_OUT_OF_SYSTEM_MEMORY;
+   *piFence = psFence->psSharedFenceInfo->iFence;
    psFence->psNext = hClient->psOldestNotFinalized->psOnFinalizedFenceList;
    hClient->psOldestNotFinalized->psOnFinalizedFenceList = psFence;
    return BERR_SUCCESS;
 }
+
+BERR_Code BVC5_P_ClientMakeFenceForAnyJob(
+   BVC5_Handle                   hVC5,
+   BVC5_ClientHandle             hClient,
+   const BVC5_SchedDependencies  *pCompletedDeps,
+   const BVC5_SchedDependencies  *pFinalizedDeps,
+   int                           *piFence
+)
+{
+   uint32_t index;
+   BVC5_SchedDependencies     sNoDeps;
+   BVC5_P_JobDependentFence   *psFence;
+   BVC5_P_SharedFenceInfo     *psSharedFenceInfo = NULL;
+
+   if (hClient->psOldestNotFinalized == NULL)
+   {
+      /* All jobs have been finalized. Just return "null" fence which behaves
+       * like a fence that has been signaled already. */
+      *piFence = -1;
+      return BERR_SUCCESS;
+   }
+
+   sNoDeps.uiNumDeps = 0;
+   *piFence = -1;
+
+   for (index = 0; index < pCompletedDeps->uiNumDeps; index++)
+   {
+      BVC5_P_InternalJob *psJob = BVC5_P_ClientGetJobIfNotComplete(hClient, pCompletedDeps->uiDep[index]);
+      if (psJob)
+      {
+         psFence = BVC5_P_AllocJobDependentFence(
+            hVC5, hClient, &sNoDeps, &sNoDeps, psSharedFenceInfo);
+         if (psFence == NULL)
+         {
+            *piFence = -1;
+            return BERR_OUT_OF_SYSTEM_MEMORY;
+         }
+
+         *piFence = psFence->psSharedFenceInfo->iFence;
+         psSharedFenceInfo = psFence->psSharedFenceInfo;
+
+         psFence->psNext = psJob->psOnCompletedFenceList;
+         psJob->psOnCompletedFenceList = psFence;
+      }
+   }
+
+   for (index = 0; index < pFinalizedDeps->uiNumDeps; index++)
+   {
+      BVC5_P_InternalJob *psJob = BVC5_P_ClientGetJobIfNotFinalized(hClient, pFinalizedDeps->uiDep[index]);
+      if (psJob)
+      {
+
+         psFence = BVC5_P_AllocJobDependentFence(
+            hVC5, hClient, &sNoDeps, &sNoDeps, psSharedFenceInfo);
+         if (psFence == NULL)
+         {
+            *piFence = -1;
+            return BERR_OUT_OF_SYSTEM_MEMORY;
+         }
+
+         *piFence = psFence->psSharedFenceInfo->iFence;
+         psSharedFenceInfo = psFence->psSharedFenceInfo;
+
+         psFence->psNext = psJob->psOnFinalizedFenceList;
+         psJob->psOnFinalizedFenceList = psFence;
+      }
+   }
+
+   return BERR_SUCCESS;
+}
+
 
 void BVC5_P_ClientMarkJobsFlushedV3D(
    BVC5_ClientHandle hClient,

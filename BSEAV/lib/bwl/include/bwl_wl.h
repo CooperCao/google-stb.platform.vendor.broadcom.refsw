@@ -449,5 +449,7 @@ typedef struct
 } wifi_counters_t;
 
 int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int type, unsigned short int len);
+int wl_wowl_pkt(void *wl, void *cmd, char **argv);
+int wl_maclist_2(void *wl, BWL_MAC_ADDRESS *outputList, int outputListLen );
 
 #endif /* BWL_WL_H__ */

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 framebuffer / Open GL ES 1.1 OES_framebuffer_object structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "glxx_int_config.h"
 
@@ -31,7 +23,7 @@ typedef enum
    GLXX_STENCIL_RENDERABLE
 }glxx_renderable_cond;
 
-static bool image_is_gl_renderable(const KHRN_IMAGE_T *image,
+static bool image_is_gl_renderable(const khrn_image *image,
       glxx_renderable_cond renderable_cond);
 
 static void attachment_init(GLXX_ATTACHMENT_T *att)
@@ -316,7 +308,7 @@ void glxx_fb_attach_renderbuffer(GLXX_FRAMEBUFFER_T *fb,
 
 static void fb_attach_fb_default(GLXX_FRAMEBUFFER_T *fb,
       glxx_attachment_point_t att_point,
-      KHRN_IMAGE_T *img, KHRN_IMAGE_T *ms_img, glxx_ms_mode ms_mode)
+      khrn_image *img, khrn_image *ms_img, glxx_ms_mode ms_mode)
 {
    GLXX_ATTACHMENT_T *att;
    unsigned i;
@@ -350,8 +342,8 @@ static void fb_attach_fb_default(GLXX_FRAMEBUFFER_T *fb,
 static void consistent_for_default_fb(const EGL_SURFACE_T *surface)
 {
    unsigned width, height;
-   KHRN_IMAGE_T *color0;
-   KHRN_IMAGE_T *aux_bufs[3];
+   khrn_image *color0;
+   khrn_image *aux_bufs[3];
 
    color0 = egl_surface_get_back_buffer(surface);
    aux_bufs[0] = egl_surface_get_aux_buffer(surface, AUX_MULTISAMPLE);
@@ -404,7 +396,7 @@ static void consistent_for_default_fb(const EGL_SURFACE_T *surface)
 void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
       const EGL_SURFACE_T *surface)
 {
-   KHRN_IMAGE_T *color0, *ms_color0, *depth, *stencil;
+   khrn_image *color0, *ms_color0, *depth, *stencil;
 
    /* we want this check only in debug */
 #ifndef NDEBUG
@@ -489,7 +481,7 @@ glxx_ms_mode glxx_fb_get_ms_mode(const GLXX_FRAMEBUFFER_T *fb)
 }
 
 bool glxx_fb_acquire_read_image(const GLXX_FRAMEBUFFER_T *fb,
-      glxx_att_img_t img_type, KHRN_IMAGE_T **img, bool *ms)
+      glxx_att_img_t img_type, khrn_image **img, bool *ms)
 {
    const GLXX_ATTACHMENT_T *att;
    *img = NULL;
@@ -502,7 +494,7 @@ bool glxx_fb_acquire_read_image(const GLXX_FRAMEBUFFER_T *fb,
 }
 
 static bool attachment_acquire_specific_image(const GLXX_ATTACHMENT_T *att,
-      bool require_ms_img, KHRN_IMAGE_T **img)
+      bool require_ms_img, khrn_image **img)
 {
    bool res = true;
    *img = NULL;
@@ -545,7 +537,7 @@ static bool attachment_acquire_specific_image(const GLXX_ATTACHMENT_T *att,
 }
 
 bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
-      glxx_att_img_t img_type, KHRN_IMAGE_T **img, bool *is_ms)
+      glxx_att_img_t img_type, khrn_image **img, bool *is_ms)
 {
    bool res;
    bool ms;
@@ -591,7 +583,7 @@ bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
 GFX_LFMT_T glxx_attachment_get_api_fmt(const GLXX_ATTACHMENT_T *att)
 {
    GFX_LFMT_T res = GFX_LFMT_NONE;
-   KHRN_IMAGE_T *img;
+   khrn_image *img;
    bool img_ms;
 
    /* the api_fmt is the same for multisample or downsampled image, so it
@@ -607,7 +599,7 @@ GFX_LFMT_T glxx_attachment_get_api_fmt(const GLXX_ATTACHMENT_T *att)
    return res;
 }
 
-static bool image_is_gl_renderable(const KHRN_IMAGE_T *image,
+static bool image_is_gl_renderable(const khrn_image *image,
       glxx_renderable_cond renderable_cond)
 {
    bool (*fct_is_renderable)(GFX_LFMT_T lfmt);
@@ -654,7 +646,7 @@ static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
       glxx_renderable_cond renderable_cond)
 {
    att_status_t status = ATTACHMENT_INCOMPLETE;
-   KHRN_IMAGE_T *img = NULL;
+   khrn_image *img = NULL;
 
    switch (att->obj_type)
    {

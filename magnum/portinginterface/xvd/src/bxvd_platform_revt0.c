@@ -571,20 +571,21 @@ bool BXVD_P_IsDisplayInfoEqual_HIM_API_isr(BXVD_P_DisplayInfo stDisplayInfo,
 
 #ifdef BXVD_P_USE_DETERMINE_STRIPE_INFO_REVT0
 
-void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
-                                           uint32_t uiMemPartSize,
-                                           uint32_t uiMemBusWidth,
-                                           uint32_t *puiStripeWidth,
-                                           uint32_t *puiBankHeight);
-
-void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
-                                        uint32_t uiMemPartSize,
-                                        uint32_t uiMemBusWidth,
-                                        uint32_t uiMemDeviceWidth,
-                                        bool     bDDRGroupageEnabled,
-                                        uint32_t *puiStripeWidth,
-                                        uint32_t *puiBankHeight);
-
+#if  BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT
+static void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
+                                                  uint32_t uiMemPartSize,
+                                                  uint32_t uiMemBusWidth,
+                                                  uint32_t uiMemDeviceWidth,
+                                                  bool     bDDRGroupageEnabled,
+                                                  uint32_t *puiStripeWidth,
+                                                  uint32_t *puiBankHeight);
+#else
+static void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
+                                                  uint32_t uiMemPartSize,
+                                                  uint32_t uiMemBusWidth,
+                                                  uint32_t *puiStripeWidth,
+                                                  uint32_t *puiBankHeight);
+#endif
 
 void BXVD_P_DetermineStripeInfo_RevT0( BCHP_DramType ddrType,
                                        uint32_t uiMemPartSize,
@@ -612,11 +613,12 @@ void BXVD_P_DetermineStripeInfo_RevT0( BCHP_DramType ddrType,
 
 #ifdef BXVD_P_USE_INIT_REG_PTRS_REVT0
 
-void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
-                                           uint32_t uiMemPartSize,
-                                           uint32_t uiMemBusWidth,
-                                           uint32_t *puiStripeWidth,
-                                           uint32_t *puiBankHeight)
+#if  !BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT
+static void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
+                                                  uint32_t uiMemPartSize,
+                                                  uint32_t uiMemBusWidth,
+                                                  uint32_t *puiStripeWidth,
+                                                  uint32_t *puiBankHeight)
 {
    /* stripeWidth reg values: 0 - 64, 1 - 128, 2 - 256 bytes */
    switch(ddrType)
@@ -817,14 +819,15 @@ void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
    BDBG_MSG(("PCacheRegVal: 0x%0x", hXvd->uiAVD_PCacheRegVal));
 }
 
-#ifdef BCHP_HEVD_PCACHE_0_PFRI_DEBUG_pfri_grouping_present_MASK
-void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
-                                        uint32_t uiMemPartSize,
-                                        uint32_t uiMemBusWidth,
-                                        uint32_t uiMemDeviceWidth,
-                                        bool     bDDRGroupageEnabled,
-                                        uint32_t *puiStripeWidth,
-                                        uint32_t *puiBankHeight)
+#else /* BCHP_HEVD_PCACHE_0_PFRI_DEBUG_pfri_grouping_present_MASK */
+
+static void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
+                                               uint32_t uiMemPartSize,
+                                               uint32_t uiMemBusWidth,
+                                               uint32_t uiMemDeviceWidth,
+                                               bool     bDDRGroupageEnabled,
+                                               uint32_t *puiStripeWidth,
+                                               uint32_t *puiBankHeight)
 {
    switch(ddrType)
    {

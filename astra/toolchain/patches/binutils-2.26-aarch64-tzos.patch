@@ -1,0 +1,159 @@
+diff -ruN binutils-2.26/bfd/config.bfd binutils-2.26-tzos/bfd/config.bfd
+--- binutils-2.26/bfd/config.bfd	2015-11-13 03:27:40.000000000 -0500
++++ binutils-2.26-tzos/bfd/config.bfd	2016-12-14 22:32:47.988294686 -0500
+@@ -174,6 +174,11 @@
+     targ_selvecs="aarch64_elf64_be_vec aarch64_elf32_le_vec aarch64_elf32_be_vec arm_elf32_le_vec arm_elf32_be_vec"
+     want64=true
+     ;;
++  aarch64-tzos*-* | aarch64-*-tzos* | aarch64-tzos*-*-* | aarch64-*-tzos*-* )
++    targ_defvec=aarch64_elf64_le_vec
++    targ_selvecs="aarch64_elf64_be_vec aarch64_elf32_le_vec aarch64_elf32_be_vec arm_elf32_le_vec arm_elf32_be_vec"
++    want64=true
++    ;;
+   aarch64_be-*-elf)
+     targ_defvec=aarch64_elf64_be_vec
+     targ_selvecs="aarch64_elf64_le_vec aarch64_elf32_le_vec aarch64_elf32_be_vec arm_elf32_be_vec arm_elf32_le_vec"
+diff -ruN binutils-2.26/config.sub binutils-2.26-tzos/config.sub
+--- binutils-2.26/config.sub	2015-11-13 03:27:41.000000000 -0500
++++ binutils-2.26-tzos/config.sub	2016-12-14 22:32:47.988294686 -0500
+@@ -127,6 +127,10 @@
+     os=-linux-android
+     basic_machine=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\1/'`-unknown
+     ;;
++  tzos-newlib* | tzos-musl* | tzos-uclibc* | tzos*)
++  	os=-tzos
++  	basic_machine=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\1/'`
++  	;;
+   *)
+     basic_machine=`echo $1 | sed 's/-[^-]*$//'`
+     if [ $basic_machine != $1 ]
+@@ -1392,6 +1396,7 @@
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+ 	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
++	      | -tzos-newlib* | -tzos-musl* | -tzos-uclibc* | -tzos* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* | -moxiebox* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+ 	      | -openstep* | -oskit* | -conix* | -pw32* | -nonstopux* \
+diff -ruN binutils-2.26/gas/configure.tgt binutils-2.26-tzos/gas/configure.tgt
+--- binutils-2.26/gas/configure.tgt	2015-11-13 03:27:41.000000000 -0500
++++ binutils-2.26-tzos/gas/configure.tgt	2016-12-14 22:32:47.988294686 -0500
+@@ -121,6 +121,8 @@
+ # Note: This table is alpha-sorted, please try to keep it that way.
+ case ${generic_target} in
+   aarch64*-*-elf)			fmt=elf;;
++  aarch64-tzos*-* | aarch64-*-tzos* | aarch64-tzos*-*-* | aarch64-*-tzos*-*)
++					fmt=elf ;;
+   aarch64*-*-linux*)			fmt=elf em=linux ;;
+ 
+   alpha-*-*vms*)			fmt=evax ;;
+diff -ruN binutils-2.26/ld/configure.tgt binutils-2.26-tzos/ld/configure.tgt
+--- binutils-2.26/ld/configure.tgt	2015-11-13 03:27:42.000000000 -0500
++++ binutils-2.26-tzos/ld/configure.tgt	2016-12-14 22:32:47.988294686 -0500
+@@ -49,6 +49,9 @@
+ 			targ_extra_emuls="aarch64elf aarch64elf32 aarch64elf32b armelfb armelf" ;;
+ aarch64-*-elf)		targ_emul=aarch64elf
+ 			targ_extra_emuls="aarch64elf32 aarch64elf32b aarch64elfb armelf armelfb" ;;
++aarch64-tzos*-* | aarch64-*-tzos* | aarch64-tzos*-*-* | aarch64-*-tzos*-*)
++		    targ_emul=aarch64tzos
++			targ_extra_emuls="aarch64elf aarch64elfb aarch64elf32 aarch64elf32b armelf armelfb" ;;
+ aarch64-*-cloudabi*)	targ_emul=aarch64cloudabi
+ 			targ_extra_emuls=aarch64cloudabib ;;
+ aarch64-*-freebsd*)	targ_emul=aarch64fbsd
+diff -ruN binutils-2.26/ld/emulparams/aarch64tzos.sh binutils-2.26-tzos/ld/emulparams/aarch64tzos.sh
+--- binutils-2.26/ld/emulparams/aarch64tzos.sh	1969-12-31 19:00:00.000000000 -0500
++++ binutils-2.26-tzos/ld/emulparams/aarch64tzos.sh	2016-12-14 22:32:47.988294686 -0500
+@@ -0,0 +1,40 @@
++ARCH=aarch64
++MACHINE=
++NOP=0
++
++SCRIPT_NAME=elf
++ELFSIZE=64
++OUTPUT_FORMAT="elf64-littleaarch64"
++BIG_OUTPUT_FORMAT="elf64-bigaarch64"
++LITTLE_OUTPUT_FORMAT="elf64-littleaarch64"
++NO_REL_RELOCS=yes
++
++TEMPLATE_NAME=elf32
++EXTRA_EM_FILE=aarch64elf
++
++GENERATE_SHLIB_SCRIPT=yes
++GENERATE_PIE_SCRIPT=yes
++
++MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
++COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
++
++ENTRY=_start
++EMBEDDED= # This gets us program headers mapped as part of the text segment.
++SEPARATE_GOTPLT=24
++IREL_IN_PLT=
++
++TEXT_START_ADDR=0x400000
++
++DATA_START_SYMBOLS='PROVIDE (__data_start = .);';
++
++# AArch64 does not support .s* sections.
++NO_SMALL_DATA=yes
++
++OTHER_BSS_SYMBOLS='__bss_start__ = .;'
++OTHER_BSS_END_SYMBOLS='_bss_end__ = . ; __bss_end__ = . ;'
++OTHER_END_SYMBOLS='__end__ = . ;'
++
++OTHER_SECTIONS='.note.gnu.arm.ident 0 : { KEEP (*(.note.gnu.arm.ident)) }'
++ATTRS_SECTIONS='.ARM.attributes 0 : { KEEP (*(.ARM.attributes)) KEEP (*(.gnu.attributes)) }'
++# Ensure each PLT entry is aligned to a cache line.
++PLT=".plt          ${RELOCATING-0} : ALIGN(16) { *(.plt)${IREL_IN_PLT+ *(.iplt)} }"
+diff -ruN binutils-2.26/ld/Makefile.am binutils-2.26-tzos/ld/Makefile.am
+--- binutils-2.26/ld/Makefile.am	2015-11-13 03:27:42.000000000 -0500
++++ binutils-2.26-tzos/ld/Makefile.am	2016-12-14 22:32:47.988294686 -0500
+@@ -435,6 +435,7 @@
+ 	eaarch64elf32.c \
+ 	eaarch64elfb.c \
+ 	eaarch64elf32b.c \
++	eaarch64tzos.c \
+ 	eaarch64cloudabi.c \
+ 	eaarch64cloudabib.c \
+ 	eaarch64fbsd.c \
+@@ -1620,6 +1621,10 @@
+   $(ELF_DEPS) $(srcdir)/emultempl/aarch64elf.em \
+   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+ 
++eaarch64tzos.c: $(srcdir)/emulparams/aarch64tzos.sh \
++  $(ELF_DEPS) $(srcdir)/emultempl/aarch64elf.em \
++  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++
+ eaarch64cloudabi.c: $(srcdir)/emulparams/aarch64cloudabi.sh \
+   $(ELF_DEPS) $(srcdir)/emultempl/aarch64elf.em \
+   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+diff -ruN binutils-2.26/ld/Makefile.in binutils-2.26-tzos/ld/Makefile.in
+--- binutils-2.26/ld/Makefile.in	2015-11-13 03:27:42.000000000 -0500
++++ binutils-2.26-tzos/ld/Makefile.in	2016-12-14 23:13:38.048443878 -0500
+@@ -764,6 +764,7 @@
+ 	eaarch64elf32.c \
+ 	eaarch64elfb.c \
+ 	eaarch64elf32b.c \
++	eaarch64tzos.c \
+ 	eaarch64cloudabi.c \
+ 	eaarch64cloudabib.c \
+ 	eaarch64fbsd.c \
+@@ -1106,6 +1107,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaarch64linux32.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaarch64linux32b.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaarch64linuxb.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaarch64tzos.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaix5ppc.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaix5rs6.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaixppc.Po@am__quote@
+@@ -3126,7 +3128,11 @@
+   $(ELF_DEPS) $(srcdir)/emultempl/aarch64elf.em \
+   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+ 
++eaarch64tzos.c: $(srcdir)/emulparams/aarch64tzos.sh \
++  $(ELF_DEPS) $(srcdir)/emultempl/aarch64elf.em \
++  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++
+ eaarch64cloudabi.c: $(srcdir)/emulparams/aarch64cloudabi.sh \
+   $(ELF_DEPS) $(srcdir)/emultempl/aarch64elf.em \
+   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+ 

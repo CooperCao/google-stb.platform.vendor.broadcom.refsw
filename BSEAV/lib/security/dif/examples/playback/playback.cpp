@@ -648,8 +648,12 @@ static void setup_gui()
     unsigned num_columns, num_rows;
     NxClient_AllocSettings allocSettings;
     NEXUS_SurfaceRegion virtualDisplay = {1280, 720};
+    struct bgui_settings gui_settings;
 
-    s_app.gui = bgui_create(virtualDisplay.width, virtualDisplay.height);
+    bgui_get_default_settings(&gui_settings);
+    gui_settings.width = virtualDisplay.width;
+    gui_settings.height = virtualDisplay.height;
+    s_app.gui = bgui_create(&gui_settings);
 
     num_columns = (s_app.num_mosaics + 1) / 2;
     num_rows = (s_app.num_mosaics == 1) ? 1 : 2;
@@ -994,7 +998,7 @@ static void setup_decryptors()
 
         // New API - initializing Decryptor
         psshDataStr = s_app.parser[i]->GetPssh();
-        dump_hex("pssh", psshDataStr.data(), psshDataStr.size());
+        dump_hex("pssh", psshDataStr.data(), psshDataStr.size(), true);
         if (!s_app.decryptor[i]->Initialize(psshDataStr)) {
             LOGE(("Failed to initialize Decryptor"));
             exit(EXIT_FAILURE);
@@ -1002,7 +1006,7 @@ static void setup_decryptors()
 
         // New API - GenerateKeyRequest
         cpsSpecificData = s_app.parser[i]->GetCpsSpecificData();
-        dump_hex("cpsSpecificData", cpsSpecificData.data(), cpsSpecificData.size());
+        dump_hex("cpsSpecificData", cpsSpecificData.data(), cpsSpecificData.size(), true);
         if (!s_app.decryptor[i]->GenerateKeyRequest(cpsSpecificData)) {
             LOGE(("Failed to generate key request"));
             exit(EXIT_FAILURE);

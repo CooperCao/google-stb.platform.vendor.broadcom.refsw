@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bhdm.h"
@@ -43,6 +42,123 @@
 
 BDBG_MODULE(BHDM_PACKET_AVI) ;
 
+
+/******************************************************************************
+Summary:
+Set/Enable the Auxillary Video Information Info frame to be sent to the HDMI Rx
+*******************************************************************************/
+void BHDM_DisplayAVIInfoFramePacket(
+   const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
+   BAVC_HDMI_AviInfoFrame *pstAviInfoFrame
+)
+{
+#if BDBG_DEBUG_BUILD
+/*
+		Y0, Y1
+			RGB or YCBCR indicator. See EIA/CEA-861B table 8 for details.
+		A0
+			Active Information Present. Indicates whether field R0..R3 is valid.
+			See EIA/CEA-861B table 8 for details.
+		B0, B1
+			Bar Info data valid. See EIA/CEA-861B table 8 for details.
+		S0, S1
+			Scan Information (i.e. overscan, underscan). See EIA/CEA-861B table 8
+		C0, C1
+			Colorimetry (ITU BT.601, BT.709 etc.). See EIA/CEA-861B table 9
+		M0, M1
+			Picture Aspect Ratio (4:3, 16:9). See EIA/CEA-861B table 9
+		R0.R3
+			Active Format Aspect Ratio. See EIA/CEA-861B table 10 and Annex H
+		VIC0..VIC6
+			Video Format Identification Code. See EIA/CEA-861B table 13
+		PR0..PR3
+			Pixel Repetition factor. See EIA/CEA-861B table 14
+		SC1, SC0
+			Non-uniform Picture Scaling. See EIA/CEA-861B table 11
+		EC2..EC0
+			Extended Colorimetry. See EIA/CEA-861D tables 7 & 11
+*/
+
+	BDBG_LOG(("*** AVI INFOFRAME")) ;
+
+	/* display original bOverrideDefaults setting */
+	BDBG_LOG(("Tx%d: Override Default: %s",
+		hHDMI->eCoreId, pstAviInfoFrame->bOverrideDefaults ? "Yes" : "No"));
+
+	BDBG_LOG(("Tx%d: (Y1Y0)     ColorSpace (%d): %s", hHDMI->eCoreId,
+		pstAviInfoFrame->ePixelEncoding,
+		BAVC_HDMI_AviInfoFrame_ColorspaceToStr_isrsafe(pstAviInfoFrame->ePixelEncoding)));
+	BDBG_LOG(("Tx%d: (A0)       Active Info (%d): %s ", hHDMI->eCoreId,
+		pstAviInfoFrame->eActiveInfo, BAVC_HDMI_AviInfoFrame_ActiveFormatToStr(pstAviInfoFrame->eActiveInfo)));
+	BDBG_LOG(("Tx%d: (B1B0)     Bar Info (%d): %s ", hHDMI->eCoreId,
+		pstAviInfoFrame->eBarInfo, BAVC_HDMI_AviInfoFrame_BarInfoToStr(pstAviInfoFrame->eBarInfo)));
+	BDBG_LOG(("Tx%d: (S1S0)     Scan Info (%d): %s", hHDMI->eCoreId,
+		pstAviInfoFrame->eScanInfo, BAVC_HDMI_AviInfoFrame_ScanInfoToStr(pstAviInfoFrame->eScanInfo))) ;
+
+	BDBG_LOG(("Tx%d: (C1C0)     Colorimetry (%d): %s", hHDMI->eCoreId,
+		pstAviInfoFrame->eColorimetry,
+		BAVC_HDMI_AviInfoFrame_ColorimetryToStr(pstAviInfoFrame->eColorimetry))) ;
+
+#if BHDM_CONFIG_HDMI_1_3_SUPPORT
+	if (pstAviInfoFrame->eColorimetry == BAVC_HDMI_AviInfoFrame_Colorimetry_eExtended)
+	{
+		BDBG_LOG(("Tx%d: (EC2..EC0) Extended Colorimetry (%d): %s", hHDMI->eCoreId,
+			pstAviInfoFrame->eExtendedColorimetry,
+			BAVC_HDMI_AviInfoFrame_ExtendedColorimetryToStr(pstAviInfoFrame->eExtendedColorimetry))) ;
+	}
+	else
+	{
+		BDBG_LOG(("Tx%d: (EC2..EC0) Extended Colorimetry Info Invalid", hHDMI->eCoreId)) ;
+	}
+#endif
+
+
+	BDBG_LOG(("Tx%d: (M1M0)     Picture AR (%d): %s", hHDMI->eCoreId,
+		pstAviInfoFrame->ePictureAspectRatio,
+		BAVC_HDMI_AviInfoFrame_PictureAspectRatioToStr(pstAviInfoFrame->ePictureAspectRatio))) ;
+
+	if ((pstAviInfoFrame->eActiveFormatAspectRatio >= 8)
+	&&	(pstAviInfoFrame->eActiveFormatAspectRatio <= 11))
+		BDBG_LOG(("Tx%d: (R3..R0)   Active Format AR (%d): %s", hHDMI->eCoreId,
+			pstAviInfoFrame->eActiveFormatAspectRatio,
+			BAVC_HDMI_AviInfoFrame_ActiveFormatAspectRatioToStr(pstAviInfoFrame->eActiveFormatAspectRatio - 8))) ;
+	else if  ((pstAviInfoFrame->eActiveFormatAspectRatio > 12)
+	&&	(pstAviInfoFrame->eActiveFormatAspectRatio <= 15))
+		BDBG_LOG(("Tx%d: (R3..R0)   Active Format AR (%d): %s", hHDMI->eCoreId,
+			pstAviInfoFrame->eActiveFormatAspectRatio,
+			BAVC_HDMI_AviInfoFrame_ActiveFormatAspectRatioToStr(pstAviInfoFrame->eActiveFormatAspectRatio - 9))) ;
+	else
+		BDBG_LOG(("Tx%d: Active Format AR (%d): Other", hHDMI->eCoreId,
+			pstAviInfoFrame->eActiveFormatAspectRatio)) ;
+
+	BDBG_LOG(("Tx%d: (SC1SC0)   Picture Scaling (%d): %s ", hHDMI->eCoreId,
+		pstAviInfoFrame->eScaling, BAVC_HDMI_AviInfoFrame_ScalingToStr(pstAviInfoFrame->eScaling))) ;
+
+	BDBG_LOG(("Tx%d: (VIC6..0)  Video ID Code = %d", hHDMI->eCoreId, pstAviInfoFrame->VideoIdCode )) ;
+	BDBG_LOG(("Tx%d: (PR3..PR0) Pixel Repeat: %d", hHDMI->eCoreId, pstAviInfoFrame->PixelRepeat)) ;
+
+#if BHDM_CONFIG_HDMI_1_3_SUPPORT
+	BDBG_LOG(("Tx%d: (ITC)      IT Content (%d): %s", hHDMI->eCoreId, pstAviInfoFrame->eITContent,
+		BAVC_HDMI_AviInfoFrame_ITContentToStr(pstAviInfoFrame->eITContent)));
+	BDBG_LOG(("Tx%d: (CN1CN0)   IT Content Type (%d): %s", hHDMI->eCoreId, pstAviInfoFrame->eContentType,
+		BAVC_HDMI_AviInfoFrame_ContentTypeToStr(pstAviInfoFrame->eContentType)));
+	BDBG_LOG(("Tx%d: (Q1Q0)     RGB Quantization Range (%d): %s", hHDMI->eCoreId, pstAviInfoFrame->eRGBQuantizationRange,
+		BAVC_HDMI_AviInfoFrame_RGBQuantizationRangeToStr(pstAviInfoFrame->eRGBQuantizationRange)));
+	BDBG_LOG(("Tx%d: (YQ1YQ0)   Ycc Quantization Range (%d): %s", hHDMI->eCoreId, pstAviInfoFrame->eYccQuantizationRange,
+		BAVC_HDMI_AviInfoFrame_YccQuantizationRangeToStr(pstAviInfoFrame->eYccQuantizationRange)));
+#endif
+
+	BDBG_LOG(("Tx%d: Top Bar End Line Number:     %d", hHDMI->eCoreId, pstAviInfoFrame->TopBarEndLineNumber)) ;
+	BDBG_LOG(("Tx%d: Bottom Bar Stop Line Number: %d", hHDMI->eCoreId, pstAviInfoFrame->BottomBarStartLineNumber)) ;
+
+	BDBG_LOG(("Tx%d: Left Bar End Pixel Number:   %d", hHDMI->eCoreId, pstAviInfoFrame->LeftBarEndPixelNumber )) ;
+	BDBG_LOG(("Tx%d: Right Bar End Pixel Number:  %d", hHDMI->eCoreId, pstAviInfoFrame->RightBarEndPixelNumber )) ;
+	BDBG_LOG((" ")) ;
+#else
+	BSTD_UNUSED(hHDMI) ;
+	BSTD_UNUSED(pstAviInfoFrame) ;
+#endif
+}
 
 
 /******************************************************************************
@@ -87,7 +203,6 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 	PacketVersion = BAVC_HDMI_PacketType_AviInfoFrameVersion ;
 	PacketLength  = 13 ;
 
-
 	/* Override AVI infoFrame info. Use settings from the AVI InfoFrame passed in */
 	if (stAviInfoFrame->bOverrideDefaults)
 	{
@@ -100,6 +215,8 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 #if BHDM_CONFIG_HDMI_1_3_SUPPORT
 		if (stAviInfoFrame->eColorimetry == BAVC_HDMI_AviInfoFrame_Colorimetry_eExtended)
 			EC2EC1EC0 = stAviInfoFrame->eExtendedColorimetry ;
+        newAviInfoFrame.eRGBQuantizationRange = stAviInfoFrame->eRGBQuantizationRange ;
+        newAviInfoFrame.eYccQuantizationRange = stAviInfoFrame->eYccQuantizationRange ;
 #endif
 		/* Picture Aspect Ratio*/
 		M1M0 = stAviInfoFrame->ePictureAspectRatio;
@@ -128,16 +245,6 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
  #endif
 			break ;
 		}
-
-#if BHDM_CONFIG_MHL_SUPPORT
-		if (hHDMI->bMhlMode &&
-			(hHDMI->DeviceSettings.eInputVideoFmt == BFMT_VideoFmt_e1080p ||
-			 hHDMI->DeviceSettings.eInputVideoFmt == BFMT_VideoFmt_e1080p_50Hz))
-		{
-			BDBG_MSG(("Forcing 1080p 444 to 422 in MHL mode."));
-			Y1Y0 =  BAVC_HDMI_AviInfoFrame_Colorspace_eYCbCr422 ;
-		}
-#endif
 
 #if BHDM_CONFIG_HDMI_1_3_SUPPORT
 		/* Set RGB or YCrCb Quantization Range (Limited vs Full) */
@@ -373,6 +480,8 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 	/* so subsequent calls to Get/Set AVI do not force override of settings */
 	/* all overrides must be explicitly forced by the caller */
 	newAviInfoFrame.bOverrideDefaults = false ;
+/* BANDREWS - need overrides to be remembered, because user is not the only caller */
+	newAviInfoFrame.bOverrideDefaults = stAviInfoFrame->bOverrideDefaults ;
 
 	/* Construct AVI InfoFrame pay loads */
 	hHDMI->PacketBytes[1] =
@@ -431,132 +540,21 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 	BKNI_Memcpy(&(hHDMI->DeviceSettings.stAviInfoFrame), &newAviInfoFrame,
 		sizeof(BAVC_HDMI_AviInfoFrame)) ;
 
+
 #if BDBG_DEBUG_BUILD
-	BDBG_MSG(("Tx%d: (Y1Y0)     ColorSpace (%d): %s", hHDMI->eCoreId,
-		newAviInfoFrame.ePixelEncoding,
-		BAVC_HDMI_AviInfoFrame_ColorspaceToStr_isrsafe(newAviInfoFrame.ePixelEncoding)));
-	BDBG_MSG(("Tx%d: (C1C0)     Colorimetry (%d): %s", hHDMI->eCoreId,
-		newAviInfoFrame.eColorimetry,
-		BAVC_HDMI_AviInfoFrame_ColorimetryToStr(newAviInfoFrame.eColorimetry))) ;
-
-
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
-	if (newAviInfoFrame.eColorimetry == BAVC_HDMI_AviInfoFrame_Colorimetry_eExtended)
 	{
-		BDBG_MSG(("Tx%d: Extended Colorimetry (%d): %s", hHDMI->eCoreId,
-			newAviInfoFrame.eExtendedColorimetry,
-			BAVC_HDMI_AviInfoFrame_ExtendedColorimetryToStr(newAviInfoFrame.eExtendedColorimetry))) ;
-	}
-	else
-	{
-		BDBG_MSG(("Tx%d: Extended Colorimetry Info Invalid", hHDMI->eCoreId)) ;
+		BDBG_Level level ;
+
+		BDBG_GetModuleLevel("BHDM_PACKET_AVI", &level) ;
+		if (level == BDBG_eMsg)
+		{
+			BDBG_LOG(("Tx%d: AVI Packet Type: 0x%02x  Version %d  Length: %d",
+				hHDMI->eCoreId, PacketType, PacketVersion, PacketLength)) ;
+
+			BHDM_DisplayAVIInfoFramePacket( hHDMI, &newAviInfoFrame) ;
+		}
 	}
 #endif
-#endif
-/*
-		Y0, Y1
-			RGB or YCBCR indicator. See EIA/CEA-861B table 8 for details.
-		A0
-			Active Information Present. Indicates whether field R0..R3 is valid.
-			See EIA/CEA-861B table 8 for details.
-		B0, B1
-			Bar Info data valid. See EIA/CEA-861B table 8 for details.
-		S0, S1
-			Scan Information (i.e. overscan, underscan). See EIA/CEA-861B table 8
-		C0, C1
-			Colorimetry (ITU BT.601, BT.709 etc.). See EIA/CEA-861B table 9
-		M0, M1
-			Picture Aspect Ratio (4:3, 16:9). See EIA/CEA-861B table 9
-		R0.R3
-			Active Format Aspect Ratio. See EIA/CEA-861B table 10 and Annex H
-		VIC0..VIC6
-			Video Format Identification Code. See EIA/CEA-861B table 13
-		PR0..PR3
-			Pixel Repetition factor. See EIA/CEA-861B table 14
-		SC1, SC0
-			Non-uniform Picture Scaling. See EIA/CEA-861B table 11
-		EC2..EC0
-			Extended Colorimetry. See EIA/CEA-861D tables 7 & 11
-*/
-
-	BDBG_MSG(("-------------------- NEW  AVI INFOFRAME -------------------")) ;
-	BDBG_MSG(("Tx%d: Packet Type: 0x%02x  Version %d  Length: %d",
-		hHDMI->eCoreId, PacketType, PacketVersion, PacketLength)) ;
-
-	/* display original bOverrideDefaults setting */
-	BDBG_MSG(("Tx%d: Override Default: %s",
-		hHDMI->eCoreId, stAviInfoFrame->bOverrideDefaults ? "Yes" : "No"));
-
-	BDBG_MSG(("Tx%d: (Y1Y0)     ColorSpace (%d): %s", hHDMI->eCoreId,
-		newAviInfoFrame.ePixelEncoding,
-		BAVC_HDMI_AviInfoFrame_ColorspaceToStr_isrsafe(newAviInfoFrame.ePixelEncoding)));
-	BDBG_MSG(("Tx%d: (A0)       Active Info (%d): %s ", hHDMI->eCoreId,
-		newAviInfoFrame.eActiveInfo, BAVC_HDMI_AviInfoFrame_ActiveFormatToStr(newAviInfoFrame.eActiveInfo)));
-	BDBG_MSG(("Tx%d: (B1B0)     Bar Info (%d): %s ", hHDMI->eCoreId,
-		newAviInfoFrame.eBarInfo, BAVC_HDMI_AviInfoFrame_BarInfoToStr(newAviInfoFrame.eBarInfo)));
-	BDBG_MSG(("Tx%d: (S1S0)     Scan Info (%d): %s", hHDMI->eCoreId,
-		newAviInfoFrame.eScanInfo, BAVC_HDMI_AviInfoFrame_ScanInfoToStr(newAviInfoFrame.eScanInfo))) ;
-
-	BDBG_MSG(("Tx%d: (C1C0)     Colorimetry (%d): %s", hHDMI->eCoreId,
-		newAviInfoFrame.eColorimetry,
-		BAVC_HDMI_AviInfoFrame_ColorimetryToStr(newAviInfoFrame.eColorimetry))) ;
-
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
-	if (newAviInfoFrame.eColorimetry == BAVC_HDMI_AviInfoFrame_Colorimetry_eExtended)
-	{
-		BDBG_MSG(("Tx%d: (EC2..EC0) Extended Colorimetry (%d): %s", hHDMI->eCoreId,
-			newAviInfoFrame.eExtendedColorimetry,
-			BAVC_HDMI_AviInfoFrame_ExtendedColorimetryToStr(newAviInfoFrame.eExtendedColorimetry))) ;
-	}
-	else
-	{
-		BDBG_MSG(("Tx%d: (EC2..EC0) Extended Colorimetry Info Invalid", hHDMI->eCoreId)) ;
-	}
-#endif
-
-
-	BDBG_MSG(("Tx%d: (M1M0)     Picture AR (%d): %s", hHDMI->eCoreId,
-		newAviInfoFrame.ePictureAspectRatio,
-		BAVC_HDMI_AviInfoFrame_PictureAspectRatioToStr(newAviInfoFrame.ePictureAspectRatio))) ;
-
-	if ((newAviInfoFrame.eActiveFormatAspectRatio >= 8)
-	&&	(newAviInfoFrame.eActiveFormatAspectRatio <= 11))
-		BDBG_MSG(("Tx%d: (R3..R0)   Active Format AR (%d): %s", hHDMI->eCoreId,
-			newAviInfoFrame.eActiveFormatAspectRatio,
-			BAVC_HDMI_AviInfoFrame_ActiveFormatAspectRatioToStr(newAviInfoFrame.eActiveFormatAspectRatio - 8))) ;
-	else if  ((newAviInfoFrame.eActiveFormatAspectRatio > 12)
-	&&	(newAviInfoFrame.eActiveFormatAspectRatio <= 15))
-		BDBG_MSG(("Tx%d: (R3..R0)   Active Format AR (%d): %s", hHDMI->eCoreId,
-			newAviInfoFrame.eActiveFormatAspectRatio,
-			BAVC_HDMI_AviInfoFrame_ActiveFormatAspectRatioToStr(newAviInfoFrame.eActiveFormatAspectRatio - 9))) ;
-	else
-		BDBG_MSG(("Tx%d: Active Format AR (%d): Other", hHDMI->eCoreId,
-			newAviInfoFrame.eActiveFormatAspectRatio)) ;
-
-	BDBG_MSG(("Tx%d: (SC1SC0)   Picture Scaling (%d): %s ", hHDMI->eCoreId,
-		newAviInfoFrame.eScaling, BAVC_HDMI_AviInfoFrame_ScalingToStr(newAviInfoFrame.eScaling))) ;
-
-	BDBG_MSG(("Tx%d: (VIC6..0)  Video ID Code = %d", hHDMI->eCoreId, newAviInfoFrame.VideoIdCode )) ;
-	BDBG_MSG(("Tx%d: (PR3..PR0) Pixel Repeat: %d", hHDMI->eCoreId, newAviInfoFrame.PixelRepeat)) ;
-
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
-	BDBG_MSG(("Tx%d: (ITC)      IT Content (%d): %s", hHDMI->eCoreId, newAviInfoFrame.eITContent,
-		BAVC_HDMI_AviInfoFrame_ITContentToStr(newAviInfoFrame.eITContent)));
-	BDBG_MSG(("Tx%d: (CN1CN0)   IT Content Type (%d): %s", hHDMI->eCoreId, newAviInfoFrame.eContentType,
-		BAVC_HDMI_AviInfoFrame_ContentTypeToStr(newAviInfoFrame.eContentType)));
-	BDBG_MSG(("Tx%d: (Q1Q0)     RGB Quantization Range (%d): %s", hHDMI->eCoreId, newAviInfoFrame.eRGBQuantizationRange,
-		BAVC_HDMI_AviInfoFrame_RGBQuantizationRangeToStr(newAviInfoFrame.eRGBQuantizationRange)));
-	BDBG_MSG(("Tx%d: (YQ1YQ0)   Ycc Quantization Range (%d): %s", hHDMI->eCoreId, newAviInfoFrame.eYccQuantizationRange,
-		BAVC_HDMI_AviInfoFrame_YccQuantizationRangeToStr(newAviInfoFrame.eYccQuantizationRange)));
-#endif
-
-	BDBG_MSG(("Tx%d: Top Bar End Line Number:     %d", hHDMI->eCoreId, newAviInfoFrame.TopBarEndLineNumber)) ;
-	BDBG_MSG(("Tx%d: Bottom Bar Stop Line Number: %d", hHDMI->eCoreId, newAviInfoFrame.BottomBarStartLineNumber)) ;
-
-	BDBG_MSG(("Tx%d: Left Bar End Pixel Number:   %d", hHDMI->eCoreId, newAviInfoFrame.LeftBarEndPixelNumber )) ;
-	BDBG_MSG(("Tx%d: Right Bar End Pixel Number:  %d", hHDMI->eCoreId, newAviInfoFrame.RightBarEndPixelNumber )) ;
-	BDBG_MSG(("--------------------- END AVI INFOFRAME ---------------------")) ;
-
 
 	return rc ;
 }

@@ -254,7 +254,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eUdcDecode */
 		{
 			0x00000a51,
-			0x00000aa9,
+			0x00000aa8,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDolbyAacheDecode */
@@ -278,7 +278,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
 		{
 			0x00000da1,
-			0x00000e75,
+			0x00000e7a,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
@@ -957,6 +957,12 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		{
 			0x00000d8a,
 			0x00000d8b,
+			0x00000000,
+		},
+		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
+		{
+			0x00000ea7,
+			0x00000eaa,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfPpAlgos */

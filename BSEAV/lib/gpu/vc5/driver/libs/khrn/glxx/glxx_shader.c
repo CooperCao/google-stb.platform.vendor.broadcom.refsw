@@ -5,9 +5,18 @@
 #include "../glsl/glsl_backend_uniforms.h"
 #include "glxx_shader.h"
 #include "glxx_server.h"
+#include "libs/khrn/common/khrn_mem.h"
 #include "libs/core/v3d/v3d_shadrec.h"
 #include "libs/util/gfx_util/gfx_util.h"
 #include "vcos_types.h"
+
+typedef struct glxx_shader_ubo_load_batch_tmp
+{
+   uint32_t index;      // UBO index.
+   uint32_t load_end;   // End of loads from this UBO.
+   uint16_t range_start;
+   uint16_t range_end;
+} glxx_shader_ubo_load_batch_tmp;
 
 static inline size_t compute_array_offset_fn(size_t* cur_offset, size_t alignof_type, size_t sizeof_type, size_t count)
 {
@@ -17,89 +26,105 @@ static inline size_t compute_array_offset_fn(size_t* cur_offset, size_t alignof_
 }
 
 #define compute_array_offset(cur_offset, type, count)\
-   compute_array_offset_fn(cur_offset, vcos_alignof(type), sizeof(type), count)
+   compute_array_offset_fn(cur_offset, align_of(type), sizeof(type), count)
 
-static GLXX_UNIFORM_MAP_T *format_uniform_map(uint32_t *uniform_map,
-                                              size_t    uniform_count)
+static GLXX_UNIFORM_MAP_T *format_uniform_map(umap_entry *uniform_map,
+                                              size_t      uniform_count)
 {
    GLXX_UNIFORM_MAP_T* ret = NULL;
-   unsigned num_immediates;
-
-   unsigned num_buffers = 0;
-   glxx_ustream_buffer buffers[GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS];
-   uint8_t buffer_map[GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS];
+   unsigned num_generals;
+   unsigned num_batches = 0;
+   glxx_shader_ubo_load_batch_tmp batches[GLXX_SHADER_MAX_UNIFORM_BUFFERS];
+   uint8_t buffer_map[GLXX_SHADER_MAX_UNIFORM_BUFFERS];
    memset(buffer_map, 0xff, sizeof(buffer_map));
 
    for (unsigned pass2 = 0; pass2 <= 1; ++pass2)
    {
-      unsigned immediate_seek = 0;
-      unsigned num_fetches = 0;
-      num_immediates = 0;
+      unsigned general_seek = 0;
+      unsigned num_loads = 0;
+      num_generals = 0;
 
       for (unsigned i = 0; i != uniform_count; ++i)
       {
-         const BackendUniformFlavour type  = uniform_map[i*2 + 0];
-         const uint32_t              value = uniform_map[i*2 + 1];
+         const BackendUniformFlavour type  = uniform_map[i].type;
+         const uint32_t              value = uniform_map[i].value;
 
-         if (type == BACKEND_UNIFORM_UBO_LOAD)
+         uint32_t binding = ~0u;
+         uint32_t offset = 0;
+         switch (type)
          {
-            uint32_t binding = value & gfx_mask(5);
-            uint32_t offset = value >> 5;
+         case BACKEND_UNIFORM_UBO_LOAD:
+            binding = value & gfx_mask(5);
+            offset = value >> 5;
             assert(binding < GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS);
             assert(offset <= GLXX_CONFIG_MAX_UNIFORM_BLOCK_SIZE-sizeof(uint32_t));
             assert(!(offset & 3)); // 4 byte alignment
+            break;
+         case BACKEND_UNIFORM_SPECIAL:
+            if (value >= BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_X && value <= BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_Z)
+            {
+               binding = GLXX_SHADER_COMPUTE_INDIRECT_BUFFER;
+               offset = sizeof(uint32_t)*(value - BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_X);
+               break;
+            }
+            // fallthrough
+         default:
+            break;
+         }
 
+         if (binding != ~0u)
+         {
             // Find local buffer index.
             if (buffer_map[binding] == 0xff)
             {
-               // Create buffer entry if not found.
+               // Create new batch for this buffer if not found.
                assert(!pass2);
-               buffer_map[binding] = num_buffers;
-               buffers[num_buffers].index = binding;
-               buffers[num_buffers].fetch_end = 0;
-               buffers[num_buffers].range_start = 0xffff;
-               buffers[num_buffers].range_end = 0;
-               num_buffers += 1;
+               buffer_map[binding] = num_batches;
+               batches[num_batches].index = binding;
+               batches[num_batches].load_end = 0;
+               batches[num_batches].range_start = 0xffff;
+               batches[num_batches].range_end = 0;
+               num_batches += 1;
             }
 
-            // Create fetch entry.
-            glxx_ustream_buffer* buffer = &buffers[buffer_map[binding]];
+            // Create load entry.
+            glxx_shader_ubo_load_batch_tmp* batch = &batches[buffer_map[binding]];
             if (!pass2)
             {
-               buffer->range_start = gfx_umin(buffer->range_start, offset);
-               buffer->range_end = gfx_umax(buffer->range_end, offset + sizeof(uint32_t));
+               batch->range_start = gfx_umin(batch->range_start, offset);
+               batch->range_end = gfx_umax(batch->range_end, offset + sizeof(uint32_t));
             }
             else
             {
-               uint32_t word_offset = gfx_udiv_exactly(offset - buffer->range_start, sizeof(uint32_t));
-               ret->fetches[buffer->fetch_end].dst20_src12 = gfx_bits(i, 20) << 12
-                                                           | gfx_bits(word_offset, 12);
+               uint32_t word_offset = gfx_udiv_exactly(offset - batch->range_start, sizeof(uint32_t));
+               ret->ubo_loads[batch->load_end].dst20_src12 = gfx_bits(i, 20) << 12
+                                                             | gfx_bits(word_offset, 12);
             }
-            buffer->fetch_end += 1;
-            immediate_seek += 1;
-            num_fetches += 1;
+            batch->load_end += 1;
+            general_seek += 1;
+            num_loads += 1;
          }
          else
          {
             // Repurpose BACKEND_UNIFORM_UBO_LOAD entry to seek forward the write pointer.
-            if (immediate_seek)
+            if (general_seek)
             {
                if (pass2)
                {
-                  ret->immediates[num_immediates].type = BACKEND_UNIFORM_UBO_LOAD;
-                  ret->immediates[num_immediates].value = immediate_seek;
+                  ret->general_uniforms[num_generals].type = BACKEND_UNIFORM_UBO_LOAD;
+                  ret->general_uniforms[num_generals].value = general_seek;
                }
-               num_immediates += 1;
-               immediate_seek = 0;
+               num_generals += 1;
+               general_seek = 0;
             }
 
-            // Write the immediate.
+            // Write the general uniform.
             if (pass2)
             {
-               ret->immediates[num_immediates].type = type;
-               ret->immediates[num_immediates].value = value;
+               ret->general_uniforms[num_generals].type = type;
+               ret->general_uniforms[num_generals].value = value;
             }
-            num_immediates += 1;
+            num_generals += 1;
          }
       }
 
@@ -109,37 +134,37 @@ static GLXX_UNIFORM_MAP_T *format_uniform_map(uint32_t *uniform_map,
 
       // Compute size of uniform map, and offsets of all arrays.
       size_t size = sizeof(GLXX_UNIFORM_MAP_T);
-      size_t offsetof_immediates = compute_array_offset(&size, glxx_ustream_immediate, num_immediates);
-      size_t offsetof_buffers    = compute_array_offset(&size, glxx_ustream_buffer, num_buffers);
-      size_t offsetof_fetches    = compute_array_offset(&size, glxx_ustream_fetch, num_fetches);
+      size_t offsetof_generals = compute_array_offset(&size, glxx_shader_general_uniform, num_generals);
+      size_t offsetof_batches  = compute_array_offset(&size, glxx_shader_ubo_load_batch, num_batches);
+      size_t offsetof_loads    = compute_array_offset(&size, glxx_shader_ubo_load, num_loads);
 
       // Allocate memory and initialise pointers and constants.
-      char* ret_ptr = (char*)malloc(size);
+      char* ret_ptr = (char*)khrn_mem_alloc(size, "GLXX_UNIFORM_MAP_T");
       if (!ret_ptr)
          return NULL;
       ret = (GLXX_UNIFORM_MAP_T*)ret_ptr;
-      ret->immediates = (glxx_ustream_immediate*)(ret_ptr + offsetof_immediates);
-      ret->buffers = (glxx_ustream_buffer*)(ret_ptr + offsetof_buffers);
-      ret->fetches = (glxx_ustream_fetch*)(ret_ptr + offsetof_fetches);
+      ret->general_uniforms = (glxx_shader_general_uniform*)(ret_ptr + offsetof_generals);
+      ret->ubo_load_batches = (glxx_shader_ubo_load_batch*)(ret_ptr + offsetof_batches);
+      ret->ubo_loads = (glxx_shader_ubo_load*)(ret_ptr + offsetof_loads);
 
-      // After pass1 fetch_end is the number of fetches from this buffer.
-      // The fetch_end written to ret->buffers is the cumulative number of fetches up to including this buffer.
-      // The fetch_end written to buffers is the cumulative number of fetches up to excluding this buffer.
-      unsigned fetch_end = 0;
-      for (unsigned b = 0; b != num_buffers; ++b)
+      // After pass1 load_end is the number of loads in this batch.
+      // The load_end written to ret->batches is the cumulative number of loads up to including this batch.
+      // The load_end written to batches is the cumulative number of loads up to excluding this batch.
+      unsigned load_end = 0;
+      for (unsigned b = 0; b != num_batches; ++b)
       {
-         fetch_end += buffers[b].fetch_end;
-         ret->buffers[b].index = buffers[b].index;
-         ret->buffers[b].fetch_end = fetch_end;
-         ret->buffers[b].range_start = buffers[b].range_start;
-         ret->buffers[b].range_end = buffers[b].range_end;
-         buffers[b].fetch_end = fetch_end - buffers[b].fetch_end;
+         load_end += batches[b].load_end;
+         ret->ubo_load_batches[b].index = batches[b].index;
+         ret->ubo_load_batches[b].load_end = load_end;
+         ret->ubo_load_batches[b].range_start = batches[b].range_start;
+         ret->ubo_load_batches[b].range_size = batches[b].range_end - batches[b].range_start;
+         batches[b].load_end = load_end - batches[b].load_end;
       }
 
       // Fill out constants.
       ret->num_uniforms = uniform_count;
-      ret->num_immediates = num_immediates;
-      ret->num_buffers = num_buffers;
+      ret->num_general_uniforms = num_generals;
+      ret->num_ubo_load_batches = num_batches;
    }
 
    return ret;
@@ -229,14 +254,18 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
          if (prog->vstages[flavours[s]][m])
             total_code_size += prog->vstages[flavours[s]][m]->code_size;
    total_code_size += prog->fshader->code_size;
-   data->res_i = khrn_res_interlock_create(
+   data->res = khrn_resource_create(
       total_code_size + V3D_MAX_QPU_INSTRS_READAHEAD, 8, GMEM_USAGE_V3D_READ,
       "Shader");
-   if (!data->res_i)
+   if (!data->res)
       return false;
 
-   void *code = khrn_res_interlock_pre_cpu_access_now(&data->res_i,
-      0, total_code_size, KHRN_MAP_WRITE_BIT | KHRN_MAP_INVALIDATE_BUFFER_BIT);
+   void *code = khrn_resource_begin_access(
+      &data->res,
+      0,
+      total_code_size,
+      KHRN_ACCESS_WRITE | KHRN_ACCESS_INVALIDATE_BUFFER,
+      KHRN_RESOURCE_PARTS_ALL);
    if (!code)
       return false;
    v3d_size_t code_offset = 0;
@@ -257,7 +286,7 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       return false;
 
    assert(code_offset == total_code_size);
-   khrn_res_interlock_post_cpu_access(data->res_i, 0, total_code_size, KHRN_MAP_WRITE_BIT);
+   khrn_resource_end_access(data->res, 0, total_code_size, KHRN_ACCESS_WRITE);
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    bool uses_control_flow[MODE_COUNT] = { false,  };
@@ -323,12 +352,16 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
 
    for (unsigned i = 0; i < data->num_varys; i++) {
       const VARYING_INFO_T *vary = &ir->varying[prog->vary_map.entries[i]];
-      if (vary->centroid) {
-         data->varying_centroid[i/24] |= 1 << (i % 24);
-      }
-      if (vary->flat) {
-         data->varying_flat[i/24] |= 1 << (i % 24);
-      }
+      uint32_t idx = i / V3D_VARY_FLAGS_PER_WORD;
+      uint32_t flag = 1 << (i % V3D_VARY_FLAGS_PER_WORD);
+
+      if (vary->flat)          data->varying_flat[idx]          |= flag;
+      if (vary->centroid)      data->varying_centroid[idx]      |= flag;
+#if V3D_HAS_VARY_NO_PERSP
+      if (vary->noperspective) data->varying_noperspective[idx] |= flag;
+#else
+      assert(!vary->noperspective);
+#endif
    }
 
 #if GLXX_HAS_TNG
@@ -416,6 +449,10 @@ bool glxx_hw_emit_shaders(GLXX_LINK_RESULT_DATA_T  *data,
    /* Hackily randomise the centroid-ness of the varyings */
    for (int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++)
       if (!ir->varying[i].flat && khrn_options_make_centroid()) ir->varying[i].centroid = true;
+#if V3D_HAS_VARY_NO_PERSP
+   for (int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++)
+      if (!ir->varying[i].flat && khrn_options_make_noperspective()) ir->varying[i].noperspective = true;
+#endif
 
    BINARY_PROGRAM_T *prog = glsl_binary_program_from_dataflow(ir, key);
    if(!prog) return false;
@@ -435,15 +472,15 @@ bool glxx_hw_emit_shaders(GLXX_LINK_RESULT_DATA_T  *data,
 
 static void clear_shader(GLXX_SHADER_DATA_T *data)
 {
-   free(data->uniform_map);
+   khrn_mem_release(data->uniform_map);
    data->uniform_map = NULL;
 }
 
 /* Clean up shaders previously emitted by glxx_hw_emit_shaders */
 void glxx_hw_cleanup_shaders(GLXX_LINK_RESULT_DATA_T *data)
 {
-   khrn_res_interlock_refdec(data->res_i);
-   data->res_i = NULL;
+   khrn_resource_refdec(data->res);
+   data->res = NULL;
 
    for (unsigned m = 0; m != MODE_COUNT; ++m)
       for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
@@ -451,109 +488,18 @@ void glxx_hw_cleanup_shaders(GLXX_LINK_RESULT_DATA_T *data)
    clear_shader(&data->fs);
 }
 
-void glxx_shader_fill_ustream(
+void glxx_shader_process_ubo_loads(
    uint32_t* dst,
    uint32_t const* src,
-   glxx_ustream_fetch const* fetches,
-   unsigned num_fetches)
+   glxx_shader_ubo_load const* loads,
+   unsigned num_loads)
 {
-   assert(num_fetches);
-   unsigned f = 0;
+   assert(num_loads);
+   unsigned i = 0;
    do
    {
-      dst[fetches->dst20_src12 >> 12] = src[fetches->dst20_src12 & ((1 << 12) - 1)];
-      fetches += 1;
+      dst[loads->dst20_src12 >> 12] = src[loads->dst20_src12 & gfx_mask(12)];
+      loads += 1;
    }
-   while (++f != num_fetches);
-}
-
-typedef struct glxx_ustream_buffer_range
-{
-   gmem_handle_t mem;
-   v3d_size_t start;
-   v3d_size_t end;
-} glxx_ustream_buffer_range;
-
-static void flush_buffer_ranges(glxx_ustream_buffer_range const* buffers, unsigned num_buffers)
-{
-   for (unsigned b = 0; b != num_buffers; ++b)
-   {
-      gmem_invalidate_mapped_range(
-         buffers[b].mem,
-         buffers[b].start,
-         buffers[b].end - buffers[b].start);
-   }
-}
-
-void glxx_shader_process_ustream_jobs(glxx_ustream_job_block const* blocks, unsigned last_size)
-{
-   // Track unique buffer ranges.
-   glxx_ustream_buffer_range buffers[512];
-   unsigned num_buffers = 0;
-
-   gmem_handle_t last_mem = NULL;
-   unsigned last_index = ~0u;
-
-   // Last block is partially filled, other blocks will use the maximum size.
-   for (glxx_ustream_job_block const* block = blocks; block; block = block->next)
-   {
-      unsigned num_jobs = !block->next ? last_size : countof(block->jobs);
-      for (unsigned i = 0; i != num_jobs; ++i)
-      {
-         glxx_ustream_job const* job = &block->jobs[i];
-
-         if (job->src_mem == last_mem)
-            goto existing;
-
-         // Find buffer (in reverse).
-         gmem_handle_t mem = job->src_mem;
-         for (unsigned b = num_buffers; b-- != 0; )
-         {
-            if (buffers[b].mem == mem)
-            {
-               last_index = b;
-               last_mem = mem;
-               goto existing;
-            }
-         }
-
-         // Full, so process buffers seen so far.
-         if (num_buffers == countof(buffers))
-         {
-            flush_buffer_ranges(buffers, num_buffers);
-            num_buffers = 0;
-         }
-
-         // Create new entry.
-         last_index = num_buffers++;
-         last_mem = mem;
-         buffers[last_index].mem = last_mem;
-         buffers[last_index].start = job->src_offset;
-         buffers[last_index].end = job->src_offset + job->src_size;
-         continue;
-
-      existing:
-         // Expand existing range.
-         assert(last_mem == job->src_mem);
-         buffers[last_index].start = gfx_umin(buffers[last_index].start, job->src_offset);
-         buffers[last_index].end = gfx_umax(buffers[last_index].end, job->src_offset + job->src_size);
-      }
-   }
-   flush_buffer_ranges(buffers, num_buffers);
-
-   // Now that the UBOs are safe to read, loop over all the jobs and fill the uniform streams.
-   for (glxx_ustream_job_block const* block = blocks; block; block = block->next)
-   {
-      unsigned num_jobs = !block->next ? last_size : countof(block->jobs);
-      for (unsigned i = 0; i != num_jobs; ++i)
-      {
-         glxx_ustream_job const* job = &block->jobs[i];
-         glxx_shader_fill_ustream(
-            job->dst_ptr,
-            (uint32_t const*)gmem_get_ptr(job->src_mem)
-               + gfx_udiv_exactly(job->src_offset, sizeof(uint32_t)),
-            job->fetches,
-            job->num_fetches);
-      }
-   }
+   while (++i != num_loads);
 }

@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,37 +36,7 @@
 # ANY LIMITED REMEDY.
 ############################################################
 
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP ?= $(shell cd ../../.. && cd)
-else
-NEXUS_TOP ?= $(shell cd ../../.. ; pwd)
-endif
+APPS = security_ip_licensing_test
+APPS += security_host_region_verify
 
-# include cross-compiler definitions
-ifeq ($(NEXUS_PREBUILT_BINARY),y)
-# do "make api" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
-NEXUS_BIN_DIR ?= $(NEXUS_TOP)/../obj.${NEXUS_PLATFORM}/bin
-include $(NEXUS_BIN_DIR)/include/platform_app.inc
-Q_ ?= @
-else
-NEXUS_PLATFORM ?= $(PLATFORM)
-ifndef NEXUS_PLATFORM
-$(error NEXUS_PLATFORM is not defined)
-endif
-include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
-endif
-
-THEAPPS = security_ip_licensing_test
-THEAPPS += security_host_region_verify
-
-ifeq ($(KEYLADDER_SUPPORT),y)
-THEAPPS +=
-
-endif
-
-
-include ${NEXUS_TOP}/examples/Makefile.inc
+include ../../Makefile.inc

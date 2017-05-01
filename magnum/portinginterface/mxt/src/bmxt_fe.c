@@ -492,7 +492,7 @@ BERR_Code BMXT_GetInputBandStatus(BMXT_Handle handle, BMXT_InputBandStatus *pSta
     return BERR_SUCCESS;
 }
 
-BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned *mtsifTxNum)
+static BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned *mtsifTxNum)
 {
     uint32_t reg, addr;
     addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
@@ -510,7 +510,7 @@ BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsign
     return BERR_SUCCESS;
 }
 
-BERR_Code BMXT_P_SetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned mtsifTxNum)
+static BERR_Code BMXT_P_SetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned mtsifTxNum)
 {
     uint32_t reg, addr;
     addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
@@ -948,7 +948,7 @@ uint32_t BMXT_ReadIntStatusRegister(BMXT_Handle handle, BMXT_IntReg intReg)
         BMXT_RegWrite32(handle, reg, 0);
     }
     else {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        val = 0;
     }
     return val;
 }
@@ -1231,12 +1231,15 @@ BERR_Code BMXT_Tbg_GetGlobalConfig(BMXT_Handle handle, BMXT_Tbg_GlobalConfig *pC
         case BMXT_Chip_e4538:
             JTAG_OTP_GENERAL_STATUS_0 = 0x90814;
             statusOffset = 3;
+            break;
         case BMXT_Chip_e45216:
             JTAG_OTP_GENERAL_STATUS_0 = 0x6921014;
             statusOffset = 10;
+            break;
         case BMXT_Chip_e45308:
             JTAG_OTP_GENERAL_STATUS_0 = 0x7021014;
             statusOffset = 10;
+            break;
         default:
             BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
@@ -1339,23 +1342,20 @@ void BMXT_P_RegDump(BMXT_Handle handle)
         BKNI_Printf("%08x = %08x\n", i, BMXT_RegRead32(handle, i));
     }
 #elif 1 /* chip-specific, manual printout */
-    void BMXT_P_RegDump_Fe(BMXT_Handle handle);
-    void BMXT_P_RegDump_Dcbg(BMXT_Handle handle);
-    void BMXT_P_RegDump_L2Intr(BMXT_Handle handle);
-
     BMXT_P_RegDump_Fe(handle);
     BMXT_P_RegDump_Dcbg(handle);
     BMXT_P_RegDump_L2Intr(handle);
 #else
-    void BMXT_P_RegDump_Quick(BMXT_Handle handle);
     BMXT_P_RegDump_Quick(handle);
 #endif
     handle->dumpIndex++;
 }
 
+#if 0
 void BMXT_P_Debug(BMXT_Handle handle)
 {
     uint32_t val;
     val = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT));
     BDBG_WRN(("DEBUG: %08x", val));
 }
+#endif

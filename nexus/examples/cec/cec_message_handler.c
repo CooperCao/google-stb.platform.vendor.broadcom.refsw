@@ -66,17 +66,14 @@
 #include "nexus_hdmi_output.h"
 #include "nexus_cec.h"
 
-#define SD_DISPLAY 1
-
-
 BDBG_MODULE(cec_message_handler);
 
-NEXUS_DisplayHandle display0, display1;
+NEXUS_DisplayHandle display0, display1=NULL;
 NEXUS_PlatformSettings platformSettings;
 NEXUS_PlatformConfiguration platformConfig;
 NEXUS_StcChannelHandle stcChannel;
 NEXUS_PidChannelHandle videoPidChannel, audioPidChannel;
-NEXUS_VideoWindowHandle window0, window1;
+NEXUS_VideoWindowHandle window0, window1=NULL;
 NEXUS_VideoDecoderHandle videoDecoder;
 NEXUS_VideoDecoderStartSettings videoProgram;
 NEXUS_AudioDecoderHandle audioDecoder;
@@ -502,16 +499,32 @@ void start_app(void)
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
+    NEXUS_DisplayCapabilities displayCapabilities;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.format = NEXUS_VideoFormat_e1080i;
     display0 = NEXUS_Display_Open(0, &displaySettings);
-#if SD_DISPLAY
-    displaySettings.format = NEXUS_VideoFormat_eNtsc;
-    display1 = NEXUS_Display_Open(1, &displaySettings);
+
+    NEXUS_GetDisplayCapabilities(&displayCapabilities);
+
+    if (displayCapabilities.numDisplays > 1) {
+        displaySettings.format = NEXUS_VideoFormat_eNtsc;
+        display1 = NEXUS_Display_Open(1, &displaySettings);
+
+#if NEXUS_NUM_COMPOSITE_OUTPUTS
+        if(platformConfig.outputs.composite[0]) {
+            NEXUS_Display_AddOutput(display1, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
+        }
 #endif
+#if NEXUS_NUM_RFM_OUTPUTS
+        if (platformConfig.outputs.rfm[0]) {
+            NEXUS_Display_AddOutput(display1, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
+        }
+#endif
+    }
 
 #if NEXUS_NUM_HDMI_OUTPUTS
     if (platformConfig.outputs.hdmi[0]) {
@@ -524,23 +537,11 @@ void start_app(void)
     }
 #endif
 
-#if SD_DISPLAY
-#if NEXUS_NUM_COMPOSITE_OUTPUTS
-    if(platformConfig.outputs.composite[0]) {
-    NEXUS_Display_AddOutput(display1, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-    }
-#endif
-#if NEXUS_NUM_RFM_OUTPUTS
-    if (platformConfig.outputs.rfm[0]) {
-        NEXUS_Display_AddOutput(display1, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
-    }
-#endif
-#endif
-
     window0 = NEXUS_VideoWindow_Open(display0, 0);
-#if SD_DISPLAY
-    window1 = NEXUS_VideoWindow_Open(display1, 0);
-#endif
+
+    if (displayCapabilities.numDisplays > 1 && displayCapabilities.display[1].numVideoWindows) {
+        window1 = NEXUS_VideoWindow_Open(display1, 0);
+    }
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     playback = NEXUS_Playback_Create();
@@ -559,16 +560,22 @@ void start_app(void)
 
     /* Bring up audio decoders and outputs */
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numOutputs.dac > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
     NEXUS_AudioOutput_AddInput(
     NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
     NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
@@ -577,9 +584,9 @@ void start_app(void)
     /* bring up decoder and connect to display */
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
     NEXUS_VideoWindow_AddInput(window0, NEXUS_VideoDecoder_GetConnector(videoDecoder));
-#if SD_DISPLAY
-    NEXUS_VideoWindow_AddInput(window1, NEXUS_VideoDecoder_GetConnector(videoDecoder));
-#endif
+    if (displayCapabilities.numDisplays > 1 && displayCapabilities.display[1].numVideoWindows) {
+        NEXUS_VideoWindow_AddInput(window1, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    }
 
     /* Open the audio and video pid channels */
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
@@ -615,25 +622,23 @@ void stop_app(void)
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);
     NEXUS_VideoWindow_RemoveInput(window0, NEXUS_VideoDecoder_GetConnector(videoDecoder));
-#if SD_DISPLAY
-    NEXUS_VideoWindow_RemoveInput(window1, NEXUS_VideoDecoder_GetConnector(videoDecoder));
-#endif
+    if (window1) {
+        NEXUS_VideoWindow_RemoveInput(window1, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+        NEXUS_VideoWindow_Close(window1);
+    }
     NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(videoDecoder));
     NEXUS_VideoWindow_Close(window0);
-#if SD_DISPLAY
-    NEXUS_VideoWindow_Close(window1);
-#endif
     NEXUS_Display_Close(display0);
-#if SD_DISPLAY
-    NEXUS_Display_Close(display1);
-#endif
+    if (display1) {
+        NEXUS_Display_Close(display1);
+    }
     NEXUS_VideoDecoder_Close(videoDecoder);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-#endif
+    if (platformConfig.outputs.audioDacs[0] != NULL) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+    }
+    if (platformConfig.outputs.spdif[0] != NULL) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
+    }
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     NEXUS_AudioDecoder_Close(audioDecoder);
     NEXUS_StcChannel_Close(stcChannel);

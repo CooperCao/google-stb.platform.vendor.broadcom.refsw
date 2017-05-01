@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-BCM2708 implementation of hardware abstraction layer.
-Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_color.h"
 #include "interface/khronos/common/khrn_options.h"
@@ -2334,7 +2325,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
          {
             MEM_HANDLE_T himage = image_for_texturing(state, texture->external_image, secure);
             KHRN_IMAGE_T *image = (KHRN_IMAGE_T*)mem_lock(himage, NULL);
-            type = tu_image_format_to_type(image->format);
+            type = tu_image_format_to_type(khrn_image_to_tf_format(image->format));
             handle = image->mh_storage;
             offset = image->offset;
             mem_unlock(himage);

@@ -139,6 +139,7 @@ int main(int argc, char **argv)
     bool dv258Enabled = false;
     bool mixerEnabled = false;
     bool secondary = false;
+    unsigned advTsmEnabled = 0xffffffff;
     char *fname = NULL;
     unsigned audioPid = INVALID_PID;
     unsigned secondaryAudioPid = INVALID_PID;
@@ -152,6 +153,8 @@ int main(int argc, char **argv)
     NEXUS_AudioOutputHandle audioDacHandle = NULL;
     NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
+    NEXUS_AudioProcessorHandle advancedTsm = NULL;
+    bool done = false;
 
     while (curarg < argc) {
         if (!strcmp("--help", argv[curarg]) ||
@@ -163,84 +166,65 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[curarg], "-file") && argc>curarg+1) {
             fname = argv[++curarg];
         }
-        else if ( !strcmp(argv[curarg], "-video") && argc>curarg+1 )
-        {
+        else if ( !strcmp(argv[curarg], "-video") && argc>curarg+1 ) {
             videoPid = strtoul(argv[++curarg], NULL, 0);
         }
-        else if ( !strcmp(argv[curarg], "-audio") && argc>curarg+1 )
-        {
+        else if ( !strcmp(argv[curarg], "-audio") && argc>curarg+1 ) {
             audioPid = strtoul(argv[++curarg], NULL, 0);
         }
-        else if ( !strcmp(argv[curarg], "-secondary_audio") && argc>curarg+1 )
-        {
+        else if ( !strcmp(argv[curarg], "-secondary_audio") && argc>curarg+1 ) {
             secondaryAudioPid = strtoul(argv[++curarg], NULL, 0);
             mixerEnabled = true;
             ddreEnabled = true;
             secondary = true;
         }
-        else if ( !strcmp(argv[curarg], "-video_codec") && argc>curarg+1 )
-        {
+        else if ( !strcmp(argv[curarg], "-video_codec") && argc>curarg+1 ) {
             curarg++;
-            if ( !strcmp(argv[curarg], "mpeg"))
-            {
+            if ( !strcmp(argv[curarg], "mpeg")) {
                 videoCodec = NEXUS_VideoCodec_eMpeg2;
             }
-            else if ( !strcmp(argv[curarg], "h264"))
-            {
+            else if ( !strcmp(argv[curarg], "h264")) {
                 videoCodec = NEXUS_VideoCodec_eH264;
             }
-            else
-            {
+            else {
                 BDBG_ERR(("Codec %s is not supported by this application", argv[curarg]));
                 return -1;
             }
         }
-        else if ( !strcmp(argv[curarg], "-audio_codec") && argc>curarg+1)
-        {
+        else if ( !strcmp(argv[curarg], "-audio_codec") && argc>curarg+1) {
             curarg++;
-            if ( !strcmp(argv[curarg], "ac3") )
-            {
+            if ( !strcmp(argv[curarg], "ac3") ) {
                 primaryAudioCodec = secondaryAudioCodec = NEXUS_AudioCodec_eAc3;
             }
-            else if ( !strcmp(argv[curarg], "ac3plus") )
-            {
+            else if ( !strcmp(argv[curarg], "ac3plus") ) {
                 primaryAudioCodec = secondaryAudioCodec = NEXUS_AudioCodec_eAc3Plus;
             }
-            else if ( !strcmp(argv[curarg], "aac") || !strcmp(argv[curarg], "aac_adts") || !strcmp(argv[curarg], "aacplus_adts") )
-            {
+            else if ( !strcmp(argv[curarg], "aac") || !strcmp(argv[curarg], "aac_adts") || !strcmp(argv[curarg], "aacplus_adts") ) {
                 primaryAudioCodec = secondaryAudioCodec = NEXUS_AudioCodec_eAacPlusAdts;
             }
-            else if ( !strcmp(argv[curarg], "aacplus") || !strcmp(argv[curarg], "aac_loas") || !strcmp(argv[curarg], "aacplus_loas") )
-            {
+            else if ( !strcmp(argv[curarg], "aacplus") || !strcmp(argv[curarg], "aac_loas") || !strcmp(argv[curarg], "aacplus_loas") ) {
                 primaryAudioCodec = secondaryAudioCodec = NEXUS_AudioCodec_eAacPlusLoas;
             }
-            else
-            {
+            else {
                 BDBG_ERR(("Codec %s is not supported by this application", argv[curarg]));
                 return -1;
             }
         }
-        else if ( !strcmp(argv[curarg], "-secondary_audio_codec") && argc>curarg+1 )
-        {
+        else if ( !strcmp(argv[curarg], "-secondary_audio_codec") && argc>curarg+1 ) {
             curarg++;
-            if ( !strcmp(argv[curarg], "ac3") )
-            {
+            if ( !strcmp(argv[curarg], "ac3") ) {
                 secondaryAudioCodec = NEXUS_AudioCodec_eAc3;
             }
-            else if ( !strcmp(argv[curarg], "ac3plus") )
-            {
+            else if ( !strcmp(argv[curarg], "ac3plus") ) {
                 secondaryAudioCodec = NEXUS_AudioCodec_eAc3Plus;
             }
-            else if ( !strcmp(argv[curarg], "aac") || !strcmp(argv[curarg], "aac_adts") || !strcmp(argv[curarg], "aacplus_adts") )
-            {
+            else if ( !strcmp(argv[curarg], "aac") || !strcmp(argv[curarg], "aac_adts") || !strcmp(argv[curarg], "aacplus_adts") ) {
                 secondaryAudioCodec = NEXUS_AudioCodec_eAacPlusAdts;
             }
-            else if ( !strcmp(argv[curarg], "aacplus") || !strcmp(argv[curarg], "aac_loas") || !strcmp(argv[curarg], "aacplus_loas") )
-            {
+            else if ( !strcmp(argv[curarg], "aacplus") || !strcmp(argv[curarg], "aac_loas") || !strcmp(argv[curarg], "aacplus_loas") ) {
                 secondaryAudioCodec = NEXUS_AudioCodec_eAacPlusLoas;
             }
-            else
-            {
+            else {
                 BDBG_ERR(("Codec %s is not supported by this application", argv[curarg]));
                 return -1;
             }
@@ -263,8 +247,7 @@ int main(int argc, char **argv)
             dv258Enabled = true;
             ddreEnabled = true;
         }
-        else if ( !strcmp(argv[curarg], "-drc") && argc>curarg+1)
-        {
+        else if ( !strcmp(argv[curarg], "-drc") && argc>curarg+1) {
             curarg++;
             if ( !strcmp(argv[curarg], "line") )
             {
@@ -280,8 +263,14 @@ int main(int argc, char **argv)
                 return -1;
             }
         }
-        else
-        {
+        else if ( !strcmp("-advtsm", argv[curarg]) && argc>curarg+1 ) {
+            if ( strtoul(argv[curarg+1], NULL, 0) < (unsigned)NEXUS_AudioAdvancedTsmMode_eMax )
+            {
+                advTsmEnabled = strtoul(argv[curarg+1], NULL, 0);
+            }
+            curarg++;
+        }
+        else {
             printf("Unknown param: %s\n", argv[curarg]);
             return -1;
         }
@@ -475,14 +464,31 @@ int main(int argc, char **argv)
         secondary = false;
     }
 
-    if (mixerEnabled && audioCapabilities.numMixers > 0)
+    if ( advTsmEnabled != 0xffffffff )
     {
+        NEXUS_AudioProcessorOpenSettings openSettings;
+        NEXUS_AudioProcessorSettings procSettings;
+        NEXUS_AudioProcessor_GetDefaultOpenSettings(&openSettings);
+        openSettings.type = NEXUS_AudioPostProcessing_eAdvancedTsm;
+
+        advancedTsm = NEXUS_AudioProcessor_Open(&openSettings);
+        BDBG_ASSERT(advancedTsm);
+
+        NEXUS_AudioProcessor_GetSettings(advancedTsm, &procSettings);
+        procSettings.settings.advancedTsm.mode = (NEXUS_AudioAdvancedTsmMode) advTsmEnabled;
+        NEXUS_AudioProcessor_SetSettings(advancedTsm, &procSettings);
+    }
+
+    if ( mixerEnabled && audioCapabilities.numMixers > 0 )
+    {
+        NEXUS_AudioInputHandle tail = NULL;
         NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
         mixerSettings.mixUsingDsp = true;
         mixer = NEXUS_AudioMixer_Open(&mixerSettings);
 
         if (ddreEnabled)
         {
+            BDBG_ERR(("DDRE enabled"));
             /* Make our connections */
             NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eMultichannel));
             if (secondary)
@@ -497,52 +503,100 @@ int main(int argc, char **argv)
             NEXUS_DolbyDigitalReencode_GetDefaultSettings(&ddreSettings);
             ddre = NEXUS_DolbyDigitalReencode_Open(&ddreSettings);
 
+            tail = NEXUS_AudioMixer_GetConnector(mixer);
+
+            if ( advancedTsm )
+            {
+                BDBG_ERR(("ADV TSM Enabled"));
+                NEXUS_AudioProcessor_AddInput(advancedTsm, tail);
+                tail = NEXUS_AudioProcessor_GetConnectorByType(advancedTsm, NEXUS_AudioConnectorType_eMultichannel);
+            }
+
             if (dv258Enabled)
             {
+                BDBG_ERR(("DV258 Enabled"));
                 NEXUS_DolbyVolume258_GetDefaultSettings(&dv258Settings);
                 dv258Settings.enabled = true;
                 dv258 = NEXUS_DolbyVolume258_Open(&dv258Settings);
-                NEXUS_DolbyVolume258_AddInput(dv258, NEXUS_AudioMixer_GetConnector(mixer));
-                NEXUS_DolbyDigitalReencode_AddInput(ddre, NEXUS_DolbyVolume258_GetConnector(dv258));
+                NEXUS_DolbyVolume258_AddInput(dv258, tail);
+                tail = NEXUS_DolbyVolume258_GetConnector(dv258);
             }
-            else
-            {
-                NEXUS_DolbyDigitalReencode_AddInput(ddre, NEXUS_AudioMixer_GetConnector(mixer));
-            }
-            outputConnector = NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo);
+
+            NEXUS_DolbyDigitalReencode_AddInput(ddre, tail);
         }
         else
         {
+            BDBG_ERR(("Mixer only case (no DDRE or DV258)"));
             /* Make our connections */
-            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
+            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eMultichannel));
             if (secondary)
             {
-                NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eStereo));
+                NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel));
             }
             /* Set the Mixer to use DSP mixing */
             NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
-            mixerSettings.master = NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo);
+            mixerSettings.master = NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eMultichannel);
             NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
-            outputConnector = NEXUS_AudioMixer_GetConnector(mixer);
+            tail = NEXUS_AudioMixer_GetConnector(mixer);
+            if ( advancedTsm )
+            {
+                BDBG_ERR(("ADV TSM Enabled"));
+                NEXUS_AudioProcessor_AddInput(advancedTsm, NEXUS_AudioMixer_GetConnector(mixer));
+                tail = NEXUS_AudioProcessor_GetConnectorByType(advancedTsm, NEXUS_AudioConnectorType_eMultichannel);
+            }
+            outputConnector = tail;
         }
     } else {
+        BDBG_ERR(("Standalone Decode only (no MS11 post processing)"));
         mixerEnabled = false;
-        outputConnector = NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo);
     }
-    if (audioDacHandle) {
-        NEXUS_AudioOutput_AddInput(audioDacHandle,
-                                   outputConnector);
+
+    if ( ddre )
+    {
+        if ( audioDacHandle )
+        {
+            NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
+        }
+        if (audioSpdifHandle) {
+            NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+        }
+        #if NEXUS_NUM_HDMI_OUTPUTS
+        if (audioHdmiHandle) {
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eMultichannel));
+        }
+        #endif
     }
-    if (audioSpdifHandle) {
-        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
-                                   outputConnector);
+    else if ( mixer )
+    {
+        #if NEXUS_NUM_HDMI_OUTPUTS
+        if (audioHdmiHandle) {
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                       outputConnector);
+        }
+        #endif
     }
-    #if NEXUS_NUM_HDMI_OUTPUTS
-    if (audioHdmiHandle) {
-        NEXUS_AudioOutput_AddInput(audioHdmiHandle,
-                                   outputConnector);
+    else
+    {
+        if ( audioDacHandle )
+        {
+            NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                       NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
+        }
+        if (audioSpdifHandle) {
+            NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                       NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
+        }
+        #if NEXUS_NUM_HDMI_OUTPUTS
+        if (audioHdmiHandle) {
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                       NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
+        }
+        #endif
     }
-    #endif
+
 
     /* Open the audio and video pid channels */
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
@@ -586,8 +640,41 @@ int main(int argc, char **argv)
     /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
 
-    printf("Press ENTER to stop decode\n");
-    getchar();
+    while ( !done )
+    {
+        int tmp = -1;
+        printf("\nMain Menu\n");
+        printf(" 0) Exit\n");
+        printf(" 1) Print Advanced TSM status\n");
+        printf("Enter Selection: \n");
+        scanf("%d", &tmp);
+        switch ( tmp )
+        {
+        case 0:
+            done = true;
+            break;
+        case 1:
+            if ( advancedTsm )
+            {
+                NEXUS_AudioProcessorStatus status;
+
+                NEXUS_AudioProcessor_GetStatus(advancedTsm, &status);
+                if ( status.type != NEXUS_AudioPostProcessing_eMax )
+                {
+                    printf("Advanced TSM Status:\n");
+                    printf("  mode        %u\n", (int)status.status.advancedTsm.mode);
+                    printf("  pts         %u\n", status.status.advancedTsm.pts);
+                    printf("  ptsType     %d\n", (int)status.status.advancedTsm.ptsType);
+                    printf("  correction  %u ms\n", status.status.advancedTsm.correction);
+                }
+            }
+            break;
+        default:
+            break;
+        }
+        tmp = -1;
+        scanf("%*[^\n]%*c");
+    }
 
     /* Stop */
     NEXUS_Playback_Stop(playback);
@@ -616,7 +703,7 @@ int main(int argc, char **argv)
         NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
     }
 
-    if (ddreEnabled)
+    if (ddre)
     {
         NEXUS_DolbyDigitalReencode_Close(ddre);
         if (dv258)
@@ -626,7 +713,14 @@ int main(int argc, char **argv)
         }
 
     }
-    if (mixerEnabled)
+
+    if ( advancedTsm )
+    {
+        NEXUS_AudioProcessor_RemoveAllInputs(advancedTsm);
+        NEXUS_AudioProcessor_Close(advancedTsm);
+    }
+
+    if ( mixer )
     {
         NEXUS_AudioMixer_RemoveAllInputs(mixer);
             NEXUS_AudioMixer_Close(mixer);

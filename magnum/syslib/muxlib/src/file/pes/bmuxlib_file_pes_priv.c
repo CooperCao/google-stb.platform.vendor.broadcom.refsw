@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -86,6 +86,11 @@ static const BMUXlib_File_PES_P_VP8Header s_stDefaultVP8Header =
    }
 };
 
+static BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptorsWaiting(BMUXlib_File_PES_Handle hPESMux);
+static void BMUXlib_File_PES_P_Output_InputDescriptorDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
+static void BMUXlib_File_PES_P_Output_FrameHeaderDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
+static void BMUXlib_File_PES_P_Output_VP8HeaderDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
+
 /*************************
 * P R I V A T E   A P I  *
 **************************/
@@ -108,16 +113,16 @@ BERR_Code BMUXlib_File_PES_P_Start(BMUXlib_File_PES_Handle hPESMux)
 
    if (BERR_SUCCESS == rc)
    {
-      BMUXlib_Input_CreateSettings stInputSettings;
+      BMUXlib_Input_StartSettings stInputSettings;
 
       /* create the input ... */
-      BMUXlib_Input_GetDefaultCreateSettings(&stInputSettings);
+      BMUXlib_Input_GetDefaultStartSettings(&stInputSettings);
       stInputSettings.eType = BMUXlib_Input_Type_eVideo;
       stInputSettings.interface.stVideo = hPESMux->stStartSettings.stInterface;
       /* NOTE: PES must operate in frame mode since the frame size is required in the frame header */
       stInputSettings.eBurstMode = BMUXlib_Input_BurstMode_eFrame;
       stInputSettings.bFilterUntilMetadataSeen = true;
-      rc = BMUXlib_Input_Create(&hPESMux->hInput, &stInputSettings);
+      rc = BMUXlib_Input_Start(hPESMux->hInput, &stInputSettings);
    }
 
    if (BERR_SUCCESS != rc)
@@ -174,11 +179,10 @@ void BMUXlib_File_PES_P_Stop(BMUXlib_File_PES_Handle hPESMux)
       hPESMux->hOutput = NULL;
    }
 
-   /* destroy input */
+   /* stop input */
    if (NULL != hPESMux->hInput)
    {
-      BMUXlib_Input_Destroy(hPESMux->hInput);
-      hPESMux->hInput = NULL;
+      BMUXlib_Input_Stop(hPESMux->hInput);
    }
 
    BDBG_LEAVE(BMUXlib_File_PES_P_Stop);
@@ -267,7 +271,7 @@ BERR_Code BMUXlib_File_PES_P_ProcessOutputDescriptorsCompleted(BMUXlib_File_PES_
    Returns:
       Input interface error code
 */
-BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptorsWaiting(BMUXlib_File_PES_Handle hPESMux)
+static BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptorsWaiting(BMUXlib_File_PES_Handle hPESMux)
 {
    BERR_Code rc = BERR_SUCCESS;
 
@@ -282,7 +286,7 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptorsWaiting(BMUXlib_File_PES_Han
    return rc;
 }
 
-void BMUXlib_File_PES_P_Output_InputDescriptorDone(
+static void BMUXlib_File_PES_P_Output_InputDescriptorDone(
    void *pPrivateData,
    const BMUXlib_Output_Descriptor *pOutputDescriptor
    )
@@ -296,7 +300,7 @@ void BMUXlib_File_PES_P_Output_InputDescriptorDone(
    hPESMux->uiPendingCount--;
 }
 
-void BMUXlib_File_PES_P_Output_FrameHeaderDone(
+static void BMUXlib_File_PES_P_Output_FrameHeaderDone(
    void *pPrivateData,
    const BMUXlib_Output_Descriptor *pOutputDescriptor
    )
@@ -310,7 +314,7 @@ void BMUXlib_File_PES_P_Output_FrameHeaderDone(
    hPESMux->stFrameHeader.uiReadOffset %= BMUXlib_File_PES_P_MAX_FRAMES;
 }
 
-void BMUXlib_File_PES_P_Output_VP8HeaderDone(
+static void BMUXlib_File_PES_P_Output_VP8HeaderDone(
    void *pPrivateData,
    const BMUXlib_Output_Descriptor *pOutputDescriptor
    )

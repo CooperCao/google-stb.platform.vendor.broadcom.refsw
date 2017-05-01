@@ -41,7 +41,6 @@
 
 #include "breg_mem.h"
 #include "bint.h"
-#include "bmem.h"
 #include "bavc.h"
 #include "bchp.h"
 #include "berr_ids.h"
@@ -49,6 +48,7 @@
 #include "bavc.h"
 #include "bxpt_rave.h"
 #include "bxpt_pcr.h"
+#include "bxpt_dma.h"
 
 #if BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -711,6 +711,7 @@ typedef struct BXPT_P_TransportData
 
 #if BXPT_HAS_MEMDMA
     void *dmaChannels[ BXPT_NUM_PLAYBACKS ];
+    void *dmaPidChannels[ BXPT_DMA_NUM_PID_CHANNELS ];
 #endif
 
     /* TODO: consolidate power-related variables into a struct */
@@ -786,6 +787,8 @@ void BXPT_P_Interrupt_MsgSw_isr(
     );
 
 BERR_Code BXPT_P_GetGroupSelect( unsigned int Bank, unsigned int *GenGrpSel );
+
+unsigned int BXPT_PB_P_GetPbBandId( BXPT_Handle hXpt, unsigned int Band );
 
 #if BXPT_HAS_PID_CHANNEL_PES_FILTERING
 

@@ -178,56 +178,6 @@ typedef struct BHDR_HDCP_RepeaterDownStreamInfo
 #if BHDR_CONFIG_HDCP_REPEATER
 /**************************************************************************
 Summary:
-	Register a callback function to be called after a HDMI ksv FIFO request
-
-Description:
-	This function is used to enable a callback function that will
-	be called any time an attached receiver requests the downstream KSV FIFO
-
-Input:
-	hHDR - HDMI Rx Handle
-	pfCallback_isr - pointer to callback function to be called at the time of the request
-	pvParam1 - User defined data structure casted to void.
-	iParam2 - Additional user defined value...
-
-Returns:
-	BERR_SUCCESS - Callback Installation Successful
-
-See Also:
-		BHDR_HDCP_UnInstallRepeaterRequestKsvFifoCallback
-
-**************************************************************************/
-BERR_Code BHDR_HDCP_InstallRepeaterRequestKsvFifoCallback(
-	BHDR_Handle hHDR,			/* [in] HDMI Rx Handle */
-	const BHDR_CallbackFunc pfCallback_isr, /* [in] cb for packet changes */
-	void *pvParm1, /* [in] the first argument (void *) passed to the callback function */
-	int iParm2) ;   /* [in] the second argument(int) passed to the callback function */
-
-
-/**************************************************************************
-Summary:
-	Remove a previously registered callback function for Ksv Request
-
-Description:
-	This function is used to remove the callback function that is called when there is KSV FIFO request
-
-Input:
-	hHDR - HDMI Rx Handle
-	pfCallback - pointer to callback function to be removed
-
-Returns:
-	BERR_SUCCESS - Callback Removal Successful
-
-See Also:
-	BHDR_HDCP_InstallRepeaterRequestKsvFifoCallback
-**************************************************************************/
-BERR_Code BHDR_HDCP_UnInstallRepeaterRequestKsvFifoCallback(
-	BHDR_Handle hHDR,                       /* [in] HDMI Rx Handle */
-	const BHDR_CallbackFunc pfCallback_isr) ; /* [in] cb for format changes */
-
-
-/**************************************************************************
-Summary:
 	Load the KSV FIFO with downstream KSVs
 
 Description:

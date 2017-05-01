@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_nexus.h"
 #include "display_nexus.h"
 
@@ -544,7 +536,7 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
       unsigned int                     res;
       BEGL_BufferDisplayState          bufferState;
       BEGL_BufferSettings              bufferSettings;
-      BEGL_PixmapInfoEXT               info;
+      BEGL_PixmapInfoEXT               info = { 0 };
       NEXUS_MemoryAllocationSettings   memSettings;
       int                              newFence;
       void                             *surfaceBacking = NULL;
@@ -598,6 +590,8 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
             info.width = bufferSettings.width;
             info.height = bufferSettings.height;
             info.secure = bufferSettings.secure;
+            info.openvg = bufferSettings.openvg;
+            info.colorFormat = bufferSettings.colorFormat;
             data->displayCallbacks.BufferGetRequirements(&info, &bufferSettings);
 
             /* Make a new surface */

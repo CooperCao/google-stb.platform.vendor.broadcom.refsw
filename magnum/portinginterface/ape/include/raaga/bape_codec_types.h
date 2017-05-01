@@ -154,6 +154,18 @@ AC4 Codec Settings
 #define BAPE_AC4_PRESENTATION_ID_LENGTH    20
 #define BAPE_AC4_LANGUAGE_NAME_LENGTH      8
 #define BAPE_AC4_NUM_LANGUAGES             2
+
+/***************************************************************************
+Summary:
+AC4 Programs
+***************************************************************************/
+typedef enum BAPE_Ac4Program
+{
+    BAPE_Ac4Program_eMain,
+    BAPE_Ac4Program_eAlternate,
+    BAPE_Ac4Program_eMax
+} BAPE_Ac4Program;
+
 typedef struct BAPE_Ac4Settings
 {
     BAPE_DolbyDrcMode drcMode;      /* DRC (Dynamic Range Compression) Mode */
@@ -184,37 +196,42 @@ typedef struct BAPE_Ac4Settings
                                        Valid values are -32 to 32. -32 is main only, 32 is description only.
                                        Default is -32 */
 
+    int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
+
+    unsigned certificationMode;     /* for internal use only */
+
+    bool enableAssociateMixing;     /* Enable mixing of associate program */
+
     BAPE_Ac4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the presentation -
                                                           Default setting is eAuto, allowing the decoder to choose based on the presence or absense
                                                           of Presentation Index or Id, followed by the various personalization parameters.;
                                                           eAuto setting should be used for certification testing */
 
-    unsigned presentationIndex;        /* Multiple "presentation" groups can exist within a single program.
-                                          To select by presentation index, set selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIndex
-                                          Valid values are 0 - 511. Default value is 0.
-                                          See BAPE_DecoderStatus/BAPE_DecoderAc4PresentationInfo for more information. */
-
-    char presentationId[BAPE_AC4_PRESENTATION_ID_LENGTH]; /* Multiple "presentation" groups can exist within a single program.
-                                                             To select by presentation Id, set selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIdentifier
-                                                             This unique id can come in short or long varieties, per the Dolby AC4 spec.
-                                                             Presentation Ids are obtained from the Stream Status info.
-                                                             See BAPE_DecoderStatus/BAPE_DecoderAc4PresentationInfo for more information */
-
-    int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
-
-    unsigned certificationMode;     /* for internal use only */
-
-    /* optional personalization parameters */
-    bool preferLanguageOverAssociateType; /* correlates to Dolby AC4 preference for language over associate type -
-                                             Default setting is false (Associate type is prioritized over Language) */
-
+    /* program selection - program 0 is the main program.
+       program 1 is an optional alternate program, typically second language */
     struct {
-        char selection[BAPE_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
-                                                            8 characters should be truncated. */
-    } languagePreference[BAPE_AC4_NUM_LANGUAGES];
+        unsigned presentationIndex;        /* Multiple "presentation" groups can exist within a single program.
+                                              To select by presentation index, set selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIndex
+                                              Valid values are 0 - 511. Default value is 0.
+                                              See BAPE_DecoderStatus/BAPE_DecoderAc4PresentationInfo for more information. */
 
-    BAPE_Ac4AssociateType preferredAssociateType;
-    bool enableAssociateMixing;     /* Enable mixing of associate program */
+        char presentationId[BAPE_AC4_PRESENTATION_ID_LENGTH]; /* Multiple "presentation" groups can exist within a single program.
+                                                                 To select by presentation Id, set selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIdentifier
+                                                                 This unique id can come in short or long varieties, per the Dolby AC4 spec.
+                                                                 Presentation Ids are obtained from the Stream Status info.
+                                                                 See BAPE_DecoderStatus/BAPE_DecoderAc4PresentationInfo for more information */
+
+        /* optional personalization parameters */
+        bool preferLanguageOverAssociateType; /* correlates to Dolby AC4 preference for language over associate type -
+                                                 Default setting is false (Associate type is prioritized over Language) */
+
+        struct {
+            char selection[BAPE_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
+                                                                8 characters should be truncated. */
+        } languagePreference[BAPE_AC4_NUM_LANGUAGES];
+
+        BAPE_Ac4AssociateType preferredAssociateType;
+    } programs[BAPE_Ac4Program_eMax];
 
 } BAPE_Ac4Settings;
 

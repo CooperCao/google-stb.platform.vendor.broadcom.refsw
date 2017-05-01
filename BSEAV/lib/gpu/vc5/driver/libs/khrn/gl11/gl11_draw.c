@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-BCM2708 implementation of hardware abstraction layer.
-Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_server.h"
 #include "../glxx/glxx_translate.h"
@@ -24,7 +15,7 @@ Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
  Global Functions
  *************************************************************/
 
-bool gl11_cache_uniforms(GLXX_SERVER_STATE_T *state, KHRN_FMEM_T *fmem)
+bool gl11_cache_uniforms(GLXX_SERVER_STATE_T *state, khrn_fmem *fmem)
 {
    GL11_STATE_T *s = &state->gl11;
    bool have_lights    = !!(s->shaderkey.vertex & GL11_LIGHTING);
@@ -64,13 +55,13 @@ bool gl11_cache_uniforms(GLXX_SERVER_STATE_T *state, KHRN_FMEM_T *fmem)
       float u_dot_p;
       float u[3] = { (float)state->viewport.x + (float)state->viewport.width / 2.0f,
                      (float)state->viewport.y + (float)state->viewport.height / 2.0f,
-                     state->viewport.internal_zoffset };
+                     state->vp_internal.zoffset };
 
       gl11_matrix_invert_4x4(inv, s->current_projection);
       gl11_matrix_mult_row(s->projected_clip_plane, s->planes[0], inv);
       s->projected_clip_plane[0] /= ((float)state->viewport.width / 2.0f);   /* xscale */
       s->projected_clip_plane[1] /= ((float)state->viewport.height / 2.0f);  /* yscale */
-      s->projected_clip_plane[2] /= state->viewport.internal_zscale;         /* zscale */
+      s->projected_clip_plane[2] /= state->vp_internal.zscale;               /* zscale */
 
       u_dot_p = 0;
       for (i=0; i<3; i++) u_dot_p += u[i] * s->projected_clip_plane[i];

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
@@ -1257,9 +1249,10 @@ bool Scheduler_Schedule(Scheduler *self, DFlowNode *root, DFlowRecursionOptimize
       else
          nopCount = 0;
 
+      /*
       if (nopCount == 5)
       {
-/*
+
          if (m_resources.IsFull(AllowThreadswitch()))
          {
             printf("*****************************************************************\n");
@@ -1267,9 +1260,9 @@ bool Scheduler_Schedule(Scheduler *self, DFlowNode *root, DFlowRecursionOptimize
             printf("*****************************************************************\n");
          }
          else
-*/
             nopCount = nopCount; // Put breakpoint here
       }
+      */
 
       if (nopCount > 8)
       {

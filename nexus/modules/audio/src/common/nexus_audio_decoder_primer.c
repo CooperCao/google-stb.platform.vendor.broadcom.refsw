@@ -202,7 +202,7 @@ static void clear_next_gop(NEXUS_AudioDecoderPrimerHandle primer)
 static void NEXUS_AudioDecoder_P_PrimerCompare(NEXUS_AudioDecoderPrimerHandle primer, uint32_t serialStc, unsigned * i, int * gop_index, int * min_diff)
 {
     uint32_t stc = serialStc + primer->gops[*i].pcr_offset; /* Serial STC + offset = STC */
-    int diff = primer->gops[*i].pts - stc;
+    int diff = primer->gops[*i].pts + primer->settings.ptsOffset - stc;
 
 #if 0
     BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x at " BDBG_UINT64_FMT "/" BDBG_UINT64_FMT,

@@ -11,6 +11,7 @@
 #include "glsl_qbe_fragment.h"
 #include "glsl_qbe_fragment_adv_blend.h"
 
+#include "glsl_const_operators.h"
 #include "libs/util/gfx_util/gfx_util.h"
 
 #include <assert.h>
@@ -62,9 +63,11 @@ static void fragment_backend(
    if (s->sample_alpha_to_coverage)
       coverage = cov_accum( tr_uop(BACKFLOW_FTOC, A(0,0)), coverage );
 
+#if !V3D_HAS_FEP_SAMPLE_MASK
    /* Apply any sample mask set in the API */
    if (s->sample_mask)
       coverage = cov_accum( tr_special_uniform(BACKEND_SPECIAL_UNIFORM_SAMPLE_MASK), coverage );
+#endif
 
    /* Apply any sample mask set in the shader */
    if (s->ms && sample_mask)
@@ -82,7 +85,10 @@ static void fragment_backend(
       cov_dep = tr_discard(cov_dep, discard);
 
    /* Sort out TLB storing dependencies */
-   bool does_discard = (discard != NULL || s->sample_alpha_to_coverage || s->sample_mask);
+   bool does_discard = (discard != NULL || s->sample_alpha_to_coverage);
+#if !V3D_HAS_FEP_SAMPLE_MASK
+   does_discard = does_discard || s->sample_mask;
+#endif
    bool invariant_z_write = (does_discard && !s->fez_safe_with_discard) || !s->early_fragment_tests;
    bool full_z_write      = (depth != NULL);
 
@@ -166,7 +172,13 @@ static void fragment_backend(
                   assert(out[2*j] != NULL && out[2*j+1] != NULL);
                   uint32_t dataflow_age = gfx_umax(out[2*j]->age, out[2*j+1]->age);
                   dataflow_age = gfx_umax(dataflow_age, tlb_depth_age);
-                  out[j] = tr_binop(BACKFLOW_VFPACK, out[2*j], out[2*j+1]);
+                  if (is_const(out[2*j]) && is_const(out[2*j+1])) {
+                     out[j] = tr_const(op_fpack(out[2*j]->unif, out[2*j+1]->unif));
+                  } else if (is_plain_unif(out[2*j]) && is_plain_unif(out[2*j+1])) {
+                     out[j] = tr_typed_uniform(BACKEND_UNIFORM_PLAIN_FPACK, (out[2*j+1]->unif << 16) | out[2*j]->unif);
+                  } else {
+                     out[j] = tr_binop(BACKFLOW_VFPACK, out[2*j], out[2*j+1]);
+                  }
                   out[j]->age = dataflow_age;
                }
             }
@@ -252,7 +264,7 @@ static void fragment_backend(
    *ez_disable_out = full_z_write || !s->early_fragment_tests;
 
    if (last_write != NULL)
-      glsl_backflow_chain_append(&block->iodeps, last_write);
+      glsl_backflow_chain_push_back(&block->iodeps, last_write);
 
 #undef A
 #undef B

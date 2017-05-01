@@ -832,7 +832,8 @@ DrmRC DRM_Netflix_AesCtr_Update(DrmNetFlixSageHandle       pHandle,
         CHK_RC(Drm_SraiModuleError);
     }
 
-    *pOutputLen = (int) pNode->pCmd->blocks[1].len;
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+    *pOutputLen = (int) pNode->pCmd->basicOut[1];
     BDBG_MSG(("%s:%d - output from AES CTR Update with len %d.", __FUNCTION__,__LINE__,*pOutputLen));
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc == Drm_Success) {
@@ -901,7 +902,9 @@ DrmRC DRM_Netflix_AesCtr_Final(DrmNetFlixSageHandle       pHandle,
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc == Drm_Success) {
-        *pOutputLen = (int) pNode->pCmd->blocks[0].len;
+        /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+        *pOutputLen = (int) pNode->pCmd->basicOut[1];
+
         /*printf("%s - AES CTR Command success with output buffer size %d\n", __FUNCTION__,*pOutputLen);*/
         BKNI_Memcpy(pOutBuf, pNode->pCmd->blocks[0].data.ptr,*pOutputLen);
     }
@@ -1078,7 +1081,9 @@ DrmRC DRM_Netflix_Hmac_Compute(DrmNetFlixSageHandle      pHandle,
         BDBG_ERR(("%s - Hmac Update failed.", __FUNCTION__));
     }
 
-    *pOutputSize = pNode->pCmd->blocks[2].len;
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+    *pOutputSize = (int) pNode->pCmd->basicOut[1];
+
     BKNI_Memcpy(pOutput, pNode->pCmd->blocks[2].data.ptr,*pOutputSize);
 
 ErrorExit:
@@ -1412,9 +1417,10 @@ DrmRC DRM_Netflix_ClientKeys_Create(DrmNetFlixSageHandle    pHandle,
         BDBG_ERR(("%s - Client Keys creation failed.", __FUNCTION__));
     }
     else {
-        *pOutEncKeySize = (uint32_t) pNode->pCmd->blocks[0].len;
+        /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+        *pOutEncKeySize = (uint32_t) pNode->pCmd->basicOut[1];
         BKNI_Memcpy(pOutEncKey, pNode->pCmd->blocks[0].data.ptr,*pOutEncKeySize);
-        *pOutEncHmacSize = (uint32_t) pNode->pCmd->blocks[1].len;
+        *pOutEncHmacSize = (uint32_t) pNode->pCmd->basicOut[2];
         BKNI_Memcpy(pOutEncHmac, pNode->pCmd->blocks[1].data.ptr,*pOutEncHmacSize);
     }
 
@@ -1522,7 +1528,8 @@ DrmRC DRM_Netflix_Get_Esn(DrmNetFlixSageHandle    pHandle,
         CHK_RC(Drm_Err);
     }
     else {
-        *pEsnSize = (uint32_t) pNode->pCmd->blocks[0].len;
+        /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+        *pEsnSize = (uint32_t) pNode->pCmd->basicOut[1];
         BKNI_Memcpy(pEsn, pNode->pCmd->blocks[0].data.ptr,*pEsnSize);
     }
 
@@ -1679,7 +1686,8 @@ DrmRC DRM_Netflix_Import_Sealed_Key(DrmNetFlixSageHandle    pHandle,
         CHK_RC(BSAGE_ERR_INTERNAL);
     }
 
-    BKNI_Memcpy(&keyInfo, pNode->pCmd->blocks[1].data.ptr, pNode->pCmd->blocks[1].len);
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+    BKNI_Memcpy(&keyInfo, pNode->pCmd->blocks[1].data.ptr, pNode->pCmd->basicOut[2]);
 
     *keyHandlePtr     = keyInfo.key_handle;
     *keyTypePtr       = keyInfo.key_type;
@@ -1756,7 +1764,9 @@ DrmRC DRM_Netflix_Export_Key(DrmNetFlixSageHandle    pHandle,
     }
 
     BKNI_Memcpy(keyDataPtr, pNode->pCmd->blocks[0].data.ptr, pNode->pCmd->blocks[0].len);
-    *keySizePtr = pNode->pCmd->blocks[0].len;
+
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[0].len*/
+    *keySizePtr = pNode->pCmd->basicOut[1];
 
     /*printf("%s:%d - successfully export key for key handle %d keySize %d.\n", __FUNCTION__,__LINE__,keyHandle,*keySizePtr);*/
 
@@ -1817,8 +1827,9 @@ DrmRC DRM_Netflix_Export_Sealed_Key(DrmNetFlixSageHandle    pHandle,
         CHK_RC(Drm_Err);
     }
 
-    BKNI_Memcpy(sealedKeyDataPtr, pNode->pCmd->blocks[0].data.ptr, pNode->pCmd->blocks[0].len);
-    *maxKeySizePtr = pNode->pCmd->blocks[0].len;
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[0].len*/
+    BKNI_Memcpy(sealedKeyDataPtr, pNode->pCmd->blocks[0].data.ptr, pNode->pCmd->basicOut[1]);
+    *maxKeySizePtr = pNode->pCmd->basicOut[1];
 
     /*printf("%s:%d - successfully export key for key handle %d keySize %d.\n", __FUNCTION__,__LINE__,sealedKeyHandle,*maxKeySizePtr);*/
 
@@ -1886,7 +1897,8 @@ DrmRC DRM_Netflix_Get_Key_Info(DrmNetFlixSageHandle    pHandle,
         CHK_RC(Drm_Err);
     }
 
-    BKNI_Memcpy(&keyInfo, pNode->pCmd->blocks[0].data.ptr, pNode->pCmd->blocks[0].len);
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+    BKNI_Memcpy(&keyInfo, pNode->pCmd->blocks[0].data.ptr, pNode->pCmd->basicOut[1]);
     *keyTypePtr       = keyInfo.key_type;
     *algorithmPtr     = keyInfo.algorithm;
     *keyUsageFlagsPtr = keyInfo.key_usage_flags;
@@ -2029,8 +2041,11 @@ DrmRC DRM_Netflix_AES_CBC(DrmNetFlixSageHandle    pHandle,
 
     /* the output will be returned in the blocks[1] */
     BKNI_Memset(outDataPtr, 0, *outDataSize );
-    BKNI_Memcpy(outDataPtr, pNode->pCmd->blocks[2].data.ptr, pNode->pCmd->blocks[2].len);
-    *outDataSize = pNode->pCmd->blocks[2].len;
+    *outDataSize = pNode->pCmd->basicOut[1];
+
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[2].len*/
+    BKNI_Memcpy(outDataPtr, pNode->pCmd->blocks[2].data.ptr, *outDataSize);
+
 
     /*printf("%s:%d - successfully performed aes cbc for key handle %d out data size %d.\n", __FUNCTION__,__LINE__,keyHandle,*outDataSize);*/
 
@@ -2106,9 +2121,11 @@ DrmRC DRM_Netflix_HMAC(DrmNetFlixSageHandle    pHandle,
     }
 
     /* the output will be returned in the blocks[1] */
+    /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+    *outDataSize = pNode->pCmd->basicOut[1];
     BKNI_Memset(outDataPtr, 0, *outDataSize );
-    BKNI_Memcpy(outDataPtr, pNode->pCmd->blocks[1].data.ptr, pNode->pCmd->blocks[1].len);
-    *outDataSize = pNode->pCmd->blocks[1].len;
+    BKNI_Memcpy(outDataPtr, pNode->pCmd->blocks[1].data.ptr, *outDataSize);
+
 
     BDBG_MSG(("%s:%d successfully performed hmac for the key handle 0x%p out data size %u", __FUNCTION__,__LINE__,hmacKeyHandle,*outDataSize));
 
@@ -2464,8 +2481,9 @@ DrmRC DRM_Netflix_Secure_Store_Op(DrmNetFlixSageHandle   pHandle,
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc == Drm_Success) {
-        *pOutSize = pNode->pCmd->blocks[1].len;
-        BKNI_Memcpy(pOutBuf, pNode->pCmd->blocks[1].data.ptr, pNode->pCmd->blocks[1].len);
+        /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
+        *pOutSize = pNode->pCmd->basicOut[1];
+        BKNI_Memcpy(pOutBuf, pNode->pCmd->blocks[1].data.ptr, *pOutSize);
     }
 
 ErrorExit:

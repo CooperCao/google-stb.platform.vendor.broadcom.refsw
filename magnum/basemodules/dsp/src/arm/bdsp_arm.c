@@ -271,7 +271,7 @@ BERR_Code BDSP_Arm_Initialize(BDSP_Handle handle)
 	}
 
 	/* Write the downloaded application code into Astra secure memory */
-	rc = BDSP_Arm_P_DownloadFwToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
+	rc = BDSP_Arm_P_DownloadSystemCodeToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
 	if (BERR_SUCCESS != rc) {
 		BDBG_ERR(("failed to start armdsp_system"));
 		goto err_peer_start;

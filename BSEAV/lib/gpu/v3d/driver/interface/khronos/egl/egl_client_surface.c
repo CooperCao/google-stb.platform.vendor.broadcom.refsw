@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-EGL surface implementation.
-=============================================================================*/
-
+/******************************************************************************
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/egl/egl_client_surface.h"
@@ -107,7 +99,7 @@ static void egl_surface_pool_free(EGL_SURFACE_T* surface)
    -
 */
 
-bool egl_surface_check_attribs(
+EGLint egl_surface_check_attribs(
    EGL_SURFACE_TYPE_T type,
    const EGLint *attrib_list,
    bool *linear,
@@ -123,7 +115,7 @@ bool egl_surface_check_attribs(
    )
 {
    if (!attrib_list)
-      return true;
+      return EGL_SUCCESS;
 
    while (*attrib_list != EGL_NONE) {
       int name = *attrib_list++;
@@ -132,13 +124,13 @@ bool egl_surface_check_attribs(
       switch (name) {
       case EGL_VG_COLORSPACE:
          if (value != EGL_VG_COLORSPACE_sRGB && value != EGL_VG_COLORSPACE_LINEAR)
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (value == EGL_VG_COLORSPACE_LINEAR && linear != NULL)
             *linear = true;
          break;
       case EGL_VG_ALPHA_FORMAT:
          if (value != EGL_VG_ALPHA_FORMAT_NONPRE && value != EGL_VG_ALPHA_FORMAT_PRE)
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (value == EGL_VG_ALPHA_FORMAT_PRE && premult != NULL)
             *premult = true;
          break;
@@ -146,7 +138,7 @@ bool egl_surface_check_attribs(
       /* For WINDOW types only */
       case EGL_RENDER_BUFFER:
          if (type != WINDOW || (value != EGL_SINGLE_BUFFER && value != EGL_BACK_BUFFER))
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (value == EGL_SINGLE_BUFFER && single != NULL)
             *single = true;
          break;
@@ -154,54 +146,54 @@ bool egl_surface_check_attribs(
       /* For PBUFFER types only */
       case EGL_WIDTH:
          if (type != PBUFFER || value < 0)
-            return false;
+            return EGL_BAD_PARAMETER;
          if (width != NULL)
             *width = value;
          break;
       case EGL_HEIGHT:
          if (type != PBUFFER || value < 0)
-            return false;
+            return EGL_BAD_PARAMETER;
          if (height != NULL)
             *height = value;
          break;
       case EGL_LARGEST_PBUFFER:
          if (type != PBUFFER || (value != EGL_FALSE && value != EGL_TRUE))
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (largest_pbuffer != NULL)
             *largest_pbuffer = value;
          break;
       case EGL_TEXTURE_FORMAT:
          if (type != PBUFFER || (value != EGL_NO_TEXTURE && value != EGL_TEXTURE_RGB && value != EGL_TEXTURE_RGBA))
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (texture_format != NULL)
             *texture_format = value;
          break;
       case EGL_TEXTURE_TARGET:
          if (type != PBUFFER || (value != EGL_NO_TEXTURE && value != EGL_TEXTURE_2D))
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (texture_target != NULL)
             *texture_target = value;
          break;
       case EGL_MIPMAP_TEXTURE:
          if (type != PBUFFER || (value != EGL_FALSE && value != EGL_TRUE))
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (mipmap_texture != NULL)
             *mipmap_texture = (value == EGL_TRUE);
          break;
 #if EGL_EXT_protected_content
       case EGL_PROTECTED_CONTENT_EXT:
          if (value != EGL_FALSE && value != EGL_TRUE)
-            return false;
+            return EGL_BAD_ATTRIBUTE;
          if (secure != NULL)
             *secure = (value == EGL_TRUE);
          break;
 #endif
       default:
-         return false;
+         return EGL_BAD_ATTRIBUTE;
       }
    }
 
-   return true;
+   return EGL_SUCCESS;
 }
 
 EGL_SURFACE_T *egl_surface_create(
@@ -232,7 +224,7 @@ EGL_SURFACE_T *egl_surface_create(
    uint32_t configid;
    EGLint   config_depth_bits;
    EGLint   config_stencil_bits;
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
 
    EGL_SURFACE_T *surface = egl_surface_pool_alloc();
 
@@ -270,7 +262,7 @@ EGL_SURFACE_T *egl_surface_create(
    surface->pixmap = pixmap;
    surface->pixmap_server_handle[0] = 0;
    surface->pixmap_server_handle[1] = (uint32_t)-1;
-   surface->swap_behavior = buffers > 1 ? EGL_BUFFER_DESTROYED : EGL_BUFFER_PRESERVED;
+   surface->swap_behavior = EGL_BUFFER_DESTROYED;
    surface->multisample_resolve = EGL_MULTISAMPLE_RESOLVE_DEFAULT;
 
    surface->context_binding_count = 0;
@@ -369,7 +361,7 @@ EGL_SURFACE_T *egl_surface_from_vg_image(
    EGLint   config_depth_bits;
    EGLint   config_stencil_bits;
    uint32_t results[5];
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
 
    EGL_SURFACE_T *surface = egl_surface_pool_alloc();
 
@@ -460,7 +452,7 @@ EGL_SURFACE_T *egl_surface_from_vg_image(
 
 void egl_surface_free(EGL_SURFACE_T *surface)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
 
    if( surface->type == WINDOW ) {
       platform_destroy_winhandle( surface->win, surface->internal_handle );
@@ -588,7 +580,7 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
 
 EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint value)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   CLIENT_GET_THREAD_STATE();
    switch (attrib) {
    case EGL_MIPMAP_LEVEL:
       /* If the value of pbuffer attribute EGL_TEXTURE_FORMAT is EGL_NO_TEXTURE,

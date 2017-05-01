@@ -11,8 +11,8 @@
 #include "glsl_fastmem.h"
 #include "glsl_stringbuilder.h"
 
+#include "libs/util/gfx_util/gfx_util.h"
 #include "libs/util/snprintf.h"
-#include "vcos_string.h"
 
 struct _StringBuilder {
    char* buffer;
@@ -44,17 +44,17 @@ void glsl_sb_append(StringBuilder* sb, const char* format, ...)
       if (sb->capacity > sb->length) {
          va_list argp;
          va_start(argp, format);
-         new_length = vcos_safe_vsprintf(sb->buffer, sb->capacity + 1, sb->length, format, argp);
+         new_length = vsnprintf(sb->buffer + sb->length, sb->capacity - sb->length + 1, format, argp);
          va_end(argp);
-         if (sb->length <= new_length && new_length <= sb->capacity) {
-            sb->length = new_length;
+         if (0 <= new_length && sb->length + new_length <= sb->capacity) {
+            sb->length += new_length;
             return;
          }
       }
 
       // Increase the buffer capacity and retry
       // 'new_length' may or may not contain the exact needed size depending on platform
-      sb->capacity = vcos_max(new_length, vcos_max(sb->capacity * 2, 15));
+      sb->capacity = gfx_smax3(sb->length + new_length, sb->capacity * 2, 15);
       sb->buffer = memcpy(malloc_fast(sb->capacity + 1), sb->buffer, sb->length + 1);
    }
 }

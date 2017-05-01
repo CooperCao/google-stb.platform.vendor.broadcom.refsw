@@ -1,20 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  Include file included everywhere in bsg
-Module   :
-
-FILE DESCRIPTION
-Common include file
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __BSG_COMMON_H__
 #define __BSG_COMMON_H__
 
 #ifdef WIN32
 
-#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
 

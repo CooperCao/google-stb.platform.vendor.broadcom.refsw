@@ -1,39 +1,39 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  **************************************************************************/
 
 #include "bstd.h"
@@ -52,7 +52,7 @@ BDBG_MODULE(btlv_parser);
 #define B_TLV_PKT_HDR           4
 
 
-int btlv_parser_split(uint16_t pid, const void *payload, btlv_segments *segments) {
+int btlv_parser_split_mpeg2ts(uint16_t pid, const void *payload, btlv_segments *segments) {
     const uint8_t *data = payload;
     unsigned word;
     unsigned tlv_pid;
@@ -135,6 +135,8 @@ void btlv_parser_reset(btlv_parser *parser)
     parser->packet_size = 0;
     parser->expected_packet_size = 0;
     parser->in_sync = false;
+    parser->eps_higher_byte = 0;
+    parser->tail_size = 0;
     return;
 }
 
@@ -152,11 +154,181 @@ void btlv_parser_shutdown(btlv_parser *parser)
     return;
 }
 
-int btlv_parser_process(btlv_parser *parser, const void *payload, btlv_parser_packets *packets)
+int btlv_parser_process_tlv(btlv_parser *parser,const void *payload, unsigned payload_length, btlv_parser_packets *packets)
+{
+    int rc=0;
+    const uint8_t *data = payload;
+    unsigned offset=0;
+    uint16_t remaining_packet_size = 0;
+    uint8_t remaining_tlv_hdr_size=0;
+    packets->packet_valid = false;
+    packets->count = 0;
+    packets->keep_previous_packets = false;
+    packets->keep_current_packet = false;
+
+    if (!parser->in_sync)
+    {
+        for(offset=0; (data[offset] != 0x7F) && (offset < payload_length); offset++);
+
+        if(offset == payload_length)
+            return 0;
+        else
+        {
+            BDBG_ASSERT((data[offset]== 0x7F));
+            parser->in_sync = true;
+            BDBG_ERR(("offset %x",offset));
+        }
+    }
+
+    if (parser->tail_size)
+    {
+
+        BDBG_ASSERT((parser->fragments == 1));
+        parser->packet[0] = parser->tail_pkt;
+        if (parser->expected_packet_size == 0)
+        {
+            BDBG_ASSERT(((parser->tail_size > 0) && (parser->tail_size < 4) ));
+            switch (parser->tail_size)
+            {
+            case 1:
+                parser->expected_packet_size = data[offset+1] << 8 | data[offset+2];
+                break;
+            case 2:
+                parser->expected_packet_size = data[offset] << 8 | data[offset+1];
+                break;
+            case 3:
+                parser->expected_packet_size = parser->eps_higher_byte << 8 | data[offset];
+                break;
+            default:
+                BDBG_ASSERT((0));
+            }
+            remaining_tlv_hdr_size = B_TLV_PKT_HDR - parser->tail_size;
+            remaining_packet_size = parser->expected_packet_size + remaining_tlv_hdr_size;
+            parser->eps_higher_byte = 0;
+        }
+        else
+        {
+            remaining_packet_size = parser->expected_packet_size - parser->packet_size;
+            remaining_tlv_hdr_size=0;
+        }
+
+    }
+
+    if (parser->expected_packet_size)
+    {
+        uint16_t current_packet_size=0;
+        if (parser->tail_size)
+        {
+            parser->tail_size = 0;
+        }
+        else
+        {
+            remaining_packet_size = parser->expected_packet_size - parser->packet_size;
+            remaining_tlv_hdr_size=0;
+        }
+        current_packet_size = (offset + remaining_packet_size < payload_length)?remaining_packet_size:payload_length;
+        BATOM_VEC_INIT(&parser->packet[parser->fragments],
+                       data+offset,
+                       current_packet_size);
+        offset += current_packet_size;
+        parser->fragments++;
+        parser->packet_size+=current_packet_size;
+        parser->packet_size-=remaining_tlv_hdr_size;
+        if (parser->expected_packet_size == parser->packet_size)
+        {
+            batom_cursor_from_vec(&packets->packet, parser->packet, parser->fragments);
+            parser->fragments = 0;
+            parser->expected_packet_size = 0;
+            parser->packet_size = 0;
+            packets->packet_valid = true;
+        }
+        else
+        {
+            packets->keep_previous_packets = true;
+        }
+
+    }
+    BDBG_ASSERT((packets->count==0));
+
+    while((offset + B_TLV_PKT_HDR < payload_length))
+    {
+        uint16_t packet_size=0;
+        if (data[offset]!=0x7f)
+        {
+            parser->in_sync = false;
+            goto done;
+        }
+        packet_size = data[offset + 2] << 8  | data[offset+3];
+        if ((offset + B_TLV_PKT_HDR + packet_size) <= payload_length)
+        {
+            BATOM_VEC_INIT(&packets->packets[packets->count], data+offset,B_TLV_PKT_HDR + packet_size);
+            offset += B_TLV_PKT_HDR + packet_size;
+            packets->count++;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    #if 0
+    if (parser->fragments) {
+
+        BDBG_ERR(("parser->expected_packet_size %d parser->packet_size %d",parser->expected_packet_size,parser->packet_size));
+        BDBG_ERR(("offset %d payload_length %d",offset,payload_length));
+        BDBG_ERR(("parser->fragments %d packets->count %d",parser->fragments,packets->count));
+    }
+    #endif
+    BDBG_ASSERT((parser->fragments==0));
+    if (offset < payload_length)
+    {
+        if (data[offset]!=0x7f)
+        {
+            parser->in_sync = false;
+            goto done;
+        }
+        parser->tail_size = payload_length - offset;
+        BATOM_VEC_INIT(&parser->tail_pkt, data+offset,parser->tail_size);
+        if((offset + B_TLV_PKT_HDR) > payload_length)
+        {
+            parser->expected_packet_size = 0;
+            parser->packet_size = 0;
+            if (parser->tail_size == 3)
+            {
+                parser->eps_higher_byte = data[offset + 2];
+            }
+        }
+        else
+        {
+            parser->expected_packet_size = data[offset + 2] << 8 | data[offset + 3];
+            parser->packet_size = parser->tail_size - B_TLV_PKT_HDR;
+        }
+        packets->keep_current_packet = true;
+        offset += parser->tail_size;
+        parser->fragments = 1;
+    }
+
+done:
+    if (parser->in_sync)
+    {
+        BDBG_ASSERT((offset == payload_length));
+    }
+    else
+    {
+        parser->fragments = 0;
+        parser->expected_packet_size = 0;
+        parser->packet_size = 0;
+        parser->tail_size = 0;
+        parser->eps_higher_byte =0;
+    }
+    return rc;
+}
+
+int btlv_parser_process_mpeg2ts(btlv_parser *parser, const void *payload, btlv_parser_packets *packets)
 {
     int rc;
     const uint8_t *data = payload;
-    rc = btlv_parser_split(parser->pid, data, &parser->segments);
+    rc = btlv_parser_split_mpeg2ts(parser->pid, data, &parser->segments);
     if(rc!=0) {
         return rc;
     }

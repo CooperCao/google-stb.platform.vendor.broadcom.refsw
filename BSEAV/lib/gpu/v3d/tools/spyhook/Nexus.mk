@@ -34,6 +34,8 @@ endif
 CFLAGS += -O0 -fPIC -DPIC
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 
+CFLAGS += -std=c++0x
+
 LDFLAGS = -shared -Wl,--export-dynamic
 
 .PHONY: copy_to_bin
@@ -41,7 +43,7 @@ copy_to_bin : lib/libgpumonitor.so
 	$(info Copying libgpumonitor.so to $(NEXUS_BIN_DIR))
 	@cp lib/libgpumonitor.so $(NEXUS_BIN_DIR)
 
-lib/libgpumonitor.so : obj/spyhook.o obj/remote.o obj/archive.o obj/packet.o obj/platform.o
+lib/libgpumonitor.so : obj/spyhook.o obj/remote.o obj/archive.o obj/packet.o obj/packetreader.o obj/platform.o
 	@mkdir -p lib
 	$(info Linking $@)
 	@$(B_REFSW_CROSS_COMPILE)g++ $(LDFLAGS) -o $@ $^

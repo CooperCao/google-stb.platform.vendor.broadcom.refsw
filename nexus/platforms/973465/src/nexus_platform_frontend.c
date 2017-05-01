@@ -41,8 +41,6 @@
 
 #include "priv/nexus_core.h"
 #include "nexus_i2c.h"
-#include "bfpga.h"
-#include "bfpga_name.h"
 #include "nexus_frontend.h"
 #include "nexus_platform_features.h"
 #include "nexus_platform.h"
@@ -124,7 +122,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             {
                 BDBG_MSG(("NEXUS_Frontend_Open7346 Failed!"));
             }
-            BDBG_MSG(("pConfig->frontend[%d] = 0x%x", i, pConfig->frontend[i]));
+            BDBG_MSG(("pConfig->frontend[%d] = %p", i, (void *)pConfig->frontend[i]));
 
         }
         offset = NEXUS_7346_MAX_FRONTEND_CHANNELS;
@@ -265,7 +263,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         {
             BDBG_MSG(("NEXUS_Frontend_Open7346 Failed!"));
         }
-        BDBG_MSG(("pConfig->frontend[%d] = 0x%x", i, pConfig->frontend[i]));
+        BDBG_MSG(("pConfig->frontend[%d] = %p", i, (void *)pConfig->frontend[i]));
 
     }
 
@@ -331,7 +329,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
 
     /* Configure FPGA on 7346(5) SV board */
-    BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
+    BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , (void *)g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xc, &data_c, 1);
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xd, &data_d, 1);
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xe, &data_e, 1);
@@ -411,7 +409,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         {
             BDBG_MSG(("NEXUS_Frontend_Open7346 Failed!"));
         }
-        BDBG_MSG(("pConfig->frontend[%d] = 0x%x", i, pConfig->frontend[i]));
+        BDBG_MSG(("pConfig->frontend[%d] = %p", i, (void *)pConfig->frontend[i]));
     }
 
     /* Tone generated internally according to EXTMpin */

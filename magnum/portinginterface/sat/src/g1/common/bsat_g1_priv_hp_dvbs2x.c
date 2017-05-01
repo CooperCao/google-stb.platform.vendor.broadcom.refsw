@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
@@ -59,7 +56,6 @@ BDBG_MODULE(bsat_g1_priv_hp);
 
 #define BSAT_DEBUG_HP(x) /* x */
 
-#define BSAT_HP_TIMEOUT 4000000 /* time in baud clocks to wait for rcvr lock */
 
 /* local functions */
 BERR_Code BSAT_g1_P_HpAcquire1_isr(BSAT_ChannelHandle h);
@@ -127,7 +123,7 @@ BERR_Code BSAT_g1_P_HpAcquire1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
-   uint32_t timeout = BSAT_HP_TIMEOUT;
+   uint32_t timeout = hChn->acqSettings.symbolRate; /* 1 sec timeout on hp lock */
 
    /* configure the HP */
    hChn->bShortFrame = false;
@@ -143,7 +139,10 @@ BERR_Code BSAT_g1_P_HpAcquire1_isr(BSAT_ChannelHandle h)
 
    /* start reacquisition timer */
    if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED)
-      timeout = hChn->acqSettings.symbolRate; /* 1 second timeout for scan mode */
+   {
+      if (hChn->acqSettings.symbolRate <= 5000000)
+         timeout *= 2; /* 2 sec timeout on low baud rate scan mode */
+   }
 
    retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, timeout, BSAT_g1_P_OnHpTimeOut_isr);
 
@@ -247,6 +246,11 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       }
       else
       {
+         /* try fine freq first in scan mode */
+         mask = BSAT_DVBS2_SCAN_STATE_ENABLED | BSAT_DVBS2_SCAN_STATE_FOUND;
+         if ((hChn->dvbs2ScanState & mask) == BSAT_DVBS2_SCAN_STATE_ENABLED)
+            hChn->bEnableFineFreqEst = BSAT_g1_P_HpOkToEnableFineFreqEst_isr(h);
+
          mask = BSAT_DVBS2_SCAN_STATE_ENABLED | BSAT_DVBS2_SCAN_STATE_FOUND | BSAT_DVBS2_SCAN_STATE_PILOT;
          if ((hChn->dvbs2ScanState & mask) == mask)
             goto dvbs2_pilot_mode; /* modcod scan mode: from previous hp acquisition, we know there is pilot, so enable fine freq est */
@@ -659,6 +663,7 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
 
          if ((oldScanState & BSAT_DVBS2_SCAN_STATE_FOUND) == 0)
          {
+#if 0
             if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_PILOT)
             {
                /* fine freq est was off when we initially locked the HP in modcod scan mode */
@@ -670,6 +675,16 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
                   return;
                }
             }
+#else
+            if (((hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_PILOT) == 0) && hChn->bEnableFineFreqEst)
+            {
+               /* fine freq est was enabled when we initially locked the HP in modcod scan mode */
+               /* reacquire the HP again with fine freq disabled */
+               reacquire_hp:
+               BSAT_g1_P_HpAcquire1_isr(h);
+               return;
+            }
+#endif
          }
 
          /* program new modcod and type */

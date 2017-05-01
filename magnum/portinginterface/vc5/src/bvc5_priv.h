@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef BVC5_PRIV_H__
 #define BVC5_PRIV_H__
 
@@ -47,7 +46,6 @@
 #include "bvc5_scheduler_state_priv.h"
 #include "bvc5_scheduler_priv.h"
 #include "bvc5_hardware_priv.h"
-#include "bvc5_usermode_priv.h"
 #include "bvc5_bin_pool_priv.h"
 #include "bvc5_internal_job_priv.h"
 #include "bvc5_perf_counters_priv.h"
@@ -112,9 +110,6 @@ typedef struct BVC5_P_Handle
 
    /* Current TFU status */
    BVC5_P_TFUState      sTFUState;
-
-   /* Current usermode callback state */
-   BVC5_P_UsermodeState sUsermodeState;
 
    /* Counters */
    uint32_t             uiNextClientId;            /* counter for client ids                                               */

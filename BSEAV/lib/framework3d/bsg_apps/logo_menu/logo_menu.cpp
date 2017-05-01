@@ -1,45 +1,6 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "logo_menu.h"
 #include "logo_geom.h"
 
@@ -253,7 +214,7 @@ LogoMenu::LogoMenu(Platform &platform, const ParseArgs &args) :
    m_logoCamera->SetFocalPlane(5.5f);
    m_logoCamera->SetAspectRatio((float)(GetWindowWidth() / 2) / (float)GetWindowHeight());
 
-   m_logoCamNode->SetTransform(CameraTransformHelper::Lookat(Vec3(0.0f, 1.0f, 5.5f), Vec3(0.0f, 0.0f, 0.0f), 
+   m_logoCamNode->SetTransform(CameraTransformHelper::Lookat(Vec3(0.0f, 1.0f, 5.5f), Vec3(0.0f, 0.0f, 0.0f),
                                                              Vec3(0.0f, 1.0f, 0.0f)));
    m_logoCamNode->SetCamera(m_logoCamera);
 
@@ -338,7 +299,7 @@ LogoMenu::LogoMenu(Platform &platform, const ParseArgs &args) :
       loadName = "menu_config.txt";
 
       std::string configFile = "menu_config_" + platform.GetPlatformName() + ".txt";
-      
+
       FILE *configFp = fopen(configFile.c_str(), "r");
       if (configFp == NULL)
       {
@@ -355,7 +316,7 @@ LogoMenu::LogoMenu(Platform &platform, const ParseArgs &args) :
    if (LoadMenu(loadName, m_startAt))
    {
       // Make the carousel we will use
-      m_carousel = new MenuCarousel(6.0f, numNodes, 12.0f, 3.0f, 5.0f, 
+      m_carousel = new MenuCarousel(6.0f, numNodes, 12.0f, 3.0f, 5.0f,
                                     m_font, Vec2(0.8f, 0.58f), Vec2(0.05f, 0.15f),
                                     2.5f, 0.17f);
 
@@ -365,14 +326,14 @@ LogoMenu::LogoMenu(Platform &platform, const ParseArgs &args) :
 
       m_carouselRoot->AppendChild(m_carousel->RootNode());
    }
-   
+
    // Ensure each graph has a camera
    m_carouselRoot->AppendChild(m_carouselCamNode);
    m_logoRoot->AppendChild(m_logoCamNode);
 
    // Making the help menu
    m_helpMenu = new HelpMenu(this, eHELP_BUTTON_RED, "Help", "DroidSans.ttf", Vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.025f, 0.93f, 0.93f, true);
-   
+
    m_helpMenu->SetMenuItemHeaderColour(Vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
    m_helpMenu->AddMenuItem("Select", "Start demo");
@@ -391,11 +352,11 @@ LogoMenu::LogoMenu(Platform &platform, const ParseArgs &args) :
    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-MaterialHandle LogoMenu::MakeEnvMappedMaterial(EffectHandle effect, TextureHandle irrad, TextureHandle refl, 
+MaterialHandle LogoMenu::MakeEnvMappedMaterial(EffectHandle effect, TextureHandle irrad, TextureHandle refl,
                                               TextureHandle occlusion, const Vec4 &color, float dimScale)
 {
    MaterialHandle mat(New);
-   
+
    mat->SetEffect(effect);
    mat->SetTexture("u_tex", irrad);
    mat->SetTexture("u_refl_tex", refl);
@@ -460,11 +421,12 @@ void LogoMenu::RenderFrame()
    m_guilloche.Render();
 
    // Draw the spinning logo
-   glViewport((GLint)(GetWindowWidth() * 0.06f), GetWindowHeight() * 0.028f, GetWindowWidth() / 2, GetWindowHeight());
+   glViewport((GLint)(GetWindowWidth() * 0.06f), (GLint)(GetWindowHeight() * 0.028f),
+      GetWindowWidth() / 2, GetWindowHeight());
    RenderSceneGraph(m_logoRoot);
 
    // Draw the carousel
-   glViewport((GLint)(GetWindowWidth() * carouselPaneX), 0, 
+   glViewport((GLint)(GetWindowWidth() * carouselPaneX), 0,
              (GLsizei)(GetWindowWidth() * (1.0f - carouselPaneX)), GetWindowHeight());
    RenderSceneGraph(m_carouselRoot);
 
@@ -488,19 +450,19 @@ void LogoMenu::KeyEventHandler(KeyEvents &queue)
       {
          switch (ev.Code())
          {
-         case KeyEvent::eKEY_EXIT : 
-         case KeyEvent::eKEY_ESC : 
-         case KeyEvent::eKEY_POWER : 
-            Stop(255); 
+         case KeyEvent::eKEY_EXIT :
+         case KeyEvent::eKEY_ESC :
+         case KeyEvent::eKEY_POWER :
+            Stop(255);
             break;
-         case KeyEvent::eKEY_UP : 
+         case KeyEvent::eKEY_UP :
             m_carousel->Prev(FrameTimestamp(), Time(0.3f));
             break;
-         case KeyEvent::eKEY_DOWN : 
-            m_carousel->Next(FrameTimestamp(), Time(0.3f)); 
+         case KeyEvent::eKEY_DOWN :
+            m_carousel->Next(FrameTimestamp(), Time(0.3f));
             break;
-         case KeyEvent::eKEY_OK : 
-         case KeyEvent::eKEY_ENTER : 
+         case KeyEvent::eKEY_OK :
+         case KeyEvent::eKEY_ENTER :
             if (m_menuItems[m_carousel->CurrentIndex()].enabled)
                Stop(m_carousel->CurrentIndex());
             break;
@@ -508,7 +470,7 @@ void LogoMenu::KeyEventHandler(KeyEvents &queue)
          case KeyEvent::eKEY_F1 :
             if (m_helpMenu)
                m_helpMenu->ToggleMenu();
-         default : 
+         default :
             break;
          }
       }
@@ -530,7 +492,7 @@ void LogoMenu::MouseEventHandler(MouseEvents &queue)
             if (m_menuItems[m_carousel->CurrentIndex()].enabled)
                Stop(m_carousel->CurrentIndex());
             break;
-         default : 
+         default :
             break;
          }
       }
@@ -541,7 +503,7 @@ void LogoMenu::MouseEventHandler(MouseEvents &queue)
          if (vec.Y() > 0)
             m_carousel->Prev(FrameTimestamp(), Time(0.3f));
          else if (vec.Y() < 0)
-            m_carousel->Next(FrameTimestamp(), Time(0.3f)); 
+            m_carousel->Next(FrameTimestamp(), Time(0.3f));
       }
    }
 }
@@ -593,7 +555,7 @@ void LogoMenu::HandleSpecialMenuCases(MenuItem *item)
       {
          size_t splitPos1 = item->desc.find("#1#");
          size_t splitPos2 = item->desc.find("#2#");
-         
+
          if (splitPos1 != std::string::npos && splitPos2 != std::string::npos)
          {
             std::string allGoodStr = item->desc.substr(0, splitPos1);
@@ -686,7 +648,7 @@ bool LogoMenu::ParseMultiFormat(FILE *fp, std::vector<char> &buff, std::vector<M
          item.exe += std::string(&buff[0]);
          buff[0] = '\0';
       }
- 
+
       menuItems.push_back(item);
 
    } while (buff[0] == '#');
@@ -790,15 +752,15 @@ void LogoMenu::WriteDemoScript(uint32_t current)
       }
       else
       {
-         std::vector<char>	cwd(256);
-         
+         std::vector<char> cwd(256);
+
          while (getcwd(&cwd[0], cwd.size()) == NULL)
          {
             std::cout << "Resizing\n";
             cwd.resize(cwd.size() * 2);
          }
 
-         fprintf(fp, "cd %s\nexport LD_LIBRARY_PATH=.:../common:%s/../common\n%s %s\n", 
+         fprintf(fp, "cd %s\nexport LD_LIBRARY_PATH=.:../common:%s/../common\n%s %s\n",
             m_menuItems[current].folder.c_str(),
             &cwd[0],
             m_menuItems[current].exe.c_str(),

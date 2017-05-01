@@ -1318,6 +1318,23 @@ done:
 
 static const char *g_clientModeStr[NEXUS_ClientMode_eMax] = {"unprotected","verified","protected","untrusted"};
 
+static NEXUS_Error nexus_p_set_client_mode(NEXUS_ClientHandle client, NEXUS_ClientMode mode)
+{
+    switch (mode) {
+    case NEXUS_ClientMode_eUnprotected: /* deprecated */
+        client->client_state.client.mode = NEXUS_ClientMode_eVerified;
+        break;
+    case NEXUS_ClientMode_eVerified:
+    case NEXUS_ClientMode_eProtected:
+    case NEXUS_ClientMode_eUntrusted:
+        client->client_state.client.mode = mode;
+        break;
+    default:
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_ClientHandle NEXUS_Platform_RegisterClient(const NEXUS_ClientSettings *pSettings)
 {
     NEXUS_ClientHandle client;
@@ -1351,19 +1368,9 @@ NEXUS_ClientHandle NEXUS_Platform_RegisterClient(const NEXUS_ClientSettings *pSe
     client->server = server;
     client->settings = *pSettings;
     client->client_state.client.resources.allowed = client->settings.configuration.resources;
-    switch (client->settings.configuration.mode) {
-    case NEXUS_ClientMode_eUnprotected: /* deprecated */
-        client->client_state.client.mode = NEXUS_ClientMode_eVerified;
-        break;
-    case NEXUS_ClientMode_eVerified:
-    case NEXUS_ClientMode_eProtected:
-    case NEXUS_ClientMode_eUntrusted:
-        client->client_state.client.mode = client->settings.configuration.mode;
-        break;
-    default:
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        goto err_invalid_mode;
-    }
+
+    rc = nexus_p_set_client_mode(client, client->settings.configuration.mode);
+    if (rc) { rc = BERR_TRACE(rc); goto err_invalid_mode; }
 
     rc = b_get_client_default_heaps(&client->settings.configuration, &client->client_state.client.default_heaps);
     if (rc) {
@@ -1803,4 +1810,17 @@ void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings
         BKNI_Free(config);
     }
     return;
+}
+
+NEXUS_Error NEXUS_Platform_SetClientMode( NEXUS_ClientHandle client, NEXUS_ClientMode mode )
+{
+    if (mode > client->client_state.client.mode) {
+        /* we can't raise the mode without re-validating every resource */
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+    else if (mode < client->client_state.client.mode) {
+        NEXUS_Error rc = nexus_p_set_client_mode(client, mode);
+        if (rc) return BERR_TRACE(rc);
+    }
+    return NEXUS_SUCCESS;
 }

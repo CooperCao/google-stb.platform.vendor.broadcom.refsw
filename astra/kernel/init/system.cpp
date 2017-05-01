@@ -123,7 +123,7 @@ void System::init(const void *devTree) {
     printf("Root FS mounted\n");
 
     /* Unmap the bootstrap part of the kernel */
-    PageTable::kernelPageTable()->unmapBootstrap(devTree);
+    //PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
     // Create /dev/random and /dev/urandom
     IDirectory *devDir = RamFS::Directory::create(System::UID, System::GID, rootDir,

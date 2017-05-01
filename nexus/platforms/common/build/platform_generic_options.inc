@@ -119,3 +119,5 @@ endif
 ifneq ($(NEXUS_USERMODE),y)
 NEXUS_FILE_MUX_SUPPORT := n
 endif
+
+B_REFSW_STRICT_PRINTF_FORMAT ?= y

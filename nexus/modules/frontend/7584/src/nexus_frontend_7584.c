@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,7 +118,7 @@ typedef struct NEXUS_7584
     NEXUS_IsrCallbackHandle     cppmAppCallback;
     NEXUS_IsrCallbackHandle     cppmDoneCallback;
     uint16_t revId; /* 0x00 = A0 */
-    NEXUS_3128ConfigSettings deviceSettings;
+    NEXUS_FrontendDevice3128Settings deviceSettings;
     bool isMtsif;
     uint8_t numTunerPoweredOn;
     bool isTunerPoweredOn[NEXUS_MAX_7584_FRONTENDS];
@@ -492,6 +492,7 @@ static NEXUS_Error NEXUS_Frontend_P_Init_7584_Hab(NEXUS_7584 *pDevice, const NEX
             unsigned code_size = 0;
             unsigned num_chunks, chunk_size = MAX_CTFE_IMG_CHUNK_SIZE;
             unsigned chunk;
+            NEXUS_MemoryAllocationSettings allocSettings;
 
             rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_7584, &pImgContext, &imgInterface);
             if (rc) { BERR_TRACE(rc); goto done; }
@@ -501,7 +502,9 @@ static NEXUS_Error NEXUS_Frontend_P_Init_7584_Hab(NEXUS_7584 *pDevice, const NEX
             if (rc) { BERR_TRACE(rc); goto done; }
             code_size = (pImage[72] << 24) | (pImage[73] << 16) | (pImage[74] << 8) | pImage[75];
             fw_size = code_size + header_size;
-            rc = NEXUS_Memory_Allocate(fw_size, NULL, (void **)&fw);
+            NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+            allocSettings.heap = g_pCoreHandles->heap[0].nexus;
+            rc = NEXUS_Memory_Allocate(fw_size, &allocSettings, (void **)&fw);
             if (rc) { BERR_TRACE(rc); goto done; }
 
             num_chunks = fw_size / chunk_size;
@@ -846,9 +849,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3128(unsigned index, const N
         pDevice->isMtsif = pSettings->isMtsif;
         pDevice->pGenericDeviceHandle = pFrontendDevice;
         pDevice->previousStandbyMode = NEXUS_StandbyMode_eOn;
-#if NEXUS_FRONTEND_7584_OOB
-        pDevice->deviceSettings.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eMax; /* Setting default. */
-#endif
+        NEXUS_FrontendDevice_GetDefault3128Settings(&pDevice->deviceSettings);
         rc = NEXUS_Frontend_P_Init_7584_Hab(pDevice, pSettings);
         if(rc){rc = BERR_TRACE(rc); goto err_init_hab;}
 
@@ -1716,6 +1717,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_7584_Standby(void *handle, const NEXUS
             unsigned code_size = 0;
             unsigned num_chunks, chunk_size = MAX_CTFE_IMG_CHUNK_SIZE;
             unsigned chunk;
+            NEXUS_MemoryAllocationSettings allocSettings;
 
             rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_7584, &pImgContext, &imgInterface);
             if (rc) { BERR_TRACE(rc); goto done; }
@@ -1725,7 +1727,9 @@ static NEXUS_Error NEXUS_FrontendDevice_P_7584_Standby(void *handle, const NEXUS
             if (rc) { BERR_TRACE(rc); goto done; }
             code_size = (pImage[72] << 24) | (pImage[73] << 16) | (pImage[74] << 8) | pImage[75];
             fw_size = code_size + header_size;
-            rc = NEXUS_Memory_Allocate(fw_size, NULL, (void **)&fw);
+            NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+            allocSettings.heap = g_pCoreHandles->heap[0].nexus;
+            rc = NEXUS_Memory_Allocate(fw_size, &allocSettings, (void **)&fw);
             if (rc) { BERR_TRACE(rc); goto done; }
 
             num_chunks = fw_size / chunk_size;
@@ -2136,6 +2140,10 @@ void NEXUS_FrontendDevice_GetDefault3128Settings(NEXUS_FrontendDevice3128Setting
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->agcValue = 0x1f; /* Max gain*/
+    NEXUS_CallbackDesc_Init(&pSettings->updateGainCallback);
+#if NEXUS_FRONTEND_7584_OOB
+    pSettings->outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eMax; /* Setting default. */
+#endif
 }
 
 NEXUS_Error NEXUS_FrontendDevice_Get3128Settings(NEXUS_FrontendDeviceHandle handle, NEXUS_FrontendDevice3128Settings *pSettings)

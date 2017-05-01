@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of Khronos image wrapper, not including the client-side subset,
-which is implemented in interface/khronos/common/khrn_int_image.c.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/common/khrn_int_color.h"
@@ -1356,7 +1347,7 @@ const uint32_t  MAP_EVEN = 0x84c0;
 #endif
 
 #ifndef fetch
-#define fetch(base)
+#define fetch(base) (void)base
 #endif
 
 #ifdef __mips__

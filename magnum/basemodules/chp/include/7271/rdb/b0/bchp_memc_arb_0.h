@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 16:51:53 2016
- *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
+ * Date:           Generated on               Mon May  1 13:53:27 2017
+ *                 Full Compile MD5 Checksum  7bf005fac94e6f2c34c454d9d0770825
  *                     (minus title and desc)
- *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
+ *                 MD5 Checksum               1ccaa4467dc618346a05a55e161dc371
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1395
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -354,13 +351,13 @@
 #define BCHP_MEMC_ARB_0_SPARE_2                  0x21101464 /* [CFG][32] Spare Register 2 . */
 #define BCHP_MEMC_ARB_0_SPARE_RO_1               0x21101468 /* [RO][32] Read only Spare Register 1 . */
 #define BCHP_MEMC_ARB_0_SPARE_RO_2               0x2110146c /* [RO][32] Read only Spare Register 2 . */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE       0x21101470 /* [CFG][32] "Override registers to force behaviour of client_init module." */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH 0x21101474 /* [CFG][32] "Client init block counter threshold value" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT 0x21101478 /* [RO][32] "Client init error interrupt" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR 0x2110147c /* [WO][32] "Client init error write clear" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   0x21101480 /* [RO][32] "Client init error violation info" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT      0x21101484 /* [CFG][32] "Client init software init" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       0x21101488 /* [RO][32] "Client init status and debug register" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE       0x21101470 /* [CFG][32] \"Override registers to force behaviour of client_init module.\" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH 0x21101474 /* [CFG][32] \"Client init block counter threshold value\" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT 0x21101478 /* [RO][32] \"Client init error interrupt\" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR 0x2110147c /* [WO][32] \"Client init error write clear\" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   0x21101480 /* [RO][32] \"Client init error violation info\" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT      0x21101484 /* [CFG][32] \"Client init software init\" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       0x21101488 /* [RO][32] \"Client init status and debug register\" */
 #define BCHP_MEMC_ARB_0_LCA_VALID_REQ_0          0x2110148c /* [RO][32] LCA Valid Requests for Clients 0 to 31 */
 #define BCHP_MEMC_ARB_0_LCA_VALID_REQ_1          0x21101490 /* [RO][32] LCA Valid Requests for Clients 32 to 63 */
 #define BCHP_MEMC_ARB_0_LCA_VALID_REQ_2          0x21101494 /* [RO][32] LCA Valid Requests for Clients 64 to 95 */
@@ -378,7 +375,7 @@
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_5  0x211014c4 /* [RO][32] Active Blocked Status for Clients 160 to 191 */
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_6  0x211014c8 /* [RO][32] Active Blocked Status for Clients 192 to 223 */
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_7  0x211014cc /* [RO][32] Active Blocked Status for Clients 224 to 255 */
-#define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE     0x211014d0 /* [CFG][32] "Arbiter clock gating disable register" */
+#define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE     0x211014d0 /* [CFG][32] \"Arbiter clock gating disable register\" */
 
 /***************************************************************************
  *PHY_DEBUG_REGISTER - MEMC CORE and IOBUF Interface Debug Register
@@ -7963,7 +7960,7 @@
 #define BCHP_MEMC_ARB_0_SPARE_RO_2_SPARE_RO_DEFAULT                0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_ENABLE - "Override registers to force behaviour of client_init module."
+ *CLIENT_INIT_ENABLE - \"Override registers to force behaviour of client_init module.\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ENABLE :: reserved0 [31:16] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE_reserved0_MASK          0xffff0000
@@ -8003,7 +8000,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE_ENABLE_DEFAULT          0x00000001
 
 /***************************************************************************
- *CLIENT_INIT_COUNTER_THRESH - "Client init block counter threshold value"
+ *CLIENT_INIT_COUNTER_THRESH - \"Client init block counter threshold value\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_COUNTER_THRESH :: reserved0 [31:12] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH_reserved0_MASK  0xfffff000
@@ -8015,7 +8012,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH_THRESHOLD_DEFAULT 0x00000100
 
 /***************************************************************************
- *CLIENT_INIT_ERROR_INTERRUPT - "Client init error interrupt"
+ *CLIENT_INIT_ERROR_INTERRUPT - \"Client init error interrupt\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ERROR_INTERRUPT :: reserved0 [31:01] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT_reserved0_MASK 0xfffffffe
@@ -8027,7 +8024,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT_INIT_REQ_ERROR_DEFAULT 0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_ERROR_WRITE_CLEAR - "Client init error write clear"
+ *CLIENT_INIT_ERROR_WRITE_CLEAR - \"Client init error write clear\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ERROR_WRITE_CLEAR :: reserved0 [31:01] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR_reserved0_MASK 0xfffffffe
@@ -8039,7 +8036,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR_WRITE_CLEAR_DEFAULT 0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_ERROR_INFO - "Client init error violation info"
+ *CLIENT_INIT_ERROR_INFO - \"Client init error violation info\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ERROR_INFO :: reserved0 [31:24] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO_reserved0_MASK      0xff000000
@@ -8055,7 +8052,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO_CLIENT_ID_DEFAULT   0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_SW_INIT - "Client init software init"
+ *CLIENT_INIT_SW_INIT - \"Client init software init\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_SW_INIT :: reserved0 [31:13] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT_reserved0_MASK         0xffffe000
@@ -8081,7 +8078,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT_CLIENT_INIT_ID_DEFAULT 0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_STATUS - "Client init status and debug register"
+ *CLIENT_INIT_STATUS - \"Client init status and debug register\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_STATUS :: CLIENT_ISOLATION [31:31] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS_CLIENT_ISOLATION_MASK   0x80000000
@@ -8257,7 +8254,7 @@
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_7_CLIENTS_DEFAULT    0x00000000
 
 /***************************************************************************
- *ARB_CLK_GATE_DISABLE - "Arbiter clock gating disable register"
+ *ARB_CLK_GATE_DISABLE - \"Arbiter clock gating disable register\"
  ***************************************************************************/
 /* MEMC_ARB_0 :: ARB_CLK_GATE_DISABLE :: reserved0 [31:01] */
 #define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE_reserved0_MASK        0xfffffffe

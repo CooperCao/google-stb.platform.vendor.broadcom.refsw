@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -128,7 +128,7 @@
 #define BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
 #endif
 
-void BXPT_Playback_P_WriteAddr(
+static void BXPT_Playback_P_WriteAddr(
     BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
     uint32_t Pb0RegAddr,
     uint64_t RegVal
@@ -143,7 +143,7 @@ void BXPT_Playback_P_WriteAddr(
     BREG_WriteAddr( hPb->hRegister, RegAddr, RegVal );
 }
 
-uint64_t BXPT_Playback_P_ReadAddr(
+static uint64_t BXPT_Playback_P_ReadAddr(
     BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
     uint32_t Pb0RegAddr
     )
@@ -736,90 +736,10 @@ BERR_Code BXPT_Playback_CreateExtendedDesc(
     const BXPT_Playback_ExtendedDescSettings *settings /* [in] Settings. */
     )
 {
-#if 1
     /* deprecated due to MMA conversion */
     BSTD_UNUSED(hXpt);
     BSTD_UNUSED(settings);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
-#else
-    uint32_t ThisDescPhysicalAddr;
-    uint32_t *DescWords;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-    BXPT_PvrDescriptor *CachedDesc = NULL;
-    BXPT_PvrDescriptor *CachedNextDesc = NULL;
-    BMEM_Handle hHeap = hXpt->hPbHeap ? hXpt->hPbHeap : hXpt->hMemory;
-
-    BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( settings->Desc );
-    BDBG_ASSERT( settings->Buffer );
-    BDBG_MSG(( "CreateDesc: Desc %08lX, Buffer %016llX, BufLen %u, NextDesc %08lX",
-        settings->Desc, settings->Buffer, settings->BufferLength, settings->NextDesc ));
-
-    if( BMEM_Heap_ConvertAddressToCached( hHeap, (void *) settings->Desc, (void ** )&CachedDesc ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(( "Conversion of uncached Desc 0x%08lX to cached failed", (unsigned long) settings->Desc ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-        goto Done;
-    }
-    BMEM_FlushCache(hHeap, CachedDesc, sizeof (*CachedDesc) );
-    BKNI_Memset((void *)CachedDesc, 0, sizeof( *CachedDesc ));
-
-    /* Verify that the descriptor we're creating sits on a 16-byte boundary. */
-    BMEM_ConvertAddressToOffset( hHeap, ( void * ) CachedDesc, &ThisDescPhysicalAddr );
-    if( ThisDescPhysicalAddr % 16 )
-    {
-        BDBG_ERR(( "Desc is not 16-byte aligned!" ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-        goto Done;
-    }
-
-    /*
-    ** core28nm code always uses the 12-word descriptor format.
-    ** No RDB defines for these bitfields (yet).
-    */
-    DescWords = (uint32_t *) CachedDesc;
-    DescWords[0] = (uint32_t) (settings->Buffer >> 32);    /*ToDo: Buffer address 39:32 */
-    DescWords[1] = (uint32_t) (settings->Buffer) & 0xFFFFFFFF;
-
-    /* Load the pointer to the next descriptor in the chain, if there is one. */
-    if( settings->NextDesc != 0 )
-    {
-        /* There is a another descriptor in the chain after this one. */
-        uint32_t NextDescPhysAddr;
-
-        if( BMEM_Heap_ConvertAddressToCached( hHeap, (void *) settings->NextDesc, (void ** ) &CachedNextDesc ) != BERR_SUCCESS )
-        {
-            BDBG_ERR(( "Conversion of uncached NextDesc 0x%08lX to cached failed", (unsigned long) settings->NextDesc ));
-            ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-            goto Done;
-        }
-
-        BMEM_ConvertAddressToOffset( hHeap, ( void * ) CachedNextDesc, &NextDescPhysAddr );
-        if( NextDescPhysAddr % 16 )
-        {
-            BDBG_ERR(( "NextDescDesc is not 32-bit aligned!" ));
-            ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-            goto Done;
-        }
-
-        /* Next descriptor address must be 16-byte aligned. */
-        NextDescPhysAddr &= ~( 0xF );
-        DescWords[2] = NextDescPhysAddr;
-    }
-    else
-    {
-        /* There is NOT another descriptor. Set the Last Descriptor bit. */
-        DescWords[2] = TRANS_DESC_LAST_DESCR_IND;
-    }
-
-    DescWords[3] = settings->BufferLength;
-    DescWords[4] = settings->IntEnable ? TRANS_DESC_INT_FLAG : 0 | settings->ReSync ? TRANS_DESC_FORCE_RESYNC_FLAG : 0;
-    BMEM_FlushCache(hHeap, CachedDesc, sizeof (*CachedDesc) );
-
-    Done:
-    return( ExitCode );
-#endif
 }
 
 BERR_Code BXPT_Playback_CreateDesc(
@@ -832,7 +752,6 @@ BERR_Code BXPT_Playback_CreateDesc(
     BXPT_PvrDescriptor * const NextDesc     /* [in] Next descriptor, or NULL */
     )
 {
-#if 1
     /* deprecated due to MMA conversion */
     BSTD_UNUSED(hXpt);
     BSTD_UNUSED(Desc);
@@ -842,23 +761,6 @@ BERR_Code BXPT_Playback_CreateDesc(
     BSTD_UNUSED(ReSync);
     BSTD_UNUSED(NextDesc);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
-#else
-    BXPT_Playback_ExtendedDescSettings settings;
-    uint32_t BufferPhysicalAddr;
-
-    BMEM_Handle hHeap = hXpt->hPbHeap ? hXpt->hPbHeap : hXpt->hMemory;
-
-    BMEM_ConvertAddressToOffset( hHeap, ( void * ) Buffer, &BufferPhysicalAddr );
-
-    BXPT_Playback_GetDefaultDescSettings( hXpt, &settings );
-    settings.Desc = Desc;
-    settings.Buffer = (BMMA_DeviceOffset) BufferPhysicalAddr;
-    settings.BufferLength =  BufferLength;
-    settings.IntEnable = IntEnable;
-    settings.ReSync = ReSync;
-    settings.NextDesc = NextDesc;
-    return BXPT_Playback_CreateExtendedDesc( hXpt, &settings );
-#endif
 }
 
 void BXPT_SetLastDescriptorFlag(
@@ -866,39 +768,11 @@ void BXPT_SetLastDescriptorFlag(
     BXPT_PvrDescriptor * const Desc     /* [in] Descriptor to initialize */
     )
 {
-#if 1
     /* deprecated due to MMA conversion */
     BSTD_UNUSED(hXpt);
     BSTD_UNUSED(Desc);
     (void)BERR_TRACE(BERR_NOT_SUPPORTED);
     return;
-#else
-    BMEM_Handle hHeap;
-    uint32_t *DescWords;
-
-    BXPT_PvrDescriptor *CachedDesc = NULL;
-
-    BDBG_ASSERT( Desc );
-
-    if( hXpt->hPbHeap )
-        hHeap = hXpt->hPbHeap;
-    else
-        hHeap = hXpt->hMemory;
-
-    if( BMEM_Heap_ConvertAddressToCached( hHeap, (void *) Desc, (void ** ) &CachedDesc ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(( "Conversion of uncached Desc 0x%08lX to cached failed", (unsigned long) Desc ));
-        goto Done;
-    }
-
-    BMEM_FlushCache(hHeap, CachedDesc, sizeof (*CachedDesc) );
-    DescWords = (uint32_t *) CachedDesc;
-    DescWords[2] = TRANS_DESC_LAST_DESCR_IND;
-    BMEM_FlushCache(hHeap, CachedDesc, sizeof (*CachedDesc) );
-
-    Done:
-    return;
-#endif
 }
 #endif
 
@@ -1666,7 +1540,6 @@ void BXPT_Playback_SetDescBuf(
     uint32_t BufferLength                   /* [in] Size of buffer (in bytes). */
     )
 {
-#if 1
     /* deprecated due to MMA conversion */
     BSTD_UNUSED(hXpt);
     BSTD_UNUSED(Desc);
@@ -1674,24 +1547,6 @@ void BXPT_Playback_SetDescBuf(
     BSTD_UNUSED(BufferLength);
     BERR_TRACE(BERR_NOT_SUPPORTED);
     return;
-#else
-    BXPT_PvrDescriptor *CachedDescPtr;
-    uint32_t BufferPhysicalAddr;
-    uint32_t *DescWords;
-
-    BMEM_Handle hHeap = hXpt->hPbHeap ? hXpt->hPbHeap : hXpt->hMemory;
-
-    BMEM_ConvertAddressToCached(hHeap, (void *) Desc, (void **) &CachedDescPtr);
-    BMEM_FlushCache(hHeap, CachedDescPtr, sizeof (*CachedDescPtr) );
-    DescWords = (uint32_t *) CachedDescPtr;
-    BMEM_ConvertAddressToOffset( hHeap, ( void * ) Buffer, &BufferPhysicalAddr );
-
-    DescWords[0] = 0;    /*ToDo: Buffer address 39:32 */
-    DescWords[1] = (uint32_t) (BufferPhysicalAddr) & 0xFFFFFFFF;
-    DescWords[3] = BufferLength;
-
-    BMEM_FlushCache(hHeap, CachedDescPtr, sizeof (BXPT_PvrDescriptor) );
-#endif
 }
 #endif /*ENABLE_PLAYBACK_MUX*/
 

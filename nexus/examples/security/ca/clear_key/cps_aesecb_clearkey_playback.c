@@ -42,7 +42,7 @@
 /* Example record CPS AES-ECB encryption with clearkey - same key for m2m decryption playback */
 /* This example makes a pair with record app using "cps_aesecb_clearkey_record.c " */
 
-#if NEXUS_HAS_SECURITY && NEXUS_HAS_PLAYBACK && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 2) && NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_SECURITY && NEXUS_HAS_PLAYBACK && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 4) && NEXUS_HAS_VIDEO_DECODER
 
 #include <stdio.h>
 #include <string.h>

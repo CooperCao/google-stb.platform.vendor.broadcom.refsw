@@ -1,5 +1,5 @@
-############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+############################################################
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-###########################################################################
+############################################################
 
 include ../../../api/build/tools.mak
 BSEAV := $(shell cd "../../.." && ${PWD})
@@ -75,6 +75,7 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 CFLAGS += -DWITH_NEXUS=1 $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 LDFLAGS += ${NEXUS_LDFLAGS} $(NEXUS_LD_LIBRARIES)
 else
+include $(BSEAV)/build/refsw_inc.mak
 CFLAGS += $(B_REFSW_CFLAGS) $(B_REFSW_GENERIC_MAGNUM_CFLAGS) $(B_REFSW_MAGNUM_INCLUDE_DIRS)
 CFLAGS += ${B_REFSW_C_ONLY_FLAGS} ${B_REFSW_LINUXKERNEL_CFLAGS}
 endif
@@ -91,12 +92,11 @@ SRCS += ${B_TEST_SRCS}
 
 ifneq ($(APP),)
 SRCS += bmmt_test.c
+#SRCS += btlv_playback.c
 endif
 
 CFLAGS += -I ../../utils
 vpath %.c ../../utils ${MAGNUM}/commonutils/lst/test
-
-include $(BSEAV)/build/refsw_inc.mak
 
 ODIR = ${B_REFSW_OBJ_ROOT}/BSEAV/lib/mmt/build/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)
 

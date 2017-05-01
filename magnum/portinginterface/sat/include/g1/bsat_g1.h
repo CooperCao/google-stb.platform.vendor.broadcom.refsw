@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,6 +66,8 @@ enum {
    BSAT_g1_CONFIG_ACQ_DAFE_CTL,
    BSAT_g1_CONFIG_TRK_DAFE_CTL,
    BSAT_g1_CONFIG_ACM_DEBUG,
+   BSAT_g1_CONFIG_OI_CTL, /* not used */
+   BSAT_g1_CONFIG_SA_BUF_ADDR,
    BSAT_g1_CONFIG_MAX
 };
 
@@ -201,6 +203,8 @@ BERR_Code BSAT_g1_GetChannelDefaultSettings(BSAT_Handle, uint32_t, BSAT_ChannelS
 #define BSAT_GetAcmSettings BSAT_g1_P_GetAcmSettings
 #define BSAT_GetStreamList BSAT_g1_P_GetStreamList
 #define BSAT_GetStreamStatus BSAT_g1_P_GetStreamStatus
+#define BSAT_ScanSpectrum BSAT_g1_P_ScanSpectrum
+#define BSAT_GetSpectrumStatus BSAT_g1_P_GetSpectrumStatus
 #endif /* BSAT_EXCLUDE_API_TABLE */
 
 #endif /* _BSAT_G1_H_ */

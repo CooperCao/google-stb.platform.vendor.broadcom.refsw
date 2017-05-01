@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,20 +35,9 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# Module Description:
-#
 ############################################################
-# Nexus examples
-B_THIS_DIR:=nexus/examples/video
 
-ifdef B_REFSW_REAL_NEXUS_TOP
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
-
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
-THEAPPS = \
+APPS = \
     capture_buffer \
     capture_i_frames \
     ccir656_video \
@@ -70,13 +59,13 @@ THEAPPS = \
     userdata \
     window_clipping
 
-THEAPPS += \
+APPS += \
     hdsd_simul \
     hdsd_simul_pip \
     hdsd_simul_vecswap \
     mosaic_decode
 
-THEAPPS += \
+APPS += \
     smooth_pig \
     decode_video_low_latency \
     hddvi_input \
@@ -87,7 +76,6 @@ THEAPPS += \
     pig_zorder \
     capture_yuv
 
-# helpful for rotate_video
-CFLAGS += -O2
+include ../Makefile.inc
 
-include ${NEXUS_TOP}/examples/Makefile.inc
+rotate_video: CFLAGS += -O2

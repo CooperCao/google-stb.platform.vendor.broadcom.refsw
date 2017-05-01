@@ -157,25 +157,13 @@ BERR_Code BCHP_Open (BCHP_Handle * phChip, const BCHP_OpenSettings * pSettings)
     /* All done. now return the new fresh context to user. */
     *phChip = (BCHP_Handle)pChip;
 
-    /* Now, if we have power management, do a second reset of the Magnum cores. This second reset is
-     * necessary to reset the cores that might have been powered down during the first reset above.
-     * Make sure the Magnum hardware is powered up before the reset, then power it down afterwards.
-     */
-#ifdef BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD0);
 #endif
-
-#if BCHP_PWR_SUPPORT
-    BCHP_P_ResetMagnumCores( pChip );
-#endif
-
     /* Clear AVD/SVD shutdown enable bit */
-#if 0 /* to check: whether it's still needed for new video decoder */
     BREG_Write32(pChip->regHandle, BCHP_HEVD_OL_CTL_0_SOFTSHUTDOWN_CTRL, 0x0);
-#endif
-
-#ifdef BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD0);
 #endif
 
     BDBG_LEAVE(BCHP_Open75845);

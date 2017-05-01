@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "bind_wl_display.h"
 
 #include "wayland_nexus_server.h"
@@ -72,12 +70,6 @@ static void BufferCreate(struct wl_client *client,
    cb->magic = CLIENT_BUFFER_MAGIC;
    cb->refcount = 1;
 
-   if (!CreateSurface(&cb->surface, (BEGL_BufferFormat)format, width, height,
-         secure, "Wayland client buffer"))
-      goto no_surface;
-
-   assert(cb->surface.physicalOffset != 0);
-
    struct wl_resource *buffer = wl_resource_create(client,
          &wl_buffer_interface, 1, id);
    if (!buffer)
@@ -85,6 +77,12 @@ static void BufferCreate(struct wl_client *client,
 
    wl_resource_set_implementation(buffer, &bufferInterface, cb,
          ClientBufferDelete);
+
+   if (!CreateSurface(&cb->surface, (BEGL_BufferFormat)format, width, height,
+         secure, "Wayland client buffer"))
+      goto no_surface;
+
+   assert(cb->surface.physicalOffset != 0);
 
    /* store 64-bit physical offset in wl_array due to
     * a lack of 64-bit integer type in Wayland protocol */
@@ -102,9 +100,13 @@ static void BufferCreate(struct wl_client *client,
    wl_array_release(&array);
    return;
 
-no_buffer:
-   DestroySurface(&cb->surface);
 no_surface:
+   /* this is non-fatal error but created wl_buffer is not usable */
+   wl_nexus_send_buffer_out_of_memory(resource, buffer);
+   return;
+
+   /* the error below are fatal and result in client termination */
+no_buffer:
    free(cb);
 no_cb:
    wl_resource_post_no_memory(resource);

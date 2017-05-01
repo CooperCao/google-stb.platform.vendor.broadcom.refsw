@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,10 +70,10 @@
 /***************************************************************************
  *SDSRC_0 - Sample Rate converter SDSRC_0
  ***************************************************************************/
-#define BCHP_SDSRC_0_SRC_REV_ID                  0x206e3300 /* [RO] Revision ID register */
-#define BCHP_SDSRC_0_SRC_CONTROL                 0x206e3304 /* [RW] Sample Rate Converter control register */
-#define BCHP_SDSRC_0_SRC_ANA_SCL_0_1             0x206e3308 /* [RW] Analog Scale Mult Value and offset Register for options 0,1 */
-#define BCHP_SDSRC_0_SRC_ANA_SCL_2_3             0x206e330c /* [RW] Analog Scale Mult value and Offset Register for options 2,3 */
+#define BCHP_SDSRC_0_SRC_REV_ID                  0x206e3300 /* [RO][32] Revision ID register */
+#define BCHP_SDSRC_0_SRC_CONTROL                 0x206e3304 /* [RW][32] Sample Rate Converter control register */
+#define BCHP_SDSRC_0_SRC_ANA_SCL_0_1             0x206e3308 /* [RW][32] Analog Scale Mult Value and offset Register for options 0,1 */
+#define BCHP_SDSRC_0_SRC_ANA_SCL_2_3             0x206e330c /* [RW][32] Analog Scale Mult value and Offset Register for options 2,3 */
 
 /***************************************************************************
  *SRC_REV_ID - Revision ID register

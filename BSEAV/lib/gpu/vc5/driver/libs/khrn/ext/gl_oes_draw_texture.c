@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Server-side implementation of the GL_OES_draw_texture extension for GLES 1.1.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../glxx/gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "../glxx/glxx_server.h"
@@ -33,8 +26,8 @@ static void glDrawTexfOES_impl(GLfloat x_s, GLfloat y_s, GLfloat z_s, GLfloat w_
       goto end;
    }
 
-   n = state->viewport.vp_near;
-   f = state->viewport.vp_far;
+   n = state->depth_range.z_near;
+   f = state->depth_range.z_far;
    z_w = z_s <= 0 ? n : ( z_s >= 1 ? f : n + z_s * (f - n) );
 
    if (!glxx_drawtex(state, x_s, y_s, z_w, w_s, h_s))

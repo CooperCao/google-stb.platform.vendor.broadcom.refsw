@@ -125,7 +125,7 @@ void NEXUS_I2c_GetDefaultSettings(
 {
     BDBG_ASSERT(NULL != pSettings);
 
-    NEXUS_I2c_GetDefaultSettings(pSettings);
+    NEXUS_I2c_GetDefaultSettings_priv(pSettings);
 }
 
 static NEXUS_Error nexus_i2c_p_open_channel(NEXUS_I2cHandle i2cHandle)

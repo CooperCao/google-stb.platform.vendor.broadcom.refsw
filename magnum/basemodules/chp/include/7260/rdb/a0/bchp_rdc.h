@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Aug  3 10:42:54 2016
- *                 Full Compile MD5 Checksum  39ef8ca0b54cf125d4919eb2e1c61cb0
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               d04c90155f9bb7cbec34e06a0e1a9eb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,237 +70,237 @@
 /***************************************************************************
  *RDC - Register DMA (Segmented) Controller
  ***************************************************************************/
-#define BCHP_RDC_revision_id                     0x20603000 /* [RO] Revision ID register */
-#define BCHP_RDC_config                          0x20603004 /* [RW] RDC Configuration register */
-#define BCHP_RDC_force_trigger                   0x20603008 /* [WO] Force Trigger Register. */
-#define BCHP_RDC_error_status                    0x2060300c /* [RW] Error Status Register */
-#define BCHP_RDC_desc_stalled_status             0x20603010 /* [RO] Descriptor 31:0 Stalled Status */
-#define BCHP_RDC_eop_timer_threshold             0x20603014 /* [RW] EOP Timer Threshold Register */
-#define BCHP_RDC_eop_timeout_status              0x20603018 /* [RO] EOP Timeout Status Register */
-#define BCHP_RDC_hw_configuration                0x2060301c /* [RO] Hardware Configuration Register */
-#define BCHP_RDC_scb_init_status                 0x20603020 /* [RO] SCB Initialing Status Register */
-#define BCHP_RDC_stc_flag_0                      0x20603024 /* [RW] STC Snapshot Trigger Flag 0 for MFD_0 and VECs. */
-#define BCHP_RDC_stc_flag_1                      0x20603028 /* [RW] STC Snapshot Trigger Flag 1 for MFD_1 and VECs. */
-#define BCHP_RDC_comb_mask_0                     0x20603100 /* [RW] Trigger 31:0 Combine 0 Mask Register. */
-#define BCHP_RDC_comb_mask_0_hi                  0x20603104 /* [RW] Trigger 63:32 Combine 0 Mask Register. */
-#define BCHP_RDC_comb_mask_0_hi2                 0x20603108 /* [RW] Trigger 96:64 Combine 0 Mask Register. */
-#define BCHP_RDC_comb_status_0                   0x20603110 /* [RW] Trigger 31:0 Combine 0 Status Register. */
-#define BCHP_RDC_comb_status_0_hi                0x20603114 /* [RW] Trigger 63:32 Combine 0 Status Register. */
-#define BCHP_RDC_comb_status_0_hi2               0x20603118 /* [RW] Trigger 96:64 Combine 0 Status Register. */
-#define BCHP_RDC_comb_mask_1                     0x20603120 /* [RW] Trigger 31:0 Combine 1 Mask Register. */
-#define BCHP_RDC_comb_mask_1_hi                  0x20603124 /* [RW] Trigger 63:32 Combine 1 Mask Register. */
-#define BCHP_RDC_comb_mask_1_hi2                 0x20603128 /* [RW] Trigger 96:64 Combine 1 Mask Register. */
-#define BCHP_RDC_comb_status_1                   0x20603130 /* [RW] Trigger 31:0 Combine 1 Status Register. */
-#define BCHP_RDC_comb_status_1_hi                0x20603134 /* [RW] Trigger 63:32 Combine 1 Status Register. */
-#define BCHP_RDC_comb_status_1_hi2               0x20603138 /* [RW] Trigger 96:64 Combine 1 Status Register. */
-#define BCHP_RDC_comb_mask_2                     0x20603140 /* [RW] Trigger 31:0 Combine 2 Mask Register. */
-#define BCHP_RDC_comb_mask_2_hi                  0x20603144 /* [RW] Trigger 63:32 Combine 2 Mask Register. */
-#define BCHP_RDC_comb_mask_2_hi2                 0x20603148 /* [RW] Trigger 96:64 Combine 2 Mask Register. */
-#define BCHP_RDC_comb_status_2                   0x20603150 /* [RW] Trigger 31:0 Combine 2 Status Register. */
-#define BCHP_RDC_comb_status_2_hi                0x20603154 /* [RW] Trigger 63:32 Combine 2 Status Register. */
-#define BCHP_RDC_comb_status_2_hi2               0x20603158 /* [RW] Trigger 96:64 Combine 2 Status Register. */
-#define BCHP_RDC_comb_mask_3                     0x20603160 /* [RW] Trigger 31:0 Combine 3 Mask Register. */
-#define BCHP_RDC_comb_mask_3_hi                  0x20603164 /* [RW] Trigger 63:32 Combine 3 Mask Register. */
-#define BCHP_RDC_comb_mask_3_hi2                 0x20603168 /* [RW] Trigger 96:64 Combine 3 Mask Register. */
-#define BCHP_RDC_comb_status_3                   0x20603170 /* [RW] Trigger 31:0 Combine 3 Status Register. */
-#define BCHP_RDC_comb_status_3_hi                0x20603174 /* [RW] Trigger 63:32 Combine 3 Status Register. */
-#define BCHP_RDC_comb_status_3_hi2               0x20603178 /* [RW] Trigger 96:64 Combine 3 Status Register. */
-#define BCHP_RDC_wt_config                       0x206031c0 /* [RW] Watchdog Timer Configuration Register. */
-#define BCHP_RDC_wt_count                        0x206031c4 /* [RW] Watchdog Timer Count Register. */
-#define BCHP_RDC_wt_mask                         0x206031c8 /* [RW] Watchdog Timer Mask Register. */
-#define BCHP_RDC_desc_0_addr                     0x20603200 /* [RW] DMA Descriptor 0 Address Register. */
-#define BCHP_RDC_desc_0_config                   0x20603204 /* [RW] DMA Descriptor 0 Configuration Register. */
-#define BCHP_RDC_desc_0_lock                     0x20603208 /* [RW] DMA Descriptor 0 Lock Register. */
-#define BCHP_RDC_desc_0_immediate                0x2060320c /* [WO] DMA Descriptor 0 Immediate Trigger Register. */
-#define BCHP_RDC_desc_1_addr                     0x20603210 /* [RW] DMA Descriptor 1 Address Register. */
-#define BCHP_RDC_desc_1_config                   0x20603214 /* [RW] DMA Descriptor 1 Configuration Register. */
-#define BCHP_RDC_desc_1_lock                     0x20603218 /* [RW] DMA Descriptor 1 Lock Register. */
-#define BCHP_RDC_desc_1_immediate                0x2060321c /* [WO] DMA Descriptor 1 Immediate Trigger Register. */
-#define BCHP_RDC_desc_2_addr                     0x20603220 /* [RW] DMA Descriptor 2 Address Register. */
-#define BCHP_RDC_desc_2_config                   0x20603224 /* [RW] DMA Descriptor 2 Configuration Register. */
-#define BCHP_RDC_desc_2_lock                     0x20603228 /* [RW] DMA Descriptor 2 Lock Register. */
-#define BCHP_RDC_desc_2_immediate                0x2060322c /* [WO] DMA Descriptor 2 Immediate Trigger Register. */
-#define BCHP_RDC_desc_3_addr                     0x20603230 /* [RW] DMA Descriptor 3 Address Register. */
-#define BCHP_RDC_desc_3_config                   0x20603234 /* [RW] DMA Descriptor 3 Configuration Register. */
-#define BCHP_RDC_desc_3_lock                     0x20603238 /* [RW] DMA Descriptor 3 Lock Register. */
-#define BCHP_RDC_desc_3_immediate                0x2060323c /* [WO] DMA Descriptor 3 Immediate Trigger Register. */
-#define BCHP_RDC_desc_4_addr                     0x20603240 /* [RW] DMA Descriptor 4 Address Register. */
-#define BCHP_RDC_desc_4_config                   0x20603244 /* [RW] DMA Descriptor 4 Configuration Register. */
-#define BCHP_RDC_desc_4_lock                     0x20603248 /* [RW] DMA Descriptor 4 Lock Register. */
-#define BCHP_RDC_desc_4_immediate                0x2060324c /* [WO] DMA Descriptor 4 Immediate Trigger Register. */
-#define BCHP_RDC_desc_5_addr                     0x20603250 /* [RW] DMA Descriptor 5 Address Register. */
-#define BCHP_RDC_desc_5_config                   0x20603254 /* [RW] DMA Descriptor 5 Configuration Register. */
-#define BCHP_RDC_desc_5_lock                     0x20603258 /* [RW] DMA Descriptor 5 Lock Register. */
-#define BCHP_RDC_desc_5_immediate                0x2060325c /* [WO] DMA Descriptor 5 Immediate Trigger Register. */
-#define BCHP_RDC_desc_6_addr                     0x20603260 /* [RW] DMA Descriptor 6 Address Register. */
-#define BCHP_RDC_desc_6_config                   0x20603264 /* [RW] DMA Descriptor 6 Configuration Register. */
-#define BCHP_RDC_desc_6_lock                     0x20603268 /* [RW] DMA Descriptor 6 Lock Register. */
-#define BCHP_RDC_desc_6_immediate                0x2060326c /* [WO] DMA Descriptor 6 Immediate Trigger Register. */
-#define BCHP_RDC_desc_7_addr                     0x20603270 /* [RW] DMA Descriptor 7 Address Register. */
-#define BCHP_RDC_desc_7_config                   0x20603274 /* [RW] DMA Descriptor 7 Configuration Register. */
-#define BCHP_RDC_desc_7_lock                     0x20603278 /* [RW] DMA Descriptor 7 Lock Register. */
-#define BCHP_RDC_desc_7_immediate                0x2060327c /* [WO] DMA Descriptor 7 Immediate Trigger Register. */
-#define BCHP_RDC_desc_8_addr                     0x20603280 /* [RW] DMA Descriptor 8 Address Register. */
-#define BCHP_RDC_desc_8_config                   0x20603284 /* [RW] DMA Descriptor 8 Configuration Register. */
-#define BCHP_RDC_desc_8_lock                     0x20603288 /* [RW] DMA Descriptor 8 Lock Register. */
-#define BCHP_RDC_desc_8_immediate                0x2060328c /* [WO] DMA Descriptor 8 Immediate Trigger Register. */
-#define BCHP_RDC_desc_9_addr                     0x20603290 /* [RW] DMA Descriptor 9 Address Register. */
-#define BCHP_RDC_desc_9_config                   0x20603294 /* [RW] DMA Descriptor 9 Configuration Register. */
-#define BCHP_RDC_desc_9_lock                     0x20603298 /* [RW] DMA Descriptor 9 Lock Register. */
-#define BCHP_RDC_desc_9_immediate                0x2060329c /* [WO] DMA Descriptor 9 Immediate Trigger Register. */
-#define BCHP_RDC_desc_10_addr                    0x206032a0 /* [RW] DMA Descriptor 10 Address Register. */
-#define BCHP_RDC_desc_10_config                  0x206032a4 /* [RW] DMA Descriptor 10 Configuration Register. */
-#define BCHP_RDC_desc_10_lock                    0x206032a8 /* [RW] DMA Descriptor 10 Lock Register. */
-#define BCHP_RDC_desc_10_immediate               0x206032ac /* [WO] DMA Descriptor 10 Immediate Trigger Register. */
-#define BCHP_RDC_desc_11_addr                    0x206032b0 /* [RW] DMA Descriptor 11 Address Register. */
-#define BCHP_RDC_desc_11_config                  0x206032b4 /* [RW] DMA Descriptor 11 Configuration Register. */
-#define BCHP_RDC_desc_11_lock                    0x206032b8 /* [RW] DMA Descriptor 11 Lock Register. */
-#define BCHP_RDC_desc_11_immediate               0x206032bc /* [WO] DMA Descriptor 11 Immediate Trigger Register. */
-#define BCHP_RDC_desc_12_addr                    0x206032c0 /* [RW] DMA Descriptor 12 Address Register. */
-#define BCHP_RDC_desc_12_config                  0x206032c4 /* [RW] DMA Descriptor 12 Configuration Register. */
-#define BCHP_RDC_desc_12_lock                    0x206032c8 /* [RW] DMA Descriptor 12 Lock Register. */
-#define BCHP_RDC_desc_12_immediate               0x206032cc /* [WO] DMA Descriptor 12 Immediate Trigger Register. */
-#define BCHP_RDC_desc_13_addr                    0x206032d0 /* [RW] DMA Descriptor 13 Address Register. */
-#define BCHP_RDC_desc_13_config                  0x206032d4 /* [RW] DMA Descriptor 13 Configuration Register. */
-#define BCHP_RDC_desc_13_lock                    0x206032d8 /* [RW] DMA Descriptor 13 Lock Register. */
-#define BCHP_RDC_desc_13_immediate               0x206032dc /* [WO] DMA Descriptor 13 Immediate Trigger Register. */
-#define BCHP_RDC_desc_14_addr                    0x206032e0 /* [RW] DMA Descriptor 14 Address Register. */
-#define BCHP_RDC_desc_14_config                  0x206032e4 /* [RW] DMA Descriptor 14 Configuration Register. */
-#define BCHP_RDC_desc_14_lock                    0x206032e8 /* [RW] DMA Descriptor 14 Lock Register. */
-#define BCHP_RDC_desc_14_immediate               0x206032ec /* [WO] DMA Descriptor 14 Immediate Trigger Register. */
-#define BCHP_RDC_desc_15_addr                    0x206032f0 /* [RW] DMA Descriptor 15 Address Register. */
-#define BCHP_RDC_desc_15_config                  0x206032f4 /* [RW] DMA Descriptor 15 Configuration Register. */
-#define BCHP_RDC_desc_15_lock                    0x206032f8 /* [RW] DMA Descriptor 15 Lock Register. */
-#define BCHP_RDC_desc_15_immediate               0x206032fc /* [WO] DMA Descriptor 15 Immediate Trigger Register. */
-#define BCHP_RDC_desc_16_addr                    0x20603300 /* [RW] DMA Descriptor 16 Address Register. */
-#define BCHP_RDC_desc_16_config                  0x20603304 /* [RW] DMA Descriptor 16 Configuration Register. */
-#define BCHP_RDC_desc_16_lock                    0x20603308 /* [RW] DMA Descriptor 16 Lock Register. */
-#define BCHP_RDC_desc_16_immediate               0x2060330c /* [WO] DMA Descriptor 16 Immediate Trigger Register. */
-#define BCHP_RDC_desc_17_addr                    0x20603310 /* [RW] DMA Descriptor 17 Address Register. */
-#define BCHP_RDC_desc_17_config                  0x20603314 /* [RW] DMA Descriptor 17 Configuration Register. */
-#define BCHP_RDC_desc_17_lock                    0x20603318 /* [RW] DMA Descriptor 17 Lock Register. */
-#define BCHP_RDC_desc_17_immediate               0x2060331c /* [WO] DMA Descriptor 17 Immediate Trigger Register. */
-#define BCHP_RDC_desc_18_addr                    0x20603320 /* [RW] DMA Descriptor 18 Address Register. */
-#define BCHP_RDC_desc_18_config                  0x20603324 /* [RW] DMA Descriptor 18 Configuration Register. */
-#define BCHP_RDC_desc_18_lock                    0x20603328 /* [RW] DMA Descriptor 18 Lock Register. */
-#define BCHP_RDC_desc_18_immediate               0x2060332c /* [WO] DMA Descriptor 18 Immediate Trigger Register. */
-#define BCHP_RDC_desc_19_addr                    0x20603330 /* [RW] DMA Descriptor 19 Address Register. */
-#define BCHP_RDC_desc_19_config                  0x20603334 /* [RW] DMA Descriptor 19 Configuration Register. */
-#define BCHP_RDC_desc_19_lock                    0x20603338 /* [RW] DMA Descriptor 19 Lock Register. */
-#define BCHP_RDC_desc_19_immediate               0x2060333c /* [WO] DMA Descriptor 19 Immediate Trigger Register. */
-#define BCHP_RDC_desc_20_addr                    0x20603340 /* [RW] DMA Descriptor 20 Address Register. */
-#define BCHP_RDC_desc_20_config                  0x20603344 /* [RW] DMA Descriptor 20 Configuration Register. */
-#define BCHP_RDC_desc_20_lock                    0x20603348 /* [RW] DMA Descriptor 20 Lock Register. */
-#define BCHP_RDC_desc_20_immediate               0x2060334c /* [WO] DMA Descriptor 20 Immediate Trigger Register. */
-#define BCHP_RDC_desc_21_addr                    0x20603350 /* [RW] DMA Descriptor 21 Address Register. */
-#define BCHP_RDC_desc_21_config                  0x20603354 /* [RW] DMA Descriptor 21 Configuration Register. */
-#define BCHP_RDC_desc_21_lock                    0x20603358 /* [RW] DMA Descriptor 21 Lock Register. */
-#define BCHP_RDC_desc_21_immediate               0x2060335c /* [WO] DMA Descriptor 21 Immediate Trigger Register. */
-#define BCHP_RDC_desc_22_addr                    0x20603360 /* [RW] DMA Descriptor 22 Address Register. */
-#define BCHP_RDC_desc_22_config                  0x20603364 /* [RW] DMA Descriptor 22 Configuration Register. */
-#define BCHP_RDC_desc_22_lock                    0x20603368 /* [RW] DMA Descriptor 22 Lock Register. */
-#define BCHP_RDC_desc_22_immediate               0x2060336c /* [WO] DMA Descriptor 22 Immediate Trigger Register. */
-#define BCHP_RDC_desc_23_addr                    0x20603370 /* [RW] DMA Descriptor 23 Address Register. */
-#define BCHP_RDC_desc_23_config                  0x20603374 /* [RW] DMA Descriptor 23 Configuration Register. */
-#define BCHP_RDC_desc_23_lock                    0x20603378 /* [RW] DMA Descriptor 23 Lock Register. */
-#define BCHP_RDC_desc_23_immediate               0x2060337c /* [WO] DMA Descriptor 23 Immediate Trigger Register. */
-#define BCHP_RDC_desc_24_addr                    0x20603380 /* [RW] DMA Descriptor 24 Address Register. */
-#define BCHP_RDC_desc_24_config                  0x20603384 /* [RW] DMA Descriptor 24 Configuration Register. */
-#define BCHP_RDC_desc_24_lock                    0x20603388 /* [RW] DMA Descriptor 24 Lock Register. */
-#define BCHP_RDC_desc_24_immediate               0x2060338c /* [WO] DMA Descriptor 24 Immediate Trigger Register. */
-#define BCHP_RDC_desc_25_addr                    0x20603390 /* [RW] DMA Descriptor 25 Address Register. */
-#define BCHP_RDC_desc_25_config                  0x20603394 /* [RW] DMA Descriptor 25 Configuration Register. */
-#define BCHP_RDC_desc_25_lock                    0x20603398 /* [RW] DMA Descriptor 25 Lock Register. */
-#define BCHP_RDC_desc_25_immediate               0x2060339c /* [WO] DMA Descriptor 25 Immediate Trigger Register. */
-#define BCHP_RDC_desc_26_addr                    0x206033a0 /* [RW] DMA Descriptor 26 Address Register. */
-#define BCHP_RDC_desc_26_config                  0x206033a4 /* [RW] DMA Descriptor 26 Configuration Register. */
-#define BCHP_RDC_desc_26_lock                    0x206033a8 /* [RW] DMA Descriptor 26 Lock Register. */
-#define BCHP_RDC_desc_26_immediate               0x206033ac /* [WO] DMA Descriptor 26 Immediate Trigger Register. */
-#define BCHP_RDC_desc_27_addr                    0x206033b0 /* [RW] DMA Descriptor 27 Address Register. */
-#define BCHP_RDC_desc_27_config                  0x206033b4 /* [RW] DMA Descriptor 27 Configuration Register. */
-#define BCHP_RDC_desc_27_lock                    0x206033b8 /* [RW] DMA Descriptor 27 Lock Register. */
-#define BCHP_RDC_desc_27_immediate               0x206033bc /* [WO] DMA Descriptor 27 Immediate Trigger Register. */
-#define BCHP_RDC_desc_28_addr                    0x206033c0 /* [RW] DMA Descriptor 28 Address Register. */
-#define BCHP_RDC_desc_28_config                  0x206033c4 /* [RW] DMA Descriptor 28 Configuration Register. */
-#define BCHP_RDC_desc_28_lock                    0x206033c8 /* [RW] DMA Descriptor 28 Lock Register. */
-#define BCHP_RDC_desc_28_immediate               0x206033cc /* [WO] DMA Descriptor 28 Immediate Trigger Register. */
-#define BCHP_RDC_desc_29_addr                    0x206033d0 /* [RW] DMA Descriptor 29 Address Register. */
-#define BCHP_RDC_desc_29_config                  0x206033d4 /* [RW] DMA Descriptor 29 Configuration Register. */
-#define BCHP_RDC_desc_29_lock                    0x206033d8 /* [RW] DMA Descriptor 29 Lock Register. */
-#define BCHP_RDC_desc_29_immediate               0x206033dc /* [WO] DMA Descriptor 29 Immediate Trigger Register. */
-#define BCHP_RDC_desc_30_addr                    0x206033e0 /* [RW] DMA Descriptor 30 Address Register. */
-#define BCHP_RDC_desc_30_config                  0x206033e4 /* [RW] DMA Descriptor 30 Configuration Register. */
-#define BCHP_RDC_desc_30_lock                    0x206033e8 /* [RW] DMA Descriptor 30 Lock Register. */
-#define BCHP_RDC_desc_30_immediate               0x206033ec /* [WO] DMA Descriptor 30 Immediate Trigger Register. */
-#define BCHP_RDC_desc_31_addr                    0x206033f0 /* [RW] DMA Descriptor 31 Address Register. */
-#define BCHP_RDC_desc_31_config                  0x206033f4 /* [RW] DMA Descriptor 31 Configuration Register. */
-#define BCHP_RDC_desc_31_lock                    0x206033f8 /* [RW] DMA Descriptor 31 Lock Register. */
-#define BCHP_RDC_desc_31_immediate               0x206033fc /* [WO] DMA Descriptor 31 Immediate Trigger Register. */
-#define BCHP_RDC_br_0_start_addr                 0x20603600 /* [RW] Blackout Range 0 Start Address Register. */
-#define BCHP_RDC_br_0_end_addr                   0x20603604 /* [RW] Blackout Range 0 End Address Register. */
-#define BCHP_RDC_br_0_enable                     0x20603608 /* [RW] Blackout Range 0 Enable Register. */
-#define BCHP_RDC_br_1_start_addr                 0x2060360c /* [RW] Blackout Range 1 Start Address Register. */
-#define BCHP_RDC_br_1_end_addr                   0x20603610 /* [RW] Blackout Range 1 End Address Register. */
-#define BCHP_RDC_br_1_enable                     0x20603614 /* [RW] Blackout Range 1 Enable Register. */
-#define BCHP_RDC_br_2_start_addr                 0x20603618 /* [RW] Blackout Range 2 Start Address Register. */
-#define BCHP_RDC_br_2_end_addr                   0x2060361c /* [RW] Blackout Range 2 End Address Register. */
-#define BCHP_RDC_br_2_enable                     0x20603620 /* [RW] Blackout Range 2 Enable Register. */
-#define BCHP_RDC_br_3_start_addr                 0x20603624 /* [RW] Blackout Range 3 Start Address Register. */
-#define BCHP_RDC_br_3_end_addr                   0x20603628 /* [RW] Blackout Range 3 End Address Register. */
-#define BCHP_RDC_br_3_enable                     0x2060362c /* [RW] Blackout Range 3 Enable Register. */
-#define BCHP_RDC_br_4_start_addr                 0x20603630 /* [RW] Blackout Range 4 Start Address Register. */
-#define BCHP_RDC_br_4_end_addr                   0x20603634 /* [RW] Blackout Range 4 End Address Register. */
-#define BCHP_RDC_br_4_enable                     0x20603638 /* [RW] Blackout Range 4 Enable Register. */
-#define BCHP_RDC_br_5_start_addr                 0x2060363c /* [RW] Blackout Range 5 Start Address Register. */
-#define BCHP_RDC_br_5_end_addr                   0x20603640 /* [RW] Blackout Range 5 End Address Register. */
-#define BCHP_RDC_br_5_enable                     0x20603644 /* [RW] Blackout Range 5 Enable Register. */
-#define BCHP_RDC_br_6_start_addr                 0x20603648 /* [RW] Blackout Range 6 Start Address Register. */
-#define BCHP_RDC_br_6_end_addr                   0x2060364c /* [RW] Blackout Range 6 End Address Register. */
-#define BCHP_RDC_br_6_enable                     0x20603650 /* [RW] Blackout Range 6 Enable Register. */
-#define BCHP_RDC_br_7_start_addr                 0x20603654 /* [RW] Blackout Range 7 Start Address Register. */
-#define BCHP_RDC_br_7_end_addr                   0x20603658 /* [RW] Blackout Range 7 End Address Register. */
-#define BCHP_RDC_br_7_enable                     0x2060365c /* [RW] Blackout Range 7 Enable Register. */
-#define BCHP_RDC_timer_data                      0x20603680 /* [RO] Timer Data */
-#define BCHP_RDC_desc_0_tm_snapshot              0x20603700 /* [RO] Descriptor 0 Timer Snapshot. */
-#define BCHP_RDC_desc_1_tm_snapshot              0x20603704 /* [RO] Descriptor 1 Timer Snapshot. */
-#define BCHP_RDC_desc_2_tm_snapshot              0x20603708 /* [RO] Descriptor 2 Timer Snapshot. */
-#define BCHP_RDC_desc_3_tm_snapshot              0x2060370c /* [RO] Descriptor 3 Timer Snapshot. */
-#define BCHP_RDC_desc_4_tm_snapshot              0x20603710 /* [RO] Descriptor 4 Timer Snapshot. */
-#define BCHP_RDC_desc_5_tm_snapshot              0x20603714 /* [RO] Descriptor 5 Timer Snapshot. */
-#define BCHP_RDC_desc_6_tm_snapshot              0x20603718 /* [RO] Descriptor 6 Timer Snapshot. */
-#define BCHP_RDC_desc_7_tm_snapshot              0x2060371c /* [RO] Descriptor 7 Timer Snapshot. */
-#define BCHP_RDC_desc_8_tm_snapshot              0x20603720 /* [RO] Descriptor 8 Timer Snapshot. */
-#define BCHP_RDC_desc_9_tm_snapshot              0x20603724 /* [RO] Descriptor 9 Timer Snapshot. */
-#define BCHP_RDC_desc_10_tm_snapshot             0x20603728 /* [RO] Descriptor 10 Timer Snapshot. */
-#define BCHP_RDC_desc_11_tm_snapshot             0x2060372c /* [RO] Descriptor 11 Timer Snapshot. */
-#define BCHP_RDC_desc_12_tm_snapshot             0x20603730 /* [RO] Descriptor 12 Timer Snapshot. */
-#define BCHP_RDC_desc_13_tm_snapshot             0x20603734 /* [RO] Descriptor 13 Timer Snapshot. */
-#define BCHP_RDC_desc_14_tm_snapshot             0x20603738 /* [RO] Descriptor 14 Timer Snapshot. */
-#define BCHP_RDC_desc_15_tm_snapshot             0x2060373c /* [RO] Descriptor 15 Timer Snapshot. */
-#define BCHP_RDC_desc_16_tm_snapshot             0x20603740 /* [RO] Descriptor 16 Timer Snapshot. */
-#define BCHP_RDC_desc_17_tm_snapshot             0x20603744 /* [RO] Descriptor 17 Timer Snapshot. */
-#define BCHP_RDC_desc_18_tm_snapshot             0x20603748 /* [RO] Descriptor 18 Timer Snapshot. */
-#define BCHP_RDC_desc_19_tm_snapshot             0x2060374c /* [RO] Descriptor 19 Timer Snapshot. */
-#define BCHP_RDC_desc_20_tm_snapshot             0x20603750 /* [RO] Descriptor 20 Timer Snapshot. */
-#define BCHP_RDC_desc_21_tm_snapshot             0x20603754 /* [RO] Descriptor 21 Timer Snapshot. */
-#define BCHP_RDC_desc_22_tm_snapshot             0x20603758 /* [RO] Descriptor 22 Timer Snapshot. */
-#define BCHP_RDC_desc_23_tm_snapshot             0x2060375c /* [RO] Descriptor 23 Timer Snapshot. */
-#define BCHP_RDC_desc_24_tm_snapshot             0x20603760 /* [RO] Descriptor 24 Timer Snapshot. */
-#define BCHP_RDC_desc_25_tm_snapshot             0x20603764 /* [RO] Descriptor 25 Timer Snapshot. */
-#define BCHP_RDC_desc_26_tm_snapshot             0x20603768 /* [RO] Descriptor 26 Timer Snapshot. */
-#define BCHP_RDC_desc_27_tm_snapshot             0x2060376c /* [RO] Descriptor 27 Timer Snapshot. */
-#define BCHP_RDC_desc_28_tm_snapshot             0x20603770 /* [RO] Descriptor 28 Timer Snapshot. */
-#define BCHP_RDC_desc_29_tm_snapshot             0x20603774 /* [RO] Descriptor 29 Timer Snapshot. */
-#define BCHP_RDC_desc_30_tm_snapshot             0x20603778 /* [RO] Descriptor 30 Timer Snapshot. */
-#define BCHP_RDC_desc_31_tm_snapshot             0x2060377c /* [RO] Descriptor 31 Timer Snapshot. */
-#define BCHP_RDC_eop_flopped_0                   0x20603800 /* [RO] EOP Flopped bits [31:0] */
-#define BCHP_RDC_eop_flopped_1                   0x20603804 /* [RO] EOP Flopped bits [63:32] */
-#define BCHP_RDC_eop_flopped_2                   0x20603808 /* [RO] EOP Flopped bits [95:64] */
-#define BCHP_RDC_eop_flopped_3                   0x2060380c /* [RO] EOP Flopped bits [127:96] */
-#define BCHP_RDC_eop_flopped_4                   0x20603810 /* [RO] EOP Flopped bits [159:128] */
-#define BCHP_RDC_eop_flopped_5                   0x20603814 /* [RO] EOP Flopped bits [191:160] */
-#define BCHP_RDC_eop_flopped_6                   0x20603818 /* [RO] EOP Flopped bits [223:192] */
-#define BCHP_RDC_eop_flopped_7                   0x2060381c /* [RO] EOP Flopped bits [255:224] */
+#define BCHP_RDC_revision_id                     0x20603000 /* [RO][32] Revision ID register */
+#define BCHP_RDC_config                          0x20603004 /* [RW][32] RDC Configuration register */
+#define BCHP_RDC_force_trigger                   0x20603008 /* [WO][32] Force Trigger Register. */
+#define BCHP_RDC_error_status                    0x2060300c /* [RW][32] Error Status Register */
+#define BCHP_RDC_desc_stalled_status             0x20603010 /* [RO][32] Descriptor 31:0 Stalled Status */
+#define BCHP_RDC_eop_timer_threshold             0x20603014 /* [RW][32] EOP Timer Threshold Register */
+#define BCHP_RDC_eop_timeout_status              0x20603018 /* [RO][32] EOP Timeout Status Register */
+#define BCHP_RDC_hw_configuration                0x2060301c /* [RO][32] Hardware Configuration Register */
+#define BCHP_RDC_scb_init_status                 0x20603020 /* [RO][32] SCB Initialing Status Register */
+#define BCHP_RDC_stc_flag_0                      0x20603024 /* [RW][32] STC Snapshot Trigger Flag 0 for MFD_0 and VECs. */
+#define BCHP_RDC_stc_flag_1                      0x20603028 /* [RW][32] STC Snapshot Trigger Flag 1 for MFD_1 and VECs. */
+#define BCHP_RDC_comb_mask_0                     0x20603100 /* [RW][32] Trigger 31:0 Combine 0 Mask Register. */
+#define BCHP_RDC_comb_mask_0_hi                  0x20603104 /* [RW][32] Trigger 63:32 Combine 0 Mask Register. */
+#define BCHP_RDC_comb_mask_0_hi2                 0x20603108 /* [RW][32] Trigger 96:64 Combine 0 Mask Register. */
+#define BCHP_RDC_comb_status_0                   0x20603110 /* [RW][32] Trigger 31:0 Combine 0 Status Register. */
+#define BCHP_RDC_comb_status_0_hi                0x20603114 /* [RW][32] Trigger 63:32 Combine 0 Status Register. */
+#define BCHP_RDC_comb_status_0_hi2               0x20603118 /* [RW][32] Trigger 96:64 Combine 0 Status Register. */
+#define BCHP_RDC_comb_mask_1                     0x20603120 /* [RW][32] Trigger 31:0 Combine 1 Mask Register. */
+#define BCHP_RDC_comb_mask_1_hi                  0x20603124 /* [RW][32] Trigger 63:32 Combine 1 Mask Register. */
+#define BCHP_RDC_comb_mask_1_hi2                 0x20603128 /* [RW][32] Trigger 96:64 Combine 1 Mask Register. */
+#define BCHP_RDC_comb_status_1                   0x20603130 /* [RW][32] Trigger 31:0 Combine 1 Status Register. */
+#define BCHP_RDC_comb_status_1_hi                0x20603134 /* [RW][32] Trigger 63:32 Combine 1 Status Register. */
+#define BCHP_RDC_comb_status_1_hi2               0x20603138 /* [RW][32] Trigger 96:64 Combine 1 Status Register. */
+#define BCHP_RDC_comb_mask_2                     0x20603140 /* [RW][32] Trigger 31:0 Combine 2 Mask Register. */
+#define BCHP_RDC_comb_mask_2_hi                  0x20603144 /* [RW][32] Trigger 63:32 Combine 2 Mask Register. */
+#define BCHP_RDC_comb_mask_2_hi2                 0x20603148 /* [RW][32] Trigger 96:64 Combine 2 Mask Register. */
+#define BCHP_RDC_comb_status_2                   0x20603150 /* [RW][32] Trigger 31:0 Combine 2 Status Register. */
+#define BCHP_RDC_comb_status_2_hi                0x20603154 /* [RW][32] Trigger 63:32 Combine 2 Status Register. */
+#define BCHP_RDC_comb_status_2_hi2               0x20603158 /* [RW][32] Trigger 96:64 Combine 2 Status Register. */
+#define BCHP_RDC_comb_mask_3                     0x20603160 /* [RW][32] Trigger 31:0 Combine 3 Mask Register. */
+#define BCHP_RDC_comb_mask_3_hi                  0x20603164 /* [RW][32] Trigger 63:32 Combine 3 Mask Register. */
+#define BCHP_RDC_comb_mask_3_hi2                 0x20603168 /* [RW][32] Trigger 96:64 Combine 3 Mask Register. */
+#define BCHP_RDC_comb_status_3                   0x20603170 /* [RW][32] Trigger 31:0 Combine 3 Status Register. */
+#define BCHP_RDC_comb_status_3_hi                0x20603174 /* [RW][32] Trigger 63:32 Combine 3 Status Register. */
+#define BCHP_RDC_comb_status_3_hi2               0x20603178 /* [RW][32] Trigger 96:64 Combine 3 Status Register. */
+#define BCHP_RDC_wt_config                       0x206031c0 /* [RW][32] Watchdog Timer Configuration Register. */
+#define BCHP_RDC_wt_count                        0x206031c4 /* [RW][32] Watchdog Timer Count Register. */
+#define BCHP_RDC_wt_mask                         0x206031c8 /* [RW][32] Watchdog Timer Mask Register. */
+#define BCHP_RDC_desc_0_addr                     0x20603200 /* [RW][32] DMA Descriptor 0 Address Register. */
+#define BCHP_RDC_desc_0_config                   0x20603204 /* [RW][32] DMA Descriptor 0 Configuration Register. */
+#define BCHP_RDC_desc_0_lock                     0x20603208 /* [RW][32] DMA Descriptor 0 Lock Register. */
+#define BCHP_RDC_desc_0_immediate                0x2060320c /* [WO][32] DMA Descriptor 0 Immediate Trigger Register. */
+#define BCHP_RDC_desc_1_addr                     0x20603210 /* [RW][32] DMA Descriptor 1 Address Register. */
+#define BCHP_RDC_desc_1_config                   0x20603214 /* [RW][32] DMA Descriptor 1 Configuration Register. */
+#define BCHP_RDC_desc_1_lock                     0x20603218 /* [RW][32] DMA Descriptor 1 Lock Register. */
+#define BCHP_RDC_desc_1_immediate                0x2060321c /* [WO][32] DMA Descriptor 1 Immediate Trigger Register. */
+#define BCHP_RDC_desc_2_addr                     0x20603220 /* [RW][32] DMA Descriptor 2 Address Register. */
+#define BCHP_RDC_desc_2_config                   0x20603224 /* [RW][32] DMA Descriptor 2 Configuration Register. */
+#define BCHP_RDC_desc_2_lock                     0x20603228 /* [RW][32] DMA Descriptor 2 Lock Register. */
+#define BCHP_RDC_desc_2_immediate                0x2060322c /* [WO][32] DMA Descriptor 2 Immediate Trigger Register. */
+#define BCHP_RDC_desc_3_addr                     0x20603230 /* [RW][32] DMA Descriptor 3 Address Register. */
+#define BCHP_RDC_desc_3_config                   0x20603234 /* [RW][32] DMA Descriptor 3 Configuration Register. */
+#define BCHP_RDC_desc_3_lock                     0x20603238 /* [RW][32] DMA Descriptor 3 Lock Register. */
+#define BCHP_RDC_desc_3_immediate                0x2060323c /* [WO][32] DMA Descriptor 3 Immediate Trigger Register. */
+#define BCHP_RDC_desc_4_addr                     0x20603240 /* [RW][32] DMA Descriptor 4 Address Register. */
+#define BCHP_RDC_desc_4_config                   0x20603244 /* [RW][32] DMA Descriptor 4 Configuration Register. */
+#define BCHP_RDC_desc_4_lock                     0x20603248 /* [RW][32] DMA Descriptor 4 Lock Register. */
+#define BCHP_RDC_desc_4_immediate                0x2060324c /* [WO][32] DMA Descriptor 4 Immediate Trigger Register. */
+#define BCHP_RDC_desc_5_addr                     0x20603250 /* [RW][32] DMA Descriptor 5 Address Register. */
+#define BCHP_RDC_desc_5_config                   0x20603254 /* [RW][32] DMA Descriptor 5 Configuration Register. */
+#define BCHP_RDC_desc_5_lock                     0x20603258 /* [RW][32] DMA Descriptor 5 Lock Register. */
+#define BCHP_RDC_desc_5_immediate                0x2060325c /* [WO][32] DMA Descriptor 5 Immediate Trigger Register. */
+#define BCHP_RDC_desc_6_addr                     0x20603260 /* [RW][32] DMA Descriptor 6 Address Register. */
+#define BCHP_RDC_desc_6_config                   0x20603264 /* [RW][32] DMA Descriptor 6 Configuration Register. */
+#define BCHP_RDC_desc_6_lock                     0x20603268 /* [RW][32] DMA Descriptor 6 Lock Register. */
+#define BCHP_RDC_desc_6_immediate                0x2060326c /* [WO][32] DMA Descriptor 6 Immediate Trigger Register. */
+#define BCHP_RDC_desc_7_addr                     0x20603270 /* [RW][32] DMA Descriptor 7 Address Register. */
+#define BCHP_RDC_desc_7_config                   0x20603274 /* [RW][32] DMA Descriptor 7 Configuration Register. */
+#define BCHP_RDC_desc_7_lock                     0x20603278 /* [RW][32] DMA Descriptor 7 Lock Register. */
+#define BCHP_RDC_desc_7_immediate                0x2060327c /* [WO][32] DMA Descriptor 7 Immediate Trigger Register. */
+#define BCHP_RDC_desc_8_addr                     0x20603280 /* [RW][32] DMA Descriptor 8 Address Register. */
+#define BCHP_RDC_desc_8_config                   0x20603284 /* [RW][32] DMA Descriptor 8 Configuration Register. */
+#define BCHP_RDC_desc_8_lock                     0x20603288 /* [RW][32] DMA Descriptor 8 Lock Register. */
+#define BCHP_RDC_desc_8_immediate                0x2060328c /* [WO][32] DMA Descriptor 8 Immediate Trigger Register. */
+#define BCHP_RDC_desc_9_addr                     0x20603290 /* [RW][32] DMA Descriptor 9 Address Register. */
+#define BCHP_RDC_desc_9_config                   0x20603294 /* [RW][32] DMA Descriptor 9 Configuration Register. */
+#define BCHP_RDC_desc_9_lock                     0x20603298 /* [RW][32] DMA Descriptor 9 Lock Register. */
+#define BCHP_RDC_desc_9_immediate                0x2060329c /* [WO][32] DMA Descriptor 9 Immediate Trigger Register. */
+#define BCHP_RDC_desc_10_addr                    0x206032a0 /* [RW][32] DMA Descriptor 10 Address Register. */
+#define BCHP_RDC_desc_10_config                  0x206032a4 /* [RW][32] DMA Descriptor 10 Configuration Register. */
+#define BCHP_RDC_desc_10_lock                    0x206032a8 /* [RW][32] DMA Descriptor 10 Lock Register. */
+#define BCHP_RDC_desc_10_immediate               0x206032ac /* [WO][32] DMA Descriptor 10 Immediate Trigger Register. */
+#define BCHP_RDC_desc_11_addr                    0x206032b0 /* [RW][32] DMA Descriptor 11 Address Register. */
+#define BCHP_RDC_desc_11_config                  0x206032b4 /* [RW][32] DMA Descriptor 11 Configuration Register. */
+#define BCHP_RDC_desc_11_lock                    0x206032b8 /* [RW][32] DMA Descriptor 11 Lock Register. */
+#define BCHP_RDC_desc_11_immediate               0x206032bc /* [WO][32] DMA Descriptor 11 Immediate Trigger Register. */
+#define BCHP_RDC_desc_12_addr                    0x206032c0 /* [RW][32] DMA Descriptor 12 Address Register. */
+#define BCHP_RDC_desc_12_config                  0x206032c4 /* [RW][32] DMA Descriptor 12 Configuration Register. */
+#define BCHP_RDC_desc_12_lock                    0x206032c8 /* [RW][32] DMA Descriptor 12 Lock Register. */
+#define BCHP_RDC_desc_12_immediate               0x206032cc /* [WO][32] DMA Descriptor 12 Immediate Trigger Register. */
+#define BCHP_RDC_desc_13_addr                    0x206032d0 /* [RW][32] DMA Descriptor 13 Address Register. */
+#define BCHP_RDC_desc_13_config                  0x206032d4 /* [RW][32] DMA Descriptor 13 Configuration Register. */
+#define BCHP_RDC_desc_13_lock                    0x206032d8 /* [RW][32] DMA Descriptor 13 Lock Register. */
+#define BCHP_RDC_desc_13_immediate               0x206032dc /* [WO][32] DMA Descriptor 13 Immediate Trigger Register. */
+#define BCHP_RDC_desc_14_addr                    0x206032e0 /* [RW][32] DMA Descriptor 14 Address Register. */
+#define BCHP_RDC_desc_14_config                  0x206032e4 /* [RW][32] DMA Descriptor 14 Configuration Register. */
+#define BCHP_RDC_desc_14_lock                    0x206032e8 /* [RW][32] DMA Descriptor 14 Lock Register. */
+#define BCHP_RDC_desc_14_immediate               0x206032ec /* [WO][32] DMA Descriptor 14 Immediate Trigger Register. */
+#define BCHP_RDC_desc_15_addr                    0x206032f0 /* [RW][32] DMA Descriptor 15 Address Register. */
+#define BCHP_RDC_desc_15_config                  0x206032f4 /* [RW][32] DMA Descriptor 15 Configuration Register. */
+#define BCHP_RDC_desc_15_lock                    0x206032f8 /* [RW][32] DMA Descriptor 15 Lock Register. */
+#define BCHP_RDC_desc_15_immediate               0x206032fc /* [WO][32] DMA Descriptor 15 Immediate Trigger Register. */
+#define BCHP_RDC_desc_16_addr                    0x20603300 /* [RW][32] DMA Descriptor 16 Address Register. */
+#define BCHP_RDC_desc_16_config                  0x20603304 /* [RW][32] DMA Descriptor 16 Configuration Register. */
+#define BCHP_RDC_desc_16_lock                    0x20603308 /* [RW][32] DMA Descriptor 16 Lock Register. */
+#define BCHP_RDC_desc_16_immediate               0x2060330c /* [WO][32] DMA Descriptor 16 Immediate Trigger Register. */
+#define BCHP_RDC_desc_17_addr                    0x20603310 /* [RW][32] DMA Descriptor 17 Address Register. */
+#define BCHP_RDC_desc_17_config                  0x20603314 /* [RW][32] DMA Descriptor 17 Configuration Register. */
+#define BCHP_RDC_desc_17_lock                    0x20603318 /* [RW][32] DMA Descriptor 17 Lock Register. */
+#define BCHP_RDC_desc_17_immediate               0x2060331c /* [WO][32] DMA Descriptor 17 Immediate Trigger Register. */
+#define BCHP_RDC_desc_18_addr                    0x20603320 /* [RW][32] DMA Descriptor 18 Address Register. */
+#define BCHP_RDC_desc_18_config                  0x20603324 /* [RW][32] DMA Descriptor 18 Configuration Register. */
+#define BCHP_RDC_desc_18_lock                    0x20603328 /* [RW][32] DMA Descriptor 18 Lock Register. */
+#define BCHP_RDC_desc_18_immediate               0x2060332c /* [WO][32] DMA Descriptor 18 Immediate Trigger Register. */
+#define BCHP_RDC_desc_19_addr                    0x20603330 /* [RW][32] DMA Descriptor 19 Address Register. */
+#define BCHP_RDC_desc_19_config                  0x20603334 /* [RW][32] DMA Descriptor 19 Configuration Register. */
+#define BCHP_RDC_desc_19_lock                    0x20603338 /* [RW][32] DMA Descriptor 19 Lock Register. */
+#define BCHP_RDC_desc_19_immediate               0x2060333c /* [WO][32] DMA Descriptor 19 Immediate Trigger Register. */
+#define BCHP_RDC_desc_20_addr                    0x20603340 /* [RW][32] DMA Descriptor 20 Address Register. */
+#define BCHP_RDC_desc_20_config                  0x20603344 /* [RW][32] DMA Descriptor 20 Configuration Register. */
+#define BCHP_RDC_desc_20_lock                    0x20603348 /* [RW][32] DMA Descriptor 20 Lock Register. */
+#define BCHP_RDC_desc_20_immediate               0x2060334c /* [WO][32] DMA Descriptor 20 Immediate Trigger Register. */
+#define BCHP_RDC_desc_21_addr                    0x20603350 /* [RW][32] DMA Descriptor 21 Address Register. */
+#define BCHP_RDC_desc_21_config                  0x20603354 /* [RW][32] DMA Descriptor 21 Configuration Register. */
+#define BCHP_RDC_desc_21_lock                    0x20603358 /* [RW][32] DMA Descriptor 21 Lock Register. */
+#define BCHP_RDC_desc_21_immediate               0x2060335c /* [WO][32] DMA Descriptor 21 Immediate Trigger Register. */
+#define BCHP_RDC_desc_22_addr                    0x20603360 /* [RW][32] DMA Descriptor 22 Address Register. */
+#define BCHP_RDC_desc_22_config                  0x20603364 /* [RW][32] DMA Descriptor 22 Configuration Register. */
+#define BCHP_RDC_desc_22_lock                    0x20603368 /* [RW][32] DMA Descriptor 22 Lock Register. */
+#define BCHP_RDC_desc_22_immediate               0x2060336c /* [WO][32] DMA Descriptor 22 Immediate Trigger Register. */
+#define BCHP_RDC_desc_23_addr                    0x20603370 /* [RW][32] DMA Descriptor 23 Address Register. */
+#define BCHP_RDC_desc_23_config                  0x20603374 /* [RW][32] DMA Descriptor 23 Configuration Register. */
+#define BCHP_RDC_desc_23_lock                    0x20603378 /* [RW][32] DMA Descriptor 23 Lock Register. */
+#define BCHP_RDC_desc_23_immediate               0x2060337c /* [WO][32] DMA Descriptor 23 Immediate Trigger Register. */
+#define BCHP_RDC_desc_24_addr                    0x20603380 /* [RW][32] DMA Descriptor 24 Address Register. */
+#define BCHP_RDC_desc_24_config                  0x20603384 /* [RW][32] DMA Descriptor 24 Configuration Register. */
+#define BCHP_RDC_desc_24_lock                    0x20603388 /* [RW][32] DMA Descriptor 24 Lock Register. */
+#define BCHP_RDC_desc_24_immediate               0x2060338c /* [WO][32] DMA Descriptor 24 Immediate Trigger Register. */
+#define BCHP_RDC_desc_25_addr                    0x20603390 /* [RW][32] DMA Descriptor 25 Address Register. */
+#define BCHP_RDC_desc_25_config                  0x20603394 /* [RW][32] DMA Descriptor 25 Configuration Register. */
+#define BCHP_RDC_desc_25_lock                    0x20603398 /* [RW][32] DMA Descriptor 25 Lock Register. */
+#define BCHP_RDC_desc_25_immediate               0x2060339c /* [WO][32] DMA Descriptor 25 Immediate Trigger Register. */
+#define BCHP_RDC_desc_26_addr                    0x206033a0 /* [RW][32] DMA Descriptor 26 Address Register. */
+#define BCHP_RDC_desc_26_config                  0x206033a4 /* [RW][32] DMA Descriptor 26 Configuration Register. */
+#define BCHP_RDC_desc_26_lock                    0x206033a8 /* [RW][32] DMA Descriptor 26 Lock Register. */
+#define BCHP_RDC_desc_26_immediate               0x206033ac /* [WO][32] DMA Descriptor 26 Immediate Trigger Register. */
+#define BCHP_RDC_desc_27_addr                    0x206033b0 /* [RW][32] DMA Descriptor 27 Address Register. */
+#define BCHP_RDC_desc_27_config                  0x206033b4 /* [RW][32] DMA Descriptor 27 Configuration Register. */
+#define BCHP_RDC_desc_27_lock                    0x206033b8 /* [RW][32] DMA Descriptor 27 Lock Register. */
+#define BCHP_RDC_desc_27_immediate               0x206033bc /* [WO][32] DMA Descriptor 27 Immediate Trigger Register. */
+#define BCHP_RDC_desc_28_addr                    0x206033c0 /* [RW][32] DMA Descriptor 28 Address Register. */
+#define BCHP_RDC_desc_28_config                  0x206033c4 /* [RW][32] DMA Descriptor 28 Configuration Register. */
+#define BCHP_RDC_desc_28_lock                    0x206033c8 /* [RW][32] DMA Descriptor 28 Lock Register. */
+#define BCHP_RDC_desc_28_immediate               0x206033cc /* [WO][32] DMA Descriptor 28 Immediate Trigger Register. */
+#define BCHP_RDC_desc_29_addr                    0x206033d0 /* [RW][32] DMA Descriptor 29 Address Register. */
+#define BCHP_RDC_desc_29_config                  0x206033d4 /* [RW][32] DMA Descriptor 29 Configuration Register. */
+#define BCHP_RDC_desc_29_lock                    0x206033d8 /* [RW][32] DMA Descriptor 29 Lock Register. */
+#define BCHP_RDC_desc_29_immediate               0x206033dc /* [WO][32] DMA Descriptor 29 Immediate Trigger Register. */
+#define BCHP_RDC_desc_30_addr                    0x206033e0 /* [RW][32] DMA Descriptor 30 Address Register. */
+#define BCHP_RDC_desc_30_config                  0x206033e4 /* [RW][32] DMA Descriptor 30 Configuration Register. */
+#define BCHP_RDC_desc_30_lock                    0x206033e8 /* [RW][32] DMA Descriptor 30 Lock Register. */
+#define BCHP_RDC_desc_30_immediate               0x206033ec /* [WO][32] DMA Descriptor 30 Immediate Trigger Register. */
+#define BCHP_RDC_desc_31_addr                    0x206033f0 /* [RW][32] DMA Descriptor 31 Address Register. */
+#define BCHP_RDC_desc_31_config                  0x206033f4 /* [RW][32] DMA Descriptor 31 Configuration Register. */
+#define BCHP_RDC_desc_31_lock                    0x206033f8 /* [RW][32] DMA Descriptor 31 Lock Register. */
+#define BCHP_RDC_desc_31_immediate               0x206033fc /* [WO][32] DMA Descriptor 31 Immediate Trigger Register. */
+#define BCHP_RDC_br_0_start_addr                 0x20603600 /* [RW][32] Blackout Range 0 Start Address Register. */
+#define BCHP_RDC_br_0_end_addr                   0x20603604 /* [RW][32] Blackout Range 0 End Address Register. */
+#define BCHP_RDC_br_0_enable                     0x20603608 /* [RW][32] Blackout Range 0 Enable Register. */
+#define BCHP_RDC_br_1_start_addr                 0x2060360c /* [RW][32] Blackout Range 1 Start Address Register. */
+#define BCHP_RDC_br_1_end_addr                   0x20603610 /* [RW][32] Blackout Range 1 End Address Register. */
+#define BCHP_RDC_br_1_enable                     0x20603614 /* [RW][32] Blackout Range 1 Enable Register. */
+#define BCHP_RDC_br_2_start_addr                 0x20603618 /* [RW][32] Blackout Range 2 Start Address Register. */
+#define BCHP_RDC_br_2_end_addr                   0x2060361c /* [RW][32] Blackout Range 2 End Address Register. */
+#define BCHP_RDC_br_2_enable                     0x20603620 /* [RW][32] Blackout Range 2 Enable Register. */
+#define BCHP_RDC_br_3_start_addr                 0x20603624 /* [RW][32] Blackout Range 3 Start Address Register. */
+#define BCHP_RDC_br_3_end_addr                   0x20603628 /* [RW][32] Blackout Range 3 End Address Register. */
+#define BCHP_RDC_br_3_enable                     0x2060362c /* [RW][32] Blackout Range 3 Enable Register. */
+#define BCHP_RDC_br_4_start_addr                 0x20603630 /* [RW][32] Blackout Range 4 Start Address Register. */
+#define BCHP_RDC_br_4_end_addr                   0x20603634 /* [RW][32] Blackout Range 4 End Address Register. */
+#define BCHP_RDC_br_4_enable                     0x20603638 /* [RW][32] Blackout Range 4 Enable Register. */
+#define BCHP_RDC_br_5_start_addr                 0x2060363c /* [RW][32] Blackout Range 5 Start Address Register. */
+#define BCHP_RDC_br_5_end_addr                   0x20603640 /* [RW][32] Blackout Range 5 End Address Register. */
+#define BCHP_RDC_br_5_enable                     0x20603644 /* [RW][32] Blackout Range 5 Enable Register. */
+#define BCHP_RDC_br_6_start_addr                 0x20603648 /* [RW][32] Blackout Range 6 Start Address Register. */
+#define BCHP_RDC_br_6_end_addr                   0x2060364c /* [RW][32] Blackout Range 6 End Address Register. */
+#define BCHP_RDC_br_6_enable                     0x20603650 /* [RW][32] Blackout Range 6 Enable Register. */
+#define BCHP_RDC_br_7_start_addr                 0x20603654 /* [RW][32] Blackout Range 7 Start Address Register. */
+#define BCHP_RDC_br_7_end_addr                   0x20603658 /* [RW][32] Blackout Range 7 End Address Register. */
+#define BCHP_RDC_br_7_enable                     0x2060365c /* [RW][32] Blackout Range 7 Enable Register. */
+#define BCHP_RDC_timer_data                      0x20603680 /* [RO][32] Timer Data */
+#define BCHP_RDC_desc_0_tm_snapshot              0x20603700 /* [RO][32] Descriptor 0 Timer Snapshot. */
+#define BCHP_RDC_desc_1_tm_snapshot              0x20603704 /* [RO][32] Descriptor 1 Timer Snapshot. */
+#define BCHP_RDC_desc_2_tm_snapshot              0x20603708 /* [RO][32] Descriptor 2 Timer Snapshot. */
+#define BCHP_RDC_desc_3_tm_snapshot              0x2060370c /* [RO][32] Descriptor 3 Timer Snapshot. */
+#define BCHP_RDC_desc_4_tm_snapshot              0x20603710 /* [RO][32] Descriptor 4 Timer Snapshot. */
+#define BCHP_RDC_desc_5_tm_snapshot              0x20603714 /* [RO][32] Descriptor 5 Timer Snapshot. */
+#define BCHP_RDC_desc_6_tm_snapshot              0x20603718 /* [RO][32] Descriptor 6 Timer Snapshot. */
+#define BCHP_RDC_desc_7_tm_snapshot              0x2060371c /* [RO][32] Descriptor 7 Timer Snapshot. */
+#define BCHP_RDC_desc_8_tm_snapshot              0x20603720 /* [RO][32] Descriptor 8 Timer Snapshot. */
+#define BCHP_RDC_desc_9_tm_snapshot              0x20603724 /* [RO][32] Descriptor 9 Timer Snapshot. */
+#define BCHP_RDC_desc_10_tm_snapshot             0x20603728 /* [RO][32] Descriptor 10 Timer Snapshot. */
+#define BCHP_RDC_desc_11_tm_snapshot             0x2060372c /* [RO][32] Descriptor 11 Timer Snapshot. */
+#define BCHP_RDC_desc_12_tm_snapshot             0x20603730 /* [RO][32] Descriptor 12 Timer Snapshot. */
+#define BCHP_RDC_desc_13_tm_snapshot             0x20603734 /* [RO][32] Descriptor 13 Timer Snapshot. */
+#define BCHP_RDC_desc_14_tm_snapshot             0x20603738 /* [RO][32] Descriptor 14 Timer Snapshot. */
+#define BCHP_RDC_desc_15_tm_snapshot             0x2060373c /* [RO][32] Descriptor 15 Timer Snapshot. */
+#define BCHP_RDC_desc_16_tm_snapshot             0x20603740 /* [RO][32] Descriptor 16 Timer Snapshot. */
+#define BCHP_RDC_desc_17_tm_snapshot             0x20603744 /* [RO][32] Descriptor 17 Timer Snapshot. */
+#define BCHP_RDC_desc_18_tm_snapshot             0x20603748 /* [RO][32] Descriptor 18 Timer Snapshot. */
+#define BCHP_RDC_desc_19_tm_snapshot             0x2060374c /* [RO][32] Descriptor 19 Timer Snapshot. */
+#define BCHP_RDC_desc_20_tm_snapshot             0x20603750 /* [RO][32] Descriptor 20 Timer Snapshot. */
+#define BCHP_RDC_desc_21_tm_snapshot             0x20603754 /* [RO][32] Descriptor 21 Timer Snapshot. */
+#define BCHP_RDC_desc_22_tm_snapshot             0x20603758 /* [RO][32] Descriptor 22 Timer Snapshot. */
+#define BCHP_RDC_desc_23_tm_snapshot             0x2060375c /* [RO][32] Descriptor 23 Timer Snapshot. */
+#define BCHP_RDC_desc_24_tm_snapshot             0x20603760 /* [RO][32] Descriptor 24 Timer Snapshot. */
+#define BCHP_RDC_desc_25_tm_snapshot             0x20603764 /* [RO][32] Descriptor 25 Timer Snapshot. */
+#define BCHP_RDC_desc_26_tm_snapshot             0x20603768 /* [RO][32] Descriptor 26 Timer Snapshot. */
+#define BCHP_RDC_desc_27_tm_snapshot             0x2060376c /* [RO][32] Descriptor 27 Timer Snapshot. */
+#define BCHP_RDC_desc_28_tm_snapshot             0x20603770 /* [RO][32] Descriptor 28 Timer Snapshot. */
+#define BCHP_RDC_desc_29_tm_snapshot             0x20603774 /* [RO][32] Descriptor 29 Timer Snapshot. */
+#define BCHP_RDC_desc_30_tm_snapshot             0x20603778 /* [RO][32] Descriptor 30 Timer Snapshot. */
+#define BCHP_RDC_desc_31_tm_snapshot             0x2060377c /* [RO][32] Descriptor 31 Timer Snapshot. */
+#define BCHP_RDC_eop_flopped_0                   0x20603800 /* [RO][32] EOP Flopped bits [31:0] */
+#define BCHP_RDC_eop_flopped_1                   0x20603804 /* [RO][32] EOP Flopped bits [63:32] */
+#define BCHP_RDC_eop_flopped_2                   0x20603808 /* [RO][32] EOP Flopped bits [95:64] */
+#define BCHP_RDC_eop_flopped_3                   0x2060380c /* [RO][32] EOP Flopped bits [127:96] */
+#define BCHP_RDC_eop_flopped_4                   0x20603810 /* [RO][32] EOP Flopped bits [159:128] */
+#define BCHP_RDC_eop_flopped_5                   0x20603814 /* [RO][32] EOP Flopped bits [191:160] */
+#define BCHP_RDC_eop_flopped_6                   0x20603818 /* [RO][32] EOP Flopped bits [223:192] */
+#define BCHP_RDC_eop_flopped_7                   0x2060381c /* [RO][32] EOP Flopped bits [255:224] */
 
 /***************************************************************************
  *revision_id - Revision ID register

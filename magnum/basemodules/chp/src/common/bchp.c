@@ -790,8 +790,8 @@ BERR_Code BCHP_GetMemoryInfo_PreInit(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
 
     for (i=0;i < (sizeof(pInfo->memc)/sizeof(pInfo->memc[0])) && pInfo->memc[i].width;i++) {
         BDBG_ASSERT(pInfo->memc[i].width >= pInfo->memc[i].deviceWidth);
-        pInfo->memc[i].size = (uint64_t)pInfo->memc[i].deviceTech / 8 * (pInfo->memc[i].width/pInfo->memc[i].deviceWidth) * 1024 * 1024;
-        BDBG_MSG(("MEMC%d: %d MB, %d bits", i, (unsigned)(pInfo->memc[i].size / 1024 / 1024), pInfo->memc[i].width));
+        pInfo->memc[i].valid = (pInfo->memc[i].width != 0);
+        BDBG_MSG(("MEMC%d: %d bits", i, pInfo->memc[i].width));
         BDBG_MSG(("mapVer: %d, blindShuffle: %d", pInfo->memc[i].mapVer, pInfo->memc[i].blindShuffle));
     }
 #else
@@ -800,7 +800,6 @@ BERR_Code BCHP_GetMemoryInfo_PreInit(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
     pInfo->memc[0].type = BCHP_DramType_eDDR3;
     pInfo->memc[0].deviceTech = 0x1000;
     pInfo->memc[0].ddr3Capable = 1;
-    pInfo->memc[0].size = 0xffffffff;
 #endif
     BCHP_P_GetStripeMemoryInfo(pInfo);
     return BERR_SUCCESS;
@@ -821,7 +820,7 @@ BERR_Code BCHP_GetMemoryInfo(BCHP_Handle hChip, BCHP_MemoryInfo *pInfo)
 #if BCHP_UNIFIED_IMPL
     for (i=0;i < (sizeof(pInfo->memc)/sizeof(pInfo->memc[0])) && pInfo->memc[i].width;i++) {
         if (hChip->openSettings.memoryLayout.memc[i].size == 0) {
-            pInfo->memc[i].size = 0;
+            pInfo->memc[i].valid = false;
         }
     }
 #endif
@@ -882,7 +881,7 @@ BERR_Code BCHP_P_GetDefaultFeature
         rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl1Capable:
-        *(bool *)pFeatureValue = hChip->memoryInfo.memc[1].size != 0;
+        *(bool *)pFeatureValue = hChip->memoryInfo.memc[1].valid;
         rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl1DDRDeviceTechCount:
@@ -898,7 +897,7 @@ BERR_Code BCHP_P_GetDefaultFeature
         rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl2Capable:
-        *(bool *)pFeatureValue = hChip->memoryInfo.memc[2].size != 0;
+        *(bool *)pFeatureValue = hChip->memoryInfo.memc[2].valid;
         rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl2DDRDeviceTechCount:
@@ -1190,5 +1189,60 @@ BERR_Code BCHP_GetMemcClientConfig(
    cfg->blockout = BCHP_GET_FIELD_DATA(reg, MEMC_ARB_0_CLIENT_INFO_0, BO_VAL);
    return BERR_SUCCESS;
 }
+
+/* BP3 Do NOT Modify Start */
+#if defined(BCHP_SCPU_GLOBALRAM_REG_START)
+#include "bchp_scpu_globalram.h"
+struct BCHP_P_LicenseLeaf {
+    BCHP_LicensedFeature feature;
+    unsigned bit;
+};
+
+struct BCHP_P_LicenseNode {
+    uint32_t addr;
+    unsigned leafs;
+    const struct BCHP_P_LicenseLeaf *leaf;
+};
+
+#endif /* #if defined(BCHP_SCPU_GLOBALRAM_REG_START) */
+
+BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature feature)
+{
+#if defined(BCHP_SCPU_GLOBALRAM_REG_START)
+    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs[] = {
+        {BCHP_LicensedFeature_eMacrovision, 0},
+        {BCHP_LicensedFeature_eDolbyVision, 1},
+        {BCHP_LicensedFeature_eTchPrime, 2},
+        {BCHP_LicensedFeature_eItm, 3}
+    };
+
+    static const struct BCHP_P_LicenseNode BCHP_P_LicenseNodes[] = {
+        {
+            BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + 23*4,
+            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs[0]),
+            BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs
+        }
+    };
+    unsigned node;
+    BDBG_OBJECT_ASSERT(chp, BCHP);
+    for(node=0;node<sizeof(BCHP_P_LicenseNodes)/sizeof(BCHP_P_LicenseNodes[0]);node++) {
+        unsigned i;
+        unsigned n = BCHP_P_LicenseNodes[node].leafs;
+        const struct BCHP_P_LicenseLeaf *leaf = BCHP_P_LicenseNodes[node].leaf;
+        for(i=0;i<n;i++) {
+            if(leaf[i].feature==feature) {
+                uint32_t data = BREG_Read32(chp->regHandle, BCHP_P_LicenseNodes[node].addr);
+                BERR_Code result = (((data >> leaf[i].bit) & 1) == 0) ? BERR_SUCCESS:BERR_NOT_AVAILABLE;
+                return result;
+            }
+        }
+    }
+#else /* #if defined(BCHP_SCPU_GLOBALRAM_REG_START) */
+    BSTD_UNUSED(feature);
+    BSTD_UNUSED(chp);
+#endif /* #if defined(BCHP_SCPU_GLOBALRAM_REG_START) */
+    return BERR_SUCCESS;
+}
+/* BP3 Do NOT Modify End */
 
 /* end of file */

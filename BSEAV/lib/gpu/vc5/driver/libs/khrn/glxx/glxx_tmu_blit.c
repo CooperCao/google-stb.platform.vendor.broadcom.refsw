@@ -1,11 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <EGL/egl.h>
 
 /* TODO: This is a hack moved from old version of eglext.h to keep using
@@ -30,44 +25,6 @@ FILE DESCRIPTION
 #include "glxx_server.h"
 #include "glxx_tmu_blit.h"
 #include "glxx_ds_to_color.h"
-
-#ifdef TMU_DEBUG_SAVE_IMAGE
-#include "libs/tools/txtfmt/txtfmt_gfx_buffer.h"
-
-static void *map_image(size_t *psize, const KHRN_IMAGE_T *img)
-{
-   khrn_interlock_read_now(&img->blob->res_i->interlock);
-
-   size_t offset = img->start_elem * img->blob->array_pitch;
-   size_t size = img->num_array_elems * img->blob->array_pitch;
-   void* ptr = gmem_map_and_get_ptr(img->blob->res_i->handle);
-
-   gmem_invalidate_mapped_range(
-      img->blob->res_i->handle,
-      offset,
-      size);
-
-   if (psize) *psize = size;
-   return ptr ? (char*)ptr + offset : NULL;
-}
-
-void glxx_debug_save_image(const char *fname, const KHRN_IMAGE_T *img)
-{
-   char fullname[1024];
-   size_t size;
-   uint32_t plane_num;
-
-   void *data = map_image(&size, img);
-
-   for(plane_num = 0; plane_num < img->blob->desc[0].num_planes; plane_num++)
-   {
-      sprintf(fullname, "%s_%u.txtfmt", fname, plane_num);
-      // Info: display the output from txtfmt using gtxt
-      txtfmt_store_gfx_buffer(&img->blob->desc[0], data, plane_num, true, fullname,
-         NULL, NULL);
-   }
-}
-#endif
 
 typedef GLfloat fpoint_t[2];
 struct fbox
@@ -808,7 +765,7 @@ static bool init_target_buf(struct target_buf *tb,
       return false;
 
    egl_image = egl_get_image_refinc(tb->image);
-   KHRN_IMAGE_T * image = egl_image_get_image(egl_image);
+   khrn_image * image = egl_image_get_image(egl_image);
 
    assert(khrn_image_get_num_planes(image) == 1);
 
@@ -931,7 +888,7 @@ static struct context *get_blit_context(const struct context *current)
 static void egl_image_get_size(GLint size[2], EGLImageKHR im)
 {
    EGL_IMAGE_T *egl_image = NULL;
-   KHRN_IMAGE_T *kim = NULL;
+   khrn_image *kim = NULL;
    unsigned w, h;
 
    egl_image= egl_get_image_refinc(im);

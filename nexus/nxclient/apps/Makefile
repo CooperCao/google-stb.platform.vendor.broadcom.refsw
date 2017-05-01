@@ -1,5 +1,5 @@
 ############################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,6 @@
 # ANY LIMITED REMEDY.
 ############################################################
 
-# no extra source needed (other than GUI_SOURCE)
 BASIC_BUILD_APPS = \
 	3dtv_client \
 	alpha_hole \
@@ -50,6 +49,7 @@ BASIC_BUILD_APPS = \
 	audio_karaoke \
 	blit_client \
 	cap \
+	ccgfx \
 	colorbar \
 	config \
 	crc \
@@ -71,6 +71,8 @@ BASIC_BUILD_APPS = \
 	playmosaic \
 	playpcm \
 	playpump_sg_client \
+	playviewer \
+	psi \
 	record \
 	screenshot \
 	sd_video_override \
@@ -79,63 +81,37 @@ BASIC_BUILD_APPS = \
 	sethdcp \
 	set_wifi_region \
 	simpleplay \
+	standby \
 	thumbnail \
+	transcode \
 	video_as_graphics \
 	wait_for_server
 
-# extra source needed
+# custom build rule needed
 CUSTOM_BUILD_APPS = \
-	ccgfx \
 	getstatus \
-	list_all_boxmodes \
-	playviewer \
-	standby \
-	transcode
+	list_all_boxmodes
 
-# not built by default
-MANUAL_APPS = switched_decode
+ifeq ($(shell test -f dolby_ms12_cert.c && echo y),y)
+BASIC_BUILD_APPS += dolby_ms12_cert
+endif
 
 APPS = $(BASIC_BUILD_APPS) $(CUSTOM_BUILD_APPS)
 
-PHONY=all clean clean_apps copy_files clean_playback_ip tr69c clean_tr69c dcclib clean_dcclib
-.PHONY: $(PHONY) server clean_server
+.PHONY: all clean clean_apps tr69c clean_tr69c dcclib clean_dcclib install server clean_server
+.PHONY: $(APPS)
+.PHONY: freetype clean_freetype
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
 
-ifeq ($(B_REFSW_REAL_MAKE),)
-
-NEXUS_TOP := $(shell cd ../../; pwd)
-
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-ifeq ($(NEXUS_MODE),)
-NEXUS_MODE:=$(MODE)
-endif
-BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/nxclient/apps.$(NEXUS_MODE)
-MAKEFLAGS += --no-print-directory
-
-${PHONY} ${APPS} $(MANUAL_APPS): ${BINDIR}/exists
-	@${MAKE} -C ${BINDIR} BINDIR=${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile $@
-
-${BINDIR}/exists:
-	@mkdir -p $@
-
-server:
-	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server
-
-clean_server:
-	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server clean
-
-else # B_REFSW_REAL_MAKE
-NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
+NEXUS_TOP := $(shell cd ../../;pwd)
 
 install: all
 
-all: $(EXTRA_BUILD_RULES) $(APPS) copy_files
-	@echo [Install... nxclient apps to $(realpath ${NEXUS_BIN_DIR})]
+all: $(EXTRA_BUILD_RULES) $(APPS)
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 # do "make nexus" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
@@ -145,6 +121,9 @@ Q_ ?= @
 else
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
+
+BINDIR := $(B_REFSW_OBJ_ROOT)/nexus/nxclient/$(B_REFSW_ARCH)/apps.$(NEXUS_MODE)
+NXCLIENT_P_SHARED_LIB := $(BINDIR)/libnxclient.so
 
 # NEXUS flags
 CFLAGS += -g $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -161,12 +140,8 @@ LDFLAGS += $(NXCLIENT_LDFLAGS)
 endif
 LDFLAGS += -g
 
-vpath %.c $(NEXUS_TOP)/nxclient/apps
-
-$(APPS) $(MANUAL_APPS): $(NXCLIENT_SHARED_LIB)
-
-$(NXCLIENT_SHARED_LIB):
-	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server B_REFSW_REAL_MAKE=
+$(NXCLIENT_P_SHARED_LIB):
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server
 
 B_LIB_TOP = $(NEXUS_TOP)/lib
 
@@ -174,7 +149,8 @@ B_LIB_TOP = $(NEXUS_TOP)/lib
 # playback_ip additions
 #
 ifeq ($(PLAYBACK_IP_SUPPORT),y)
-EXTRA_BUILD_RULES += $(NEXUS_BIN_DIR)/libb_playback_ip.so
+.PHONY: playback_ip clean_playback_ip
+EXTRA_BUILD_RULES += playback_ip
 EXTRA_CLEAN_RULES += clean_playback_ip
 include $(B_LIB_TOP)/playback_ip/b_playback_ip_lib.inc
 CFLAGS += $(PLAYBACK_IP_CFLAGS)
@@ -184,7 +160,7 @@ include $(NEXUS_TOP)/lib/bip/bip_lib.inc
 CFLAGS += $(BIP_ALL_LIB_CFLAGS)
 LDFLAGS += $(BIP_ALL_LIB_LDFLAGS)
 
-$(NEXUS_BIN_DIR)/libb_playback_ip.so:
+playback_ip:
 	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build B_NEXUS_API_BUILD_COMPLETED=y install
 	$(Q_)$(MAKE) -C $(B_LIB_TOP)/playback_ip/apps B_NEXUS_API_BUILD_COMPLETED=y install
 clean_playback_ip:
@@ -214,47 +190,37 @@ ifeq ($(NXCLIENT_LOCAL),y)
 LDFLAGS = $(NEXUS_LD_LIBRARIES) -lnxserver
 endif
 
-$(APPS): $(EXTRA_BUILD_RULES)
-
 # for faster compilation, archive nexus/nxclient/apps/utils
-NXCLIENT_APPS_UTILS_LIB := nxclient_apps_utils.a
+NXCLIENT_APPS_UTILS_LIB := $(BINDIR)/nxclient_apps_utils.a
 include $(NEXUS_TOP)/nxclient/apps/utils/nxutils.inc
 NXCLIENT_APPS_UTILS_SRC := $(foreach src,$(NXUTILS_SOURCES), $(notdir $(src)))
+NXCLIENT_APPS_UTILS_OBJS := $(addprefix $(BINDIR)/,$(patsubst %.c,%.o,$(NXCLIENT_APPS_UTILS_SRC)))
 CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES)) -I$(BINDIR)
 vpath %.c $(foreach src,$(NXUTILS_SOURCES), $(dir $(src)))
 
 ifeq ($(FREETYPE_SUPPORT),y)
+FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype
+include $(FREETYPE_DIR)/b_freetype_targets.inc
 EXTRA_BUILD_RULES += freetype
 EXTRA_CLEAN_RULES += clean_freetype
-FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype
-FREETYPE_ODIR = ${B_REFSW_OBJ_ROOT}/BSEAV/opensource/freetype-2.1.5
-CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_ODIR)/include
-LDFLAGS += -L$(FREETYPE_ODIR) -lfreetype
-freetype:
-	$(MAKE) -C $(FREETYPE_DIR) all
-clean_freetype:
-	${Q_}$(MAKE) -C $(FREETYPE_DIR) clean
-
-else
-freetype:
-clean_freetype:
-
+CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_SOURCE_PATH)/include
+LDFLAGS += -L$(FREETYPE_LIB_FOLDER) -lfreetype
+freetype: b_freetype_target_build
+clean_freetype: b_freetype_target_clean_all
 endif
 
-$(patsubst %.c,%.o,$(NXCLIENT_APPS_UTILS_SRC)): $(EXTRA_BUILD_RULES)
+$(NXCLIENT_APPS_UTILS_OBJS): $(EXTRA_BUILD_RULES)
 
-$(NXCLIENT_APPS_UTILS_LIB): $(patsubst %.c,%.o,$(NXCLIENT_APPS_UTILS_SRC))
+$(addprefix $(BINDIR)/,$(APPS)): $(NXCLIENT_P_SHARED_LIB) $(EXTRA_BUILD_RULES)
+
+$(NXCLIENT_APPS_UTILS_LIB): $(NXCLIENT_APPS_UTILS_OBJS)
 	@echo [Archive... $@]
 	$(Q_)$(AR) rcs $@ $(filter %.o, $^)
 
-%.o: %.c
+$(BINDIR)/%.o: %.c
 	@echo [Compile... $(notdir $<)]
+	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -c -o $@ $< $(CFLAGS)
-
-$(BASIC_BUILD_APPS): %: %.c $(NXCLIENT_APPS_UTILS_LIB)
-	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
-	$(Q_)$(CP) $@ ${NEXUS_BIN_DIR}
 
 # CUSTOM_BUILD_APPS
 ifeq ($(NEXUS_POWER_MANAGEMENT),y)
@@ -265,43 +231,29 @@ pmlib:
 	$(Q_)$(MAKE) -C $(PMLIB_TOP)
 clean_pmlib:
 	$(Q_)$(MAKE) -C $(PMLIB_TOP) clean
-standby: CFLAGS += $(PMLIB_CFLAGS)
-STANDBY_DEPENDENCIES = $(PMLIB_LIBDIR)/pmlib.o
+$(BINDIR)/standby: CFLAGS += $(PMLIB_CFLAGS)
+$(BINDIR)/standby: $(PMLIB_LIBDIR)/pmlib.o
 EXTRA_CLEAN_RULES += clean_pmlib
 endif
-STANDBY_DEPENDENCIES += $(NXCLIENT_APPS_UTILS_LIB)
-standby: %: %.c $(STANDBY_DEPENDENCIES)
-	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
-	${Q_}$(CP) $@ ${NEXUS_BIN_DIR}
 
-transcode: CFLAGS += -I$(NEXUS_TOP)/../magnum/commonutils/vlc
+$(BINDIR)/transcode: CFLAGS += -I$(NEXUS_TOP)/../magnum/commonutils/vlc
 ifneq ($(NEXUS_PLAYBACK_SUPPORT),n)
-TRANSCODE_DEPENDENCIES = $(NEXUS_TOP)/../BSEAV/lib/bcmplayer/src/bcmindexer.c $(NEXUS_TOP)/../magnum/commonutils/vlc/bvlc.c $(NXCLIENT_APPS_UTILS_LIB)
-else
-TRANSCODE_DEPENDENCIES =
+$(BINDIR)/transcode: $(NEXUS_TOP)/../BSEAV/lib/bcmplayer/src/bcmindexer.c $(NEXUS_TOP)/../magnum/commonutils/vlc/bvlc.c $(NXCLIENT_APPS_UTILS_LIB)
 endif
-transcode: %: %.c $(TRANSCODE_DEPENDENCIES)
-	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
-	${Q_}$(CP) $@ ${NEXUS_BIN_DIR}
 
-list_all_boxmodes:
+$(BINDIR)/list_all_boxmodes:
 	$(Q_)echo Auto-generating $@
+	@mkdir -p $(dir $@)
 	$(Q_)($(MAKE) -s -f $(NEXUS_TOP)/nxclient/apps/list_all_boxmodes.mk NEXUS_TOP=$(NEXUS_TOP)) > $@
 	$(Q_)chmod +x $@
 	$(CP) $@ ${NEXUS_BIN_DIR}
-
-playviewer: %: %.c $(NXCLIENT_APPS_UTILS_LIB)
-	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
-	${Q_}$(CP) $@ ${NEXUS_BIN_DIR}
 
 GETSTATUS_AUTOGEN_INCLUDES=$(BINDIR)/getstatus_autogen_includes.txt
 GETSTATUS_AUTOGEN=$(BINDIR)/getstatus_autogen.c
 OTHER_CLEANS=$(GETSTATUS_AUTOGEN_INCLUDES) $(GETSTATUS_AUTOGEN)
 $(GETSTATUS_AUTOGEN):
 	${Q_}echo Auto-generating $@
+	@mkdir -p $(dir $@)
 	${Q_}$(RM) $(GETSTATUS_AUTOGEN_INCLUDES)
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 	${Q_}for file in $(filter-out $(NEXUS_BIN_DIR)/include/nexus.h $(NEXUS_BIN_DIR)/include/nexus.cpp.h $(NEXUS_BIN_DIR)/include/nexus_config.h, $(shell ls $(NEXUS_BIN_DIR)/include/*.h 2>/dev/null)); do \
@@ -314,8 +266,9 @@ else
 endif
 	${Q_}cd $(NEXUS_TOP)/build/tools/common; perl nexus_getstatus_client.pl $(GETSTATUS_AUTOGEN_INCLUDES) >$@ || $(RM) $@
 
-getstatus: %: %.c $(GETSTATUS_AUTOGEN)
+$(BINDIR)/getstatus: $(BINDIR)/%: %.c $(GETSTATUS_AUTOGEN)
 	@echo [Compile... $(notdir $<)]
+	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $(filter-out $(GETSTATUS_AUTOGEN), $^)) $(CFLAGS) $(LDFLAGS)
 	${Q_}$(CP) $@ ${NEXUS_BIN_DIR}
 
@@ -332,48 +285,67 @@ clean_dcclib:
 # Convert applib include paths into single variable.
 APPLIB_INCLUDES := $(foreach lib,$(B_LIBS),$($(lib)_PUBLIC_INCLUDES))
 APPLIB_DEFINES := $(foreach lib,$(B_LIBS),$($(lib)_DEFINES))
-ccgfx: CFLAGS += $(addprefix -I,$(APPLIB_INCLUDES)) $(addprefix -D,$(APPLIB_DEFINES)) $(B_DCC_LIB_CFLAGS_OPTIONS) -I$(NEXUS_TOP)/../magnum/commonutils/udp/include -I$(NEXUS_TOP)/../magnum/commonutils/avc/include
+$(BINDIR)/ccgfx: CFLAGS += $(addprefix -I,$(APPLIB_INCLUDES)) $(addprefix -D,$(APPLIB_DEFINES)) $(B_DCC_LIB_CFLAGS_OPTIONS) -I$(NEXUS_TOP)/../magnum/commonutils/udp/include -I$(NEXUS_TOP)/../magnum/commonutils/avc/include
 ifneq ($(NEXUS_PLAYBACK_SUPPORT),n)
-ccgfx: LDFLAGS += -lm -lb_dcc
+$(BINDIR)/ccgfx: LDFLAGS += -lm -lb_dcc
 ifeq ($(FREETYPE_SUPPORT),y)
-ccgfx: LDFLAGS += -lfreetype
+$(BINDIR)/ccgfx: LDFLAGS += -lfreetype
 endif
-CCGFX_DEPENDENCIES = dcclib $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_dccparse.c $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_bitread.c parse_userdata.c $(NXCLIENT_APPS_UTILS_LIB)
-else
-CCGFX_DEPENDENCIES =
+$(BINDIR)/ccgfx: dcclib $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_dccparse.c $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_bitread.c parse_userdata.c $(NXCLIENT_APPS_UTILS_LIB)
 endif
-ccgfx: %: %.c $(CCGFX_DEPENDENCIES)
-	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
-	${Q_}$(CP) $@ ${NEXUS_BIN_DIR}
+EXTRA_BUILD_RULES += ccgfx_install
+ccgfx_install:
 	@if [ ! -d $(NEXUS_BIN_DIR)/cc_fonts ]; then \
 		echo [Install Fonts]; \
 		$(MKDIR) $(NEXUS_BIN_DIR)/cc_fonts; \
-		$(CP) $(B_BSEAV_TOP)/app/atlas/fonts/cc_fonts/* $(NEXUS_BIN_DIR)/cc_fonts; \
+		$(CP) $(B_BSEAV_TOP)/opensource/fonts/cc_fonts/* $(NEXUS_BIN_DIR)/cc_fonts; \
 	fi
 else
-ccgfx:
+$(BINDIR)/ccgfx:
 	$(Q_)echo dcc lib source not available for $@ >$@
 endif
 
-# equivalent of NXCLIENT_LOCAL=y
-switched_decode: CFLAGS += -I$(NEXUS_TOP)/nxclient/server
-switched_decode: switched_decode.c server $(NXCLIENT_APPS_UTILS_LIB)
-	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(NEXUS_LD_LIBRARIES) -lnxserver
-	${Q_}$(CP) $@ ${NEXUS_BIN_DIR}
-
 playmosaic: LDFLAGS += -lm
+
+# equivalent of NXCLIENT_LOCAL=y
+$(BINDIR)/switched_decode: CFLAGS += -I$(NEXUS_TOP)/nxclient/server
+$(BINDIR)/switched_decode: switched_decode.c $(NXCLIENT_APPS_UTILS_LIB)
+	@echo [Compile... $(notdir $<)]
+	@mkdir -p $(dir $@)
+	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(NEXUS_LD_LIBRARIES) -lnxserver
+
+.PHONY: switched_decode
+switched_decode: $(BINDIR)/switched_decode
+	$(CP) $(BINDIR)/$@ ${NEXUS_BIN_DIR}
+
+define apprule
+$$(BINDIR)/$1: $1.c $(NXCLIENT_APPS_UTILS_LIB)
+	@echo [Compile... $$<]
+	@mkdir -p $$(dir $$@)
+	$$(Q_)$$(CC) -o $$@ $$(filter %.c %.s %.o %.a, $$^) $$(CFLAGS) $$(LDFLAGS)
+	$$(CP) $$@ $${NEXUS_BIN_DIR}
+
+$1: $$(BINDIR)/$1
+	@test 1
+endef
+$(foreach app, $(BASIC_BUILD_APPS), $(eval $(call apprule,$(strip $(app)))))
+
+define custom_apprule
+$1: $$(BINDIR)/$1
+	@test 1
+endef
+$(foreach app, $(CUSTOM_BUILD_APPS), $(eval $(call custom_apprule,$(strip $(app)))))
 
 clean: clean_server clean_apps $(EXTRA_CLEAN_RULES)
 
 clean_apps:
-	${Q_}B_REFSW_REAL_MAKE= $(MAKE) -C $(NEXUS_TOP)/nxclient/server clean_apps
-	-$(RM) $(APPS) $(MANUAL_APPS) $(NXCLIENT_APPS_UTILS_LIB) *.d *.o *.out $(OTHER_CLEANS)
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server clean_apps
+	-$(RM) -r $(BINDIR)
 
-copy_files:
+# install everything on "all", even if not rebuilding, to facilitate B_REFSW_ARCH switches
+all:
+	@echo [Install... nxclient apps to $(realpath ${NEXUS_BIN_DIR})]
 	${Q_}cd $(NEXUS_TOP)/nxclient/apps/tests;for FILE in `ls`; do $(CP) $$FILE ${NEXUS_BIN_DIR}; chmod a+x ${NEXUS_BIN_DIR}/$$FILE; done
 	${Q_}$(MKDIR) ${NEXUS_BIN_DIR}/nxclient
 	${Q_}$(CP) $(NEXUS_TOP)/nxclient/apps/resources/* ${NEXUS_BIN_DIR}/nxclient
-
-endif # B_REFSW_REAL_MAKE
+	${Q_}$(CP) $(addprefix $(BINDIR)/,$(APPS)) $(NEXUS_BIN_DIR)

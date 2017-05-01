@@ -53,9 +53,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <termios.h>
-#if 0
-#include <signal.h>
-#endif
 #include <stdint.h>
 #include <assert.h>
 #include <sys/mman.h>
@@ -70,6 +67,20 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "bchp_sun_top_ctrl.h"
+#ifdef    ASP_SUPPORT
+#include "bchp_xpt_rave.h"
+#include "bchp_xpt_mcpb.h"
+#include "bchp_xpt_mcpb_ch0.h"
+#ifndef BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL
+#include "bchp_xpt_memdma_mcpb_ch1.h"
+#endif
+#ifndef BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL
+#include "bxpt_dma_helper.h"
+#endif
+#include "bchp_asp_mcpb_ch0.h"
+#include "bchp_asp_mcpb_ch1.h"
+#include "bchp_asp_mcpb.h"
+#endif
 #if BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_REG_START
 #include "bchp_memc_ddr23_shim_addr_cntl_0.h"
 #endif
@@ -525,6 +536,32 @@ char *GetFileContents(
 
     return( contents );
 }                                                          /* GetFileContents */
+
+/**
+ *  Function: This function will read in the contents of the specified file without looking
+ *            at the file size first. When reading some files in the /proc file system,
+ *            the lstat() API always returns a zero length. Some of the files in the /proc
+ *            file system still have contents that can be read ... even if the length is 0.
+ **/
+char *GetFileContentsProc(
+    const char *filename,
+    int         max_expected_file_size
+    )
+{
+    char       *contents = NULL;
+    FILE       *fpInput  = NULL;
+
+    contents = malloc( max_expected_file_size + 1 );
+    if (contents == NULL) {return( NULL ); }
+
+    memset( contents, 0, max_expected_file_size + 1 );
+
+    fpInput = fopen( filename, "r" );
+    fread( contents, 1, max_expected_file_size, fpInput );
+    fclose( fpInput );
+
+    return( contents );
+}                                                          /* GetFileContentsProc */
 
 char *GetFileContentsSeek(
     const char *filename,
@@ -1217,7 +1254,7 @@ unsigned int bmemperf_readReg32( unsigned int offset )
     }
 
     pMemTemp  = (unsigned int *) g_pMem;
-    /*printf("%s:%u g_pMem %p; offset 0x%x; \n", __FILE__, __LINE__, (void*) g_pMem, offset );
+    /*printf("\n~DEBUG~%s:%u g_pMem %p; offset 0x%x; ~", __FILENAME__, __LINE__, (void*) g_pMem, offset );
     fflush(stdout);fflush(stderr);*/
     if (BCHP_REGISTER_START & offset)
     {
@@ -1231,17 +1268,118 @@ unsigned int bmemperf_readReg32( unsigned int offset )
         offset -= BCHP_REGISTER_START;
     }
     pMemTemp += offset >>2;
-    /*PRINTFLOG("%s:%u g_pMem %p; offset 0x%x; BCHP_REGISTER_START 0x%x\n", __FILENAME__, __LINE__, (void*) g_pMem, offset, BCHP_REGISTER_START );
+    /*printf("\n~DEBUG~%s:%u g_pMem %p; offset 0x%x; BCHP_REGISTER_START 0x%x;   pMemTemp 0x%x ~", __FILENAME__, __LINE__,
+            (void*) g_pMem, offset, BCHP_REGISTER_START, (unsigned int) pMemTemp );
     fflush(stdout);fflush(stderr);*/
 
     returnValue = *pMemTemp;
-    /*PRINTFLOG("%s:%u returnValue 0x%x \n", __FILENAME__, __LINE__, (unsigned int ) returnValue );
+    /*printf("\n~DEBUG~%s:%u returnValue 0x%x ~", __FILENAME__, __LINE__, (unsigned int ) returnValue );
     fflush(stdout);fflush(stderr);*/
 
     return ( returnValue );
 } /* bmemperf_readReg32 */
 
 #ifdef BMEMCONFIG_READ32_SUPPORTED
+/* bchp_asp_mcpb_ch0.h ... #define BCHP_ASP_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER */
+int Bsysperf_GetXptData( bmemperf_xpt_details *pxpt ) /* XPT Rave stats. */
+{
+#ifdef ASP_SUPPORT
+    unsigned long int /*uint64_t*/ validOffset, readOffset, baseOffset, endOffset;
+    unsigned long int /*uint64_t*/ cdbSize, cdbDepth;
+
+    readOffset = bmemperf_readReg32( BCHP_XPT_RAVE_CX0_AV_CDB_READ_PTR);
+    validOffset = bmemperf_readReg32( BCHP_XPT_RAVE_CX0_AV_CDB_VALID_PTR);
+    baseOffset = bmemperf_readReg32( BCHP_XPT_RAVE_CX0_AV_CDB_BASE_PTR);
+    endOffset = bmemperf_readReg32( BCHP_XPT_RAVE_CX0_AV_CDB_END_PTR);
+    cdbSize = endOffset - baseOffset;
+
+    pxpt->xptRavePacketCount = bmemperf_readReg32( BCHP_XPT_RAVE_PACKET_COUNT );
+
+    if (validOffset > readOffset)
+    {
+        cdbDepth = validOffset - readOffset;
+    }
+    else
+    {
+        cdbDepth = validOffset + cdbSize - readOffset;
+    }
+
+    {
+        int idx = 0;
+        unsigned long int mask = cdbDepth;
+        unsigned long int /*uint64_t*/ xptRunStatus;
+        unsigned long int pktOffset = (BCHP_XPT_MEMDMA_MCPB_CH1_DCPM_LOCAL_PACKET_COUNTER -BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER) & 0xffff;
+        unsigned long int outputCount = 0;
+        unsigned long int totalPktCnt = 0;
+
+        xptRunStatus = bmemperf_readReg32( BCHP_XPT_MCPB_RUN_STATUS_0_31 );
+        /*printf( "~DEBUG~cdbDepth %lu;   cdbSize %lu;   xpt_mcpb_run_status %lx;   pktOffset 0x%lx~", cdbDepth, cdbSize, xptRunStatus, pktOffset );*/
+        for( idx=0; idx<32; idx++)
+        {
+            mask = 1 << idx;
+            if ( xptRunStatus & mask )
+            {
+                unsigned long int pid = bmemperf_readReg32( BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL              + (idx*4) );
+                unsigned long int pkt = bmemperf_readReg32( BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset) );
+
+                pxpt->xptPid[idx] = pid;
+                pxpt->xptActive[idx] = 1;
+                pxpt->xptPktCount[idx] = pkt;
+                if ( pkt > 0 )
+                {
+                    if ( outputCount == 0 ) /* first time we found a non-zero value */
+                    {
+                        PRINTFLOG( "%s\n", DateYyyyMmDdHhMmSs() );
+                    }
+                    totalPktCnt += pkt;
+                    PRINTFLOG( "xpt_mcpb chan %2d is active; pid 0x%lx;   pktCount %ld;   addr 0x%lx;   total %ld \n", idx, pid, pkt,
+                        BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset), totalPktCnt );
+                }
+            }
+        }
+    }
+#endif /* ASP_SUPPORT */
+
+    return 1;
+}
+
+int Bsysperf_GetAspData( bmemperf_asp_details *pasp )
+{
+#ifdef ASP_SUPPORT
+    int idx = 0;
+    unsigned long int mask = 0;
+    unsigned long int /*uint64_t*/ aspRunStatus;
+    unsigned long int pktOffset = (BCHP_ASP_MCPB_CH1_DCPM_LOCAL_PACKET_COUNTER - BCHP_ASP_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER) & 0xffff;
+
+    aspRunStatus = bmemperf_readReg32( BCHP_ASP_MCPB_RUN_STATUS_0_31 );
+    for( idx=0; idx<32; idx++)
+    {
+        mask = 1 << idx;
+        if ( aspRunStatus & mask )
+        {
+            unsigned long int pkt = bmemperf_readReg32( BCHP_ASP_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset) );
+            unsigned long int outputCount = 0;
+            unsigned long int totalPktCnt = 0;
+
+            pasp->aspActive[idx] = 1;
+            pasp->aspPktCount[idx] = pkt;
+            if ( pkt > 0 )
+            {
+                if ( outputCount == 0 ) /* first time we found a non-zero value */
+                {
+                    PRINTFLOG( "%s\n", DateYyyyMmDdHhMmSs() );
+                }
+                totalPktCnt += pkt;
+                PRINTFLOG( "asp_mcpb chan %2d is active; pktCount %ld;   addr 0x%lx;   total %ld \n", idx, pkt,
+                    BCHP_ASP_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset), totalPktCnt );
+            }
+        }
+    }
+#endif /* ASP_SUPPORT */
+
+    return 1;
+}
+
 /*
 Product ID for this chip (7252 ... SUN_TOP_CTRL.html#SUN_TOP_CTRL_PRODUCT_ID)
 [31: 8] chip ID. May contain either a four digit ID or a five digit chip ID. If the bits found at 31:28 are zero,
@@ -1275,9 +1413,10 @@ char *getProductIdStr(
 
         if ( g_pMem )
         {
-            /*printf("%s:%u\n", __FILE__, __LINE__ );fflush(stdout);fflush(stderr);*/
+            /*printf("~DEBUG~%s:%u g_pMem %p ~", __FILE__, __LINE__, g_pMem );fflush(stdout);fflush(stderr);*/
             familyId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID );
             productId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_PRODUCT_ID );
+
             /*printf("%s:%u familyId 0x%x; productId 0x%x \n", __FILE__, __LINE__, familyId, productId );*/
 
             if (productId&0xF0000000)                          /* if upper nibble is non-zero, this value contains a 4-digit product id in bits 31:16 */
@@ -1408,6 +1547,11 @@ static unsigned int bmemperf_bus_burst_info( /* needs g_pMem */
     if ( (memc_index >= BMEMPERF_NUM_MEMC) || (info_retrieved[memc_index]) )
     {
         return( 1 );
+    }
+
+    if (g_pMem == NULL)
+    {
+        g_pMem = (volatile unsigned int*) bmemperf_openDriver_and_mmap();
     }
 
     if (g_pMem)
@@ -1633,7 +1777,7 @@ unsigned int convert_from_msec (
 }
 
 /**
- *  Function: This function will use the output from the ifconfig utility to determine what our IP4 address is.
+ *  Function: This function will use the output from the ifconfig utility to determine what our IP4 loopback address is.
  **/
 unsigned int get_my_ip4_addr( void )
 {
@@ -1661,6 +1805,35 @@ unsigned int get_my_ip4_addr( void )
     /*printf("~DEBUG~%s:%u: %s (0x%lx)~", __FILE__, __LINE__, line, (unsigned long int) sin_temp_addr.s_addr );*/
 
     return( sin_temp_addr.s_addr );
+}
+
+/**
+ *  Function: This function will use the output from the ifconfig utility to determine what our local IP4 address is.
+ *            The local address is the one that starts with 192.168.
+ **/
+char *get_my_ip4_local( void )
+{
+    static char  line[200];
+    FILE *cmd = NULL;
+    struct in_addr sin_temp_addr;
+
+    memset( &sin_temp_addr, 0, sizeof( sin_temp_addr ) );
+
+    sprintf( line, "/sbin/ifconfig | grep \"192.168\" | /bin/awk '{print substr($2,6);}'" );
+    cmd = popen( line, "r" );
+
+    memset( line, 0, sizeof( line ));
+    fgets( line, sizeof(line), cmd );
+
+    pclose( cmd );
+
+    if ( strlen(line) > 1 )
+    {
+        int len = strlen(line);
+        if ( line[len-1] == '\n') line[len-1] = 0;
+    }
+
+    return( line );
 }
 
 unsigned long int getPidOf ( const char * processName )
@@ -2599,6 +2772,260 @@ int Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies )
     printf( "~GovernorSetting~%d~", get_governor_control( 0 ) );
 
     Bsysperf_Free( contents );
+
+    return ( 0 );
+}
+
+/*
+   /proc/net/snmp contents ... look for these two lines:
+Tcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors
+Tcp: 1 200 120000 -1 8 2 0 0 2 690709 417282 11 0 3 0
+
+    8 active connection openings
+    2 passive connection openings
+    0 failed connection attempts
+    0 connection resets received
+    2 connections established
+    690717 segments received
+    417292 segments sent out
+    11 segments retransmitted
+    0 bad segments received
+    6 resets sent
+*/
+int Bsysperf_GetTcpStatistics(
+    char * outputBuffer,
+    int    outputBufferLen
+    )
+{
+    char *contents;
+    char  one_line[128];
+    FILE *fp=NULL;
+    char *pos=NULL;
+    char *tcp=NULL;
+    long int unk1, unk2, unk3, unk4;
+    long int connactive, connpassive, connfailed, connresets, connestablished, segreceived, segsent, segretransmitted, segbad, resetsent;
+
+    contents = malloc( PATH_PROCNET_SNMP_MAX );
+    if ( contents == NULL )
+    {
+        printf("Could not malloc %d bytes\n", PATH_PROCNET_SNMP_MAX );
+        return -1;
+    }
+
+    fp = fopen( PATH_PROCNET_SNMP, "r" );
+    if ( fp == NULL )
+    {
+        printf("Could not open file %s\n", PATH_PROCNET_SNMP );
+        Bsysperf_Free( contents );
+        return -1;
+    }
+
+    memset( contents, 0, PATH_PROCNET_SNMP_MAX );
+
+    fread( contents, 1, PATH_PROCNET_SNMP_MAX, fp );
+    fclose(fp);
+
+    pos = strstr( contents, "Tcp: RtoAlgorithm" );
+    if ( pos )
+    {
+        pos++; /* skip past the Tcp: tag so that we don't find it again */
+        tcp = strstr( pos, "Tcp:" );
+        if ( tcp )
+        {
+            sscanf( tcp, "Tcp: %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n", &unk1, &unk2, &unk3, &unk4,
+                &connactive, &connpassive, &connfailed, &connresets, &connestablished, &segreceived, &segsent,
+                &segretransmitted, &segbad, &resetsent );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), "Tcp:\n");
+            strncpy( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld active connection openings\n", connactive );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld passive connection openings\n", connpassive );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld failed connection attempts\n", connfailed );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld connection resets received\n", connresets );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld connections established\n", connestablished );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld segments received\n", segreceived );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld segments sent out\n", segsent );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld segments retransmitted\n", segretransmitted );
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld bad segments received\n", segbad);
+            strncat( outputBuffer, one_line, outputBufferLen );
+            memset( one_line, 0, sizeof(one_line) );
+            snprintf( one_line, sizeof(one_line), " %ld resets sent\n", resetsent );
+            strncat( outputBuffer, one_line, outputBufferLen );
+        }
+    }
+    Bsysperf_Free( contents );
+    return 0;
+}   /* Bsysperf_GetTcpStatistics */
+
+/**
+ *  Function: This function will read the specified configuration file and search for the
+ *            specified tag line. If the tag line is found, the value associated with the
+ *            tag will be copied to the user's output buffer.
+ **/
+int Bmemperf_GetCfgFileEntry(
+    const char* cfg_filename,
+    const char* cfg_tagline,
+    char* output_buffer,
+    int output_buffer_len
+    )
+{
+    FILE *fp = NULL;
+    char  oneline[256];
+
+    if ( cfg_filename == NULL || cfg_tagline == NULL || output_buffer == NULL || output_buffer_len <=0 )
+    {
+        return ( -1 );
+    }
+    memset( oneline, 0, sizeof(oneline) );
+
+    fp = fopen( cfg_filename, "r" );
+    if ( fp == NULL )
+    {
+        return ( -1 );
+    }
+
+    PRINTF( "%s: tagline (%s)\n", __FUNCTION__, cfg_tagline );
+    while (fgets( oneline, sizeof( oneline ), fp ))
+    {
+        PRINTF( "%s: newline (%s)\n", __FUNCTION__, oneline );
+        /* if we found a matching line */
+        if ( strstr( oneline, cfg_tagline ) )
+        {
+            char *bov = strchr( oneline, '"'); /* determine the beginning of the assocated value */
+            char *eov = NULL;
+            if ( bov )
+            {
+                eov = strchr( (bov+1), '"'); /* determine the end of the assocated value */
+            }
+            if ( bov && eov )
+            {
+                bov++; /* skip the beginning double-quote */
+                *eov = '\0'; /* overwrite the ending double-quote with the string terminator */
+                strncpy( output_buffer, bov, output_buffer_len -1 );
+                break;
+            }
+        }
+        memset( oneline, 0, sizeof(oneline) );
+    }
+
+    fclose( fp );
+
+    return ( 0 );
+}
+
+/**
+ *  Function: This function will write the specified contents to the specified file.
+ **/
+int SetFileContents(
+    const char* filename,
+    const char* contents
+    )
+{
+    FILE *fp = NULL;
+    if ( filename == NULL || contents == NULL || strlen(contents) == 0 )
+    {
+        return ( -1 );
+    }
+
+    fp = fopen( filename, "w" );
+
+    /* if the file was successfully opened for writing */
+    if ( fp )
+    {
+        fwrite( contents, 1, strlen(contents), fp );
+        fclose( fp );
+    }
+
+    return ( 0 );
+}
+
+/**
+ *  Function: This function will read the specified configuration file and search for the
+ *            specified tag line. If the tag line is found, the value associated with the
+ *            tag will be updated with the user's new value.
+ **/
+int Bmemperf_SetCfgFileEntry(
+    const char* cfg_filename,
+    const char* cfg_tagline,
+    char* new_value
+    )
+{
+    char *contents = NULL;
+    char *bot      = NULL;
+    char *bov      = NULL;
+    char *eov      = NULL;
+
+    if ( cfg_filename == NULL || cfg_tagline == NULL || new_value == NULL || strlen(new_value) == 0 )
+    {
+        return ( -1 );
+    }
+
+    contents = getFileContents( BASPMON_CFG_FILENAME );
+
+    if ( contents )
+    {
+        /* find beginning of tag line */
+        bot = strstr( contents, cfg_tagline );
+        if ( bot )
+        {
+            int new_len = strlen(new_value);
+
+            bov = strchr( bot, '"');
+            /* if the double-quote at the beginning of the tag's value is found */
+            if ( bov )
+            {
+                bov++;
+                eov = strchr( bov, '"'); /* find the end of the existing value */
+                /*                     bov             eov */
+                /*                     |               |   */
+                /*    old contents ... "123.123.123.123"  */
+                /*    new contents ... "10.0.0.1"         */
+                if ( eov )
+                {
+                    memcpy( bov, new_value, new_len ); /* copy 10.0.0.1 */
+                    if ( new_len >= (eov-bov) )
+                    {
+                        /* new value completely overwrote old value ... need to end the double-quote */
+                        bov[new_len] = '"';
+                    }
+                    else
+                    {
+                        /* new value is shorter than old value ... need to end the double-quote AND pad with spaces */
+                        int spaces = (eov-bov) - new_len;
+                        if ( spaces > 0 )
+                        {
+                            int idx=0;
+                            bov[ new_len + idx ] = '"'; /* end the new string value */
+                            for(idx=1; idx<spaces+1; idx++)
+                            {
+                                bov[ new_len + idx ] = ' ';
+                            }
+                        }
+                    }
+
+                    SetFileContents( cfg_filename, contents );
+                }
+            }
+        }
+        Bsysperf_Free( contents );
+    }
 
     return ( 0 );
 }

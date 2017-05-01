@@ -481,8 +481,8 @@ BERR_Code BSPI_OpenChannel(
                  */
 #if !defined(BCHP_INT_ID_spi_irqen)
 
-#if defined(BCHP_UPG_SPI_AON_IRQ_CPU_MASK_CLEAR)
-#define BCHP_INT_ID_spi_irqen BCHP_INT_ID_CREATE(BCHP_UPG_SPI_AON_IRQ_CPU_MASK_CLEAR, BCHP_UPG_SPI_AON_IRQ_CPU_MASK_CLEAR_spi_SHIFT)
+#if defined(BCHP_UPG_SPI_AON_IRQ_CPU_STATUS)
+#define BCHP_INT_ID_spi_irqen BCHP_INT_ID_CREATE(BCHP_UPG_SPI_AON_IRQ_CPU_STATUS, BCHP_UPG_SPI_AON_IRQ_CPU_STATUS_spi_SHIFT)
 #else
 #if HAS_UPG_MSPI
 #define BCHP_INT_ID_spi_irqen           BCHP_INT_ID_spi

@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2015 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
+ ******************************************************************************/
 #include "bstd.h"
 
 #include <linux/ktime.h>
@@ -83,9 +81,14 @@ void BVC5_P_DRMOpen(uint32_t uiDRMDevice)
  */
 extern uintptr_t v3d_drm_term_client_p __attribute__((weak));
 
+bool BVC5_P_HasBrcmv3dko(void)
+{
+   return ((&v3d_drm_term_client_p) != NULL);
+}
+
 void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
 {
-   if (&v3d_drm_term_client_p)
+   if (BVC5_P_HasBrcmv3dko())
    {
       void (*v3d_drm_term_client)(uint64_t) = (void (*)(uint64_t))v3d_drm_term_client_p;
       v3d_drm_term_client(uiPlatformToken);
@@ -114,7 +117,7 @@ BERR_Code BVC5_RegisterAlternateMemInterface(
 
    /* only allow overridable bin memory on a non MMU system */
    /* coverity[dead_error_condition] */
-   if (&v3d_drm_term_client_p == NULL)
+   if (!BVC5_P_HasBrcmv3dko())
    {
       /* no override for DRM devices, as the bin memory must translate
          to pre existing MMU pages */

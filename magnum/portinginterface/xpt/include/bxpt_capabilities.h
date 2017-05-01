@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,6 +49,13 @@ extern "C" {
 #endif
 
 #if (defined BXPT_IS_CORE28NM) && (!defined BXPT_FOR_BOOTUPDATER)
+
+/* Bug fix for 727B0, 7255, and subsequent chips. See SWSTB-1525 */
+#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0) || (BCHP_CHIP == 7255)
+   #define BXPT_P_JITTER_CORRECTION_FIX     1
+   #define BXPT_P_PCR_OFFSET_JITTER_FIX     1
+   #define BXPT_P_REMUX_JITTER_FIX      1
+#endif
 
 /* remux */
 #define BXPT_NUM_REMULTIPLEXORS             2

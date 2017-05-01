@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,8 +58,8 @@ BDBG_MODULE(bsat_g1_priv_qpsk);
 
 
 /* local functions */
-BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_QpskSetOpll_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_QpskSetOpll_isr(BSAT_ChannelHandle h);
 
 
 /******************************************************************************
@@ -89,7 +89,7 @@ BERR_Code BSAT_g1_P_QpskEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEna
 /******************************************************************************
  BSAT_g1_P_QpskInitializeLoopParameters_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskInitializeLoopParameters_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskInitializeLoopParameters_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t carrier_acq1_bw, carrier_acq2_bw, carrier_acq3_bw, carrier_trk_bw, baud_acq_bw, baud_trk_bw;
@@ -190,7 +190,7 @@ BERR_Code BSAT_g1_P_QpskInitializeLoopParameters_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSetMode_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSetMode_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSetMode_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t vtctl, fmod;
@@ -330,7 +330,7 @@ BERR_Code BSAT_g1_P_QpskSetMode_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSetActualMode_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSetActualMode_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSetActualMode_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t i, j, val, vst_save;
@@ -375,7 +375,7 @@ BERR_Code BSAT_g1_P_QpskSetActualMode_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSetVcos_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSetVcos_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSetVcos_isr(BSAT_ChannelHandle h)
 {
    uint32_t vst, val = 0;
 
@@ -402,7 +402,7 @@ BERR_Code BSAT_g1_P_QpskSetVcos_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskNarrowBw1_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskNarrowBw1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskNarrowBw1_isr(BSAT_ChannelHandle h)
 {
    BERR_Code retCode;
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
@@ -435,7 +435,7 @@ BERR_Code BSAT_g1_P_QpskNarrowBw1_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskNarrowBw_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskNarrowBw_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskNarrowBw_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -450,7 +450,7 @@ BERR_Code BSAT_g1_P_QpskNarrowBw_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSpinvScan1_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSpinvScan1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSpinvScan1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, sts;
@@ -515,7 +515,7 @@ BERR_Code BSAT_g1_P_QpskSpinvScan1_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSpInvScan_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSpInvScan_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSpInvScan_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -534,7 +534,7 @@ BERR_Code BSAT_g1_P_QpskSpInvScan_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskLockViterbi_isr() - this routine is formerly verify_lock
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskLockViterbi_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskLockViterbi_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, bw, irq, raw;
@@ -758,7 +758,7 @@ bool BSAT_g1_P_QpskIsLocked_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskDisableFreqDetector_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskDisableFreqDetector_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskDisableFreqDetector_isr(BSAT_ChannelHandle h)
 {
    BSAT_DEBUG_QPSK(BDBG_MSG(("disabling freq detector")));
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x00400000);
@@ -858,16 +858,16 @@ BERR_Code BSAT_g1_P_QpskUpdateErrorCount_isrsafe(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSetOqpsk_isr() - from qpsk_set_clctl_3() in 4506
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSetOqpsk_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSetOqpsk_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1);
    if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)
-      val = (val & 0x70) | 0x0C;
+      val = (val & 0xFFFFFF70) | 0x0C;
    else
-      val = (val & 0x30) | 0x0C;
+      val = (val & 0xFFFFFF30) | 0x0C;
    val |= 0x0C080000;
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, val);
 
@@ -878,7 +878,7 @@ BERR_Code BSAT_g1_P_QpskSetOqpsk_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSetFinalFlBw_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSetFinalFlBw_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSetFinalFlBw_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t vst, fllc, flic;
@@ -967,7 +967,7 @@ BERR_Code BSAT_g1_P_QpskAcquire_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskAcquire1_isr() - ISR context
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -987,7 +987,6 @@ BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x000000EF, 0x000000A1);  /* CLMISC=0xA1 but retain bit 4 */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x0CFFFF00, 0x08481000);
-
    BSAT_g1_P_QpskSetOqpsk_isr(h);
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLI, 0x00000000),
@@ -1028,7 +1027,7 @@ BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_QpskSetOpll_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_QpskSetOpll_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_QpskSetOpll_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, fmod, rs_mode, vst, data0, rs_info_symbols, rs_symbols, data3, numerator, denominator;

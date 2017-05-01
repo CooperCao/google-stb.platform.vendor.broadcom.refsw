@@ -41,6 +41,8 @@
 #include "platform.h"
 #include "app.h"
 #include "app_priv.h"
+#include "app_shell_priv.h"
+#include "util_priv.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,18 +50,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void app_p_print_remote_usage(void)
+void app_p_print_remote_usage(AppHandle app)
 {
-    unsigned i;
-    const char ** instructions;
-    unsigned count;
-
-    instructions = osd_get_instructions(&count);
-    assert(instructions);
-
-    for (i = 0; i < count; i++)
+    if (app->args->advanced)
     {
-        printf("%s\n", instructions[i]);
+        unsigned i;
+        const char ** instructions;
+        unsigned count;
+
+        instructions = osd_get_instructions(&count);
+        assert(instructions);
+
+        for (i = 0; i < count; i++)
+        {
+            fprintf(stdout, "%s\n", instructions[i]);
+        }
     }
 }
 
@@ -69,9 +74,13 @@ PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformD
 
     assert(app);
 
-    if (app->forcedOutputEotf == PlatformDynamicRange_eAuto)
+    if (app->output.dynrng == PlatformDynamicRange_eAuto)
     {
-        if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eHdr10) == PlatformCapability_eSupported)
+        if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eDolbyVision) == PlatformCapability_eSupported)
+        {
+            output = PlatformDynamicRange_eDolbyVision;
+        }
+        else if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eHdr10) == PlatformCapability_eSupported)
         {
             output = PlatformDynamicRange_eHdr10;
         }
@@ -82,13 +91,13 @@ PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformD
     }
     else
     {
-        if (app->forcedOutputEotf < PlatformDynamicRange_eInvalid)
+        if (app->output.dynrng <= PlatformDynamicRange_eInvalid)
         {
-            output = app->forcedOutputEotf;
+            output = app->output.dynrng;
         }
     }
 
-    printf("Computed '%s' as output dynrng\n", platform_get_dynamic_range_name(output));
+    fprintf(stdout, "Computed '%s' as output dynrng\n", platform_get_dynamic_range_name(output));
 
     return output;
 }
@@ -98,12 +107,13 @@ void app_p_update_rcv_model(AppHandle app)
     PlatformReceiverModel * pModel;
     assert(app);
     pModel = &app->model.rcv;
-    pModel->format = platform_receiver_supports_format(app->rx, app->model.sel.format ? &app->model.out.info.format : &app->model.vid.info.format);
-    pModel->dynrng = platform_receiver_supports_dynamic_range(app->rx, app->model.vid.info.dynrng);
-    printf("RCV: dynrng %s\n", pModel->dynrng ? "supported" : "unsupported");
-    pModel->gamut = platform_receiver_supports_colorimetry(app->rx, app->model.sel.gamut ? app->model.out.info.gamut : app->model.vid.info.gamut);
-    pModel->depth = platform_receiver_supports_color_depth(app->rx, app->model.sel.depth ? app->model.out.info.depth : app->model.vid.info.depth);
-    pModel->space = platform_receiver_supports_color_space(app->rx, app->model.sel.space ? app->model.out.info.space : app->model.vid.info.space);
+    /* TODO : Handle mosaic mode */
+    pModel->format = platform_receiver_supports_format(app->rx, app->model.sel.format ? &app->model.out.info.format : &app->model.vid[0].info.format);
+    pModel->dynrng = platform_receiver_supports_dynamic_range(app->rx, app->model.vid[0].info.dynrng);
+    fprintf(stdout, "RCV: dynrng %s\n", pModel->dynrng ? "supported" : "unsupported");
+    pModel->gamut = platform_receiver_supports_colorimetry(app->rx, app->model.sel.gamut ? app->model.out.info.gamut : app->model.vid[0].info.gamut);
+    pModel->depth = platform_receiver_supports_color_depth(app->rx, app->model.sel.depth ? app->model.out.info.depth : app->model.vid[0].info.depth);
+    pModel->space = platform_receiver_supports_color_space(app->rx, app->model.sel.space ? app->model.out.info.space : app->model.vid[0].info.space);
     osd_update_rcv_model(app->osd, pModel);
 }
 
@@ -113,7 +123,7 @@ void app_p_update_sel_model(AppHandle app)
     assert(app);
     pModel = &app->model.sel;
     pModel->format = true; /* TODO */
-    pModel->dynrng = app->forcedOutputEotf != PlatformDynamicRange_eAuto;
+    pModel->dynrng = app->output.dynrng != PlatformDynamicRange_eAuto;
     pModel->gamut = app->model.out.info.gamut != PlatformColorimetry_eAuto;
     pModel->space = app->model.out.info.space != PlatformColorSpace_eAuto;
     pModel->depth = app->model.out.info.depth != 0;
@@ -128,7 +138,9 @@ void app_p_update_out_model(AppHandle app)
     assert(app);
     pModel = &app->model.out;
     platform_display_set_hdmi_colorimetry(app->display, app->model.out.info.gamut);
-    outDynrng = app_p_compute_output_dynamic_range(app, app->model.vid.info.dynrng); /* we decide based on video input eotf and TV support only */
+    /* TODO : Currently input dynamic range is not used to compute output dynamic range,
+     * so we set it to unknown. But if it is used in the future, then figure out which video stream to use */
+    outDynrng = app_p_compute_output_dynamic_range(app, PlatformDynamicRange_eUnknown);
     if (outDynrng != pModel->info.dynrng)
     {
         pModel->info.dynrng = outDynrng;
@@ -141,13 +153,22 @@ void app_p_update_out_model(AppHandle app)
     osd_update_out_model(app->osd, pModel);
 }
 
+static PlatformTriState app_p_get_plm(PlmHandle plm)
+{
+    PlatformTriState result;
+    int setting;
+    setting = plm_get(plm);
+    result = setting > 0 ? PlatformTriState_eOn : (setting == 0 ? PlatformTriState_eOff : PlatformTriState_eInactive);
+    return result;
+}
+
 void app_p_update_gfx_plm(AppHandle app)
 {
     PlatformPictureModel * pModel;
     assert(app);
     pModel = &app->model.gfx;
     plm_update_dynamic_range(app->plm.gfx, pModel->info.dynrng, app->model.out.info.dynrng);
-    pModel->plm = plm_get(app->plm.gfx);
+    pModel->plm = app_p_get_plm(app->plm.gfx);
     osd_update_gfx_model(app->osd, pModel);
 }
 
@@ -166,41 +187,52 @@ void app_p_update_gfx_model(AppHandle app)
     {
         platform_get_default_picture_info(&pModel->info);
     }
+    /* for now, always hard code graphics to SDR */
+    pModel->info.dynrng = PlatformDynamicRange_eSdr;
     app_p_update_gfx_plm(app);
 }
 
 void app_p_update_vid_plm(AppHandle app)
 {
     PlatformPictureModel * pModel;
+    unsigned i;
     assert(app);
-    pModel = &app->model.vid;
-    plm_update_dynamic_range(app->plm.vid, pModel->info.dynrng, app->model.out.info.dynrng);
-    pModel->plm = plm_get(app->plm.vid);
-    osd_update_vid_model(app->osd, pModel);
+    for(i=0; i<app->streamCount; i++) {
+        pModel = &app->model.vid[i];
+        plm_update_dynamic_range(app->plm.vid[i], pModel->info.dynrng, app->model.out.info.dynrng);
+        pModel->plm = app_p_get_plm(app->plm.vid[i]);
+        osd_update_vid_model(app->osd, pModel, i);
+    }
 }
 
 void app_p_update_vid_model(AppHandle app)
 {
     PlatformPictureModel * pModel;
     const PlatformPictureInfo * pInfo;
+    unsigned i;
     assert(app);
-    pModel = &app->model.vid;
-    pInfo = stream_player_get_picture_info(app->streamPlayer);
-    if (pInfo)
-    {
-        memcpy(&pModel->info, pInfo, sizeof(pModel->info));
-    }
-    else
-    {
-        platform_get_default_picture_info(&pModel->info);
+    for(i=0; i<app->streamCount; i++) {
+        pModel = &app->model.vid[i];
+        pInfo = stream_player_get_picture_info(app->streamPlayer[i]);
+        if (pInfo)
+        {
+            memcpy(&pModel->info, pInfo, sizeof(pModel->info));
+        }
+        else
+        {
+            platform_get_default_picture_info(&pModel->info);
+        }
     }
     app_p_update_vid_plm(app);
 }
 
 void app_p_reapply_plm(AppHandle app)
 {
+    unsigned i;
     platform_display_wait_for_display_settings_application(app->display);
-    plm_reapply(app->plm.vid);
+    for(i=0; i<app->streamCount; i++) {
+        plm_reapply(app->plm.vid[i]);
+    }
     plm_reapply(app->plm.gfx);
     /* reapply may change plm model, so update again */
     app_p_update_vid_plm(app);
@@ -223,21 +255,27 @@ void app_p_update_model(AppHandle app)
 void app_p_next_video_setting(void * context, int param)
 {
     AppHandle app = context;
+    unsigned i;
     assert(app);
     scenario_player_play_scenario(app->scenarioPlayer, -1);
-    plm_next(app->plm.vid);
-    app->model.vid.plm = plm_get(app->plm.vid);
-    osd_update_vid_model(app->osd, &app->model.vid);
+    for(i=0; i<app->streamCount; i++) {
+        plm_next(app->plm.vid[i]);
+        app->model.vid[i].plm = plm_get(app->plm.vid[i]);
+        osd_update_vid_model(app->osd, &app->model.vid[i], i);
+    }
 }
 
 void app_p_prev_video_setting(void * context, int param)
 {
     AppHandle app = context;
+    unsigned i;
     assert(app);
     scenario_player_play_scenario(app->scenarioPlayer, -1);
-    plm_prev(app->plm.vid);
-    app->model.vid.plm = plm_get(app->plm.vid);
-    osd_update_vid_model(app->osd, &app->model.vid);
+    for(i=0; i<app->streamCount; i++) {
+        plm_prev(app->plm.vid[i]);
+        app->model.vid[i].plm = plm_get(app->plm.vid[i]);
+        osd_update_vid_model(app->osd, &app->model.vid[i], i);
+    }
 }
 
 void app_p_next_graphics_setting(void * context, int param)
@@ -264,32 +302,24 @@ void app_p_next_stream(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
-    stream_player_next(app->streamPlayer);
-    if (app->args->demo)
-    {
-        if (!app->outputEotfSticky)
-        {
-            app->forcedOutputEotf = PlatformDynamicRange_eAuto;
-        }
-        app->model.out.info.gamut = PlatformColorimetry_eAuto;
+    if(app->streamCount > 1) {
+        printf("Function not available in mosaic mode\n");
+        return;
     }
+    scenario_player_play_scenario(app->scenarioPlayer, -1);
+    stream_player_next(app->streamPlayer[0], false);
 }
 
 void app_p_prev_stream(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
-    stream_player_prev(app->streamPlayer);
-    if (app->args->demo)
-    {
-        if (!app->outputEotfSticky)
-        {
-            app->forcedOutputEotf = PlatformDynamicRange_eAuto;
-        }
-        app->model.out.info.gamut  = PlatformColorimetry_eAuto;
+    if(app->streamCount > 1) {
+        printf("Function not available in mosaic mode\n");
+        return;
     }
+    scenario_player_play_scenario(app->scenarioPlayer, -1);
+    stream_player_prev(app->streamPlayer[0], false);
 }
 
 void app_p_toggle_guide(void * context, int param)
@@ -311,8 +341,11 @@ void app_p_toggle_osd(void * context, int param)
 void app_p_toggle_pause(void * context, int param)
 {
     AppHandle app = context;
+    unsigned i;
     assert(app);
-    stream_player_toggle_pause(app->streamPlayer);
+    for(i=0; i<app->streamCount; i++) {
+        stream_player_toggle_pause(app->streamPlayer[i]);
+    }
 }
 
 void app_p_toggle_details(void * context, int param)
@@ -327,9 +360,27 @@ void app_p_toggle_pig(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
+    if(app->streamCount > 1) {
+        printf("Cannot toggle pig in mosaic mode\n");
+        return;
+    }
     scenario_player_play_scenario(app->scenarioPlayer, -1);
-    app->pig = !app->pig;
+    app_p_set_pig_mode(app, !app->pig);
     osd_toggle_pig_mode(app->osd);
+    app_p_update_gfx_model(app);
+}
+
+void app_p_toggle_mosaic_layout(void * context, int param)
+{
+    AppHandle app = context;
+    assert(app);
+    if(app->streamCount == 1) {
+        printf("Cannot toggle mosaic layout in non-mosaic mode\n");
+        return;
+    }
+    scenario_player_play_scenario(app->scenarioPlayer, -1);
+    app->layout ^= 1;
+    osd_toggle_mosaic_layout(app->osd);
     app_p_update_gfx_model(app);
 }
 
@@ -349,31 +400,21 @@ void app_p_prev_thumbnail(void * context, int param)
     image_viewer_prev(app->thumbnail);
 }
 
-void app_p_toggle_forced_sdr(void * context, int param)
+void app_p_toggle_output_dynamic_range_lock(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    app->forceSdr = !app->forceSdr;
-    app_p_update_sel_model(app);
-    app_p_update_out_model(app);
-    app_p_reapply_plm(app);
-}
-
-void app_p_toggle_output_eotf_stickiness(void * context, int param)
-{
-    AppHandle app = context;
-    assert(app);
-    app->outputEotfSticky = !app->outputEotfSticky;
+    app->output.dynrngLock = !app->output.dynrngLock;
     /* TODO: show some text on OSD? */
 }
 
-void app_p_cycle_output_eotf(void * context, int param)
+void app_p_cycle_output_dynamic_range(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    if (++app->forcedOutputEotf >= PlatformDynamicRange_eInvalid)
+    if (++app->output.dynrng >= PlatformDynamicRange_eInvalid)
     {
-        app->forcedOutputEotf = PlatformDynamicRange_eSdr; /* skip eAuto */
+        app->output.dynrng = PlatformDynamicRange_eSdr; /* skip eAuto */
     }
     app_p_update_sel_model(app);
     app_p_update_out_model(app);
@@ -412,12 +453,19 @@ void app_p_quit(void * context, int param)
     app->done = true;
 }
 
+void app_p_run_command_shell(void * context, int param)
+{
+    AppHandle app = context;
+    assert(app);
+    shell_run(app->shell);
+}
+
 void app_p_hotplug_occurred(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    printf("app received hotplug; updating model\n");
-    platform_display_print_hdmi_status(app->display);
+    fprintf(stdout, "app received hotplug; updating model\n");
+    /*platform_display_print_hdmi_status(app->display);*/
     app_p_update_model(app);
     osd_flip(app->osd);
 }
@@ -426,36 +474,76 @@ void app_p_stream_info_changed(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    printf("app received stream info event: updating model\n");
+    fprintf(stdout, "app received stream(%d) info event: updating model\n", param);
     app_p_update_model(app);
     osd_flip(app->osd);
 }
 
+void app_p_set_pig_mode(AppHandle app, bool pig)
+{
+    app->pig = pig;
+}
+
+void app_p_reset_osd(AppHandle app)
+{
+    unsigned i;
+    platform_get_default_model(&app->model);
+    for(i=0; i<app->streamCount; i++)
+        osd_update_vid_model(app->osd, &app->model.vid[i], i);
+    osd_update_gfx_model(app->osd, &app->model.gfx);
+    osd_update_out_model(app->osd, &app->model.out);
+    osd_update_rcv_model(app->osd, &app->model.rcv);
+    osd_update_sel_model(app->osd, &app->model.sel);
+}
+
 void app_p_scenario_changed(void * context, const Scenario * pScenario)
 {
+    unsigned i;
+
     AppHandle app = context;
     assert(app);
-    stream_player_play_stream(app->streamPlayer, pScenario->streamIndex);
+
+    /* Switching from mosaic to non-non mosaic requires all videos to be stopped so that windows can be reconfigured. */
+    if(app->streamCount != pScenario->streamCount) {
+        for(i=0; i<app->streamCount; i++) {
+            stream_player_stop(app->streamPlayer[i]);
+        }
+    }
+    app_p_reset_osd(app);
+    app->streamCount = pScenario->streamCount;
+    app->layout = pScenario->layout;
+    osd_set_mosaic_mode(app->osd, app->streamCount>1, app->layout);
+    for(i=0; i<app->streamCount; i++) {
+        stream_player_play_stream_by_url(app->streamPlayer[i], pScenario->streamPaths[i], app->streamCount>1, pScenario->forceRestart);
+    }
     app->model.out.info.gamut = pScenario->gamut;
-    if (!app->outputEotfSticky)
+    if (!app->output.dynrngLock)
     {
-        app->forcedOutputEotf = pScenario->eotf;
+        app->output.dynrng = pScenario->dynrng;
     }
     osd_set_visibility(app->osd, pScenario->osd);
     osd_set_guide_visibility(app->osd, pScenario->guide);
     osd_set_details_mode(app->osd, pScenario->details);
-    image_viewer_view_image(app->thumbnail, pScenario->imageIndex);
-    image_viewer_view_image(app->background, pScenario->bgIndex);
-    app->pig = pScenario->pig;
-    osd_set_pig_mode(app->osd, app->pig);
-    if (pScenario->streamIndex != app->prevStreamIndex)
+    printf("image: %s\n", pScenario->imagePath);
+    image_viewer_view_image_by_path(app->thumbnail, pScenario->imagePath);
+    image_viewer_view_image_by_path(app->background, pScenario->bgPath);
+    if (app->streamCount == 1) app_p_set_pig_mode(app, pScenario->pig);
+    if (app->streamCount == 1) osd_set_pig_mode(app->osd, app->pig);
+    for(i=0; i<app->streamCount; i++)
     {
-        plm_set(app->plm.vid, -1); /* clear the currentSwitcher */
+        if ((pScenario->streamPaths[i] && app->prevStreamPaths[i] && strcmp(pScenario->streamPaths[i], app->prevStreamPaths[i]))
+            ||
+            (!pScenario->streamPaths[i] && app->prevStreamPaths[i])
+            ||
+            (pScenario->streamPaths[i] && !app->prevStreamPaths[i]))
+        {
+            plm_set(app->plm.vid[i], -1); /* clear the currentSwitcher */
+        }
+        plm_set(app->plm.vid[i], pScenario->plm.vidIndex);
+        app->prevStreamPaths[i] = set_string(app->prevStreamPaths[i], pScenario->streamPaths[i]);
     }
-    plm_set(app->plm.vid, pScenario->plm.vidIndex);
     plm_set(app->plm.gfx, pScenario->plm.gfxIndex);
     app_p_update_model(app);
-    app->prevStreamIndex = pScenario->streamIndex;
 }
 
 void app_p_thumbnail_changed(void * context, PlatformPictureHandle pic)
@@ -478,10 +566,19 @@ void app_run(AppHandle app)
 {
     assert(app);
     platform_receiver_start(app->rx);
-    scenario_player_play_scenario(app->scenarioPlayer, 0);
+    if (app->args->runMode == ARGS_RunMode_eTest)
+    {
+        /* test means SQA invocation and will not load first scenario by default */
+        scenario_player_play_scenario(app->scenarioPlayer, -1);
+    }
+    else
+    {
+        /* otherwise demo mode and loads first scenario by default */
+        scenario_player_play_scenario(app->scenarioPlayer, 1);
+    }
     osd_flip(app->osd);
 
-    app_p_print_remote_usage();
+    app_p_print_remote_usage(app);
 
     while (!app->done)
     {
@@ -497,43 +594,71 @@ static const char * STR_BACKGROUND = "background";
 
 AppHandle app_create(ArgsHandle args)
 {
-    int rc = 0;
     static const char * fontPath = "nxclient/arial_18_aa.bwin_font";
     AppHandle app;
     OsdTheme theme;
     ImageViewerCreateSettings viewerCreateSettings;
+    unsigned i;
 
     assert(args);
 
     app = malloc(sizeof(*app));
-    assert(app);
+    if (!app) goto error;
     memset(app, 0, sizeof(*app));
     app->args = args;
     app->platform = platform_open(args->name);
-    assert(app->platform);
+    if (!app->platform) goto error;
     platform_get_default_model(&app->model);
     app->model.out.info.gamut = PlatformColorimetry_eAuto;
     app->gfx = platform_graphics_open(app->platform, fontPath, app->args->osd.dims.width, app->args->osd.dims.height);
-    assert(app->gfx);
+    if (!app->gfx) goto error;
     app->display = platform_display_open(app->platform);
-    assert(app->display);
+    if (!app->display) goto error;
     app->input = platform_input_open(app->platform, app->args->method);
-    assert(app->input);
+    if (!app->input) goto error;
+    app->shell = shell_create();
+    if (!app->shell) goto error;
+    app_p_init_shell(app);
     theme.textForegroundColor = app->args->osd.colors.textFg;
     theme.mainPanelBackgroundColor = app->args->osd.colors.mainPanelBg;
     theme.guidePanelBackgroundColor = app->args->osd.colors.guidePanelBg;
     theme.detailsPanelBackgroundColor = app->args->osd.colors.detailsPanelBg;
     theme.infoPanelBackgroundColor = app->args->osd.colors.infoPanelBg;
     app->osd = osd_create(app->platform, app->gfx, &theme);
-    assert(app->osd);
-    app->streamPlayer = stream_player_create(app->platform, &app_p_stream_info_changed, app);
-    assert(app->streamPlayer);
+    if (!app->osd) goto error;
+    for(i=0; i<MAX_MOSAICS; i++) {
+        app->streamPlayer[i] = stream_player_create(app->platform, &app_p_stream_info_changed, app);
+        if (!app->streamPlayer[i]) goto error;
+    }
     app->scenarioPlayer = scenario_player_create(app->args->scenarioPath, &app_p_scenario_changed, app);
-    assert(app->scenarioPlayer);
-    app->plm.vid = plm_create("VID", args->vidSdr2HdrPath, args->vidHdr2SdrPath, args->vidHlg2HdrPath, app->platform, 0, 0, &platform_plm_set_vid_point, &platform_plm_get_vid_point, app->args->demo);
-    assert(app->plm.vid);
-    app->plm.gfx = plm_create("GFX", args->gfxSdr2HdrPath, NULL, NULL, NULL, 0, 0, &platform_plm_set_gfx_point, &platform_plm_get_gfx_point, app->args->demo);
-    assert(app->plm.gfx);
+    if (!app->scenarioPlayer) goto error;
+    for(i=0; i<MAX_MOSAICS; i++) {
+        char buffer [16];
+        snprintf(buffer, 16, "%s %d", "VID", i);
+        app->plm.vid[i] = plm_create(buffer,
+                args->vidSdr2HdrPath,
+                args->vidHdr2SdrPath,
+                args->vidHlg2HdrPath, app->platform,
+                0,
+                i,
+                &platform_plm_set_vid_point,
+                &platform_plm_get_vid_point,
+                &platform_plm_set_vid_lra,
+                &platform_plm_get_vid_lra);
+        if (!app->plm.vid[i]) goto error;
+    }
+    app->plm.gfx = plm_create("GFX",
+            args->gfxSdr2HdrPath,
+            NULL,
+            NULL,
+            NULL,
+            0,
+            0,
+            &platform_plm_set_gfx_point,
+            &platform_plm_get_gfx_point,
+            &platform_plm_set_gfx_lra,
+            &platform_plm_get_gfx_lra);
+    if (!app->plm.gfx) goto error;
     image_viewer_get_default_create_settings(&viewerCreateSettings);
     viewerCreateSettings.platform = app->platform;
     viewerCreateSettings.name = STR_THUMBNAIL;
@@ -541,7 +666,7 @@ AppHandle app_create(ArgsHandle args)
     viewerCreateSettings.pictureChanged.callback = &app_p_thumbnail_changed;
     viewerCreateSettings.pictureChanged.context = app;
     app->thumbnail = image_viewer_create(&viewerCreateSettings);
-    assert(app->thumbnail);
+    if (!app->thumbnail) goto error;
     image_viewer_get_default_create_settings(&viewerCreateSettings);
     viewerCreateSettings.platform = app->platform;
     viewerCreateSettings.name = STR_BACKGROUND;
@@ -549,45 +674,43 @@ AppHandle app_create(ArgsHandle args)
     viewerCreateSettings.pictureChanged.callback = &app_p_background_changed;
     viewerCreateSettings.pictureChanged.context = app;
     app->background = image_viewer_create(&viewerCreateSettings);
-    assert(app->background);
+    if (!app->background) goto error;
     app->rx = platform_receiver_open(app->platform, &app_p_hotplug_occurred, app);
-    assert(app->rx);
+    if (!app->rx) goto error;
 
-    stream_player_add_stream_source(app->streamPlayer, "SDR", args->sdrStreamPath);
-    stream_player_add_stream_source(app->streamPlayer, "HDR", args->hdrStreamPath);
-    stream_player_add_stream_source(app->streamPlayer, "HLG", args->hlgStreamPath);
-    stream_player_add_stream_source(app->streamPlayer, "MIX", args->mixStreamPath);
+    for(i=0; i<MAX_MOSAICS; i++) {
+        stream_player_add_stream_source(app->streamPlayer[i], "SDR", args->sdrStreamPath);
+        stream_player_add_stream_source(app->streamPlayer[i], "HDR", args->hdrStreamPath);
+        stream_player_add_stream_source(app->streamPlayer[i], "HLG", args->hlgStreamPath);
+        stream_player_add_stream_source(app->streamPlayer[i], "DVS", args->dvsStreamPath);
+        stream_player_add_stream_source(app->streamPlayer[i], "MIX", args->mixStreamPath);
+    }
 
-#if DYNRNG_QUIT_SUPPORT
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eQuit, &app_p_quit, app, 0);
-#endif
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eQuit, &app_p_toggle_output_eotf_stickiness, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleOsd, &app_p_toggle_osd, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleGuide, &app_p_toggle_guide, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleOutputEotf, &app_p_cycle_output_eotf, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePause, &app_p_toggle_pause, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleDetails, &app_p_toggle_details, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePig, &app_p_toggle_pig, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleColorimetry, &app_p_cycle_colorimetry, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleBackground, &app_p_cycle_background, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eNextThumbnail, &app_p_next_thumbnail, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevThumbnail, &app_p_prev_thumbnail, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eNextVideoSetting, &app_p_next_video_setting, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevVideoSetting, &app_p_prev_video_setting, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eNextGraphicsSetting, &app_p_next_graphics_setting, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevGraphicsSetting, &app_p_prev_graphics_setting, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eNextStream, &app_p_next_stream, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevStream, &app_p_prev_stream, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario1, &app_p_run_scenario, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario2, &app_p_run_scenario, app, 1);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario3, &app_p_run_scenario, app, 2);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario4, &app_p_run_scenario, app, 3);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario5, &app_p_run_scenario, app, 4);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario6, &app_p_run_scenario, app, 5);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario7, &app_p_run_scenario, app, 6);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario8, &app_p_run_scenario, app, 7);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario9, &app_p_run_scenario, app, 8);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario0, &app_p_run_scenario, app, 9);
+    platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleOutputDynamicRangeLock, &app_p_toggle_output_dynamic_range_lock, app);
+    platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleOutputDynamicRange, &app_p_cycle_output_dynamic_range, app);
+    platform_input_set_event_handler(app->input, PlatformInputEvent_eScenario, &app_p_run_scenario, app);
+
+    if (app->args->advanced)
+    {
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eQuit, &app_p_quit, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleOsd, &app_p_toggle_osd, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleGuide, &app_p_toggle_guide, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePause, &app_p_toggle_pause, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleDetails, &app_p_toggle_details, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePig, &app_p_toggle_pig, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleMosaicLayout, &app_p_toggle_mosaic_layout, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleColorimetry, &app_p_cycle_colorimetry, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleBackground, &app_p_cycle_background, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eNextThumbnail, &app_p_next_thumbnail, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevThumbnail, &app_p_prev_thumbnail, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eNextVideoSetting, &app_p_next_video_setting, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevVideoSetting, &app_p_prev_video_setting, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eNextGraphicsSetting, &app_p_next_graphics_setting, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevGraphicsSetting, &app_p_prev_graphics_setting, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eNextStream, &app_p_next_stream, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_ePrevStream, &app_p_prev_stream, app);
+        platform_input_set_event_handler(app->input, PlatformInputEvent_eStartCommandShell, &app_p_run_command_shell, app);
+    }
 
     return app;
 
@@ -598,6 +721,8 @@ error:
 
 void app_destroy(AppHandle app)
 {
+    unsigned i;
+
     if (!app) return;
     osd_update_background(app->osd, NULL);
     osd_update_thumbnail(app->osd, NULL);
@@ -609,14 +734,21 @@ void app_destroy(AppHandle app)
     app->thumbnail = NULL;
     plm_destroy(app->plm.gfx);
     app->plm.gfx = NULL;
-    plm_destroy(app->plm.vid);
-    app->plm.vid = NULL;
+    for(i=0; i<MAX_MOSAICS; i++) {
+        plm_destroy(app->plm.vid[i]);
+        app->plm.vid[i] = NULL;
+    }
     scenario_player_destroy(app->scenarioPlayer);
     app->scenarioPlayer = NULL;
-    stream_player_destroy(app->streamPlayer);
-    app->streamPlayer = NULL;
+    for(i=0; i<MAX_MOSAICS; i++) {
+        stream_player_destroy(app->streamPlayer[i]);
+        app->streamPlayer[i] = NULL;
+        if (app->prevStreamPaths[i]) free(app->prevStreamPaths[i]);
+    }
     osd_destroy(app->osd);
     app->osd = NULL;
+    shell_destroy(app->shell);
+    app->shell = NULL;
     platform_input_close(app->input);
     app->input = NULL;
     platform_display_close(app->display);

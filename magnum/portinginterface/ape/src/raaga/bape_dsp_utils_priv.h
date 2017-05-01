@@ -89,6 +89,12 @@ BAPE_DolbyMSVersion BAPE_P_GetDolbyMSVersion_isrsafe(void);
 BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void);
 BAPE_DolbyMSVersion BAPE_P_FwMixer_GetDolbyUsageVersion_isrsafe(BAPE_MixerHandle handle);
 
+bool BAPE_P_DolbyCapabilities_Ac3Encode_isrsafe(void);
+bool BAPE_P_DolbyCapabilities_DdpEncode_isrsafe(BAPE_MultichannelFormat format);
+BAPE_MultichannelFormat BAPE_P_DolbyCapabilities_MultichannelPcmFormat_isrsafe(void);
+bool BAPE_P_DolbyCapabilities_Dapv2_isrsafe(void);
+
+
 #define BAPE_P_GetCodecName(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->pName)
 #define BAPE_P_GetCodecAudioDecode(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->decodeAlgorithm)
 #define BAPE_P_GetCodecAudioPassthrough(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->passthroughAlgorithm)
@@ -105,6 +111,11 @@ BAPE_DolbyMSVersion BAPE_P_FwMixer_GetDolbyUsageVersion_isrsafe(BAPE_MixerHandle
 #define BAPE_P_CodecSupportsMono(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->monoOutputValid)
 #define BAPE_P_CodecSupportsCompressed4x(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->compressed4xOutputValid)
 #define BAPE_P_CodecSupportsCompressed16x(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->compressed16xOutputValid)
+
+#define BAPE_P_DolbyCapabilities_Ac3Encode(void) (BAPE_P_DolbyCapabilities_Ac3Encode_isrsafe())
+#define BAPE_P_DolbyCapabilities_DdpEncode(format) (BAPE_P_DolbyCapabilities_DdpEncode_isrsafe(format))
+#define BAPE_P_DolbyCapabilities_MultichannelPcmFormat(void) (BAPE_P_DolbyCapabilities_MultichannelPcmFormat_isrsafe())
+#define BAPE_P_DolbyCapabilities_Dapv2(void) (BAPE_P_DolbyCapabilities_Dapv2_isrsafe())
 
 /***************************************************************************
 Summary:
@@ -321,6 +332,11 @@ Summary:
 Converts DSP samplerate to unsigned
 ***************************************************************************/
 unsigned BAPE_P_BDSPSampleFrequencyToInt( BDSP_AF_P_SampFreq bdspSF );
+
+void BAPE_Decoder_P_GetAFDecoderType(
+    BAPE_DecoderHandle handle,
+    BDSP_AF_P_DecoderType *pType
+    );
 
 
 #endif

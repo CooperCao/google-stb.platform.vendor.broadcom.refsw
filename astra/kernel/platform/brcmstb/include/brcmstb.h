@@ -72,7 +72,12 @@ enum {
 
 uintptr_t stb_reg_addr(uintptr_t reg);
 
+uintptr_t stb_reg_group_size(uintptr_t reg);
+
+
 #define STB_REG_ADDR(reg) (stb_reg_addr(reg))
+
+#define STB_REG_GROUP_SIZE(reg) (stb_reg_group_size(reg))
 
 #define STB_REG_RD(reg)                                     \
     (*(volatile uint32_t *)STB_REG_ADDR(reg))

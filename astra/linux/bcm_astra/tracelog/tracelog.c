@@ -68,10 +68,25 @@
 
 #else
 
+#define STB_MEMC_TRACELOG_CONTROL           			0x4
+#define STB_MEMC_TRACELOG_COUNT_MATCHES_TOTAL  			0x30
+#define STB_MEMC_TRACELOG_BUFFER_PTR           			0x50
+#define STB_MEMC_TRACELOG_BUFFER_SIZE          			0x58
+
+
+/* MEMC_TRACELOG :: CONTROL :: BUFFER_DRAM [01:01] */
+#define STB_MEMC_TRACELOG_CONTROL_BUFFER_DRAM_MASK            0x00000002
+#define STB_MEMC_TRACELOG_CONTROL_BUFFER_DRAM_SHIFT           1
+
+/* MEMC_TRACELOG :: CONTROL :: FORMAT16 [00:00] */
+#define STB_MEMC_TRACELOG_CONTROL_FORMAT16_MASK               0x00000001
+#define STB_MEMC_TRACELOG_CONTROL_FORMAT16_SHIFT              0
+
+
 #define TRACELOG_REG_SIZE                       0
-#define TRACELOG_REG_OFFSET(reg)                0
-#define TRACELOG_REG_FIELD_MASK(reg, field)     0
-#define TRACELOG_REG_FIELD_SHIFT(reg, field)    0
+#define TRACELOG_REG_OFFSET(reg)                STB_MEMC_TRACELOG_##reg
+#define TRACELOG_REG_FIELD_MASK(reg, field)     STB_MEMC_TRACELOG_##reg##_##field##_MASK
+#define TRACELOG_REG_FIELD_SHIFT(reg, field)    STB_MEMC_TRACELOG_##reg##_##field##_SHIFT
 
 #endif
 
@@ -108,6 +123,7 @@ struct tracelog_device {
     bool enabled;
 
     uint32_t tracelogBase;
+    uint32_t tracelogSize;
     uint32_t sentinelBase;
     uint32_t sentinelSize;
 
@@ -253,7 +269,7 @@ int tracelog_init(void)
     /* map tracelog registers */
     tldev->pTracelogRegs = ioremap_nocache(
         tldev->tracelogBase,
-        TRACELOG_REG_SIZE);
+        tldev->tracelogSize);
 
     if (!tldev->pTracelogRegs) {
         LOGE("Failed to map tracelog registers");
@@ -394,6 +410,7 @@ int tracelog_msg_proc(struct tzioc_msg_hdr *pHdr)
         }
 
         tldev->tracelogBase = pCmd->tracelogBase;
+        tldev->tracelogSize = pCmd->tracelogSize;
         tldev->sentinelBase = pCmd->sentinelBase;
         tldev->sentinelSize = pCmd->sentinelSize;
 

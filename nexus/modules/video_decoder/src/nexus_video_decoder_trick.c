@@ -124,6 +124,9 @@ NEXUS_VideoDecoder_P_SetTrickState_Avd(NEXUS_VideoDecoderHandle videoDecoder, co
     trickModeSettings.stGopTrickMode.eMode = pState->dqtEnabled;
     if (pState->dqtEnabled == NEXUS_VideoDecoderDqtMode_eMultiPass) {
         BXVD_PTSInfo ptsInfo;
+        if (videoDecoder->settings.maxHeight < 2160) {
+            BDBG_WRN(("MultiPass DQT requires 4K video decoder memory to avoid underflow."));
+        }
         BKNI_EnterCriticalSection();
         BXVD_GetPTS_isr(videoDecoder->dec, &ptsInfo);
         BKNI_LeaveCriticalSection();

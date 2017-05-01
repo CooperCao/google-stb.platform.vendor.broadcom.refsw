@@ -108,7 +108,9 @@ void BSID_P_ChipEnable(BREG_Handle hReg, uint32_t uiBasePhysAddr)
     BREG_Write32(hReg, BCHP_SID_ARC_CPU_INST_BASE, uiBasePhysAddr);
     BREG_Write32(hReg, BCHP_SID_ARC_CPU_END_OF_CODE, BSID_FW_ARC_END_OF_CODE);
     BREG_Write32(hReg, BCHP_SID_ARC_DBG_CPU_DBG, 1);
-    /* NOTE: The following is actually writing to the ARC Status register (which contains the PC) */
+    /* NOTE: The following is actually writing to the ARC Status register (which contains the PC)
+       *** BE CAREFUL - when writing to this register, be aware that the PC is given as PC[25:2]
+           so addresses need to be adjusted by 4 ****/
     BREG_Write32(hReg, BCHP_SID_ARC_CORE_CPU_PC, BSID_FW_ARC_RESET_ADDRESS);
     BREG_Write32(hReg, BCHP_SID_ARC_DBG_CPU_DBG, 0);
 }
@@ -122,6 +124,7 @@ void BSID_P_ChipEnable(BREG_Handle hReg, uint32_t uiBasePhysAddr)
 void BSID_P_HaltArc(BREG_Handle hReg)
 {
     BREG_Write32(hReg, BCHP_SID_ARC_DBG_CPU_DBG, 1);
+    /* NOTE: This is setting the "Halt" bit in the STATUS register */
     BREG_Write32(hReg, BCHP_SID_ARC_CORE_CPU_PC, BSID_FW_ARC_HALT);
 }
 
@@ -145,10 +148,17 @@ void BSID_P_DisableWatchdog(BREG_Handle hReg)
 *
 ******************************************************************************/
 /* Read SID HW status and Arc PC for debug info upon watchdog */
-void BSID_P_ReadSIDStatus_isr(BREG_Handle hReg, uint32_t *puiSidStatus, uint32_t *puiArcPC)
+void BSID_P_ReadSIDStatus_isr(BREG_Handle hReg, uint32_t *puiSidStatus, uint32_t *puiArcPC, uint8_t *puiFlags)
 {
+   uint32_t uiStatus;
    BREG_Write32(hReg, BCHP_SID_ARC_DBG_CPU_DBG, 1);
-   *puiArcPC = BREG_Read32(hReg, BCHP_SID_ARC_CORE_CPU_PC);
+
+   /* NOTE: This actually reads all the bits of the ARC's STATUS register
+      which includes all the flags.  Beware that the PC returned is PC[25:2]
+      so needs to be scaled by 4 */
+   uiStatus = BREG_Read32(hReg, BCHP_SID_ARC_CORE_CPU_PC);
+   *puiArcPC = (uiStatus & 0xFFFFFF) << 2;
+   *puiFlags = (uiStatus & 0xFF000000) >> 24;
    BREG_Write32(hReg, BCHP_SID_ARC_DBG_CPU_DBG, 0);
 
    *puiSidStatus = BREG_Read32(hReg, BCHP_SID_STATUS);
@@ -248,7 +258,27 @@ void BSID_P_PlatformEnableUart(BREG_Handle hReg)
 #endif /* if 0 */
 
 #endif /* not 7440 A0 */
-/* FIXME: What about everything else? Is UART enabled by default for those chips? */
+
+#if (BCHP_CHIP==7439)
+    /* NOTE: BCM97449SSV_DR4 board
+       This board uses GPIO 41/42 to route via port 5 to UART 3 on the board (i.e. J3204).
+       This is different to the DDR3 board. */
+    uint32_t ui32_reg;
+    ui32_reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12);
+    ui32_reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_12, gpio_041));
+    ui32_reg |=(BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_12, gpio_041, 4)); /* TP_IN*/
+    BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12, ui32_reg);
+
+    ui32_reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13);
+    ui32_reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_13, gpio_042));
+    ui32_reg |=(BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_13, gpio_042, 4)); /* TP_OUT*/
+    BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13, ui32_reg);
+
+    ui32_reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0);
+    ui32_reg &= ~BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel);
+    ui32_reg |= BCHP_FIELD_ENUM(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel, SID);
+    BREG_Write32(hReg,BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0,ui32_reg);
+#endif
 }
 #endif /* ifdef BSID_P_DEBUG_ENABLE_ARC_UART */
 

@@ -1,5 +1,5 @@
 #############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -115,9 +115,6 @@ ifeq ($(BVDC_SUPPORT_BVN_DEBUG),y)
 NEXUS_DISPLAY_DEFINES += BVDC_SUPPORT_BVN_DEBUG=1
 endif
 
-ifeq ($(NEXUS_CRC_CAPTURE),y)
-NEXUS_DISPLAY_DEFINES += NEXUS_CRC_CAPTURE=1
-endif
 ifeq ($(NEXUS_MTG_DISABLED),y)
 NEXUS_DISPLAY_DEFINES += NEXUS_MTG_DISABLED=1
 endif
@@ -156,6 +153,18 @@ ifneq ($(NEXUS_XDM_SUPPORT),n)
 ifeq ($(NEXUS_VIDEO_DECODER_SUPPORT),n)
 NEXUS_DISPLAY_MAGNUM_MODULES += $(MAGNUM)/commonutils/xdm/bxdm.inc
 endif
+endif
+
+NEXUS_DISPLAY_DBV_IMPL=$(NEXUS_TOP)/modules/display/src/nexus_display_dbv.c
+ifneq ("$(wildcard $(NEXUS_DISPLAY_DBV_IMPL))","")
+NEXUS_DBV_SUPPORT?=y
+endif
+ifeq ($(NEXUS_DBV_SUPPORT),y)
+BVDC_DBV_SUPPORT:=y
+NEXUS_DISPLAY_DEFINES += NEXUS_DBV_SUPPORT=1
+NEXUS_DISPLAY_SOURCES += $(NEXUS_TOP)/modules/display/src/nexus_display_dbv.c
+else
+BVDC_DBV_SUPPORT:=n
 endif
 
 ifneq ($(NEXUS_DISPLAY_EXTENSION_INC),)

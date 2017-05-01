@@ -1,14 +1,17 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __DISPLAY_INTERFACE_H__
 #define __DISPLAY_INTERFACE_H__
 
 #include "surface_interface.h"
 #include <stdbool.h>
 #include "interface.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 typedef enum DisplayInterfaceResult
 {
@@ -34,5 +37,9 @@ DisplayInterfaceResult DisplayInterface_Display(
 bool DisplayInterface_WaitSync(const DisplayInterface *di);
 
 void DisplayInterface_Stop(const DisplayInterface *di);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __DISPLAY_INTERFACE_H__ */

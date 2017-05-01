@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-
-EGLImages from GL Textures
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "egl_image_texture.h"
 
 #include "vcos.h"
@@ -119,7 +111,7 @@ EGL_IMAGE_T *egl_image_texture_new(EGL_CONTEXT_T *context,
    EGL_GL_CONTEXT_T *gl_context;
    GLXX_SERVER_STATE_T *server = NULL;
    GLXX_SHARED_T *shared;
-   KHRN_IMAGE_T *image = NULL;
+   khrn_image *image = NULL;
    EGL_IMAGE_T *egl_image = NULL;
    bool complete, share, base_complete;
    unsigned base_level, num_levels, face;

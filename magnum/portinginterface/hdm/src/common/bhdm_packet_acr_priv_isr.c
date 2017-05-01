@@ -86,7 +86,7 @@ void BHDM_AudioVideoRateChangeCB_isr(
 	uint32_t	Register, ulOffset ;
 	bool masterMode;
 
-	BHDM_P_AUDIO_CLK_VALUES stAcrPacket ;
+	BHDM_PACKET_ACR_CONFIG stAcrPacket ;
 	BHDM_P_TmdsClock eTmdsClock ;
 
 	BAVC_VdcDisplay_Info *pVdcRateInfo ; /* VIDEO callback */
@@ -319,13 +319,14 @@ void BHDM_AudioVideoRateChangeCB_isr(
 		/*********/
 		Register = BCHP_FIELD_DATA(HDMI_CTS_0, CTS_0, stAcrPacket.CTS_0) ;
 		BREG_Write32(hRegister, BCHP_HDMI_CTS_0 + ulOffset, Register) ;
-
+		BDBG_MSG(("CTS 0: %d", stAcrPacket.CTS_0)) ;
 
 		/*********/
 		/* CTS 1 */
 		/*********/
 		Register = BCHP_FIELD_DATA(HDMI_CTS_1, CTS_1, stAcrPacket.CTS_1) ;
 		BREG_Write32(hRegister, BCHP_HDMI_CTS_1 + ulOffset, Register) ;
+		BDBG_MSG(("CTS 1: %d", stAcrPacket.CTS_1)) ;
 
 
 		/***************/
@@ -335,6 +336,8 @@ void BHDM_AudioVideoRateChangeCB_isr(
 			  BCHP_FIELD_DATA(HDMI_CTS_PERIOD_0, CTS_0_REPEAT, stAcrPacket.CTS_0_REPEAT)
 			| BCHP_FIELD_DATA(HDMI_CTS_PERIOD_0, CTS_PERIOD_0, stAcrPacket.CTS_0) ;
 		BREG_Write32(hRegister, BCHP_HDMI_CTS_PERIOD_0 + ulOffset, Register) ;
+		BDBG_MSG(("CTS 0 Repeat: %d,  Period: %d",
+			stAcrPacket.CTS_0_REPEAT, stAcrPacket.CTS_0)) ;
 
 		/***************/
 		/* CTS PERIOD 1 */
@@ -343,6 +346,8 @@ void BHDM_AudioVideoRateChangeCB_isr(
 			  BCHP_FIELD_DATA(HDMI_CTS_PERIOD_1, CTS_1_REPEAT, stAcrPacket.CTS_1_REPEAT)
 			| BCHP_FIELD_DATA(HDMI_CTS_PERIOD_1, CTS_PERIOD_1, stAcrPacket.CTS_1) ;
 		BREG_Write32(hRegister, BCHP_HDMI_CTS_PERIOD_1 + ulOffset, Register) ;
+		BDBG_MSG(("CTS 1 Repeat: %d,  Period: %d",
+			stAcrPacket.CTS_1_REPEAT, stAcrPacket.CTS_1)) ;
 	}
 
 	/* Additional settings for FIFO_CTL register only if HDMI is not configured in Master Mode */

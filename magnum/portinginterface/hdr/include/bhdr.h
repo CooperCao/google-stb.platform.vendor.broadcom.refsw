@@ -661,32 +661,6 @@ BERR_Code BHDR_GetPixelClockEstimate(BHDR_Handle hHDR,
 
 /***************************************************************************
 Summary:
-	Clear the specified locked RAM packet
-
-
-Input:
-	hHDR - HDMI control handle that was previously opened by BHDR_Open.
-	PacketNum - Id of the packet to clear
-
-
-Output:
-	None
-
-Returns:
-	BERR_SUCCESS
-
-See Also:
-	BHDR_Open
-
-***************************************************************************/
-BERR_Code BHDR_ClearLockedPacket(
-   BHDR_Handle hHDR,		/* [in] HDMI handle */
-   uint8_t PacketNum        /* [in] Locked Packet to Clear */
-) ;
-
-
-/***************************************************************************
-Summary:
 	Get the HDMI Packet Structure
 
 
@@ -952,14 +926,6 @@ BERR_Code BHDR_GetISRCData(BHDR_Handle hHDR,
 	BAVC_HDMI_ISRC * pISRC) ;
 
 
-/******************************************************************************
-Summary:
-*******************************************************************************/
-BERR_Code BHDR_GetAudioSampleFreq(BHDR_Handle hHDR,
-	uint8_t *AudioSampleFreq );
-
-
-
 /**************************************************************************
 Summary:
 	Register a callback function to be called after a HDMI packet changes or stops being
@@ -1013,7 +979,6 @@ See Also:
 BERR_Code BHDR_UnInstallPacketChangeCallback(
 	BHDR_Handle hHDR,                       /* [in] HDMI Rx Handle */
 	const BHDR_CallbackFunc pfCallback_isr) ; /* [in] cb for format changes */
-
 
 /**************************************************************************
 Summary:
@@ -1183,67 +1148,6 @@ BERR_Code BHDR_UnInstallAvMuteNotifyCallback(
 ) ;
 
 
-
-/**************************************************************************
-Summary:
-	Register a callback function to be called when there is a change in the color Gamut Data
-
-Description:
-	This function is used to enable a callback function that will 	be called any time the Rx
-	detects changes in the Gamut Data
-
-Input:
-	hHDR - HDMI Rx Handle
-	pfCallback - pointer to callback function to be called
-	pvParam1 - User defined data structure casted to void.
-	iParam2 - Additional user defined value.
-
-Note:
-	The callback function is called during Isr time and should do the minimum processing
-	retrieve the gamut data
-
-
-Returns:
-	BERR_SUCCESS - Callback Installation Successful
-
-See Also:
-		BHDR_UnInstallGamutChangeCallback
-
-**************************************************************************/
-BERR_Code BHDR_InstallGamutChangeCallback(
-	BHDR_Handle hHDR,			/* [in] HDMI Rx Handle */
-	const BHDR_CallbackFunc pfCallback_isr, /* [in] cb to load HDCP Keys  */
-	void *pvParm1,  /* [in] the first argument (void *) passed to the callback function */
-	int iParm2      /* [in] the second argument(int) passed to the callback function */
-) ;
-
-
-
-/**************************************************************************
-Summary:
-	Remove a previously registered callback function for Hdcp Key Loading
-
-Description:
-	This function is used to remove the installed callback function used when there is a
-	change in the Gamut Data
-
-Input:
-	hHDR - HDMI Rx Handle
-	pfCallback - pointer to callback function to be removed
-
-Returns:
-	BERR_SUCCESS - Callback Removal Successful
-
-See Also:
-		BHDR_InstallGamutChangeCallback
-
-**************************************************************************/
-BERR_Code BHDR_UnInstallGamutChangeCallback(
-	BHDR_Handle hHDR,                       /* [in] HDMI Rx Handle */
-	const BHDR_CallbackFunc pfCallback_isr /* [in] cb for format changes */
-) ;
-
-
 /**************************************************************************
 Summary:
 	Return current Status of HDMI Rx
@@ -1340,8 +1244,6 @@ typedef struct
 
 void BHDR_EDID_RAM_Enable(BHDR_Handle hHDR) ;
 void BHDR_EDID_RAM_Disable(BHDR_Handle hHDR) ;
-
-void BHDR_EDID_RAM_GetDefaultBlocks(BHDR_EDID_Info *stEdid ) ;
 
 BERR_Code BHDR_EDID_RAM_LoadData(BHDR_Handle hHDR, const BHDR_EDID_Info *stEdid ) ;
 #endif

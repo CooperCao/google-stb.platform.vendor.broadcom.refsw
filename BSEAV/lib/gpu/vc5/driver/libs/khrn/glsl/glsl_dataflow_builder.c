@@ -76,7 +76,7 @@ static void do_store(BasicBlock *b, Dataflow *address, Dataflow *offset, uint8_t
 
       /* Store as vectors where possible (continuous and sufficiently aligned) */
       int count = 1;
-      if ((start & 1) == 0 && stride == 4)
+      if (stride == 4 && (V3D_HAS_TMU_MISALIGNED || (start & 1) == 0))
          while (start + count < 4 && v[start+count] != NULL) count++;
 
       Dataflow *vec[4] = { NULL, };

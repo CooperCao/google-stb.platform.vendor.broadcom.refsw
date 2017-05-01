@@ -238,10 +238,8 @@ void BHDR_FE_P_Initialize(BHDR_FE_Handle hFrontEnd) ;
 void BHDR_FE_P_OpenChannel(BHDR_FE_ChannelHandle hFeChannel) ;
 void BHDR_FE_P_CloseChannel(BHDR_FE_ChannelHandle hFeChannel) ;
 void BHDR_FE_P_ResetPixelClockEstimation_isr(BHDR_FE_ChannelHandle hFeChannel) ;
-void BHDR_FE_P_UnReset(BHDR_FE_ChannelHandle hFeChannel) ;
 void BHDR_FE_P_ResetFeDataChannels_isr(BHDR_FE_ChannelHandle hFeChannel) ;
 void BHDR_FE_P_ResetFeClockChannel_isr(BHDR_FE_ChannelHandle hFeChannel) ;
-void BHDR_FE_P_GetPixelClockData_isr(BHDR_FE_ChannelHandle hFeChannel, uint32_t *PixelClockCount, uint8_t *ClockStopped) ;
 
 void BHDR_FE_P_GetPixelClockStatus_isr(
 	BHDR_FE_ChannelHandle hFeChannel, BHDR_FE_P_PixelClockStatus *PixelClock) ;

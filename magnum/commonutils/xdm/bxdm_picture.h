@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -656,6 +656,17 @@ typedef struct BXDM_Picture_Extension_BluRay3DGraphicsOffset
 
 } BXDM_Picture_Extension_BluRay3DGraphicsOffset;
 
+/*
+ * SWSTB-3950: support for treating user data as "generic" meta data
+ */
+typedef struct BXDM_Picture_Extension_MetaDataHdr
+{
+   BAVC_HdrMetadataType eType;
+
+   size_t uiSize;
+   void * pData;
+
+} BXDM_Picture_Extension_MetaDataHdr;
 
 /*
  * SEI Frame Packing.
@@ -726,6 +737,7 @@ typedef enum BXDM_Picture_ExtensionType
    BXDM_Picture_ExtensionType_eBluRay3DGraphicsOffset,
    BXDM_Picture_ExtensionType_eSEIFramePacking,          /* DEPRECATED: SW7405-4560: use BXDM_Picture_ExtensionType_eSEIMsg_FramePacking */
    BXDM_Picture_ExtensionType_eSEIMsg_FramePacking,
+   BXDM_Picture_ExtensionType_eMetaData,                 /* SWSTB-3950: support for the DRPU data in the user data stream */
 
    /* New extension types should be added ABOVE this line */
    BXDM_Picture_ExtensionType_eMax
@@ -744,7 +756,7 @@ typedef struct BXDM_Picture_ExtensionData
       BXDM_Picture_Extension_BluRay3DGraphicsOffset   stBluRay3DGraphicsOffset;
       BXDM_Picture_Extension_SEIFramePacking *        pstSEIFramePacking; /* DEPRECATED: SW7405-4560: use stSEIFramePacking */
       BXDM_Picture_Extension_SEIMsg_FramePacking      stSEIFramePacking;
-
+      BXDM_Picture_Extension_MetaDataHdr              stMetaDataHdr;      /* SWSTB-3950: support for the DRPU data in the user data stream */
       /* Add new extension data structures here */
    } data;
 

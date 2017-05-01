@@ -116,6 +116,9 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
       BBOX_Vdc_DisplayId             eDisplayId,
       BBOX_Vdc_WindowId              eWinId,
       uint32_t                       ulMad,
+      BBOX_Vdc_Resource_Capture      eCap,
+      BBOX_Vdc_Resource_Feeder       eVfd,
+      BBOX_Vdc_Resource_Scaler       eScl,
       uint32_t                       ulWinWidthFraction,
       uint32_t                       ulWinHeightFraction,
       BBOX_Vdc_SclCapBias            eSclCapBias );
@@ -179,6 +182,9 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     BBOX_VDC_DISREGARD, \
     BBOX_VDC_DISREGARD, \
     BBOX_VDC_DISREGARD, \
+    BBOX_VDC_DISREGARD, \
+    BBOX_VDC_DISREGARD, \
+    BBOX_VDC_DISREGARD, \
     BBOX_Vdc_SclCapBias_eDisregard )
 
 #define BBOX_P_VDC_SET_LEGACY_DEINTERLACER_LIMIT( capabilities, id )   BBOX_P_Vdc_SetDeinterlacerLimits( \
@@ -213,11 +219,14 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     BBOX_Vdc_EncoderChannelId_e##encChan, \
     BBOX_Vdc_MosaicModeClass_e##mosaicClass )
 
-#define BBOX_P_VDC_SET_WINDOW_LIMIT( capabilities, displayId, winId, mad, width, height, sclCapBias )  BBOX_P_Vdc_SetWindowLimits( \
+#define BBOX_P_VDC_SET_WINDOW_LIMIT( capabilities, displayId, winId, mad, cap, vfd, scl, width, height, sclCapBias )  BBOX_P_Vdc_SetWindowLimits( \
     capabilities, \
     BBOX_Vdc_Display_e##displayId, \
     BBOX_Vdc_Window_e##winId, \
     BBOX_FTR_##mad, \
+    BBOX_Vdc_Resource_Capture_e##cap, \
+    BBOX_Vdc_Resource_Feeder_e##vfd, \
+    BBOX_Vdc_Resource_Scaler_e##scl, \
     width, \
     height, \
     BBOX_Vdc_SclCapBias_e##sclCapBias )

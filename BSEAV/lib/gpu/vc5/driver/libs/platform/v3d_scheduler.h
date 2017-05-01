@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include <string.h>
@@ -53,14 +52,14 @@ uint64_t v3d_scheduler_submit_tfu_job(
 /* bin_render  cle layout info */
 typedef struct
 {
-   unsigned int num_bins;
+   unsigned num_bins;
    v3d_addr_t bin_begins[V3D_MAX_BIN_SUBJOBS];
    v3d_addr_t bin_ends[V3D_MAX_BIN_SUBJOBS];
    void* bin_gmp_table;
    v3d_cache_ops bin_cache_ops;     // Flushes executed after bin-deps are met, before job execution.
                                     // Cleans executed after job execution, before reported completed.
 
-   unsigned int num_renders;
+   unsigned num_renders;
    v3d_addr_t render_begins[V3D_MAX_RENDER_SUBJOBS];
    v3d_addr_t render_ends[V3D_MAX_RENDER_SUBJOBS];
    void* render_gmp_table;
@@ -77,7 +76,10 @@ typedef struct
                                           // required if the bin cache cleans must happen before
                                           // render cache flushes.
 
-   unsigned int min_initial_bin_block_size;
+   unsigned min_initial_bin_block_size;
+#if V3D_HAS_QTS
+   unsigned bin_tile_state_size;
+#endif
 } V3D_BIN_RENDER_INFO_T;
 
 /* render  cle layout info */
@@ -89,6 +91,8 @@ typedef struct
    void* render_gmp_table;
    v3d_cache_ops render_cache_ops;
    v3d_empty_tile_mode empty_tile_mode;
+   bool render_workaround_gfxh_1181;
+   bool render_no_bin_overlap;
    bool secure;
 } V3D_RENDER_INFO_T;
 
@@ -119,7 +123,11 @@ void v3d_scheduler_submit_bin_render_job(
  * The user function will be called when jobs specified in deps complete
  */
 uint64_t v3d_scheduler_submit_usermode_job(
-   const v3d_scheduler_deps *deps,
+   const v3d_scheduler_deps *deps,     // completed
+   v3d_sched_user_fn user_fn, void *data);
+uint64_t v3d_scheduler_submit_usermode_job2(
+   const v3d_scheduler_deps *completed_deps,
+   const v3d_scheduler_deps *finalised_deps,
    v3d_sched_user_fn user_fn, void *data);
 
 /* Submits a barrier job. */
@@ -182,8 +190,14 @@ bool v3d_scheduler_jobs_reached_state(v3d_scheduler_deps *deps,
 /*  Wait for jobs specified in deps to have state deps_state */
 void v3d_scheduler_wait_jobs(v3d_scheduler_deps *deps, v3d_sched_deps_state deps_state);
 
+/*  Wait for jobs specified in deps to have state deps_state, returns false if timed-out. */
+bool v3d_scheduler_wait_jobs_timeout(v3d_scheduler_deps *deps, v3d_sched_deps_state deps_state, int timeout);
+
 /* Wait for an outstanding job to finalise; Return true if a job was found */
 bool v3d_scheduler_wait_any(void);
+
+/* Wait for any job specified in deps to have state deps_state, returns false if timed-out. */
+bool v3d_scheduler_wait_any_job_timeout(v3d_scheduler_deps *deps, v3d_sched_deps_state deps_state, int timeout);
 
 /* Wait for all outstanding jobs to finalise */
 void v3d_scheduler_wait_all(void);

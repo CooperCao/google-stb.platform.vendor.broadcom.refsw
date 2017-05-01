@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image format conversion through the TFU
-
-FILE DESCRIPTION
-Sends tfu jobs to the scheduler to convert between different image formats
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_platform.h"
 #include "v3d_imgconv_internal.h"
 
@@ -69,6 +61,10 @@ static bool claim_conversion(
 
    assert(width <= src->desc.width && height <= src->desc.height &&
          depth <= src->desc.depth);
+
+   // We're supposed to clamp float depth channels but the TFU cannot do this
+   if (gfx_buffer_any_float_depth(&src->desc))
+      return false;
 
    V3D_TFU_COMMAND_T tfu_cmd;
    if (!v3d_build_tfu_cmd(&tfu_cmd, &src->desc, &dst->desc, 1, false, 0, 0))
@@ -176,9 +172,10 @@ static bool convert_async(
          false, src_addr + src_off, dst_addr + dst_off);
    assert(ok);
 
+   bool has_l3c = v3d_scheduler_get_hub_identity()->has_l3c;
    v3d_cache_ops cache_ops =
-         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE)
-       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ);
+         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, has_l3c)
+       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, has_l3c);
 
    // This path is only claimed if dst is secure in secure context and
    // in unsecure context a secure dst is not allowed.

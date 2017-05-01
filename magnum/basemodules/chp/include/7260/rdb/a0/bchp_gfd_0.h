@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,99 +70,99 @@
 /***************************************************************************
  *GFD_0 - Graphics Feeder 0 (UHD, VSCL, BSTC, HDR) Registers
  ***************************************************************************/
-#define BCHP_GFD_0_REVISION                      0x20641000 /* [RO] Graphics Feeder Revision register */
-#define BCHP_GFD_0_HW_CONFIGURATION              0x20641004 /* [RO] Graphics Hardware Configuration register */
-#define BCHP_GFD_0_ENABLE                        0x20641008 /* [RW] Graphics Feeder Enable */
-#define BCHP_GFD_0_LOAD_PALETTE                  0x2064100c /* [RW] Load Palette Operation */
-#define BCHP_GFD_0_CTRL                          0x20641010 /* [CFG] Graphics Feeder Control */
-#define BCHP_GFD_0_FORMAT_DEF_1                  0x20641014 /* [CFG] Graphics Feeder Format Definition 1 */
-#define BCHP_GFD_0_FORMAT_DEF_2                  0x20641018 /* [CFG] Graphics Feeder Format Definition 2 */
-#define BCHP_GFD_0_HORIZ_FIR_SRC_STEP            0x2064101c /* [CFG] Horizontal Poly-Phase Filter Source Picture Stepping Size */
-#define BCHP_GFD_0_HORIZ_FIR_INIT_PHASE          0x20641020 /* [CFG] Horizontal Poly-Phase Filter 2D/3D left Source Picture Initial Phase */
-#define BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R        0x20641024 /* [CFG] Horizontal Poly-Phase Filter 3D right Source Picture Initial Phase */
-#define BCHP_GFD_0_WIN_COLOR                     0x20641028 /* [CFG] Window Color Value For Alpha Format */
-#define BCHP_GFD_0_W_ALPHA                       0x2064102c /* [CFG] Expanded Alpha Value For W Bit In W_RGB Format */
-#define BCHP_GFD_0_KEY_MAX                       0x20641030 /* [CFG] Color Key Max Value */
-#define BCHP_GFD_0_KEY_MIN                       0x20641034 /* [CFG] Color Key Min Value */
-#define BCHP_GFD_0_KEY_MASK                      0x20641038 /* [CFG] Color Key Mask Bits */
-#define BCHP_GFD_0_KEY_ALPHA                     0x2064103c /* [CFG] Color Keyed Alpha Value */
-#define BCHP_GFD_0_SRC_OFFSET                    0x20641040 /* [CFG] Graphics Surface Source Image Offset */
-#define BCHP_GFD_0_SRC_HSIZE                     0x20641044 /* [CFG] Graphics Surface Source Image Horizontal Size */
-#define BCHP_GFD_0_SRC_START                     0x20641048 /* [CFG] Graphics Surface Memory Starting Address */
-#define BCHP_GFD_0_SRC_START_R                   0x2064104c /* [CFG] Graphics Surface Memory Starting Address */
-#define BCHP_GFD_0_SRC_PITCH                     0x20641050 /* [CFG] Graphics Surface Memory Pitch */
-#define BCHP_GFD_0_PALETTE_START                 0x20641054 /* [CFG] Palette Memory Starting Address */
-#define BCHP_GFD_0_PALETTE_SIZE                  0x20641058 /* [CFG] Palette Size */
-#define BCHP_GFD_0_DISP_PIC_SIZE                 0x2064105c /* [CFG] Display Image Size */
-#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE0_00_01  0x206410f0 /* [CFG] Horizontal Scaler Poly-Phase Filter Phase 0 Tap 0 and 1 Coefficients */
-#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE0_02     0x206410f4 /* [CFG] Horizontal Scaler Poly-Phase Filter Phase 0 Tap 2 Coefficients */
-#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE1_00_01  0x206410f8 /* [CFG] Horizontal Scaler Poly-Phase Filter Phase 1 Tap 0 and 1 Coefficients */
-#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE1_02     0x206410fc /* [CFG] Horizontal Scaler Poly-Phase Filter Phase 1 Tap 2 Coefficients */
-#define BCHP_GFD_0_CSC_COEFF_C00                 0x20641100 /* [CFG] Color Space Conversion Mc Matrix Coefficients C00 */
-#define BCHP_GFD_0_CSC_COEFF_C01                 0x20641104 /* [CFG] Color Space Conversion Mc Matrix Coefficients C01 */
-#define BCHP_GFD_0_CSC_COEFF_C02                 0x20641108 /* [CFG] Color Space Conversion Mc Matrix Coefficients C02 */
-#define BCHP_GFD_0_CSC_COEFF_C03                 0x2064110c /* [CFG] Color Space Conversion Mc Matrix Coefficients C03 */
-#define BCHP_GFD_0_CSC_COEFF_C04                 0x20641110 /* [CFG] Color Space Conversion Mc Matrix Coefficients C04 */
-#define BCHP_GFD_0_CSC_COEFF_C10                 0x20641114 /* [CFG] Color Space Conversion Mc Matrix Coefficients C10 */
-#define BCHP_GFD_0_CSC_COEFF_C11                 0x20641118 /* [CFG] Color Space Conversion Mc Matrix Coefficients C11 */
-#define BCHP_GFD_0_CSC_COEFF_C12                 0x2064111c /* [CFG] Color Space Conversion Mc Matrix Coefficients C12 */
-#define BCHP_GFD_0_CSC_COEFF_C13                 0x20641120 /* [CFG] Color Space Conversion Mc Matrix Coefficients C13 */
-#define BCHP_GFD_0_CSC_COEFF_C14                 0x20641124 /* [CFG] Color Space Conversion Mc Matrix Coefficients C14 */
-#define BCHP_GFD_0_CSC_COEFF_C20                 0x20641128 /* [CFG] Color Space Conversion Mc Matrix Coefficients C20 */
-#define BCHP_GFD_0_CSC_COEFF_C21                 0x2064112c /* [CFG] Color Space Conversion Mc Matrix Coefficients C21 */
-#define BCHP_GFD_0_CSC_COEFF_C22                 0x20641130 /* [CFG] Color Space Conversion Mc Matrix Coefficients C22 */
-#define BCHP_GFD_0_CSC_COEFF_C23                 0x20641134 /* [CFG] Color Space Conversion Mc Matrix Coefficients C23 */
-#define BCHP_GFD_0_CSC_COEFF_C24                 0x20641138 /* [CFG] Color Space Conversion Mc Matrix Coefficients C24 */
-#define BCHP_GFD_0_STATUS_CLEAR                  0x20641144 /* [WO] Graphics Feeder Status Clear */
-#define BCHP_GFD_0_STATUS                        0x20641148 /* [RO] Graphics Feeder Status */
-#define BCHP_GFD_0_SCRATCH0                      0x20641150 /* [CFG] Graphics Feeder Scratch register 0 */
-#define BCHP_GFD_0_SCRATCH1                      0x20641154 /* [CFG] Graphics Feeder Scratch register 1 */
-#define BCHP_GFD_0_CSC_DITHER_CTRL               0x20641158 /* [CFG] Color Space Conversion Matrix Dither CTRL */
-#define BCHP_GFD_0_CSC_DITHER_LFSR_INIT          0x2064115c /* [CFG] Color Space Conversion Matrix Dither LFSR Init value and control */
-#define BCHP_GFD_0_CSC_DITHER_LFSR_CTRL          0x20641160 /* [CFG] Color Space Conversion Matrix Dither LFSR control */
-#define BCHP_GFD_0_CROP_CFG                      0x20641168 /* [CFG] CROP block configuration */
-#define BCHP_GFD_0_GSCL_CFG                      0x20641200 /* [CFG] Graphics Scaler Configuration */
-#define BCHP_GFD_0_SRC_VSIZE                     0x20641204 /* [CFG] Source Image Vertical Size */
-#define BCHP_GFD_0_VERT_FIR_INIT_PHASE           0x20641208 /* [CFG] Vertical Poly-Phase Filter Source Picture Initial Phase */
-#define BCHP_GFD_0_VERT_FIR_SRC_STEP             0x2064120c /* [CFG] Vertical Poly-Phase Filter Source Picture Stepping Size */
-#define BCHP_GFD_0_VERT_FIR_COEFF_PHASE0_00_01   0x20641210 /* [CFG] Vertical Scaler Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_GFD_0_VERT_FIR_COEFF_PHASE1_00_01   0x20641214 /* [CFG] Vertical Scaler Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_GFD_0_DEJAGGING                     0x20641218 /* [CFG] Graphics Scaler Dejagging Control */
-#define BCHP_GFD_0_DERINGING                     0x2064121c /* [CFG] Graphics Scaler Deringing Control */
-#define BCHP_GFD_0_DEJAGGING_DEMO_SETTING        0x20641220 /* [CFG] Dejagging Visual Effects Demo Setting */
-#define BCHP_GFD_0_DERINGING_DEMO_SETTING        0x20641224 /* [CFG] Deringing Visual Effects Demo Setting */
-#define BCHP_GFD_0_VSCL_DIAG                     0x20641228 /* [RO] Diagnostic Register for Vertical Scaler */
-#define BCHP_GFD_0_SCB_CLNT_STATUS               0x2064122c /* [RO] SCB Client init status register */
-#define BCHP_GFD_0_NL_CSC_CTRL                   0x20641230 /* [CFG] Nonconstant Luminance CSC Control */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C00           0x20641274 /* [CFG] Color Space Conversion Ma Matrix Coefficients C00 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C01           0x20641278 /* [CFG] Color Space Conversion Ma Matrix Coefficients C01 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C02           0x2064127c /* [CFG] Color Space Conversion Ma Matrix Coefficients C02 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C03           0x20641280 /* [CFG] Color Space Conversion Ma Matrix Coefficients C03 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C04           0x20641284 /* [CFG] Color Space Conversion Ma Matrix Coefficients C04 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C10           0x20641288 /* [CFG] Color Space Conversion Ma Matrix Coefficients C10 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C11           0x2064128c /* [CFG] Color Space Conversion Ma Matrix Coefficients C11 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C12           0x20641290 /* [CFG] Color Space Conversion Ma Matrix Coefficients C12 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C13           0x20641294 /* [CFG] Color Space Conversion Ma Matrix Coefficients C13 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C14           0x20641298 /* [CFG] Color Space Conversion Ma Matrix Coefficients C14 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C20           0x2064129c /* [CFG] Color Space Conversion Ma Matrix Coefficients C20 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C21           0x206412a0 /* [CFG] Color Space Conversion Ma Matrix Coefficients C21 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C22           0x206412a4 /* [CFG] Color Space Conversion Ma Matrix Coefficients C22 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C23           0x206412a8 /* [CFG] Color Space Conversion Ma Matrix Coefficients C23 */
-#define BCHP_GFD_0_CSC_R0_MA_COEFF_C24           0x206412ac /* [CFG] Color Space Conversion Ma Matrix Coefficients C24 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C00           0x206412b0 /* [CFG] Color Space Conversion Mb Matrix Coefficients C00 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C01           0x206412b4 /* [CFG] Color Space Conversion Mb Matrix Coefficients C01 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C02           0x206412b8 /* [CFG] Color Space Conversion Mb Matrix Coefficients C02 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C03           0x206412bc /* [CFG] Color Space Conversion Mb Matrix Coefficients C03 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C10           0x206412c0 /* [CFG] Color Space Conversion Mb Matrix Coefficients C10 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C11           0x206412c4 /* [CFG] Color Space Conversion Mb Matrix Coefficients C11 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C12           0x206412c8 /* [CFG] Color Space Conversion Mb Matrix Coefficients C12 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C13           0x206412cc /* [CFG] Color Space Conversion Mb Matrix Coefficients C13 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C20           0x206412d0 /* [CFG] Color Space Conversion Mb Matrix Coefficients C20 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C21           0x206412d4 /* [CFG] Color Space Conversion Mb Matrix Coefficients C21 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C22           0x206412d8 /* [CFG] Color Space Conversion Mb Matrix Coefficients C22 */
-#define BCHP_GFD_0_CSC_R0_MB_COEFF_C23           0x206412dc /* [CFG] Color Space Conversion Mb Matrix Coefficients C23 */
-#define BCHP_GFD_0_NL2L_LUT_CTRL                 0x206412e0 /* [CFG] NL_CSC LUT Control */
-#define BCHP_GFD_0_L2NL_LUT_CTRL                 0x206412fc /* [CFG] NL_CSC LUT Control */
+#define BCHP_GFD_0_REVISION                      0x20641000 /* [RO][32] Graphics Feeder Revision register */
+#define BCHP_GFD_0_HW_CONFIGURATION              0x20641004 /* [RO][32] Graphics Hardware Configuration register */
+#define BCHP_GFD_0_ENABLE                        0x20641008 /* [RW][32] Graphics Feeder Enable */
+#define BCHP_GFD_0_LOAD_PALETTE                  0x2064100c /* [RW][32] Load Palette Operation */
+#define BCHP_GFD_0_CTRL                          0x20641010 /* [CFG][32] Graphics Feeder Control */
+#define BCHP_GFD_0_FORMAT_DEF_1                  0x20641014 /* [CFG][32] Graphics Feeder Format Definition 1 */
+#define BCHP_GFD_0_FORMAT_DEF_2                  0x20641018 /* [CFG][32] Graphics Feeder Format Definition 2 */
+#define BCHP_GFD_0_HORIZ_FIR_SRC_STEP            0x2064101c /* [CFG][32] Horizontal Poly-Phase Filter Source Picture Stepping Size */
+#define BCHP_GFD_0_HORIZ_FIR_INIT_PHASE          0x20641020 /* [CFG][32] Horizontal Poly-Phase Filter 2D/3D left Source Picture Initial Phase */
+#define BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R        0x20641024 /* [CFG][32] Horizontal Poly-Phase Filter 3D right Source Picture Initial Phase */
+#define BCHP_GFD_0_WIN_COLOR                     0x20641028 /* [CFG][32] Window Color Value For Alpha Format */
+#define BCHP_GFD_0_W_ALPHA                       0x2064102c /* [CFG][32] Expanded Alpha Value For W Bit In W_RGB Format */
+#define BCHP_GFD_0_KEY_MAX                       0x20641030 /* [CFG][32] Color Key Max Value */
+#define BCHP_GFD_0_KEY_MIN                       0x20641034 /* [CFG][32] Color Key Min Value */
+#define BCHP_GFD_0_KEY_MASK                      0x20641038 /* [CFG][32] Color Key Mask Bits */
+#define BCHP_GFD_0_KEY_ALPHA                     0x2064103c /* [CFG][32] Color Keyed Alpha Value */
+#define BCHP_GFD_0_SRC_OFFSET                    0x20641040 /* [CFG][32] Graphics Surface Source Image Offset */
+#define BCHP_GFD_0_SRC_HSIZE                     0x20641044 /* [CFG][32] Graphics Surface Source Image Horizontal Size */
+#define BCHP_GFD_0_SRC_START                     0x20641048 /* [CFG][32] Graphics Surface Memory Starting Address */
+#define BCHP_GFD_0_SRC_START_R                   0x2064104c /* [CFG][32] Graphics Surface Memory Starting Address */
+#define BCHP_GFD_0_SRC_PITCH                     0x20641050 /* [CFG][32] Graphics Surface Memory Pitch */
+#define BCHP_GFD_0_PALETTE_START                 0x20641054 /* [CFG][32] Palette Memory Starting Address */
+#define BCHP_GFD_0_PALETTE_SIZE                  0x20641058 /* [CFG][32] Palette Size */
+#define BCHP_GFD_0_DISP_PIC_SIZE                 0x2064105c /* [CFG][32] Display Image Size */
+#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE0_00_01  0x206410f0 /* [CFG][32] Horizontal Scaler Poly-Phase Filter Phase 0 Tap 0 and 1 Coefficients */
+#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE0_02     0x206410f4 /* [CFG][32] Horizontal Scaler Poly-Phase Filter Phase 0 Tap 2 Coefficients */
+#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE1_00_01  0x206410f8 /* [CFG][32] Horizontal Scaler Poly-Phase Filter Phase 1 Tap 0 and 1 Coefficients */
+#define BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE1_02     0x206410fc /* [CFG][32] Horizontal Scaler Poly-Phase Filter Phase 1 Tap 2 Coefficients */
+#define BCHP_GFD_0_CSC_COEFF_C00                 0x20641100 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C00 */
+#define BCHP_GFD_0_CSC_COEFF_C01                 0x20641104 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C01 */
+#define BCHP_GFD_0_CSC_COEFF_C02                 0x20641108 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C02 */
+#define BCHP_GFD_0_CSC_COEFF_C03                 0x2064110c /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C03 */
+#define BCHP_GFD_0_CSC_COEFF_C04                 0x20641110 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C04 */
+#define BCHP_GFD_0_CSC_COEFF_C10                 0x20641114 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C10 */
+#define BCHP_GFD_0_CSC_COEFF_C11                 0x20641118 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C11 */
+#define BCHP_GFD_0_CSC_COEFF_C12                 0x2064111c /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C12 */
+#define BCHP_GFD_0_CSC_COEFF_C13                 0x20641120 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C13 */
+#define BCHP_GFD_0_CSC_COEFF_C14                 0x20641124 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C14 */
+#define BCHP_GFD_0_CSC_COEFF_C20                 0x20641128 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C20 */
+#define BCHP_GFD_0_CSC_COEFF_C21                 0x2064112c /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C21 */
+#define BCHP_GFD_0_CSC_COEFF_C22                 0x20641130 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C22 */
+#define BCHP_GFD_0_CSC_COEFF_C23                 0x20641134 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C23 */
+#define BCHP_GFD_0_CSC_COEFF_C24                 0x20641138 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C24 */
+#define BCHP_GFD_0_STATUS_CLEAR                  0x20641144 /* [WO][32] Graphics Feeder Status Clear */
+#define BCHP_GFD_0_STATUS                        0x20641148 /* [RO][32] Graphics Feeder Status */
+#define BCHP_GFD_0_SCRATCH0                      0x20641150 /* [CFG][32] Graphics Feeder Scratch register 0 */
+#define BCHP_GFD_0_SCRATCH1                      0x20641154 /* [CFG][32] Graphics Feeder Scratch register 1 */
+#define BCHP_GFD_0_CSC_DITHER_CTRL               0x20641158 /* [CFG][32] Color Space Conversion Matrix Dither CTRL */
+#define BCHP_GFD_0_CSC_DITHER_LFSR_INIT          0x2064115c /* [CFG][32] Color Space Conversion Matrix Dither LFSR Init value and control */
+#define BCHP_GFD_0_CSC_DITHER_LFSR_CTRL          0x20641160 /* [CFG][32] Color Space Conversion Matrix Dither LFSR control */
+#define BCHP_GFD_0_CROP_CFG                      0x20641168 /* [CFG][32] CROP block configuration */
+#define BCHP_GFD_0_GSCL_CFG                      0x20641200 /* [CFG][32] Graphics Scaler Configuration */
+#define BCHP_GFD_0_SRC_VSIZE                     0x20641204 /* [CFG][32] Source Image Vertical Size */
+#define BCHP_GFD_0_VERT_FIR_INIT_PHASE           0x20641208 /* [CFG][32] Vertical Poly-Phase Filter Source Picture Initial Phase */
+#define BCHP_GFD_0_VERT_FIR_SRC_STEP             0x2064120c /* [CFG][32] Vertical Poly-Phase Filter Source Picture Stepping Size */
+#define BCHP_GFD_0_VERT_FIR_COEFF_PHASE0_00_01   0x20641210 /* [CFG][32] Vertical Scaler Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_GFD_0_VERT_FIR_COEFF_PHASE1_00_01   0x20641214 /* [CFG][32] Vertical Scaler Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_GFD_0_DEJAGGING                     0x20641218 /* [CFG][32] Graphics Scaler Dejagging Control */
+#define BCHP_GFD_0_DERINGING                     0x2064121c /* [CFG][32] Graphics Scaler Deringing Control */
+#define BCHP_GFD_0_DEJAGGING_DEMO_SETTING        0x20641220 /* [CFG][32] Dejagging Visual Effects Demo Setting */
+#define BCHP_GFD_0_DERINGING_DEMO_SETTING        0x20641224 /* [CFG][32] Deringing Visual Effects Demo Setting */
+#define BCHP_GFD_0_VSCL_DIAG                     0x20641228 /* [RO][32] Diagnostic Register for Vertical Scaler */
+#define BCHP_GFD_0_SCB_CLNT_STATUS               0x2064122c /* [RO][32] SCB Client init status register */
+#define BCHP_GFD_0_NL_CSC_CTRL                   0x20641230 /* [CFG][32] Nonconstant Luminance CSC Control */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C00           0x20641274 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C00 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C01           0x20641278 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C01 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C02           0x2064127c /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C02 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C03           0x20641280 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C03 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C04           0x20641284 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C04 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C10           0x20641288 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C10 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C11           0x2064128c /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C11 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C12           0x20641290 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C12 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C13           0x20641294 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C13 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C14           0x20641298 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C14 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C20           0x2064129c /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C20 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C21           0x206412a0 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C21 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C22           0x206412a4 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C22 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C23           0x206412a8 /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C23 */
+#define BCHP_GFD_0_CSC_R0_MA_COEFF_C24           0x206412ac /* [CFG][32] Color Space Conversion Ma Matrix Coefficients C24 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C00           0x206412b0 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C00 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C01           0x206412b4 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C01 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C02           0x206412b8 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C02 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C03           0x206412bc /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C03 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C10           0x206412c0 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C10 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C11           0x206412c4 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C11 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C12           0x206412c8 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C12 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C13           0x206412cc /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C13 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C20           0x206412d0 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C20 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C21           0x206412d4 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C21 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C22           0x206412d8 /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C22 */
+#define BCHP_GFD_0_CSC_R0_MB_COEFF_C23           0x206412dc /* [CFG][32] Color Space Conversion Mb Matrix Coefficients C23 */
+#define BCHP_GFD_0_NL2L_LUT_CTRL                 0x206412e0 /* [CFG][32] NL_CSC LUT Control */
+#define BCHP_GFD_0_L2NL_LUT_CTRL                 0x206412fc /* [CFG][32] NL_CSC LUT Control */
 
 /***************************************************************************
  *REVISION - Graphics Feeder Revision register

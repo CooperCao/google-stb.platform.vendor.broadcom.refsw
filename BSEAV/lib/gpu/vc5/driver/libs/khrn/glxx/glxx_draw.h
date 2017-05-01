@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_DRAW_H
 #define GLXX_DRAW_H
 
@@ -59,65 +53,13 @@ typedef struct
    .indirect_stride = 0,         \
    .indirect = NULL
 
-/* Params after being checked by check_raw_draw_params(). This structure is
- * very similar to GLXX_DRAW_RAW_T, but the types reflect the constraints
- * checked by check_raw_draw_params(). eg count is unsigned here because it is
- * an error for it to be negative. */
-typedef struct
-{
-   GLXX_PRIMITIVE_T mode;
-
-   size_t count; /* Unused if is_indirect */
-   size_t instance_count; /* Unused if is_indirect */
-
-   bool is_draw_arrays;
-   /* is_draw_arrays only */
-   unsigned int first; /* Unused if is_indirect */
-   /* !is_draw_arrays only */
-   GLXX_INDEX_T index_type;
-   const void *indices;
-
-   int basevertex;
-   unsigned int baseinstance;
-
-   bool is_indirect;
-   /* is_indirect only */
-   unsigned int num_indirect;
-   unsigned int indirect_stride;
-   uintptr_t    indirect_offset;
-} GLXX_DRAW_T;
-
-typedef struct
-{
-   gmem_handle_t handle;
-   size_t offset;
-   bool needs_freeing;
-   unsigned int size; /* size in bytes of the data allocated in handle */
-} GLXX_STORAGE_T;
-
-typedef struct
-{
-   unsigned int index; /* maximum index allowed across all enabled non-instance attributes */
-   unsigned int instance; /* maximum instanced allowed across all enabled instance attributes */
-} GLXX_ATTRIBS_MAX;
-
-typedef struct
-{
-   uint32_t stride;
-   uint32_t divisor;
-} GLXX_VERTEX_BUFFER_CONFIG_T;
-
-typedef struct
-{
-   GLXX_STORAGE_T array[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
-}GLXX_VERTEX_POINTERS_T;
-
 extern void glintDrawArraysOrElements(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_RAW_T *draw);
 
 extern bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float
       Zw, float Ws, float Hs);
 
-extern GLXX_PRIMITIVE_T glxx_get_used_draw_mode(const GLSL_PROGRAM_T *p,
-      GLXX_PRIMITIVE_T draw_mode);
+/* Return the draw mode at the input to the rasteriser */
+extern GLXX_PRIMITIVE_T glxx_get_rast_draw_mode(const GLSL_PROGRAM_T *p,
+      GLXX_PRIMITIVE_T input_mode);
 
 #endif

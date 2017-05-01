@@ -84,6 +84,7 @@ int  nxclient_p_write_teletext(nxclient_ipc_t client, const nxclient_p_teletext_
 int  nxclient_p_write_closedcaption(nxclient_ipc_t client, const nxclient_p_closecaption_data *data, size_t numEntries, size_t *pNumEntriesWritten );
 int  nxclient_p_display_set_wss(nxclient_ipc_t client, uint16_t wssData);
 int  nxclient_p_display_set_cgms(nxclient_ipc_t client, uint32_t cgmsData);
+int  nxclient_p_display_set_cgms_b(nxclient_ipc_t client, const nxclient_p_set_cgms_b_data *pdata);
 void nxclient_p_get_audio_processing_settings(nxclient_ipc_t client, NxClient_AudioProcessingSettings *pSettings);
 int  nxclient_p_set_audio_processing_settings(nxclient_ipc_t client, const NxClient_AudioProcessingSettings *pSettings);
 int  nxclient_p_reconfig(nxclient_ipc_t client, const NxClient_ReconfigSettings *pSettings);
@@ -118,6 +119,7 @@ int  nxclient_p_set_picture_quality_settings(nxclient_ipc_t _client, const NxCli
 
 int  nxclient_p_get_callback_status(nxclient_ipc_t _client, NxClient_CallbackStatus *pStatus );
 int  nxclient_p_get_audio_status(nxclient_ipc_t _client, NxClient_AudioStatus *pStatus );
+int  nxclient_p_set_client_mode(nxclient_ipc_t _client, const NxClient_ClientModeSettings *pSettings );
 
 #endif /* NXSERVER_IPC_H__ */
 

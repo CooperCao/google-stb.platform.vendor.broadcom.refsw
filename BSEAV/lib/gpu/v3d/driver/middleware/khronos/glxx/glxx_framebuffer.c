@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 framebuffer / Open GL ES 1.1 OES_framebuffer_object structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "middleware/khronos/glxx/glxx_framebuffer.h"
@@ -178,7 +170,7 @@ typedef enum
    ATTACHMENT_DEPTH24,                    // Attachment type is DEPTH, is complete and the image is 24bpp
    ATTACHMENT_STENCIL,                    // Attachment type is STENCIL and is complete
    ATTACHMENT_DEPTH_STENCIL,              // Attachment type is DEPTH_STENCIL and is complete
-   ATTACHMENT_UNSUPPORTED = 0xFFFFFFFF    // Attachment type is valid but rendering is not supported
+   ATTACHMENT_UNSUPPORTED = -1            // Attachment type is valid but rendering is not supported
 } ATTACHMENT_STATUS_T;
 
 static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment,

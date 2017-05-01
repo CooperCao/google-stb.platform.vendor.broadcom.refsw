@@ -498,9 +498,9 @@ BERR_Code BWFE_P_ReadRegister(
 
 
 /******************************************************************************
- BWFE_P_WriteRegister()
+ BWFE_P_WriteRegister_isrsafe()
 ******************************************************************************/
-BERR_Code BWFE_P_WriteRegister(
+BERR_Code BWFE_P_WriteRegister_isrsafe(
    BWFE_ChannelHandle h,      /* [in] BWFE channel handle */
    uint32_t           reg,    /* [in] address of register to write */
    uint32_t           val     /* [in] contains data to be written */

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -175,7 +175,6 @@ Description:
 */
 BERR_Code BPVRlib_Feed_AddEntries(
 		BPVRlib_Feed_Handle feed, /* instance of BPVRlib_Feed */
-		BMEM_Heap_Handle heap,  /* instance of BMEM_Heap_Handle that used to convert entries[i].addr to the device offset */
 		const BPVRlib_Feed_Entry *entries, /* pointer to array of BPVRlib_Feed_Entry */ 
 		size_t count,		/* number of elements in the array */ 
 		size_t *nconsumed   /* out pointer to return number of consumed elements */
@@ -257,4 +256,3 @@ void BPVRlib_Feed_GetStatus(
 #endif
 
 #endif /* BPVRLIB_FEED_H__ */
-

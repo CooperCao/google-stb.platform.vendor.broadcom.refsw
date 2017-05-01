@@ -1,18 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_TYPES_H
 #define KHRN_TYPES_H
 #include <stdint.h>
 
-typedef struct khrn_interlock KHRN_INTERLOCK_T;
-typedef struct khrn_render_state KHRN_RENDER_STATE_T;
+typedef struct khrn_resource khrn_resource;
+typedef struct khrn_render_state khrn_render_state;
 typedef struct glxx_hw_render_state GLXX_HW_RENDER_STATE_T;
 
 /*

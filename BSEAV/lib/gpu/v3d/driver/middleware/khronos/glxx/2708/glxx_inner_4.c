@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Functions for driving the hardware for both GLES1.1 and GLES2.0.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_color.h"
 #include "interface/khronos/common/khrn_options.h"
@@ -402,13 +394,6 @@ static uint32_t clear_shader_sizes[2][32] =
    }
 };
 
-static uint32_t null_user_shader[] =
-{
-   0x009e7000,0x300249e7, // nop             ; thrend
-   0x009e7000,0x100249e7, // nop
-   0x009e7000,0x100249e7, // nop
-};
-
 /*************************************************************
  Static function forwards
  *************************************************************/
@@ -437,7 +422,6 @@ static bool create_master_cl(void);
 bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *state)
 {
    GLXX_HW_FRAMEBUFFER_T fb;
-   uint32_t        cmask = 0;
    GLXX_HW_RENDER_STATE_T *rs;
    bool result;
    bool useDrawRect = false;
@@ -932,23 +916,6 @@ fail:
    glxx_unlock_fixer_stuff();
    return false;
 }
-
-#ifdef TIMELINE_EVENT_LOGGING
-static void EventLog(uint32_t t, uint32_t c, uint32_t r, uint32_t d, char *desc)
-{
-   EventData ev;
-   ev.eventType = t;
-   ev.eventCode = c;
-   ev.eventRow  = r;
-   ev.eventData = d;
-   ev.desc = desc;
-   ev.eventSecs = 0;
-   ev.eventNanosecs = 0;
-   khrn_remote_event_log(&ev);
-}
-#else
-#define EventLog(t, c, r, d, desc)
-#endif
 
 bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
 {

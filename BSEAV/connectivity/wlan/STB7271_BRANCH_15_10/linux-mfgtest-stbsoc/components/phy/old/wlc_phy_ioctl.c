@@ -129,6 +129,8 @@ wlc_phy_ioctl_dispatch(phy_info_t *pi, int cmd, int len, void *arg, bool *ta_ok)
 	bool_val = (val != 0);
 	BCM_REFERENCE(bool_val);
 
+	PHY_CMDS(("%s, ID:%d\n", __FUNCTION__, cmd));
+
 	switch (cmd) {
 	case WLC_RESTART:
 		break;

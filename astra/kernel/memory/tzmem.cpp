@@ -220,6 +220,9 @@ void TzMem::freeInitRamFS(VirtAddr vaStart, VirtAddr vaEnd) {
     uint8_t *currPage = (uint8_t *)PAGE_START_4K(paStart);
     uint8_t *lastPage = (uint8_t *)PAGE_START_4K(paEnd);
 
+    RangeFrame *rf = &rangeFrames[numRanges];
+    rf->startPageNum = pageFrameNum(currPage);
+
     uint32_t mapIdx = pageMapIdx(currPage);
     while (currPage < lastPage) {
         if (freePagesEnd == TZ_MAX_NUM_PAGES)
@@ -238,6 +241,8 @@ void TzMem::freeInitRamFS(VirtAddr vaStart, VirtAddr vaEnd) {
         mapIdx++;
         currPage = currPage + PAGE_SIZE_4K_BYTES;
     }
+    rf->endPageNum = pageFrameNum(currPage);
+    numRanges++;
 }
 
 TzMem::PhysAddr TzMem::_allocPage(int pid) {

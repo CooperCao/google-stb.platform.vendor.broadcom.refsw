@@ -47,7 +47,7 @@
 #endif
 
 PEL_WIN_API const char * bcmUseSocket
-    ( const char * pchServerName,
+    ( const char          *pchServerName,
       const unsigned short usPortNum );
 
 PEL_WIN_API const char *bcmOpenDevice
@@ -57,14 +57,14 @@ PEL_WIN_API const char *bcmCloseDevice
     ( void );
 
 PEL_WIN_API const char *bcmRead
-    ( unsigned long ulAddr );
+    ( uint32_t             ulAddr );
 
 PEL_WIN_API const char *bcmWrite
-    ( const unsigned long ulAddr,
-      const unsigned long ulData );
+    ( const uint32_t       ulAddr,
+      const uint32_t       ulData );
 
 PEL_WIN_API const char* bcmRead64
-    ( const unsigned long ulAddr );
+    ( const uint32_t       ulAddr );
 
 #if WIN32
 
@@ -111,55 +111,55 @@ PEL_WIN_API const char* bcmWriteMemBlkFromFileFormatted
 #else /* linux */
 
 PEL_WIN_API const char* bcmWrite64
-    ( const unsigned long      ulAddr,
-      const unsigned long long ulData );
+    ( const uint32_t  ulAddr,
+      const uint64_t  ulData );
 
 PEL_WIN_API const char* bcmReadMem
-    ( const unsigned long long ulAddr );
+    ( const uint64_t  ulAddr );
 
 PEL_WIN_API const char* bcmWriteMem
-    ( const unsigned long long ulAddr,
-      unsigned long            ulData,
-      const unsigned long      ulCount );
+    ( const uint64_t  ulAddr,
+      uint32_t        ulData,
+      const uint32_t  ulCount );
 
 PEL_WIN_API const char* bcmReadMemBlkToFile
-    ( const unsigned long long ulAddr,
-      const unsigned long      ulCount,
-      const char              *pchMemfile );
+    ( const uint64_t  ulAddr,
+      const uint32_t  ulCount,
+      const char     *pchMemfile );
 
 PEL_WIN_API const char* bcmWriteMemBlkFromFile
-    ( const unsigned long long ulAddr,
-      const char              *pchMemfile);
+    ( const uint64_t  ulAddr,
+      const char     *pchMemfile);
 
 PEL_WIN_API const char* bcmReadMemBlkToFileFormatted
-    ( const unsigned long long ulAddr,
-      const unsigned long      ulCount,
-      const char              *pchMemfile );
+    ( const uint64_t  ulAddr,
+      const uint32_t  ulCount,
+      const char     *pchMemfile );
 
 PEL_WIN_API const char* bcmWriteMemBlkFromFileFormatted
-    ( const unsigned long long ulAddr,
-      const char              *pchMemfile);
+    ( const uint64_t  ulAddr,
+      const char     *pchMemfile);
 
 #endif
 
 PEL_WIN_API const char* bcmReadI2C
-    ( const unsigned char uchChipAddr,
-      const unsigned char uchSubAddr );
+    ( const unsigned char   uchChipAddr,
+      const unsigned char   uchSubAddr );
 
 PEL_WIN_API const char* bcmWriteI2C
-    ( const unsigned char uchChipAddr,
-      const unsigned char uchSubAddr,
-      const unsigned char uchData );
+    ( const unsigned char   uchChipAddr,
+      const unsigned char   uchSubAddr,
+      const unsigned char   uchData );
 
 PEL_WIN_API const char * bcmUseI2CParallel
-    ( const char * pchDeviceName,
-      const unsigned short usPortAddr,
-      const unsigned short usSlaveAddr,
-      const unsigned char uchSpeed,
-      const unsigned long ulUseCOM );
+    ( const char           *pchDeviceName,
+      const unsigned short  usPortAddr,
+      const unsigned short  usSlaveAddr,
+      const unsigned char   uchSpeed,
+      const uint32_t        ulUseCOM );
 
 PEL_WIN_API const char * bcmRunTCS
-    ( const char * pchFileName,
-      const unsigned long ulRegOffset );
+    ( const char           *pchFileName,
+      const uint32_t        ulRegOffset );
 
 #endif /* __PERLEXTLIB_H__ */

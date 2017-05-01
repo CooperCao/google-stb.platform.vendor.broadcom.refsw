@@ -40,9 +40,8 @@ void glsl_backflow_visit(Backflow *backflow, struct backflow_visitor *v)
    for (int i=0; i<BACKFLOW_DEP_COUNT; ++i)
       glsl_backflow_visit(backflow->dependencies[i], v);
 
-   BackflowChainNode *node;
-   LIST_FOR_EACH(node, &backflow->io_dependencies, l)
-      glsl_backflow_visit(node->ptr, v);
+   for (BackflowIODepChainNode *n=backflow->io_dependencies.head; n; n=n->next)
+      glsl_backflow_visit(n->val.dep, v);
 
    if (v->postv) v->postv(backflow, v->data);
 }

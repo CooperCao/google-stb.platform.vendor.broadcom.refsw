@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -146,7 +146,9 @@ static const BSAT_Settings defDevSettings =
       BSAT_g1_P_GetAcmSettings,
       BSAT_g1_P_GetStreamList,
       BSAT_g1_P_GetStreamStatus,
-      NULL /* BSAT_GetFastChannelStatus */
+      NULL, /* BSAT_GetFastChannelStatus */
+      BSAT_g1_P_ScanSpectrum,
+      BSAT_g1_P_GetSpectrumStatus
    }
 };
 
@@ -170,7 +172,7 @@ BERR_Code BSAT_g1_GetDefaultSettings(
 
 
 /******************************************************************************
- BSAT_g1_P_GetChannelDefaultSettings()
+ BSAT_g1_GetChannelDefaultSettings()
 ******************************************************************************/
 BERR_Code BSAT_g1_GetChannelDefaultSettings(
    BSAT_Handle   h,                      /* [in] BSAT handle */

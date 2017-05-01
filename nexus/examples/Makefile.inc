@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,35 +35,38 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# Module Description:
-#
 ############################################################
-# Nexus examples
 
-PHONY += all clean nexus clean_nexus api clean_api apps clean_apps nexus_headers
-.PHONY: ${PHONY}
+ifndef B_REFSW_TOP
+# we can derive B_REFSW_TOP from this include file's path
+B_REFSW_TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
+endif
+NEXUS_TOP := $(B_REFSW_TOP)/nexus
 
-APPS = $(THEAPPS)
-APPS ?= $(APP)
+ifeq ($(NEXUS_PREBUILT_BINARY),y)
+# do "make api" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
+NEXUS_BIN_DIR ?= $(B_REFSW_TOP)/obj.${NEXUS_PLATFORM}/nexus/bin
+include $(NEXUS_BIN_DIR)/include/platform_app.inc
+Q_ ?= @
+else
+NEXUS_PLATFORM ?= $(PLATFORM)
+ifndef NEXUS_PLATFORM
+$(error NEXUS_PLATFORM is not defined)
+endif
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+endif
 
-ifeq ($(B_REFSW_REAL_MAKE),)
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/examples/$(notdir ${CURDIR})
+# because of out-of-source build, $(APPS) is phony too
+.PHONY: all clean nexus clean_nexus api clean_api apps clean_apps nexus_headers $(APPS)
 
-${PHONY} ${APPS}: ${BINDIR}/exists
-	@${MAKE} -C ${BINDIR} B_REFSW_CURDIR=${CURDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
+THISDIR := $(subst $(NEXUS_TOP)/,,$(shell pwd))
+BINDIR := $(B_REFSW_OBJ_ROOT)/nexus/${THISDIR}
+TARGET_APPS := $(addprefix $(BINDIR)/,$(APPS))
 
-${BINDIR}/exists:
-	@mkdir -p $@
-else # B_REFSW_REAL_MAKE
-NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
+all apps: $(APPS)
+	@test 1
 
-all: apps
-
-apps: $(APPS)
-
-vpath %.c ${B_REFSW_CURDIR}
+clean: clean_api clean_apps
 
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES) -lm
 CLIENT_LDFLAGS := $(NEXUS_LDFLAGS) $(NEXUS_CLIENT_LD_LIBRARIES) -lm
@@ -73,9 +76,6 @@ include $(NEXUS_TOP)/build/android.inc
 LDFLAGS := $(ANDROID_SERVER_LDFLAGS)
 CLIENT_LDFLAGS := $(ANDROID_CLIENT_LDFLAGS)
 endif
-
-# This cleans nexus and local apps
-clean: clean_api clean_apps
 
 # Clean api except on binary version
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
@@ -90,8 +90,8 @@ endif
 
 # CLEAN_APPS allows cleaning apps that may not be in APPS because of env variables
 
-clean_apps:  $(OTHER_APP_CLEANS)
-	-$(RM) $(APPS) $(CLEAN_APPS) *.d *.o *.out
+clean_apps:
+	-$(RM) $(TARGET_APPS) $(CLEAN_APPS)
 
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -99,17 +99,19 @@ CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix
 # Always build with debug
 CFLAGS += -g
 
-# append to EXTRA_OBJS for any extra source file needs, including DRM, etc.
+# use template to generate out-of-source build rules
+define example_app_rule
+$$(BINDIR)/$1: $1.c $$(if $${B_NEXUS_API_BUILD_COMPLETED}, , api)
+	@echo [Compile... $$<]
+	@mkdir -p $$(dir $$@)
+	$$(Q_)$$(CC) -o $$@ $$(filter %.c %.s %.o, $$^) $$(CFLAGS) $$(LDFLAGS)
+	cp -f $$@ $${NEXUS_BIN_DIR}
 
-# Implicit rule for building local apps
-%$(APPSUFFIX): %.c $(patsubst %.o,%.c,$(EXTRA_OBJS)) $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
-	cp -f $@ ${NEXUS_BIN_DIR}
+$1: $$(BINDIR)/$1
+	@test 1
+endef
 
--include *.d
+$(foreach app, $(APPS), $(eval $(call example_app_rule,$(strip $(app)))))
 
 install:
-	cp -f ${APPS} ${NEXUS_BIN_DIR}
-
-endif # B_REFSW_REAL_MAKE
+	cp -f ${TARGET_APPS} ${NEXUS_BIN_DIR}

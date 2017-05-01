@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,7 +91,6 @@ BERR_Code BHAB_45308_P_WriteBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint
 BERR_Code BHAB_45308_P_ReadBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint32_t n);
 BERR_Code BHAB_45308_P_ReadRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
 BERR_Code BHAB_45308_P_WriteRbus(BHAB_Handle h, uint32_t addr, uint32_t *buf, uint32_t n);
-BERR_Code BHAB_45308_P_ResetAp(BHAB_Handle h);
 BERR_Code BHAB_45308_P_GetVersionInfo(BHAB_Handle handle, BFEC_SystemVersionInfo *pVersionInfo);
 BERR_Code BHAB_45308_P_GetAvsData(BHAB_Handle handle, BHAB_AvsData *pData);
 BERR_Code BHAB_45308_P_Reset(BHAB_Handle handle);

@@ -129,6 +129,10 @@ BCHP_CHIP==7342 || BCHP_CHIP==7340 || BCHP_CHIP==7468 || BCHP_CHIP ==7125 || BCH
 #include "nexus_hdmi_output.h"
 #endif
 
+#if NEXUS_DBV_SUPPORT
+#include "nexus_display_dbv_impl.h"
+#endif
+
 #if !defined NEXUS_HAS_HDMI_INPUT
 #undef NEXUS_NUM_HDMI_INPUTS
 #endif
@@ -216,6 +220,8 @@ typedef struct NEXUS_DisplayModule_State {
 #endif
         unsigned unused;
     } functionData;
+
+    bool verifyTimebase;
 } NEXUS_DisplayModule_State;
 
 struct NEXUS_DisplayGraphics {
@@ -374,6 +380,9 @@ struct NEXUS_Display {
 #endif
 #endif
     unsigned lastVsyncTime;
+#if NEXUS_DBV_SUPPORT
+    NEXUS_DisplayDbvState dbv;
+#endif
 };
 
 /*
@@ -441,6 +450,10 @@ bool NEXUS_Display_P_HasOutput_isr(NEXUS_DisplayHandle display, NEXUS_VideoOutpu
 void NEXUS_Display_P_BufLogCapture(void);
 int nexus_display_p_init_buflogcapture(void);
 void nexus_display_p_uninit_buflogcapture(void);
+#endif
+
+#if NEXUS_DBV_SUPPORT
+void NEXUS_Display_P_DbvUpdateOutputInfo(NEXUS_DisplayHandle display, NEXUS_HdmiOutputHandle hdmiOutput, BVDC_Display_HdmiSettings * pDisplayHdmiSettings);
 #endif
 
 #ifdef __cplusplus

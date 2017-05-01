@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_hw_render_state.h"
 
 bool glxx_cl_record_validate(GLXX_CL_RECORD_T *record)
@@ -20,7 +19,7 @@ bool glxx_cl_record_validate(GLXX_CL_RECORD_T *record)
    return true;
 }
 
-bool glxx_cl_record_apply(GLXX_CL_RECORD_T *record, KHRN_FMEM_T *fmem)
+bool glxx_cl_record_apply(GLXX_CL_RECORD_T *record, khrn_fmem *fmem)
 {
    assert(record->in_begin == GLXX_CL_STATE_NUM);
 

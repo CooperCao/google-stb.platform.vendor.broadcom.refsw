@@ -37,10 +37,12 @@
  *****************************************************************************/
 #include "arm.h"
 
-
 .global contextSwitch
 
 contextSwitch:
+	mov x2, x1
+	bl restore_neonregs
+	mov x0, x2
 	ldp x2, x3, [x0], #16
 	msr ELR_EL1, x2
 	msr SPSR_EL1, x3

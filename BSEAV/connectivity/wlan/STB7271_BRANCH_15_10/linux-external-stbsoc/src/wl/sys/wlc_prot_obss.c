@@ -115,6 +115,14 @@ static const bcm_iovar_t wlc_prot_obss_iovars[] = {
 	{"obss_prot", IOV_OBSS_PROT,
 	(0), 0, IOVT_BUFFER, sizeof(wl_config_t),
 	},
+#if defined(BCMINTDBG)
+	{"obss_inactivity_period", IOV_OBSS_INACTIVITY_PERIOD,
+	(0), 0, IOVT_UINT32, 0
+	},
+	{"obss_dur", IOV_OBSS_DUR,
+	(0), 0, IOVT_UINT8, 0
+	},
+#endif 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP)
 	{"ccastats", IOV_CCASTATS,
 	(IOVF_GET_UP), 0, IOVT_BUFFER, sizeof(cca_stats_n_flags),
@@ -446,6 +454,20 @@ wlc_prot_obss_doiovar(void *hdl, uint32 actionid,
 		} else
 			err = BCME_UNSUPPORTED;
 	        break;
+#if defined(BCMINTDBG)
+	case IOV_GVAL(IOV_OBSS_INACTIVITY_PERIOD):
+	        *ret_int_ptr = (int32)priv->config->obss_inactivity_period;
+	        break;
+	case IOV_SVAL(IOV_OBSS_INACTIVITY_PERIOD):
+	        priv->config->obss_inactivity_period = uint_val;
+	        break;
+	case IOV_GVAL(IOV_OBSS_DUR):
+	        *ret_int_ptr = (int32) priv->config->obss_dur_thres;
+	        break;
+	case IOV_SVAL(IOV_OBSS_DUR):
+	        priv->config->obss_dur_thres = (uint8) int_val;
+	        break;
+#endif /* BCMINTDBG */
 #if defined(BCMDBG) || defined(BCMDBG_DUMP)
 	case IOV_GVAL(IOV_CCASTATS):
 	        err = wlc_prot_obss_dump(prot, p, alen, a);

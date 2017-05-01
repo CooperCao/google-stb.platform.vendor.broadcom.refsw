@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 
 #include "nexus_transport_module.h"
@@ -66,6 +58,30 @@ void NEXUS_Remux_GetDefaultSettings( NEXUS_RemuxSettings *pSettings )
 
 /* local storage for instance management */
 NEXUS_RemuxHandle g_remux[BXPT_NUM_REMULTIPLEXORS];
+
+static NEXUS_Error mapRemuxClock(
+   BXPT_Remux_ChannelSettings *bxptSettings,
+   const NEXUS_RemuxSettings *nexusSettings
+   )
+{
+   switch (nexusSettings->outputClock) {
+      case NEXUS_RemuxClock_e108Mhz: bxptSettings->OutputClock = BXPT_RemuxClock_e108Mhz; break;
+      case NEXUS_RemuxClock_e81Mhz: bxptSettings->OutputClock = BXPT_RemuxClock_e81Mhz; break;
+      case NEXUS_RemuxClock_e54Mhz: bxptSettings->OutputClock = BXPT_RemuxClock_e54Mhz; break;
+      case NEXUS_RemuxClock_e40_5Mhz: bxptSettings->OutputClock = BXPT_RemuxClock_e40_5Mhz; break;
+      case NEXUS_RemuxClock_e20_25Mhz: bxptSettings->OutputClock = BXPT_RemuxClock_e20_25Mhz; break;
+      case NEXUS_RemuxClock_e27Mhz_VCXO_A: bxptSettings->OutputClock = BXPT_RemuxClock_e27Mhz_VCXO_A; break;
+      case NEXUS_RemuxClock_eInputBand: bxptSettings->OutputClock = nexusSettings->remuxClockIBSrc + BXPT_RemuxClock_eIb0; break;
+      default: BDBG_ERR(("Unsupported output clock.")); return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+   }
+
+    if (bxptSettings->OutputClock > BXPT_RemuxClock_eIbMax) {
+       BDBG_ERR(("Unsupported input band."));
+       return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    return NEXUS_SUCCESS;
+}
 
 NEXUS_RemuxHandle NEXUS_Remux_Open( unsigned index, const NEXUS_RemuxSettings *pSettings )
 {
@@ -115,16 +131,8 @@ NEXUS_RemuxHandle NEXUS_Remux_Open( unsigned index, const NEXUS_RemuxSettings *p
     if (rc != BERR_SUCCESS) { rc = BERR_TRACE(rc); goto error; }
 
     /* Map nexus params to XPT params */
-    if( pSettings->outputClock <= NEXUS_RemuxClock_e27Mhz_VCXO_A) {
-        rmxChannelSettings.OutputClock = pSettings->outputClock;
-    }
-    else {
-        rmxChannelSettings.OutputClock = pSettings->remuxClockIBSrc+BXPT_RemuxClock_eIb0;
-    }
-    if (rmxChannelSettings.OutputClock > BXPT_RemuxClock_eIbMax) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        goto error;
-    }
+    if(mapRemuxClock( &rmxChannelSettings, pSettings ))
+       goto error;
     rmxChannelSettings.ParallelEn = pSettings->parallelOutput;
     rmxChannelSettings.InvertClk = pSettings->invertClock;
     rmxChannelSettings.InvertSync = pSettings->invertSync;
@@ -728,5 +736,3 @@ void NEXUS_Remux_GetSettings(NEXUS_RemuxHandle handle,NEXUS_RemuxSettings *pSett
     return;
 }
 #endif /* BXPT_NUM_REMULTIPLEXORS */
-
-

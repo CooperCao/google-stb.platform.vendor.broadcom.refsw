@@ -12,7 +12,7 @@
 #include "glxx_texture.h"
 #include "glxx_buffer.h"
 #include "../common/khrn_int_util.h"
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 #include "../common/khrn_process.h"
 
 #include "../gl11/gl11_int_config.h"
@@ -349,8 +349,8 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       return glxx_get_uint_1;
    }
    case GL_DEPTH_RANGE:
-      floats[0] = state->viewport.vp_near;
-      floats[1] = state->viewport.vp_far;
+      floats[0] = state->depth_range.z_near;
+      floats[1] = state->depth_range.z_far;
       return glxx_get_norm_float_0 + 2;
    case GL_COLOR_CLEAR_VALUE:
       for (unsigned i = 0; i < 4; i++)
@@ -362,6 +362,11 @@ static glxx_get_type_count glxx_get_params_and_type_common(
    case GL_LINE_WIDTH:
       floats[0] = state->line_width;
       return glxx_get_float_1;
+#if V3D_HAS_POLY_OFFSET_CLAMP
+   case GL_POLYGON_OFFSET_CLAMP_EXT:
+      floats[0] = state->polygon_offset.limit;
+      return glxx_get_float_1;
+#endif
    case GL_POLYGON_OFFSET_FACTOR:
       floats[0] = state->polygon_offset.factor;
       return glxx_get_float_1;
@@ -385,7 +390,9 @@ static glxx_get_type_count glxx_get_params_and_type_common(
          GL_LOSE_CONTEXT_ON_RESET_EXT : GL_NO_RESET_NOTIFICATION_EXT;
       return glxx_get_uint_1;
    case GL_CONTEXT_FLAGS:
-      ints[0] = egl_context_gl_secure(state->context) ? GL_CONTEXT_FLAG_PROTECTED_CONTENT_BIT_EXT : 0;
+      ints[0] = (egl_context_gl_secure(state->context) ? GL_CONTEXT_FLAG_PROTECTED_CONTENT_BIT_EXT : 0) |
+                (egl_context_gl_robustness(state->context) ? GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT : 0)     |
+                (egl_context_gl_debug(state->context)      ? GL_CONTEXT_FLAG_DEBUG_BIT         : 0);
       return glxx_get_int_1;
 
    default:
@@ -1299,6 +1306,16 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
 
 #if KHRN_GLES32_DRIVER
+   case GL_MIN_FRAGMENT_INTERPOLATION_OFFSET:
+      floats[0] = -0.5f;
+      return glxx_get_float_1;
+   case GL_MAX_FRAGMENT_INTERPOLATION_OFFSET:
+      floats[0] = 0.5f;
+      return glxx_get_float_1;
+   case GL_FRAGMENT_INTERPOLATION_OFFSET_BITS:
+      ints[0] = 4;
+      return glxx_get_int_1;
+
    case GL_MULTISAMPLE_LINE_WIDTH_RANGE:
       floats[0] = GLXX_CONFIG_MIN_MULTISAMPLE_LINE_WIDTH;
       floats[1] = GLXX_CONFIG_MAX_MULTISAMPLE_LINE_WIDTH;

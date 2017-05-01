@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
 ############################################################
 
 ############################################################
@@ -77,14 +67,6 @@
 #
 ############################################################
 
-B_THIS_DIR:=nexus/examples/multiprocess
-ifeq ($(B_REFSW_REAL_MAKE),1)
-NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
-endif
-NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
-
-include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
 SERVER_APPS := \
 	boot_server \
 	decode_server \
@@ -95,16 +77,14 @@ SERVER_APPS := \
 	fill \
 	surface_compositor
 
-CUSTOM_CLIENT_APPS := \
-	decode_client \
-	fcc_client
-
 CLIENT_APPS := \
 	animation_client \
 	audio_client \
 	blit_client \
 	cpufill_client \
+	decode_client \
 	encode_client \
+	fcc_client \
 	input_client \
 	live_client \
 	performance_test \
@@ -112,57 +92,31 @@ CLIENT_APPS := \
 	status_client \
 	client_stress_test
 
-THEAPPS = $(CLIENT_APPS) $(SERVER_APPS) $(CUSTOM_CLIENT_APPS)
-PHONY += client server
-include ${NEXUS_TOP}/examples/Makefile.inc
+APPS = $(CLIENT_APPS) $(SERVER_APPS)
+.PHONY: client server
 
-ifeq ($(B_REFSW_REAL_MAKE),1)
+include ../Makefile.inc
 
 # media probe
 BSEAV = $(NEXUS_TOP)/../BSEAV
-include $(BSEAV)/lib/bfile/bfile.inc
-ifeq ($(MEDIA_AVI_SUPPORT),y)
-include $(BSEAV)/lib/avi/bavi.inc
-endif
-ifeq ($(MEDIA_ASF_SUPPORT),y)
-include $(BSEAV)/lib/asf/basf.inc
-endif
-ifeq ($(MEDIA_RMFF_SUPPORT),y)
-include $(BSEAV)/lib/media/rmff/brmff.inc
-endif
 include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
-CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES)) -I$(BSEAV)/lib/mpeg2_ts_parse -I$(BSEAV)/lib/tspsi
+CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES))
 CFLAGS += $(addprefix -D,$(BMEDIA_PROBE_DEFINES))
 
-server: $(SERVER_APPS)
+server: $(addprefix $(BINDIR)/,$(SERVER_APPS))
 
-client: $(CLIENT_APPS) $(CUSTOM_CLIENT_APPS)
-
-$(SERVER_APPS): %: %.c $(patsubst %.o,%.c,$(EXTRA_OBJS)) $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
-	cp -f $@ ${NEXUS_BIN_DIR}
+client: $(addprefix $(BINDIR)/,$(CLIENT_APPS))
 
 # use make's static pattern rules to give clients special LDFLAGS
 vpath %.c $(NEXUS_TOP)/nxclient/apps/utils $(NEXUS_TOP)/utils
-decode_client: CFLAGS += -I$(NEXUS_TOP)/nxclient/apps/utils -I$(NEXUS_TOP)/utils
-decode_client: %: %.c $(patsubst %.o,%.c,$(EXTRA_OBJS)) media_probe.c bfile_crypto.c namevalue.c $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) ${CDEP_FLAG} $(CLIENT_LDFLAGS)
-	cp -f $@ ${NEXUS_BIN_DIR}
 
-fcc_client: CFLAGS += -I$(NEXUS_TOP)/nxclient/apps/utils -I$(NEXUS_TOP)/utils
-fcc_client: %: %.c $(patsubst %.o,%.c,$(EXTRA_OBJS)) tspsimgr3.c namevalue.c $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) ${CDEP_FLAG} $(CLIENT_LDFLAGS)
-	cp -f $@ ${NEXUS_BIN_DIR}
+$(addprefix ${BINDIR}/,$(CLIENT_APPS)): LDFLAGS := $(CLIENT_LDFLAGS)
 
-$(CLIENT_APPS): %: %.c $(patsubst %.o,%.c,$(EXTRA_OBJS)) $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) ${CDEP_FLAG} $(CLIENT_LDFLAGS)
-	cp -f $@ ${NEXUS_BIN_DIR}
+${BINDIR}/decode_client: CFLAGS += -I$(NEXUS_TOP)/nxclient/apps/utils -I$(NEXUS_TOP)/utils
+${BINDIR}/decode_client: media_probe.c bfile_crypto.c namevalue.c
 
--include *.d
+${BINDIR}/fcc_client: CFLAGS += -I$(NEXUS_TOP)/nxclient/apps/utils -I$(NEXUS_TOP)/utils
+${BINDIR}/fcc_client: tspsimgr3.c namevalue.c
 
-endif # B_REFSW_REAL_MAKE
+-include $(wildcard $(BINDIR)/*.d)

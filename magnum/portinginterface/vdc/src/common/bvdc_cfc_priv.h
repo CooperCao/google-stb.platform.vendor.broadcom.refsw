@@ -40,6 +40,15 @@
 
 #include "bmth_fix.h"
 #include "bmth_fix_matrix.h"
+#include "bvdc.h"
+#include "bvdc_common_priv.h"
+#include "bvdc_cfc_types_priv.h"
+#if BVDC_P_DBV_SUPPORT
+#include "bvdc_cfc_dbv_priv.h"
+#endif
+#if BVDC_P_TCH_SUPPORT
+#include "bvdc_cfc_tch_priv.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,6 +57,9 @@ extern "C" {
 
 #define BVDC_P_IS_SDR(tf) \
     ((tf)==BAVC_P_ColorTF_eBt1886 || (tf)==BAVC_P_ColorTF_eHlg)
+
+#define BVDC_P_IS_TCH(dataType) \
+    ((dataType)==BAVC_HdrMetadataType_eTch_Cvri || (dataType)==BAVC_HdrMetadataType_eTch_Cri)
 
 #define BVDC_P_NEED_TF_CONV(i, o) \
     !(((i) == (o)) || \
@@ -172,11 +184,11 @@ typedef enum
     /* name convention: the last number in name is the total number of bits of one element */
     BVDC_P_CscType_eMa3x4_16 =    (13) | (0x34<<8) | (0<<16),  /* s2.13 / s9.6:  CMP MA in 7439 B0 */
     BVDC_P_CscType_eMa3x4_25 =    (22) | (0x34<<8) | (0<<16),  /* s2.22 / s9.15: CMP MA in 7271 A0, DVI MA in 7271 B0/up */
-    BVDC_P_CscType_eMa5x4_25 =    (22) | (0x54<<8) | (0<<16),  /* s2.22 / s9.15: CMP MA in 7271 B0 and up */
+    BVDC_P_CscType_eMa5x4_25 =    (22) | (0x54<<8) | (0<<16),  /* s2.22 / s9.15: CMP/VFC MA in 7271 B0 and up */
 
-    BVDC_P_CscType_eMb3x4_25 =    (22) | (0x34<<8) | (1<<16),  /* s2.22 / s9.15: CMP/GFD MB in 7271 A0/up, DVI MB in 7271 B0/up */
+    BVDC_P_CscType_eMb3x4_25 =    (22) | (0x34<<8) | (1<<16),  /* s2.22 / s9.15: CMP/GFD/VFC MB in 7271 A0/up, DVI MB in 7271 B0/up */
 
-    BVDC_P_CscType_eMc3x4_16 =    (13) | (0x34<<8) | (2<<16),  /* s2.13 / s9.6:  CMP MC */
+    BVDC_P_CscType_eMc3x4_16 =    (13) | (0x34<<8) | (2<<16),  /* s2.13 / s9.6:  CMP/VFC MC */
     BVDC_P_CscType_eMc5x4_16 =    (13) | (0x54<<8) | (2<<16),  /* s2.13 / s9.6:  DVI MC in 7271 B0 and up */
     BVDC_P_CscType_eMcPacked =    (13) | (0x32<<8) | (2<<16),  /* s2.13 / s9.6:  DVI MC with 2 elemnts in one reg, 7271 A0 / older */
 
@@ -213,6 +225,7 @@ typedef enum
     BVDC_P_LeftShift_e2_1 = (2<<4) | 1, /* lshift 2 bit, program LSHIFT reg */
     BVDC_P_LeftShift_e1_0 = (1<<4) | 0, /* lshift 1 bit, NOT program LSHIFT reg */
     BVDC_P_LeftShift_e2_0 = (2<<4) | 0, /* lshift 2 bit, NOT program LSHIFT reg */
+    BVDC_P_LeftShift_eExist = BVDC_P_LeftShift_eOff, /* for dvs, program LSHIFT reg with BDVS_Control_Csc.uiLshf */
     BVDC_P_LeftShift_eMax
 } BVDC_P_LeftShift;
 
@@ -226,106 +239,75 @@ typedef enum
 #define BVDC_P_GET_CSC_LSHIFT(c) \
     ((c) >> 24)
 
-/*
-Summary:
-    Pixel color format type.
+/* --------------------------------------------------------------------
+ * L-Range Adjust MACRO:
+ */
+#define BVDC_P_LR_XY_I_BITS          (1)
+#define BVDC_P_LR_XY_F_BITS         (15)
+#define BVDC_P_LR_SLP_M_I_BITS       (0)
+#define BVDC_P_LR_SLP_M_F_BITS      (15)
+#define BVDC_P_LR_SLP_E_I_BITS       (4)
+#define BVDC_P_LR_SLP_E_F_BITS       (0)
 
-Description:
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+#define BVDC_P_LR_X_SHIFT           BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_LRA_X_SHIFT
+#define BVDC_P_LR_Y_SHIFT           BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_LRA_Y_SHIFT
+#define BVDC_P_LR_SLP_M_SHIFT       BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_SLOPE_M_SHIFT
+#define BVDC_P_LR_SLP_E_SHIFT       BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_SLOPE_E_SHIFT
 
-See Also:
+#elif (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
+#define BVDC_P_LR_X_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_X_SHIFT
+#define BVDC_P_LR_Y_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_Y_SHIFT
+#define BVDC_P_LR_SLP_M_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_M_SHIFT
+#define BVDC_P_LR_SLP_E_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_E_SHIFT
 
-*/
-typedef enum
-{
-    BAVC_P_ColorFormat_eRGB = 0,   /* non-linear */
-    BAVC_P_ColorFormat_eYCbCr,     /* regular YCbCr, i.e. non-constant luminance */
-    BAVC_P_ColorFormat_eYCbCr_CL,  /* constant luminance.  does bt709 have CL combination ??? */
-    BAVC_P_ColorFormat_eLMS,
-    BAVC_P_ColorFormat_eICtCp,
-    BAVC_P_ColorFormat_eMax,
-    BAVC_P_ColorFormat_eInvalid = BAVC_P_ColorFormat_eMax
+#else /* TODO: add support */
+#define BVDC_P_LR_X_SHIFT           0
+#define BVDC_P_LR_Y_SHIFT           0
+#define BVDC_P_LR_SLP_M_SHIFT       0
+#define BVDC_P_LR_SLP_E_SHIFT       0
+#endif
 
-} BAVC_P_ColorFormat;
+#define BVDC_P_MAKE_LR_XY(x, y) \
+    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(x, BVDC_P_LR_XY_I_BITS, BVDC_P_LR_XY_F_BITS)) << BVDC_P_LR_X_SHIFT) | \
+    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(y, BVDC_P_LR_XY_I_BITS, BVDC_P_LR_XY_F_BITS)) << BVDC_P_LR_Y_SHIFT)
 
-/*
-Summary:
-    Pixel colorimetry type.
+#define BVDC_P_MAKE_LR_SLOPE(m,e) \
+    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(m, BVDC_P_LR_SLP_M_I_BITS, BVDC_P_LR_SLP_M_F_BITS)) << BVDC_P_LR_SLP_M_SHIFT) | \
+    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(e, BVDC_P_LR_SLP_E_I_BITS, BVDC_P_LR_SLP_E_F_BITS)) << BVDC_P_LR_SLP_E_SHIFT)
 
-Description:
-
-See Also:
-pColorSpace->eColorFormat
-*/
-typedef enum BAVC_P_Colorimetry
-{
-    BAVC_P_Colorimetry_eBt709,
-    BAVC_P_Colorimetry_eSmpte170M,      /* ntsc / pal digital */
-    BAVC_P_Colorimetry_eBt470_BG,       /* pal analog */
-    BAVC_P_Colorimetry_eBt2020,
-    BAVC_P_Colorimetry_eXvYcc601,
-    BAVC_P_Colorimetry_eXvYcc709,       /* matrix is same as BT709 */
-    BAVC_P_Colorimetry_eFcc,            /* only for input */
-    BAVC_P_Colorimetry_eSmpte240M,      /* only for input */
-    BAVC_P_Colorimetry_eMax,
-    BAVC_P_Colorimetry_eInvalid = BAVC_P_Colorimetry_eMax
-} BAVC_P_Colorimetry;
-
-/*
-Summary:
-    Pixel color range
-
-Description:
-    Used to specify color component range
-
-See Also:
-
-*/
-typedef enum BAVC_P_ColorRange {
-
-    BAVC_P_ColorRange_eLimited,
-    BAVC_P_ColorRange_eFull,
-    BAVC_P_ColorRange_eMax
-} BAVC_P_ColorRange;
-
-/*
-Summary:
-    Video transfer function
-
-Description:
-    Used to specify transfer function, such as OETF for input, EOTF for display.
-
-See Also:
-
-*/
-typedef enum BAVC_P_ColorTF {
-    BAVC_P_ColorTF_eBt1886,      /* SDR */
-    BAVC_P_ColorTF_eBt2100Pq,    /* i.e. HDR-PQ, or HDR10 */
-    BAVC_P_ColorTF_eHlg,         /* Hybrid Log-Gamma */
-    BAVC_P_ColorTF_eDbv,         /* Dolby Vision */
-    BAVC_P_ColorTF_eMax
-} BAVC_P_ColorTF;
-
-/*
-Summary:
-    Defines pixel sample's bit depth per component.
-
-Description:
-    This enum is used to report the pixel sample bit depth per component.
-    Conventional video codecs support 8-bit per component video sample.
-    while h265 video spec also supports 10-bit video.
-
-See Also:
-*/
-typedef enum BAVC_P_ColorDepth
-{
-    BAVC_P_ColorDepth_e8Bit = 0,
-    BAVC_P_ColorDepth_e10Bit,
-    BAVC_P_ColorDepth_e12Bit,
-    BAVC_P_ColorDepth_e16Bit,
-    BAVC_P_ColorDepth_ePacked16,
-    BAVC_P_ColorDepth_eMax
-
-} BAVC_P_ColorDepth;
+#define BVDC_P_MAKE_LR_ADJ(num_pts,                               \
+                           x0, y0, mantissa0, exp0,               \
+                           x1, y1, mantissa1, exp1,               \
+                           x2, y2, mantissa2, exp2,               \
+                           x3, y3, mantissa3, exp3,               \
+                           x4, y4, mantissa4, exp4,               \
+                           x5, y5, mantissa5, exp5,               \
+                           x6, y6, mantissa6, exp6,               \
+                           x7, y7, mantissa7, exp7)               \
+{                                                                 \
+    num_pts,                                                      \
+    {                                                             \
+        BVDC_P_MAKE_LR_SLOPE(mantissa0, exp0),                    \
+        BVDC_P_MAKE_LR_SLOPE(mantissa1, exp1),                    \
+        BVDC_P_MAKE_LR_SLOPE(mantissa2, exp2),                    \
+        BVDC_P_MAKE_LR_SLOPE(mantissa3, exp3),                    \
+        BVDC_P_MAKE_LR_SLOPE(mantissa4, exp4),                    \
+        BVDC_P_MAKE_LR_SLOPE(mantissa5, exp5),                    \
+        BVDC_P_MAKE_LR_SLOPE(mantissa6, exp6),                    \
+        BVDC_P_MAKE_LR_SLOPE(mantissa7, exp7)                     \
+    },                                                            \
+    {                                                             \
+        BVDC_P_MAKE_LR_XY(x0, y0),                                \
+        BVDC_P_MAKE_LR_XY(x1, y1),                                \
+        BVDC_P_MAKE_LR_XY(x2, y2),                                \
+        BVDC_P_MAKE_LR_XY(x3, y3),                                \
+        BVDC_P_MAKE_LR_XY(x4, y4),                                \
+        BVDC_P_MAKE_LR_XY(x5, y5),                                \
+        BVDC_P_MAKE_LR_XY(x6, y6),                                \
+        BVDC_P_MAKE_LR_XY(x7, y7)                                 \
+    }                                                             \
+}
 
 /*
  * AVC ColorSpace (public)
@@ -340,6 +322,17 @@ typedef struct BAVC_P_ColorSpace
     BAVC_P_ColorTF              eColorTF;
     BAVC_P_ColorDepth           eColorDepth;
 
+#if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
+    union {
+        /* DBV support */
+        #if BVDC_P_DBV_SUPPORT
+        BVDC_P_DBV_Input stDbvInput;
+        #endif
+        #if BVDC_P_TCH_SUPPORT
+        BVDC_P_TCH_Input stTchInput;
+        #endif
+    } stMetaData;
+#endif /* BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT */
 } BAVC_P_ColorSpace;
 
 #define BAVC_P_COLOR_SPACE_DIFF(c1, c2) \
@@ -387,6 +380,145 @@ typedef struct BVDC_P_ColorSpace
     BVDC_P_Csc3x4               stMalt; /* CL pos alt, Ma with input, Mc with display */
 
 } BVDC_P_ColorSpace;
+
+/* --------------------------------------------------------------------
+ * PWL table for dbv/tch background color nl2l&l2nl adjustment:
+ */
+#define BVDC_P_PWL_XY_I_BITS          (1)
+#define BVDC_P_PWL_XY_F_BITS         (24)
+#define BVDC_P_PWL_SLP_M_I_BITS       (0)
+#define BVDC_P_PWL_SLP_M_F_BITS      (24)
+#define BVDC_P_PWL_SLP_E_I_BITS       (4)
+#define BVDC_P_PWL_SLP_E_F_BITS       (0)
+
+#define BVDC_P_MAKE_PWL_XY(x, y) \
+    {BMTH_FIX_SIGNED_FTOFIX(x, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS), \
+     BMTH_FIX_SIGNED_FTOFIX(y, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)}
+
+#define BVDC_P_MAKE_PWL_SLOPE(m,e) \
+    {BMTH_FIX_SIGNED_FTOFIX(m, BVDC_P_PWL_SLP_M_I_BITS, BVDC_P_PWL_SLP_M_F_BITS), \
+     BMTH_FIX_SIGNED_FTOFIX(e, BVDC_P_PWL_SLP_E_I_BITS, BVDC_P_PWL_SLP_E_F_BITS)}
+
+#define BVDC_P_MAKE_NL_PWL(num_pts,                              \
+                           x0, y0, mantissa0, exp0,               \
+                           x1, y1, mantissa1, exp1,               \
+                           x2, y2, mantissa2, exp2,               \
+                           x3, y3, mantissa3, exp3,               \
+                           x4, y4, mantissa4, exp4,               \
+                           x5, y5, mantissa5, exp5,               \
+                           x6, y6, mantissa6, exp6,               \
+                           x7, y7, mantissa7, exp7)               \
+{                                                                 \
+    num_pts,                                                      \
+    {                                                             \
+        BVDC_P_MAKE_PWL_XY(x0, y0),                               \
+        BVDC_P_MAKE_PWL_XY(x1, y1),                               \
+        BVDC_P_MAKE_PWL_XY(x2, y2),                               \
+        BVDC_P_MAKE_PWL_XY(x3, y3),                               \
+        BVDC_P_MAKE_PWL_XY(x4, y4),                               \
+        BVDC_P_MAKE_PWL_XY(x5, y5),                               \
+        BVDC_P_MAKE_PWL_XY(x6, y6),                               \
+        BVDC_P_MAKE_PWL_XY(x7, y7)                                \
+    },                                                            \
+    {                                                             \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa0, exp0),                   \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa1, exp1),                   \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa2, exp2),                   \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa3, exp3),                   \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa4, exp4),                   \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa5, exp5),                   \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa6, exp6),                   \
+        BVDC_P_MAKE_PWL_SLOPE(mantissa7, exp7)                    \
+    }                                                             \
+}
+
+typedef struct BVDC_P_NL_PwlSegments
+{
+    unsigned num;/* number of points/segments */
+    struct {
+        uint32_t x;/* U1.24 */
+        uint32_t y;/* U1.24 */
+    } point[BVDC_P_CMP_LR_ADJ_PTS];
+    struct
+    {
+        int32_t man;/* S0.24 */
+        int32_t exp;/* S4.0 */
+    } slope[BVDC_P_CMP_LR_ADJ_PTS];
+} BVDC_P_NL_PwlSegments;
+
+/* --------------------------------------------------------------------
+ * matrix
+ */
+#define BVDC_P_MAKE_CFC_CX(m) \
+    BMTH_FIX_SIGNED_FTOFIX(m, BVDC_P_CSC_SW_CX_I_BITS, BVDC_P_CSC_SW_CX_F_BITS)
+#define BVDC_P_MAKE_CFC_CO(m) \
+    BMTH_FIX_SIGNED_FTOFIX(m, BVDC_P_CSC_SW_CO_I_BITS, BVDC_P_CSC_SW_CO_F_BITS)
+
+#define BVDC_P_MAKE_CFC_CX_FR_USR(m, usr_shift) \
+    BMTH_FIX_SIGNED_CONVERT_isrsafe(m, BVDC_P_CFC_FIX_MAX_BITS - usr_shift, usr_shift, BVDC_P_CSC_SW_CX_I_BITS, BVDC_P_CSC_SW_CX_F_BITS)
+#define BVDC_P_MAKE_CFC_CO_FR_USR(m, usr_shift) \
+    BMTH_FIX_SIGNED_CONVERT_isrsafe(m, BVDC_P_CFC_FIX_MAX_BITS - usr_shift, usr_shift, BVDC_P_CSC_SW_CO_I_BITS, BVDC_P_CSC_SW_CO_F_BITS)
+
+#define BVDC_P_MAKE_CFC_CX_TO_USR(m, usr_shift) \
+    BMTH_FIX_SIGNED_CONVERT_isrsafe(m, BVDC_P_CSC_SW_CX_I_BITS, BVDC_P_CSC_SW_CX_F_BITS, BVDC_P_CFC_FIX_MAX_BITS - usr_shift, usr_shift)
+#define BVDC_P_MAKE_CFC_CO_TO_USR(m, usr_shift) \
+    BMTH_FIX_SIGNED_CONVERT_isrsafe(m, BVDC_P_CSC_SW_CO_I_BITS, BVDC_P_CSC_SW_CO_F_BITS, BVDC_P_CFC_FIX_MAX_BITS - usr_shift, usr_shift)
+
+/* 3x4 matrix, for A or C */
+#define BVDC_P_MAKE_CSC_3x4(m00, m01, m02, m03,  \
+                            m10, m11, m12, m13,  \
+                            m20, m21, m22, m23 ) \
+{{                                               \
+     { BVDC_P_MAKE_CFC_CX(m00),   \
+       BVDC_P_MAKE_CFC_CX(m01),   \
+       BVDC_P_MAKE_CFC_CX(m02),   \
+       BVDC_P_MAKE_CFC_CO(m03) }, \
+                                  \
+     { BVDC_P_MAKE_CFC_CX(m10),   \
+       BVDC_P_MAKE_CFC_CX(m11),   \
+       BVDC_P_MAKE_CFC_CX(m12),   \
+       BVDC_P_MAKE_CFC_CO(m13) }, \
+                                  \
+     { BVDC_P_MAKE_CFC_CX(m20),   \
+       BVDC_P_MAKE_CFC_CX(m21),   \
+       BVDC_P_MAKE_CFC_CX(m22),   \
+       BVDC_P_MAKE_CFC_CO(m23) }  \
+}}
+
+/* 2x4 matrix, for A or C positive Cr/Cb ALT in CL case */
+#define BVDC_P_MAKE_CSC_2x4(m00, m01, m02, m03,   \
+                            m10, m11, m12, m13 )  \
+{{                                                \
+     { BVDC_P_MAKE_CFC_CX(m00),   \
+       BVDC_P_MAKE_CFC_CX(m01),   \
+       BVDC_P_MAKE_CFC_CX(m02),   \
+       BVDC_P_MAKE_CFC_CO(m03) }, \
+                                  \
+     { BVDC_P_MAKE_CFC_CX(m10),   \
+       BVDC_P_MAKE_CFC_CX(m11),   \
+       BVDC_P_MAKE_CFC_CX(m12),   \
+       BVDC_P_MAKE_CFC_CO(m13) }  \
+}}
+
+/* 3x4 matrix, for B */
+#define BVDC_P_MAKE_CSC_3x3(m00, m01, m02,  \
+                            m10, m11, m12,  \
+                            m20, m21, m22 ) \
+{{                                \
+     { BVDC_P_MAKE_CFC_CX(m00),   \
+       BVDC_P_MAKE_CFC_CX(m01),   \
+       BVDC_P_MAKE_CFC_CX(m02) }, \
+                                  \
+     { BVDC_P_MAKE_CFC_CX(m10),   \
+       BVDC_P_MAKE_CFC_CX(m11),   \
+       BVDC_P_MAKE_CFC_CX(m12) }, \
+                                  \
+     { BVDC_P_MAKE_CFC_CX(m20),   \
+       BVDC_P_MAKE_CFC_CX(m21),   \
+       BVDC_P_MAKE_CFC_CX(m22) }  \
+}}
+
+extern const BVDC_P_Csc3x3 s_BT709_RGB_to_XYZ;
 
 /*
  * LRange Adjust
@@ -621,11 +753,57 @@ void BVDC_P_Cfc_UpdateCfg_isr
 /* Build RDC RUL for ram LUT loading
  */
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+void BVDC_P_Cfc_PrintCscRx4_isr(const uint32_t *pCur, uint32_t ulCfg, bool bUseAlt);
+
+/* this function could be called to build CMP/GFD/VEC LRange adjust
+ */
+void BVDC_P_Cfc_BuildRulForLRAdj_isr(
+    const BVDC_P_CfcLRangeAdj       *pLRangeAdj,
+    uint32_t                         ulStartReg,
+    BVDC_P_ListInfo                 *pList);
+
+/* Build LUT RUL for RAM (NL2L/L2NL/LMR) loading and RDC RUL for usage control
+ */
+void BVDC_P_Cfc_BuildRulForRamLut_isr
+    ( const BVDC_P_RamLut             *pRamLut,
+      uint32_t                         ulStartReg,
+      uint32_t                         ulLutId,
+      BVDC_P_CfcLutLoadListInfo       *pLutList,
+      BVDC_P_ListInfo                 *pList);
+
+/* Build RDC RUL for ram LUT loading
+ */
 void BVDC_P_Cfc_BuildRulForLutLoading_isr
     ( BVDC_P_CfcLutLoadListInfo *pLutList,
       uint32_t                   ulStartReg, /* *_LUT_DESC_ADDR */
       BVDC_P_ListInfo           *pList);
+
+#if BVDC_P_DBV_SUPPORT
+void BVDC_P_Dbv_UpdateVideoInputColorSpace_isr(
+    BAVC_P_ColorSpace            *pColorSpace,
+    const BAVC_MVD_Field         *pMvdFieldData );
+void BVDC_P_Dbv_UpdateGfxInputColorSpace_isr(
+    BVDC_Compositor_Handle        hCompositor,
+    const BAVC_P_ColorSpace      *pColorSpace );
+uint32_t BVDC_P_Compositor_DbvBackground_isrsafe
+    ( BVDC_Compositor_Handle           hCompositor,
+      uint8_t                          ucRed,
+      uint8_t                          ucGreen,
+      uint8_t                          ucBlue);
 #endif
+#if BVDC_P_TCH_SUPPORT
+void BVDC_P_Tch_UpdateVideoInputColorSpace_isr(
+    BAVC_P_ColorSpace            *pColorSpace,
+    const BAVC_MVD_Field         *pMvdFieldData );
+#endif
+#endif
+
+void BVDC_P_Csc_Mult_isr
+    ( const int32_t                        *pA,  /* matrix A element buf ptr */
+      int                                   iAc, /* matrxi A's number of columns */
+      const int32_t                        *pB,  /* matrix B element buf ptr */
+      int                                   iBc, /* matrxi B's number of columns */
+      int32_t                              *pM ); /* matrix M element buf ptr */
 
 void BVDC_P_Cfc_FromMatrix_isr
     ( BVDC_P_CfcContext        *pCfc,

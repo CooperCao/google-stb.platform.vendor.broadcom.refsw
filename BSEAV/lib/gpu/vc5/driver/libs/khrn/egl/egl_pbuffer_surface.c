@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "egl_thread.h"
 #include "egl_display.h"
@@ -26,7 +20,7 @@ struct egl_pbuffer_surface
    EGLenum                    texture_target;
 
    unsigned                   num_images;
-   KHRN_IMAGE_T               *images[KHRN_MAX_MIP_LEVELS];
+   khrn_image               *images[KHRN_MAX_MIP_LEVELS];
 
    /* Which image to actually render to (index into images array above). */
    unsigned                   current_image;
@@ -39,7 +33,7 @@ struct egl_pbuffer_surface
 };
 
 static EGL_SURFACE_METHODS_T fns;
-static KHRN_IMAGE_T *get_back_buffer(const EGL_SURFACE_T *surface);
+static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface);
 
 static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
 {
@@ -50,8 +44,8 @@ static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
 
    if (egl_context_gl_lock())
    {
-      KHRN_IMAGE_T *image = get_back_buffer(&surface->base);
-      khrn_interlock_flush(khrn_image_get_interlock(image));
+      khrn_image *image = get_back_buffer(&surface->base);
+      khrn_resource_flush(khrn_image_get_resource(image));
 
       egl_context_gl_unlock();
    }
@@ -190,7 +184,7 @@ static bool get_attrib(const EGL_SURFACE_T *surface,
    return egl_surface_base_get_attrib(&surf->base, attrib, value);
 }
 
-static KHRN_IMAGE_T *get_back_buffer(const EGL_SURFACE_T *surface)
+static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
 {
    const EGL_PBUFFER_SURFACE_T *surf = (const EGL_PBUFFER_SURFACE_T *) surface;
    return surf->images[surf->current_image];
@@ -204,7 +198,7 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
    EGLSurface ret = EGL_NO_SURFACE;
    unsigned level;
    static gfx_buffer_usage_t flags ;
-   KHRN_BLOB_T *blob = NULL;
+   khrn_blob *blob = NULL;
 
    GFX_LFMT_T colorformat;
    GFX_LFMT_T color_api_fmt;
@@ -500,11 +494,11 @@ end:
 
 static EGL_SURFACE_METHODS_T fns =
 {
-   get_back_buffer,
-   NULL,                /* swap_buffers */
-   NULL,                /* swap_interval */
-   NULL,                /* get_dimensions */
-   get_attrib,
-   set_attrib,
-   delete_fn,
+   .get_back_buffer = get_back_buffer,
+   .swap_buffers = NULL,
+   .swap_interval = NULL,
+   .get_dimensions = NULL,
+   .get_attrib = get_attrib,
+   .set_attrib = set_attrib,
+   .delete_fn = delete_fn,
 };

@@ -166,6 +166,7 @@ b_play_trick_set_each_audio(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidCh
         else {
             audioState.rate = settings->decode_rate;
         }
+        audioState.stcTrickEnabled = false;
     }
     else {
         /* stc trick modes */
@@ -175,8 +176,9 @@ b_play_trick_set_each_audio(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidCh
         }
         else {
             /* if 0, just do an STC pause, no RAP pause. but we also have to return to mute. */
-            audioState.rate = NEXUS_NORMAL_PLAY_SPEED;
+            audioState.rate = 0;
         }
+        audioState.stcTrickEnabled = true;
     }
     if (settings->audio_only_pause) {
         audioState.rate = 0;

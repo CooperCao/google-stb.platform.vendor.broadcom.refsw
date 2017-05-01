@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-EGL context structure declaration.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_CLIENT_CONTEXT_H
 #define EGL_CLIENT_CONTEXT_H
 
@@ -51,7 +43,7 @@ typedef struct {
    bool secure;
 } EGL_CONTEXT_T;
 
-extern EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version,
+extern EGLint egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version,
    EGLint *version, bool *secure);
 
 extern EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,

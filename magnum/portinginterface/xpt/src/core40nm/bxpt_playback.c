@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -68,8 +68,7 @@ BDBG_MODULE( xpt_playback );
 #define BXPT_PB_MAX_SYNC_LENGTH                         ( 256 )
 #define FLUSH_COUNTDOWN                                 ( 10 )
 
-
-static BERR_Code BXPT_Playback_P_CreateDesc( BXPT_Handle hXpt, BXPT_PvrDescriptor * const Desc, uint8_t *Buffer,
+static BERR_Code BXPT_Playback_P_CreateDesc( BXPT_Playback_Handle hPb, BXPT_PvrDescriptor * const Desc, uint8_t *Buffer,
     uint32_t BufferLength, bool IntEnable, bool ReSync, BXPT_PvrDescriptor * const NextDesc );
 
 static void TsRangeErrorIsr ( void *hPb , int Param2);
@@ -78,6 +77,38 @@ static BERR_Code CalcAndSetBlockout(
     BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
     uint32_t BitRate            /* [in] Rate, in bits per second. */
     );
+
+static void BXPT_Playback_P_WriteAddr(
+    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
+    uint32_t Pb0RegAddr,
+    uint64_t RegVal
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_PB0_CTRL1 + PlaybackHandle->BaseAddr;
+
+    BREG_WriteAddr( PlaybackHandle->hRegister, RegAddr, RegVal );
+}
+
+
+static uint64_t BXPT_Playback_P_ReadAddr(
+    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
+    uint32_t Pb0RegAddr
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_PB0_CTRL1 + PlaybackHandle->BaseAddr;
+
+    return BREG_ReadAddr( PlaybackHandle->hRegister, RegAddr );
+}
 
 BERR_Code BXPT_Playback_GetTotalChannels(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
@@ -152,8 +183,6 @@ BERR_Code BXPT_Playback_OpenChannel(
     BXPT_Playback_Handle hPb = NULL;
     BINT_Id TsRangeErrorIntId;
     BXPT_PidChannel_CC_Config DefaultCcConfig = { false, false, false, 0 };
-    uint8_t *CachedDummyBuffer;
-    void *DummyDescCached;
 
     BDBG_ASSERT( hXpt );
     BDBG_ASSERT( ChannelSettings );
@@ -186,12 +215,7 @@ BERR_Code BXPT_Playback_OpenChannel(
     hPb->CcConfigBeforeAllPass = DefaultCcConfig;
     hPb->ForceResync = 0;
     hPb->maxTsError = 1024;
-
-    /* If they've got a separate heap for playback, use it */
-    if( hXpt->hPbHeap )
-        hPb->hMemory = hXpt->hPbHeap;
-    else
-        hPb->hMemory = hXpt->hMemory;
+    hPb->mmaHeap = ChannelSettings->mmaHeap;
 
     TsRangeErrorIntId = BXPT_Playback_GetIntId( hPb, BXPT_PbInt_eTsRangeErr );
 
@@ -252,29 +276,34 @@ BERR_Code BXPT_Playback_OpenChannel(
     BXPT_Playback_SetChannelSettings( hPb, ChannelSettings );
 
     /* Create the dummy descriptor and buffer */
-    hPb->DummyDescriptor = BMEM_AllocAligned( hPb->hMemory, sizeof( BXPT_PvrDescriptor ), 4, 0 );
-    if( !hPb->DummyDescriptor )
+    hPb->dummyDescBlock = BMMA_Alloc(hPb->mmaHeap, sizeof( BXPT_PvrDescriptor ), 1 << 4, 0);
+    if( !hPb->dummyDescBlock )
     {
         BDBG_ERR(( "DummyDescriptor alloc failed!" ));
         ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
         goto ErrorCleanUp;
     }
-    hPb->DummyBuffer = BMEM_AllocAligned( hPb->hMemory, 2, 0, 0 );
-    if( !hPb->DummyBuffer )
+    hPb->dummyDesc = BMMA_Lock(hPb->dummyDescBlock);
+    hPb->dummyDescOffset = BMMA_LockOffset(hPb->dummyDescBlock);
+
+    hPb->DummyBufferBlock = BMMA_Alloc(hPb->mmaHeap, 2, 0, 0);
+    if( !hPb->DummyBufferBlock )
     {
         BDBG_ERR(( "DummyBuffer alloc failed!" ));
-        BMEM_Free( hPb->hMemory, hPb->DummyDescriptor );
+        BMMA_Unlock(hPb->dummyDescBlock, hPb->dummyDesc);
+        BMMA_Free(hPb->dummyDesc);
         ExitCode = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
         goto ErrorCleanUp;
     }
+    hPb->DummyBuffer = BMMA_Lock(hPb->DummyBufferBlock);
+    hPb->DummyBufferOffset = BMMA_LockOffset(hPb->DummyBufferBlock);
 
     /* Flushing the cache is done in BXPT_Playback_CreateDesc() */
-    BMEM_ConvertAddressToCached(hPb->hMemory, (void *) hPb->DummyBuffer, (void **) &CachedDummyBuffer);
-    CachedDummyBuffer[ 0 ] = CachedDummyBuffer[ 1 ] = 0x55;
-    BMEM_ConvertAddressToCached(hPb->hMemory, hPb->DummyDescriptor, &DummyDescCached);
+    BMMA_FlushCache(hPb->DummyBufferBlock, hPb->DummyBuffer, 2);
+    hPb->DummyBuffer[ 0 ] = hPb->DummyBuffer[ 1 ] = 0x55;
+    BMMA_FlushCache(hPb->DummyBufferBlock, hPb->DummyBuffer, 2);
+    BXPT_Playback_P_CreateDesc( hPb, (BXPT_PvrDescriptor *) hPb->dummyDesc, hPb->DummyBuffer, 2, false, false, NULL );
 
-    BXPT_Playback_CreateDesc( hXpt, DummyDescCached, hPb->DummyBuffer, 2, false, false, NULL );
-    BMEM_FlushCache(hPb->hMemory, CachedDummyBuffer, 2 );
     hPb->Opened = true;
     *PlaybackHandle = hPb;
 
@@ -304,8 +333,10 @@ void BXPT_Playback_CloseChannel(
     /* Clean up all previous Packetization state, if any. */
     BXPT_Playback_DisablePacketizers( PlaybackHandle );
 
-    BMEM_Free( PlaybackHandle->hMemory, PlaybackHandle->DummyDescriptor );
-    BMEM_Free( PlaybackHandle->hMemory, PlaybackHandle->DummyBuffer );
+    BMMA_Unlock(PlaybackHandle->dummyDescBlock, PlaybackHandle->dummyDesc);
+    BMMA_Free(PlaybackHandle->dummyDescBlock);
+    BMMA_Unlock(PlaybackHandle->DummyBufferBlock, PlaybackHandle->DummyBuffer);
+    BMMA_Free(PlaybackHandle->DummyBufferBlock);
 
     PlaybackHandle->Opened = false;
 }
@@ -348,6 +379,20 @@ BERR_Code BXPT_Playback_SetChannelSettings(
 
     hPb->SyncMode = ChannelSettings->SyncMode;
 
+    /* unlock previous */
+    if (hPb->mma.descBlock) {
+        BMMA_Unlock(hPb->mma.descBlock, hPb->mma.descPtr);
+        BMMA_UnlockOffset(hPb->mma.descBlock, hPb->mma.descOffset);
+        hPb->mma.descBlock = NULL;
+    }
+
+    hPb->mma.descBlock = ChannelSettings->descBlock;
+    if (hPb->mma.descBlock) {
+        hPb->mma.descPtr = (uint8_t*)BMMA_Lock(ChannelSettings->descBlock) + ChannelSettings->descOffset;
+        hPb->mma.descOffset = BMMA_LockOffset(ChannelSettings->descBlock) + ChannelSettings->descOffset;
+    }
+
+    hPb->settings = *ChannelSettings;
     if( ChannelSettings->PacketLength > BXPT_PB_MAX_SYNC_LENGTH )
     {
         BDBG_ERR(( "Packet length %d too long! Clamped to %d", ChannelSettings->PacketLength, BXPT_PB_MAX_SYNC_LENGTH ));
@@ -515,8 +560,7 @@ BERR_Code BXPT_Playback_GetChannelSettings(
     BDBG_ASSERT( hPb );
     BDBG_ASSERT( ChannelSettings );
 
-    Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL3 );
-    ChannelSettings->PacketLength = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CTRL3, SYNC_LENGTH );
+    *ChannelSettings = hPb->settings;
 
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL2 );
     ChannelSettings->SyncMode = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CTRL2, SYNC_EXT_MODE );
@@ -697,14 +741,12 @@ BERR_Code BXPT_Playback_GetCurrentBufferAddress(
     uint32_t *Address                       /* [out] The address read from hardware. */
     )
 {
-    uint32_t Reg;
+   BSTD_UNUSED( hPb );
+   BSTD_UNUSED( Address );
 
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CURR_BUFF_ADDR );
-    *Address = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CURR_BUFF_ADDR, CURR_BUFF_ADDR );
-
-    return( ExitCode );
+   /* Not used by Nexus or BPVRLib */
+   BDBG_ERR(("BERR_NOT_SUPPORTED"));
+   return BERR_NOT_SUPPORTED;
 }
 
 BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
@@ -725,8 +767,7 @@ BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
     if( CurrentDescAddr )
     {
         CurrentDescAddr <<= 4;  /* Convert to byte-address. */
-        BMEM_ConvertOffsetToAddress( hPb->hMemory, CurrentDescAddr, ( void ** ) &UserDescAddr );
-        BMEM_ConvertAddressToCached(hPb->hMemory, UserDescAddr, &UserDescAddr);
+        UserDescAddr = (uint8_t*) hPb->mma.descPtr + (CurrentDescAddr - hPb->mma.descOffset); /* offset -> cached address */
         *LastDesc = ( BXPT_PvrDescriptor * ) UserDescAddr;
     }
 
@@ -743,8 +784,15 @@ BERR_Code BXPT_Playback_CreateDesc(
     BXPT_PvrDescriptor * const NextDesc     /* [in] Next descriptor, or NULL */
     )
 {
-    BDBG_ASSERT( Desc );
-    return BXPT_Playback_P_CreateDesc( hXpt, Desc, Buffer, BufferLength, IntEnable, ReSync, NextDesc );
+   /* deprecated due to MMA conversion */
+   BSTD_UNUSED(hXpt);
+   BSTD_UNUSED(Desc);
+   BSTD_UNUSED(Buffer);
+   BSTD_UNUSED(BufferLength);
+   BSTD_UNUSED(IntEnable);
+   BSTD_UNUSED(ReSync);
+   BSTD_UNUSED(NextDesc);
+   return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 void BXPT_SetLastDescriptorFlag(
@@ -752,20 +800,11 @@ void BXPT_SetLastDescriptorFlag(
     BXPT_PvrDescriptor * const Desc     /* [in] Descriptor to initialize */
     )
 {
-    BMEM_Handle hHeap;
-    BXPT_PvrDescriptor *CachedDescPtr;
-
-    BDBG_ASSERT( Desc );
-
-    if( hXpt->hPbHeap )
-        hHeap = hXpt->hPbHeap;
-    else
-        hHeap = hXpt->hMemory;
-
-    /*  Set the Last Descriptor bit. */
-    CachedDescPtr = Desc;
-    CachedDescPtr->NextDescAddr = TRANS_DESC_LAST_DESCR_IND;
-    BMEM_FlushCache(hHeap, CachedDescPtr, sizeof (BXPT_PvrDescriptor) );
+   /* deprecated due to MMA conversion */
+   BSTD_UNUSED(hXpt);
+   BSTD_UNUSED(Desc);
+   (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+   return;
 }
 
 BERR_Code BXPT_Playback_AddDescriptors(
@@ -777,42 +816,42 @@ BERR_Code BXPT_Playback_AddDescriptors(
     uint32_t Reg;
     uint32_t DescPhysAddr;
     BXPT_PvrDescriptor *CachedFirstDesc, *CachedDescPtr;
+    uint32_t *DescWords;
 
     BERR_Code ExitCode = BERR_SUCCESS;
     BXPT_PvrDescriptor *LastDescriptor_Cached = ( BXPT_PvrDescriptor * ) hPb->LastDescriptor_Cached;
 
     BDBG_ASSERT( FirstDesc );
-    CachedFirstDesc = FirstDesc;
+    BMMA_FlushCache(hPb->mma.descBlock, FirstDesc, sizeof(BXPT_PvrDescriptor));
 
     /* When the sync extractor is in bypass mode, the first descriptor must have it's FORCE_RESYNC flag set. */
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL2 );
     if( !LastDescriptor_Cached && BXPT_PB_SYNC_BYPASS == BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CTRL2, SYNC_EXT_MODE ) )
     {
-        CachedFirstDesc->Flags |= TRANS_DESC_FORCE_RESYNC_FLAG;
+        FirstDesc->Flags |= TRANS_DESC_FORCE_RESYNC_FLAG;
     }
-
-    BMEM_FlushCache(hPb->hMemory, CachedFirstDesc, sizeof (BXPT_PvrDescriptor) );
+    BMMA_FlushCache(hPb->mma.descBlock, FirstDesc, sizeof(BXPT_PvrDescriptor));
 
     if( hPb->ForceResync )
     {
         /* cycle through all descriptors and set force_resync flag */
-        BXPT_PvrDescriptor *TempDesc;
-        BXPT_PvrDescriptor *Desc = CachedFirstDesc;
-        BXPT_PvrDescriptor *HeadOfChain = CachedFirstDesc;
+        BXPT_PvrDescriptor *CurrDesc = FirstDesc;
+        BXPT_PvrDescriptor *HeadOfChain = FirstDesc;
 
         do
         {
-            Desc->Flags |= TRANS_DESC_FORCE_RESYNC_FLAG;
-            BMEM_FlushCache(hPb->hMemory, Desc, sizeof (BXPT_PvrDescriptor) );
+            BMMA_FlushCache(hPb->mma.descBlock, CurrDesc, sizeof (*CurrDesc));
+            CurrDesc->Flags |= TRANS_DESC_FORCE_RESYNC_FLAG;
+            BMMA_FlushCache(hPb->mma.descBlock, CurrDesc, sizeof (*CurrDesc));
 
-            if( Desc->NextDescAddr == TRANS_DESC_LAST_DESCR_IND )
+            if( CurrDesc->NextDescAddr == TRANS_DESC_LAST_DESCR_IND )
                 break;
 
-            BMEM_ConvertOffsetToAddress( hPb->hMemory, Desc->NextDescAddr, ( void ** ) &TempDesc );
-            Desc = TempDesc;
-            BMEM_FlushCache(hPb->hMemory, Desc, sizeof (BXPT_PvrDescriptor) );
+            DescWords = (uint32_t*) CurrDesc;
+            CurrDesc = (BXPT_PvrDescriptor*)((uint8_t*)hPb->mma.descPtr + (DescWords[3] - hPb->mma.descOffset)); /* convert DescWords[3] -> cached ptr */
+            BMMA_FlushCache(hPb->mma.descBlock, CurrDesc, sizeof (*CurrDesc));
         }
-        while( Desc != HeadOfChain );
+        while( CurrDesc != HeadOfChain );
     }
 
 #if 0
@@ -856,9 +895,12 @@ BERR_Code BXPT_Playback_AddDescriptors(
         }
         while( Desc != HeadOfChain );
     }
+#else
+    BSTD_UNUSED(CachedFirstDesc);
 #endif
 
-    BMEM_ConvertAddressToOffset( hPb->hMemory, ( void * ) FirstDesc, &DescPhysAddr );
+    DescPhysAddr = hPb->mma.descOffset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPb->mma.descPtr); /* convert FirstDesc -> offset */
+
     /* fail if descriptor not on MEMC0 */
     if (!BCHP_OffsetOnMemc(hPb->hChip, DescPhysAddr, 0)) {
         BDBG_ERR(("Descriptor at offset 0x%08x is not on MEMC0 and inaccessible by default RTS", DescPhysAddr));
@@ -870,8 +912,9 @@ BERR_Code BXPT_Playback_AddDescriptors(
         /* Channel has a linked-list loaded already. Append this descriptor to the end and use WAKE_MODE = 0 (resume from the last descriptor). */
 
         /* Set the last descriptor in the chain to point to the descriptor we're adding. */
+        BMMA_FlushCache(hPb->mma.descBlock, LastDescriptor_Cached, sizeof(*LastDescriptor_Cached));
         LastDescriptor_Cached->NextDescAddr = ( uint32_t ) DescPhysAddr;
-        BMEM_FlushCache(hPb->hMemory, LastDescriptor_Cached, sizeof (BXPT_PvrDescriptor) );
+        BMMA_FlushCache(hPb->mma.descBlock, LastDescriptor_Cached, sizeof(*LastDescriptor_Cached));
 
         /* SWDTV-8330: read register after uncache memory write operation to maintain consistency */
         Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL1 );
@@ -882,7 +925,7 @@ BERR_Code BXPT_Playback_AddDescriptors(
     else
     {
         /* Channel does not have a linked-list loaded. Point the FIRST_DESC_ADDR to this descriptor and set RUN */
-        Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_FIRST_DESC_ADDR );
+        Reg = BXPT_Playback_P_ReadAddr( hPb, BCHP_XPT_PB0_FIRST_DESC_ADDR );
         Reg &= ~( BCHP_MASK( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR ) );
 
         /*
@@ -895,7 +938,7 @@ BERR_Code BXPT_Playback_AddDescriptors(
         */
         DescPhysAddr >>= 4;
         Reg |= BCHP_FIELD_DATA( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR, DescPhysAddr );
-        BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_FIRST_DESC_ADDR, Reg );
+        BXPT_Playback_P_WriteAddr( hPb, BCHP_XPT_PB0_FIRST_DESC_ADDR, Reg );
 
         Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL1 );
         Reg &= ~ (
@@ -976,6 +1019,7 @@ BERR_Code BXPT_Playback_StopChannel(
     )
 {
     volatile uint32_t Reg;
+    uint64_t AddrReg;
     uint32_t PacingEn;
 
     BERR_Code ExitCode = BERR_SUCCESS;
@@ -1031,9 +1075,9 @@ BERR_Code BXPT_Playback_StopChannel(
     BXPT_Playback_P_WriteReg( PlaybackHandle, BCHP_XPT_PB0_CTRL1, Reg );
 
     /* Clear the first desc addr (for cleaner debugging) */
-    Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR );
-    Reg &= ~( BCHP_MASK( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR ) );
-    BXPT_Playback_P_WriteReg( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR, Reg );
+    AddrReg = BXPT_Playback_P_ReadAddr( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR );
+    AddrReg &= ~( BCHP_MASK( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR ) );
+    BXPT_Playback_P_WriteAddr( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR, AddrReg );
 
     /* Clear the host pause. This shouldn't be restored, though. */
     Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_CTRL2 );
@@ -1044,14 +1088,15 @@ BERR_Code BXPT_Playback_StopChannel(
 
     PlaybackHandle->LastDescriptor_Cached = 0;
 
-#if 1
+#if 0
     /* Keep this around, just in case. */
     {
         uint32_t Busy;
         int WaitCount;
-        uint32_t FirstDescAddr, SyncExtMode;
+        uint32_t SyncExtMode;
         uint32_t DescPhysAddr;
         uint32_t DescNotDone;
+        uint64_t FirstDescAddr;
 
         /* Wait for the BUSY bit to clear. */
         WaitCount = 100;          /* 100 uS max wait before we declare failure */
@@ -1075,13 +1120,16 @@ BERR_Code BXPT_Playback_StopChannel(
         while( Busy );
 
         BKNI_Delay( 10 );   /* Wait 10 uS; */
-        Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR );
+        AddrReg = BXPT_Playback_P_ReadAddr( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR );
         FirstDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR );
-        Reg &= ~( BCHP_MASK( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR ) );
-        BMEM_ConvertAddressToOffset( PlaybackHandle->hMemory, ( void * ) PlaybackHandle->DummyDescriptor, &DescPhysAddr );
+        AddrReg &= ~( BCHP_MASK( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR ) );
+
+        /* We already locked the offset in _OpenChannel() and there's only one descriptor on this block.*/
+        DescPhysAddr = PlaybackHandle->dummyDescOffset;
+
         DescPhysAddr >>= 4;
-        Reg |= BCHP_FIELD_DATA( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR, DescPhysAddr );
-        BXPT_Playback_P_WriteReg( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR, Reg );
+        AddrReg |= BCHP_FIELD_DATA( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR, DescPhysAddr );
+        BXPT_Playback_P_WriteAddr( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR, AddrReg);
 
         Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_CTRL2 );
         SyncExtMode = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CTRL2, SYNC_EXT_MODE );
@@ -1096,7 +1144,7 @@ BERR_Code BXPT_Playback_StopChannel(
         WaitCount = 100;          /* 100 uS max wait before we declare failure */
         do
         {
-            Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_CURR_DESC_ADDR );
+            AddrReg = BXPT_Playback_P_ReadAddr( PlaybackHandle, BCHP_XPT_PB0_CURR_DESC_ADDR );
             DescNotDone = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CURR_DESC_ADDR, CURR_DESC_NOT_DONE );
 
             if( DescNotDone )
@@ -1138,10 +1186,10 @@ BERR_Code BXPT_Playback_StopChannel(
         }
         while( Busy );
 
-        Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR );
-        Reg &= ~( BCHP_MASK( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR ) );
-        Reg |= BCHP_FIELD_DATA( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR, FirstDescAddr );
-        BXPT_Playback_P_WriteReg( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR, Reg );
+        AddrReg = BXPT_Playback_P_ReadAddr( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR );
+        AddrReg &= ~( BCHP_MASK( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR ) );
+        AddrReg |= BCHP_FIELD_DATA( XPT_PB0_FIRST_DESC_ADDR, FIRST_DESC_ADDR, FirstDescAddr );
+        BXPT_Playback_P_WriteAddr( PlaybackHandle, BCHP_XPT_PB0_FIRST_DESC_ADDR, AddrReg );
 
         Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_CTRL2 );
         Reg &= ~BCHP_MASK( XPT_PB0_CTRL2, SYNC_EXT_MODE );
@@ -1298,87 +1346,12 @@ BERR_Code BXPT_Playback_CheckHeadDescriptor(
     uint32_t *BufferSize            /* [out] Size of the buffer (in bytes). */
     )
 {
-    uint32_t Reg, ChanBusy, CurrentDescNotDone, CurrentDescAddr, CandidateDescPhysAddr;
-    uint32_t DescFinish;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( PlaybackHandle );
-
-    /*
-    ** Check if the current descriptor being processed by the
-    ** playback hardware is the first on our hardware list
-    ** (which means this descriptor is still being used)
-    */
-    Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_CURR_DESC_ADDR );
-    CurrentDescNotDone = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CURR_DESC_ADDR, CURR_DESC_NOT_DONE );
-    DescFinish = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CURR_DESC_ADDR, FINISHED_SHADOW ) ;
-    DescFinish = (~CurrentDescNotDone && DescFinish) ;
-    CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CURR_DESC_ADDR, CURR_DESC_ADDR );
-    CurrentDescAddr <<= 4;  /* Convert to byte-addressing */
-
-    Reg = BXPT_Playback_P_ReadReg( PlaybackHandle, BCHP_XPT_PB0_CTRL1 );
-    ChanBusy = BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CTRL1, BUSY );
-
-    BMEM_ConvertAddressToOffset( PlaybackHandle->hMemory, ( void * ) Desc, &CandidateDescPhysAddr );
-
-    if( CurrentDescAddr == CandidateDescPhysAddr )
-    {
-/*        if( ChanBusy && CurrentDescNotDone ) */
-    if( !DescFinish )
-        {
-            /* The candidate descriptor is being used by hardware. */
-            *InUse = true;
-        }
-        else
-        {
-            *InUse = false;
-        }
-    }
-    else
-    {
-        /*
-        ** The candidate descriptor isn't being processed. If this is the head descriptor
-        ** we can conclude that the hardware is finished with the descriptor.
-        */
-        *InUse = false;
-
-#if 0
-/* Keep this around, just in case */
-        if (Desc->NextDescAddr == 1)
-        {
-           /* If there's no next descriptor and the current descriptor isn't the head descriptor,
-            * the head descriptor hasn't been read by the HW yet.  It's still InUse.
-            */
-           *InUse = true;
-        }
-        else
-        {
-            /* Check if our head descriptor is after the current one */
-            BXPT_PvrDescriptor *  CurrentHwDesc;
-            BMEM_ConvertOffsetToAddress( PlaybackHandle->hMemory, CurrentDescAddr, ( void * ) &CurrentHwDesc );
-
-            /* If the head descriptor is the next descriptor, its still InUse */
-            if (CurrentHwDesc->NextDescAddr == CandidateDescPhysAddr){
-                *InUse = true;
-            }
-        }
-#endif
-    }
-
-    if( *InUse == false )
-    {
-        BXPT_PvrDescriptor *CachedDescPtr;
-        CachedDescPtr = Desc;
-        BMEM_FlushCache(PlaybackHandle->hMemory, CachedDescPtr, sizeof (BXPT_PvrDescriptor) );
-        *BufferSize = CachedDescPtr->BufferLength;
-    }
-    else
-    {
-        *BufferSize = 0;
-    }
-
-    return( ExitCode );
+   BSTD_UNUSED( PlaybackHandle );
+   BSTD_UNUSED( Desc );
+   BSTD_UNUSED( InUse );
+   BSTD_UNUSED( BufferSize );
+   BDBG_ERR(("BERR_NOT_SUPPORTED"));
+   return BERR_NOT_SUPPORTED;
 }
 
 BERR_Code BXPT_Playback_GetTimestampUserBits(
@@ -1399,7 +1372,7 @@ BERR_Code BXPT_Playback_GetTimestampUserBits(
 }
 
 
-BERR_Code BXPT_Playback_SetPacingErrorBound_impl(
+static BERR_Code BXPT_Playback_SetPacingErrorBound_impl(
     BXPT_Playback_Handle hPb,       /* [in] Handle for the playback channel */
     unsigned long MaxTsError        /* [in] Maximum timestamp error. */
     )
@@ -1780,14 +1753,11 @@ BERR_Code BXPT_Playback_GetParserConfig(
     )
 {
     uint32_t Reg;
-    BXPT_Handle hXpt;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hPb );
     BDBG_ASSERT( ParserConfig );
-
-    hXpt = ( BXPT_Handle ) hPb->vhXpt;
 
     /* The parser config registers are at consecutive addresses. */
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_PARSER_CTRL1 );
@@ -1916,7 +1886,7 @@ uint32_t BXPT_Playback_P_ReadReg(
 
 
 BERR_Code BXPT_Playback_P_CreateDesc(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
+    BXPT_Playback_Handle hPb,               /* [in] Handle for this transport */
     BXPT_PvrDescriptor * const Desc,        /* [in] Descriptor to initialize */
     uint8_t *Buffer,                        /* [in] Data buffer. */
     uint32_t BufferLength,                  /* [in] Size of buffer (in bytes). */
@@ -1930,16 +1900,15 @@ BERR_Code BXPT_Playback_P_CreateDesc(
     BXPT_PvrDescriptor *CachedDescPtr;
 
     BERR_Code ExitCode = BERR_SUCCESS;
-    BMEM_Handle hHeap = hXpt->hPbHeap ? hXpt->hPbHeap : hXpt->hMemory;
 
-    BDBG_ASSERT( hXpt );
+    BDBG_ASSERT( hPb );
     BDBG_ASSERT( Desc );
     BDBG_ASSERT( Buffer );
 
-    BMEM_ConvertAddressToOffset( hHeap, ( void * ) Buffer, &BufferPhysicalAddr );
+    BufferPhysicalAddr = hPb->DummyBufferOffset + (unsigned)(Buffer - hPb->DummyBuffer);
 
     /* Verify that the descriptor we're creating sits on a 16-byte boundary. */
-    BMEM_ConvertAddressToOffset( hHeap, ( void * ) Desc, &ThisDescPhysicalAddr );
+    ThisDescPhysicalAddr = hPb->dummyDescOffset + (unsigned)((uint8_t *) Desc - (uint8_t *) hPb->dummyDesc);
     if( ThisDescPhysicalAddr % 16 )
     {
         BDBG_ERR(( "Desc is not 16-byte aligned!" ));
@@ -1967,7 +1936,7 @@ BERR_Code BXPT_Playback_P_CreateDesc(
         /* There is a another descriptor in the chain after this one. */
         uint32_t NextDescPhysAddr;
 
-        BMEM_ConvertAddressToOffset( hHeap, ( void * ) NextDesc, &NextDescPhysAddr );
+        NextDescPhysAddr = hPb->dummyDescOffset + (unsigned)((uint8_t *) NextDesc - (uint8_t *) hPb->dummyDesc);
         if( NextDescPhysAddr % 16 )
         {
             BDBG_ERR(( "NextDescDesc is not 32-bit aligned!" ));
@@ -1984,7 +1953,7 @@ BERR_Code BXPT_Playback_P_CreateDesc(
         CachedDescPtr->NextDescAddr = TRANS_DESC_LAST_DESCR_IND;
     }
 
-    BMEM_FlushCache(hHeap, CachedDescPtr, sizeof (BXPT_PvrDescriptor) );
+    BMMA_FlushCache(hPb->dummyDescBlock, CachedDescPtr, sizeof (BXPT_PvrDescriptor));
     return( ExitCode );
 }
 
@@ -1996,13 +1965,13 @@ void BXPT_Playback_SetDescBuf(
     uint32_t BufferLength                   /* [in] Size of buffer (in bytes). */
     )
 {
-    BXPT_PvrDescriptor *CachedDescPtr;
-    BMEM_Handle hHeap = hXpt->hPbHeap ? hXpt->hPbHeap : hXpt->hMemory;
-
-    CachedDescPtr = Desc;
-    BMEM_ConvertAddressToOffset(hHeap, ( void * ) Buffer, &(CachedDescPtr->BufferStartAddr));
-    CachedDescPtr->BufferLength = BufferLength;
-    BMEM_FlushCache(hHeap, CachedDescPtr, sizeof (BXPT_PvrDescriptor) );
+   /* deprecated due to MMA conversion */
+   BSTD_UNUSED(hXpt);
+   BSTD_UNUSED(Desc);
+   BSTD_UNUSED(Buffer);
+   BSTD_UNUSED(BufferLength);
+   BERR_TRACE(BERR_NOT_SUPPORTED);
+   return;
 }
 #endif /*ENABLE_PLAYBACK_MUX*/
 
@@ -2132,27 +2101,24 @@ void BXPT_Playback_SetDescriptorFlags(
     const BXPT_PvrDescriptorFlags *flags
     )
 {
-    BXPT_PvrDescriptor *CachedDesc = NULL;
-
     BDBG_ASSERT( Desc );
     BDBG_ASSERT( flags );
 
-    CachedDesc = Desc;
-    BMEM_FlushCache( hPb->hMemory, CachedDesc, sizeof (*CachedDesc) );
+    BMMA_FlushCache(hPb->mma.descBlock, Desc, sizeof(*Desc));
 
-    CachedDesc->Reserved0 = 0;
-    CachedDesc->MuxingFlags = flags->muxFlags.bRandomAccessIndication ? 1 << 2 : 0;
+    Desc->Reserved0 = 0;
+    Desc->MuxingFlags = flags->muxFlags.bRandomAccessIndication ? 1 << 2 : 0;
     if( flags->muxFlags.bNextPacketPacingTimestampValid )
     {
-        CachedDesc->MuxingFlags |= 1 << 1;
-        CachedDesc->NextPacketPacingTimestamp = flags->muxFlags.uiNextPacketPacingTimestamp;
+        Desc->MuxingFlags |= 1 << 1;
+        Desc->NextPacketPacingTimestamp = flags->muxFlags.uiNextPacketPacingTimestamp;
     }
     if( flags->muxFlags.bPacket2PacketTimestampDeltaValid )
     {
-        CachedDesc->MuxingFlags |= 1;
-        CachedDesc->Pkt2PktPacingTimestampDelta = flags->muxFlags.uiPacket2PacketTimestampDelta;
+        Desc->MuxingFlags |= 1;
+        Desc->Pkt2PktPacingTimestampDelta = flags->muxFlags.uiPacket2PacketTimestampDelta;
     }
-    BMEM_FlushCache( hPb->hMemory, CachedDesc, sizeof (*CachedDesc) );
+    BMMA_FlushCache(hPb->mma.descBlock, Desc, sizeof(*Desc));
 
     return;
 }
@@ -2182,7 +2148,7 @@ void BXPT_Playback_P_SetBandId(
     )
 {
     uint32_t Reg;
-    BXPT_BandMap map;
+    BXPT_BandMap *map;
     BXPT_Handle hXpt = (BXPT_Handle) hPb->vhXpt;
 
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_PLAYBACK_PARSER_BAND_ID );
@@ -2196,8 +2162,8 @@ void BXPT_Playback_P_SetBandId(
     );
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_PLAYBACK_PARSER_BAND_ID, Reg );
 
-    map = hXpt->BandMap.Playback[ hPb->ChannelNo ];
-    map.VirtualParserBandNum = NewBandId;
+    map = &hXpt->BandMap.Playback[ hPb->ChannelNo ];
+    map->VirtualParserBandNum = NewBandId;
 }
 
 #if 0

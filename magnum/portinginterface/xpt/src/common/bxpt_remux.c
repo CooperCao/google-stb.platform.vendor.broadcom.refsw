@@ -1,22 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Porting interface code for the data transport core. 
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "bstd.h"
@@ -59,6 +76,32 @@ BDBG_MODULE( xpt_remux );
 #define BXPT_P_REMUX_BYTE_SYNC_DEFAULT			false
 
 #define SPID_CHNL_STEPSIZE	( 4 )
+
+static BERR_Code fixedOffsetControl(
+    BXPT_Remux_Handle hRmx,     /* [in] Handle for the remux channel */
+    bool AddOffsetEn,           /* [in] Enable/disable the PCR correction */
+    uint32_t FixedPcrOffset         /* [in] The PCR correction offset, if enabled */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ret = BERR_SUCCESS;
+
+    if( AddOffsetEn )
+    {
+        Reg = BXPT_Remux_P_ReadReg( hRmx, BCHP_XPT_RMX0_FIXED_OFFSET );
+        Reg &= ~BCHP_MASK( XPT_RMX0_FIXED_OFFSET, RMX_FIXED_OFFSET );
+        Reg |= BCHP_FIELD_DATA( XPT_RMX0_FIXED_OFFSET, RMX_FIXED_OFFSET, FixedPcrOffset );
+        BXPT_Remux_P_WriteReg( hRmx, BCHP_XPT_RMX0_FIXED_OFFSET, Reg );
+    }
+
+    Reg = BXPT_Remux_P_ReadReg( hRmx, BCHP_XPT_RMX0_PCR_CTRL );
+    Reg &= ~BCHP_MASK( XPT_RMX0_PCR_CTRL, RMX_FIXED_OFFSET_EN );
+    Reg |= BCHP_FIELD_DATA( XPT_RMX0_PCR_CTRL, RMX_FIXED_OFFSET_EN, AddOffsetEn == true ? 1 : 0 );
+    BXPT_Remux_P_WriteReg( hRmx, BCHP_XPT_RMX0_PCR_CTRL, Reg );
+
+    return ret;
+}
 
 static BERR_Code AddPidChannel(
 	BXPT_Remux_Handle hRmx,				
@@ -171,7 +214,6 @@ BERR_Code BXPT_Remux_OpenChannel(
 		lhRmx->vhXpt = ( void * ) hXpt;
 		lhRmx->hChip = hXpt->hChip;
 		lhRmx->hRegister = hXpt->hRegister;
-		lhRmx->hMemory = hXpt->hMemory;
 		lhRmx->BaseAddr = BaseAddr;
 		lhRmx->ChannelNo = ChannelNo;
 		lhRmx->Running = false;
@@ -247,6 +289,10 @@ BERR_Code BXPT_Remux_OpenChannel(
 #ifdef BCHP_PWR_RESOURCE_XPT_REMUX
 		BCHP_PWR_ReleaseResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_REMUX);
 #endif
+
+   #ifndef BXPT_P_REMUX_JITTER_FIX
+    fixedOffsetControl(lhRmx, true, 0);
+   #endif
 
 		lhRmx->Opened = true;
  		*hRmx = lhRmx;
@@ -351,7 +397,6 @@ BERR_Code BXPT_Remux_DoRemux(
 	)
 {
 	uint32_t Reg;
-	BXPT_Handle hXpt;
 
 	BERR_Code ExitCode = BERR_SUCCESS;
 #ifdef BCHP_PWR_RESOURCE_XPT_REMUX
@@ -368,7 +413,6 @@ BERR_Code BXPT_Remux_DoRemux(
 	}
 #endif
 
-	hXpt = (BXPT_Handle) hRmx->vhXpt;
 	Reg = BXPT_Remux_P_ReadReg( hRmx, BCHP_XPT_RMX0_CTRL );
 	Reg &= ~( BCHP_MASK( XPT_RMX0_CTRL, RMX_ENABLE ) );
 	
@@ -538,24 +582,15 @@ BERR_Code BXPT_Remux_AddPcrOffset(
     uint32_t FixedPcrOffset			/* [in] The PCR correction offset, if enabled */		
 	)
 {
-	uint32_t Reg;
-
-	BERR_Code ret = BERR_SUCCESS;
-
-	if( AddOffsetEn )
- 	{
-		Reg = BXPT_Remux_P_ReadReg( hRmx, BCHP_XPT_RMX0_FIXED_OFFSET );
-		Reg &= ~BCHP_MASK( XPT_RMX0_FIXED_OFFSET, RMX_FIXED_OFFSET );
-		Reg |= BCHP_FIELD_DATA( XPT_RMX0_FIXED_OFFSET, RMX_FIXED_OFFSET, FixedPcrOffset );
-   		BXPT_Remux_P_WriteReg( hRmx, BCHP_XPT_RMX0_FIXED_OFFSET, Reg );
-	}
-
-	Reg = BXPT_Remux_P_ReadReg( hRmx, BCHP_XPT_RMX0_PCR_CTRL );
-	Reg &= ~BCHP_MASK( XPT_RMX0_PCR_CTRL, RMX_FIXED_OFFSET_EN );
-	Reg |= BCHP_FIELD_DATA( XPT_RMX0_PCR_CTRL, RMX_FIXED_OFFSET_EN, AddOffsetEn == true ? 1 : 0 );	
-	BXPT_Remux_P_WriteReg( hRmx, BCHP_XPT_RMX0_PCR_CTRL, Reg );
-
-	return ret;
+   #ifdef BXPT_P_REMUX_JITTER_FIX
+   return fixedOffsetControl(hRmx, AddOffsetEn, FixedPcrOffset);
+   #else
+   BDBG_MSG(("Fixed offset no longer available due to hw bug."));
+   BSTD_UNUSED(hRmx);
+   BSTD_UNUSED(AddOffsetEn);
+   BSTD_UNUSED(FixedPcrOffset);
+   return BERR_NOT_SUPPORTED;
+   #endif
 }
 
 void BXPT_Remux_SetPcrJitterAdj( 

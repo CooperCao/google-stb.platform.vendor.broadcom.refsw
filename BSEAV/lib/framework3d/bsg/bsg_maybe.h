@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  BSG
-Module   :  Maybe
-
-FILE DESCRIPTION
-Utility class of a possible T
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __BSG_MAYBE_H__
 #define __BSG_MAYBE_H__
 
@@ -34,4 +26,3 @@ private:
 }
 
 #endif /* __BSG_MAYBE_H__ */
-

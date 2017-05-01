@@ -42,7 +42,6 @@
 #include "nexus_base_os.h"
 #include "nexus_memory.h"
 #include "nexus_platform_features.h"
-#include "nexus_platform_extint.h"
 #include "nexus_platform_init.h"
 #include "nexus_platform_standby.h"
 #include "nexus_platform_server.h"
@@ -141,8 +140,6 @@ Get the input band for a streamer.
 
 Description:
 The assignment of streamer input to input band depends on board layout and possibly FPGA routing.
-If FPGA configuration is required for your platform to achieve this routing, you must set openI2c
-and openFpga to be true in NEXUS_PlatformSettings.
  ***************************************************************************/
 NEXUS_Error NEXUS_Platform_GetStreamerInputBand(
     unsigned index, /* index of the streamer input */
@@ -158,6 +155,9 @@ If NEXUS_PlatformSettings.openFrontend = true (which is default), then NEXUS_Pla
 will call NEXUS_Platform_InitFrontend automatically. For faster system boot time, you can
 set openFrontend = false and then call NEXUS_Platform_InitFrontend after the system has achieved
 some baseline state (e.g. after the app has put graphics on the screen).
+
+We recommend that client apps don't call NEXUS_Platform_InitFrontend because they generally
+can't guarantee that they will call NEXUS_Platform_UninitFrontend, which is required.
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_InitFrontend(void);
 
@@ -440,9 +440,7 @@ NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings(
     const NEXUS_HeapRuntimeSettings *pSettings
     );
 
-void NEXUS_Platform_UninitInterrupts(
-    void
-    );
+#define NEXUS_Platform_UninitInterrupts()
 
 #ifdef __cplusplus
 } /* extern "C" */

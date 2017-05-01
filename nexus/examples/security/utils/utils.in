@@ -40,6 +40,4 @@
 NEXUS_SECURITY_EXAMPLES_UTILS_INCLUDES ?= ${NEXUS_TOP}/examples/security/utils/
 CFLAGS += $(addprefix -I,$(NEXUS_SECURITY_EXAMPLES_UTILS_INCLUDES))
 
-EXTRA_OBJS := ${NEXUS_TOP}/examples/security/utils/nexus_security_examples_setups.o
-
 EXTRA_SRC := ${NEXUS_TOP}/examples/security/utils/nexus_security_examples_setups.c

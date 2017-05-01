@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-Common implementations for surface implementations
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef EGL_SURFACE_COMMON_ABSTRACT_H
 #define EGL_SURFACE_COMMON_ABSTRACT_H
 
@@ -16,6 +9,6 @@ Common implementations for surface implementations
 #include "egl_platform_abstract.h"
 
 extern BEGL_BufferFormat get_begl_format_abstract(GFX_LFMT_T fmt);
-extern KHRN_IMAGE_T     *image_from_surface_abstract(void *nativeSurface, bool flipY);
+extern khrn_image     *image_from_surface_abstract(void *nativeSurface, bool flipY);
 
 #endif

@@ -76,13 +76,6 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
 
    BAFL_FirmwareLoadInfo stBAFLoadInfo;
 
-   BXVD_IMAGE_ContextEntry *pOuterImgContext;
-   BXVD_IMAGE_ContextEntry *pInnerImgContext;
-
-#if BXVD_P_SVD_PRESENT
-   BXVD_IMAGE_ContextEntry *pBaseImgContext;
-#endif
-
    BERR_Code rc;
 
    BDBG_ASSERT(hXvd);
@@ -93,10 +86,6 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
    BDBG_ENTER(BXVD_P_FWLoad_RevK0);
 
    BXVD_DBG_MSG(hXvd, ("Loading Outer Loop ELF image"));
-
-   /* Get image context entry for Outer loop ARC */
-   pOuterImgContext = ((BXVD_IMAGE_ContextEntry **)hXvd->stSettings.pImgContext)[BXVD_IMAGE_RevK_FirmwareID_eOuterELF_AVD];
-   pInnerImgContext = ((BXVD_IMAGE_ContextEntry **)hXvd->stSettings.pImgContext)[BXVD_IMAGE_RevK_FirmwareID_eInnerELF_AVD];
 
    if (hXvd->eAVDBootMode == BXVD_AVDBootMode_eNormal)
    {
@@ -142,8 +131,8 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
    hXvd->uiCmdBufferVector = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize;
    pvCmdBuffer = (void *)(hXvd->uiFWMemBaseVirtAddr + stBAFLoadInfo.stCode.uiSize);
 
-   BXVD_DBG_MSG(hXvd, ("OL InstrBase: %08x", hXvd->uiOuterLoopInstructionBase));
-   BXVD_DBG_MSG(hXvd, ("OL Start of code addr: %0x",    hXvd->uiOuterLoopInstructionBase));
+   BXVD_DBG_MSG(hXvd, ("OL InstrBase: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(hXvd->uiOuterLoopInstructionBase)));
+   BXVD_DBG_MSG(hXvd, ("OL Start of code addr: " BDBG_UINT64_FMT "",    BDBG_UINT64_ARG(hXvd->uiOuterLoopInstructionBase)));
 
    BXVD_DBG_MSG(hXvd, ("OL Code Size: %08x",  stBAFLoadInfo.stCode.uiSize));
    BXVD_DBG_MSG(hXvd, ("OL Data Size: %08x",  stBAFLoadInfo.stData.uiSize));
@@ -153,16 +142,14 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
 
    uiDestVirtAddr = hXvd->uiFWMemBaseVirtAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
 
-   BXVD_DBG_MSG(hXvd,  ("Inner Loop FWBase: %08x, Offset: %08x, DestAddr: %08x",
-                        hXvd->uiFWMemBaseVirtAddr, BXVD_P_FW_INNER_IMAGE_OFFSET, uiDestVirtAddr ));
+   BXVD_DBG_MSG(hXvd,  ("Inner Loop FWBase: %p, Offset: %08x, DestAddr: %08x",
+                        (void *)hXvd->uiFWMemBaseVirtAddr, BXVD_P_FW_INNER_IMAGE_OFFSET, uiDestVirtAddr ));
 
 #if BXVD_P_SVD_PRESENT
    /* If SVD capable, setup to load BLD ARC */
    if (hXvd->bSVCCapable)
    {
       /* Base Layer image offset minus Inner image offset */
-      pBaseImgContext = ((BXVD_IMAGE_ContextEntry **)hXvd->stSettings.pImgContext)[BXVD_IMAGE_RevK_FirmwareID_eBaseELF_SVD];
-
       uiILSize = BXVD_P_FW_BASELAYER_IMAGE_OFFSET - BXVD_P_FW_INNER_IMAGE_OFFSET;
    }
    else
@@ -196,14 +183,14 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
    hXvd->uiInnerLoopInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
    uiEndOfCode = hXvd->uiInnerLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
-   BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", hXvd->uiInnerLoopInstructionBase));
+   BXVD_DBG_MSG(hXvd, ("IL Start of Code: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(hXvd->uiInnerLoopInstructionBase)));
    BXVD_DBG_MSG(hXvd, ("IL Code Size: %08x", stBAFLoadInfo.stCode.uiSize));
    BXVD_DBG_MSG(hXvd, ("IL Data Size: %08x", stBAFLoadInfo.stData.uiSize));
    BXVD_DBG_MSG(hXvd, ("IL End of Code:: %08x",  uiEndOfCode));
 
    hXvd->uiInnerLoopEOC = uiEndOfCode - hXvd->uiInnerLoopInstructionBase;
 
-   BXVD_DBG_MSG(hXvd, ("InnerLoopInstBase: %08x", hXvd->uiInnerLoopInstructionBase));
+   BXVD_DBG_MSG(hXvd, ("InnerLoopInstBase: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(hXvd->uiInnerLoopInstructionBase)));
    BXVD_DBG_MSG(hXvd, ("End of inner loop code at %x", hXvd->uiInnerLoopEOC));
 
    hXvd->stDecoderContext.ulCmdBufferAddr = (uint32_t) pvCmdBuffer;
@@ -213,11 +200,9 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
    /* Check to see if BL ARC is present in this decoder */
    if (hXvd->bSVCCapable)
    {
-      pBaseImgContext = ((BXVD_IMAGE_ContextEntry **)hXvd->stSettings.pImgContext)[BXVD_IMAGE_RevK_FirmwareID_eBaseELF_SVD];
-
       uiDestVirtAddr = hXvd->uiFWMemBaseVirtAddr + BXVD_P_FW_BASELAYER_IMAGE_OFFSET;
-      BXVD_DBG_MSG(hXvd,  ("Base Layer FWBase: %08x, Offset: %08x, DestAddr: %08x",
-                           hXvd->uiFWMemBaseVirtAddr, BXVD_P_FW_BASELAYER_IMAGE_OFFSET, uiDestVirtAddr ));
+      BXVD_DBG_MSG(hXvd,  ("Base Layer FWBase: %p, Offset: %08x, DestAddr: %08x",
+                           (void *)hXvd->uiFWMemBaseVirtAddr, BXVD_P_FW_BASELAYER_IMAGE_OFFSET, uiDestVirtAddr ));
 
       rc = BAFL_Load ( BXVD_P_BL,
                        hXvd->stSettings.pImgInterface,
@@ -242,14 +227,14 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
       hXvd->uiBaseInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_BASELAYER_IMAGE_OFFSET;
       uiEndOfCode = hXvd->uiBaseInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
-      BXVD_DBG_MSG(hXvd, ("BL Start of Code: %08x", hXvd->uiBaseInstructionBase));
+      BXVD_DBG_MSG(hXvd, ("BL Start of Code: %08x", (unsigned)hXvd->uiBaseInstructionBase));
       BXVD_DBG_MSG(hXvd, ("BL Code Size: %08x", stBAFLoadInfo.stCode.uiSize));
       BXVD_DBG_MSG(hXvd, ("BL Data Size: %08x", stBAFLoadInfo.stData.uiSize));
       BXVD_DBG_MSG(hXvd, ("BL End of Code:: %08x", uiEndOfCode));
 
       hXvd->uiBaseEOC = uiEndOfCode - hXvd->uiBaseInstructionBase;
 
-      BXVD_DBG_MSG(hXvd, ("BaseLayerInstBase: %08x", hXvd->uiBaseInstructionBase));
+      BXVD_DBG_MSG(hXvd, ("BaseLayerInstBase: %08x", (unsigned)hXvd->uiBaseInstructionBase));
       BXVD_DBG_MSG(hXvd, ("End of Base Layer code at %x", hXvd->uiBaseEOC));
 
    }
@@ -286,10 +271,10 @@ BERR_Code BXVD_P_ChipEnable_RevK0(BXVD_Handle hXvd)
     * in THIS ORDER to start Outer Loop ARC
     */
 
-   BDBG_MSG(("OL Ibase: %0x", hXvd->uiOuterLoopInstructionBase));
+   BDBG_MSG(("OL Ibase: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(hXvd->uiOuterLoopInstructionBase)));
    BDBG_MSG(("OL EOC: %0x", hXvd->uiOuterLoopEOC));
 
-   BDBG_MSG(("IL Ibase: %0x",hXvd->uiInnerLoopInstructionBase));
+   BDBG_MSG(("IL Ibase: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(hXvd->uiInnerLoopInstructionBase)));
    BDBG_MSG(("IL EOC: %0x", hXvd->uiInnerLoopEOC));
 
    /* Program the relocation base address for outer-loop */
@@ -326,7 +311,7 @@ BERR_Code BXVD_P_ChipEnable_RevK0(BXVD_Handle hXvd)
    if (hXvd->bSVCCapable)
    {
 
-      BDBG_MSG(("BL Ibase: %0x",hXvd->uiBaseInstructionBase));
+      BDBG_MSG(("BL Ibase: %0x", (unsigned)hXvd->uiBaseInstructionBase));
       BDBG_MSG(("BL EOC: %0x", hXvd->uiBaseEOC));
 
       /* Program the base layer relocation base address. */

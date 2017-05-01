@@ -1,21 +1,41 @@
 /***************************************************************************
-*     Copyright (c) 2006-2014, Broadcom Corporation*
-*     All Rights Reserved*
-*     Confidential Property of Broadcom Corporation*
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 /***************************************************************
@@ -111,6 +131,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_VDC_VEC[] = {{
     BDBG_STRING("VDC_VEC")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_VDC_HDMI_TX_PHY0[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY0,
+    BDBG_STRING("VDC_HDMI_TX_PHY0")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_XPT,
@@ -183,10 +209,10 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HDMI_TX_CLK[] = {{
     BDBG_STRING("HDMI_TX_CLK")
 }};
 
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HDMI_TX_CEC[] = {{
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HDMI_TX_PHY[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
-    BCHP_PWR_RESOURCE_HDMI_TX_CEC,
-    BDBG_STRING("HDMI_TX_CEC")
+    BCHP_PWR_RESOURCE_HDMI_TX_PHY,
+    BDBG_STRING("HDMI_TX_PHY")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_M2MC[] = {{
@@ -267,6 +293,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AVD0_SCB_108_CLK[] = {{
     BDBG_STRING("HW_AVD0_SCB_108_CLK")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_BVN_108M[] = {{
+    BCHP_PWR_P_ResourceType_eLeaf,
+    BCHP_PWR_HW_BVN_108M,
+    BDBG_STRING("HW_BVN_108M")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AVD0_PWR[] = {{
     BCHP_PWR_P_ResourceType_eLeaf,
     BCHP_PWR_HW_AVD0_PWR,
@@ -301,12 +333,6 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_BVN[] = {{
     BCHP_PWR_P_ResourceType_eLeaf,
     BCHP_PWR_HW_BVN,
     BDBG_STRING("HW_BVN")
-}};
-
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_BVN_108M[] = {{
-    BCHP_PWR_P_ResourceType_eLeaf,
-    BCHP_PWR_HW_BVN_108M,
-    BDBG_STRING("HW_BVN_108M")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_BVN_SRAM[] = {{
@@ -357,22 +383,16 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_WAKEUP[] = {{
     BDBG_STRING("HW_XPT_WAKEUP")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HDMI_TX_CLK[] = {{
+    BCHP_PWR_P_ResourceType_eLeaf,
+    BCHP_PWR_HW_HDMI_TX_CLK,
+    BDBG_STRING("HW_HDMI_TX_CLK")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HDMI_TX_SRAM[] = {{
     BCHP_PWR_P_ResourceType_eLeaf,
     BCHP_PWR_HW_HDMI_TX_SRAM,
     BDBG_STRING("HW_HDMI_TX_SRAM")
-}};
-
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HDMI_TX_108M[] = {{
-    BCHP_PWR_P_ResourceType_eLeaf,
-    BCHP_PWR_HW_HDMI_TX_108M,
-    BDBG_STRING("HW_HDMI_TX_108M")
-}};
-
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HDMI_TX_CEC[] = {{
-    BCHP_PWR_P_ResourceType_eLeaf,
-    BCHP_PWR_HW_HDMI_TX_CEC,
-    BDBG_STRING("HW_HDMI_TX_CEC")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_GFX_SRAM[] = {{
@@ -411,16 +431,16 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_VCXO[] = {{
     BDBG_STRING("HW_PLL_VCXO")
 }};
 
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AVD0_CORE_CLK[] = {{
-    BCHP_PWR_P_ResourceType_eNonLeafHw,
-    BCHP_PWR_HW_AVD0_CORE_CLK,
-    BDBG_STRING("HW_AVD0_CORE_CLK")
-}};
-
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AVD0_CPU_CLK[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
     BCHP_PWR_HW_AVD0_CPU_CLK,
     BDBG_STRING("HW_AVD0_CPU_CLK")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AVD0_CORE_CLK[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeafHw,
+    BCHP_PWR_HW_AVD0_CORE_CLK,
+    BDBG_STRING("HW_AVD0_CORE_CLK")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_RAAGA0_DSP[] = {{
@@ -429,10 +449,10 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_RAAGA0_DSP[] = {{
     BDBG_STRING("HW_RAAGA0_DSP")
 }};
 
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HDMI_TX_CLK[] = {{
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HDMI_TX_PHY[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
-    BCHP_PWR_HW_HDMI_TX_CLK,
-    BDBG_STRING("HW_HDMI_TX_CLK")
+    BCHP_PWR_HW_HDMI_TX_PHY,
+    BDBG_STRING("HW_HDMI_TX_PHY")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_M2MC[] = {{
@@ -528,6 +548,7 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_BVN,
     BCHP_PWR_P_Resource_VDC_DAC,
     BCHP_PWR_P_Resource_VDC_VEC,
+    BCHP_PWR_P_Resource_VDC_HDMI_TX_PHY0,
     BCHP_PWR_P_Resource_XPT,
     BCHP_PWR_P_Resource_XPT_PARSER,
     BCHP_PWR_P_Resource_XPT_PLAYBACK,
@@ -540,7 +561,7 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_XPT_WAKEUP,
     BCHP_PWR_P_Resource_HDMI_TX,
     BCHP_PWR_P_Resource_HDMI_TX_CLK,
-    BCHP_PWR_P_Resource_HDMI_TX_CEC,
+    BCHP_PWR_P_Resource_HDMI_TX_PHY,
     BCHP_PWR_P_Resource_M2MC,
     BCHP_PWR_P_Resource_M2MC_SRAM,
     BCHP_PWR_P_Resource_HSM,
@@ -553,29 +574,28 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_AUD_PLL1,
     BCHP_PWR_P_Resource_BINT_OPEN,
     BCHP_PWR_P_Resource_MAGNUM_CONTROLLED,
-    BCHP_PWR_P_Resource_HW_AVD0_CORE_CLK,
     BCHP_PWR_P_Resource_HW_AVD0_CPU_CLK,
+    BCHP_PWR_P_Resource_HW_AVD0_CORE_CLK,
     BCHP_PWR_P_Resource_HW_AVD0_SCB_108_CLK,
+    BCHP_PWR_P_Resource_HW_BVN_108M,
     BCHP_PWR_P_Resource_HW_AVD0_PWR,
     BCHP_PWR_P_Resource_HW_VEC_AIO,
     BCHP_PWR_P_Resource_HW_AIO_SRAM,
     BCHP_PWR_P_Resource_HW_RAAGA0_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_DSP,
     BCHP_PWR_P_Resource_HW_RAAGA0_SRAM,
-    BCHP_PWR_P_Resource_HW_HDMI_TX_CLK,
     BCHP_PWR_P_Resource_HW_BVN,
-    BCHP_PWR_P_Resource_HW_BVN_108M,
     BCHP_PWR_P_Resource_HW_BVN_SRAM,
     BCHP_PWR_P_Resource_HW_VDC_DAC,
     BCHP_PWR_P_Resource_HW_VEC_SRAM,
+    BCHP_PWR_P_Resource_HW_HDMI_TX_PHY,
     BCHP_PWR_P_Resource_HW_XPT_108M,
     BCHP_PWR_P_Resource_HW_XPT_XMEMIF,
     BCHP_PWR_P_Resource_HW_XPT_RMX,
     BCHP_PWR_P_Resource_HW_XPT_SRAM,
     BCHP_PWR_P_Resource_HW_XPT_WAKEUP,
+    BCHP_PWR_P_Resource_HW_HDMI_TX_CLK,
     BCHP_PWR_P_Resource_HW_HDMI_TX_SRAM,
-    BCHP_PWR_P_Resource_HW_HDMI_TX_108M,
-    BCHP_PWR_P_Resource_HW_HDMI_TX_CEC,
     BCHP_PWR_P_Resource_HW_M2MC,
     BCHP_PWR_P_Resource_HW_GFX_SRAM,
     BCHP_PWR_P_Resource_HW_GFX_108M,
@@ -610,9 +630,7 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AVD0[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AVD0_CLK[] = {
-    BCHP_PWR_P_Resource_HW_AVD0_CORE_CLK,
     BCHP_PWR_P_Resource_HW_AVD0_CPU_CLK,
-    BCHP_PWR_P_Resource_HW_AVD0_SCB_108_CLK,
     NULL
 };
 
@@ -655,7 +673,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC[] = {
     BCHP_PWR_P_Resource_BVN,
     BCHP_PWR_P_Resource_VDC_DAC,
     BCHP_PWR_P_Resource_VDC_VEC,
-    BCHP_PWR_P_Resource_HW_HDMI_TX_CLK,
     NULL
 };
 
@@ -674,6 +691,11 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_DAC[] = {
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_VEC[] = {
     BCHP_PWR_P_Resource_HW_VEC_AIO,
     BCHP_PWR_P_Resource_HW_VEC_SRAM,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_HDMI_TX_PHY0[] = {
+    BCHP_PWR_P_Resource_HW_HDMI_TX_PHY,
     NULL
 };
 
@@ -738,18 +760,19 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_WAKEUP[] = {
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HDMI_TX[] = {
     BCHP_PWR_P_Resource_HDMI_TX_CLK,
-    BCHP_PWR_P_Resource_HDMI_TX_CEC,
+    BCHP_PWR_P_Resource_HDMI_TX_PHY,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HDMI_TX_CLK[] = {
     BCHP_PWR_P_Resource_HW_HDMI_TX_CLK,
+    BCHP_PWR_P_Resource_HW_BVN_108M,
     BCHP_PWR_P_Resource_HW_HDMI_TX_SRAM,
     NULL
 };
 
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HDMI_TX_CEC[] = {
-    BCHP_PWR_P_Resource_HW_HDMI_TX_CEC,
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HDMI_TX_PHY[] = {
+    BCHP_PWR_P_Resource_HW_HDMI_TX_PHY,
     NULL
 };
 
@@ -828,13 +851,16 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MAGNUM_CONTROLLED[] = 
     NULL
 };
 
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AVD0_CORE_CLK[] = {
-    BCHP_PWR_P_Resource_HW_PLL_AVD_CH1,
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AVD0_CPU_CLK[] = {
+    BCHP_PWR_P_Resource_HW_AVD0_CORE_CLK,
+    BCHP_PWR_P_Resource_HW_AVD0_SCB_108_CLK,
+    BCHP_PWR_P_Resource_HW_BVN_108M,
+    BCHP_PWR_P_Resource_HW_PLL_AVD_CH2,
     NULL
 };
 
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AVD0_CPU_CLK[] = {
-    BCHP_PWR_P_Resource_HW_PLL_AVD_CH2,
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AVD0_CORE_CLK[] = {
+    BCHP_PWR_P_Resource_HW_PLL_AVD_CH1,
     NULL
 };
 
@@ -843,8 +869,8 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_RAAGA0_DSP[] = {
     NULL
 };
 
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HDMI_TX_CLK[] = {
-    BCHP_PWR_P_Resource_HW_HDMI_TX_108M,
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HDMI_TX_PHY[] = {
+    BCHP_PWR_P_Resource_HW_HDMI_TX_CLK,
     BCHP_PWR_P_Resource_HW_BVN_108M,
     NULL
 };
@@ -931,6 +957,7 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_BVN,
     BCHP_PWR_P_Depend_VDC_DAC,
     BCHP_PWR_P_Depend_VDC_VEC,
+    BCHP_PWR_P_Depend_VDC_HDMI_TX_PHY0,
     BCHP_PWR_P_Depend_XPT,
     BCHP_PWR_P_Depend_XPT_PARSER,
     BCHP_PWR_P_Depend_XPT_PLAYBACK,
@@ -943,7 +970,7 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_XPT_WAKEUP,
     BCHP_PWR_P_Depend_HDMI_TX,
     BCHP_PWR_P_Depend_HDMI_TX_CLK,
-    BCHP_PWR_P_Depend_HDMI_TX_CEC,
+    BCHP_PWR_P_Depend_HDMI_TX_PHY,
     BCHP_PWR_P_Depend_M2MC,
     BCHP_PWR_P_Depend_M2MC_SRAM,
     BCHP_PWR_P_Depend_HSM,
@@ -956,8 +983,9 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_AUD_PLL1,
     BCHP_PWR_P_Depend_BINT_OPEN,
     BCHP_PWR_P_Depend_MAGNUM_CONTROLLED,
-    BCHP_PWR_P_Depend_HW_AVD0_CORE_CLK,
     BCHP_PWR_P_Depend_HW_AVD0_CPU_CLK,
+    BCHP_PWR_P_Depend_HW_AVD0_CORE_CLK,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -965,13 +993,11 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     NULL,
     BCHP_PWR_P_Depend_HW_RAAGA0_DSP,
     NULL,
-    BCHP_PWR_P_Depend_HW_HDMI_TX_CLK,
     NULL,
     NULL,
     NULL,
     NULL,
-    NULL,
-    NULL,
+    BCHP_PWR_P_Depend_HW_HDMI_TX_PHY,
     NULL,
     NULL,
     NULL,
@@ -1005,14 +1031,17 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
 void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
 {
     switch(id) {
-        case BCHP_PWR_HW_AVD0_CORE_CLK:
-            BCHP_PWR_P_HW_AVD0_CORE_CLK_Control(handle, activate);
-            break;
         case BCHP_PWR_HW_AVD0_CPU_CLK:
             BCHP_PWR_P_HW_AVD0_CPU_CLK_Control(handle, activate);
             break;
+        case BCHP_PWR_HW_AVD0_CORE_CLK:
+            BCHP_PWR_P_HW_AVD0_CORE_CLK_Control(handle, activate);
+            break;
         case BCHP_PWR_HW_AVD0_SCB_108_CLK:
             BCHP_PWR_P_HW_AVD0_SCB_108_CLK_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_BVN_108M:
+            BCHP_PWR_P_HW_BVN_108M_Control(handle, activate);
             break;
         case BCHP_PWR_HW_AVD0_PWR:
             BCHP_PWR_P_HW_AVD0_PWR_Control(handle, activate);
@@ -1032,14 +1061,8 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
         case BCHP_PWR_HW_RAAGA0_SRAM:
             BCHP_PWR_P_HW_RAAGA0_SRAM_Control(handle, activate);
             break;
-        case BCHP_PWR_HW_HDMI_TX_CLK:
-            BCHP_PWR_P_HW_HDMI_TX_CLK_Control(handle, activate);
-            break;
         case BCHP_PWR_HW_BVN:
             BCHP_PWR_P_HW_BVN_Control(handle, activate);
-            break;
-        case BCHP_PWR_HW_BVN_108M:
-            BCHP_PWR_P_HW_BVN_108M_Control(handle, activate);
             break;
         case BCHP_PWR_HW_BVN_SRAM:
             BCHP_PWR_P_HW_BVN_SRAM_Control(handle, activate);
@@ -1049,6 +1072,9 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
             break;
         case BCHP_PWR_HW_VEC_SRAM:
             BCHP_PWR_P_HW_VEC_SRAM_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_HDMI_TX_PHY:
+            BCHP_PWR_P_HW_HDMI_TX_PHY_Control(handle, activate);
             break;
         case BCHP_PWR_HW_XPT_108M:
             BCHP_PWR_P_HW_XPT_108M_Control(handle, activate);
@@ -1065,14 +1091,11 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
         case BCHP_PWR_HW_XPT_WAKEUP:
             BCHP_PWR_P_HW_XPT_WAKEUP_Control(handle, activate);
             break;
+        case BCHP_PWR_HW_HDMI_TX_CLK:
+            BCHP_PWR_P_HW_HDMI_TX_CLK_Control(handle, activate);
+            break;
         case BCHP_PWR_HW_HDMI_TX_SRAM:
             BCHP_PWR_P_HW_HDMI_TX_SRAM_Control(handle, activate);
-            break;
-        case BCHP_PWR_HW_HDMI_TX_108M:
-            BCHP_PWR_P_HW_HDMI_TX_108M_Control(handle, activate);
-            break;
-        case BCHP_PWR_HW_HDMI_TX_CEC:
-            BCHP_PWR_P_HW_HDMI_TX_CEC_Control(handle, activate);
             break;
         case BCHP_PWR_HW_M2MC:
             BCHP_PWR_P_HW_M2MC_Control(handle, activate);

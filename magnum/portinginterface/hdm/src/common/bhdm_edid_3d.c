@@ -323,7 +323,7 @@ static void BHDM_EDID_P_ParseVSDB_3DMask(const BHDM_Handle hHDMI, uint8_t DataBl
 Summary:
 Parse the HDMI Extended Resolution VICs
 *******************************************************************************/
-void BHDM_EDID_P_ParseVSDB_HdmiVICs(const BHDM_Handle hHDMI, uint8_t DataBlockIndex, uint8_t *offset, uint8_t DataBlockLength)
+static void BHDM_EDID_P_ParseVSDB_HdmiVICs(const BHDM_Handle hHDMI, uint8_t DataBlockIndex, uint8_t *offset, uint8_t DataBlockLength)
 {
 	uint8_t i ;
 	uint8_t hdmiVic ;

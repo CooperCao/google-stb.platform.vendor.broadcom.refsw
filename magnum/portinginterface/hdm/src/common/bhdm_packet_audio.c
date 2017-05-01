@@ -45,6 +45,51 @@ BDBG_MODULE(BHDM_PACKET_AUDIO) ;
 
 #define BHDM_REFER_TO_STREAM_HEADER 0
 
+/******************************************************************************
+Summary:
+Set/Enable the Audio Info Frame packet to be sent to the HDMI Rx
+*******************************************************************************/
+void BHDM_DisplayAudioInfoFramePacket(
+   const BHDM_Handle hHDMI,		  /* [in] HDMI handle */
+   BAVC_HDMI_AudioInfoFrame *pstAudioInfoFrame
+)
+{
+#if !BDBG_NO_LOG
+	BDBG_LOG(("*** AUDIO INFOFRAME")) ;
+	BDBG_LOG(("Tx%d: Audio Coding Type     %s", hHDMI->eCoreId,
+		BAVC_HDMI_AudioInfoFrame_CodingTypeToStr(pstAudioInfoFrame->CodingType))) ;
+
+	BDBG_LOG(("Tx%d: Audio Channel Count   %s", hHDMI->eCoreId,
+		BAVC_HDMI_AudioInfoFrame_ChannelCountToStr(pstAudioInfoFrame->ChannelCount))) ;
+
+	BDBG_LOG(("Tx%d: Sampling Frequency    %s", hHDMI->eCoreId,
+		BAVC_HDMI_AudioInfoFrame_SampleFrequencyToStr(pstAudioInfoFrame->SampleFrequency))) ;
+
+	BDBG_LOG(("Tx%d: Sample Size           %s", hHDMI->eCoreId,
+		BAVC_HDMI_AudioInfoFrame_SampleSizeToStr(pstAudioInfoFrame->SampleSize))) ;
+
+	BDBG_LOG(("Tx%d: Speaker Allocation    %02x", hHDMI->eCoreId,
+		pstAudioInfoFrame->SpeakerAllocation)) ;
+
+	BDBG_LOG(("Tx%d: Level Shift           %s", hHDMI->eCoreId,
+		BAVC_HDMI_AudioInfoFrame_LevelShiftToStr(pstAudioInfoFrame->LevelShift))) ;
+
+	BDBG_LOG(("Tx%d: Down-mix Inhibit Flag %s", hHDMI->eCoreId,
+		BAVC_HDMI_AudioInfoFrame_DownMixInhibitToStr(pstAudioInfoFrame->DownMixInhibit))) ;
+
+	BDBG_LOG(("Tx%d: Data Bytes: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+		hHDMI->eCoreId,
+		hHDMI->PacketBytes[1], hHDMI->PacketBytes[2], hHDMI->PacketBytes[3],
+		hHDMI->PacketBytes[4], hHDMI->PacketBytes[5], hHDMI->PacketBytes[6],
+		hHDMI->PacketBytes[7], hHDMI->PacketBytes[8], hHDMI->PacketBytes[9],
+		hHDMI->PacketBytes[10])) ;
+	BDBG_LOG((" ")) ;
+#else
+	BSTD_UNUSED(hHDMI) ;
+	BSTD_UNUSED(pstAudioInfoFrame) ;
+#endif
+}
+
 
 /******************************************************************************
 Summary:
@@ -123,43 +168,23 @@ BERR_Code BHDM_SetAudioInfoFramePacket(
 		BKNI_Memcpy(&hHDMI->DeviceSettings.stAudioInfoFrame, pstAudioInfoFrame,
 			sizeof(BAVC_HDMI_AudioInfoFrame)) ;
 
-	BDBG_MSG(("------------------- NEW  AUDIO INFOFRAME ------------------")) ;
-	BDBG_MSG(("Tx%d: Packet Type: 0x%02x  Version %d  Length: %d", hHDMI->eCoreId,
-		PacketType, PacketVersion, PacketLength)) ;
-	BDBG_MSG(("Tx%d: Checksum            %#02x", hHDMI->eCoreId,
-		hHDMI->PacketBytes[0])) ;
 
-	BDBG_MSG(("Tx%d: Audio Coding Type     %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_CodingTypeToStr(pstAudioInfoFrame->CodingType))) ;
-
-	BDBG_MSG(("Tx%d: Audio Channel Count   %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_ChannelCountToStr(pstAudioInfoFrame->ChannelCount))) ;
-
-	BDBG_MSG(("Tx%d: Sampling Frequency    %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_SampleFrequencyToStr(pstAudioInfoFrame->SampleFrequency))) ;
-
-	BDBG_MSG(("Tx%d: Sample Size           %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_SampleSizeToStr(pstAudioInfoFrame->SampleSize))) ;
-
-	BDBG_MSG(("Tx%d: Speaker Allocation    %02x", hHDMI->eCoreId,
-		pstAudioInfoFrame->SpeakerAllocation)) ;
-
-	BDBG_MSG(("Tx%d: Level Shift           %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_LevelShiftToStr(pstAudioInfoFrame->LevelShift))) ;
-
-	BDBG_MSG(("Tx%d: Down-mix Inhibit Flag %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_DownMixInhibitToStr(pstAudioInfoFrame->DownMixInhibit))) ;
-
+#if BDBG_DEBUG_BUILD
 	{
-		uint8_t i ;
+		BDBG_Level level ;
 
-		for (i = 1 ; i <= 10 ; i++)
+		BDBG_GetModuleLevel("BHDM_PACKET_AUDIO", &level) ;
+		if (level == BDBG_eMsg)
 		{
-			BDBG_MSG(("Tx%d: Data Byte %02d = %#02x h", hHDMI->eCoreId,
-				i, hHDMI->PacketBytes[i])) ;
+			BDBG_LOG(("Tx%d: Audio IF Packet Type: 0x%02x  Version %d  Length: %d", hHDMI->eCoreId,
+				PacketType, PacketVersion, PacketLength)) ;
+			BDBG_LOG(("Tx%d: Checksum            %#02x", hHDMI->eCoreId,
+				hHDMI->PacketBytes[0])) ;
+			BHDM_DisplayAudioInfoFramePacket( hHDMI, pstAudioInfoFrame) ;
 		}
 	}
-	BDBG_MSG(("-------------------- END AUDIO INFOFRAME --------------------")) ;
+#endif
+
 
 done:
 	return rc ;

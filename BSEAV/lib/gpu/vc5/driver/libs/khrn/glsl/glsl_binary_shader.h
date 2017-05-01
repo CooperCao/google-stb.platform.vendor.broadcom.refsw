@@ -5,6 +5,7 @@
 
 #include "glsl_common.h"
 #include "glsl_ir_program.h"
+#include "glsl_backend_uniforms.h"
 #include "libs/core/v3d/v3d_limits.h"
 
 EXTERN_C_BEGIN
@@ -21,18 +22,18 @@ typedef struct {
 typedef struct {
    ShaderFlavour flavour;
 
-   uint32_t *code;
-   size_t    code_size;
-   uint32_t *unif;
-   size_t    unif_count;
+   uint64_t   *code;
+   size_t      code_size;
+   umap_entry *unif;
+   size_t      unif_count;
 #if V3D_HAS_RELAXED_THRSW
    bool four_thread;
    bool single_seg;
 #else
-   unsigned  n_threads;
+   unsigned n_threads;
 #endif
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-   bool      uses_control_flow;
+   bool uses_control_flow;
 #endif
    union {
       struct {

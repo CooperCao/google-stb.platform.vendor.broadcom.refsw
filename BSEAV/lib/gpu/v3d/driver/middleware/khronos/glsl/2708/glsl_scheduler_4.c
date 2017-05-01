@@ -1,20 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Takes a dataflow graph and schedules the nodes. The algorithm is designed to
-help reduce register pressure.
-
-We feed nodes directly to the allocator rather than producing a list which is
-fed to the allocator in one go. This is because we may want to use feedback
-from the allocator to decide which thing to schedule next.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include "middleware/khronos/glsl/glsl_dataflow.h"
@@ -66,11 +52,8 @@ KHAPI void glsl_set_output_graphviz(bool tf, const char *folder, bool resetNumbe
 static void get_dependencies(DataflowChain *chain, Dataflow *dataflow);
 static void dpostv_calculate_bushiness(Dataflow* dataflow, void* data);
 static void visit_recursive(Dataflow *dataflow, bool schedule_if_input);
-static void dpostv_annotate_literal(Dataflow *dataflow, void* data);
 
 static uint32_t num_attribute_rows;
-
-static DataflowPriorityQueue age_queue;
 
 static struct
 {

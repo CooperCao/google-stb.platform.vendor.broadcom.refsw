@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,13 +55,13 @@ BDBG_MODULE(bsat_g1_priv_acq);
 
 
 /* local functions */
-BERR_Code BSAT_g1_P_Acquire1_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_Acquire4_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_OnStableLock_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_OnStableLock1_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_OnMonitorLock_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_Acquire1_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_Acquire4_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_OnStableLock_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_OnStableLock1_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_OnMonitorLock_isr(BSAT_ChannelHandle h);
 
 
 /* extern bool bEnableDebugLog; */
@@ -159,6 +159,7 @@ BERR_Code BSAT_g1_P_InitHandle(BSAT_Handle h)
    hDev->nNotch = 0;
    hDev->acqDoneThreshold = 3;
    hDev->networkSpec = BSAT_NetworkSpec_eDefault;
+   hDev->pSaBuf = 0;
    return BSAT_g1_P_InitHandleExt(h);
 }
 
@@ -258,6 +259,9 @@ BERR_Code BSAT_g1_P_InitChannelHandle(BSAT_ChannelHandle h)
    hChn->notchState = -1;
 #endif
    BKNI_Memset((void*)&(hChn->miscSettings), 0, sizeof(BSAT_ExtAcqSettings));
+   BKNI_Memset((void*)&(hChn->saSettings), 0, sizeof(BSAT_ScanSpectrumSettings));
+   BKNI_Memset((void*)&(hChn->saStatus), 0, sizeof(BSAT_SpectrumStatus));
+   hChn->saStatus.status = BERR_NOT_INITIALIZED;
 #ifdef BSAT_HAS_ACM
    BKNI_Memset((void*)&(hChn->acmSettings), 0, sizeof(BSAT_AcmSettings));
    hChn->acmSettings.softDecisions.captureMode = BSAT_AcmSoftDecisionCapture_eAll;
@@ -446,7 +450,7 @@ BERR_Code BSAT_g1_P_SetDefaultSampleFreq(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_IsCarrierOffsetOutOfRange_isr()
 ******************************************************************************/
-bool BSAT_g1_P_IsCarrierOffsetOutOfRange_isr(BSAT_ChannelHandle h)
+static bool BSAT_g1_P_IsCarrierOffsetOutOfRange_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    int32_t carrierError;
@@ -476,7 +480,7 @@ bool BSAT_g1_P_IsCarrierOffsetOutOfRange_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_LeakPliToFli_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_LeakPliToFli_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_LeakPliToFli_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -697,7 +701,7 @@ BERR_Code BSAT_g1_P_GetSymbolRateError(BSAT_ChannelHandle h, int32_t *pSymbolRat
 /******************************************************************************
  BSAT_g1_P_GetCarrierErrorFli_isrsafe()
 ******************************************************************************/
-void BSAT_g1_P_GetCarrierErrorFli_isrsafe(BSAT_ChannelHandle h, int32_t *pCarrierErrorFli)
+static void BSAT_g1_P_GetCarrierErrorFli_isrsafe(BSAT_ChannelHandle h, int32_t *pCarrierErrorFli)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    int32_t sval;
@@ -722,7 +726,7 @@ void BSAT_g1_P_GetCarrierErrorFli_isrsafe(BSAT_ChannelHandle h, int32_t *pCarrie
 /******************************************************************************
  BSAT_g1_P_GetCarrierErrorPli_isrsafe()
 ******************************************************************************/
-void BSAT_g1_P_GetCarrierErrorPli_isrsafe(BSAT_ChannelHandle h, int32_t *pCarrierErrorPli)
+static void BSAT_g1_P_GetCarrierErrorPli_isrsafe(BSAT_ChannelHandle h, int32_t *pCarrierErrorPli)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    int32_t sval;
@@ -913,7 +917,7 @@ BERR_Code BSAT_g1_P_ResetSignalNotification_isrsafe(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_CheckSignalNotification_isr() - use BSAT_g1_P_CheckStatusIndicators as reference
 ******************************************************************************/
-BERR_Code BSAT_g1_P_CheckSignalNotification_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_CheckSignalNotification_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1247,7 +1251,7 @@ BERR_Code BSAT_g1_P_ResetToneDetectStatus(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_ResetLockFilter_isr()
 ******************************************************************************/
-void BSAT_g1_P_ResetLockFilter_isr(BSAT_ChannelHandle h)
+static void BSAT_g1_P_ResetLockFilter_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi;
@@ -1265,14 +1269,14 @@ void BSAT_g1_P_ResetLockFilter_isr(BSAT_ChannelHandle h)
       BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->acqSettings.symbolRate, &Q_hi, &(hChn->maxStableLockTimeout));
    }
 
-   BSAT_DEBUG_ACQ(BDBG_ERR(("BSAT_g1_P_ResetLockFilter_isr(%d), stableLockTimeout=%d, maxStableLockTimeout=%d", h->channel, hChn->stableLockTimeout, hChn->maxStableLockTimeout)));
+   /* BSAT_DEBUG_ACQ(BDBG_ERR(("BSAT_g1_P_ResetLockFilter_isr(%d), stableLockTimeout=%d, maxStableLockTimeout=%d", h->channel, hChn->stableLockTimeout, hChn->maxStableLockTimeout))); */
 }
 
 
 /******************************************************************************
  BSAT_g1_P_DetermineUndersampleMode_isr()
 ******************************************************************************/
-void BSAT_g1_P_DetermineUndersampleMode_isr(BSAT_ChannelHandle h)
+static void BSAT_g1_P_DetermineUndersampleMode_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, Fb4;
@@ -1305,7 +1309,7 @@ void BSAT_g1_P_DetermineUndersampleMode_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_SetAcqType_isr()
 ******************************************************************************/
-void BSAT_g1_P_SetAcqType_isr(BSAT_ChannelHandle h)
+static void BSAT_g1_P_SetAcqType_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_Mode mode = hChn->acqSettings.mode;
@@ -1338,7 +1342,7 @@ void BSAT_g1_P_SetAcqType_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_BlindScanSetNextMode_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_BlindScanSetNextMode_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_BlindScanSetNextMode_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
@@ -1427,7 +1431,7 @@ BERR_Code BSAT_g1_P_BlindScanSetNextMode_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_BlindScanInit_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_BlindScanInit_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_BlindScanInit_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)(h->pImpl);
 
@@ -1545,7 +1549,7 @@ BERR_Code BSAT_g1_P_GetActualMode_isr(BSAT_ChannelHandle h, BSAT_Mode *pActualMo
 /******************************************************************************
  BSAT_g1_P_SetNyquistAlpha_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_SetNyquistAlpha_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_SetNyquistAlpha_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t Fs_over_Fb, nvctl, pfctl = 0x01;
@@ -1664,10 +1668,11 @@ BERR_Code BSAT_g1_P_SetCarrierBw_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t
 }
 
 
+#if 0
 /******************************************************************************
  BSAT_g1_P_GetNumHb() - returns the number of halfbands
 ******************************************************************************/
-uint32_t BSAT_g1_P_GetNumHb(uint32_t Fb, uint32_t Fs)
+static uint32_t BSAT_g1_P_GetNumHb(uint32_t Fb, uint32_t Fs)
 {
    uint32_t hb_number, rx_os_ratio, P_hi, P_lo, Q_hi;
 
@@ -1688,6 +1693,7 @@ uint32_t BSAT_g1_P_GetNumHb(uint32_t Fb, uint32_t Fs)
       hb_number = 5;
    return hb_number;
 }
+#endif
 
 
 /******************************************************************************
@@ -1784,7 +1790,7 @@ BERR_Code BSAT_g1_P_SetDecimationFilters_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_ConfigFe_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_ConfigFe_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_ConfigFe_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1873,7 +1879,7 @@ BERR_Code BSAT_g1_P_SetFlifOffset_isr(BSAT_ChannelHandle h, int32_t offset)
 /******************************************************************************
  BSAT_g1_P_CheckTimingLoopStateMachine_isr(): count2=original BFOS
 ******************************************************************************/
-BERR_Code BSAT_g1_P_CheckTimingLoopStateMachine_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_CheckTimingLoopStateMachine_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -1965,7 +1971,7 @@ BERR_Code BSAT_g1_P_CheckTimingLoopStateMachine_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_CheckTimingLoop_isr() - sets bTimingLock if timing loop is locked
 ******************************************************************************/
-BERR_Code BSAT_g1_P_CheckTimingLoop_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct)
+static BERR_Code BSAT_g1_P_CheckTimingLoop_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -1981,7 +1987,7 @@ BERR_Code BSAT_g1_P_CheckTimingLoop_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT next
 /******************************************************************************
  BSAT_g1_P_SignalDetectModeExit_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_SignalDetectModeExit_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_SignalDetectModeExit_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -2037,7 +2043,7 @@ BERR_Code BSAT_g1_P_InitBert_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_StartBert_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_StartBert_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_StartBert_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -2354,7 +2360,7 @@ BERR_Code BSAT_g1_P_NonLegacyModeAcquireInit_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_OnReacqTimerExpired_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_OnReacqTimerExpired_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_OnReacqTimerExpired_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -2383,7 +2389,7 @@ BERR_Code BSAT_g1_P_OnReacqTimerExpired_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_StartReacqTimer_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_StartReacqTimer_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_StartReacqTimer_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)(h->pImpl);
    uint32_t reacquisition_timeout, P_hi, P_lo, Q_hi, min_timeout;
@@ -2403,7 +2409,7 @@ BERR_Code BSAT_g1_P_StartReacqTimer_isr(BSAT_ChannelHandle h)
    }
 
    hChn->bReacqTimerExpired = false;
-   BSAT_DEBUG_ACQ(BDBG_ERR(("setting reacq timer to %d usecs", reacquisition_timeout)));
+   /* BSAT_DEBUG_ACQ(BDBG_ERR(("setting reacq timer to %d usecs", reacquisition_timeout))); */
    return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eReacqTimer, reacquisition_timeout, BSAT_g1_P_OnReacqTimerExpired_isr);
 }
 
@@ -2517,7 +2523,7 @@ BERR_Code BSAT_g1_P_Acquire0_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_Acquire1_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_Acquire1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_Acquire1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -2542,9 +2548,9 @@ BERR_Code BSAT_g1_P_Acquire1_isr(BSAT_ChannelHandle h)
 
 
 /******************************************************************************
- BSAT_g1_P_InitEqTaps()
+ BSAT_g1_P_InitEqTaps_isr()
 ******************************************************************************/
-void BSAT_g1_P_InitEqTaps(BSAT_ChannelHandle h)
+static void BSAT_g1_P_InitEqTaps_isr(BSAT_ChannelHandle h)
 {
    uint32_t ffe_main_tap, i, val, eqcfad, f0b;
 
@@ -2569,7 +2575,7 @@ void BSAT_g1_P_InitEqTaps(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_Acquire2_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -2626,7 +2632,7 @@ BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
    BSAT_CHK_RETCODE(BSAT_g1_P_SetFfeMainTap_isr(h));
 
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 1); /* reset the eq */
-   BSAT_g1_P_InitEqTaps(h);
+   BSAT_g1_P_InitEqTaps_isr(h);
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLLC, 0x01000100);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLIC, 0x01000000);
@@ -2661,7 +2667,7 @@ BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_Acquire3_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
@@ -2674,14 +2680,6 @@ BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x000000EF, 0x00000000);
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x0000FF00, 0x00007000);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, 0x00000400);
-#if 0
-#if 0
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, 0x00000046);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_F0B, 0x16000000);
-#else
-   BSAT_g1_P_InitEqTaps(h);
-#endif
-#endif
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_BL_BLPCTL, ~0x000000F7, 0x00000007);
 
    if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)
@@ -2709,7 +2707,13 @@ BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h)
    else
    {
       hChn->bTimingLoopLock = true;
-      retCode = BSAT_g1_P_Acquire4_isr(h);
+      if (BSAT_MODE_IS_LEGACY_QPSK(hChn->acqSettings.mode) && (hChn->acqSettings.symbolRate <= 2370000))
+      {
+         /* need to delay for low baud rates */
+         retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, 300000, BSAT_g1_P_Acquire4_isr);
+      }
+      else
+         retCode = BSAT_g1_P_Acquire4_isr(h);
    }
 
    return retCode;
@@ -2719,7 +2723,7 @@ BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_Acquire4_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_Acquire4_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_Acquire4_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -2747,7 +2751,7 @@ BERR_Code BSAT_g1_P_StartTracking_isr(BSAT_ChannelHandle h)
    BSAT_CHK_RETCODE(BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eStartTracking));
    hChn->trace[BSAT_TraceEvent_eInitialLock] = 0;
    hChn->trace[BSAT_TraceEvent_eStableLock] = 0;
-   BSAT_DEBUG_ACQ(BDBG_ERR(("BSAT_g1_P_StartTracking_isr(%d)", h->channel)));
+   /* BSAT_DEBUG_ACQ(BDBG_ERR(("BSAT_g1_P_StartTracking_isr(%d)", h->channel))); */
 
    /* stop the timer that was started before DFT */
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eGen2);
@@ -2839,7 +2843,7 @@ void BSAT_g1_P_Lock_isr(void *p, int int_id)
    else
    {
       hChn->acqState = BSAT_AcqState_eWaitForStableLock;
-      BSAT_DEBUG_ACQ(BDBG_ERR(("starting stable lock timer (%d usecs)", hChn->stableLockTimeout)));
+      /* BSAT_DEBUG_ACQ(BDBG_ERR(("starting stable lock timer (%d usecs)", hChn->stableLockTimeout))); */
       BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eStableLockTimer, hChn->stableLockTimeout, BSAT_g1_P_OnStableLock_isr);
    }
 }
@@ -2928,7 +2932,7 @@ void BSAT_g1_P_NotLock_isr(void *p, int int_id)
 /******************************************************************************
  BSAT_g1_P_OnStableLock_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_OnStableLock_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_OnStableLock_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode;
@@ -3000,7 +3004,7 @@ BERR_Code BSAT_g1_P_OnStableLock_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_OnStableLock1_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_OnStableLock1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_OnStableLock1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
@@ -3017,7 +3021,7 @@ BERR_Code BSAT_g1_P_OnStableLock1_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_OnMonitorLock_isr() - scheduled every 100 msecs
 ******************************************************************************/
-BERR_Code BSAT_g1_P_OnMonitorLock_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_OnMonitorLock_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode;

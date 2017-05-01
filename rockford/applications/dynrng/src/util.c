@@ -38,8 +38,56 @@
  * Module Description:
  *
  *****************************************************************************/
+#include "bstd.h"
 #include "util_priv.h"
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 const char * UTIL_STR_UNNAMED = "<unnamed>";
 const char * UTIL_STR_UNKNOWN = "UNKNOWN";
 const char * UTIL_STR_NONE = "NONE";
+
+char * trim(char * s)
+{
+    char * e = NULL;
+    if (!s) return NULL;
+    e = strchr(s, 0);
+    e--;
+    while (*s && isspace(*s)) s++;
+    while ((e > s) && isspace(*e)) *e-- = 0;
+    return s;
+}
+
+char * set_string(char * oldStr, const char * newStr)
+{
+    unsigned len = 0;
+    char * replStr = NULL;
+
+    /* alloc replacement str first, in case it fails */
+    if (newStr && (!oldStr || strcmp(oldStr, newStr)))
+    {
+        len = strlen(newStr);
+        replStr = malloc(len + 1);
+        if (!replStr) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto end; }
+        memset(replStr, 0, len + 1);
+        strncpy(replStr, newStr, len);
+    }
+
+    /* if replStr exists or newStr is null, free oldStr */
+    if (oldStr && (replStr || !newStr))
+    {
+        free(oldStr);
+        oldStr = NULL;
+    }
+
+    if (replStr)
+    {
+        oldStr = replStr;
+    }
+
+    /* otherwise leave oldStr alone */
+
+end:
+    return oldStr;
+}

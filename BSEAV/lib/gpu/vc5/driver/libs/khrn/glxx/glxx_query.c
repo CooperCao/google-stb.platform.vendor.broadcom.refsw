@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)20014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  async queries
-
-FILE DESCRIPTION
-asynchronous queries implementation.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_query.h"
 #include "glxx_hw_render_state.h"
 #include "../common/khrn_mem.h"
@@ -55,7 +48,7 @@ static glxx_query_block* new_query_block(
    gmem_flush_mapped_buffer(block->handle);
 
    block->prev = NULL;
-   block->v3d_addr = khrn_fmem_lock_and_sync(fmem, block->handle, bin_rw_flags, render_rw_flags);
+   block->v3d_addr = khrn_fmem_sync_and_get_addr(fmem, block->handle, bin_rw_flags, render_rw_flags);
    block->used_queries = 0;
    return block;
 
@@ -155,7 +148,7 @@ bool glxx_query_begin_new_instance(GLXX_QUERY_T *query, enum glxx_query_target t
    return true;
 }
 
-static v3d_addr_t occlusion_query_counter_hw_addr(KHRN_FMEM_T *fmem, GLXX_QUERY_T *query)
+static v3d_addr_t occlusion_query_counter_hw_addr(khrn_fmem *fmem, GLXX_QUERY_T *query)
 {
    khrn_fmem_persist *persist = fmem->persist;
    glxx_query_block *block = persist->occlusion_query_list;
@@ -272,7 +265,7 @@ void glxx_queries_release(glxx_query_block *query_list)
 #if V3D_VER_AT_LEAST(4,0,2,0)
 
 static v3d_addr_t primitive_counts_hw_addr(
-   KHRN_FMEM_T *fmem,
+   khrn_fmem *fmem,
    glxx_instanced_query_t *iquery_pg,
    glxx_instanced_query_t *iquery_pw)
 {

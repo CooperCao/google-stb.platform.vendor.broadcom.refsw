@@ -138,9 +138,13 @@ var NetTuning = false;
 var NetTuningDefaults = ""; // initialized to default values and used to reset back to defaults when user checks checkboxNetTuningReset
 var GetNetTuningInit = true; // set to true when user checks the checkbox; then set to false
 var checkboxNetTuningRow = HIDE;
+var checkboxNetTcpRow = HIDE;
+var checkboxNetIgmpRow = HIDE;
 var g_ProcFileFullname = "";
 var g_ProcFileContents = "";
 var GetNetworkTuning =  {Value: HIDE};
+var GetNetworkTcp =  {Value: HIDE};
+var GetNetworkIgmp =  {Value: HIDE};
 var iperfStateEnum = { UNINIT:0, INIT:1, RUNNING:2, STOP:3 };
 var iperfStateClient = iperfStateEnum.UNINIT;
 var iperfStateServer = iperfStateEnum.UNINIT;
@@ -195,6 +199,7 @@ var gTextFile = null;
 var GovernorSettingNow = 0;
 var GovernorSettingPrev = 0;
 var wlanZero = false;
+var WifiWakeOnWlanMacAddress = "";
 
 Number.prototype.padZero= function(len){
     var s= String(this), c= '0';
@@ -666,6 +671,39 @@ function MyClick(event)
     setVariable(id);
 }
 
+function MySelect(event)
+{
+    var debug=0;
+    var target = event.target || event.srcElement;
+    var id = target.id;
+    var fieldName = target.id;
+    var fieldValue = "";
+    var obj=document.getElementById(fieldName);
+
+
+    if ( obj.type == "select-one" ) {
+        var selectobj = document.getElementById(fieldName);
+        if (fieldName == "dropdownWifiWakeOnWlan") {
+            GetWakeOnWlanMacAddress( "dropdownWifiWakeOnWlan" );
+        }
+    }
+}
+
+function GetWakeOnWlanMacAddress( fieldName )
+{
+    var obj=document.getElementById( fieldName );
+    var mac_address = "";
+    if ( obj ) {
+        var idx = obj.selectedIndex;
+        if ( idx != -1 ) {
+            var y = obj.options;
+            mac_address = y[idx].text;
+        }
+    }
+
+    return mac_address;
+}
+
 function DisableCheckboxes ( newValue )
 {
     var elements = document.getElementsByTagName("input");
@@ -904,10 +942,20 @@ function checkboxSelected ( fieldName, fieldValue )
         hideOrShow("row_irqs", fieldValue);
     } else if (fieldName == "checkboxheapstats" ) {
         SetInternalCheckboxStatus ( "checkboxheapstats", GetHeapStats );
+        if (GetHeapStats.Value == 0) { // if user un-checked the box, clear out the contents and hide the row
+            SetInnerHtml( "MEMORY_HTML0", "" );
+            hideOrShow( "row_memory_html0", HIDE );
+        } else {
+            hideOrShow( "row_memory_html0", SHOW );
+        }
     } else if (fieldName == "checkboxsatausb" ) {
         SetInternalCheckboxStatus ( "checkboxsatausb", GetSataUsb );
         if (GetSataUsb.Value == 0) { // if user un-checked the box, tell server to stop collecting data
             GetSataUsb.Stop = 1;
+            SetInnerHtml( "MEMORY_HTML1", "" );
+            hideOrShow( "row_memory_html1", HIDE );
+        } else {
+            hideOrShow( "row_memory_html1", SHOW );
         }
     } else if (fieldName == "checkboxprofiling" ) {
         GetProfiling.Value = fieldValue;
@@ -932,8 +980,11 @@ function checkboxSelected ( fieldName, fieldValue )
         SetInternalCheckboxStatus ( "checkboxmemory", GetMemory);
         // if the box is being unchecked, clear out the html so that it does not display when we check the box in the future
         if ( fieldValue == false ) {
-            var objmemory = document.getElementById("MEMORY_HTML");
-            if (objmemory) { objmemory.innerHTML = ""; }
+            var objmemory = 0;
+            for(var row=0; row<3; row++) { // Heap Stats, SATA/USB, Cache hit/miss
+                SetInnerHtml ("MEMORY_HTML" + row, "");
+                hideOrShow ("row_memory_html" + row, HIDE );
+            }
 
             // when hiding, tell server to stop all data collection that might be going on
             GetPerfCache.StartReportNow = false;
@@ -979,16 +1030,18 @@ function checkboxSelected ( fieldName, fieldValue )
             GetLinuxTop.Stop = 1;
         }
     } else if (fieldName == "checkboxPerfCache" ) {
-        var objtable = document.getElementById("MEMORY_HTML");
+        var objtable = document.getElementById("MEMORY_HTML2");
         GetPerfCache.Value = fieldValue;
         checkboxPerfCacheDoit( fieldValue );
         if(debug) alert(fieldName + " checked; value " + fieldValue );
         GetPerfCache.StartReportNow = fieldValue;
 
-        if (objtable) { objtable.innerHTML = "<textarea style=\"width:860px;\" ></textarea>"; } // turning on and off ... clear out the textarea
-
         if (fieldValue) { // if turning on
+            SetInnerHtml ( "MEMORY_HTML2", "<textarea style=\"width:860px;\" ></textarea>" );
+            hideOrShow( "row_memory_html2", SHOW );
         } else { // else turning it off
+            SetInnerHtml ( "MEMORY_HTML2", "" );
+            hideOrShow( "row_memory_html2", HIDE );
         }
     } else if (fieldName == "checkboxPerfDeep" ) {
         GetPerfDeep.Value = fieldValue;
@@ -1030,6 +1083,13 @@ function checkboxSelected ( fieldName, fieldValue )
         }
     } else if (fieldName == "checkboxWifiAmpduGraph" ) {
         checkboxWifiAmpduGraphDoit( fieldValue );
+    } else if (fieldName == "checkboxWifiWakeOnWlan" ) {
+        if (fieldValue == false) {
+            hideOrShow("WIFI_WAKE_ON_WLAN_ROW", HIDE );
+            SetInnerHtml( "WIFI_WAKE_ON_WLAN_COMMAND", "" );
+        } else {
+            hideOrShow("WIFI_WAKE_ON_WLAN_ROW", SHOW );
+        }
     } else if (fieldName == "checkboxiperfrow" ) {
         if (fieldValue == false) {
             iperfClientServerRow = 0;
@@ -1042,6 +1102,14 @@ function checkboxSelected ( fieldName, fieldValue )
         checkboxNetTuningRow = fieldValue;
         hideOrShow("row_NetTuning", checkboxNetTuningRow );
         GetNetworkTuning.Value = fieldValue;
+    } else if (fieldName == "checkboxNetTcpRow" ) {
+        checkboxNetTcpRow = fieldValue;
+        hideOrShow("row_NetTcp", checkboxNetTcpRow );
+        GetNetworkTcp.Value = fieldValue;
+    } else if (fieldName == "checkboxNetIgmpRow" ) {
+        checkboxNetIgmpRow = fieldValue;
+        hideOrShow("row_NetIgmp", checkboxNetIgmpRow );
+        GetNetworkIgmp.Value = fieldValue;
     } else if (fieldName == "checkboxNetTuningReset" ) {
         //alert( fieldName + " = " + NetTuningDefaults );
         if ( fieldValue ) {
@@ -1211,7 +1279,6 @@ function setVariable(fieldName)
                 }
             }
         } else if ( obj.type == "button" ) {
-            //alert("button:" + fieldName);
             if (fieldName == "PerfFlameStartStop") {
                 if (GetPerfFlame.State == GetPerfFlameState.IDLE) { // state is Idle
                     var objCmdLine = document.getElementById('PerfFlameCmdLine');
@@ -1247,6 +1314,24 @@ function setVariable(fieldName)
                     ClearOutHtml ( "WIFISCANRESULTS" );
                     GetWifiScan.State = GetWifiScanState.INIT;
                     setButtonDisabled ( fieldName, true );
+                }
+            } else if (fieldName == "WIFI_WAKE_ON_WLAN_SEND") {
+
+                // get the currently selected dropdown box entry
+                WifiWakeOnWlanMacAddress = GetWakeOnWlanMacAddress( "dropdownWifiWakeOnWlan" );
+
+                // do some error checking on the mac address
+                if ( WifiWakeOnWlanMacAddress.length == 17 ) {
+                    var parts = WifiWakeOnWlanMacAddress.split(":");
+                    if ( parts.length == 6 ) {
+                        SetInnerHtml( "WIFI_WAKE_ON_WLAN_COMMAND" , "wl -i wlan0 wowl_pkt 104 ucast " + WifiWakeOnWlanMacAddress + " magic");
+                    } else {
+                        SetInnerHtml( "WIFI_WAKE_ON_WLAN_COMMAND" , "MAC address does have 6 elements" );
+                        WifiWakeOnWlanMacAddress = "";
+                    }
+                } else {
+                    SetInnerHtml( "WIFI_WAKE_ON_WLAN_COMMAND" , "MAC address is not 17 characters" );
+                    WifiWakeOnWlanMacAddress = "";
                 }
             } else if (fieldName == "iperf_start_stop_c") {
                 var obj=document.getElementById(fieldName);
@@ -1284,6 +1369,7 @@ function setVariable(fieldName)
                         KeyupEntryBox( fieldName );
                     } else {
                         iperfStateServer = iperfStateEnum.STOP;
+                        set_iperf_cmd( "", "Server" );
                     }
                     iperfPidServer = "";
                     set_iperf_button( fieldName );
@@ -1538,6 +1624,12 @@ function sendCgiRequest( )
             url += "&NetTuningInit=1";
             GetNetTuningInit = false;
         }
+        if ( GetNetworkTcp.Value ) {
+            url += "&NetTcpInit=1";
+        }
+        if ( GetNetworkIgmp.Value ) {
+            url += "&NetIgmpInit=1";
+        }
 
         if ( g_ProcFileFullname.length && g_ProcFileContents.length ) {
             url += "&ProcFileFullname=" + g_ProcFileFullname + "&ProcFileContents=" + g_ProcFileContents;
@@ -1601,6 +1693,11 @@ function sendCgiRequest( )
 
         if (GetWifiScan.State == GetWifiScanState.SCANNING ) {
             url += "&wifiscanresults=" + GetWifiScan.ServerIdx;
+        }
+
+        if ( WifiWakeOnWlanMacAddress != "" ) {
+            url += "&WifiWakeOnWlan=" + WifiWakeOnWlanMacAddress;
+            WifiWakeOnWlanMacAddress = "";
         }
     }
 
@@ -1791,7 +1888,7 @@ function GetPerfCacheResultsFunc()
         setTimeout ('GetPerfCacheResultsFunc()', 1000 );
     } else {
         GetPerfCacheResults.Value = true;
-        sendCgiRequest();
+        //sendCgiRequest();
     }
 }
 
@@ -2797,7 +2894,11 @@ function ProcessResponses ( oResponses )
                     }
 
                     hideOrShow("row_NetTuning", checkboxNetTuningRow );
+                    hideOrShow("row_NetTcp", checkboxNetTcpRow );
+                    hideOrShow("row_NetIgmp", checkboxNetIgmpRow );
                     SetCheckboxStatus ( "checkboxNetTuningRow", GetNetworkTuning );
+                    SetCheckboxStatus ( "checkboxNetTcpRow", GetNetworkTcp );
+                    SetCheckboxStatus ( "checkboxNetIgmpRow", GetNetworkIgmp );
                 } else {
                     AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
                 }
@@ -3141,8 +3242,10 @@ function ProcessResponses ( oResponses )
                                     //set_iperf_cmd ( "", entry ); // if we clear this out, what user is typing gets cleared BEFORE START button pressed
                                 } else {
                                     // if someone started iperf -s outside of bsysperf, do not allow bsysperf to start another one
-                                    setButtonDisabled( 'iperf_start_stop_s', true );
-                                    set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')) + " (started outside of bsysperf)", entry );
+                                    //setButtonDisabled( 'iperf_start_stop_s', true );
+                                    obj.value = "STOP";
+                                    iperfStateServer = iperfStateEnum.RUNNING;
+                                    set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')), entry );
                                 }
                             }
                         }
@@ -3316,6 +3419,9 @@ function ProcessResponses ( oResponses )
                 }
             }
             i++;
+        } else if (entry == "WIFI_WAKE_ON_WLAN_COMMAND" ) {
+            SetInnerHtml( entry, GetInnerHtml( "WIFI_WAKE_ON_WLAN_COMMAND" ) + " - " + oResponses[i+1] );
+            i++;
         } else if (entry == "IRQINFO") {
             var obj2 = document.getElementById("checkboxirqs");
             if (obj2) {
@@ -3324,7 +3430,7 @@ function ProcessResponses ( oResponses )
                     var irqcount = 0;
                     var tempNumCpus = Number(response.substr(0,1)) + 1;
                     //alert("IRQINFO: tempNumCpus " + tempNumCpus );
-                    AddToDebugOutput ( entry + ":" + response + "; tempNumCpus " + tempNumCpus + ";" + eol );
+                    //AddToDebugOutput ( entry + ":" + response + "; tempNumCpus " + tempNumCpus + ";" + eol );
                     for (idx=0; idx < tempNumCpus; idx++ ) {
                         var idle=response.substr(2+(idx*7), 7);
 
@@ -3388,24 +3494,22 @@ function ProcessResponses ( oResponses )
                 objplatform.innerHTML = "Bolt: " + oResponses[i+1];
             }
             i++;
-        } else if (entry == "HEAPTABLE") { // used to populate the MEMORY_HTML TH with heap table and PerfCache
+        } else if (entry == "HEAPTABLE") {
+            SetInnerHtml( "MEMORY_HTML0", oResponses[i+1] );
+            i++;
+        } else if (entry == "PERFCACHE") {
             AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
-            //alert(entry + ":" + oResponses[i+1] );
 
-            var objtable = document.getElementById("MEMORY_HTML");
+            var objtable = document.getElementById("MEMORY_HTML2");
             if (objtable) {
-                if (oResponses[i+1].indexOf("id=textareaPerfCache") > 0 ) { // if the response is the html for the Cache textbox
-                    if ( GetCheckboxStatus ( "checkboxPerfCache" ) ) { // only display the response if the checkbox is still checked
-                        objtable.innerHTML = oResponses[i+1];
-
-                        objtable = document.getElementById("textareaPerfCache");
-                        if (objtable) {
-                            objtable.rows = Number(objtable.scrollHeight/14,0) + 1;
-                            //alert("TEXTAREA height (" + objtable.scrollHeight + "); numrows (" + objtable.rows + ")" );
-                        }
-                    }
-                } else {
+                if ( GetCheckboxStatus ( "checkboxPerfCache" ) ) { // only display the response if the checkbox is still checked
                     objtable.innerHTML = oResponses[i+1];
+
+                    objtable = document.getElementById("textareaPerfCache");
+                    if (objtable) {
+                        objtable.rows = Number(objtable.scrollHeight/14,0) + 1;
+                        //alert("TEXTAREA height (" + objtable.scrollHeight + "); numrows (" + objtable.rows + ")" );
+                    }
                 }
             }
 
@@ -3452,7 +3556,7 @@ function ProcessResponses ( oResponses )
             AddToDebugOutput ( entry + ": html table len " + oResponses[i+1].length + ";" + eol );
 
             var objcheckbox = document.getElementById("checkboxsatausb");
-            var objtable = document.getElementById("MEMORY_HTML");
+            var objtable = document.getElementById("MEMORY_HTML1");
             if (objcheckbox) {
                 objcheckbox.checked = GetSataUsb.Value;
             }
@@ -3487,7 +3591,7 @@ function ProcessResponses ( oResponses )
             AddToDebugOutput ( entry + ": response (" + oResponses[i+1] + "); " + eol );
             //alert ( entry + ": response (" + oResponses[i+1] + "); " + eol );
             if (oResponses[i+1] == "SUCCESS") {
-                GetPerfCacheCountdown = GetPerfCache.Duration;
+                GetPerfCacheCountdown = Math.max( Number( GetPerfCache.Duration - 1), 1);
                 GetPerfCacheCountdown++;
                 //alert("Perf stat succeeded; setting timeout for  " + GetPerfCacheCountdown );
                 if ( GetPerfCacheCountdown > 1) {
@@ -3750,6 +3854,36 @@ function ProcessResponses ( oResponses )
                 if (obj2.checked) {
                     var response = oResponses[i+1];
                     var obj2=document.getElementById("NetTuning");
+                    if (obj2) {
+                        obj2.innerHTML = oResponses[i+1];
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "NetTcpInit") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    var response = oResponses[i+1];
+                    var obj2=document.getElementById("textarea_tcp");
+                    if (obj2) {
+                        obj2.innerHTML = oResponses[i+1];
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "NetIgmpInit") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    var response = oResponses[i+1];
+                    var obj2=document.getElementById("textarea_igmp");
                     if (obj2) {
                         obj2.innerHTML = oResponses[i+1];
                     }
@@ -5263,6 +5397,18 @@ function SetRecordAll( state )
                SetElementSrc( targetId, RecordStateFilename[1] );
            }
        }
+    }
+    return true;
+}
+/**
+ *  Function: This function will set the innerHTML of the specified element with the value
+ *            provided.
+ **/
+function SetInnerHtml ( targetId, newvalue )
+{
+    var obj = document.getElementById ( targetId );
+    if ( obj ) {
+        obj.innerHTML = newvalue;
     }
     return true;
 }

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES shared state object.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_int_config.h"
 
 #include "glxx_texture.h"
@@ -118,7 +110,7 @@ bool glxx_shared_init(GLXX_SHARED_T *shared)
    return true;
 }
 
-static void destroy_pobject_callback(KHRN_MAP_T *map, uint32_t key, void *pobject, void *shared)
+static void destroy_pobject_callback(khrn_map *map, uint32_t key, void *pobject, void *shared)
 {
    assert(pobject != NULL);
 
@@ -282,7 +274,7 @@ GLXX_TEXTURE_T *glxx_shared_get_or_create_texture(GLXX_SHARED_T *shared,
    return texture_obj;
 }
 
-GLsync glxx_shared_create_fencesync(GLXX_SHARED_T *shared, const KHRN_FENCE_T *fence)
+GLsync glxx_shared_create_fencesync(GLXX_SHARED_T *shared, const khrn_fence *fence)
 {
    GLXX_FENCESYNC_T *fsync = NULL;
    uint32_t id = 0;

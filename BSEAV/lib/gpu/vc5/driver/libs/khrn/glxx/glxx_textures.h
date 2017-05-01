@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-   header file for textures used  by the server state
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_TEXTURES_H
 #define GLXX_TEXTURES_H
 

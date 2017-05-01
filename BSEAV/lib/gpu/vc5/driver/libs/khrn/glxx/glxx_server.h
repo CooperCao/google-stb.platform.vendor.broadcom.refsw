@@ -28,6 +28,7 @@
 #include "glxx_hw_framebuffer.h"
 #include "glxx_hw_render_state.h"
 #include "glxx_debug.h"
+#include "glxx_rect.h"
 
 #include "../gl11/gl11_matrix.h"
 #include "../gl11/gl11_texunit.h"
@@ -312,20 +313,20 @@ typedef struct
    khrn_render_state_set_t linewidth;       // also when line_smooth changes
    khrn_render_state_set_t polygon_offset;
    khrn_render_state_set_t viewport;        // scissor viewport depthrange
-   khrn_render_state_set_t sample_coverage;
+   khrn_render_state_set_t sample_state;    // Sample coverage and (v4.1+) sample mask
    khrn_render_state_set_t stuff;           // uniforms, shader, config, attribs etc. - See fast_draw_path()
    khrn_render_state_set_t stencil;
 } glxx_dirty_set_t;
 
 struct glxx_context_fences
 {
-   KHRN_FENCE_T *fence; /* fence describing at any point all the current render
+   khrn_fence *fence; /* fence describing at any point all the current render
                            states using a certain context and previous jobs that
                            were issued on that context; by flushing this fence
                            and waiting for it to be signaled we would wait for
                            all the jobs issued on that context to complete; */
 
-   KHRN_FENCE_T *fence_to_depend_on; /* any future job issued on a certain context
+   khrn_fence *fence_to_depend_on; /* any future job issued on a certain context
                                         will depend on this fence; */
 };
 
@@ -370,6 +371,13 @@ typedef struct
    v3d_blend_mul_t  dst_alpha;
 } glxx_blend_cfg;
 
+typedef struct
+{
+   unsigned int index; /* maximum index allowed across all enabled non-instance attributes */
+   unsigned int instance; /* maximum instanced allowed across all enabled instance attributes */
+   unsigned int base_instance; /* the base instance used when calculating max instance above */
+} glxx_attribs_max;
+
 struct GLXX_SERVER_STATE_T_
 {
    /* The EGL Context this state is associated with. */
@@ -378,8 +386,6 @@ struct GLXX_SERVER_STATE_T_
    GLenum active_texture;
 
    GLenum error;
-
-   GLSL_BACKEND_CFG_T shaderkey_common;
 
    struct {
       uint32_t backend;
@@ -405,10 +411,6 @@ struct GLXX_SERVER_STATE_T_
 
    glxx_dirty_set_t dirty;
 
-   // Contains attribs_max calculated in the previous draw call for server-side attributes
-   // Valid if any bits in dirty.stuff are clear
-   GLXX_ATTRIBS_MAX cached_server_attribs_max;
-
    // Note that ELEMENT_ARRAY bindings are stored in the vao.
    GLXX_BUFFER_BINDING_T bound_buffer[GLXX_BUFTGT_CTX_COUNT];
 
@@ -432,7 +434,7 @@ struct GLXX_SERVER_STATE_T_
    /* OpenGL ES 3.0 specifies that framebuffers are not shared state.
       In later ES 3.0 it was implementation defined, and in early ES 2.0 it was shared state */
    uint32_t next_framebuffer;
-   KHRN_MAP_T framebuffers;
+   khrn_map framebuffers;
 
    /*
       Shared object structure
@@ -470,8 +472,11 @@ struct GLXX_SERVER_STATE_T_
    GLenum front_face;
 
    struct {
-      GLfloat factor;
-      GLfloat units;
+#if V3D_HAS_POLY_OFFSET_CLAMP
+      float limit;
+#endif
+      float factor;
+      float units;
    } polygon_offset;
 
    GLXX_SAMPLE_COVERAGE_T sample_coverage;
@@ -481,36 +486,24 @@ struct GLXX_SERVER_STATE_T_
       uint32_t mask[GLXX_CONFIG_MAX_SAMPLE_WORDS];
    } sample_mask;
 
+   glxx_rect scissor;
+   glxx_rect viewport; // width/height <= GLXX_CONFIG_MAX_VIEWPORT_SIZE (clamped on set)
+
    struct {
-      GLint x;
-      GLint y;
-      GLsizei width;
-      GLsizei height;
-   } scissor;
+      // It would be nice to just call these near and far but the Windows
+      // headers #define near and far...
+      float z_near; // 0 <= z_near <= 1
+      float z_far;  // 0 <= z_far  <= 1
+   } depth_range;
 
-   /*
-      Current viewport in GL and internal formats
-
-      DEPTH_RANGE             (0, 1)
-      VIEWPORT                (0, 0, 0, 0)   note set at first use of context with surface
-   */
+   /* A cache of internal values derived from viewport & depth_range */
    struct {
-      GLint x;
-      GLint y;
-      GLsizei width;        //       0 <= width <= GLXX_CONFIG_MAX_VIEWPORT_SIZE
-      GLsizei height;       //       0 <= height <= GLXX_CONFIG_MAX_VIEWPORT_SIZE
-      GLclampf vp_near;     //       0 <= near <= 1
-      GLclampf vp_far;      //       0 <= far  <= 1
-
-      /* A cache of internal derived values */
-      float internal_dr_near;
-      float internal_dr_far;
-      float internal_dr_diff;
-      float internal_xscale;
-      float internal_yscale;
-      float internal_zscale;
-      float internal_zoffset;
-   } viewport;
+      float dr_diff;
+      float xscale;
+      float yscale;
+      float zscale;
+      float zoffset;
+   } vp_internal;
 
    struct {
       bool cull_face;
@@ -577,11 +570,6 @@ struct GLXX_SERVER_STATE_T_
 
    GL11_STATE_T gl11;
 
-   // HW Uniform values associated with currently installed texture
-   GLXX_TEXTURE_UNIF_T texture_unif[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS];
-
-   GLXX_TEXTURE_UNIF_T image_unif[GLXX_CONFIG_MAX_IMAGE_UNITS];
-
    // Per-texture-unit sampler object, if any
    GLXX_TEXTURE_SAMPLER_STATE_T *bound_sampler[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS];
 
@@ -609,11 +597,11 @@ struct GLXX_SERVER_STATE_T_
                                   query; NULL if there is no active query for
                                   this type, on this context */
 
-         KHRN_TIMELINE_T timeline;
+         khrn_timeline timeline;
       } queries[GLXX_Q_COUNT];
 
       uint32_t next_name; /* next free name */
-      KHRN_MAP_T  objects;
+      khrn_map  objects;
 
    } queries;
 
@@ -625,7 +613,7 @@ struct GLXX_SERVER_STATE_T_
                                                  or if the user calls BindTranformFeedback(0) */
       GLXX_TRANSFORM_FEEDBACK_T *default_tf;
       uint32_t          next;
-      KHRN_MAP_T        objects;
+      khrn_map        objects;
    } transform_feedback;
 
    // Vertex array objects
@@ -633,14 +621,14 @@ struct GLXX_SERVER_STATE_T_
       GLXX_VAO_T        *default_vao; // Always valid
       GLXX_VAO_T        *bound;       // Always valid, ==default_vao if nothing explicitly bound
       uint32_t          next;
-      KHRN_MAP_T        objects;
+      khrn_map        objects;
    } vao;
 
    // Pipeline objects ES3.1 specific
    struct glxx_pipelines {
       struct GLXX_PIPELINE_T_   *bound;
       uint32_t                   next;
-      KHRN_MAP_T                 objects;
+      khrn_map                 objects;
    } pipelines;
 
    struct {
@@ -771,12 +759,8 @@ extern GLXX_FRAMEBUFFER_T* glxx_server_state_get_framebuffer(
 extern void glxx_server_state_delete_framebuffer(GLXX_SERVER_STATE_T *state, uint32_t fb_id);
 
 
-#ifdef DISABLE_OPTION_PARSING
-extern void glxx_server_state_set_error(GLXX_SERVER_STATE_T *state, GLenum error);
-#else
 extern void glxx_server_state_set_error_ex(GLXX_SERVER_STATE_T *state, GLenum error, const char *func, const char *file, int line);
 #define glxx_server_state_set_error(a, b) glxx_server_state_set_error_ex(a, b, __func__, __FILE__, __LINE__)
-#endif
 
 static inline void glxx_set_error_api(uint32_t api, GLenum error)
 {
@@ -809,7 +793,7 @@ extern bool glxx_server_queries_install(GLXX_SERVER_STATE_T *state,
 extern void glxx_server_invalidate_for_render_state(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs);
 
 extern bool glxx_server_state_add_fence_to_depend_on(GLXX_SERVER_STATE_T *state,
-      const KHRN_FENCE_T *fence);
+      const khrn_fence *fence);
 
 extern void glxx_server_attach_surfaces(GLXX_SERVER_STATE_T *state,
       EGL_SURFACE_T *read, EGL_SURFACE_T *draw);

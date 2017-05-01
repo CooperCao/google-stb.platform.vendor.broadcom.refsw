@@ -58,12 +58,11 @@ void platform_receiver_p_hotplug_handler(PlatformReceiverHandle rx)
 #if NEXUS_HAS_HDMI_OUTPUT
     if (rx->connected)
     {
-        NEXUS_Error rc = NEXUS_SUCCESS;
         NEXUS_HdmiOutputHandle hdmiOutput;
         BDBG_MSG(("receiver generated hotplug; re-reading hdrdb"));
         hdmiOutput = NEXUS_HdmiOutput_Open(NEXUS_ALIAS_ID + 0, NULL);
         if (hdmiOutput) {
-            NEXUS_Error rc;
+            NEXUS_Error rc = NEXUS_SUCCESS;
             rc = NEXUS_HdmiOutput_GetEdidData(hdmiOutput, &rx->edid);
             NEXUS_HdmiOutput_Close(hdmiOutput);
             if (!rc) rx->edid.valid = true;
@@ -111,7 +110,7 @@ const PlatformReceiverModel * platform_receiver_supports_picture(PlatformReceive
 {
     BDBG_ASSERT(rx);
 #if NEXUS_HAS_HDMI_OUTPUT
-    rx->model.dynrng = rx->edid.valid && rx->edid.hdrdb.valid && rx->edid.hdrdb.eotfSupported[platform_p_dynamic_range_to_nexus(pInfo->dynrng)];
+    rx->model.dynrng = platform_receiver_supports_dynamic_range(rx, pInfo->dynrng);
 #else
     rx->model.dynrng = PlatformCapability_eUnknown;
     rx->model.gamut = PlatformCapability_eUnknown;
@@ -121,25 +120,25 @@ const PlatformReceiverModel * platform_receiver_supports_picture(PlatformReceive
 
 PlatformCapability platform_receiver_supports_dynamic_range(PlatformReceiverHandle rx, PlatformDynamicRange dynrng)
 {
-    BDBG_ASSERT(rx);
 #if NEXUS_HAS_HDMI_OUTPUT
+    BDBG_ASSERT(rx);
     if (rx->edid.valid)
     {
-        BDBG_ERR(("Received valid EDID"));
-        if (rx->edid.hdrdb.valid && rx->edid.hdrdb.eotfSupported[platform_p_dynamic_range_to_nexus(dynrng)])
+        NEXUS_VideoEotf eotf;
+        NEXUS_HdmiOutputDolbyVisionMode dolbyVision;
+        platform_p_dynamic_range_to_nexus(dynrng, &eotf, &dolbyVision);
+        if ((dynrng == PlatformDynamicRange_eDolbyVision && platform_display_p_is_dolby_vision_supported(rx->platform->display))
+            || (rx->edid.hdrdb.valid && rx->edid.hdrdb.eotfSupported[eotf]))
         {
-            BDBG_ERR(("valid hdrdb and support"));
             return PlatformCapability_eSupported;
         }
         else
         {
-            BDBG_ERR(("no valid hdrdb or no support"));
             return PlatformCapability_eUnsupported;
         }
     }
     else
     {
-        BDBG_ERR(("no valid EDID"));
         return PlatformCapability_eUnknown;
     }
 #else

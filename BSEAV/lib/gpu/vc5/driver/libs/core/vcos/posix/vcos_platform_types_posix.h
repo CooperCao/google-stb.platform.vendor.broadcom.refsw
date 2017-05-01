@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  osal
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - platform-specific types and defines
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef VCOS_PLATFORM_TYPES_H
 #define VCOS_PLATFORM_TYPES_H
 

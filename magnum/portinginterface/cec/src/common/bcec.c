@@ -150,8 +150,8 @@ static const char *BCEC_OpcodeToString(uint8_t cecOpCode)
 
 #if BCEC_CONFIG_ENABLE_COMPLIANCE_TEST_WORKAROUND
 #define BCEC_START_BIT_XMIT_TIME	5	/* round up 4.5 ms */
-#define BCEC_PACKET_SIZE	10	/* bits -- message + EOM + ACK */
-#define BCEC_NOMINAL_BIT_TIME	3	/* round up 2.4 ms */
+#define BCEC_PACKET_TIME 24 /* = nominal bit time (2.4ms) * 10bit packet size */
+#define BCEC_RETRANSMITTION_WAIT_TIME 8 /* round up from 3 * nominal bit time (2.4ms) */
 #endif
 
 
@@ -489,6 +489,7 @@ static void BCEC_P_TimerExpiration_isr (BCEC_Handle hCEC, int parm2)
 	/* override status */
 	hCEC->lastTransmitMessageStatus.uiStatus = 1;
 	hCEC->lastTransmitMessageStatus.uiEOM = 1;
+	hCEC->firstCecMessage = true;
 
 	/* Manually fire CEC Sent Event */
 	BKNI_SetEvent(hCEC->BCEC_EventCec_Transmitted);
@@ -1289,15 +1290,15 @@ BERR_Code BCEC_XmitMessage(
 			BREG_Write32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset, Register) ;   /* 1 */
 
 			/* Calculate delay needed and kick-start count down timer
-				Delay needed for 3 additional retries */
+				Delay needed for 1 full additional retries and 1 header retry */
 			msDelay = (uint16_t)
-				/* Required time to send message 4 times, including up to 3 retries*/
-				4 * (BCEC_START_BIT_XMIT_TIME + BCEC_PACKET_SIZE*BCEC_NOMINAL_BIT_TIME /* header */+
-					BCEC_PACKET_SIZE*BCEC_NOMINAL_BIT_TIME * pMessageData->messageLength)
+				/* 1 retry only send header packet as HW will retransmit packet with no ack immediately */
+				2 * (BCEC_START_BIT_XMIT_TIME + BCEC_PACKET_TIME /* header */+ BCEC_PACKET_TIME * pMessageData->messageLength)
+				+ (BCEC_START_BIT_XMIT_TIME + BCEC_PACKET_TIME /* header */)
 				+
-				/* required wait time before retransmission if any >=3 */
-				(3 * 4 * BCEC_NOMINAL_BIT_TIME);
-			BKNI_LeaveCriticalSection();
+                /* required wait time before retransmission if any >=3*nominalBitTime */
+                2 * BCEC_RETRANSMITTION_WAIT_TIME;
+BKNI_LeaveCriticalSection();
 
 			/* Arm timer */
 			if (hCEC->hTimer) {

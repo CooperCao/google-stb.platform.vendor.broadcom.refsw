@@ -75,7 +75,8 @@ static const BBOX_MemConfig stBoxMemConfig_7271A0_box2 =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 6 */
       }
    },
-   BBOX_INVALID_NUM_MEMC
+   BBOX_INVALID_NUM_MEMC,
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 
 void BBOX_P_GetBox2MemConfig

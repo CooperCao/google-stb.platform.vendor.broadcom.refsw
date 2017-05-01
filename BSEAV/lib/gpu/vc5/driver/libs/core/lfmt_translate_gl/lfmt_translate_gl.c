@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "lfmt_translate_gl.h"
 
 #include <GLES3/gl31.h>
@@ -350,8 +343,7 @@ GLenum gfx_unsized_internalformat_from_api_fmt_maybe(GFX_LFMT_T api_fmt)
 
 GLenum gfx_internalformat_from_api_fmt_maybe(GFX_LFMT_T api_fmt)
 {
-   GLenum internalfmt;
-   internalfmt = gfx_sized_internalformat_from_api_fmt_maybe(api_fmt);
+   GLenum internalfmt = gfx_sized_internalformat_from_api_fmt_maybe(api_fmt);
    if (internalfmt != GL_NONE)
       return internalfmt;
 
@@ -362,8 +354,7 @@ GLenum gfx_internalformat_from_api_fmt_maybe(GFX_LFMT_T api_fmt)
 /* Don't call this function if this is a compressed api fmt */
 GLenum gfx_internalformat_from_api_fmt(GFX_LFMT_T api_fmt)
 {
-   GLenum internalfmt;
-   internalfmt = gfx_internalformat_from_api_fmt_maybe(api_fmt);
+   GLenum internalfmt = gfx_internalformat_from_api_fmt_maybe(api_fmt);
    assert(internalfmt != GL_NONE);
    return internalfmt;
 }

@@ -689,12 +689,6 @@ can be disabled to allow for successful compilation
 #define BHDM_CONFIG_NUM_HDMI_CORES 1
 #endif
 
-
-#if BCHP_MPM_CPU_CTRL_REG_START
-#define BHDM_CONFIG_MHL_SUPPORT 1
-#endif
-
-
 /* For boot loader usage */
 #ifdef BHDM_FOR_BOOTUPDATER
 

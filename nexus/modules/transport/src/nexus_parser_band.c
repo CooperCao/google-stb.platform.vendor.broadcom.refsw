@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,65 +57,21 @@ this is not exact, but the approximate count is useful. */
 void NEXUS_ParserBand_P_CountCcErrors_isr(void)
 {
     NEXUS_P_HwPidChannel *pidChannel;
-    unsigned i;
-
-#if NEXUS_PARSER_BAND_CC_CHECK
-    uint32_t value[NEXUS_NUM_PID_CHANNELS/32];
-
-    /* read & clear status immediately to maximize chance of catching the next one */
-    for (i=0;i<NEXUS_NUM_PID_CHANNELS/32;i++) {
-        uint32_t addr = BCHP_XPT_FE_PCC_ERROR0 + (i*4);
-        value[i] = BREG_Read32(g_pCoreHandles->reg, addr);
-        if (value[i]) {
-            BREG_Write32(g_pCoreHandles->reg, addr, 0); /* clear status immediately to maximize chance of catching the next one */
-        }
-    }
-
-    /* now apply to each pid channel */
+    /* only read and clear on pidchannels we are tracking */
     for (pidChannel = BLST_S_FIRST(&pTransport->pidChannels); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
-        unsigned index = pidChannel->status.pidChannelIndex;
-        if ((value[index/32]>>(index%32)) & 0x1) {
-            pidChannel->status.continuityCountErrors++;
-        }
-    }
-#else
-    bool value[NEXUS_NUM_PID_CHANNELS];
-    uint32_t Reg;
-
-    /* read & clear status immediately to maximize chance of catching the next one */
-    for (i = 0; i < NEXUS_NUM_PID_CHANNELS; i++)
-    {
-        uint32_t addr = BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE + (i*4);
-
-        Reg = BREG_Read32(g_pCoreHandles->reg, addr);
-        value[ i ] = BCHP_GET_FIELD_DATA( Reg, XPT_FULL_PID_PARSER_STATE_CONFIG_0_i, PCC_ERROR ) ? true : false;
-        if (value[i])
-        {
+        uint32_t addr = BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE + (pidChannel->status.pidChannelIndex*4);
+        uint32_t Reg = BREG_Read32(g_pCoreHandles->reg, addr);
+        if (BCHP_GET_FIELD_DATA( Reg, XPT_FULL_PID_PARSER_STATE_CONFIG_0_i, PCC_ERROR )) {
             Reg &= ~BCHP_MASK( XPT_FULL_PID_PARSER_STATE_CONFIG_0_i, PCC_ERROR );
             BREG_Write32(g_pCoreHandles->reg, addr, Reg); /* clear status immediately to maximize chance of catching the next one */
-        }
-    }
-
-    /* now apply to each pid channel */
-    for (pidChannel = BLST_S_FIRST(&pTransport->pidChannels); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link))
-    {
-        unsigned index = pidChannel->status.pidChannelIndex;
-
-        if ( value[index] )
-        {
             pidChannel->status.continuityCountErrors++;
         }
     }
-#endif
 }
 
 #if NEXUS_NUM_PARSER_BANDS
 
-#if (BXPT_HAS_FIXED_RSBUF_CONFIG || BXPT_HAS_FIXED_XCBUF_CONFIG)
 #define PARSER_BAND_HAS_MEMORY(i) (pTransport->settings.clientEnabled.parserBand[i].rave)
-#else
-#define PARSER_BAND_HAS_MEMORY(i) (true)
-#endif
 
 static NEXUS_Error NEXUS_ParserBand_P_SetInterrupts(NEXUS_ParserBandHandle parserBand, const NEXUS_ParserBandSettings *pSettings);
 static NEXUS_Error NEXUS_ParserBand_P_Init(unsigned index);
@@ -213,12 +169,9 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
 
     bandHwIndex = parserBand->hwIndex;
 
-#if !NEXUS_PARSER_BAND_CC_CHECK
     if(pSettings->continuityCountEnabled != parserBand->settings.continuityCountEnabled && parserBand->pidChannels) {
         BDBG_WRN(("%u:continuityCountEnabled wouldn't get applied to aleady opened pids", bandHwIndex));
     }
-#endif
-
 
     rc = BXPT_GetParserConfig(pTransport->xpt, bandHwIndex, &parserCfg);
     if (rc) {return BERR_TRACE(rc);}
@@ -255,12 +208,6 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
-#if NEXUS_PARSER_BAND_CC_CHECK
-    parserCfg.ContCountIgnore = !pSettings->continuityCountEnabled;
-    if (NEXUS_GetEnv("cont_count_ignore")) {
-        parserCfg.ContCountIgnore = true;
-    }
-#endif
     parserCfg.ErrorInputIgnore = pSettings->teiIgnoreEnabled;
     parserCfg.AcceptNulls = pSettings->acceptNullPackets;
     parserCfg.TsMode = NEXUS_IS_DSS_MODE(pSettings->transportType) ? BXPT_ParserTimestampMode_eBinary : BXPT_ParserTimestampMode_eMod300;
@@ -294,12 +241,10 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
     }
 #endif
 
-#if (!NEXUS_HAS_LEGACY_XPT) /* 40nm platforms */
     if (prevMaxDataRate != pSettings->maxDataRate) {
         BDBG_WRN(("maxDataRate can only be changed via NEXUS_TransportModuleInternalSettings"));
         parserBand->settings.maxDataRate = prevMaxDataRate;
     }
-#endif
 
     /* BXPT_ParserAllPassMode(false) has a side effect of restoring default RS/XC DataRate values. Therefore the order
     of the following calls is important. */
@@ -358,19 +303,6 @@ void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand)
     if (!enabled && parserBand->settings.cableCard != NEXUS_CableCardType_eNone && parserBand->settings.allPass && parserBand->settings.sourceType!=NEXUS_ParserBandSourceType_eMtsif) {
         enabled = true;
     }
-
-#if NEXUS_PARSER_BAND_CC_CHECK
-    if (NEXUS_GetEnv("cont_count_ignore")) {
-        unsigned bandHwIndex = parserBand->hwIndex;
-        BXPT_ParserConfig parserCfg;
-        /* SetSettings is not required to be called by the user, so set ContCountIgnore directly */
-        rc = BXPT_GetParserConfig(pTransport->xpt, bandHwIndex, &parserCfg);
-        if (!rc) {
-            parserCfg.ContCountIgnore = true;
-            (void)BXPT_SetParserConfig(pTransport->xpt, bandHwIndex, &parserCfg);
-        }
-    }
-#endif
 
     /* make sure the refcnt didn't get decremented below zero */
     BDBG_ASSERT(parserBand->refcnt >= 0);
@@ -512,12 +444,7 @@ void NEXUS_ParserBand_P_GetDefaultSettings(unsigned index, NEXUS_ParserBandSetti
     /* HW may not support connection to IB, so default to disconnected MTSIF */
     pSettings->sourceType = NEXUS_ParserBandSourceType_eMtsif;
     pSettings->sourceTypeSettings.mtsif = NULL;
-#if NEXUS_HAS_LEGACY_XPT
-    BSTD_UNUSED(index);
-    pSettings->maxDataRate = 25000000; /* 25 Mbps */
-#else
     pSettings->maxDataRate = pTransport->settings.maxDataRate.parserBand[index];
-#endif
     pSettings->forceRestamping = true;
     NEXUS_CallbackDesc_Init(&pSettings->ccError);
     NEXUS_CallbackDesc_Init(&pSettings->teiError);
@@ -590,6 +517,7 @@ void NEXUS_ParserBand_P_UninitAll(void)
     unsigned i;
     for (i=0;i<NEXUS_NUM_PARSER_BANDS;i++) {
         if (pTransport->parserBand[i]) {
+            NEXUS_OBJECT_UNREGISTER(NEXUS_ParserBand, pTransport->parserBand[i], Destroy);
             NEXUS_ParserBand_P_Uninit(pTransport->parserBand[i]);
         }
     }
@@ -765,19 +693,23 @@ void NEXUS_ParserBand_GetMtsifConnections_priv( NEXUS_FrontendConnectorHandle co
 void NEXUS_ParserBand_P_MtsifErrorStatus_priv(unsigned lengthError, unsigned transportError)
 {
     unsigned i;
+    NEXUS_ParserBandHandle band;
     NEXUS_ASSERT_MODULE();
     for (i=0;(lengthError || transportError) && i<NEXUS_NUM_PARSER_BANDS;i++) {
         void *tsmf;
-        if (!is_mtsif(i, NULL, &tsmf)) continue;
-        if ((lengthError & 1) || (transportError & 1)) {
-            BKNI_EnterCriticalSection();
-            if (lengthError & 1) {
-                NEXUS_ParserBand_P_LengthError_isr(NEXUS_ParserBand_Resolve_priv(i), 0);
+        if (is_mtsif(i, NULL, &tsmf)) {
+            if ((lengthError & 1) || (transportError & 1)) {
+                band = NEXUS_ParserBand_Resolve_priv(i);
+                if (band==NULL) continue;
+                BKNI_EnterCriticalSection();
+                if (lengthError & 1) {
+                    NEXUS_ParserBand_P_LengthError_isr(band, 0);
+                }
+                if (transportError & 1) {
+                    NEXUS_ParserBand_P_TEIError_isr(band, 0);
+                }
+                BKNI_LeaveCriticalSection();
             }
-            if (transportError & 1) {
-                NEXUS_ParserBand_P_TEIError_isr(NEXUS_ParserBand_Resolve_priv(i), 0);
-            }
-            BKNI_LeaveCriticalSection();
         }
         lengthError >>= 1;
         transportError >>= 1;

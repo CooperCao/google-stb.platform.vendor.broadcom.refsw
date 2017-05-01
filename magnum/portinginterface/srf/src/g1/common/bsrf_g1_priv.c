@@ -1006,6 +1006,7 @@ BERR_Code BSRF_g1_P_ConfigTestMode(BSRF_ChannelHandle h, BSRF_TestportSelect tp,
 ******************************************************************************/
 BERR_Code BSRF_g1_P_ConfigOutput(BSRF_Handle h, BSRF_OutputSelect output, bool bSlewEdges, uint8_t driveStrength_ma)
 {
+#if (BCHP_CHIP==lonestar)
    BSRF_ChannelHandle hChn = h->pChannels[0];
    uint32_t reg;
    uint8_t driveStrength = 0;
@@ -1037,6 +1038,9 @@ BERR_Code BSRF_g1_P_ConfigOutput(BSRF_Handle h, BSRF_OutputSelect output, bool b
 
    BDBG_LEAVE(BSRF_g1_P_ConfigOutput);
    return BERR_SUCCESS;
+#else
+   return BERR_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -1045,6 +1049,7 @@ BERR_Code BSRF_g1_P_ConfigOutput(BSRF_Handle h, BSRF_OutputSelect output, bool b
 ******************************************************************************/
 BERR_Code BSRF_g1_P_ConfigTestDac(BSRF_Handle h, int32_t freqHz, int16_t *pCoeff)
 {
+#if (BCHP_CHIP==lonestar)
    BSRF_g1_P_Handle *hDev = (BSRF_g1_P_Handle *)h->pImpl;
    BSRF_ChannelHandle hChn = h->pChannels[0];
    uint32_t freq, P_hi, P_lo, Q_hi, Q_lo;
@@ -1080,6 +1085,9 @@ BERR_Code BSRF_g1_P_ConfigTestDac(BSRF_Handle h, int32_t freqHz, int16_t *pCoeff
 
    BDBG_LEAVE(BSRF_g1_P_ConfigTestDac);
    return BERR_SUCCESS;
+#else
+   return BERR_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -1088,6 +1096,7 @@ BERR_Code BSRF_g1_P_ConfigTestDac(BSRF_Handle h, int32_t freqHz, int16_t *pCoeff
 ******************************************************************************/
 BERR_Code BSRF_g1_P_EnableTestDac(BSRF_Handle h)
 {
+#if (BCHP_CHIP==lonestar)
    BSRF_ChannelHandle hChn = h->pChannels[0];
 
    BDBG_ASSERT(h);
@@ -1105,6 +1114,9 @@ BERR_Code BSRF_g1_P_EnableTestDac(BSRF_Handle h)
 
    BDBG_LEAVE(BSRF_g1_P_EnableTestDac);
    return BERR_SUCCESS;
+#else
+   return BERR_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -1113,6 +1125,7 @@ BERR_Code BSRF_g1_P_EnableTestDac(BSRF_Handle h)
 ******************************************************************************/
 BERR_Code BSRF_g1_P_DisableTestDac(BSRF_Handle h)
 {
+#if (BCHP_CHIP==lonestar)
    BSRF_ChannelHandle hChn = h->pChannels[0];
 
    BDBG_ASSERT(h);
@@ -1125,6 +1138,9 @@ BERR_Code BSRF_g1_P_DisableTestDac(BSRF_Handle h)
 
    BDBG_LEAVE(BSRF_g1_P_DisableTestDac);
    return BERR_SUCCESS;
+#else
+   return BERR_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -1133,6 +1149,7 @@ BERR_Code BSRF_g1_P_DisableTestDac(BSRF_Handle h)
 ******************************************************************************/
 BERR_Code BSRF_g1_P_EnableTestDacTone(BSRF_Handle h, bool bToneOn, uint16_t toneAmpl)
 {
+#if (BCHP_CHIP==lonestar)
    BSRF_ChannelHandle hChn = h->pChannels[0];
 
    BDBG_ASSERT(h);
@@ -1154,6 +1171,9 @@ BERR_Code BSRF_g1_P_EnableTestDacTone(BSRF_Handle h, bool bToneOn, uint16_t tone
 
    BDBG_LEAVE(BSRF_g1_P_EnableTestDacTone);
    return BERR_SUCCESS;
+#else
+   return BERR_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -1163,6 +1183,7 @@ BERR_Code BSRF_g1_P_EnableTestDacTone(BSRF_Handle h, bool bToneOn, uint16_t tone
 #define BSRF_DATA_CAPT_SIZE 8192 /* default to max capt size */
 BERR_Code BSRF_g1_P_RunDataCapture(BSRF_Handle h)
 {
+#if (BCHP_CHIP==lonestar)
    BSRF_ChannelHandle hChn = h->pChannels[0];
    uint32_t waitTimeMs;
 
@@ -1197,6 +1218,9 @@ BERR_Code BSRF_g1_P_RunDataCapture(BSRF_Handle h)
 
    BDBG_LEAVE(BSRF_g1_P_EnableDataCapture);
    return BERR_SUCCESS;
+#else
+   return BERR_NOT_SUPPORTED;
+#endif
 }
 
 

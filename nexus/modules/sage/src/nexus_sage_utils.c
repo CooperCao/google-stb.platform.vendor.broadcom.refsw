@@ -107,7 +107,7 @@ static NEXUS_Error NEXUS_Sage_P_GetHeapConfig(NEXUS_MemoryType memoryType, uint3
     if (validHeap) {
         NEXUS_Memory_GetDefaultAllocationSettings(allocSettings);
         allocSettings->heap = validHeap;
-        allocSettings->alignment = 32;
+        allocSettings->alignment = 4096; /* Align to 4096 for SAGE-side concerns */
     }
     else {
         BDBG_ERR(("%s: Cannot find default heap of type %u", __FUNCTION__, memoryType));

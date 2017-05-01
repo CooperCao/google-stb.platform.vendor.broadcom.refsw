@@ -1,13 +1,6 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES texture structure.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_texture_utils.h"
 #include "glxx_texture.h"
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"

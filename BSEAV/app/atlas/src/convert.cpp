@@ -48,7 +48,6 @@
 
 BDBG_MODULE(atlas_convert);
 
-
 struct g_videoCodec{
     NEXUS_VideoCodec nexus;
     bvideo_codec bmedia;
@@ -1971,4 +1970,22 @@ ENUM_TO_MSTRING_START()
     ENUM_TO_MSTRING_ENTRY(eServerIndexState_Created,       "Created")
     ENUM_TO_MSTRING_ENTRY(eServerIndexState_Failed,        "Failed")
     ENUM_TO_MSTRING_ENTRY(eServerIndexState_Max,           "Unknown")
+ENUM_TO_MSTRING_END()
+
+STRING_TO_ENUM_INIT_C(stringToVideoDynamicRange, eDynamicRange)
+STRING_TO_ENUM_START()
+    STRING_TO_ENUM_ENTRY("SDR",      eDynamicRange_SDR)
+    STRING_TO_ENUM_ENTRY("HLG",      eDynamicRange_HLG)
+    STRING_TO_ENUM_ENTRY("HDR10",    eDynamicRange_HDR10)
+    STRING_TO_ENUM_ENTRY("Unknown",  eDynamicRange_Unknown)
+    STRING_TO_ENUM_ENTRY("Invalid",  eDynamicRange_Max)
+STRING_TO_ENUM_END(eDynamicRange)
+
+ENUM_TO_MSTRING_INIT_C(videoDynamicRangeToString, eDynamicRange)
+ENUM_TO_MSTRING_START()
+    ENUM_TO_MSTRING_ENTRY(eDynamicRange_SDR,       "SDR")
+    ENUM_TO_MSTRING_ENTRY(eDynamicRange_HLG,       "HLG")
+    ENUM_TO_MSTRING_ENTRY(eDynamicRange_HDR10,     "HDR10")
+    ENUM_TO_MSTRING_ENTRY(eDynamicRange_Unknown,   "Unknown")
+    ENUM_TO_MSTRING_ENTRY(eDynamicRange_Max,       "Invalid")
 ENUM_TO_MSTRING_END()

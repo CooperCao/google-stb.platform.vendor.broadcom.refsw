@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2012-2013 Broadcom Corporation
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -70,7 +62,7 @@ endif
 include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
 
-NXCLIENT_INCLUDES += $(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES) $(BSEAV)/lib/mpeg2_ts_parse $(BSEAV)/lib/tspsi
+NXCLIENT_INCLUDES += $(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES) $(BSEAV)/lib/mpeg2_ts_parse
 
 #
 # NXCLIENT_CFLAGS and NXCLIENT_LDFLAGS

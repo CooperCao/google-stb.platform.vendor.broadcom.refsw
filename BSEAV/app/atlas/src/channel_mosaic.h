@@ -63,6 +63,8 @@ public:
     virtual eRet closePids(void);
     virtual bool isRecordEnabled(void) { return(false); }
     virtual bool isTunerRequired(void);
+    virtual MString getDescription(void) { return("MOSAIC"); }
+    virtual eRet finish(void);
     virtual eRet getChannelInfo(
             CHANNEL_INFO_T * pChanInfo,
             bool             bScanning

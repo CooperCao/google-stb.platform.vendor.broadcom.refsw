@@ -256,7 +256,7 @@ static void NEXUS_VideoDecoder_P_PrimerSetRave(NEXUS_VideoDecoderPrimerHandle pr
     i = primer->consumed_gop;
     while (i != primer->next_gop) {
         uint32_t stc = serialStc + primer->gops[i].pcr_offset; /* Serial STC + offset = STC */
-        int diff = primer->gops[i].pts - stc;
+        int diff = primer->gops[i].pts + primer->primerSettings.ptsOffset - stc;
 
 #if 0
         BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x at " BDBG_UINT64_FMT "/" BDBG_UINT64_FMT,

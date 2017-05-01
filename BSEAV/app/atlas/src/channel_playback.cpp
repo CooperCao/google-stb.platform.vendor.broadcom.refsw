@@ -90,6 +90,29 @@ eRet CChannelPlayback::readXML(MXmlElement * xmlElemChannel)
         CHECK_PTR_ERROR_GOTO("playback channel must have a filename", NULL, ret, eRet_InvalidParameter, error);
     }
 
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    /* possibly force dynamic range based on filename */
+    if (-1 < _strFilename.find("SDR"))
+    {
+        setDynamicRange(eDynamicRange_SDR);
+    }
+    else
+    if (-1 < _strFilename.find("HDR"))
+    {
+        setDynamicRange(eDynamicRange_HDR10);
+    }
+    else
+    if (-1 < _strFilename.find("HLG"))
+    {
+        setDynamicRange(eDynamicRange_HLG);
+    }
+    else
+    if (-1 < _strFilename.find("DOLBYVISION"))
+    {
+        setDynamicRange(eDynamicRange_DolbyVision);
+    }
+#endif
+
     strProgramNum = xmlElemChannel->attrValue(XML_ATT_NUMBER);
     if (false == strProgramNum.isEmpty())
     {
@@ -279,6 +302,8 @@ eRet CChannelPlayback::start(
     }
 
     ret = _pPlayback->start();
+
+    CChannel::start(pAudioDecode, pVideoDecode);
     return(ret);
 }
 
@@ -392,21 +417,32 @@ eRet CChannelPlayback::unTune(
     BSTD_UNUSED(bCheckInTuner);
     BDBG_ASSERT(NULL != _pModel);
 
+    /* we must reset STC to ref count of pids when we do an untune */
+    if(_pStc != NULL )
+    {
+        NEXUS_SimpleStcChannelSettings settings;
+        _pStc->getDefaultSettings(&settings);
+        _pStc->setSettings(&settings);
+    }
+
     /*
      * _pPlayback->dump();
      * _pPlayback->printPids();
      */
 
-    ret = _pPlayback->close(); /* stops then closes */
-    CHECK_ERROR_GOTO("playback error!", ret, error);
-
-    /* check in playback! */
+    if (NULL != _pPlayback)
     {
-        CBoardResources * pBoardResources = pConfig->getBoardResources();
+        ret = _pPlayback->close(); /* stops then closes */
+        CHECK_ERROR_GOTO("playback error!", ret, error);
 
-        ret = pBoardResources->checkinResource(_pPlayback);
-        CHECK_ERROR_GOTO("unable to checkin Playback ", ret, error);
-        _pPlayback = NULL;
+        /* check in playback! */
+        {
+            CBoardResources * pBoardResources = pConfig->getBoardResources();
+
+            ret = pBoardResources->checkinResource(_pPlayback);
+            CHECK_ERROR_GOTO("unable to checkin Playback ", ret, error);
+            _pPlayback = NULL;
+        }
     }
 
 error:

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -525,6 +525,42 @@ BERR_Code BAPE_Mixer_SetInputVolume(
     BAPE_MixerHandle mixer,
     BAPE_Connector input,
     const BAPE_MixerInputVolume *pVolume
+    );
+
+/***************************************************************************
+Summary:
+Mixer Input Settings
+***************************************************************************/
+typedef struct BAPE_MixerInputSettings
+{
+    bool srcEnabled; /* disable SRC for this mixer input. Settings applies to HW mixers only and will
+                        not be applied until the next time this mixer input path to this mixer is started. */
+} BAPE_MixerInputSettings;
+
+/***************************************************************************
+Summary:
+Get Input Settings
+
+Description:
+Customize settings for an input to a mixer
+***************************************************************************/
+BERR_Code BAPE_Mixer_GetInputSettings(
+    BAPE_MixerHandle mixer,
+    BAPE_Connector input,
+    BAPE_MixerInputSettings *pSettings    /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Set Input Settings
+
+Description:
+Customize settings for an input to a mixer
+***************************************************************************/
+BERR_Code BAPE_Mixer_SetInputSettings(
+    BAPE_MixerHandle mixer,
+    BAPE_Connector input,
+    const BAPE_MixerInputSettings *pSettings
     );
 
 /***************************************************************************

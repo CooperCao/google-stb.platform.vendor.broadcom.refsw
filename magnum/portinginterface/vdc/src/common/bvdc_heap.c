@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,6 @@
 #include "bdbg.h"                /* Dbglib */
 #include "bkni.h"                /* malloc */
 
-#include "bmem.h"
 #include "bvdc.h"                /* Video display */
 #include "bvdc_bufferheap_priv.h"
 #include "bvdc_priv.h"

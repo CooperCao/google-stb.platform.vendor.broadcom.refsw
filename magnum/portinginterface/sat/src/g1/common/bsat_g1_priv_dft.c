@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,14 +57,14 @@ BDBG_MODULE(bsat_g1_priv_dft);
 #define BSAT_DEBUG_PEAK_SCAN 0
 
 /* local functions */
-BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_DftSetDdfsFcw_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_DftStartAndWaitForDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT funct);
-BERR_Code BSAT_g1_P_DftSymbolRateScanStateMachine_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_DftPsdScan1_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_DftPsdScan2_isr(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_P_DftToneDetect1_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_DftSetDdfsFcw_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_DftStartAndWaitForDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT funct);
+static BERR_Code BSAT_g1_P_DftSymbolRateScanStateMachine_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_DftPsdScan1_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_DftPsdScan2_isr(BSAT_ChannelHandle h);
+static BERR_Code BSAT_g1_P_DftToneDetect1_isr(BSAT_ChannelHandle h);
 
 
 /******************************************************************************
@@ -93,7 +93,7 @@ BERR_Code BSAT_g1_P_DftDisableInterrupt_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_DftSetState_isr()
 ******************************************************************************/
-void BSAT_g1_P_DftSetState_isr(BSAT_ChannelHandle h, uint8_t state)
+static void BSAT_g1_P_DftSetState_isr(BSAT_ChannelHandle h, uint8_t state)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] &= ~BSAT_g1_CONFIG_DFT_STATUS_STATE;
@@ -104,7 +104,7 @@ void BSAT_g1_P_DftSetState_isr(BSAT_ChannelHandle h, uint8_t state)
 /******************************************************************************
  BSAT_g1_P_DftSearchCarrierAve_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftSearchCarrierAve_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftSearchCarrierAve_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -162,7 +162,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrier_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT fun
 /******************************************************************************
  BSAT_g1_P_DftSearchCarrierStateMachine_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle*)h->pDevice->pImpl;
@@ -190,6 +190,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
             hChn->tunerIfStep = (int32_t)(-(hChn->searchRange) - hChn->tunerIfStepSize);
             hChn->tunerIfStepMax = (int32_t)(hChn->searchRange);
             hChn->maxCount2 = 0; /* maxCount2 = dft_current_max_pow */
+            hChn->count3 = 0;
 
             if (hChn->tunerIfStepSize > hChn->searchRange)
                BSAT_g1_P_DftSetState_isr(h, 6); /* do fine search */
@@ -206,14 +207,19 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
             if (hChn->tunerIfStep <= hChn->tunerIfStepMax)
             {
                hChn->tunerIfStep += (int32_t)hChn->tunerIfStepSize;
-               BSAT_g1_P_DftSetState_isr(h, 2);
+               BSAT_g1_P_DftSetState_isr(h, (hChn->count3 > 0) ? 2 : 20);
                return BSAT_g1_P_TunerQuickTune_isr(h, BSAT_g1_P_DftSearchCarrierStateMachine_isr);
             }
             else
                BSAT_g1_P_DftSetState_isr(h, 4);
             break;
 
+         case 20:
+            BSAT_g1_P_DftSetState_isr(h, 2);
+            return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, 1100, BSAT_g1_P_DftSearchCarrierStateMachine_isr);
+
          case 2:
+            hChn->count3++;
             BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_RANGE_START, 0x7F8);
             BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_RANGE_END, 0x007);
             BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL0, 2);
@@ -297,6 +303,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
                hChn->tunerIfStep -= hChn->tunerIfStepSize;
 
                hChn->maxCount2 = 0;
+               hChn->count3 = 0;
                BSAT_g1_P_DftSetState_isr(h, 1);
 #if BSAT_DEBUG_DFT
                BKNI_Printf("DFT(fine): coarse_est=%d, StepSize=%d\n", hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE], hChn->tunerIfStepSize);
@@ -357,7 +364,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
@@ -467,7 +474,7 @@ BERR_Code BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_SetDftDdfsFcw_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftSetDdfsFcw_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftSetDdfsFcw_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
@@ -508,9 +515,9 @@ void BSAT_g1_P_DftDone_isr(void *p, int int_id)
 
 
 /******************************************************************************
- BAST_g1_P_DftDoneTimeout_isr()
+ BSAT_g1_P_DftDoneTimeout_isr()
 ******************************************************************************/
-BERR_Code BAST_g1_P_DftDoneTimeout_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftDoneTimeout_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
@@ -536,7 +543,7 @@ BERR_Code BAST_g1_P_DftDoneTimeout_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_DftStartAndWaitForDone_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftStartAndWaitForDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT funct)
+static BERR_Code BSAT_g1_P_DftStartAndWaitForDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT funct)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t i, val = 0, retry_count = 0, timeout = 5000;
@@ -580,7 +587,7 @@ BERR_Code BSAT_g1_P_DftStartAndWaitForDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUN
       return BSAT_g1_P_GetModeFunct_isrsafe(hChn->acqType)->Reacquire(h);
    }
 
-   return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, timeout, BAST_g1_P_DftDoneTimeout_isr);
+   return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, timeout, BSAT_g1_P_DftDoneTimeout_isr);
 }
 
 
@@ -627,7 +634,7 @@ BERR_Code BSAT_g1_P_DftSymbolRateScan_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_DftSymbolRateScanStateMachine_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftSymbolRateScanStateMachine_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftSymbolRateScanStateMachine_isr(BSAT_ChannelHandle h)
 {
 #define NEW_PEAK_POWER_RATIO 6
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
@@ -786,7 +793,7 @@ BERR_Code BSAT_g1_P_DftPsdScan_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_DftPsdScanPsd1_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftPsdScan1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftPsdScan1_isr(BSAT_ChannelHandle h)
 {
    uint32_t val;
 
@@ -807,7 +814,7 @@ BERR_Code BSAT_g1_P_DftPsdScan1_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_DftPsdScan2_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftPsdScan2_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftPsdScan2_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 #if BSAT_HAS_DFT_AVG==0
@@ -865,7 +872,7 @@ BERR_Code BSAT_g1_P_DftToneDetect_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_DftToneDetect1_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DftToneDetect1_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_DftToneDetect1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t peak_bin, peak_pow;

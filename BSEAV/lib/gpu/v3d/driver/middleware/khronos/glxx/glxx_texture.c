@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES texture structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/glxx/glxx_int_config.h"
 #include "interface/khronos/common/khrn_int_util.h"
@@ -1635,7 +1627,6 @@ uint32_t glxx_texture_get_mipmap_count(GLXX_TEXTURE_T *texture)
 
 static uint32_t texture_get_required_blob_size(GLXX_TEXTURE_T *texture, bool depaletted)
 {
-   uint32_t count = glxx_texture_get_mipmap_count(texture);
    uint32_t res = 0;
 
    switch (texture->target) {

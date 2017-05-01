@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 / Open GL ES 1.1 OES_framebuffer_object renderbuffer structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../egl/egl_display.h"
 #include "../egl/egl_image.h"
@@ -75,7 +67,7 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
    unsigned       num_planes;
    GFX_LFMT_T     api_fmt;
    GFX_LFMT_T     lfmts[GFX_BUFFER_MAX_PLANES];
-   KHRN_IMAGE_T   *oldimage = renderbuffer->image;
+   khrn_image   *oldimage = renderbuffer->image;
    bool           imagechanged;
    unsigned       width_samples;
    unsigned       height_samples;
@@ -151,12 +143,12 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
          flags |= GFX_BUFFER_USAGE_V3D_TLB_RAW;
 #endif
 
-      KHRN_BLOB_T *blob = khrn_blob_create(width_samples, height_samples, 1,
+      khrn_blob *blob = khrn_blob_create(width_samples, height_samples, 1,
             1, 1, lfmts, num_planes, flags, secure);
       if (!blob)
          return false;
 
-      KHRN_IMAGE_T *new_image = khrn_image_create(blob, 0, 1, 0, api_fmt);
+      khrn_image *new_image = khrn_image_create(blob, 0, 1, 0, api_fmt);
       KHRN_MEM_ASSIGN(blob, NULL);
       if (!new_image)
          return false;
@@ -168,7 +160,7 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
    return true;
 }
 
-static bool valid_image(KHRN_IMAGE_T *image)
+static bool valid_image(khrn_image *image)
 {
    GFX_LFMT_T lfmt = khrn_image_get_lfmt(image, 0);
 
@@ -198,7 +190,7 @@ static bool valid_image(KHRN_IMAGE_T *image)
    return true;
 }
 
-static bool glxx_renderbuffer_bind_image(GLXX_RENDERBUFFER_T *renderbuffer, KHRN_IMAGE_T *image)
+static bool glxx_renderbuffer_bind_image(GLXX_RENDERBUFFER_T *renderbuffer, khrn_image *image)
 {
    bool result;
 
@@ -234,7 +226,7 @@ GL_APICALL void GL_APIENTRY glEGLImageTargetRenderbufferStorageOES(GLenum target
    GLXX_SERVER_STATE_T *state;
    EGL_IMAGE_T *egl_image = NULL;
    GLenum error = GL_NO_ERROR;
-   KHRN_IMAGE_T *khr_image;
+   khrn_image *khr_image;
    bool locked = false;
 
    if (!egl_context_gl_lock())

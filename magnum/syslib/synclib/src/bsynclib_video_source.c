@@ -330,8 +330,8 @@ BERR_Code BSYNClib_VideoSource_RateMismatchDetected(BSYNClib_VideoSource * psSou
 
 	hChn = psSource->sElement.hParent;
 
-	BDBG_WRN(("[%d] Video source %u rate mismatch detected!  Disabling precision lipsync.", hChn->iIndex, psSource->sElement.uiIndex));
-	psSource->sElement.sNotification.sResults.bEnabled = false;
+    BDBG_WRN(("[%d] Video source %u rate mismatch detected; precision lipsync: disabled", hChn->iIndex, psSource->sElement.uiIndex));
+    psSource->sElement.sNotification.sResults.bEnabled = false;
 
 	BKNI_EnterCriticalSection();
 	BSYNClib_VideoSource_SaveDelay_isr(psSource);
@@ -364,15 +364,20 @@ BERR_Code BSYNClib_VideoSource_RateRematchDetected(BSYNClib_VideoSource * psSour
 
 	hChn = psSource->sElement.hParent;
 
-	BDBG_WRN(("[%d] Video source %u rate appears to be matched.  Precision lipsync enabled.", hChn->iIndex, psSource->sElement.uiIndex));
-	psSource->sElement.sNotification.sResults.bEnabled = true;
+    BDBG_WRN(("[%d] Video source %u rate appears to be matched; precision lipsync: %s",
+            hChn->iIndex, psSource->sElement.uiIndex,
+            hChn->bPrecisionLipsyncEnabled ? "enabled" : "disabled"));
+    psSource->sElement.sNotification.sResults.bEnabled = hChn->bPrecisionLipsyncEnabled;
 
-	BKNI_EnterCriticalSection();
-	/* un-estimate the delay */
-	psSource->sElement.sDelay.sData.bValid = false;
-	psSource->sElement.sDelay.sResults.bEstimated = false;
-	BSYNClib_VideoSource_RestoreDelay_isr(psSource);
-	BKNI_LeaveCriticalSection();
+    if (psSource->sElement.sNotification.sResults.bEnabled)
+    {
+        BKNI_EnterCriticalSection();
+        /* un-estimate the delay */
+        psSource->sElement.sDelay.sData.bValid = false;
+        psSource->sElement.sDelay.sResults.bEstimated = false;
+        BSYNClib_VideoSource_RestoreDelay_isr(psSource);
+        BKNI_LeaveCriticalSection();
+    }
 
 	/* TODO: make this so we don't need hChn to do this */
 	if (hChn->sSettings.sVideo.sSource.cbDelay.pfSetDelayNotification)
@@ -450,6 +455,10 @@ BERR_Code BSYNClib_VideoSource_P_ProcessConfig_isr(BSYNClib_VideoSource * psSour
             psSource->sElement.sDelay.sResults.uiApplied = psSource->sElement.sDelay.sResults.uiDesired;
 		}
 	}
+	else if (sElementDiffResults.eLifecycleEvent == BSYNClib_DelayElement_LifecycleEvent_eStopped)
+    {
+	    psSource->sResults.bMuteLastStarted = false;
+    }
 
 	/* create "desired" delay element config from current plus changes */
 	sDesired = *psCurrent;
@@ -488,6 +497,7 @@ BERR_Code BSYNClib_VideoSource_P_ProcessConfig_isr(BSYNClib_VideoSource * psSour
 			if (!psSource->sElement.sData.bStarted)
 			{
 				psSource->sResults.bMutePending = true;
+				psSource->sResults.bMuteLastStarted = false;
 			}
 			else
 			{

@@ -47,7 +47,7 @@ extern "C" {
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 #define SECURE_VIDEO_VER_ID 0x00010000
 #else
-#define SECURE_VIDEO_VER_ID 0x00020007
+#define SECURE_VIDEO_VER_ID 0x00020008
 #endif
 #define SECURE_VIDEO_V3D_ALIGNMENT 4096
 #define SECURE_VIDEO_V3D_SIZE 0x4000
@@ -74,6 +74,10 @@ extern "C" {
 #define SECURE_VIDEO_TOGGLE_IN_KEYSLOT 3
 #define SECURE_VIDEO_TOGGLE_BLOCK_DMAMEM 0
 
+/* For bvm_monitor_CommandId_eSecureRemap */
+#define SECURE_VIDEO_REMAP_IN_MEMC 1
+#define SECURE_VIDEO_REMAP_BLOCK_ARRAY 0
+
 /* LEGACY support, no longer used */
 typedef enum secureVideo_Toggle_e {
     bvn_monitor_Command_eIgnore,
@@ -87,8 +91,9 @@ typedef enum secureVideo_Toggle_e {
 
 typedef enum secureVideo_CommandId_e {
     bvn_monitor_CommandId_eSetCores = 0x1,
-    bvn_monitor_CommandId_eToggle = 0x2, /* Legacy support, no longer used */
-    bvn_monitor_CommandId_eUpdateHeaps = 0x3
+    bvn_monitor_CommandId_eToggle, /* Legacy support, no longer used */
+    bvn_monitor_CommandId_eUpdateHeaps,
+    bvn_monitor_CommandId_eSecureRemap
 }secureVideo_CommandId_e;
 
 #ifdef __cplusplus

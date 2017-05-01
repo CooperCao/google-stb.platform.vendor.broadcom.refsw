@@ -75,7 +75,8 @@ static const BBOX_MemConfig stBoxMemConfig_7445D0_box12 =
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 0,       Invalid, Invalid),  /* disp 6 */
       }
    },
-   BBOX_INVALID_NUM_MEMC
+   BBOX_INVALID_NUM_MEMC,
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 
 void BBOX_P_GetBox12MemConfig

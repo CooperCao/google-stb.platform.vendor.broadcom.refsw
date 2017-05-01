@@ -940,6 +940,25 @@ static int trim_line ( char * line )
 
     return 0;
 }
+
+/**
+ *  Function: This function will set the global DDR frequency to the value specified.
+ *            The user CGI will get the DDR frequency from the bmemperf_server and then
+ *            set the internal value to the value returned in the response from
+ *            bmemperf_server. Scanning the /sys/devices file system for the DDR frequency
+ *            takes about 200 msec. In order to avoid that 200 msec, we get the frequency
+ *            from the server, and then set the global value. All other library functions
+ *            will subsequently use the global internal value and bypass scanning for the
+ *            value in the /sys/devices file system.
+ **/
+int bmemperf_set_ddrFreq( unsigned long int memc, unsigned long int ddrFreq )
+{
+    if ( ddrFreq && memc < NEXUS_MAX_MEMC )
+    {
+        g_bmemperf_ddr_freq_mhz[memc] = ddrFreq;
+    }
+    return 0;
+}
 /*
    The cmdline:   find /sys/devices -name "uevent" | grep memory_controllers | grep memc-ddr | xargs grep FULLNAME
    returns something like this:
@@ -953,22 +972,18 @@ static int trim_line ( char * line )
 */
 int bmemperf_init_ddrFreq( void )
 {
-    static bool  initDone = false;
     unsigned int memc = 0;
     FILE        *cmd = NULL;
     FILE        *freq = NULL;
     char         line[MAX_LENGTH_DDR_FREQ];
 
     /* if we have already done the initialization, do not do it again. */
-    if (initDone == true)
+    if ( g_bmemperf_ddr_freq_mhz[0] > 0 )
     {
         return ( 0 );
     }
 
-    initDone = true;
-
     sprintf( line, "find /sys/devices -name \"uevent\" | grep memory_controllers | grep memc-ddr | xargs grep FULLNAME" );
-    PRINTF("attempting cmd (%s)\n", line);
     cmd = popen( line, "r" );
 
     do {
@@ -998,13 +1013,13 @@ int bmemperf_init_ddrFreq( void )
                             *pos = 0;
                         }
                         g_bmemperf_ddr_freq_mhz[memc] = bmemperf_read_ddrFreq( line ) / 1000000;
-                        PRINTF("%s: for memc %u: BOLT ddrFreq %u; compile ddrFreq %u\n", __FUNCTION__, memc,
+
+                        PRINTF("%s:%lu for memc %u: BOLT ddrFreq %u; compile ddrFreq %u\n", __FUNCTION__, __LINE__, memc,
                             g_bmemperf_ddr_freq_mhz[memc], g_bmemperf_info.ddrFreqInMhz );
                     }
                     else /* the line does not have the full path in it ... find the file that we just searched */
                     {
                         sprintf( line, "find /sys/devices -name \"uevent\" | grep memory_controllers | grep memc-ddr" );
-                        PRINTF("attempting cmd (%s)\n", line);
                         freq = popen( line, "r" );
 
                         do {
@@ -1024,7 +1039,12 @@ int bmemperf_init_ddrFreq( void )
                                     *pos = 0;
                                 }
                                 g_bmemperf_ddr_freq_mhz[memc] = bmemperf_read_ddrFreq( line ) / 1000000;
-                                PRINTF("%s: for memc %u: BOLT ddrFreq %u; compile ddrFreq %u\n", __FUNCTION__, memc, g_bmemperf_ddr_freq_mhz[memc], g_bmemperf_info.ddrFreqInMhz );
+
+                                /* send this value back to the browser */
+                                printf( "~DDRFREQ_MEMC~%u,%u~", memc, g_bmemperf_ddr_freq_mhz[memc] );
+
+                                PRINTF("%s:%lu for memc %u: BOLT ddrFreq %u; compile ddrFreq %u\n", __FUNCTION__, __LINE__, memc,
+                                        g_bmemperf_ddr_freq_mhz[memc], g_bmemperf_info.ddrFreqInMhz );
                             }
                         } while (strlen( line ));
                     }

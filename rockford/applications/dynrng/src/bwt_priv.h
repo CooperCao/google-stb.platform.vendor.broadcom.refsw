@@ -111,6 +111,9 @@ typedef struct BWT_VideoWindow
 {
     BWT_Widget widget;
     unsigned scale;
+    unsigned id;
+    unsigned width;
+    unsigned height;
 } BWT_VideoWindow;
 
 typedef struct BWT_Toolkit

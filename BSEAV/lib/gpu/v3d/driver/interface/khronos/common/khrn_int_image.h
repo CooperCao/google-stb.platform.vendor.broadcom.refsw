@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image
-
-FILE DESCRIPTION
-Client-side subset.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_INT_IMAGE_H
 #define KHRN_INT_IMAGE_H
 
@@ -262,7 +254,7 @@ typedef enum {
    /* tf packed mask format for vg */
    PACKED_MASK_TF = IMAGE_FORMAT_TF | IMAGE_FORMAT_PACKED_MASK,
 
-   IMAGE_FORMAT_INVALID = 0xffffffff
+   IMAGE_FORMAT_INVALID = -1
 } KHRN_IMAGE_FORMAT_T;
 
 static INLINE bool khrn_image_is_rso(KHRN_IMAGE_FORMAT_T format)

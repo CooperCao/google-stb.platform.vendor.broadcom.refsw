@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __BEGL_MEMPLATFORM_H__
 #define __BEGL_MEMPLATFORM_H__
 
@@ -24,6 +22,7 @@ typedef enum
    BEGL_MemMmuUnsecureBinTranslation,
    BEGL_MemMmuSecureBinTranslation,
    BEGL_MemPlatformToken,
+   BEGL_MemTotal
 } BEGL_MemInfoType;
 
 /* These must match gmem usage flags */

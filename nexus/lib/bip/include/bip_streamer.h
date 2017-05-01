@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -152,6 +152,9 @@ typedef struct BIP_StreamerFileInputSettings
     bool                    enableContinousPlay;                    /* Auto rewind when file reaches the end */
     bool                    enableAllPass;                          /* Allows app to send everything in the file. */
     bool                    dropNullPackets;                        /* If true and enableAllPass is true, NULL packets will be dropped. */
+    unsigned                maxDataRate;                            /* Maximum data rate for the playback parser band in units of bits per second. */
+                                                                    /* Default is typically 108000000 (i.e. 108 Mbps). If you increase this, */
+                                                                    /* you need to analyze total transport bandwidth and overall system bandwidth. */
 } BIP_StreamerFileInputSettings;
 BIP_SETTINGS_ID_DECLARE(BIP_StreamerFileInputSettings);
 
@@ -222,6 +225,7 @@ void BIP_Streamer_GetStreamerStreamInfoFromMediaInfo(
 #define BIP_Streamer_GetDefaultFileInputSettings(pSettings)                      \
         BIP_SETTINGS_GET_DEFAULT_BEGIN(pSettings, BIP_StreamerFileInputSettings) \
         /* Set non-zero defaults explicitly. */                                  \
+        (pSettings)->maxDataRate = 108*1000*1000;                                \
         BIP_SETTINGS_GET_DEFAULT_END
 
 
@@ -425,6 +429,8 @@ typedef struct BIP_StreamerOutputSettings
         size_t          customPmtLength;    /* Length (in bytes) of customPmt */
     } mpeg2Ts;
 
+    bool                enableHwOffload;    /* Optional: enables offload to h/w like ASP if available on a platform & doable for a particular mediaInput stream format */
+    bool                enableStreamingUsingPlaybackCh;    /* Optional: enables streaming out using Nexus Playback -> Recpump -> PBIP Streaming Path. */
 } BIP_StreamerOutputSettings;
 BIP_SETTINGS_ID_DECLARE(BIP_StreamerOutputSettings );
 

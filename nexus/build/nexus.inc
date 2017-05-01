@@ -108,6 +108,7 @@ NEXUS_OS_ABSTRACTION := \
     PLATFORM/nexus_platform_cma.c \
     PLATFORM/qdivrem.c \
     BASE/nexus_base_os.c \
+    SECURITY/nexus_security_regver_dump.c \
     $(foreach module, $(NEXUS_MODULES), $(module)/nexus_$(shell echo $(module)|tr '[:upper:]' '[:lower:]')_kernel_export.c)
 NEXUS_OS_ABSTRACTION_OBJECTS := $(addprefix $(NEXUS_OBJ_DIR)/,$(patsubst %.c,%.$(NEXUS_OBJ_SUFFIX),$(NEXUS_OS_ABSTRACTION)))
 MAGNUM_OS_ABSTRACTION := \
@@ -213,9 +214,26 @@ $(NEXUS_BUILD_DIR)/module_rules_${NEXUS_MODE}.inc:${NEXUS_BUILD_DIR}/exists
 -include $(NEXUS_BUILD_DIR)/module_rules_${NEXUS_MODE}.inc
 endif
 
+# dolby vision rules
+ifeq ($(NEXUS_DBV_SUPPORT),y)
+BDBV_OBJ_DIR=$(NEXUS_OBJ_DIR)/MAGNUM
+ifneq ($(MAKECMDGOALS),clean)
+ifeq ($(filter ${NEXUS_MODE},client proxy),)
+$(BDBV_OBJ_DIR)/bdbv_lib.inc:
+	$(MAKE) -f $(MAGNUM)/portinginterface/vdc/src/dbv/Makefile BDBV_OBJ_DIR=$(BDBV_OBJ_DIR) BDBV_OBJ_SUFFIX=$(NEXUS_OBJ_SUFFIX) MAGNUM=$(MAGNUM)
+-include $(BDBV_OBJ_DIR)/bdbv_lib.inc
+vpath %.c $(dir $(BDBV_LIB_SOURCES))
+MAGNUM_CFLAGS += $(addprefix -D,$(BDBV_LIB_DEFINES)) $(addprefix -I,$(BDBV_LIB_INCLUDES))
+MAGNUM_OBJECTS += $(addprefix $(NEXUS_OBJ_DIR)/MAGNUM/,$(patsubst %.c,%.$(NEXUS_OBJ_SUFFIX),$(notdir $(BDBV_LIB_SOURCES))))
+endif
+endif
+EXTRA_CLEAN += clean_dbv
+clean_dbv:
+	$(MAKE) -f $(MAGNUM)/portinginterface/vdc/src/dbv/Makefile BDBV_OBJ_DIR=$(BDBV_OBJ_DIR) BDBV_OBJ_SUFFIX=$(NEXUS_OBJ_SUFFIX) clean
+endif
+
 # Create single list of all nexus objects for convenience
 NEXUS_OBJECTS := $(foreach module,$(NEXUS_MODULES),$(NEXUS_$(module)_OBJECTS) $(NEXUS_$(module)_OS_OBJECTS))
-
 
 ${NEXUS_OBJECTS}: $(NEXUS_SYNCTHUNK_DIR)/nexus_driver_modules.h
 # Generate nexus_driver_modules.h using PERL

@@ -93,12 +93,12 @@ eRet CConfigNx::initResources()
 
     _pResources->add(eBoardResource_display, 2, "display", &_cfg);
 
-    for (i = 1; i <= 4; i++)
+    for (i = 1; i <= (eWindowType_Max - eWindowType_Mosaic1); i++)
     {
         NEXUS_DisplayMaxMosaicCoverage mosaicCoverage;
         NEXUS_Display_GetMaxMosaicCoverage(0, i, &mosaicCoverage);
 
-        if (mosaicCoverage.maxCoverage < (i * 25))
+        if (mosaicCoverage.maxCoverage < int(100.0 / i + 0.5))
         {
             break;
         }

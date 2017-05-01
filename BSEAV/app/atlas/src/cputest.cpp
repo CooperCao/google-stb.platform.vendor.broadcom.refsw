@@ -348,6 +348,7 @@ static uint32_t readProcStatCores()
     fp = fopen("/proc/stat", "r");
     CHECK_PTR_ERROR_GOTO("unable to access /proc/stat", fp, ret, eRet_NotAvailable, error);
 
+    /* coverity[secure_coding] */
     sizeBuffer         = fread(buffer, sizeof(char), sizeof(buffer) - 1, fp);
     buffer[sizeBuffer] = '\0';
 
@@ -379,7 +380,9 @@ static eRet readProcStatCpuUtil(
 
     memset(buffer, 0, sizeof(buffer));
 
+    /* coverity[secure_coding] */
     fgets(buffer, sizeof(buffer) - 1, fp);
+    /* coverity[secure_coding] */
     retval = sscanf(buffer, "cpu %Lu %Lu %Lu %Lu %Lu %Lu %Lu %Lu %Lu %Lu",
             &fields[0], &fields[1], &fields[2], &fields[3],
             &fields[4], &fields[5], &fields[6], &fields[7],

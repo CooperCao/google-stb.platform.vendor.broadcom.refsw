@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Creates GLES2.0 shaders as dataflow graphs and passes them to the compiler
-backend.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
@@ -287,7 +278,9 @@ static bool create_shader(GL20_LINK_RESULT_T *link_result, uint32_t cache_index)
 
    result = gl20_hw_emit_shaders(link_result, &link_result->cache[cache_index].key, &link_result->cache[cache_index].data, base);
 
-   /*For debug : dump_key(&link_result->cache[cache_index].key);*/
+#define DEBUG_DUMP_KEY 0
+   if (DEBUG_DUMP_KEY)
+      dump_key(&link_result->cache[cache_index].key);
 
    glsl_fastmem_term();
    mem_unlock(link_result->mh_blob);
@@ -354,24 +347,26 @@ bool gl20_link_result_get_shaders(
 
    if (!found)
    {
-/*
-      if (link_result->cache_used > 0)
+#define DUMP_RESCHEDULING 0
+      if (DUMP_RESCHEDULING)
       {
-         reschedShaders++;
-
-         printf("RE_SCHEDULING SHADER %d of %d\n", reschedShaders, totalShaders);
-         for (i = 0; i < link_result->cache_used; i++)
+         if (link_result->cache_used > 0)
          {
-            if (link_result->cache[i].used)
-               diff_keys(&link_result->cache[i].key, key);
+            reschedShaders++;
+
+            printf("RE_SCHEDULING SHADER %d of %d\n", reschedShaders, totalShaders);
+            for (i = 0; i < link_result->cache_used; i++)
+            {
+               if (link_result->cache[i].used)
+                  diff_keys(&link_result->cache[i].key, key);
+            }
+         }
+         else
+         {
+            printf("INITIAL SCHEDULING %d\n", totalShaders);
+            totalShaders++;
          }
       }
-      else
-      {
-         printf("INITIAL SCHEDULING %d\n", totalShaders);
-         totalShaders++;
-      }
-*/
 
       /* Compile new version of this shader and add it to the cache. */
       i = link_result->cache_next;

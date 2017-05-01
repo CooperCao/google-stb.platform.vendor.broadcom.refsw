@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 14:24:33 2016
- *                 Full Compile MD5 Checksum  2d2ed423991a1e4e4d03ca98bc390b2c
+ * Date:           Generated on               Mon Mar  6 16:19:51 2017
+ *                 Full Compile MD5 Checksum  d3a054e381114fab8d457a0fcb0bf3ef
  *                     (minus title and desc)
- *                 MD5 Checksum               8cad5c3953d7e5df4439153720b00628
+ *                 MD5 Checksum               6079d4a663f2e302418ce9b4791e9d69
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1259
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -87,9 +87,9 @@
 #define BCHP_VICE_ARCSS_MISC_0_STC3_CTRL         0x0158204c /* [CFG][32] STC 3 Control */
 #define BCHP_VICE_ARCSS_MISC_0_MISC_CTRL         0x01582070 /* [CFG][32] MISC Control */
 #define BCHP_VICE_ARCSS_MISC_0_SCB_STATUS        0x01582074 /* [RO][32] ARCSS SCB Status Register */
-#define BCHP_VICE_ARCSS_MISC_0_TIMER0_COUNTER    0x015820b0 /* [XRW][32] Timer0 Counter */
+#define BCHP_VICE_ARCSS_MISC_0_TIMER0_COUNTER    0x015820b0 /* [RW][32] Timer0 Counter */
 #define BCHP_VICE_ARCSS_MISC_0_TIMER0_PERIOD     0x015820b4 /* [CFG][32] Timer0 Period */
-#define BCHP_VICE_ARCSS_MISC_0_TIMER0_CONTROL    0x015820b8 /* [XRW][32] Timer0 Control */
+#define BCHP_VICE_ARCSS_MISC_0_TIMER0_CONTROL    0x015820b8 /* [RW][32] Timer0 Control */
 
 /***************************************************************************
  *SYNC_GLOBAL_RBUS - Sync Global Rbus

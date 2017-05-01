@@ -1,0 +1,601 @@
+<!--
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 1.0 Strict//EN"
+<html><head><title>ASP Monitor</title>
+<script  type="text/javascript" src="baspmon.js" ></script>
+<link href="baspmon.css"  rel="stylesheet" type="text/css" media="screen,print" />
+</head>
+<body lang=EN-US onload="MyLoad();" >
+<table border=0 style="border-collapse:collapse;" z-index=2 >
+    <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
+        <td width=240 align=left valign=middle style="font-size:28pt;" ><b id=h1baspmon class=title onclick="MyClick(event);" >ASP&nbsp;Monitor</b></td>
+        <td valign=middle style="width:30px;" >&nbsp;</td> <!-- spacer -->
+        <td width=480 align=left >Platform: <span id=platform >&nbsp;</span>&nbsp;<span id=platver>&nbsp;</span>&nbsp;&nbsp;&nbsp;<span id=VARIANT valign=middle >&nbsp;</span>
+                   &nbsp;&nbsp;&nbsp;<span id="version" align="left" >&nbsp;</span>
+                   <br><span id=UNAME   valign=middle >&nbsp;</span>&nbsp;&nbsp;&nbsp;
+                        <span id=BOLTVER valign=middle >&nbsp;</span>
+                   <br><span id=stbtime valign=middle ></span>
+        </td>
+        <td width=100 id=cgicount align=left valign=middle ></td>
+    </tr>
+</table>
+<hr />
+
+
+<!------ create a table that is 3 columns to hold the 45316 box + spacer column + big table with everything else ------>
+<table id=TABLE_MAIN cols=3 z-index=3 border=0 style="border-collapse:collapse;font-family:Arial;" >
+  <tr>
+    <th style="width:150;">&nbsp;</th>
+    <th style="width:20;">&nbsp;</th>
+    <th style="width:950;">&nbsp;</th>
+  </tr>
+  <tr>
+    <th valign=top ><br>
+                        <div style="border:solid 1px gray;width:142px;" >
+                           <table cols=5 border=0 style="border-collapse:collapse;background-color:white;" >
+                           <!-- tr style="height:5px;" colspan=5 ><td></td></tr -->
+                           <tr style="height:5px;" >
+                             <td style="width:5;" ></td>
+                             <td style="width:60;" ></td>
+                             <td style="width:5;" ></td>
+                             <td style="width:10;" ></td>
+                             <td style="width:5;" ></td>
+                           </tr>
+                           <tr style="height:20;" >
+                             <td>&nbsp;</td>
+                             <th valign=top >Power&nbsp;Probe</th>
+                             <td>&nbsp;</td>
+                             <th valign=top ><input type=checkbox id=PowerProbeCheckbox onclick="MyClick(event);" ></th>
+                             <td>&nbsp;</td>
+                           </tr>
+                           <tr style="height:5px;" colspan=5 ><td></td></tr>
+                           <tr style="height:15;" >
+                             <td>&nbsp;</td>
+                             <th valign=top colspan=3 >
+                               <input id=PowerProbeIpAddr class=inputForm type=text placeholder="Enter IP Addr"
+                                      style="line-height:15px;" onkeyup="MyKeyUp(event);" onblur="IpAddrBlur(event);" >
+                             </th>
+                             <td>&nbsp;</td>
+                           </tr>
+                           <tr style="height:5px;" colspan=5 ><td></td></tr>
+                           </table>
+                        </div><span id=PowerProbeStatusText >No connection</span>
+
+                        <br><br>
+                        <div style="border:solid 1px gray;width:140px;" >
+                           <table cols=5 border=0 style="border-collapse:collapse;background-color:white;" >
+                           <tr style="height:5px;" >
+                             <td style="width:5;" ></td>
+                             <td style="width:60;" ></td>
+                             <td style="width:5;" ></td>
+                             <td style="width:10;" ></td>
+                             <td style="width:5;" ></td>
+                           </tr>
+                           <tr style="height:20;" >
+                             <td>&nbsp;</td>
+                             <th valign=top >Remote&nbsp;Client</th>
+                             <td>&nbsp;</td>
+                             <th valign=top >&nbsp;</th>
+                             <td>&nbsp;</td>
+                           </tr>
+                           <tr style="height:5px;"><td colspan=5 ></td></tr>
+                           <tr style="height:15;" >
+                             <td>&nbsp;</td>
+                             <th valign=top colspan=3 >
+                               <input id=ClientStreamerIpAddr class=inputForm type=text placeholder="Enter IP Addr"
+                                      style="line-height:15px;" onkeyup="MyKeyUp(event);" onblur="IpAddrBlur(event);" >
+                             </th>
+                             <td>&nbsp;</td>
+                           </tr>
+                           <tr style="height:5px;"><td colspan=5 ></td></tr>
+                           <tr style="height:30px;"><td>&nbsp;</td><td colspan=3 align=center >
+                             <table cols=3 border=0 style="border-collapse:collapse;font-family:Arial;" >
+                               <tr><td><img id=plus_sign src=baspmon_plus_sign.png width=30 onclick="MyClick(event);" z-index=-51 ></td>
+                                   <td style="width:10">&nbsp;</td>
+                                   <td><img id=minus_sign src=baspmon_minus_sign.png width=30 onclick="MyClick(event);" z-index=511 ></td>
+                                   <td style="width:10">&nbsp;</td>
+                                   <td id=ClientStreamerThreadCount >(0)</td>
+                               </tr>
+                             </table>
+                             </td>
+                             <td>&nbsp;</td>
+                           </tr>
+                           <tr style="height:5px;"><td colspan=5 ></td></tr>
+                           </table>
+                        </div><span id=ClientStreamerStatusText >No connection</span>
+
+    </th>
+    <th valign=top >&nbsp;</th>
+    <td>
+
+
+
+<div style="border:dotted 2px gray;width:1150px;" >
+<table cols=12 border=0 style="border-collapse:collapse;font-family:Arial;" >
+<tr>
+  <th style="width:10;" ></th>
+  <th style="width:80;" ></th>
+  <th style="width:20;" ></th>
+  <th style="width:180;" ></th>
+  <th style="width:90;" ></th><!-- was 30 -->
+  <th style="width:80;" ></th>
+  <th style="width:170;" ></th>
+  <th style="width:90;" valign=middle align=center ><input id=checkboxAsp type=checkbox onclick="MyClick(event);" >&nbsp;ASP</th>
+  <th style="width:90;" valign=middle align=center ><input id=buttonReset type=button   onclick="MyClick(event);" value="Reset" </th>
+  <th style="width:70;" >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><!-- before switch -->
+  <th style="width:50;" ></th><!-- vertical switch -->
+  <th style="width:10;" ></th>
+</tr>
+
+<tr id=PowerProbeHistograms style="visibility:hidden;height:100px;" ><!-- row contains 3 histograms for power probes -->
+  <td >&nbsp;</td>
+  <td colspan=10 >
+    <table cols=5 border=0 style="border-collapse:collapse;font-family:Arial;" >
+      <tr>
+        <td><select id=probe0 onchange="ProbeSelect(event);" style="width:330;font-size:16px;" >
+              <option value=-1 >Pick Probe Destination</option>
+            </select>
+        </td>
+        <th style="width:10;" ></th>
+        <td><select id=probe1 onchange="ProbeSelect(event);" style="width:330;font-size:16px;" >
+              <option value=-1 >Pick Probe Destination</option>
+            </select><br>
+        </td>
+        <th style="width:10;" ></th>
+          <td><select id=probe2 onchange="ProbeSelect(event);" style="width:330;font-size:16px;" >
+                <option value=-1 >Pick Probe Destination</option>
+              </select><br>
+        </td>
+      </tr>
+
+      <tr style="height:100px;" >
+        <td ><!-- histogram SVG_POWERPROBE0 -->
+          <svg id=SVG_POWERPROBE0 height="100" width="330" style="border:solid 1px gray;font-size:8pt;" >
+            <polyline id=POWERPROBE0     style="fill:none;stroke:blue;stroke-width:2" />
+            <polyline id=POWERPROBE0_AVG style="fill:none;stroke:lime;stroke-width:2" />
+            <path d="M0 10 L330 10" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=13  >3.6</text>
+            <path d="M0 20 L330 20" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 30 L330 30" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=33  >2.8</text>
+            <path d="M0 40 L330 40" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 50 L330 50" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=53  >2.0</text>
+            <path d="M0 60 L330 60" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 70 L330 70" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=73  >1.20</text>
+            <path d="M0 80 L330 80" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 90 L330 90" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=93  >0.4</text>
+            <text x=100 y=50 id=POWERPROBE0_USAGE style="font-size:12pt;" ></text><!-- floating usage -->
+          </svg>
+        </td>
+        <th style="width:10;" ></th>
+
+        <td ><!-- histogram SVG_POWERPROBE1 -->
+          <svg id=SVG_POWERPROBE1 height="100" width="330" style="border:solid 1px gray;font-size:8pt;" >
+            <polyline id=POWERPROBE1     style="fill:none;stroke:blue;stroke-width:2" />
+            <polyline id=POWERPROBE1_AVG style="fill:none;stroke:lime;stroke-width:2" />
+            <path d="M0 10 L330 10" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=13  >3.6</text>
+            <path d="M0 20 L330 20" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 30 L330 30" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=33  >2.8</text>
+            <path d="M0 40 L330 40" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 50 L330 50" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=53  >2.0</text>
+            <path d="M0 60 L330 60" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 70 L330 70" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=73  >1.2</text>
+            <path d="M0 80 L330 80" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 90 L330 90" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=93  >0.4</text>
+            <text x=100 y=50 id=POWERPROBE1_USAGE style="font-size:12pt;" ></text><!-- floating usage -->
+          </svg>
+        </td>
+        <th style="width:10;" ></th>
+
+        <td ><!-- histogram SVG_POWERPROBE2 -->
+          <svg id=SVG_POWERPROBE2 height="100" width="330" style="border:solid 1px gray;font-size:8pt;" >
+            <polyline id=POWERPROBE2     style="fill:none;stroke:blue;stroke-width:2" />
+            <polyline id=POWERPROBE2_AVG style="fill:none;stroke:lime;stroke-width:2" />
+            <polyline id=POWERPROBE2_TOT style="fill:none;stroke:red;stroke-width:2" />
+            <path d="M0 10 L330 10" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=13  >3.6</text>
+            <path d="M0 20 L330 20" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 30 L330 30" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=33  >2.8</text>
+            <path d="M0 40 L330 40" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 50 L330 50" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=53  >2.0</text>
+            <path d="M0 60 L330 60" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 70 L330 70" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=73  >1.2</text>
+            <path d="M0 80 L330 80" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+            <path d="M0 90 L330 90" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+            <text x=2 y=93  >0.4</text>
+            <text x=100 y=50 id=POWERPROBE2_USAGE style="font-size:12pt;" ></text><!-- floating usage -->
+            <text x=100 y=50 id=POWERPROBE2_TOTAL style="font-size:12pt;" ></text><!-- floating usage -->
+          </svg>
+        </td>
+      </tr>
+    </table>
+  </td>
+  <td >&nbsp;</td>
+</tr>
+
+<tr style="height:10px;" >
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+</tr>
+
+<tr>
+  <td >&nbsp;</td>
+  <td colspan=8 ><div id=div_memc style="border:solid 1px gray;width:1020;" >
+                   <table border=0 cols=4 class=tableblocks style="border-collapse:collapse;height:50px;width:1020;" >
+                     <tr id=MEMCROW0 style="visibility:display;" >
+                       <td style="width:300;" ></td>
+                       <td id=MEMCDESC0 class=tdred14bold style="width:340px;" align=right >MEMC0 - 32 bit DDRx@xx MHz -&nbsp;</td>
+                       <td id=MEMCUTIL0 class=tdred14boldyellow style="width:70px;"  align=left >utilization</td>
+                       <td >&nbsp;</td></tr>
+                     <tr id=MEMCROW1 style="visibility:hidden;" >
+                       <td style="width:300;" ></td>
+                       <td id=MEMCDESC1 class=tdred14bold style="width:340px;" align=right >MEMC1 - 32 bit DDRx@xx MHz -&nbsp;</td>
+                       <td id=MEMCUTIL1 class=tdred14boldyellow style="width:70px;"  align=left >utilization</td>
+                       <td >&nbsp;</td></tr>
+                     <tr id=MEMCROW2 style="visibility:hidden;" >
+                       <td style="width:300;" ></td>
+                       <td id=MEMCDESC2 class=tdred14bold style="width:340px;" align=right >MEMC2 - 32 bit DDRx@xx MHz -&nbsp;</td>
+                       <td id=MEMCUTIL2 class=tdred14boldyellow style="width:70px;"  align=left >utilization</td>
+                       <td >&nbsp;</td></tr>
+                   </table>
+                </div> </td>
+  <td >&nbsp;</td>
+  <th rowspan=8 valign=top ><div id=div_switch style="border:solid 1px gray;width:50;" >
+                                    <table id=table_switch class=tableblocks border=0 style="border-collapse:collapse;height:580px;width:50;color:#ff7800;font-size:22pt;font-weight:bold;" >
+                                      <tr><td id=switch_s align=center onmouseover="MouseOver(event);" onmouseout="MouseOut(event);" >S</td></tr>
+                                      <tr><td id=switch_w align=center onmouseover="MouseOver(event);" onmouseout="MouseOut(event);" >W</td></tr>
+                                      <tr><td id=switch_i align=center onmouseover="MouseOver(event);" onmouseout="MouseOut(event);" >I</td></tr>
+                                      <tr><td id=switch_t align=center onmouseover="MouseOver(event);" onmouseout="MouseOut(event);" >T</td></tr>
+                                      <tr><td id=switch_c align=center onmouseover="MouseOver(event);" onmouseout="MouseOut(event);" >C</td></tr>
+                                      <tr><td id=switch_h align=center onmouseover="MouseOver(event);" onmouseout="MouseOut(event);" >H</td></tr>
+                                   </table></div></td>
+  <th >&nbsp;</td>
+</tr>
+<tr style="height:90px;" >
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+</tr>
+<tr>
+  <td ></td>
+  <th colspan=3 valign=top ><div id=div_cpu style="bordersolid 1px gray;width:350;" >
+                               <table cols=4 border=0 class=tableblocks style="border-collapse:collapse;height:100px;width:350;" >
+                                   <tr style="height:5px;" ><td></td></tr>
+                                   <tr style="height:15px;" ><td style="width:10;" ></td>
+                                       <td id=CPUFREQ class=tdred14bold style="width:220;" >ARM CPU</td>
+                                       <td id=CPUIRQS class=tableblue   align=right style="width:110;font-size:12.0pt;" >&nbsp;</td>
+                                       <td style="width:10;" ></td>
+                                   </tr>
+                                   <tr style="height:5px;" ><td>&nbsp;</td><td>Utilization</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                                   <tr style="height:100px;" >
+                                       <td style="width:10;" ></td>
+                                       <td colspan=2 ><!-- CPU histogram -->
+                                             <svg id=svg01 height="100" width="330" style="border:solid 1px gray;font-size:8pt;" >
+                                               <polyline id=cpu_histogram style="fill:none;stroke:blue;stroke-width:2" />
+                                               <path d="M0 10 L330 10" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=13  >90</text>
+                                               <path d="M0 20 L330 20" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 30 L330 30" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=33  >70</text>
+                                               <path d="M0 40 L330 40" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 50 L330 50" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=53  >50</text>
+                                               <path d="M0 60 L330 60" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 70 L330 70" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=73  >30</text>
+                                               <path d="M0 80 L330 80" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 90 L330 90" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=93  >10</text>
+                                               <text x=100 y=50 id=CPU_USAGE style="font-size:12pt;" ></text><!-- floating CPU usage -->
+                                             </svg>
+                                       </td>
+                                       <td style="width:10;" ></td>
+                                   </tr>
+                                   <tr style="height:5px;" ><td></td></tr>
+                               </table>
+                           </div>
+  </th>
+  <td ></td>
+  <td valign=top ><div id=div_mem2mem style="border:solid 1px gray;width:180;" >
+                               <table cols=5 border=0 class=tableblocks style="border-collapse:collapse;height:150px;width:180;" >
+                                   <tr style="height:5px;" ><td style="width:10;" ></td>
+                                       <td style="width:10;" ></td>
+                                       <td style="width:140;" ></td>
+                                       <td style="width:10;" ></td>
+                                       <td style="width:10;" ></td>
+                                   </tr>
+                                   <tr><td ></td>
+                                       <td class=tdred14bold colspan=4 >Mem-to-Mem DMA</td>
+                                   </tr>
+                                   <tr style="height:5px;" ><td colspan=5 >&nbsp;</td></tr>
+                                   <tr><td colspan=2 >&nbsp;</td>
+                                       <td id=MEMDMA_MEMC class=tableblue ><br></td>
+                                       <td ></td>
+                                       <td ></td>
+                                   </tr>
+                                   <tr style="height:5px;" ><td colspan=5 >&nbsp;</td></tr>
+                               </table>
+                           </div>
+  </th>
+  <th colspan=3 valign=top ><div id=div_systemport style="border:solid 1px gray;width:350;" >
+                               <table cols=4 border=0 class=tableblocks style="border-collapse:collapse;height:100px;width:350;" >
+                                   <tr style="height:5px;" ><td></td></tr>
+                                   <tr style="height:15px;" ><td style="width:10;" ></td>
+                                       <td class=tdred14bold style="width:220;" >System Port</td>
+                                       <td id=SYSPORT_MBPS class=tableblue   align=right style="width:110;font-size:12.0pt;" >&nbsp;</td>
+                                       <td style="width:10;" ></td>
+                                   </tr>
+                                   <tr style="height:5px;" ><td>&nbsp;</td><td>Utilization</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                                   <tr style="height:100px;" >
+                                       <td style="width:10;" ></td>
+                                       <td colspan=2 ><!-- System Port histogram -->
+                                             <svg id=svg02 height="100" width="330" style="border:solid 1px gray;font-size:8pt;" >
+                                               <polyline id=sysport_histogram style="fill:none;stroke:blue;stroke-width:2" />
+                                               <path d="M0 10 L330 10" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=13  >90</text>
+                                               <path d="M0 20 L330 20" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 30 L330 30" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=33  >70</text>
+                                               <path d="M0 40 L330 40" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 50 L330 50" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=53  >50</text>
+                                               <path d="M0 60 L330 60" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 70 L330 70" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=73  >30</text>
+                                               <path d="M0 80 L330 80" stroke=lightgray stroke-width=1 stroke-dasharray="5,5" />
+                                               <path d="M0 90 L330 90" stroke=lightgray stroke-width=1 stroke-dasharray="5,0" />
+                                               <text x=2 y=93  >10</text>
+                                               <text x=100 y=50 id=SYSPORT_TEXT style="font-size:12pt;" ></text><!-- floating usage percentage -->
+                                             </svg>
+                                       </td>
+                                       <td style="width:10;" ></td>
+                                   </tr>
+                                   <tr style="height:5px;" ><td></td></tr>
+                               </table>
+                           </div>
+  </th>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+</tr>
+<tr style="height:20px;" >
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+</tr>
+<tr style="height:20px;" >
+  <td ></td>
+  <td colspan=3 rowspan=2 ><div id=div_transport style="border:solid 1px gray;width:350;" >
+                               <table id=table_transport cols=5 border=0 class=tableblocks style="border-collapse:separate;height:130px;width:350;" cellpadding=0 cellspacing=5 >
+                                   <tr style="height:5px;" >
+                                       <td style="width:20;height:5px;" ></td>
+                                       <td style="width:80;height:5px;" ></td>
+                                       <td style="width:70;height:5px;" ></td>
+                                       <td style="width:10;height:5px;" ></td>
+                                       <td style="width:10;height:5px;" ></td>
+                                   </tr>
+                                   <tr style="height:8px;" ><td class=tdred14bold colspan=2>Transport</td>
+                                                            <td id=XPT_MEMC colspan=2 class=tableblue >Memc utilization</td>
+                                   </tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW0 ><td>&nbsp;</td><td id=XPTRATE0 colspan=2 class=tableblue >S0 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW1 ><td>&nbsp;</td><td id=XPTRATE1 colspan=2 class=tableblue >S1 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW2 ><td>&nbsp;</td><td id=XPTRATE2 colspan=2 class=tableblue >S2 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW3 ><td>&nbsp;</td><td id=XPTRATE3 colspan=2 class=tableblue >S3 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW4 ><td>&nbsp;</td><td id=XPTRATE4 colspan=2 class=tableblue >S4 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW5 ><td>&nbsp;</td><td id=XPTRATE5 colspan=2 class=tableblue >S5 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW6 ><td>&nbsp;</td><td id=XPTRATE6 colspan=2 class=tableblue >S6 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW7 ><td>&nbsp;</td><td id=XPTRATE7 colspan=2 class=tableblue >S7 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW8 ><td>&nbsp;</td><td id=XPTRATE8 colspan=2 class=tableblue >S8 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW9 ><td>&nbsp;</td><td id=XPTRATE9 colspan=2 class=tableblue >S9 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW10 ><td>&nbsp;</td><td id=XPTRATE10 colspan=2 class=tableblue >S10 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW11 ><td>&nbsp;</td><td id=XPTRATE11 colspan=2 class=tableblue >S11 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW12 ><td>&nbsp;</td><td id=XPTRATE12 colspan=2 class=tableblue >S12 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW13 ><td>&nbsp;</td><td id=XPTRATE13 colspan=2 class=tableblue >S13 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW14 ><td>&nbsp;</td><td id=XPTRATE14 colspan=2 class=tableblue >S14 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW15 ><td>&nbsp;</td><td id=XPTRATE15 colspan=2 class=tableblue >S15 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW16 ><td>&nbsp;</td><td id=XPTRATE16 colspan=2 class=tableblue >S16 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW17 ><td>&nbsp;</td><td id=XPTRATE17 colspan=2 class=tableblue >S17 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW18 ><td>&nbsp;</td><td id=XPTRATE18 colspan=2 class=tableblue >S18 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW19 ><td>&nbsp;</td><td id=XPTRATE19 colspan=2 class=tableblue >S19 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW20 ><td>&nbsp;</td><td id=XPTRATE20 colspan=2 class=tableblue >S20 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW21 ><td>&nbsp;</td><td id=XPTRATE21 colspan=2 class=tableblue >S21 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW22 ><td>&nbsp;</td><td id=XPTRATE22 colspan=2 class=tableblue >S22 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW23 ><td>&nbsp;</td><td id=XPTRATE23 colspan=2 class=tableblue >S23 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW24 ><td>&nbsp;</td><td id=XPTRATE24 colspan=2 class=tableblue >S24 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW25 ><td>&nbsp;</td><td id=XPTRATE25 colspan=2 class=tableblue >S25 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW26 ><td>&nbsp;</td><td id=XPTRATE26 colspan=2 class=tableblue >S26 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW27 ><td>&nbsp;</td><td id=XPTRATE27 colspan=2 class=tableblue >S27 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW28 ><td>&nbsp;</td><td id=XPTRATE28 colspan=2 class=tableblue >S28 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW29 ><td>&nbsp;</td><td id=XPTRATE29 colspan=2 class=tableblue >S29 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW30 ><td>&nbsp;</td><td id=XPTRATE30 colspan=2 class=tableblue >S30 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=XPTROW31 ><td>&nbsp;</td><td id=XPTRATE31 colspan=2 class=tableblue >S31 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:1px;" ><td colspan=5>&nbsp;</td></tr>
+                                   <tr id=XPTROW_PAD style="height:100px;" ><td colspan=5>&nbsp;</td></tr>
+                               </table>
+                           </div>
+  <td ></td>
+  <td ></td>
+  <td colspan=3 rowspan=2 ><div id=div_asp style="border:solid 1px gray;width:350;" >
+                               <table id=table_asp cols=5 border=0 class=tableblocks style="border-collapse:separate;height:130px;width:350;" cellpadding=0 cellspacing=5 >
+                                   <tr style="height:5px;" >
+                                       <td style="width:20;height:5px;" ></td>
+                                       <td style="width:80;height:5px;" ></td>
+                                       <td style="width:70;height:5px;" ></td>
+                                       <td style="width:10;height:5px;" ></td>
+                                       <td style="width:10;height:5px;" ></td>
+                                   </tr>
+                                   <tr style="height:8px;" ><td id=ASP_MHZ  class=tdred14bold colspan=2>ASP @324</td>
+                                                            <td id=ASP_MEMC colspan=2 class=tableblue >&nbsp;</td>
+                                   </tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW0 ><td>&nbsp;</td><td id=ASPRATE0 colspan=2 class=tableblue >S0 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW1 ><td>&nbsp;</td><td id=ASPRATE1 colspan=2 class=tableblue >S1 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW2 ><td>&nbsp;</td><td id=ASPRATE2 colspan=2 class=tableblue >S2 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW3 ><td>&nbsp;</td><td id=ASPRATE3 colspan=2 class=tableblue >S3 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW4 ><td>&nbsp;</td><td id=ASPRATE4 colspan=2 class=tableblue >S4 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW5 ><td>&nbsp;</td><td id=ASPRATE5 colspan=2 class=tableblue >S5 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW6 ><td>&nbsp;</td><td id=ASPRATE6 colspan=2 class=tableblue >S6 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW7 ><td>&nbsp;</td><td id=ASPRATE7 colspan=2 class=tableblue >S7 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW8 ><td>&nbsp;</td><td id=ASPRATE8 colspan=2 class=tableblue >S8 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW9 ><td>&nbsp;</td><td id=ASPRATE9 colspan=2 class=tableblue >S9 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW10 ><td>&nbsp;</td><td id=ASPRATE10 colspan=2 class=tableblue >S10 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW11 ><td>&nbsp;</td><td id=ASPRATE11 colspan=2 class=tableblue >S11 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW12 ><td>&nbsp;</td><td id=ASPRATE12 colspan=2 class=tableblue >S12 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW13 ><td>&nbsp;</td><td id=ASPRATE13 colspan=2 class=tableblue >S13 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW14 ><td>&nbsp;</td><td id=ASPRATE14 colspan=2 class=tableblue >S14 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW15 ><td>&nbsp;</td><td id=ASPRATE15 colspan=2 class=tableblue >S15 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW16 ><td>&nbsp;</td><td id=ASPRATE16 colspan=2 class=tableblue >S16 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW17 ><td>&nbsp;</td><td id=ASPRATE17 colspan=2 class=tableblue >S17 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW18 ><td>&nbsp;</td><td id=ASPRATE18 colspan=2 class=tableblue >S18 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW19 ><td>&nbsp;</td><td id=ASPRATE19 colspan=2 class=tableblue >S19 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW20 ><td>&nbsp;</td><td id=ASPRATE20 colspan=2 class=tableblue >S20 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW21 ><td>&nbsp;</td><td id=ASPRATE21 colspan=2 class=tableblue >S21 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW22 ><td>&nbsp;</td><td id=ASPRATE22 colspan=2 class=tableblue >S22 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW23 ><td>&nbsp;</td><td id=ASPRATE23 colspan=2 class=tableblue >S23 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW24 ><td>&nbsp;</td><td id=ASPRATE24 colspan=2 class=tableblue >S24 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW25 ><td>&nbsp;</td><td id=ASPRATE25 colspan=2 class=tableblue >S25 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW26 ><td>&nbsp;</td><td id=ASPRATE26 colspan=2 class=tableblue >S26 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW27 ><td>&nbsp;</td><td id=ASPRATE27 colspan=2 class=tableblue >S27 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW28 ><td>&nbsp;</td><td id=ASPRATE28 colspan=2 class=tableblue >S28 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW29 ><td>&nbsp;</td><td id=ASPRATE29 colspan=2 class=tableblue >S29 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW30 ><td>&nbsp;</td><td id=ASPRATE30 colspan=2 class=tableblue >S30 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:5px;visibility:hidden;" id=ASPROW31 ><td>&nbsp;</td><td id=ASPRATE31 colspan=2 class=tableblue >S31 - bit rate</td><td colspan=2 >&nbsp;</td></tr>
+                                   <tr style="height:1px;" ><td colspan=5>&nbsp;</td></tr>
+                                   <tr id=ASPROW_PAD style="height:100px;" ><td colspan=5>&nbsp;</td></tr>
+                               </table>
+                           </div>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+</tr>
+<tr style="height:20px;" >
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+</tr>
+<tr style="height:20px;" >
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+  <td ></td>
+</tr>
+</table>
+</div>
+
+
+
+
+    </td>
+  </tr>
+</table><!--- end TABLE_MAIN -->
+
+<img id=rightimg src="baspmon_GigE_four_monitors_transparent.png" height=600 style="position:absolute;left:1320;top:275; visibility:hidden; " />
+<img id=chp45316 src="baspmon_45316_block_transparent.png"   height=90 style="position:absolute;left:10;top:540; visibility:hidden; " />
+<img id=harddisk src="baspmon_disk_external_transparent.png" height=90 style="position:absolute;left:80;top:640; visibility:hidden; " />
+
+
+<div id=div_floatDIV class="floatDIV" style="width:1155px; "><!-- border-style:solid; -->
+<svg id=svg_overlay width=1155 height=750 version="1.1" xmlns="http://www.w3.org/2000/svg" >
+<polyline class=pathblue id=polyline_reg1 stroke-dasharray="5, 5" points="200,180 800,180 " style="fill:none;visibility:hidden;" />
+<polyline class=pathblue id=polyline_reg2 stroke-dasharray="5, 5" points="200,200 800,200 " style="fill:none;visibility:hidden;" />
+<polyline class=pathblue id=polyline_reg3 stroke-dasharray="5, 5" points="200,200 800,200 " style="fill:none;visibility:hidden;" />
+<path     class=pathblue id=polyline_reg6 d="M10 10 Q 40 80 70 10"  stroke="black" fill="transparent" style="fill:none;visibility:hidden;" />
+<polyline class=pathblue id=polyline_reg4 stroke-dasharray="5, 5" points="200,200 800,200 " style="fill:none;visibility:hidden;" />
+<polyline class=pathblue id=polyline_reg5 stroke-dasharray="5, 5" points="200,200 800,200 " style="fill:none;visibility:hidden;" />
+<polyline class=pathblue id=polyline_asp1 stroke-dasharray="5, 5" points="200,220 800,220 " style="fill:none;visibility:hidden;" />
+<polyline class=pathblue id=polyline_asp2 stroke-dasharray="5, 5" points="200,240 800,240 " style="fill:none;visibility:hidden;" />
+<polyline class=pathblue id=polyline_asp3 stroke-dasharray="5, 5" points="200,240 800,240 " style="fill:none;visibility:hidden;" />
+<polyline id=polyline_45316 points="150,560 180,560"  style="fill:none;stroke:black;stroke-width:2;visibility:hidden;" />
+<polyline id=polyline_harddisk points="100,580 180,580"  style="fill:none;stroke:black;stroke-width:2;visibility:hidden;" />
+<text id=text_reg3 x="40" y="230" fill="black" style="fill:none;stroke:black;visibility:hidden;" >DTCP Encrypt</text>
+<text id=text_reg6 x="40" y="230" fill="black" style="fill:none;stroke:black;visibility:hidden;" >memcpy</text>
+<text id=text_reg4 x="40" y="230" fill="black" style="fill:none;visibility:hidden;" >Network Driver</text>
+</svg>
+</div>
+
+<textarea id=debugoutputbox rows=20 cols=150 readonly style="visibility:hidden;border:solid 1px gray;font-family:Courier New;" ></textarea>
+</body>
+</html>

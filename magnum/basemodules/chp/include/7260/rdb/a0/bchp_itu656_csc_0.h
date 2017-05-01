@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,18 +70,18 @@
 /***************************************************************************
  *ITU656_CSC_0 - ITU 656 Color Space Converter
  ***************************************************************************/
-#define BCHP_ITU656_CSC_0_CSC_REV_ID             0x206e5600 /* [RO] Revision ID register */
-#define BCHP_ITU656_CSC_0_CSC_MODE               0x206e5608 /* [RW] Color space converter mode register */
-#define BCHP_ITU656_CSC_0_CSC_MIN_MAX            0x206e560c /* [RW] Color space converter min_max clamp register */
-#define BCHP_ITU656_CSC_0_CSC_COEFF_C01_C00      0x206e5610 /* [RW] Video Encoder Color Matrix coefficients c01 and c00 */
-#define BCHP_ITU656_CSC_0_CSC_COEFF_C03_C02      0x206e5614 /* [RW] Video Encoder Color Matrix coefficients c03 and c02 */
-#define BCHP_ITU656_CSC_0_CSC_COEFF_C11_C10      0x206e5618 /* [RW] Video Encoder Color Matrix coefficients c11 and c10 */
-#define BCHP_ITU656_CSC_0_CSC_COEFF_C13_C12      0x206e561c /* [RW] Video Encoder Color Matrix coefficients c13 and c12 */
-#define BCHP_ITU656_CSC_0_CSC_COEFF_C21_C20      0x206e5620 /* [RW] Video Encoder Color Matrix coefficients c21 and c20 */
-#define BCHP_ITU656_CSC_0_CSC_COEFF_C23_C22      0x206e5624 /* [RW] Video Encoder Color Matrix coefficients c23 and c22 */
-#define BCHP_ITU656_CSC_0_DITHER_CONTROL         0x206e5628 /* [RW] Color Space Converter Dither Control */
-#define BCHP_ITU656_CSC_0_DITHER_LFSR            0x206e562c /* [RW] Color Space Converter Dither LFSR Control */
-#define BCHP_ITU656_CSC_0_DITHER_LFSR_INIT       0x206e5630 /* [RW] Color Space Converter Dither LFSR Init value and control */
+#define BCHP_ITU656_CSC_0_CSC_REV_ID             0x206e5600 /* [RO][32] Revision ID register */
+#define BCHP_ITU656_CSC_0_CSC_MODE               0x206e5608 /* [RW][32] Color space converter mode register */
+#define BCHP_ITU656_CSC_0_CSC_MIN_MAX            0x206e560c /* [RW][32] Color space converter min_max clamp register */
+#define BCHP_ITU656_CSC_0_CSC_COEFF_C01_C00      0x206e5610 /* [RW][32] Video Encoder Color Matrix coefficients c01 and c00 */
+#define BCHP_ITU656_CSC_0_CSC_COEFF_C03_C02      0x206e5614 /* [RW][32] Video Encoder Color Matrix coefficients c03 and c02 */
+#define BCHP_ITU656_CSC_0_CSC_COEFF_C11_C10      0x206e5618 /* [RW][32] Video Encoder Color Matrix coefficients c11 and c10 */
+#define BCHP_ITU656_CSC_0_CSC_COEFF_C13_C12      0x206e561c /* [RW][32] Video Encoder Color Matrix coefficients c13 and c12 */
+#define BCHP_ITU656_CSC_0_CSC_COEFF_C21_C20      0x206e5620 /* [RW][32] Video Encoder Color Matrix coefficients c21 and c20 */
+#define BCHP_ITU656_CSC_0_CSC_COEFF_C23_C22      0x206e5624 /* [RW][32] Video Encoder Color Matrix coefficients c23 and c22 */
+#define BCHP_ITU656_CSC_0_DITHER_CONTROL         0x206e5628 /* [RW][32] Color Space Converter Dither Control */
+#define BCHP_ITU656_CSC_0_DITHER_LFSR            0x206e562c /* [RW][32] Color Space Converter Dither LFSR Control */
+#define BCHP_ITU656_CSC_0_DITHER_LFSR_INIT       0x206e5630 /* [RW][32] Color Space Converter Dither LFSR Init value and control */
 
 #endif /* #ifndef BCHP_ITU656_CSC_0_H__ */
 

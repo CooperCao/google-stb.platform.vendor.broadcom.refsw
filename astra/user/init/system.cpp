@@ -107,11 +107,7 @@ void System::init(const void *devTree) {
     Futex::init();
     TzIoc::init(tzDevTree);
     TraceLog::init();
-#ifdef __aarch64__
-    Console::init(false);
-#else
     Console::init(!Platform::hasUart());
-#endif
 
     /* Load initramfs and release its memory */
     rootDir = RamFS::load(&_initramfs_start, &_initramfs_end);
@@ -122,7 +118,7 @@ void System::init(const void *devTree) {
     printf("Root FS mounted\n");
 
     /* Unmap the bootstrap part of the kernel */
-    PageTable::kernelPageTable()->unmapBootstrap(devTree);
+    //PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
     // Create /dev/random and /dev/urandom
     IDirectory *devDir = RamFS::Directory::create(System::UID, System::GID, rootDir,
@@ -144,9 +140,9 @@ void System::init(const void *devTree) {
     PageTable::kernelPageTable()->dump();
     printf("System init done\n");
 
-#ifndef __aarch64__
+
     Platform::setUart();
-#endif
+
 }
 
 void System::initSecondaryCpu() {

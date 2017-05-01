@@ -358,6 +358,9 @@
 #define SAVED_REG_TPIDR_EL0 36
 #define SAVED_REG_TPIDR_EL1 37
 
+/* neon registers */
+#define NUM_SAVED_NEON_REGS 34
+
 /* ARM MIDR register */
 #define MIDR_PART_NUM_SHIFT 4
 #define MIDR_PART_NUM_MASK  0xFFF
@@ -493,11 +496,8 @@
 
 #define ARCH_SPECIFIC_NSWTASK \
 	while (true) { \
-		enable_fiq(); \
-		enable_serror(); \
 		asm volatile("mov	x0, #0x3c000000":::"x0"); \
 		asm volatile("smc #0": : :"x0"); \
-		disable_irq(); \
 	}
 
 #define ARCH_SPECIFIC_ENABLE_INTERRUPTS { \
@@ -509,12 +509,14 @@
 #define ARCH_SPECIFIC_GET_SPSR(spsr) asm volatile("mrs %[xt],spsr_el1": [xt] "=r" (spsr) : :)
 
 /*  "mrs x29, spsr_el1\r\n" TODO : read from current pstate */
-#define ARCH_SPECIFIC_SAVE_STATE(idx) \
+#define ARCH_SPECIFIC_SAVE_STATE(neonReg, cpuReg) \
 	asm volatile ( \
 			"msr daifset,#3\r\n" \
-			"mov x0, %[xt]\r\n" \
 			"clrex\r\n" \
 			"stp x30, x1, [sp, #-16]!\r\n" \
+			"mov x0, %[xt0]\r\n" \
+			"bl save_neonregs\r\n" \
+			"mov x0, %[xt1]\r\n" \
 			"adr x30, resumption\r\n" \
 			"stp x30, x1, [x0, #16]\r\n" \
 			"stp x28, x29,[x0, #32]\r\n" \
@@ -544,8 +546,8 @@
 			"stp x0, x3, [x2], #16\r\n" \
 			"b schedule\r\n" \
 			"resumption:\r\n" \
-			"ldp x30, xzr, [sp], #16\r\n" \
-			: :[xt] "r" (idx) :)
+			"ldp x30, x1, [sp], #16\r\n" \
+			: :[xt0] "r" (neonReg), [xt1] "r" (cpuReg) :)
 
 #define ARCH_SPECIFIC_DATA_ABORT_EXCEPTION(dfsr, dfar, align) \
 	asm volatile("mrs %[xt],esr_el1": [xt] "=r" (dfsr)::); \

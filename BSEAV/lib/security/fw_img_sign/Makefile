@@ -1,5 +1,5 @@
 ##############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,13 +49,15 @@ export NEXUS_TOP=$(REFSW_TOP)/nexus
 export MAGNUM_TOP=$(REFSW_TOP)/magnum
 
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
-include $(NEXUS_TOP)/platforms/common/build/platform_version.inc
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX=debug
+else
+DEBUG_SUFFIX=release
+endif
+
 include $(MAGNUM_TOP)/portinginterface/hsm/bhsm_defs.inc
 
 BSEAV = $(REFSW_TOP)/BSEAV
-include $(BSEAV)/build/refsw_inc.mak
-B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
 OUT = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/fw_img_sign/$(B_REFSW_ARCH)
 
 #defines for compiling signing tool
@@ -98,14 +100,29 @@ ifeq ($(target),ZD)
 
     #This Key Variant will be used to sign Key2.
     KEY2_KEY_VARIANT=ZS_dev_key0
+
+#key0 is unique between A0 and B0 revisions for these chips.
+#If any chip from the list, the override KEY2_KEY_VARIANT to B0
+ifeq ($(filter ${BCHP_CHIP}, 7268 7271), $(BCHP_CHIP))
+ifeq (${BCHP_VER}, B0)
+    KEY2_KEY_VARIANT=ZS_B0_dev_key0
+endif
+endif
+
 #else ifeq ($(target),ZB)
 else
     #This Key variant will be used to sign firmware images. This is Key2.
     FW_KEY_VARIANT=_Prod_Key2
-    #FW_KEY_VARIANT=_prod_key0
 
     #This Key Variant will be used to sign Key2.
     KEY2_KEY_VARIANT=_prod_key0
+#key0 is unique between A0 and B0 revisions for these chips.
+#If any chip from the list, the override KEY2_KEY_VARIANT to B0
+ifeq ($(filter ${BCHP_CHIP}, 7268 7271), $(BCHP_CHIP))
+ifeq (${BCHP_VER}, B0)
+    KEY2_KEY_VARIANT=_B0_prod_key0
+endif
+endif
 endif
 
 export BINS_TO_SIGN = $(OUT_DIR)/$(BCHP_ID)_bins_to_sign.txt
@@ -131,6 +148,12 @@ SIG_COMMAND_FILE = $(OUT_DIR)/$(BCHP_ID)_signature.in
 KEY2_FILE=$(NEXUS_SYNCTHUNK_DIR)/nexus_security_regver_key.inc
 KEY2_COPY = cp $(OUT_DIR)/$(KEY2_FILE_NAME) $(KEY2_FILE)
 STOCK_KEY2 = key2/$(BCHP_ID)_$(KEY2_FILE_NAME)
+#If any chip from the list, Stock Key2 is chip revision(A0/B0) dependent.
+ifeq ($(filter ${BCHP_CHIP}, 7268 7271), $(BCHP_CHIP))
+ifeq (${BCHP_VER}, B0)
+    STOCK_KEY2 = key2/$(BCHP_ID)_B0_$(KEY2_FILE_NAME)
+endif
+endif
 STOCK_KEY2_COPY ?= cp $(STOCK_KEY2) $(KEY2_FILE)
 
 SIGNATURE_FILE = $(NEXUS_SYNCTHUNK_DIR)/nexus_security_regver_signatures.inc

@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,8 +44,11 @@ NEXUS_TOP ?= nexus
 
 # Locally define rules -- all is the default rule
 all: install
-NEXUS_ABICOMPAT_MODE?=y
 
+# Include nexus definitions
+include $(NEXUS_TOP)/build/nexus_defs.inc
+
+NEXUS_ABICOMPAT_MODE?=y
 
 ifeq ($(NEXUS_ABICOMPAT_MODE),y)
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
@@ -53,8 +56,6 @@ NEXUS_COMPAT_32ABI?=y
 endif
 endif
 
-# Include nexus definitions
-include $(NEXUS_TOP)/build/nexus_defs.inc
 NEXUS_PLATFORM_BUILDDIR=$(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 
@@ -62,15 +63,15 @@ include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 
 NEXUS_P_DRIVER_ARCH?=${B_REFSW_ARCH}
 ifeq ($(B_REFSW_ARCH),arm-linux)
-ifeq ($(shell grep -q CONFIG_64BIT=y ${LINUX}/config 2>/dev/null && echo y),y)
+ifeq ($(shell grep -q CONFIG_64BIT=y ${LINUX}/.config 2>/dev/null && echo y),y)
 NEXUS_P_DRIVER_ARCH:=aarch64-linux
 NEXUS_P_DRIVER_B_REFSW_ARCH=" B_REFSW_ARCH=${NEXUS_P_DRIVER_ARCH}"
 endif
 endif
 
 ifeq ($(NEXUS_P_IS_MULTIPASS),)
-ifeq ($(B_REFSW_OS),linuxuser)
 ifeq ($(NEXUS_MODE),proxy)
+ifeq ($(B_REFSW_OS),linuxuser)
 # kernel mode is a two pass build:
 # OS=linuxuser MODE=proxy
 # OS=linuxkernel MODE=driver
@@ -79,6 +80,9 @@ NEXUS_P_FIRST_PASS_NAME="nexus driver${NEXUS_P_DRIVER_B_REFSW_ARCH}"
 NEXUS_P_FIRST_PASS_PARAMS=B_REFSW_OS=linuxkernel NEXUS_MODE=driver ${NEXUS_P_DRIVER_B_REFSW_ARCH}
 NEXUS_P_SECOND_PASS_NAME="nexus proxy"
 NEXUS_P_SECOND_PASS_PARAMS=
+else
+$(error NEXUS_MODE=proxy only supported with linuxuser)
+endif
 endif
 ifeq ($(NEXUS_MODE),)
 ifneq ($(NEXUS_SERVER_SUPPORT),n)
@@ -87,6 +91,7 @@ endif
 endif
 ifeq ($(NEXUS_MODE),client)
 ifeq ($(NEXUS_WEBCPU),)
+ifeq ($(B_REFSW_OS),linuxuser)
 # usermode multiprocess is a two pass build:
 # OS=linuxuser NEXUS_MODE=client
 # OS=linuxuser NEXUS_MODE=
@@ -95,6 +100,8 @@ NEXUS_P_FIRST_PASS_NAME="nexus server"
 NEXUS_P_FIRST_PASS_PARAMS=NEXUS_MODE=
 NEXUS_P_SECOND_PASS_NAME="nexus client"
 NEXUS_P_SECOND_PASS_PARAMS=NEXUS_MODE=client
+else
+$(error NEXUS_MODE=client only supported with linuxuser)
 endif
 endif
 endif
@@ -142,7 +149,7 @@ endif
 
 # Pull in astra for kernel builds
 ifeq ($(NEXUS_MODE),driver)
-ifeq ($(NEXUS_ASTRA_SUPPORT),y)
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
 EXTRA_CLEAN += astra_drv_clean
 NEXUS_DRIVER_EXTRADEPS += astra_drv_install
 NEXUS_DRIVER_KBUILD_ARGS += KBUILD_EXTRA_SYMBOLS=$(realpath $(NEXUS_OBJ_DIR))/bcm_astra.symvers
@@ -156,7 +163,7 @@ ifneq  (${B_REFSW_SYSTEM_MODE},CLIENT)
 # user mode is a one pass build which also builds bcmdriver
 EXTRA_CLEAN += bcmdriver_clean
 EXTRA_INSTALL += bcmdriver_install
-ifeq ($(NEXUS_ASTRA_SUPPORT),y)
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
 EXTRA_CLEAN += astra_clean astra_drv_clean
 EXTRA_INSTALL += astra_install astra_drv_install
 NEXUS_EXTRALIBS += $(ASTRA_LIB)
@@ -173,7 +180,7 @@ endif
 endif
 endif
 ifeq ($(NEXUS_MODE),proxy)
-ifeq ($(NEXUS_ASTRA_SUPPORT),y)
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
 EXTRA_CLEAN += astra_clean
 EXTRA_INSTALL += astra_install
 NEXUS_EXTRALIBS += $(ASTRA_LIB)
@@ -229,7 +236,7 @@ EXTRA_INSTALL += install_scripts
 V3DVER330:=$(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_mmu_0.h && echo y)
 V3DVER400:=$(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_mmu.h && echo y)
 ifeq ($(filter y, $(V3DVER330) $(V3DVER400)),y)
-ifeq ($(shell grep -q CONFIG_DRM=y ${LINUX}/config 2>/dev/null && echo y),y)
+ifeq ($(shell grep -q CONFIG_DRM=y ${LINUX}/.config 2>/dev/null && echo y),y)
 EXTRA_CLEAN += brcmv3d_clean
 EXTRA_INSTALL += brcmv3d_install
 ifeq ($(NEXUS_MODE),driver)

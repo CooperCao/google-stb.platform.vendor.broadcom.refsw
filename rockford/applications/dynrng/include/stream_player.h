@@ -50,14 +50,16 @@ StreamPlayerHandle stream_player_create(PlatformHandle platform, PlatformCallbac
 void stream_player_destroy(StreamPlayerHandle player);
 void stream_player_add_stream_source(StreamPlayerHandle player, const char * name, const char * path);
 const PlatformPictureInfo * stream_player_get_picture_info(StreamPlayerHandle player);
-void stream_player_play_stream(StreamPlayerHandle player, unsigned streamIndex);
+void stream_player_play_stream_by_index(StreamPlayerHandle player, int streamIndex, bool mosaic, bool forceRestart);
+void stream_player_play_stream_by_url(StreamPlayerHandle player, const char * streamUrl, bool mosaic, bool forceRestart);
 unsigned stream_player_get_count(StreamPlayerHandle player);
-void stream_player_first(StreamPlayerHandle player);
-void stream_player_next(StreamPlayerHandle player);
-void stream_player_prev(StreamPlayerHandle player);
-void stream_player_start(StreamPlayerHandle player);
+void stream_player_first(StreamPlayerHandle player, bool mosaic);
+void stream_player_next(StreamPlayerHandle player, bool mosaic);
+void stream_player_prev(StreamPlayerHandle player, bool mosaic);
+void stream_player_start(StreamPlayerHandle player, bool mosaic);
 void stream_player_stop(StreamPlayerHandle player);
 void stream_player_toggle_pause(StreamPlayerHandle player);
+void stream_player_frame_advance(StreamPlayerHandle player, bool mosaic);
 void stream_player_print(StreamPlayerHandle player);
 
 #endif /* STREAM_PLAYER_H__ */

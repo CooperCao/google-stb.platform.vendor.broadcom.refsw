@@ -77,8 +77,8 @@ all : source
 	@echo "================ Compiling ZLIB==============================="
 	echo "NEXUS_TOP=$(abspath ${NEXUS_TOP})"
 	${MAKE} ${MAKE_OPTIONS} -C ${ZLIB_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) ${MAKE_SUFFIX}
-	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
-		${STRIP} ${ZLIB_LIB_FOLDER}/*.so; \
+	if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
+		if ls ${ZLIB_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then ${STRIP} ${ZLIB_LIB_FOLDER}/*.so ; fi ; \
 	fi
 	@echo "================ ZLIB Compiled!"
 

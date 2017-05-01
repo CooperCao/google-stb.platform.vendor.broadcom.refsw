@@ -30,7 +30,8 @@ void v3d_workaround_gfxh_1276(V3D_SHADREC_GL_MAIN_T *record)
 // Packs a float attribute with given size and number of cs/vs reads into
 // i'th attribute in shader record. Packed base points to first attribute.
 static void make_simple_float_shader_attr(V3D_SHADREC_GL_ATTR_T *attr,
-   int size, int cs_reads, int vs_reads, v3d_addr_t addr, int stride)
+      int size, int cs_reads, int vs_reads, v3d_addr_t addr, int stride,
+      uint32_t max_index)
 {
    attr->addr = addr;
    attr->size = size;
@@ -42,6 +43,9 @@ static void make_simple_float_shader_attr(V3D_SHADREC_GL_ATTR_T *attr,
    attr->vs_num_reads = vs_reads;
    attr->divisor = 0;
    attr->stride = stride;
+#if V3D_HAS_ATTR_MAX_INDEX
+   attr->max_index = max_index;
+#endif
 }
 
 void v3d_create_nv_shader_record(
@@ -52,8 +56,10 @@ void v3d_create_nv_shader_record(
    v3d_addr_t        fshader_addr,
    v3d_addr_t        funif_addr,
    v3d_addr_t        vdata_addr,
+   uint32_t vdata_max_index,
    bool              does_z_writes,
-   v3d_threading_t   threading)
+   v3d_threading_t   threading
+   )
 {
    V3D_SHADREC_GL_MAIN_T shader_record;
    V3D_SHADREC_GL_ATTR_T attr[3];
@@ -135,10 +141,12 @@ void v3d_create_nv_shader_record(
 #endif
 
    // Xc, Yc, Zc, Wc - clipping is disabled so we just use dummy default values
-   make_simple_float_shader_attr(&attr[0], 4, 4, 0, shader_record.defaults, 0);
+   make_simple_float_shader_attr(&attr[0], 4, 4, 0, shader_record.defaults, 0,
+         /*max_index*/ 0);
 
    // Xs, Ys, Zs from attribute data - 1/Wc from default values (1.0)
-   make_simple_float_shader_attr(&attr[1], 3, 4, 4, vdata_addr, vdata_stride);
+   make_simple_float_shader_attr(&attr[1], 3, 4, 4, vdata_addr, vdata_stride,
+         vdata_max_index);
 
    // This allocation contains both main GL shader record,
    // followed by variable number of attribute records.

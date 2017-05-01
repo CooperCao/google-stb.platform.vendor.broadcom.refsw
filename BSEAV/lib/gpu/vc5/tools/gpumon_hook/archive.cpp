@@ -1,56 +1,21 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  PPP
-Module   :  MMM
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "archive.h"
 #include "packet.h"
+#include "debuglog.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <assert.h>
 
-#ifdef ANDROID
-#include <cutils/log.h>
-#include <cutils/properties.h>
-#define printf ALOGD
-#define Error0(s) ALOGD(s)
-#define Error1(s, a) ALOGD(s, a)
-#define Log1(s, a) ALOGD(s, a)
-#define Log2(s, a, b) ALOGD(s, a, b)
-#else
-#define Error0(s) fprintf(stderr, s)
-#define Error1(s, a) fprintf(stderr, s, a)
-#define Log1(s, a) printf(s, a)
-#define Log2(s, a, b) printf(s, a, b)
-#endif
-
-#ifdef BIG_ENDIAN_CPU
-#define TO_LE_W(w) \
-{ \
-   uint32_t tmp = *((uint32_t*)&w);\
-   uint8_t *t = (uint8_t*)&tmp;\
-   uint8_t *p = (uint8_t*)&w;\
-   p[0] = t[3];\
-   p[1] = t[2];\
-   p[2] = t[1];\
-   p[3] = t[0];\
-}
-#else
-#define TO_LE_W(w)
-#endif
-
 #define CHUNK_SIZE (8 * 1024 * 1024)
-
-#define USE_MEMCPY 1
+#define FLUSH_THRESHOLD (CHUNK_SIZE/2)
+#define FLUSH_TIMEOUT 5 //ms
 
 // This is all a bit nasty.
 //
@@ -67,7 +32,7 @@ static void exitHandler()
    Archive *deleteMe = s_archive;
    s_archive = NULL;
 
-   printf("Flushing capture archive on exit\n");
+   debug_log(DEBUG_WARN, "Flushing capture archive on exit\n");
 
    if (deleteMe != NULL)
    {
@@ -76,89 +41,12 @@ static void exitHandler()
    }
 }
 
-void Archive::BufferForWrite(uint8_t *data, uint32_t numBytes)
+Archive::Archive() :
+   m_fd(-1),
+   m_file(),
+   m_buffer(CHUNK_SIZE, m_file, FLUSH_THRESHOLD, FLUSH_TIMEOUT),
+   m_bytesWritten(0)
 {
-   while (numBytes)
-   {
-      uint32_t remaining = m_buffer.capacity() - m_buffer.size();
-
-      uint32_t copySize = std::min(numBytes, remaining);
-
-#if USE_MEMCPY
-      m_buffer.resize(m_buffer.size() + copySize);
-      memcpy(&m_buffer[m_buffer.size() - copySize], data, copySize);
-#else
-      m_buffer.insert(m_buffer.end(), data, &data[copySize]);
-#endif
-
-      if (m_buffer.capacity() - m_buffer.size() == 0)
-      {
-         // scope for the lock
-         {
-            std::unique_lock<std::mutex> guard(m_mutex);
-            m_queue.push(std::move(m_buffer));
-         }
-         m_condition.notify_one();
-         m_buffer = std::vector<uint8_t>(0);
-         m_buffer.reserve(CHUNK_SIZE);
-      }
-
-      numBytes -= copySize;
-      data += copySize;
-   }
-}
-
-void Archive::worker()
-{
-   bool local_done(false);
-   std::vector<uint8_t> buf;
-   while (!m_queue.empty() || !local_done)
-   {
-      // scope for the lock
-      {
-         std::unique_lock<std::mutex> guard(m_mutex);
-         m_condition.wait(guard,
-            [this](){ return !this->m_queue.empty()
-            || this->m_done; });
-
-         while (m_queue.empty() && !m_done)
-            m_condition.wait(guard);
-
-         if (!m_queue.empty())
-         {
-            buf.swap(m_queue.front());
-            m_queue.pop();
-         }
-         local_done = m_done;
-      }
-
-      if (!buf.empty())
-      {
-         fwrite(buf.data(), buf.size(), 1, m_fp);
-         buf.clear();
-      }
-   }
-
-   // flush prior to close
-   if (!buf.empty())
-   {
-      fwrite(buf.data(), buf.size(), 1, m_fp);
-      buf.clear();
-   }
-
-   fclose(m_fp);
-   m_fp = NULL;
-}
-
-Archive::Archive(const std::string &filename) :
-   m_filename(filename),
-   m_fp(NULL),
-   m_buffer(0),
-   m_bytesWritten(0),
-   m_thread(std::bind(&Archive::worker, this))
-{
-   m_buffer.reserve(CHUNK_SIZE);
-
    s_archive = this;
 
    // Ensure this is flushed on program termination
@@ -169,54 +57,49 @@ Archive::~Archive()
 {
    s_archive = NULL;
 
-   Disconnect();
-
-   // scope for the lock
-   {
-      std::unique_lock<std::mutex> guard(m_mutex);
-      if (!m_buffer.empty())
-         m_queue.push(std::move(m_buffer));
-      m_done = true;
-   }
-   m_condition.notify_one();
-   m_thread.join();
+   Close();
 }
 
-bool Archive::Connect()
+bool Archive::Open(const char *filename)
 {
-   if (m_filename != "")
+   if (filename && *filename)
    {
-      m_fp = fopen(m_filename.c_str(), "wb");
-      if (m_fp == NULL)
+      m_fd = creat(filename, 0644); // rw-r--r--
+      if (m_fd < 0)
       {
-         Error1("Could not open %s for writing\n", m_filename.c_str());
+         debug_log(DEBUG_ERROR, "Could not open %s for writing\n", filename);
          return false;
       }
 
+      m_file.SetFd(m_fd);
       return true;
    }
 
    return false;
 }
 
-void Archive::Disconnect()
+void Archive::Close()
 {
-   if (m_fp != NULL)
-      Flush();
+   m_buffer.WaitFlush();
+   m_file.SetFd(-1);
+
+   if (m_fd >= 0)
+      close(m_fd);
+   m_fd = -1;
 }
 
-void Archive::Send(uint8_t *srcData, uint32_t size, bool isArray)
+size_t Archive::Write(const void *srcData, size_t srcSize)
 {
-   if (m_fp != NULL)
-      Remote::Send(srcData, size, isArray);
-}
-
-void Archive::Flush()
-{
-   if (m_fp != NULL)
+   size_t size = 0;
+   if (m_fd >= 0)
    {
-      BufferForWrite(m_queuedData, m_queuedLen);
-      m_bytesWritten += m_queuedLen;
-      m_queuedLen = 0;
+      size = m_buffer.Write(srcData, srcSize);
+      m_bytesWritten += size;
    }
+   return size;
+}
+
+bool Archive::Flush()
+{
+   return m_buffer.Flush();
 }

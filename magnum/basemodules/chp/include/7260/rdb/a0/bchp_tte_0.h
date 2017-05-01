@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:47 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,16 +70,16 @@
 /***************************************************************************
  *TTE_0 - TTE_0 registers
  ***************************************************************************/
-#define BCHP_TTE_0_status                        0x206e8704 /* [RW] teletext_status Register */
-#define BCHP_TTE_0_control                       0x206e8708 /* [RW] teletext_control Register */
-#define BCHP_TTE_0_lines_active                  0x206e870c /* [RW] teletext_lines_active Register */
-#define BCHP_TTE_0_base_address                  0x206e8710 /* [RW] 8-bit Base Address of top and bottom Teletext buffers bits 39:32 */
-#define BCHP_TTE_0_read_address_top              0x206e8714 /* [RW] Base Address of top Teletext buffer bit 31:0 */
-#define BCHP_TTE_0_read_address_bottom           0x206e8718 /* [RW] Base Address of bottom Teletext buffer bit 31:0 */
-#define BCHP_TTE_0_output_format                 0x206e871c /* [RW] teletext_output_format Register */
-#define BCHP_TTE_0_top_mask                      0x206e8720 /* [RW] Teletext Top Mask Register */
-#define BCHP_TTE_0_bottom_mask                   0x206e8724 /* [RW] Teletext Top Mask Register */
-#define BCHP_TTE_0_revid                         0x206e8728 /* [RO] Teletext Encoder Revision ID Register */
+#define BCHP_TTE_0_status                        0x206e8704 /* [RW][32] teletext_status Register */
+#define BCHP_TTE_0_control                       0x206e8708 /* [RW][32] teletext_control Register */
+#define BCHP_TTE_0_lines_active                  0x206e870c /* [RW][32] teletext_lines_active Register */
+#define BCHP_TTE_0_base_address                  0x206e8710 /* [RW][32] 8-bit Base Address of top and bottom Teletext buffers bits 39:32 */
+#define BCHP_TTE_0_read_address_top              0x206e8714 /* [RW][32] Base Address of top Teletext buffer bit 31:0 */
+#define BCHP_TTE_0_read_address_bottom           0x206e8718 /* [RW][32] Base Address of bottom Teletext buffer bit 31:0 */
+#define BCHP_TTE_0_output_format                 0x206e871c /* [RW][32] teletext_output_format Register */
+#define BCHP_TTE_0_top_mask                      0x206e8720 /* [RW][32] Teletext Top Mask Register */
+#define BCHP_TTE_0_bottom_mask                   0x206e8724 /* [RW][32] Teletext Top Mask Register */
+#define BCHP_TTE_0_revid                         0x206e8728 /* [RO][32] Teletext Encoder Revision ID Register */
 
 /***************************************************************************
  *status - teletext_status Register

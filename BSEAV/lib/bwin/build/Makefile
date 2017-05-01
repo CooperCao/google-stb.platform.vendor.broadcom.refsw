@@ -55,7 +55,13 @@ B_EXTRA_BUILDS :=
 B_EXTRA_CLEANS :=
 
 .PHONY: check_environment libs static clean-libs self clean-self
-all: check_environment static
+.PHONY: freetype libpng
+
+all:
+	$(MAKE) freetype
+	$(MAKE) libpng
+	$(MAKE) static
+	$(MAKE) check_environment
 
 include ../include/bwin.mak
 include $(BSEAV)/build/refsw_inc.mak
@@ -89,8 +95,8 @@ SRCS = \
 	bwin_transform.c \
 	bwin_image_bmp.c
 
+CFLAGS += -I$(ZLIB_ODIR)/include
 ifeq ($(PNG_SUPPORT),y)
-CFLAGS += -DPNG_SUPPORT -I$(LIBPNG_ODIR) -I$(ZLIB_ODIR)/include
 
 SRCS += \
 	bwin_image_png.c \
@@ -98,8 +104,8 @@ SRCS += \
 
 B_EXTRA_BUILDS += libpng
 B_EXTRA_CLEANS += clean-libpng
-
-include $(BSEAV)/opensource/libpng/b_libpng_targets.inc
+include $(LIBPNG_DIR)/b_libpng_targets.inc
+CFLAGS += -DPNG_SUPPORT -I$(LIBPNG_SOURCE_PATH)
 libpng: b_libpng_target_build
 clean-libpng: b_libpng_target_clean_all
 endif
@@ -145,12 +151,12 @@ endif
 endif
 
 ifeq ($(FREETYPE_SUPPORT),y)
-CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_ODIR)/include
 # We've checked in preconfigured source which uses our standard tools.mak
 # for cross compiling. configure isn't going to work on DOS for vxworks.
 B_EXTRA_BUILDS += freetype
 B_EXTRA_CLEANS += clean-freetype
-include $(FREETYPE_DIR)/$(FREETYPE_NAME)/b_freetype_targets.inc
+include $(FREETYPE_DIR)/b_freetype_targets.inc
+CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_SOURCE_PATH)/include
 freetype: b_freetype_target_build
 clean-freetype: b_freetype_target_clean_all
 endif

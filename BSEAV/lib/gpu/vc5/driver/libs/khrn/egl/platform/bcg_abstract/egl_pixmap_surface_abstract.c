@@ -1,12 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "../../egl_display.h"
 #include "../../egl_surface.h"
@@ -28,7 +22,7 @@ FILE DESCRIPTION
 struct egl_pixmap_surface
 {
    EGL_SURFACE_T   base;
-   KHRN_IMAGE_T   *image;
+   khrn_image   *image;
    void           *native_surface;
 
    /* Attributes to be used by VG */
@@ -61,7 +55,7 @@ static void get_dimensions(EGL_SURFACE_T *surface, unsigned *width, unsigned *he
 }
 
 /* Get the buffer to draw to */
-static KHRN_IMAGE_T *get_back_buffer(const EGL_SURFACE_T *surface)
+static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
 {
    EGL_PIXMAP_SURFACE_T *surf = (EGL_PIXMAP_SURFACE_T *) surface;
 
@@ -270,7 +264,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
 {
    EGLint                error    = EGL_SUCCESS;
    EGL_SURFACE_T        *surf     = NULL;
-   KHRN_IMAGE_T         *imageDst = NULL;
+   khrn_image         *imageDst = NULL;
    GFX_LFMT_T            gfx_format;
 
    if (!egl_initialized(dpy, true))
@@ -325,11 +319,11 @@ end:
 
 static EGL_SURFACE_METHODS_T fns =
 {
-   get_back_buffer,
-   NULL,                /* swap_buffers   */
-   NULL,                /* swap_interval  */
-   get_dimensions,
-   get_attrib,
-   set_attrib,
-   delete_fn
+   .get_back_buffer = get_back_buffer,
+   .swap_buffers = NULL,
+   .swap_interval = NULL,
+   .get_dimensions = get_dimensions,
+   .get_attrib = get_attrib,
+   .set_attrib = set_attrib,
+   .delete_fn = delete_fn,
 };

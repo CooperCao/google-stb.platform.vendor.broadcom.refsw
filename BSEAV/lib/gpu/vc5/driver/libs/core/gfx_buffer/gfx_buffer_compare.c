@@ -1,15 +1,6 @@
-/*==============================================================================
- Broadcom Proprietary and Confidential. (c)2012 Broadcom.
- All rights reserved.
-
- Module   :  gfx_buffer
-
- $Id: $
-
- FILE DESCRIPTION
- Image comparision functions
-==============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gfx_buffer_compare.h"
 
 #include "libs/util/gfx_util/gfx_util.h"

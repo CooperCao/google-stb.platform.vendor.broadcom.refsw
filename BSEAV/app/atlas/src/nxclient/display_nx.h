@@ -59,6 +59,9 @@ public:
     virtual void close(void);
     virtual eRet addOutput(COutput * pOutput);
     virtual eRet removeOutput(COutput * pOutput);
+    virtual eRet enableOutputs(bool bEnable);
+    virtual eDynamicRange getOutputDynamicRange(void);
+    virtual eRet setOutputDynamicRange(eDynamicRange dynamicRange);
 
     eRet                     setContentMode(NEXUS_VideoWindowContentMode contentMode);
     eRet                     setColorDepth(uint8_t * pColorDepth);

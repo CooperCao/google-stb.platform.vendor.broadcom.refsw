@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include "middleware/khronos/glsl/prepro/glsl_prepro_eval.h"
@@ -433,11 +426,6 @@ static void parse_error(void)
       glsl_compile_error(ERROR_PREPROCESSOR, 2, g_LineNumber - 1, NULL);
    } else
       skip_remainder();
-}
-
-static INLINE bool is_matching_identifier(Token *t, char const* ident)
-{
-   return t->type == IDENTIFIER && !strcmp(t->data.s, ident);
 }
 
 static void parse_pragma(void)

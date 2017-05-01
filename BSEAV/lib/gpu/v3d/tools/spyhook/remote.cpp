@@ -1,7 +1,6 @@
-/*=============================================================================
-Copyright (C) 2011 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <fcntl.h>
 #include <sys/types.h>
 #include <setjmp.h>
@@ -72,12 +71,14 @@ Copyright (C) 2011 Broadcom.  The term "Broadcom" refers to Broadcom Limited and
                                  r=buf[0]=='1';  break;                         \
                             } while(1);
 
-static int g_use_proxy       = 0;
+#ifndef WIN32
+static int g_use_proxy = 0;
 static int g_ctrl_opened     = 0;
 static FILE * g_fp_fifo_ctrl = NULL;
-static FILE * g_fp_fifo_ack  = NULL;
+static FILE * g_fp_fifo_ack = NULL;
 static int    g_fd_fifo_tx;
 static int    g_fd_fifo_rx;
+#endif
 
 Remote::Remote() :
    m_queuedData(NULL),

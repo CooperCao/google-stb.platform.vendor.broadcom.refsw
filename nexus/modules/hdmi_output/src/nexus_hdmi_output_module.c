@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -119,7 +119,7 @@ NEXUS_ModuleHandle NEXUS_HdmiOutputModule_Init(
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eLow; /* hdmi interface is very slow */
     moduleSettings.dbgPrint = NEXUS_HdmiOutputModule_Print;
-    moduleSettings.dbgModules = "nexus_hdmi_output";
+    moduleSettings.dbgModules = "nexus_hdmi_output_debug";
     g_NEXUS_hdmiOutputModule = NEXUS_Module_Create("hdmi_output", &moduleSettings);
     if ( NULL == g_NEXUS_hdmiOutputModule )
     {
@@ -187,7 +187,16 @@ NEXUS_ModuleHandle NEXUS_HdmiOutputModule_Init(
         goto error;
     }
 #endif
+#endif
 
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdm_edid", "BHDM_EDID", NEXUS_HdmiOutput_PrintRxEdid);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdm_packet_audio", "BHDM_PACKET_AUDIO", NEXUS_HdmiOutput_PrintAudioInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdm_packet_avi", "BHDM_PACKET_AVI", NEXUS_HdmiOutput_PrintAviInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdm_packet_vsi", "BHDM_PACKET_VSI", NEXUS_HdmiOutput_PrintVendorSpecificInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdm_packet_drm", "BHDM_PACKET_DRM", NEXUS_HdmiOutput_PrintDrmInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdm_packet_acr", "BHDM_PACKET_ACR_PRIV", NEXUS_HdmiOutput_PrintAcrPacket);
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
 error:
     if (img_context) {
         NEXUS_HdmiOutputModule_P_Img_Destroy(img_context);
@@ -202,12 +211,21 @@ error:
 void NEXUS_HdmiOutputModule_Uninit(void)
 {
     BDBG_ASSERT(NULL != g_NEXUS_hdmiOutputModule);
+
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdm_edid");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdm_packet_audio");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdm_packet_avi");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdm_packet_vsi");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdm_packet_drm");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdm_packet_acr");
+
     NEXUS_Module_Destroy(g_NEXUS_hdmiOutputModule);
     BKNI_Memset(&g_NEXUS_hdmiOutputModuleSettings, 0, sizeof(g_NEXUS_hdmiOutputModuleSettings));
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     if (g_hdcpTABlock.buf != NULL)
     {
+        /* memory allocated using NEXUS_Sage_Malloc_priv() can be freed by NEXUS_Memory_Free() */
         NEXUS_Memory_Free(g_hdcpTABlock.buf);
         g_hdcpTABlock.buf = NULL;
         g_hdcpTABlock.len = 0;
@@ -291,11 +309,15 @@ static NEXUS_Error NEXUS_HdmiOutputModule_P_LoadTA(
 
         /* Allocate buffer to save data */
         {
-            uint32_t alloc_size = *size;
+            size_t alloc_size = (size_t)*size;
 
-            BDBG_MSG(("alloc '%s' %u bytes", holder->name, alloc_size));
-            rc = NEXUS_Memory_Allocate(alloc_size, NULL, &holder->raw->buf);
-            if(rc != NEXUS_SUCCESS) {
+            BDBG_MSG(("alloc '%s' %u bytes", holder->name, (uint32_t) alloc_size));
+            /* use SAGE allocator */
+            NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+            holder->raw->buf = NEXUS_Sage_Malloc_priv(alloc_size);
+            NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+            if (holder->raw->buf == NULL) {
+                rc = BERR_OUT_OF_DEVICE_MEMORY;
                 BDBG_ERR(("%s - Error allocating %u bytes memory for '%s' buffer",
                           __FUNCTION__, *size, holder->name));
                 BERR_TRACE(rc);

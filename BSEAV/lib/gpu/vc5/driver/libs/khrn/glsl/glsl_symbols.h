@@ -28,8 +28,7 @@ EXTERN_C_BEGIN
 
 /* Types. */
 
-typedef enum
-{
+typedef enum {
    SYMBOL_PRIMITIVE_TYPE, // these are canonical - can do pointer match
    SYMBOL_STRUCT_TYPE,    // these are also canonical
    SYMBOL_BLOCK_TYPE,
@@ -37,28 +36,27 @@ typedef enum
    SYMBOL_FUNCTION_TYPE,  // these are also NOT canonical
 } SymbolTypeFlavour;
 
-typedef struct
-{
-   PrimitiveTypeIndex index;     /* Can be used to get information from the primitive* arrays */
+typedef struct {
+   PrimitiveTypeIndex  index;     /* Can be used to get information from the primitive* arrays */
 } PrimitiveType;
 
 typedef struct {
-   const char         *name;
-   SymbolType         *type;
-   PrecisionQualifier  prec;
-   LayoutQualifier    *layout;
-   MemoryQualifier     memq;
+   const char            *name;
+   SymbolType            *type;
+   PrecisionQualifier     prec;
+   LayoutQualifier       *layout;
+   MemoryQualifier        memq;
+   InterpolationQualifier interp;
+   AuxiliaryQualifier     auxq;
 } StructMember;
 
-typedef struct
-{
-   unsigned int member_count;
+typedef struct {
+   unsigned int  member_count;
    StructMember *member;
 } StructType;
 
-typedef struct
-{
-   unsigned int member_count;
+typedef struct {
+   unsigned int  member_count;
    StructMember *member;
 
    LayoutQualifier *lq;
@@ -68,18 +66,15 @@ typedef struct
    bool has_named_instance;
 } BlockType;
 
-typedef struct
-{
-   unsigned int member_count;
-   SymbolType *member_type;
+typedef struct {
+   unsigned int  member_count;
+   SymbolType   *member_type;
 } ArrayType;
 
-typedef struct
-{
-   SymbolType *return_type;
-   unsigned int param_count;
-   /* params[i]->flavour == SYMBOL_PARAM_INSTANCE for 0 <= i < param_count */
-   Symbol **params;
+typedef struct {
+   SymbolType    *return_type;
+   unsigned int   param_count;
+   Symbol       **params;       /* All params[i]->flavour == SYMBOL_PARAM_INSTANCE */
 } FunctionType;
 
 /*
@@ -116,16 +111,14 @@ typedef struct
    t->u.struct_type.member_types
 */
 
-struct _SymbolType
-{
+struct _SymbolType {
    SymbolTypeFlavour flavour;
    const char *name;
 
    // The number of scalar components in this type, or 0 if not a numeric or bool type.
    unsigned int scalar_count;
 
-   union
-   {
+   union {
       PrimitiveType primitive_type; /* If flavour == SYMBOL_PRIMITIVE_TYPE */
       StructType struct_type;       /* If flavour == SYMBOL_STRUCT_TYPE */
       BlockType block_type;         /* If flavour == SYMBOL_BLOCK_TYPE */
@@ -150,19 +143,19 @@ bool glsl_deep_match_nonfunction_types(const SymbolType *a, const SymbolType *b,
 // Finds the function symbol in a Symbol chain that matches the argument types.
 // Note array sizes are part of the type and there is no automatic promotion.
 // Returns NULL if none found.
-Symbol* glsl_resolve_overload_using_arguments(Symbol* head, ExprChain* args);
+Symbol *glsl_resolve_overload_using_arguments(Symbol *head, ExprChain *args);
 
 // Finds the function symbol in a Symbol chain that matches the declaration.
 // Overload resolution is, like glsl_resolve_overload_using_arguments() and as per the GLSL rules,
 // based purely on argument types. However, parameter qualifiers and return type
 // have to match once an overload is found.
 // Returns NULL if none found.
-Symbol* glsl_resolve_overload_using_prototype(Symbol* head, SymbolType* prototype);
+Symbol *glsl_resolve_overload_using_prototype(Symbol *head, SymbolType *prototype);
 
 // Returns whether there is a sampler or an array anywhere in the type t */
-bool glsl_type_contains(SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f);
-bool glsl_type_contains_opaque(SymbolType *t);
-bool glsl_type_contains_array(SymbolType *t);
+bool glsl_type_contains(const SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f);
+bool glsl_type_contains_opaque(const SymbolType *t);
+bool glsl_type_contains_array(const SymbolType *t);
 
 // There are type->scalar_count scalars in this type.
 // Gets the PrimitiveTypeIndex of scalar n.
@@ -172,8 +165,7 @@ PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType* type, unsi
 // Symbols.
 //
 
-typedef enum
-{
+typedef enum {
    SYMBOL_TYPE,              // named type, used by the lexer to return TYPE_NAME
    SYMBOL_INTERFACE_BLOCK,   // interface block
    SYMBOL_VAR_INSTANCE,      // normal variable (instance of primitive/array/struct)
@@ -184,8 +176,7 @@ typedef enum
 
 typedef void (*FoldingFunction)(void);
 
-struct _Symbol
-{
+struct _Symbol {
    const char *name;
    SymbolFlavour flavour;
 
@@ -200,11 +191,8 @@ struct _Symbol
    */
    SymbolType *type;
 
-   union
-   {
-      /* Validity: flavour == SYMBOL_VAR_INSTANCE */
-      struct
-      {
+   union {
+      struct {          /* flavour == SYMBOL_VAR_INSTANCE */
          int  layout_location;
          bool layout_loc_specified;
 
@@ -217,17 +205,17 @@ struct _Symbol
          FormatQualifier    layout_format;
          bool layout_format_specified;
 
-         TypeQualifier      type_qual;
-         StorageQualifier   storage_qual;
-         PrecisionQualifier prec_qual;
-         MemoryQualifier    mem_qual;
+         InterpolationQualifier interp_qual;
+         AuxiliaryQualifier     aux_qual;
+         StorageQualifier       storage_qual;
+         PrecisionQualifier     prec_qual;
+         MemoryQualifier        mem_qual;
 
          /* For const var_instances points to compile time value, otherwise NULL */
          const_value *compile_time_value;
 
          bool block_info_valid;
-         struct
-         {
+         struct {
             /* If this is a default-block uniform then block_symbol is NULL  *
              * otherwise it points to the entry in the interface block table */
             Symbol *block_symbol;
@@ -240,18 +228,14 @@ struct _Symbol
          } block_info;
       } var_instance;
 
-      /* Validity: flavour == SYMBOL_PARAM_INSTANCE */
-      struct
-      {
+      struct {          /* flavour == SYMBOL_PARAM_INSTANCE */
          StorageQualifier   storage_qual; /* Only NONE or CONST */
          ParamQualifier     param_qual;
          PrecisionQualifier prec_qual;
          MemoryQualifier    mem_qual;
       } param_instance;
 
-      /* Validity: flavour == SYMBOL_FUNCTION_INSTANCE */
-      struct
-      {
+      struct {          /* flavour == SYMBOL_FUNCTION_INSTANCE */
          /* A function to constant fold this invocation, or NULL if we can't constant fold it */
          FoldingFunction folding_function;
          /* AST function definition: as STATEMENT_FUNCTION_DEF, or NULL for declarations */
@@ -264,11 +248,15 @@ struct _Symbol
          Symbol         *next_overload;
       } function_instance;
 
-      struct {
-         StorageQualifier sq;
-         TypeQualifier    tq;
+      struct {          /* flavour == SYMBOL_INTERFACE_BLOCK */
+         StorageQualifier       sq;
+         InterpolationQualifier iq;
+         AuxiliaryQualifier     aq;
 
          SymbolType *block_data_type;
+
+         int  layout_location;
+         bool layout_loc_specified;
 
          int  layout_binding;
          bool layout_bind_specified;

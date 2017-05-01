@@ -171,7 +171,6 @@ BIP_Status acquireAndTuneFrontend(
     NEXUS_Frontend_GetDefaultQamSettings( &qamSettings );
     qamSettings.frequency  = pAppCtx->frequency;
 
-
     switch (pAppCtx->mode)
     {
     default:
@@ -1016,6 +1015,10 @@ int main(
             NEXUS_Platform_GetDefaultSettings(&platformSettings);
             platformSettings.mode = NEXUS_ClientMode_eVerified;
             platformSettings.openFrontend = true;
+        /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
+           It could be any small size heap.
+           Configure export heap since it's not allocated by nexus by default */
+        platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
             nrc = NEXUS_Platform_Init(&platformSettings);
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Platform_Init Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
 

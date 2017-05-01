@@ -223,7 +223,7 @@ typedef enum BBOX_XVD_DecodeResolution
 { \
    BBOX_XVD_DECODER_INFO_V1( \
       _memIndex, _secondaryMemcIndex, 1,                                   \
-      _bitDepth, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex0, _nexusIndex0, \
+      _bitDepth, BBOX_XVD_DecodeResolution_eSD, 30, _mfdIndex0, _nexusIndex0, \
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, \
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
 }
@@ -256,7 +256,7 @@ typedef enum BBOX_XVD_DecodeResolution
 { \
    BBOX_XVD_DECODER_INFO_V1( \
       _memIndex, _secondaryMemcIndex, 2, \
-      _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 30, _mfdIndex0, _nexusIndex0, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex0, _nexusIndex0, \
       _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 60, _mfdIndex1, _nexusIndex1, \
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
 }
@@ -266,8 +266,19 @@ typedef enum BBOX_XVD_DecodeResolution
 { \
    BBOX_XVD_DECODER_INFO_V1( \
       _memIndex, _secondaryMemcIndex, 2, \
-      _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 30, _mfdIndex0, _nexusIndex0, \
-      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex1, _nexusIndex1, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eSD, 30, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
+#define BBOX_XVD_DECODER_INFO_1080p60_480p30_V1( _memIndex, _secondaryMemcIndex, \
+                                                _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V1( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_eHD, 60, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eSD, 30, _mfdIndex1, _nexusIndex1, \
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
 }
 

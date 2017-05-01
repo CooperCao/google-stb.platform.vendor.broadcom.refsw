@@ -781,8 +781,6 @@ CASE(eglGetPerfCounterDataBRCM, 0x6c3ee535);
 // EGL_EXT_client_extensions
 
 // EGL_EXT_create_context_robustness
-#if EGL_EXT_create_context_robustness
-#endif /* EGL_EXT_create_context_robustness*/
 
 // EGL_EXT_platform_base
 CASE(eglGetPlatformDisplayEXT, 0xc01035ae);
@@ -790,12 +788,8 @@ CASE(eglCreatePlatformWindowSurfaceEXT, 0x026bc216);
 CASE(eglCreatePlatformPixmapSurfaceEXT, 0x470711cd);
 
 // EGL_EXT_protected_content
-#if EGL_EXT_protected_content
-#endif /* EGL_EXT_protected_content*/
 
 // EGL_EXT_protected_surface
-#if EGL_EXT_protected_surface
-#endif /* EGL_EXT_protected_surface*/
 
 // GL_BRCM_mirror_once_border
 
@@ -872,6 +866,11 @@ CASE(glMultiDrawElementsIndirectEXT, 0x1bcb2e2f);
 // GL_EXT_multisampled_render_to_texture
 CASE(glRenderbufferStorageMultisampleEXT, 0xf519c947);
 CASE(glFramebufferTexture2DMultisampleEXT, 0x5488e88b);
+
+// GL_EXT_polygon_offset_clamp
+#if V3D_HAS_POLY_OFFSET_CLAMP
+CASE(glPolygonOffsetClampEXT, 0x8234cb9a);
+#endif /* V3D_HAS_POLY_OFFSET_CLAMP*/
 
 // GL_EXT_primitive_bounding_box
 #if KHRN_GLES31_DRIVER

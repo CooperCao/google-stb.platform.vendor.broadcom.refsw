@@ -1,51 +1,41 @@
 /******************************************************************************
- *    (c)2009-2013 Broadcom Corporation
- * 
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *  
- * Except as expressly set forth in the Authorized License,
- *  
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *  
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
- * USE OR PERFORMANCE OF THE SOFTWARE.
- * 
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
- * ANY LIMITED REMEDY.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- * 
- * Module Description:
- * 
- * Revision History:
- * 
- * $brcm_Log: $
- * 
- *****************************************************************************/
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include "nexus_platform.h"
 #include "nexus_memory.h"
@@ -54,6 +44,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#endif
 
 BDBG_MODULE(common_crypto);
 
@@ -769,13 +763,41 @@ errorExit:
 
 int main(void)
 {
-    NEXUS_PlatformSettings platformSettings;
     CommonCryptoHandle handle;
     CommonCryptoSettings  cryptoSettings;
     int nb_tests= 0;
     NEXUS_Error rc = NEXUS_SUCCESS;
     int ii;
     int global_error_count = 0;
+
+#ifdef NXCLIENT_SUPPORT
+    NxClient_JoinSettings joinSettings;
+    NxClient_AllocSettings nxAllocSettings;
+    NxClient_AllocResults allocResults;
+
+    printf("\tBringing up nxclient\n\n");
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "test_common_crypto");
+    joinSettings.ignoreStandbyRequest = true;
+
+    rc = NxClient_Join(&joinSettings);
+    if (rc)
+    {
+        global_error_count++;
+        printf("\tnxclient failed to join\n\n");
+        goto handle_error;
+    }
+    NxClient_GetDefaultAllocSettings(&nxAllocSettings);
+    rc = NxClient_Alloc(&nxAllocSettings, &allocResults);
+    if (rc)
+    {
+        printf("\tNxClient_Alloc failed\n\n");
+        goto handle_error;
+    }
+    printf("\tnxclient has joined successfully\n");
+#else
+    NEXUS_PlatformSettings platformSettings;
+    printf("\tBringing up all Nexus modules for platform using default settings\n\n");
 
     /* Platform init */
     NEXUS_Platform_GetDefaultSettings(&platformSettings); 
@@ -787,6 +809,7 @@ int main(void)
         printf("%s - Failure to initialize NEXUS platform.\n", __FUNCTION__);
         goto handle_error;
     }
+#endif
 
     CommonCrypto_GetDefaultSettings(&cryptoSettings);
 #ifdef NEXUS_VIDEO_SECURE_HEAP
@@ -855,7 +878,12 @@ handle_error:
         handle = NULL;
     }
 
+#ifdef NXCLIENT_SUPPORT
+    NxClient_Free(&allocResults);
+    NxClient_Uninit();
+#else
     NEXUS_Platform_Uninit();
+#endif
 
     return global_error_count;
 }

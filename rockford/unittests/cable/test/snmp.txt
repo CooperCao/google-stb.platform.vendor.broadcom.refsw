@@ -1,0 +1,5 @@
+SNMP
+
+Current we provide a standalone SNMP agent and a built-in SNMP proxy in Trinity.
+We don't have a sample test utility to demonstrate SNMP function. The SNMP proxy is
+included in Trinity build. Please refer to Trinity UserGuide for more details.

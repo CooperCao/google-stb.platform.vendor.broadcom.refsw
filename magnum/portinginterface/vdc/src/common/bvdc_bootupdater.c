@@ -723,7 +723,7 @@ static const uint32_t s_aulBlendAddr[] =
  *
  * Configure a blender.
  */
-static void BVDC_P_Window_SetBlender_isr
+void BVDC_P_Window_SetBlender_isr
     ( BVDC_Window_Handle               hWindow,
       uint8_t                          ucZOrder,
       uint8_t                          ucConstantAlpha,
@@ -947,8 +947,10 @@ static bool BVDC_P_Window_BuildReaderRul_isr
 
         if (hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ullAddress)
         {
+            BVDC_P_GfxFeeder_UpdateState_isr(hWindow->stCurInfo.hSource->hGfxFeeder,
+                &(hWindow->stCurInfo.hSource->stCurInfo), pList, eNextFieldId);
             BVDC_P_GfxFeeder_BuildRul_isr(hWindow->stCurInfo.hSource->hGfxFeeder,
-                &(hWindow->stCurInfo.hSource->stCurInfo), pList, eNextFieldId, eReaderState);
+                pList, eNextFieldId, eReaderState);
         }
     }
 

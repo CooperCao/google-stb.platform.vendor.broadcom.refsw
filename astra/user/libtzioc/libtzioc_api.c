@@ -205,6 +205,9 @@ void *tzioc_map_paddr(
         return NULL;
     }
 
+    /* user-space mapping always no-exec */
+    ulFlags |= TZIOC_MEM_NO_EXEC;
+
     return _tzioc_map_paddr(
         pClient,
         ulPaddr,
@@ -236,11 +239,22 @@ int tzioc_map_paddrs(
     tzioc_mem_region *pRegions)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+    size_t i;
 
     if (!pClient || !pRegions ||
         ucCount == 0 || ucCount > TZIOC_MEM_REGION_MAX) {
         LOGE("Invalid args");
         return -EINVAL;
+    }
+
+    for (i = 0; i < ucCount; i++) {
+        if (pRegions[i].ulPaddr == 0 || pRegions[i].ulSize == 0) {
+            LOGE("Invalid args");
+            return -EINVAL;
+        }
+
+        /* user-space mapping always no-exec */
+        pRegions[i].ulFlags |= TZIOC_MEM_NO_EXEC;
     }
 
     return _tzioc_map_paddrs(

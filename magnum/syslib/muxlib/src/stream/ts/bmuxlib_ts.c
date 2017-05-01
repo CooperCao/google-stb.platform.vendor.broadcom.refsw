@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -68,7 +68,28 @@ BDBG_OBJECT_ID(BMUXlib_TS_P_Context);
 static bool BMUXlib_TS_P_ValidateStartSettings(BMUXlib_TS_StartSettings *pstStartSettings, bool bUseDefaults);
 static bool BMUXlib_TS_P_ValidateMuxSettings(BMUXlib_TS_MuxSettings *pstMuxSettings, BMUXlib_TS_StartSettings *pstStartSetting, bool bUseDefaults);
 static bool BMUXlib_TS_P_ValidateSystemDataBitrate(BMUXlib_TS_MuxSettings *pstMuxSettings, const BMUXlib_TS_StartSettings *pstStartSettings, bool bUseDefaults);
+static BERR_Code BMUXlib_TS_P_ValidateSystemDataBuffers(const BMUXlib_TS_SystemData *astSystemDataBuffer, size_t uiCount);
+
+static void BMUXlib_TS_P_GetMemoryConfigTotal(const BMUXlib_TS_P_MemoryConfig *pstMemoryConfig, BMUXlib_TS_P_MemoryConfigTotal *pstMemoryConfigTotal);
+static void BMUXlib_TS_P_Input_GetMemoryConfig(BMUXlib_TS_P_InputType eInputType, unsigned uiNumFrames, unsigned uiNumPIDs, unsigned uiNumMSPs, bool bSupportTTS, BMUXlib_TS_P_MemoryConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_GetMemoryConfig(const BMUXlib_TS_MuxConfig *pstMuxConfig, BMUXlib_TS_P_MemoryConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_GetMaxMemoryConfig(const BMUXlib_TS_MuxConfig *astMuxConfig, unsigned uiNumMuxConfig, BMUXlib_TS_P_MemoryConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_GetDefaultMemorySize(BMUXlib_TS_MemoryConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_GetBufferConfigFromMemoryConfig(const BMUXlib_TS_MemoryConfig *pstMemoryConfig, const BMUXlib_TS_P_MemoryBuffers *pstMemoryBuffers, BMUXlib_TS_P_BufferConfig *pstBufferConfig);
+
+static BERR_Code BMUXlib_TS_P_AllocateMemory(BMUXlib_TS_Handle hMuxTS, BMMA_Heap_Handle hMma, BMUXlib_TS_P_BufferConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_FreeMemory(BMUXlib_TS_Handle hMuxTS, BMMA_Heap_Handle hMma);
+static void BMUXlib_TS_P_ResetResources(BMUXlib_TS_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_AllocateResources(BMUXlib_TS_Handle hMuxTS, const BMUXlib_TS_P_MemoryConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_FreeResources(BMUXlib_TS_Handle hMuxTS);
+
+static BERR_Code BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_SetupMCPB(BMUXlib_TS_Handle hMuxTS);
+static void BMUXlib_TS_P_TeardownMCPB(BMUXlib_TS_Handle hMuxTS);
+
+static void BMUXlib_TS_P_Reset(BMUXlib_TS_Handle hMuxTS);
 static BERR_Code BMUXlib_TS_P_Finish(BMUXlib_TS_Handle hMuxTS, const BMUXlib_TS_FinishSettings *pstFinishSettings);
+static BERR_Code BMUXlib_TS_P_AssignTransportChannel(BMUXlib_TS_Handle hMuxTS, unsigned uiTransportChannelIndex, unsigned uiPID, unsigned uiPIDChannelIndex, bool bIsTS, BMUXlib_TS_TransportChannelInterface *pChannelInterface);
 
 /******************/
 /* Create/Destroy */
@@ -85,10 +106,7 @@ static BERR_Code BMUXlib_TS_P_Finish(BMUXlib_TS_Handle hMuxTS, const BMUXlib_TS_
 #define BMUXLIB_TS_P_MAX_VIDEO_FPS 60
 #define BMUXLIB_TS_P_MAX_AUDIO_FPS 50
 
-#define BMUXLIB_TS_P_MAX(a,b) ((a > b) ? a : b)
-#define BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(a,b) ((b)?(((a) + ((b)-1))/(b)):0)
-
-void
+static void
 BMUXlib_TS_P_GetMemoryConfigTotal(
    const BMUXlib_TS_P_MemoryConfig *pstMemoryConfig,
    BMUXlib_TS_P_MemoryConfigTotal *pstMemoryConfigTotal
@@ -118,7 +136,7 @@ BMUXlib_TS_P_GetMemoryConfigTotal(
    pstMemoryConfigTotal->stMemoryConfig = pstMemoryConfig->stMemoryConfig;
 }
 
-void
+static void
 BMUXlib_TS_P_Input_GetMemoryConfig(
    BMUXlib_TS_P_InputType eInputType,
    unsigned uiNumFrames,
@@ -178,7 +196,7 @@ BMUXlib_TS_P_Input_GetMemoryConfig(
    }
 }
 
-void
+static void
 BMUXlib_TS_P_GetMemoryConfig(
    const BMUXlib_TS_MuxConfig *pstMuxConfig,
    BMUXlib_TS_P_MemoryConfig *pstMemoryConfig
@@ -364,41 +382,38 @@ BMUXlib_TS_P_GetMemoryConfig(
             {
                case BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor:
                   /* Transport Descriptors */
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_TransportDescriptor ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
                   /* Transport Descriptor Temp Array */
                   BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_TransportDescriptor ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
-                  /* Transport Descriptor Metadata Array */
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_P_TransportDescriptorMetaData ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
-                  /* Transport Descriptor Metadata Temp Array */
                   BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_P_TransportDescriptorMetaData ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_ePESHeader:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_P_PESHeader ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_PESHeader) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eTransportPacket:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_P_TSPacket ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eSystemData:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_SystemData ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eBPP:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_P_BPPData ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eUserData:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_P_UserdataPending ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPending) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eSystem);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eUserDataPTS:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof(BMUXlib_TS_P_UserdataPTSEntry), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPTSEntry) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eUserDataUnwrap:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof(BMUXlib_TS_P_TSPacket), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eUserDataReleaseQ:
@@ -406,7 +421,7 @@ BMUXlib_TS_P_GetMemoryConfig(
                   break;
 
                case BMUXlib_TS_P_MemoryEntryType_eMTUBPP:
-                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXlib_TS_P_MTUBPPData ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
+                  BMUXLIB_TS_P_ADD_MEMORY_SIZE(sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_MTUBPPData) ), pstMemoryConfig->astMemoryEntry,eMemoryEntryType,eInputType,BMUXlib_TS_P_MemoryType_eShared);
                   break;
 
                /* coverity[dead_error_begin] */
@@ -432,7 +447,7 @@ BMUXlib_TS_P_GetMemoryConfig(
 
 #define BMUXLIB_TS_P_ASSIGN_IF_LARGER(a,b,field) if ((a)->field < (b)->field) { ((a)->field = (b)->field); }
 
-void
+static void
 BMUXlib_TS_P_GetMaxMemoryConfig(
    const BMUXlib_TS_MuxConfig *astMuxConfig, /* Array of possible configurations */
    unsigned uiNumMuxConfig,
@@ -534,7 +549,7 @@ BMUXlib_TS_GetMemoryConfig(
    BDBG_LEAVE( BMUXlib_TS_GetMemoryConfig );
 }
 
-void
+static void
 BMUXlib_TS_P_GetDefaultMemorySize(
    BMUXlib_TS_MemoryConfig *pstMemoryConfig /* The memory size required to support all possible configurations */
    )
@@ -596,7 +611,7 @@ BMUXlib_TS_GetDefaultCreateSettings(
    return;
 }
 
-void
+static void
 BMUXlib_TS_P_GetBufferConfigFromMemoryConfig(
    const BMUXlib_TS_MemoryConfig *pstMemoryConfig,
    const BMUXlib_TS_P_MemoryBuffers *pstMemoryBuffers,
@@ -616,7 +631,7 @@ BMUXlib_TS_P_GetBufferConfigFromMemoryConfig(
 }
 
 /* BMUXlib_TS_P_AllocateMemory - Allocates all system/device memory required for mux operation */
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_AllocateMemory(
    BMUXlib_TS_Handle hMuxTS,
    BMMA_Heap_Handle hMma,
@@ -691,7 +706,7 @@ BMUXlib_TS_P_AllocateMemory(
    return BERR_TRACE( rc );
 }
 
-void
+static void
 BMUXlib_TS_P_FreeMemory(
    BMUXlib_TS_Handle hMuxTS,
    BMMA_Heap_Handle hMma
@@ -743,7 +758,7 @@ BMUXlib_TS_P_FreeMemory(
    BDBG_LEAVE( BMUXlib_TS_P_FreeMemory );
 }
 
-void
+static void
 BMUXlib_TS_P_ResetResources(
    BMUXlib_TS_Handle hMuxTS
    )
@@ -755,80 +770,88 @@ BMUXlib_TS_P_ResetResources(
    BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    /* Available Transport Descriptors */
-   BMUXlib_List_Reset( hMuxTS->hTransportDescriptorFreeList );
-   BMUXlib_List_Reset( hMuxTS->hTransportDescriptorMetaDataFreeList );
+   BMUXLIB_LIST_INIT( &hMuxTS->stTransportDescriptorFreeList );
 
    for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount; i++ )
    {
-      BMUXlib_List_Add(
-               hMuxTS->hTransportDescriptorFreeList,
+      BMUXLIB_LIST_ADD(
+               &hMuxTS->stTransportDescriptorFreeList,
                &hMuxTS->astTransportDescriptor[i]
-               );
-
-      BMUXlib_List_Add(
-               hMuxTS->hTransportDescriptorMetaDataFreeList,
-               &hMuxTS->astTransportDescriptorMetaData[i]
                );
    }
 
+   /* Initialize Transport Descriptor Pending List */
+   for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
+   {
+      BMUXLIB_LIST_INIT( &hMuxTS->stTransportDescriptorPendingList[i] );
+   }
+
    /* PES Headers */
-   BMUXlib_List_Reset( hMuxTS->hPESHeaderFreeList );
+   BMUXLIB_LIST_INIT( &hMuxTS->stPESHeaderFreeList );
 
    for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount; i++ )
    {
-      BMUXlib_List_Add(
-               hMuxTS->hPESHeaderFreeList,
+      BMUXLIB_LIST_ADD(
+               &hMuxTS->stPESHeaderFreeList,
                &hMuxTS->astPESHeader[i]
                );
    }
 
    /* TS Packets */
-   BMUXlib_List_Reset(hMuxTS->hTSPacketFreeList);
+   BMUXLIB_LIST_INIT( &hMuxTS->stTSPacketFreeList);
    for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount; i++ )
    {
-      BMUXlib_List_Add(
-               hMuxTS->hTSPacketFreeList,
+      BMUXLIB_LIST_ADD(
+               &hMuxTS->stTSPacketFreeList,
                &hMuxTS->astTSPacket[i]
                );
    }
 
    /* BPP Packets */
-   BMUXlib_List_Reset(hMuxTS->hBPPFreeList);
+   BMUXLIB_LIST_INIT( &hMuxTS->stBPPFreeList);
    for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eBPP].uiCount; i++ )
    {
-      BMUXlib_List_Add(
-               hMuxTS->hBPPFreeList,
+      BMUXLIB_LIST_ADD(
+               &hMuxTS->stBPPFreeList,
                &hMuxTS->astBPPData[i]
                );
    }
 
    /* MTU BPP Packets */
-   BMUXlib_List_Reset(hMuxTS->hMTUBPPFreeList);
+   BMUXLIB_LIST_INIT( &hMuxTS->stMTUBPPFreeList);
    for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount; i++ )
    {
-      BMUXlib_List_Add(
-               hMuxTS->hMTUBPPFreeList,
+      BMUXLIB_LIST_ADD(
+               &hMuxTS->stMTUBPPFreeList,
                &hMuxTS->astMTUBPPData[i]
                );
    }
 
-   /* Pending System Data */
-   BMUXlib_List_Reset( hMuxTS->hSystemDataPendingList );
+   /* System Data */
+   BMUXLIB_LIST_INIT( &hMuxTS->stSystemDataFreeList );
+   for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount; i++){
+      BMUXLIB_LIST_ADD(&hMuxTS->stSystemDataFreeList, &hMuxTS->astSystemData[i]);
+   }
 
-   /* push all available userdata pending entries onto the free list ... */
-   BMUXlib_List_Reset(hMuxTS->hUserdataFreeList);
-
+   /* Initialize User Data Free List */
+   BMUXLIB_LIST_INIT( &hMuxTS->stUserdataFreeList );
    for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount; i++)
    {
-      BMUXlib_List_Add(hMuxTS->hUserdataFreeList, &hMuxTS->astUserdataPending[i]);
+      BMUXLIB_LIST_ADD(&hMuxTS->stUserdataFreeList, &hMuxTS->astUserdataPending[i]);
+   }
+
+   /* Initialize User Data Pending List */
+   for ( i = 0; i < BMUXLIB_TS_MAX_USERDATA_PIDS; i++ )
+   {
+      BMUXLIB_LIST_INIT( &hMuxTS->stUserdataPendingList[i] );
    }
 
    /* Userdata PTS entries */
-   BMUXlib_List_Reset( hMuxTS->hUserdataPTSFreeList );
+   BMUXLIB_LIST_INIT( &hMuxTS->stUserdataPTSFreeList );
 
    for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataPTS].uiCount; i++)
    {
-      BMUXlib_List_Add(hMuxTS->hUserdataPTSFreeList, hMuxTS->astUserdataPTS[i].aPTS);
+      BMUXLIB_LIST_ADD(&hMuxTS->stUserdataPTSFreeList, &hMuxTS->astUserdataPTS[i]);
    }
 
    /* Userdata release Q free list */
@@ -883,7 +906,7 @@ BMUXlib_TS_P_ResetResources(
          (_pvBuffer) = NULL;\
       }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_AllocateResources(
    BMUXlib_TS_Handle hMuxTS,
    const BMUXlib_TS_P_MemoryConfig *pstMemoryConfig
@@ -891,11 +914,6 @@ BMUXlib_TS_P_AllocateResources(
 {
    BERR_Code rc = BERR_SUCCESS;
    uint32_t i;
-   BMUXlib_List_CreateSettings stListCreateSettings, stDefaultListCreateSettings;
-   BMUXlib_List_Handle hSystemDataPendingList = NULL;
-   BMMA_RangeAllocator_Block_Handle hSystemDataPendingListBlock;
-   BMUXlib_TS_SystemData *astSystemDataPendingList = NULL;
-   uint32_t uiSystemDataPendingListCount = 0;
 
    BDBG_ENTER( BMUXlib_TS_P_AllocateResources );
    BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
@@ -938,48 +956,21 @@ BMUXlib_TS_P_AllocateResources(
    }
 #endif
 
-   BMUXlib_List_GetDefaultCreateSettings(&stDefaultListCreateSettings);
-
-   uiSystemDataPendingListCount =  hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount;
-   if ( 0 != uiSystemDataPendingListCount )
+   if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount )
    {
-      /* Allocate System Data Pending List */
-      stListCreateSettings = stDefaultListCreateSettings;
-      stListCreateSettings.uiCount = uiSystemDataPendingListCount;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-      rc = BMUXlib_List_Create(&hSystemDataPendingList, &stListCreateSettings);
-      if (BERR_SUCCESS != rc)
-      {
-         if ( NULL != hSystemDataPendingList )
-         {
-            BMUXlib_List_Destroy( hSystemDataPendingList );
-         }
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE(rc);
-      }
-
+      /* Allocate System Data List */
       BMMA_RANGE_ALLOC(
-            hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
-            BMUXlib_TS_SystemData,
+            hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData),
             hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount,
-            hSystemDataPendingListBlock,
-            astSystemDataPendingList
+            hMuxTS->hSystemDataBlock,
+            hMuxTS->astSystemData
             );
-      if ( NULL == astSystemDataPendingList )
+      if ( NULL == hMuxTS->astSystemData )
       {
-         BMUXlib_List_Destroy( hSystemDataPendingList );
          BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
          return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
       }
-
-      /* switch pending list from pre-Q to the newly allocated Q */
-      hMuxTS->hSystemDataPendingList = hSystemDataPendingList;
-      hMuxTS->hSystemDataPendingListBlock = hSystemDataPendingListBlock;
-      hMuxTS->astSystemDataPendingList = astSystemDataPendingList;
-      hMuxTS->status.uiSystemDataMaxCount = stListCreateSettings.uiCount;
-      hMuxTS->status.uiSystemDataPendingListReadOffset = 0;
-      hMuxTS->status.uiSystemDataPendingListWriteOffset = 0;
    } /* end: allocate system data pending list */
 
    if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount )
@@ -987,7 +978,7 @@ BMUXlib_TS_P_AllocateResources(
       /* Allocate Transport Descriptor Array (system memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
-            BMUXlib_TS_TransportDescriptor,
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor),
             hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
             hMuxTS->hTransportDescriptorBlock,
             hMuxTS->astTransportDescriptor
@@ -1000,7 +991,7 @@ BMUXlib_TS_P_AllocateResources(
       BKNI_Memset(
                hMuxTS->astTransportDescriptor,
                0,
-               sizeof( BMUXlib_TS_TransportDescriptor ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
+               sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
                );
 
       BMMA_RANGE_ALLOC(
@@ -1021,25 +1012,6 @@ BMUXlib_TS_P_AllocateResources(
                sizeof( BMUXlib_TS_TransportDescriptor ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
                );
 
-      /* Allocate Transport Meta Data Array (system memory) */
-      BMMA_RANGE_ALLOC(
-            hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
-            BMUXlib_TS_P_TransportDescriptorMetaData,
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
-            hMuxTS->hTransportDescriptorMetaDataBlock,
-            hMuxTS->astTransportDescriptorMetaData
-            );
-      if ( NULL == hMuxTS->astTransportDescriptorMetaData )
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-      }
-      BKNI_Memset(
-               hMuxTS->astTransportDescriptorMetaData,
-               0,
-               sizeof( BMUXlib_TS_P_TransportDescriptorMetaData ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
-               );
-
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
             BMUXlib_TS_P_TransportDescriptorMetaData,
@@ -1057,33 +1029,6 @@ BMUXlib_TS_P_AllocateResources(
                0,
                sizeof( BMUXlib_TS_P_TransportDescriptorMetaData ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
                );
-
-      /* Allocate Transport Descriptor Free List */
-      stListCreateSettings = stDefaultListCreateSettings;
-
-         /* it seems free list is shared among all transcport playback instances */
-      stListCreateSettings.uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-      rc = BMUXlib_List_Create(
-                  &hMuxTS->hTransportDescriptorFreeList,
-                  &stListCreateSettings
-                  );
-      if (BERR_SUCCESS != rc)
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE(rc);
-      }
-
-      rc = BMUXlib_List_Create(
-                  &hMuxTS->hTransportDescriptorMetaDataFreeList,
-                  &stListCreateSettings
-                  );
-      if (BERR_SUCCESS != rc)
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE(rc);
-      }
    }
 
    if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount )
@@ -1091,7 +1036,7 @@ BMUXlib_TS_P_AllocateResources(
       /* Allocate PES Header Array (device memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
-            BMUXlib_TS_P_PESHeader,
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_PESHeader),
             hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount,
             hMuxTS->hPESHeaderBlock,
             hMuxTS->astPESHeader
@@ -1101,19 +1046,6 @@ BMUXlib_TS_P_AllocateResources(
          BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
          return BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
       }
-
-      /* Allocate PES Header Free List */
-      stListCreateSettings = stDefaultListCreateSettings;
-
-      stListCreateSettings.uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-      rc =  BMUXlib_List_Create(&hMuxTS->hPESHeaderFreeList, &stListCreateSettings);
-      if (BERR_SUCCESS != rc)
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE(rc);
-      }
    }
 
    if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount )
@@ -1121,7 +1053,7 @@ BMUXlib_TS_P_AllocateResources(
       /* Allocate TS Packet Array (device memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
-            BMUXlib_TS_P_TSPacket,
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket),
             hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount,
             hMuxTS->hTSPacketBlock,
             hMuxTS->astTSPacket
@@ -1136,7 +1068,7 @@ BMUXlib_TS_P_AllocateResources(
       for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount; i++ )
       {
          BKNI_Memcpy(
-                  &hMuxTS->astTSPacket[i],
+                  BMUXLIB_LIST_ENTRY_DATA(&hMuxTS->astTSPacket[i]),
                   &s_stDefaultTSPacket,
                   sizeof( BMUXlib_TS_P_TSPacket )
                   );
@@ -1145,36 +1077,10 @@ BMUXlib_TS_P_AllocateResources(
 
    if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount )
    {
-      /* Allocate TS Packet Free List */
-      stListCreateSettings = stDefaultListCreateSettings;
-
-      stListCreateSettings.uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-      rc = BMUXlib_List_Create(&hMuxTS->hTSPacketFreeList, &stListCreateSettings);
-      if (BERR_SUCCESS != rc)
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE(rc);
-      }
-
-      /* Allocate BPP Free List */
-      stListCreateSettings = stDefaultListCreateSettings;
-
-      stListCreateSettings.uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eBPP].uiCount;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-      rc = BMUXlib_List_Create(&hMuxTS->hBPPFreeList, &stListCreateSettings);
-      if (BERR_SUCCESS != rc)
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE(rc);
-      }
-
       /* Allocate BPP Data Array (device memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
-            BMUXlib_TS_P_BPPData,
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData),
             hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eBPP].uiCount,
             hMuxTS->hBPPDataBlock,
             hMuxTS->astBPPData
@@ -1187,23 +1093,10 @@ BMUXlib_TS_P_AllocateResources(
 
       if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount )
       {
-         /* Allocate MTU BPP Free List */
-         stListCreateSettings = stDefaultListCreateSettings;
-
-         stListCreateSettings.uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount;
-         stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-         rc = BMUXlib_List_Create(&hMuxTS->hMTUBPPFreeList, &stListCreateSettings);
-         if (BERR_SUCCESS != rc)
-         {
-            BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-            return BERR_TRACE(rc);
-         }
-
          /* Allocate MTU BPP Data Array (device memory) */
          BMMA_RANGE_ALLOC(
                hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
-               BMUXlib_TS_P_MTUBPPData,
+               BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_MTUBPPData),
                hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount,
                hMuxTS->hMTUBPPDataBlock,
                hMuxTS->astMTUBPPData
@@ -1222,22 +1115,10 @@ BMUXlib_TS_P_AllocateResources(
          NOTE: This assumes that there is a fixed amount of userdata
          processed per video frame - thus, the PES count supplied by the user
          is used to allocate the necessary free list for userdata. */
-      stListCreateSettings = stDefaultListCreateSettings;
-
-      stListCreateSettings.uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-      rc = BMUXlib_List_Create(&hMuxTS->hUserdataFreeList, &stListCreateSettings);
-      if (BERR_SUCCESS != rc)
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE( rc );
-      }
-
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
-            BMUXlib_TS_P_UserdataPending,
-            stListCreateSettings.uiCount,
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPending),
+            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount,
             hMuxTS->hUserdataPendingBlock,
             hMuxTS->astUserdataPending
             );
@@ -1248,22 +1129,10 @@ BMUXlib_TS_P_AllocateResources(
       }
 
       /* Allocate userdata PTS storage - need TWO per userdata PES pending */
-      stListCreateSettings = stDefaultListCreateSettings;
-
-      stListCreateSettings.uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataPTS].uiCount;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-      rc = BMUXlib_List_Create(&hMuxTS->hUserdataPTSFreeList, &stListCreateSettings);
-      if (BERR_SUCCESS != rc)
-      {
-         BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
-         return BERR_TRACE( rc );
-      }
-
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
-            BMUXlib_TS_P_UserdataPTSEntry,
-            stListCreateSettings.uiCount,
+            BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPTSEntry),
+            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataPTS].uiCount,
             hMuxTS->hUserdataPTSBlock,
             hMuxTS->astUserdataPTS
             );
@@ -1316,37 +1185,50 @@ BMUXlib_TS_P_AllocateResources(
 /* move any pre-queued system data into the actual system data queue */
 /* SW7425-4643: This call expects hMuxTS->status.stStartSettings to be set, since
    the copying of any pre-queued system data will use the PCR PID for validation */
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Handle hMuxTS)
 {
    BERR_Code rc = BERR_SUCCESS;
    BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    /* SW7425-3958: */
-   if ( 0 != hMuxTS->status.uiSystemDataPreQCount )
+   /* Use the allocated system data list: Move any system data queued prior to start to this list buffers */
+   /* NOTE: This must be done AFTER ResetResources() since that call will clear the new queue (and the newly
+      copied data!) */
    {
-      size_t uiQueuedCount;
-
-      /* Use the allocated system data list: Move any system data queued prior to start to this list buffers */
-      /* NOTE: This must be done AFTER ResetResources() since that call will clear the new queue (and the newly
-         copied data!) */
-
-      rc = BMUXlib_TS_P_AddSystemDataBuffers(
-               hMuxTS,
-               hMuxTS->astSystemDataPendingListPreQ,
-               hMuxTS->status.uiSystemDataPreQCount,
-               &uiQueuedCount
-               );
-      if (rc == BERR_SUCCESS)
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData)* pSystemDataEntry;
+      BMUXLIB_LIST_FIRST( &hMuxTS->stSystemDataPendingList, &pSystemDataEntry );
+      BMUXLIB_LIST_INIT( &hMuxTS->stSystemDataPendingList );
+      hMuxTS->status.bSystemDataPreQ = false;
+      while ( NULL != pSystemDataEntry )
       {
-         BDBG_ASSERT( hMuxTS->status.uiSystemDataPreQCount == uiQueuedCount );
-         hMuxTS->status.uiSystemDataPreQCount = 0;
+         size_t uiQueuedCount;
+
+         rc = BMUXlib_TS_P_AddSystemDataBuffers(
+                  hMuxTS,
+                  BMUXLIB_LIST_ENTRY_DATA(pSystemDataEntry),
+                  1,
+                  &uiQueuedCount
+                  );
+         if ( rc != BERR_SUCCESS )
+         {
+            return BERR_TRACE( rc );
+         }
+
+         if ( 0 == uiQueuedCount )
+         {
+            BDBG_ERR(("Not enough space to relocate system data pre-Q"));
+            return BERR_TRACE( BERR_UNKNOWN );
+         }
+
+         pSystemDataEntry = BMUXLIB_LIST_ENTRY_NEXT( pSystemDataEntry );
       }
    }
+
    return BERR_TRACE(rc);
 }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_SetupMCPB(
    BMUXlib_TS_Handle hMuxTS
    )
@@ -1401,7 +1283,7 @@ BMUXlib_TS_P_SetupMCPB(
    return BERR_TRACE( rc );
 }
 
-void
+static void
 BMUXlib_TS_P_TeardownMCPB(
    BMUXlib_TS_Handle hMuxTS
    )
@@ -1429,7 +1311,7 @@ BMUXlib_TS_P_TeardownMCPB(
    }
 }
 
-void
+static void
 BMUXlib_TS_P_FreeResources(
    BMUXlib_TS_Handle hMuxTS
    )
@@ -1439,10 +1321,9 @@ BMUXlib_TS_P_FreeResources(
    BDBG_ENTER( BMUXlib_TS_P_FreeResources );
 
    /* cleanup input group and inputs - these are created by Start() */
-   if (NULL != hMuxTS->status.hInputGroup)
+   if (NULL != hMuxTS->hInputGroup)
    {
-      BMUXlib_InputGroup_Destroy(hMuxTS->status.hInputGroup);
-      hMuxTS->status.hInputGroup = NULL;
+      BMUXlib_InputGroup_Stop(hMuxTS->hInputGroup);
    }
 
    BMUXlib_TS_P_TeardownMCPB( hMuxTS );
@@ -1454,7 +1335,7 @@ BMUXlib_TS_P_FreeResources(
       {
          if ( NULL != hMuxTS->status.stInputMetaData[uiInputIndex].hInput )
          {
-            BMUXlib_Input_Destroy( hMuxTS->status.stInputMetaData[uiInputIndex].hInput );
+            BMUXlib_Input_Stop( hMuxTS->status.stInputMetaData[uiInputIndex].hInput );
             hMuxTS->status.stInputMetaData[uiInputIndex].hInput = NULL;
          }
       }
@@ -1466,9 +1347,9 @@ BMUXlib_TS_P_FreeResources(
 
    for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
    {
-      if ( true == hMuxTS->status.stOutput.stTransport[i].bActive && NULL != hMuxTS->hTransportDescriptorPendingList[i])
+      if ( true == hMuxTS->status.stOutput.stTransport[i].bActive )
       {
-         if ( false == BMUXlib_List_IsEmpty( hMuxTS->hTransportDescriptorPendingList[i] ) )
+         if ( false == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorPendingList[i] ) )
          {
             BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("Transport Descriptors Pending List[%d] not empty", i));
          }
@@ -1479,10 +1360,9 @@ BMUXlib_TS_P_FreeResources(
    {
       size_t uiCount;
 
-      if ( NULL != hMuxTS->hTransportDescriptorFreeList )
       {
-         BMUXlib_List_GetNumEntries(
-                  hMuxTS->hTransportDescriptorFreeList,
+         BMUXLIB_LIST_GETNUMENTRIES(
+                  &hMuxTS->stTransportDescriptorFreeList,
                   &uiCount
                   );
          if ( hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount != uiCount )
@@ -1491,22 +1371,9 @@ BMUXlib_TS_P_FreeResources(
          }
       }
 
-      if ( NULL != hMuxTS->hTransportDescriptorMetaDataFreeList )
       {
-         BMUXlib_List_GetNumEntries(
-                  hMuxTS->hTransportDescriptorMetaDataFreeList,
-                  &uiCount
-                  );
-         if ( hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount != uiCount )
-         {
-            BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("All Transport Metadata Descriptors have not been freed (%d)", (int)(hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount - uiCount)));
-         }
-      }
-
-      if ( NULL != hMuxTS->hPESHeaderFreeList )
-      {
-         BMUXlib_List_GetNumEntries(
-                  hMuxTS->hPESHeaderFreeList,
+         BMUXLIB_LIST_GETNUMENTRIES(
+                  &hMuxTS->stPESHeaderFreeList,
                   &uiCount
                   );
          if ( hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount != uiCount )
@@ -1515,10 +1382,9 @@ BMUXlib_TS_P_FreeResources(
          }
       }
 
-      if ( hMuxTS->hTSPacketFreeList )
       {
-         BMUXlib_List_GetNumEntries(
-                  hMuxTS->hTSPacketFreeList,
+         BMUXLIB_LIST_GETNUMENTRIES(
+                  &hMuxTS->stTSPacketFreeList,
                   &uiCount
                   );
          if ( hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount != uiCount )
@@ -1571,27 +1437,23 @@ BMUXlib_TS_P_FreeResources(
 
    for (i = 0; i < BMUXLIB_TS_MAX_USERDATA_PIDS; i++)
    {
-      if ( NULL != hMuxTS->hUserdataPendingList[i] )
       {
 #if BDBG_DEBUG_BUILD
          size_t uiMinUsage, uiMaxUsage, uiSize;
-         BMUXlib_List_GetUsage(hMuxTS->hUserdataPendingList[i], &uiMinUsage, &uiMaxUsage, &uiSize);
+         BMUXLIB_LIST_GETUSAGE(&hMuxTS->stUserdataPendingList[i], &uiMinUsage, &uiMaxUsage, &uiSize);
          BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("Userdata Pending List[%d]: Max Usage: %d of %d (%d%%)", i, (int)uiMaxUsage, (int)uiSize, (int)((100*uiMaxUsage)/uiSize)));
 #endif
-         BMUXlib_List_Destroy(hMuxTS->hUserdataPendingList[i]);
-         hMuxTS->hUserdataPendingList[i] = NULL;
+         BMUXLIB_LIST_INIT(&hMuxTS->stUserdataPendingList[i]);
       }
    }
 
-   if ( NULL != hMuxTS->hUserdataFreeList )
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hUserdataFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stUserdataFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("Userdata Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
 #endif
-      BMUXlib_List_Destroy(hMuxTS->hUserdataFreeList);
-      hMuxTS->hUserdataFreeList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stUserdataFreeList);
    }
 
    if (NULL != hMuxTS->astUserdataPTS )
@@ -1612,64 +1474,54 @@ BMUXlib_TS_P_FreeResources(
          );
    }
 
-   if (NULL != hMuxTS->hUserdataPTSFreeList)
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hUserdataPTSFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stUserdataPTSFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("Userdata PTS Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
 #endif
-      BMUXlib_List_Destroy(hMuxTS->hUserdataPTSFreeList);
-      hMuxTS->hUserdataPTSFreeList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stUserdataPTSFreeList);
    }
 
-   if ( NULL != hMuxTS->astSystemDataPendingList )
+   if ( NULL != hMuxTS->astSystemData )
    {
-      BMMA_RANGE_FREE( hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared], hMuxTS->hSystemDataPendingListBlock, hMuxTS->astSystemDataPendingList );
+      BMMA_RANGE_FREE( hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem], hMuxTS->hSystemDataBlock, hMuxTS->astSystemData );
    }
 
-   if ( NULL != hMuxTS->hSystemDataPendingList )
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hSystemDataPendingList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stSystemDataPendingList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("System Data Pending List: Max Usage: %d of %d (%d%%)", (int)uiMaxUsage, (int)uiSize, (int)((100*uiMaxUsage)/uiSize)));
 #endif
-      BMUXlib_List_Destroy(hMuxTS->hSystemDataPendingList);
-      hMuxTS->hSystemDataPendingList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stSystemDataPendingList);
    }
 
-   if ( NULL != hMuxTS->hMTUBPPFreeList )
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hMTUBPPFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stMTUBPPFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("MTU BPP Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
 #endif
-      BMUXlib_List_Destroy( hMuxTS->hMTUBPPFreeList );
-      hMuxTS->hMTUBPPFreeList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stMTUBPPFreeList);
    }
 
-   if ( NULL != hMuxTS->hBPPFreeList )
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hBPPFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stBPPFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("BPP Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
 #endif
-      BMUXlib_List_Destroy( hMuxTS->hBPPFreeList );
-      hMuxTS->hBPPFreeList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stBPPFreeList);
    }
 
-   if ( NULL != hMuxTS->hTSPacketFreeList )
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hTSPacketFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stTSPacketFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("TS Packet Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
 #endif
-      BMUXlib_List_Destroy( hMuxTS->hTSPacketFreeList );
-      hMuxTS->hTSPacketFreeList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stTSPacketFreeList);
    }
 
    if ( NULL != hMuxTS->astTSPacket )
@@ -1681,15 +1533,13 @@ BMUXlib_TS_P_FreeResources(
                );
    }
 
-   if ( NULL != hMuxTS->hPESHeaderFreeList )
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hPESHeaderFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stPESHeaderFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("PES Header Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
 #endif
-      BMUXlib_List_Destroy( hMuxTS->hPESHeaderFreeList );
-      hMuxTS->hPESHeaderFreeList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stPESHeaderFreeList);
    }
 
    if ( NULL != hMuxTS->astPESHeader )
@@ -1703,49 +1553,23 @@ BMUXlib_TS_P_FreeResources(
 
    for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
    {
-      if ( NULL != hMuxTS->hTransportDescriptorMetaDataPendingList[i] )
       {
 #if BDBG_DEBUG_BUILD
          size_t uiMinUsage, uiMaxUsage, uiSize;
-         BMUXlib_List_GetUsage(hMuxTS->hTransportDescriptorMetaDataPendingList[i], &uiMinUsage, &uiMaxUsage, &uiSize);
-         BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("Transport Descriptor Metadata Pending List[%d]: Max Usage: %d of %d (%d%%)", i, (int)uiMaxUsage, (int)uiSize, (int)((100*uiMaxUsage)/uiSize)));
-#endif
-         BMUXlib_List_Destroy( hMuxTS->hTransportDescriptorMetaDataPendingList[i] );
-         hMuxTS->hTransportDescriptorMetaDataPendingList[i] = NULL;
-      }
-
-      if ( NULL != hMuxTS->hTransportDescriptorPendingList[i] )
-      {
-#if BDBG_DEBUG_BUILD
-         size_t uiMinUsage, uiMaxUsage, uiSize;
-         BMUXlib_List_GetUsage(hMuxTS->hTransportDescriptorPendingList[i], &uiMinUsage, &uiMaxUsage, &uiSize);
+         BMUXLIB_LIST_GETUSAGE(&hMuxTS->stTransportDescriptorPendingList[i], &uiMinUsage, &uiMaxUsage, &uiSize);
          BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("Transport Descriptor Pending List[%d]: Max Usage: %d of %d (%d%%)", i, (int)uiMaxUsage, (int)uiSize, (int)((100*uiMaxUsage)/uiSize)));
 #endif
-         BMUXlib_List_Destroy( hMuxTS->hTransportDescriptorPendingList[i] );
-         hMuxTS->hTransportDescriptorPendingList[i] = NULL;
+         BMUXLIB_LIST_INIT(&hMuxTS->stTransportDescriptorPendingList[i]);
       }
    }
 
-   if ( NULL != hMuxTS->hTransportDescriptorMetaDataFreeList )
    {
 #if BDBG_DEBUG_BUILD
       size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hTransportDescriptorMetaDataFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
-      BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("Transport Descriptor Metadata Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
-#endif
-      BMUXlib_List_Destroy( hMuxTS->hTransportDescriptorMetaDataFreeList );
-      hMuxTS->hTransportDescriptorMetaDataFreeList = NULL;
-   }
-
-   if ( NULL != hMuxTS->hTransportDescriptorFreeList )
-   {
-#if BDBG_DEBUG_BUILD
-      size_t uiMinUsage, uiMaxUsage, uiSize;
-      BMUXlib_List_GetUsage(hMuxTS->hTransportDescriptorFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
+      BMUXLIB_LIST_GETUSAGE(&hMuxTS->stTransportDescriptorFreeList, &uiMinUsage, &uiMaxUsage, &uiSize);
       BDBG_MODULE_MSG(BMUXLIB_TS_MEMORY, ("Transport Descriptor Free List: Max Usage: %d of %d (%d%%)", (int)(uiSize-uiMinUsage), (int)uiSize, (int)((100 * (uiSize-uiMinUsage))/uiSize)));
 #endif
-      BMUXlib_List_Destroy( hMuxTS->hTransportDescriptorFreeList );
-      hMuxTS->hTransportDescriptorFreeList = NULL;
+      BMUXLIB_LIST_INIT(&hMuxTS->stTransportDescriptorFreeList);
    }
 
    if ( NULL != hMuxTS->astTransportDescriptorMetaDataTemp )
@@ -1754,15 +1578,6 @@ BMUXlib_TS_P_FreeResources(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
             hMuxTS->hTransportDescriptorMetaDataTempBlock,
             hMuxTS->astTransportDescriptorMetaDataTemp
-            );
-   }
-
-   if ( NULL != hMuxTS->astTransportDescriptorMetaData )
-   {
-      BMMA_RANGE_FREE(
-            hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
-            hMuxTS->hTransportDescriptorMetaDataBlock,
-            hMuxTS->astTransportDescriptorMetaData
             );
    }
 
@@ -1787,11 +1602,13 @@ BMUXlib_TS_P_FreeResources(
    BDBG_LEAVE( BMUXlib_TS_P_FreeResources );
 }
 
-void
+static void
 BMUXlib_TS_P_Reset(
    BMUXlib_TS_Handle hMuxTS
    )
 {
+   unsigned i;
+
    BDBG_ENTER( BMUXlib_TS_P_Reset );
 
 #ifdef BMUXLIB_TS_P_TEST_MODE
@@ -1803,6 +1620,26 @@ BMUXlib_TS_P_Reset(
 
    BKNI_Memset( &hMuxTS->status, 0, sizeof( hMuxTS->status ) );
 
+   BMUXlib_InputGroup_Stop(hMuxTS->hInputGroup);
+
+   for ( i = 0; i < (BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS); i++ )
+   {
+      BMUXlib_Input_Stop(hMuxTS->ahInput[i]);
+   }
+
+   /* Initialize System Data Pending List pre-Q */
+   {
+      BDBG_ASSERT( hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.size > ( BMUXLIB_TS_P_SYSTEM_DATA_PRE_Q_COUNT * sizeof( BMUXlib_TS_SystemData ) ) );
+
+      BMUXLIB_LIST_INIT( &hMuxTS->stSystemDataFreeList );
+      for (i = 0; i < BMUXLIB_TS_P_SYSTEM_DATA_PRE_Q_COUNT ; i++)
+      {
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData)*pstSystemDataBuffer = (BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData)*) ( (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer + ( hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.size - ( (i+1) * sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData) ) ) ) );
+         BMUXLIB_LIST_ADD(&hMuxTS->stSystemDataFreeList, pstSystemDataBuffer);
+      }
+      hMuxTS->status.bSystemDataPreQ = true;
+   }
+
    BMUXlib_TS_GetDefaultMuxSettings(
             &hMuxTS->status.stMuxSettings
             );
@@ -1810,12 +1647,6 @@ BMUXlib_TS_P_Reset(
    BMUXlib_TS_GetDefaultStartSettings(
             &hMuxTS->status.stStartSettings
             );
-
-   /* reset the pre-Q */
-   hMuxTS->hSystemDataPendingList = NULL;
-   hMuxTS->astSystemDataPendingList = NULL;
-   hMuxTS->status.uiSystemDataMaxCount = 0;
-   hMuxTS->status.uiSystemDataPreQCount = 0;
 
    BDBG_LEAVE( BMUXlib_TS_P_Reset );
 }
@@ -1902,17 +1733,39 @@ BMUXlib_TS_Create(
       }
    }
 
-   /* Allocate System Data Pending List pre-Q */
+   /* Allocate input handles */
    {
-      BMUXlib_List_CreateSettings stListCreateSettings;
-      BMUXlib_List_GetDefaultCreateSettings(&stListCreateSettings);
+      unsigned i;
+      BMUXlib_Input_CreateSettings stInputCreateSettings;
+      BMUXlib_Input_GetDefaultCreateSettings( &stInputCreateSettings );
 
-      stListCreateSettings.uiCount = BMUXLIB_TS_P_SYSTEM_DATA_PRE_Q_COUNT;
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
+      for ( i = 0; i < BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS; i++ )
+      {
+         rc = BMUXlib_Input_Create( &pMuxTS->ahInput[i], &stInputCreateSettings );
 
-      BDBG_ASSERT( pMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.size > ( BMUXLIB_TS_P_SYSTEM_DATA_PRE_Q_COUNT * sizeof( BMUXlib_TS_SystemData ) ) );
+         if ( BERR_SUCCESS != rc )
+         {
+            BMUXlib_TS_Destroy( pMuxTS );
+            BDBG_LEAVE(BMUXlib_TS_Create);
+            return BERR_TRACE(rc);
+         }
+      }
+   }
 
-      pMuxTS->astSystemDataPendingListPreQ = (BMUXlib_TS_SystemData *) ( (uint8_t *) pMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer + ( pMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.size - ( BMUXLIB_TS_P_SYSTEM_DATA_PRE_Q_COUNT * sizeof( BMUXlib_TS_SystemData ) ) ) );
+   /* Allocate input group handles */
+   {
+      BMUXlib_InputGroup_CreateSettings stInputGroupCreateSettings;
+      BMUXlib_InputGroup_GetDefaultCreateSettings( &stInputGroupCreateSettings );
+      stInputGroupCreateSettings.uiMaxInputCount = BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS;
+
+      rc = BMUXlib_InputGroup_Create( &pMuxTS->hInputGroup, &stInputGroupCreateSettings );
+
+      if ( BERR_SUCCESS != rc )
+      {
+         BMUXlib_TS_Destroy( pMuxTS );
+         BDBG_LEAVE(BMUXlib_TS_Create);
+         return BERR_TRACE(rc);
+      }
    }
 
    /* Reset State */
@@ -1946,6 +1799,28 @@ BMUXlib_TS_Destroy(
       {
          BDBG_LEAVE(BMUXlib_TS_Destroy);
          return BERR_TRACE(rc);
+      }
+   }
+
+   /* destroy input group */
+   if ( NULL != hMuxTS->hInputGroup )
+   {
+      BMUXlib_InputGroup_Destroy( hMuxTS->hInputGroup );
+      hMuxTS->hInputGroup = NULL;
+   }
+   /* destroy inputs */
+   {
+      unsigned i;
+      BMUXlib_Input_CreateSettings stInputCreateSettings;
+      BMUXlib_Input_GetDefaultCreateSettings( &stInputCreateSettings );
+
+      for ( i = 0; i < BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS; i++ )
+      {
+         if ( NULL != hMuxTS->ahInput[i] )
+         {
+            BMUXlib_Input_Destroy( hMuxTS->ahInput[i] );
+            hMuxTS->ahInput[i] = NULL;
+         }
       }
    }
 
@@ -2268,7 +2143,7 @@ BMUXlib_TS_P_ValidateStartSettings(BMUXlib_TS_StartSettings *pstStartSettings, b
    return bError;
 }
 
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_AssignTransportChannel(
    BMUXlib_TS_Handle hMuxTS,
    unsigned uiTransportChannelIndex,
@@ -2339,7 +2214,7 @@ BMUXlib_TS_Start(
       return BERR_TRACE(BERR_INVALID_PARAMETER);
    }
    /* verify PCR parameters */
-   if (pstStartSettings->stPCRData.uiPID == 0)
+   if (pstStartSettings->stPCRData.uiPID == 0 && pstStartSettings->stPCRData.uiInterval != 0)
    {
       BDBG_LEAVE( BMUXlib_TS_Start );
       return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -2351,14 +2226,12 @@ BMUXlib_TS_Start(
       unsigned uiPIDIndex;
       bool *pPIDTable = hMuxTS->status.aFoundPIDs;
       BMUXlib_Input_Handle aInputTable[BMUXLIB_TS_MAX_VIDEO_PIDS+BMUXLIB_TS_MAX_AUDIO_PIDS];
-      uint32_t i;
-      BMUXlib_Input_CreateSettings stInputCreateSettings;
+      BMUXlib_Input_StartSettings stInputStartSettings;
       BMUXlib_TS_P_BufferConfig stMemoryConfigLocal;
       uint32_t uiNumChannels = 0;
-      uint32_t aTransportDescriptorPendingListCountTable[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
 
       /* NOTE: same count is used for both PendingList and MetadataPendingList */
-      BKNI_Memset(aTransportDescriptorPendingListCountTable, 0, sizeof(aTransportDescriptorPendingListCountTable));
+      BKNI_Memset(hMuxTS->status.aTransportDescriptorPendingListCountTable, 0, sizeof(hMuxTS->status.aTransportDescriptorPendingListCountTable));
 
       {
          uint32_t uiTransportChannelIndex;
@@ -2418,39 +2291,22 @@ BMUXlib_TS_Start(
       {
          /* SW7425-5370: allocate memory to store the current memory config ... */
          /* NOTE: allocated in one block and then sub-allocate */
-         struct
-         {
-            BMUXlib_TS_P_MemoryConfig stMemoryConfig;
-            BMUXlib_TS_MuxConfig stMuxConfig;
-            BMMA_RangeAllocator_Status stRangeAllocatorStatus;
-         } *pData;
-
-         pData = BKNI_Malloc(sizeof(*pData));
-         if (NULL == pData)
-         {
-            BDBG_ERR(("Unable to allocate temporary storage for obtaining memory config."));
-            BMUXlib_TS_P_FreeResources( hMuxTS );
-            BMUXlib_TS_P_Reset( hMuxTS );    /* reset state since Expected ESCRs modified above */
-            BDBG_LEAVE( BMUXlib_TS_Start );
-            return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-         }
-
-         BKNI_Memset(pData, 0, sizeof(*pData));
-         pData->stMuxConfig.stMuxStartSettings = hMuxTS->status.stStartSettings;
-         pData->stMuxConfig.stMuxSettings = hMuxTS->status.stMuxSettings;
+         BKNI_Memset(&hMuxTS->status.stTempMemoryConfig, 0, sizeof(hMuxTS->status.stTempMemoryConfig));
+         hMuxTS->status.stTempMemoryConfig.stMuxConfig.stMuxStartSettings = hMuxTS->status.stStartSettings;
+         hMuxTS->status.stTempMemoryConfig.stMuxConfig.stMuxSettings = hMuxTS->status.stMuxSettings;
          /* Get the current memory config that matches the supplied settings */
-         BMUXlib_TS_P_GetMemoryConfig(&pData->stMuxConfig, &pData->stMemoryConfig);
+         BMUXlib_TS_P_GetMemoryConfig(&hMuxTS->status.stTempMemoryConfig.stMuxConfig, &hMuxTS->status.stTempMemoryConfig.stMemoryConfig);
          {
             BMUXlib_TS_P_MemoryType eMemoryType;
 
             for ( eMemoryType = 0; (eMemoryType < BMUXlib_TS_P_MemoryType_eMax) && ( BERR_SUCCESS == rc); eMemoryType++ )
             {
-               if ( stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize < pData->stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize )
+               if ( stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize < hMuxTS->status.stTempMemoryConfig.stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize )
                {
                   BDBG_ERR(("Not enough memory of type [%d] for requested configuration. (%d < %d)",
                      eMemoryType,
                      (int)stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize,
-                     (int)pData->stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize
+                     (int)hMuxTS->status.stTempMemoryConfig.stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize
                      ));
                   rc = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
                }
@@ -2460,27 +2316,25 @@ BMUXlib_TS_Start(
          if ( BERR_SUCCESS == rc )
          {
             /* Allocate resources from sub heap */
-            rc = BMUXlib_TS_P_AllocateResources( hMuxTS, &pData->stMemoryConfig );
+            rc = BMUXlib_TS_P_AllocateResources( hMuxTS, &hMuxTS->status.stTempMemoryConfig.stMemoryConfig );
             if ( BERR_SUCCESS == rc )
             {
                BMUXlib_TS_P_MemoryType eMemoryType;
 
                for ( eMemoryType = 0; (eMemoryType < BMUXlib_TS_P_MemoryType_eMax); eMemoryType++ )
                {
-                  BKNI_Memset(&pData->stRangeAllocatorStatus, 0, sizeof(BMMA_RangeAllocator_Status));
-                  BMMA_RangeAllocator_GetStatus( hMuxTS->stSubHeap[eMemoryType].hMmaRangeAllocator, &pData->stRangeAllocatorStatus);
+                  BKNI_Memset(&hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus, 0, sizeof(BMMA_RangeAllocator_Status));
+                  BMMA_RangeAllocator_GetStatus( hMuxTS->stSubHeap[eMemoryType].hMmaRangeAllocator, &hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus);
 
                   BDBG_MODULE_MSG( BMUXLIB_TS_MEMORY, ("[%d] Total Required/Used (Slack): %u/%u (%d)",
                      eMemoryType,
                      (int)stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize,
-                     (int)pData->stRangeAllocatorStatus.allocatedSpace,
-                     (int)(stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize - pData->stRangeAllocatorStatus.allocatedSpace)
+                     (int)hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus.allocatedSpace,
+                     (int)(stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize - hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus.allocatedSpace)
                      ));
                }
             }
          }
-         /* SW7425-5370: Free temporary storage for memory config ...*/
-         BKNI_Free(pData);
       }
       if (rc != BERR_SUCCESS)
       {
@@ -2553,17 +2407,18 @@ BMUXlib_TS_Start(
             break;
          }
 
-         BMUXlib_Input_GetDefaultCreateSettings( &stInputCreateSettings );
-         stInputCreateSettings.eType = BMUXlib_Input_Type_eVideo;
-         stInputCreateSettings.interface.stVideo = *pEncoderInterface;
+         BMUXlib_Input_GetDefaultStartSettings( &stInputStartSettings );
+         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput = hMuxTS->ahInput[hMuxTS->status.uiNumInputs];
+         stInputStartSettings.eType = BMUXlib_Input_Type_eVideo;
+         stInputStartSettings.interface.stVideo = *pEncoderInterface;
          /* SW7425-659: In MTU BPP mode, for video, use frame burst mode so we can calculate the correct PKT2PKT delta */
-         stInputCreateSettings.eBurstMode = hMuxTS->status.stStartSettings.bSupportTTS ? BMUXlib_Input_BurstMode_eFrame : BMUXlib_Input_BurstMode_eDescriptor;
-         stInputCreateSettings.pMetadata = &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs];
-         stInputCreateSettings.uiMuxId = hMuxTS->stCreateSettings.uiMuxId;
-         stInputCreateSettings.uiTypeInstance = uiPIDIndex;
+         stInputStartSettings.eBurstMode = hMuxTS->status.stStartSettings.bSupportTTS ? BMUXlib_Input_BurstMode_eFrame : BMUXlib_Input_BurstMode_eDescriptor;
+         stInputStartSettings.pMetadata = &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs];
+         stInputStartSettings.uiMuxId = hMuxTS->stCreateSettings.uiMuxId;
+         stInputStartSettings.uiTypeInstance = uiPIDIndex;
          /* by default, this input will be marked as "active" */
-         rc = BERR_TRACE( BMUXlib_Input_Create( &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
-                         &stInputCreateSettings
+         rc = BERR_TRACE( BMUXlib_Input_Start( hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+                         &stInputStartSettings
                         ));
          if (BERR_SUCCESS != rc)
             break;
@@ -2591,7 +2446,7 @@ BMUXlib_TS_Start(
 
          /* Determine amount of Transport Descriptor Pending List Entries (Video) */
          /* (A single allocation for the lists is done once all count requirements are established) */
-         aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.video[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eVideo].uiCount, hMuxTS->status.stStartSettings.uiNumValidVideoPIDs);
+         hMuxTS->status.aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.video[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eVideo].uiCount, hMuxTS->status.stStartSettings.uiNumValidVideoPIDs);
 
          /* SW7346-1363: Set default input enable mode (video) */
          {
@@ -2659,16 +2514,17 @@ BMUXlib_TS_Start(
             break;
          }
 
-         BMUXlib_Input_GetDefaultCreateSettings( &stInputCreateSettings );
-         stInputCreateSettings.eType = BMUXlib_Input_Type_eAudio;
-         stInputCreateSettings.interface.stAudio = *pEncoderInterface;
-         stInputCreateSettings.eBurstMode = BMUXlib_Input_BurstMode_eFrame;
-         stInputCreateSettings.pMetadata = &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs];
-         stInputCreateSettings.uiMuxId = hMuxTS->stCreateSettings.uiMuxId;
-         stInputCreateSettings.uiTypeInstance = uiPIDIndex;
+         BMUXlib_Input_GetDefaultStartSettings( &stInputStartSettings );
+         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput = hMuxTS->ahInput[hMuxTS->status.uiNumInputs];
+         stInputStartSettings.eType = BMUXlib_Input_Type_eAudio;
+         stInputStartSettings.interface.stAudio = *pEncoderInterface;
+         stInputStartSettings.eBurstMode = BMUXlib_Input_BurstMode_eFrame;
+         stInputStartSettings.pMetadata = &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs];
+         stInputStartSettings.uiMuxId = hMuxTS->stCreateSettings.uiMuxId;
+         stInputStartSettings.uiTypeInstance = uiPIDIndex;
          /* by default, this input will be marked as "active" */
-         rc = BERR_TRACE( BMUXlib_Input_Create( &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
-                         &stInputCreateSettings
+         rc = BERR_TRACE( BMUXlib_Input_Start( hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+                         &stInputStartSettings
                         ));
          if (BERR_SUCCESS != rc)
             break;
@@ -2693,7 +2549,7 @@ BMUXlib_TS_Start(
 
          /* Determine amount of Transport Descriptor Pending List Entries (Audio) */
          /* (A single allocation for the lists is done once all count requirements are established) */
-         aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.audio[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eAudio].uiCount, hMuxTS->status.stStartSettings.uiNumValidAudioPIDs);
+         hMuxTS->status.aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.audio[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eAudio].uiCount, hMuxTS->status.stStartSettings.uiNumValidAudioPIDs);
 
          /* SW7346-1363: Set default input enable mode (audio) */
          {
@@ -2726,8 +2582,6 @@ BMUXlib_TS_Start(
 
          if (BERR_SUCCESS == rc)
          {
-            BMUXlib_List_CreateSettings stListCreateSettings;
-
             {
                unsigned uiTransportChannelIndex = hMuxTS->status.stStartSettings.stPCRData.uiTransportChannelIndex;
                BMUXlib_TS_TransportChannelInterface *pChannelInterface = &hMuxTS->status.stOutput.stTransport[hMuxTS->status.stOutput.uiNumTransportChannelsOpen].stChannelInterface;
@@ -2750,68 +2604,23 @@ BMUXlib_TS_Start(
 
             /* Determine amount of Transport Descriptor Pending List Entries (System) */
             /* (A single allocation for the lists is done once all count requirements are established) */
-            aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.system.uiTransportChannelIndex] += hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eSystem].uiCount;
+            hMuxTS->status.aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.system.uiTransportChannelIndex] += hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eSystem].uiCount;
             hMuxTS->status.stOutput.stTransport[hMuxTS->status.stInput.system.uiTransportChannelIndex].bActive = true;
-
-            /* Allocate Transport Descriptor Pending Lists */
-            for (i = 0; rc == BERR_SUCCESS && i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++)
-            {
-               if (false == hMuxTS->status.stOutput.stTransport[i].bActive)
-                  continue;   /* this transport channel is not active */
-
-               BMUXlib_List_GetDefaultCreateSettings(&stListCreateSettings);
-
-               stListCreateSettings.uiCount = aTransportDescriptorPendingListCountTable[i];
-               stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-
-               /* active channels must have descriptor lists */
-               BDBG_ASSERT(0 != stListCreateSettings.uiCount);
-
-               rc = BMUXlib_List_Create(
-                        &hMuxTS->hTransportDescriptorPendingList[i],
-                        &stListCreateSettings
-                        );
-               if ( BERR_SUCCESS == rc )
-               {
-                  rc = BMUXlib_List_Create(
-                           &hMuxTS->hTransportDescriptorMetaDataPendingList[i],
-                           &stListCreateSettings
-                           );
-               }
-            }
-         }
-
-         if (BERR_SUCCESS == rc)
-         {
-            BMUXlib_List_CreateSettings stListCreateSettings;
-            BMUXlib_List_GetDefaultCreateSettings(&stListCreateSettings);
-
-            /* Allocate Userdata Pending List for each userdata input */
-            stListCreateSettings.uiCount = BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData][BMUXlib_TS_P_InputType_eSystem].uiCount, hMuxTS->status.stStartSettings.uiNumValidUserdataPIDs);
-            stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-            for (i = 0; i < hMuxTS->status.stStartSettings.uiNumValidUserdataPIDs; i++)
-            {
-               rc = BERR_TRACE(BMUXlib_List_Create(&hMuxTS->hUserdataPendingList[i], &stListCreateSettings));
-               if (BERR_SUCCESS != rc)
-               {
-                  break;
-               }
-            }
          }
 
          /* create the input group for the active inputs */
          if (BERR_SUCCESS == rc)
          {
-            BMUXlib_InputGroup_CreateSettings stCreateSettings;
-            BMUXlib_InputGroup_GetDefaultCreateSettings(&stCreateSettings);
-            stCreateSettings.uiInputCount = hMuxTS->status.uiNumInputs;
-            stCreateSettings.pInputTable = aInputTable;
-            rc = BMUXlib_InputGroup_Create(&hMuxTS->status.hInputGroup, &stCreateSettings);
+            BMUXlib_InputGroup_StartSettings stStartSettings;
+            BMUXlib_InputGroup_GetDefaultStartSettings(&stStartSettings);
+            stStartSettings.uiInputCount = hMuxTS->status.uiNumInputs;
+            stStartSettings.pInputTable = aInputTable;
+            rc = BMUXlib_InputGroup_Start(hMuxTS->hInputGroup, &stStartSettings);
             if (BERR_SUCCESS == rc)
             {
                BMUXlib_InputGroup_Settings stSettings;
 
-               BMUXlib_InputGroup_GetSettings(hMuxTS->status.hInputGroup, &stSettings);
+               BMUXlib_InputGroup_GetSettings(hMuxTS->hInputGroup, &stSettings);
                /* set the selector function to be used by InputGroup_GetNextInput() */
                switch ( hMuxTS->status.stStartSettings.eInterleaveMode )
                {
@@ -2823,7 +2632,7 @@ BMUXlib_TS_Start(
                      stSettings.fSelector = BMUXlib_InputGroup_DescriptorSelectLowestESCR;
                }
 
-               rc = BMUXlib_InputGroup_SetSettings(hMuxTS->status.hInputGroup, &stSettings);
+               rc = BMUXlib_InputGroup_SetSettings(hMuxTS->hInputGroup, &stSettings);
             }
 
             /* userdata */
@@ -2833,29 +2642,43 @@ BMUXlib_TS_Start(
             /* TS Null Packet and Dummy PES Frame */
             if (BERR_SUCCESS == rc)
             {
-               rc = BMUXlib_List_Remove(
-                        hMuxTS->hBPPFreeList,
-                        (void**) &hMuxTS->status.pDummyPESBuffer
-                        );
+               if ( 0 != BMUXLIB_LIST_COUNT(&hMuxTS->stBPPFreeList) )
+               {
+                  BMUXLIB_LIST_REMOVE(
+                        &hMuxTS->stBPPFreeList,
+                        &hMuxTS->status.pDummyPESBuffer
+                  );
 
-               BKNI_Memcpy(
-                  hMuxTS->status.pDummyPESBuffer,
-                  &s_stDummyPESFrame,
-                  sizeof( BMUXlib_TS_P_BPPData )
-               );
+                  BKNI_Memcpy(
+                     BMUXLIB_LIST_ENTRY_DATA(hMuxTS->status.pDummyPESBuffer),
+                     &s_stDummyPESFrame,
+                     sizeof( BMUXlib_TS_P_BPPData )
+                  );
+               }
+               else
+               {
+                  rc = BERR_TRACE( BERR_UNKNOWN );
+               }
 
                if ( BERR_SUCCESS == rc )
                {
-                  rc = BMUXlib_List_Remove(
-                           hMuxTS->hTSPacketFreeList,
-                           (void**) &hMuxTS->status.pNullTSPacketBuffer
+                  if ( 0 != BMUXLIB_LIST_COUNT(&hMuxTS->stTSPacketFreeList) )
+                  {
+                     BMUXLIB_LIST_REMOVE(
+                           &hMuxTS->stTSPacketFreeList,
+                           &hMuxTS->status.pNullTSPacketBuffer
                            );
 
-                  BKNI_Memcpy(
-                     hMuxTS->status.pNullTSPacketBuffer,
-                     &s_stNullTSPacket,
-                     sizeof( BMUXlib_TS_P_TSPacket )
-                  );
+                     BKNI_Memcpy(
+                        BMUXLIB_LIST_ENTRY_DATA(hMuxTS->status.pNullTSPacketBuffer),
+                        &s_stNullTSPacket,
+                        sizeof( BMUXlib_TS_P_TSPacket )
+                     );
+                  }
+                  else
+                  {
+                     rc = BERR_TRACE( BERR_UNKNOWN );
+                  }
                }
             }
          }
@@ -3045,18 +2868,20 @@ BMUXlib_TS_Stop(
    /* Return NULL TS Packet and dummy PES frame */
    if ( NULL != hMuxTS->status.pDummyPESBuffer )
    {
-      BMUXlib_List_Add(
-         hMuxTS->hBPPFreeList,
+      BMUXLIB_LIST_ADD(
+         &hMuxTS->stBPPFreeList,
          hMuxTS->status.pDummyPESBuffer
       );
+      hMuxTS->status.pDummyPESBuffer = NULL;
    }
 
    if ( NULL != hMuxTS->status.pNullTSPacketBuffer )
    {
-      BMUXlib_List_Add(
-         hMuxTS->hTSPacketFreeList,
+      BMUXLIB_LIST_ADD(
+         &hMuxTS->stTSPacketFreeList,
          hMuxTS->status.pNullTSPacketBuffer
       );
+      hMuxTS->status.pNullTSPacketBuffer = NULL;
    }
 
    /* Reset State */
@@ -3070,7 +2895,7 @@ BMUXlib_TS_Stop(
 /***************/
 /* System Data */
 /***************/
-BERR_Code
+static BERR_Code
 BMUXlib_TS_P_ValidateSystemDataBuffers(
          const BMUXlib_TS_SystemData *astSystemDataBuffer, /* Array of system data buffers */
          size_t uiCount /* Count of system data buffers in array */
@@ -3126,23 +2951,7 @@ BMUXlib_TS_AddSystemDataBuffers(
 
    if ( rc == BERR_SUCCESS )
    {
-      if ( BMUXlib_State_eStopped == BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
-      {
-         /* Add the system data to our pre-q */
-         *puiQueuedCount = 0;
-
-         while ( ( hMuxTS->status.uiSystemDataPreQCount < BMUXLIB_TS_P_SYSTEM_DATA_PRE_Q_COUNT )
-                 && ( *puiQueuedCount < uiCount ) )
-         {
-            hMuxTS->astSystemDataPendingListPreQ[hMuxTS->status.uiSystemDataPreQCount] = astSystemDataBuffer[*puiQueuedCount];
-            (*puiQueuedCount)++;
-            hMuxTS->status.uiSystemDataPreQCount++;
-         }
-      }
-      else
-      {
-         rc = BMUXlib_TS_P_AddSystemDataBuffers(hMuxTS, astSystemDataBuffer, uiCount, puiQueuedCount);
-      }
+      rc = BMUXlib_TS_P_AddSystemDataBuffers(hMuxTS, astSystemDataBuffer, uiCount, puiQueuedCount);
    }
    BDBG_LEAVE( BMUXlib_TS_AddSystemDataBuffers );
    return BERR_TRACE( rc );
@@ -3163,7 +2972,7 @@ BMUXlib_TS_P_AddSystemDataBuffers(
    *puiQueuedCount = 0;
 
    while ( ( uiCount != *puiQueuedCount )
-           && ( false == BMUXlib_List_IsFull( hMuxTS->hSystemDataPendingList ) )
+           && ( false == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stSystemDataFreeList ) )
          )
    {
       /* SW7425-4643: We cannot support PCR PID on same PID as system data
@@ -3196,20 +3005,17 @@ BMUXlib_TS_P_AddSystemDataBuffers(
          if (rc != BERR_SUCCESS)
             break;
       }
-      hMuxTS->astSystemDataPendingList[hMuxTS->status.uiSystemDataPendingListWriteOffset] = astSystemDataBuffer[*puiQueuedCount];
 
-      rc = BERR_TRACE(BMUXlib_List_Add(
-               hMuxTS->hSystemDataPendingList,
-               (void *) &hMuxTS->astSystemDataPendingList[hMuxTS->status.uiSystemDataPendingListWriteOffset]
-               ));
-      if (rc != BERR_SUCCESS)
       {
-         break;
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData)* pSystemDataEntry;
+         BMUXLIB_LIST_REMOVE( &hMuxTS->stSystemDataFreeList, &pSystemDataEntry );
+         *BMUXLIB_LIST_ENTRY_DATA( pSystemDataEntry ) = astSystemDataBuffer[*puiQueuedCount];
+         BMUXLIB_LIST_ADD( &hMuxTS->stSystemDataPendingList, pSystemDataEntry );
       }
 
 #ifdef BMUXLIB_TS_P_TEST_MODE
       /* SW7425-3958: do not write data to CSV files if these entries are due to move of data from pre-Q to pending Q */
-      if (astSystemDataBuffer != hMuxTS->astSystemDataPendingListPreQ)
+      if (false == hMuxTS->status.bSystemDataPreQ )
       {
          /* Write CSV containing info about system data: offset in data file, length, insertion interval, etc */
          /* system data is written as raw binary data to the data file */
@@ -3237,17 +3043,15 @@ BMUXlib_TS_P_AddSystemDataBuffers(
          }
          if (hCSVFile != NULL && hDataFile != NULL)
          {
-            void *pBufferBaseAddress = BMMA_Lock( hMuxTS->astSystemDataPendingList[hMuxTS->status.uiSystemDataPendingListWriteOffset].hBlock );
+            void *pBufferBaseAddress = BMMA_Lock( astSystemDataBuffer[*puiQueuedCount].hBlock );
             fprintf(hCSVFile, "%u, %u, %u\n", (unsigned)ftell(hDataFile), astSystemDataBuffer[*puiQueuedCount].uiSize,
                astSystemDataBuffer[*puiQueuedCount].uiTimestampDelta);
             fwrite((void*)((unsigned)pBufferBaseAddress + astSystemDataBuffer[*puiQueuedCount].uiBlockOffset), sizeof(uint8_t),
                astSystemDataBuffer[*puiQueuedCount].uiSize, hDataFile);
-            BMMA_Unlock( hMuxTS->astSystemDataPendingList[hMuxTS->status.uiSystemDataPendingListWriteOffset].hBlock, pBufferBaseAddress );
+            BMMA_Unlock( astSystemDataBuffer[*puiQueuedCount].hBlock, pBufferBaseAddress );
          }
       }
 #endif
-      hMuxTS->status.uiSystemDataPendingListWriteOffset = (hMuxTS->status.uiSystemDataPendingListWriteOffset + 1) % hMuxTS->status.uiSystemDataMaxCount;
-
       (*puiQueuedCount)++;
    } /* end: while data to queue && pending list not full */
    BDBG_LEAVE( BMUXlib_TS_P_AddSystemDataBuffers );
@@ -3400,7 +3204,7 @@ BMUXlib_TS_DoMux(
          {
             if ( true == hMuxTS->status.stOutput.stTransport[uiIndex].bActive )
             {
-               if ( false == BMUXlib_List_IsEmpty( hMuxTS->hTransportDescriptorPendingList[uiIndex] ) )
+               if ( false == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorPendingList[uiIndex] ) )
                {
                   BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("TRANSPORT[%d] has pending descriptors", uiIndex) );
                   bMuxOutputComplete = false;
@@ -3484,10 +3288,9 @@ BMUXlib_TS_DoMux(
                {
                   size_t uiNumEntries;
 
-                  if ( NULL != hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex] )
                   {
-                     BMUXlib_List_GetNumEntries(
-                        hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex],
+                     BMUXLIB_LIST_GETNUMENTRIES(
+                        &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex],
                         &uiNumEntries
                         );
 
@@ -3546,8 +3349,8 @@ BMUXlib_TS_DoMux(
 
             size_t uiTransportPending;
 
-            BMUXlib_List_GetNumEntries(
-                     hMuxTS->hTransportDescriptorPendingList[uiTransportIndex],
+            BMUXLIB_LIST_GETNUMENTRIES(
+                     &hMuxTS->stTransportDescriptorPendingList[uiTransportIndex],
                      &uiTransportPending
                      );
 
@@ -3585,13 +3388,13 @@ BMUXlib_TS_DoMux(
    /* SW7425-3684: Update completed duration */
    if ( ( BMUXlib_State_eStopped != BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
         && ( BMUXlib_State_eFinished != BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
-        && ( NULL != hMuxTS->status.hInputGroup )
+        && ( NULL != hMuxTS->hInputGroup )
        )
    {
       BMUXlib_InputGroup_Status stStatus;
 
       BMUXlib_InputGroup_GetStatus(
-         hMuxTS->status.hInputGroup,
+         hMuxTS->hInputGroup,
          &stStatus
          );
 
@@ -3664,7 +3467,7 @@ BMUXlib_TS_DoMux(
             }
 
             /* If a transport queue is empty, check of all associated inputs are done */
-            if ( true == BMUXlib_List_IsEmpty( hMuxTS->hTransportDescriptorPendingList[uiTransportChannelIndex] ) )
+            if ( true == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorPendingList[uiTransportChannelIndex] ) )
             {
                bool bAllInputsForTransportChannelHasSeenEOS = false;
                unsigned uiIndex;

@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -44,20 +41,22 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Tue Apr 18 11:38:34 2017
+ *                 Full Compile MD5 Checksum  c15538464e5ff0aea31086dcd1a5d6b2
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1395
  *                 unknown                    unknown
  *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -68,40 +67,40 @@
 /***************************************************************************
  *DVI_DTG_0 - DVI Frontend Timing Control 0
  ***************************************************************************/
-#define BCHP_DVI_DTG_0_DTG_REV_ID                0x206e4000 /* [RO] Revision ID register */
-#define BCHP_DVI_DTG_0_DTG_DATA_CTRL             0x206e4004 /* [RW] DTG BVB data type */
-#define BCHP_DVI_DTG_0_DTG_CONFIG                0x206e4008 /* [RW] DTG Configuration Register */
-#define BCHP_DVI_DTG_0_CCIR_PCL                  0x206e4010 /* [RW] PCL Registers for CCIR control singals */
-#define BCHP_DVI_DTG_0_DVI_PCL                   0x206e4014 /* [RW] PCL Registers for DVI control signals */
-#define BCHP_DVI_DTG_0_CNTL_PCL                  0x206e4018 /* [RW] PCL Registers for Misc. control singals */
-#define BCHP_DVI_DTG_0_RAM_ADDR                  0x206e401c /* [RW] DTG Starting Address Register */
-#define BCHP_DVI_DTG_0_DTG_BVB_SIZE              0x206e4020 /* [RW] BVB Size Register. */
-#define BCHP_DVI_DTG_0_DTG_BVB_RSTATUS           0x206e4024 /* [RO] BVB status read Register. */
-#define BCHP_DVI_DTG_0_DTG_BVB_CSTATUS           0x206e4028 /* [WO] BVB status clear Register. */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_0             0x206e402c /* [RW] DTG Trigger Register 0 */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_1             0x206e4030 /* [RW] DTG Trigger Register 1 */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_2             0x206e4034 /* [RW] DTG Trigger Register 2 */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_3             0x206e4038 /* [RW] DTG Trigger Register 3 */
-#define BCHP_DVI_DTG_0_DTG_CTRL_STAT             0x206e403c /* [RO] DTG Control Bus Status Register */
-#define BCHP_DVI_DTG_0_DTG_MSYNC_CTRL            0x206e4040 /* [RW] Master Sync Control */
-#define BCHP_DVI_DTG_0_DTG_SSYNC_CTRL            0x206e4044 /* [RW] Slave Sync Control */
-#define BCHP_DVI_DTG_0_DTG_MS_TIMEOUT            0x206e4048 /* [RW] Master Slave Time Out register */
-#define BCHP_DVI_DTG_0_DTG_MSSYNC_START          0x206e404c /* [RW] Master Slave Sync Start */
-#define BCHP_DVI_DTG_0_DTG_MSSYNC_PCL            0x206e4050 /* [RW] Master Slave flag select PCL */
-#define BCHP_DVI_DTG_0_DTG_MSYNC_PHASE           0x206e4054 /* [RW] Master Sync Phase */
-#define BCHP_DVI_DTG_0_DTG_EOF0_LINE             0x206e4058 /* [RW] Field0 End line number for interlaced format */
-#define BCHP_DVI_DTG_0_DTG_MSSYNC_STATUS         0x206e405c /* [RO] "Status register for MSSYNC" */
-#define BCHP_DVI_DTG_0_DTG_AS_CONTROL            0x206e40f0 /* [RW] Active Space Control register */
-#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C0_C1        0x206e40f4 /* [RW] Active Space Pixel Value Register */
-#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C2           0x206e40f8 /* [RW] Active Space Pixel Value Register */
-#define BCHP_DVI_DTG_0_DTG_AS_LINE_NUMBER        0x206e40fc /* [RW] Active Space Pixel Value Register */
-#define BCHP_DVI_DTG_0_PARAM_PROG_DONE           0x206e4150 /* [RW] Parameter Programming Done Register */
-#define BCHP_DVI_DTG_0_MC_FRM_BOUNDARY           0x206e4154 /* [RW] DTG Param Load Register */
-#define BCHP_DVI_DTG_0_DTG_LCNTR                 0x206e4170 /* [RO] DTG Line Counter Register */
-#define BCHP_DVI_DTG_0_DTG_L_CTRL                0x206e4174 /* [RW] DTG 3D L Control register */
-#define BCHP_DVI_DTG_0_DTG_R_CTRL                0x206e4178 /* [RW] DTG 3D R Control register */
-#define BCHP_DVI_DTG_0_DTG_HW_CONFIGURATION      0x206e417c /* [RO] Hardware Configuration Register */
-#define BCHP_DVI_DTG_0_DTRAM_CONFIG              0x206e4180 /* [RW] DTRAM Configuration Register */
+#define BCHP_DVI_DTG_0_DTG_REV_ID                0x206e4000 /* [RO][32] Revision ID register */
+#define BCHP_DVI_DTG_0_DTG_DATA_CTRL             0x206e4004 /* [RW][32] DTG BVB data type */
+#define BCHP_DVI_DTG_0_DTG_CONFIG                0x206e4008 /* [RW][32] DTG Configuration Register */
+#define BCHP_DVI_DTG_0_CCIR_PCL                  0x206e4010 /* [RW][32] PCL Registers for CCIR control singals */
+#define BCHP_DVI_DTG_0_DVI_PCL                   0x206e4014 /* [RW][32] PCL Registers for DVI control signals */
+#define BCHP_DVI_DTG_0_CNTL_PCL                  0x206e4018 /* [RW][32] PCL Registers for Misc. control singals */
+#define BCHP_DVI_DTG_0_RAM_ADDR                  0x206e401c /* [RW][32] DTG Starting Address Register */
+#define BCHP_DVI_DTG_0_DTG_BVB_SIZE              0x206e4020 /* [RW][32] BVB Size Register. */
+#define BCHP_DVI_DTG_0_DTG_BVB_RSTATUS           0x206e4024 /* [RO][32] BVB status read Register. */
+#define BCHP_DVI_DTG_0_DTG_BVB_CSTATUS           0x206e4028 /* [WO][32] BVB status clear Register. */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_0             0x206e402c /* [RW][32] DTG Trigger Register 0 */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_1             0x206e4030 /* [RW][32] DTG Trigger Register 1 */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_2             0x206e4034 /* [RW][32] DTG Trigger Register 2 */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_3             0x206e4038 /* [RW][32] DTG Trigger Register 3 */
+#define BCHP_DVI_DTG_0_DTG_CTRL_STAT             0x206e403c /* [RO][32] DTG Control Bus Status Register */
+#define BCHP_DVI_DTG_0_DTG_MSYNC_CTRL            0x206e4040 /* [RW][32] Master Sync Control */
+#define BCHP_DVI_DTG_0_DTG_SSYNC_CTRL            0x206e4044 /* [RW][32] Slave Sync Control */
+#define BCHP_DVI_DTG_0_DTG_MS_TIMEOUT            0x206e4048 /* [RW][32] Master Slave Time Out register */
+#define BCHP_DVI_DTG_0_DTG_MSSYNC_START          0x206e404c /* [RW][32] Master Slave Sync Start */
+#define BCHP_DVI_DTG_0_DTG_MSSYNC_PCL            0x206e4050 /* [RW][32] Master Slave flag select PCL */
+#define BCHP_DVI_DTG_0_DTG_MSYNC_PHASE           0x206e4054 /* [RW][32] Master Sync Phase */
+#define BCHP_DVI_DTG_0_DTG_EOF0_LINE             0x206e4058 /* [RW][32] Field0 End line number for interlaced format */
+#define BCHP_DVI_DTG_0_DTG_MSSYNC_STATUS         0x206e405c /* [RO][32] \"Status register for MSSYNC\" */
+#define BCHP_DVI_DTG_0_DTG_AS_CONTROL            0x206e40f0 /* [RW][32] Active Space Control register */
+#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C0_C1        0x206e40f4 /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C2           0x206e40f8 /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_DVI_DTG_0_DTG_AS_LINE_NUMBER        0x206e40fc /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_DVI_DTG_0_PARAM_PROG_DONE           0x206e4150 /* [RW][32] Parameter Programming Done Register */
+#define BCHP_DVI_DTG_0_MC_FRM_BOUNDARY           0x206e4154 /* [RW][32] DTG Param Load Register */
+#define BCHP_DVI_DTG_0_DTG_LCNTR                 0x206e4170 /* [RO][32] DTG Line Counter Register */
+#define BCHP_DVI_DTG_0_DTG_L_CTRL                0x206e4174 /* [RW][32] DTG 3D L Control register */
+#define BCHP_DVI_DTG_0_DTG_R_CTRL                0x206e4178 /* [RW][32] DTG 3D R Control register */
+#define BCHP_DVI_DTG_0_DTG_HW_CONFIGURATION      0x206e417c /* [RO][32] Hardware Configuration Register */
+#define BCHP_DVI_DTG_0_DTRAM_CONFIG              0x206e4180 /* [RW][32] DTRAM Configuration Register */
 
 /***************************************************************************
  *DTG_REV_ID - Revision ID register
@@ -714,7 +713,7 @@
 #define BCHP_DVI_DTG_0_DTG_EOF0_LINE_COUNT_DEFAULT                 0x00000000
 
 /***************************************************************************
- *DTG_MSSYNC_STATUS - "Status register for MSSYNC"
+ *DTG_MSSYNC_STATUS - \"Status register for MSSYNC\"
  ***************************************************************************/
 /* DVI_DTG_0 :: DTG_MSSYNC_STATUS :: reserved0 [31:30] */
 #define BCHP_DVI_DTG_0_DTG_MSSYNC_STATUS_reserved0_MASK            0xc0000000

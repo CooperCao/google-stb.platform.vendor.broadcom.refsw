@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,6 +73,7 @@ typedef struct AppCtx
     B_EventHandle               hHttpStreamerEvent;
     int                         maxTriggeredEvents;
     unsigned                    trackGroupId;       /* For MPEG2-TS this specifies the program_number. */
+    unsigned                    inactivityTimeoutInMs;
     bool                        enableContinousPlay;
     bool                        disableTrickmode;
     bool                        enablePacing;
@@ -84,7 +85,11 @@ typedef struct AppCtx
     char                        *xcodeProfile;
     bool                        printStatus;
     bool                        disableAvHeadersInsertion;
+    bool                        disableContentLengthInsertion;
     bool                        enableAllPass;
+    bool                        enableHwOffload;
+    bool                        enableStreamingUsingPlaybackCh;
+    unsigned                    maxDataRate;
     BLST_Q_HEAD( streamerListHead, AppStreamerCtx ) streamerListHead; /* List of Streamer Ctx */
 } AppCtx;
 
@@ -115,6 +120,7 @@ typedef struct AppStreamerCtx
     bool                        enableMpegDash;
     bool                        enableTransportTimestamp;
     bool                        enableAllPass;
+    bool                        enableHwOffload;
 } AppStreamerCtx;
 
 #define USER_INPUT_BUF_SIZE 64
@@ -149,7 +155,7 @@ static void endOfStreamCallbackFromBIP(
 
     BSTD_UNUSED( param );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT " B_Event_Set( pAppCtx->hHttpStreamerEvent )" BIP_MSG_PRE_ARG ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT " B_Event_Set( pAppCtx->hHttpStreamerEvent )" BIP_MSG_PRE_ARG ));
     pAppStreamerCtx->endOfStreamerRcvd = true;
     B_Event_Set( pAppStreamerCtx->pAppCtx->hHttpStreamerEvent );
 }
@@ -314,6 +320,7 @@ static BIP_Status startStreamer(
 
         BIP_Streamer_GetDefaultFileInputSettings(&fileInputSettings);
 
+        fileInputSettings.maxDataRate = pAppStreamerCtx->pAppCtx->maxDataRate;
         /* Parse the PlaySpeed Header and if present, configure its values in the input settings. */
         {
             const char *pHeaderValue;
@@ -539,9 +546,14 @@ static BIP_Status startStreamer(
             streamerOutputSettings.dtcpIpOutput.akeTimeoutInMs = 2000;
             streamerOutputSettings.dtcpIpOutput.copyControlInfo = B_CCI_eCopyNever;
         }
+
+        streamerOutputSettings.streamerSettings.enableHwOffload = pAppStreamerCtx->enableHwOffload;
+        streamerOutputSettings.streamerSettings.enableStreamingUsingPlaybackCh = pAppStreamerCtx->pAppCtx->enableStreamingUsingPlaybackCh;
+
         streamerProtocol = pAppStreamerCtx->enableHls ? BIP_HttpStreamerProtocol_eHls : BIP_HttpStreamerProtocol_eDirect;
         streamerOutputSettings.streamerSettings.mpeg2Ts.enableTransportTimestamp = pAppStreamerCtx->enableTransportTimestamp;
         streamerOutputSettings.disableAvHeadersInsertion = pAppStreamerCtx->pAppCtx->disableAvHeadersInsertion;
+        streamerOutputSettings.disableContentLengthInsertion = pAppStreamerCtx->pAppCtx->disableContentLengthInsertion;
 
         bipStatus = BIP_HttpStreamer_SetOutputSettings(pAppStreamerCtx->hHttpStreamer, streamerProtocol, &streamerOutputSettings);
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -627,7 +639,7 @@ static BIP_Status startStreamer(
         BIP_HttpServerStartStreamerSettings startSettings;
 
         BIP_HttpServer_GetDefaultStartStreamerSettings( &startSettings );
-        startSettings.streamerStartSettings.inactivityTimeoutInMs = 50000;
+        startSettings.streamerStartSettings.inactivityTimeoutInMs = pAppStreamerCtx->pAppCtx->inactivityTimeoutInMs;
         bipStatus = BIP_HttpServer_StartStreamer( pAppStreamerCtx->pAppCtx->hHttpServer, pAppStreamerCtx->hHttpStreamer, hHttpRequest, &startSettings);
         if ( bipStatus == BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE )
         {
@@ -805,6 +817,7 @@ static void processHttpRequestEvent(
             pAppStreamerCtx->enableHls = pAppCtx->enableHls;
             pAppStreamerCtx->enableMpegDash = pAppCtx->enableMpegDash;
             pAppStreamerCtx->enableAllPass = pAppCtx->enableAllPass;
+            pAppStreamerCtx->enableHwOffload = pAppCtx->enableHwOffload;
             /*Initialize trackGroupId from pAppCtx->trackGroupId, if URL provides trackGroupId, then parseUrl will overwrite it.*/
             pAppStreamerCtx->trackGroupId = pAppCtx->trackGroupId;
 
@@ -1346,6 +1359,7 @@ static void printUsage(
           );
     printf( "  -disableTrickmode#   Enable server for trickmode support (defaults is not disabled)\n"
             "  -dontAddAvInfo   #   Dont insert AV Track Info in the HTTP Response (default: Insert it)\n"
+            "  -dontAddContentLength #   Dont insert HTTP Content-Length header in the HTTP Response (default: Insert it)\n"
             );
     printf(
             "  -loop            #   ContinousLoop after reach EOF\n"
@@ -1360,6 +1374,12 @@ static void printUsage(
             "  -stats           #   Print Periodic stats. \n"
             "  -hls             #   Enable HLS Output. \n"
             "  -enableAllPass   #   Enable streaming of all AV Tracks. \n"
+            "  -enableHwOffload #   Enable streaming using ASP HW Offload Engine. \n"
+            "  -streamUsingPlaybackCh #   Enable streaming using Nexus Playback -> Recpump -> PBIP Streaming Path.\n"
+          );
+    printf(
+            "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long!"
+            "  -maxDataRate <num>           # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))!"
           );
     printf( "To enable some of the above options at runtime via the URL Request, add following suffix extension to the URL: \n");
     printf(
@@ -1379,6 +1399,7 @@ BIP_Status parseOptions(
     int i;
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
 
+    pAppCtx->maxDataRate = 40*1000*1000;
     for (i=1; i<argc; i++)
     {
         if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
@@ -1408,6 +1429,14 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-trackGroupId") && i+1<argc )
         {
             pAppCtx->trackGroupId = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-inactivityTimeoutInMs") && i+1<argc )
+        {
+            pAppCtx->inactivityTimeoutInMs = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-maxDataRate") && i+1<argc )
+        {
+            pAppCtx->maxDataRate = strtoul(argv[++i], NULL, 0);
         }
         else if ( !strcmp(argv[i], "-loop") )
         {
@@ -1454,9 +1483,21 @@ BIP_Status parseOptions(
         {
             pAppCtx->disableAvHeadersInsertion = true;
         }
+        else if ( !strcmp(argv[i], "-dontAddContentLength") )
+        {
+            pAppCtx->disableContentLengthInsertion = true;
+        }
         else if ( !strcmp(argv[i], "-enableAllPass") )
         {
             pAppCtx->enableAllPass = true;
+        }
+        else if ( !strcmp(argv[i], "-enableHwOffload") )
+        {
+            pAppCtx->enableHwOffload = true;
+        }
+        else if ( !strcmp(argv[i], "-streamUsingPlaybackCh") )
+        {
+            pAppCtx->enableStreamingUsingPlaybackCh = true;
         }
         else
         {
@@ -1465,8 +1506,9 @@ BIP_Status parseOptions(
         }
     }
     if ( !pAppCtx->xcodeProfile ) pAppCtx->xcodeProfile = TRANSCODE_PROFILE_720p_AVC;
+    if (pAppCtx->inactivityTimeoutInMs == 0) pAppCtx->inactivityTimeoutInMs = 60000; /* 60sec default. */
     bipStatus = BIP_SUCCESS;
-    BDBG_LOG(( BIP_MSG_PRE_FMT " port %s, interface %s, mediaDir %s, infoDir %s, DTCP/IP %s: AKE Port %s, dtcpIpKeyFormat=%s Xcode %s, trackGroupId %d" BIP_MSG_PRE_ARG,
+    BDBG_LOG(( BIP_MSG_PRE_FMT " port %s, interface %s, mediaDir %s, infoDir %s, DTCP/IP %s: AKE Port %s, dtcpIpKeyFormat=%s Xcode %s, trackGroupId %d, inactivityTimeoutInMs=%u, dontAddContentLength=%s maxDataRate=%u" BIP_MSG_PRE_ARG,
                 BIP_String_GetString( pAppCtx->hPort ),
                 BIP_String_GetString( pAppCtx->hInterfaceName ),
                 BIP_String_GetString( pAppCtx->hMediaDirectoryPath ),
@@ -1475,7 +1517,10 @@ BIP_Status parseOptions(
                 BIP_String_GetString( pAppCtx->hDtcpIpAkePort ),
                 BIP_String_GetString( pAppCtx->hDtcpIpKeyFormat ),
                 pAppCtx->enableXcode ? pAppCtx->xcodeProfile : "N",
-                pAppCtx->trackGroupId
+                pAppCtx->trackGroupId,
+                pAppCtx->inactivityTimeoutInMs,
+                pAppCtx->disableContentLengthInsertion ? "Y":"N",
+                pAppCtx->maxDataRate
              ));
     return ( bipStatus );
 } /* parseOptions */
@@ -1575,6 +1620,10 @@ int main(
 
             NEXUS_Platform_GetDefaultSettings(&platformSettings);
             platformSettings.mode = NEXUS_ClientMode_eVerified;
+        /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
+           It could be any small size heap.
+           Configure export heap since it's not allocated by nexus by default */
+        platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
             nrc = NEXUS_Platform_Init(&platformSettings);
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Platform_Init Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
 

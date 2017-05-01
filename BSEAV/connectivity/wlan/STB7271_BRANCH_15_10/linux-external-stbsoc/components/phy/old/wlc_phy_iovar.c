@@ -1460,6 +1460,8 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 	BCM_REFERENCE(*ret_int_ptr);
 	BCM_REFERENCE(bool_val);
 
+	PHY_CMDS(("%s, ID:%d %s\n", __FUNCTION__, actionid/2, (actionid%2 ? "SET" : "GET")));
+
 	switch (actionid) {
 #if defined(BCMDBG)
 	case IOV_GVAL(IOV_FAST_TIMER):
@@ -1834,7 +1836,6 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		break;
 	}
 #endif 
-
 	default:
 		err = BCME_UNSUPPORTED;
 	}

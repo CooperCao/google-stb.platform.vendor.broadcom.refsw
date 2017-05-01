@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_common.h"
 #include "v3d_tmu.h"
 #include "v3d_align.h"
@@ -485,137 +483,85 @@ bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type)
    }
 }
 
-uint32_t v3d_tmu_ltype_num_dims(v3d_tmu_ltype_t ltype)
-{
-   switch (ltype)
-   {
-   case V3D_TMU_LTYPE_1D:
-   case V3D_TMU_LTYPE_1D_ARRAY:
-      return 1;
-   case V3D_TMU_LTYPE_2D:
-   case V3D_TMU_LTYPE_2D_ARRAY:
-   case V3D_TMU_LTYPE_CUBE_MAP:
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_TMU_LTYPE_CUBE_MAP_ARRAY:
-#endif
-   case V3D_TMU_LTYPE_CHILD_IMAGE:
-      return 2;
-   case V3D_TMU_LTYPE_3D:
-      return 3;
-   default:
-      unreachable();
-      return 0;
-   }
-}
-
-bool v3d_tmu_ltype_is_array(v3d_tmu_ltype_t ltype)
-{
-   switch (ltype)
-   {
-   case V3D_TMU_LTYPE_1D:
-   case V3D_TMU_LTYPE_2D:
-   case V3D_TMU_LTYPE_3D:
-   case V3D_TMU_LTYPE_CUBE_MAP:
-   case V3D_TMU_LTYPE_CHILD_IMAGE:
-      return false;
-   case V3D_TMU_LTYPE_1D_ARRAY:
-   case V3D_TMU_LTYPE_2D_ARRAY:
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_TMU_LTYPE_CUBE_MAP_ARRAY:
-#endif
-      return true;
-   default:
-      unreachable();
-      return false;
-   }
-}
-bool v3d_tmu_ltype_is_cube(v3d_tmu_ltype_t ltype)
-{
-   switch (ltype)
-   {
-   case V3D_TMU_LTYPE_1D:
-   case V3D_TMU_LTYPE_2D:
-   case V3D_TMU_LTYPE_3D:
-   case V3D_TMU_LTYPE_CHILD_IMAGE:
-   case V3D_TMU_LTYPE_1D_ARRAY:
-   case V3D_TMU_LTYPE_2D_ARRAY:
-      return false;
-   case V3D_TMU_LTYPE_CUBE_MAP:
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_TMU_LTYPE_CUBE_MAP_ARRAY:
-#endif
-      return true;
-   default:
-      unreachable();
-      return false;
-   }
-}
-
-static void set_filter(struct v3d_tmu_cfg *cfg, v3d_tmu_filter_t filter)
+#if !V3D_HAS_SEP_ANISO_CFG
+static void set_filters(struct v3d_tmu_cfg *cfg, v3d_tmu_filters_t filters)
 {
    cfg->aniso_level = 0;
-   switch (filter)
+   switch (filters)
    {
-   case V3D_TMU_FILTER_MIN_LIN_MAG_LIN:
-      cfg->minfilt = V3D_TMU_MIN_FILT_LINEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+   case V3D_TMU_FILTERS_MIN_LIN_MAG_LIN:
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
       break;
-   case V3D_TMU_FILTER_MIN_LIN_MAG_NEAR:
-      cfg->minfilt = V3D_TMU_MIN_FILT_LINEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_NEAREST;
+   case V3D_TMU_FILTERS_MIN_LIN_MAG_NEAR:
+      cfg->magfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
       break;
-   case V3D_TMU_FILTER_MIN_NEAR_MAG_LIN:
-      cfg->minfilt = V3D_TMU_MIN_FILT_NEAREST;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+   case V3D_TMU_FILTERS_MIN_NEAR_MAG_LIN:
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
       break;
-   case V3D_TMU_FILTER_MIN_NEAR_MAG_NEAR:
-      cfg->minfilt = V3D_TMU_MIN_FILT_NEAREST;
-      cfg->magfilt = V3D_TMU_MAG_FILT_NEAREST;
+   case V3D_TMU_FILTERS_MIN_NEAR_MAG_NEAR:
+      cfg->magfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->minfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
       break;
-   case V3D_TMU_FILTER_MIN_NEAR_MIP_NEAR_MAG_LIN:
-      cfg->minfilt = V3D_TMU_MIN_FILT_NEAR_MIP_NEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_LIN:
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
       break;
-   case V3D_TMU_FILTER_MIN_NEAR_MIP_NEAR_MAG_NEAR:
-      cfg->minfilt = V3D_TMU_MIN_FILT_NEAR_MIP_NEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_NEAREST;
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_NEAR:
+      cfg->magfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->minfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
       break;
-   case V3D_TMU_FILTER_MIN_NEAR_MIP_LIN_MAG_LIN:
-      cfg->minfilt = V3D_TMU_MIN_FILT_NEAR_MIP_LIN;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_LIN:
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->mipfilt = V3D_TMU_MIPFILT_LINEAR;
       break;
-   case V3D_TMU_FILTER_MIN_NEAR_MIP_LIN_MAG_NEAR:
-      cfg->minfilt = V3D_TMU_MIN_FILT_NEAR_MIP_LIN;
-      cfg->magfilt = V3D_TMU_MAG_FILT_NEAREST;
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_NEAR:
+      cfg->magfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->minfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->mipfilt = V3D_TMU_MIPFILT_LINEAR;
       break;
-   case V3D_TMU_FILTER_MIN_LIN_MIP_NEAR_MAG_LIN:
-      cfg->minfilt = V3D_TMU_MIN_FILT_LIN_MIP_NEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_LIN:
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
       break;
-   case V3D_TMU_FILTER_MIN_LIN_MIP_NEAR_MAG_NEAR:
-      cfg->minfilt = V3D_TMU_MIN_FILT_LIN_MIP_NEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_NEAREST;
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_NEAR:
+      cfg->magfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
       break;
-   case V3D_TMU_FILTER_MIN_LIN_MIP_LIN_MAG_LIN:
-      cfg->minfilt = V3D_TMU_MIN_FILT_LIN_MIP_LIN;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_LIN:
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_LINEAR;
       break;
-   case V3D_TMU_FILTER_MIN_LIN_MIP_LIN_MAG_NEAR:
-      cfg->minfilt = V3D_TMU_MIN_FILT_LIN_MIP_LIN;
-      cfg->magfilt = V3D_TMU_MAG_FILT_NEAREST;
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_NEAR:
+      cfg->magfilt = V3D_TMU_FILTER_NEAREST;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_LINEAR;
       break;
-   case V3D_TMU_FILTER_ANISOTROPIC2:
-   case V3D_TMU_FILTER_ANISOTROPIC4:
-   case V3D_TMU_FILTER_ANISOTROPIC8:
-   case V3D_TMU_FILTER_ANISOTROPIC16:
-      cfg->minfilt = V3D_TMU_MIN_FILT_LIN_MIP_LIN;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
-      switch (filter)
+   case V3D_TMU_FILTERS_ANISOTROPIC2:
+   case V3D_TMU_FILTERS_ANISOTROPIC4:
+   case V3D_TMU_FILTERS_ANISOTROPIC8:
+   case V3D_TMU_FILTERS_ANISOTROPIC16:
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_LINEAR;
+      switch (filters)
       {
-      case V3D_TMU_FILTER_ANISOTROPIC2:   cfg->aniso_level = 1; break;
-      case V3D_TMU_FILTER_ANISOTROPIC4:   cfg->aniso_level = 2; break;
-      case V3D_TMU_FILTER_ANISOTROPIC8:   cfg->aniso_level = 3; break;
-      case V3D_TMU_FILTER_ANISOTROPIC16:  cfg->aniso_level = 4; break;
+      case V3D_TMU_FILTERS_ANISOTROPIC2:  cfg->aniso_level = 1; break;
+      case V3D_TMU_FILTERS_ANISOTROPIC4:  cfg->aniso_level = 2; break;
+      case V3D_TMU_FILTERS_ANISOTROPIC8:  cfg->aniso_level = 3; break;
+      case V3D_TMU_FILTERS_ANISOTROPIC16: cfg->aniso_level = 4; break;
       default:                            unreachable();
       }
       break;
@@ -623,6 +569,7 @@ static void set_filter(struct v3d_tmu_cfg *cfg, v3d_tmu_filter_t filter)
       unreachable();
    }
 }
+#endif
 
 static void set_wraps(struct v3d_tmu_cfg *cfg,
    v3d_tmu_wrap_t wrap_s, v3d_tmu_wrap_t wrap_t, v3d_tmu_wrap_t wrap_r)
@@ -640,25 +587,24 @@ static void set_wraps(struct v3d_tmu_cfg *cfg,
 
    cfg->wrap_s = wrap_s;
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   cfg->wrap_t = (v3d_tmu_ltype_num_dims(cfg->ltype) > 1) ? wrap_t : V3D_TMU_WRAP_CLAMP;
+   cfg->wrap_t = (cfg->dims > 1) ? wrap_t : V3D_TMU_WRAP_CLAMP;
 #else
    cfg->wrap_t = wrap_t;
 #endif
    cfg->wrap_r = wrap_r;
 }
 
-/* cfg->ltype must be set! */
-static void set_dims(struct v3d_tmu_cfg *cfg,
+/* cfg->dims, cfg->array, and cfg->cube must be set! */
+static void set_whd_elems(struct v3d_tmu_cfg *cfg,
    uint32_t raw_width, uint32_t raw_height, uint32_t raw_depth)
 {
-   uint32_t dims = v3d_tmu_ltype_num_dims(cfg->ltype);
    cfg->width = raw_width;
-   assert((dims > 1) || (raw_height == 1)); /* HW requires height to be set to 1 for 1D images */
+   assert((cfg->dims > 1) || (raw_height == 1)); /* HW requires height to be set to 1 for 1D images */
    cfg->height = raw_height;
-   cfg->depth = (dims > 2) ? raw_depth : 1;
+   cfg->depth = (cfg->dims > 2) ? raw_depth : 1;
 
-   cfg->num_array_elems = v3d_tmu_ltype_is_array(cfg->ltype) ? raw_depth : 1;
-   if (v3d_tmu_ltype_is_cube(cfg->ltype))
+   cfg->num_array_elems = cfg->array ? raw_depth : 1;
+   if (cfg->cube)
       cfg->num_array_elems *= 6;
 }
 
@@ -762,78 +708,66 @@ static void calc_miplvls_and_minlvl(struct v3d_tmu_cfg *cfg)
    {
       /* In fetch mode, the TMU clamps the requested (integral) mip level using
        * min_lod/max_lod... */
-      cfg->minlvl = cfg->min_lod / 256;
-      cfg->miplvls = (cfg->max_lod / 256) + 1;
+      cfg->minlvl = cfg->min_lod >> V3D_TMU_F_BITS;
+      cfg->miplvls = (cfg->max_lod >> V3D_TMU_F_BITS) + 1;
    }
    else
    {
-      /* When minifying... */
-      if (!v3d_tmu_min_filt_does_mipmapping(cfg->minfilt))
+      bool min_possible = cfg->max_lod > (cfg->base_level << V3D_TMU_F_BITS);
+      bool mag_possible = cfg->min_lod <= (cfg->base_level << V3D_TMU_F_BITS);
+      assert(min_possible || mag_possible);
+
+      // Minification
+      if (min_possible)
       {
-         /* ...and there is no mipmapping...
-          *
-          * From the GLES 3 spec:
-          *
-          *    When the value of TEXTURE_MIN_FILTER is LINEAR, a 2 x 2 x 2 cube
-          *    of texels in the image array of level level_base is selected.
-          *
-          *    When the value of TEXTURE_MIN_FILTER is NEAREST, the texel in
-          *    the image array of level level_base that is nearest...
-          *
-          * ie We always do the actual lookup in the base_level mipmap.
-          *
-          * (The hardware only uses lambda, and hence min_lod and max_lod, to
-          * decide whether to minify or magnify)
-          */
-
-         assert(cfg->aniso_level == 0); /* Aniso filtering implies mipmapping */
-
-         cfg->minlvl = cfg->base_level;
-         cfg->miplvls = cfg->base_level + 1;
-      }
-      else
-      {
-         /* ...and there is mipmapping...
-          *
-          * The hardware should not access mip levels outside of the range
-          * covered by min_lod/max_lod.
-          */
-
-         cfg->minlvl = cfg->min_lod / 256; /* min_lod is .8 fixed-point */
-         cfg->miplvls = gfx_udiv_round_up(cfg->max_lod, 256) + 1; /* max_lod is .8 fixed-point */
+         uint32_t min_lod = gfx_umax(cfg->min_lod, (cfg->base_level << V3D_TMU_F_BITS) + 1);
+         switch (cfg->mipfilt)
+         {
+#if !V3D_HAS_SEP_ANISO_CFG
+         case V3D_TMU_MIPFILT_BASE:
+            cfg->minlvl = cfg->base_level;
+            cfg->miplvls = cfg->base_level + 1;
+            break;
+#endif
+         case V3D_TMU_MIPFILT_NEAREST:
+            cfg->minlvl = v3d_tmu_nearest_mip_level(min_lod);
+            cfg->miplvls = v3d_tmu_nearest_mip_level(cfg->max_lod) + 1;
+            break;
+         case V3D_TMU_MIPFILT_LINEAR:
+            cfg->minlvl = min_lod >> V3D_TMU_F_BITS;
+            cfg->miplvls = gfx_udiv_round_up(cfg->max_lod, V3D_TMU_F_ONE) + 1;
+            break;
+         default:
+            unreachable();
+         }
       }
 
-      /* When magnifying...
-       *
-       * From the GLES 3 spec:
-       *
-       *    The level-of-detail level_base texel array is always used for
-       *    magnification.
-       *
-       * So ensure that base_level is covered by minlvl and miplvls.
-       */
-      if (cfg->minlvl > cfg->base_level)
-         cfg->minlvl = cfg->base_level;
-
-      if (cfg->miplvls <= cfg->base_level)
-         cfg->miplvls = cfg->base_level + 1;
+      // Magnification
+      if (mag_possible)
+      {
+         // Always use base level
+         if (!min_possible || (cfg->minlvl > cfg->base_level))
+            cfg->minlvl = cfg->base_level;
+         if (!min_possible || (cfg->miplvls <= cfg->base_level))
+            cfg->miplvls = cfg->base_level + 1;
+      }
    }
 
    assert(cfg->minlvl < cfg->miplvls);
 }
 
 void v3d_tmu_calc_mip_levels(GFX_BUFFER_DESC_T *mip_levels,
-   v3d_tmu_ltype_t ltype, bool srgb, v3d_tmu_type_t type,
+   uint32_t dims, bool srgb, v3d_tmu_type_t type,
    const struct gfx_buffer_uif_cfg *uif_cfg, uint32_t arr_str,
    uint32_t width, uint32_t height, uint32_t depth,
    uint32_t num_mip_levels)
 {
-   GFX_LFMT_T lfmt = gfx_lfmt_translate_from_tmu_type_and_ltype(
-      type, srgb, ltype);
+   GFX_LFMT_T lfmt = gfx_lfmt_translate_from_tmu_type(type, srgb);
+   gfx_lfmt_set_dims(&lfmt, gfx_lfmt_dims_to_enum(dims));
 
    struct gfx_buffer_ml_cfg ml0_cfg;
    ml0_cfg.uif = *uif_cfg;
-   ml0_cfg.force_slice_pitch = ltype == V3D_TMU_LTYPE_3D;
+   ml0_cfg.force_slice_pitch = dims == 3;
    ml0_cfg.slice_pitch = arr_str;
 
    size_t size, align;
@@ -876,7 +810,7 @@ static void calc_derived_texture(struct v3d_tmu_cfg *cfg)
 
    assert(cfg->miplvls <= V3D_MAX_MIP_COUNT);
    v3d_tmu_calc_mip_levels(cfg->mip_levels,
-         cfg->ltype, cfg->srgb, cfg->type,
+         cfg->dims, cfg->srgb, cfg->type,
          &cfg->uif_cfg, cfg->arr_str,
          cfg->width, cfg->height, cfg->depth,
          cfg->miplvls);
@@ -900,6 +834,21 @@ static void calc_derived_texture(struct v3d_tmu_cfg *cfg)
 static void check_config_texture(const struct v3d_tmu_cfg *cfg)
 {
    assert(cfg->texture);
+
+   assert((cfg->dims >= 1) && (cfg->dims <= 3));
+   if (cfg->array)
+   {
+      assert(cfg->dims < 3); // 3D arrays not supported
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+      assert(!cfg->cube); // Cubemap arrays not supported
+#endif
+   }
+   if (cfg->cube)
+      assert(cfg->dims == 2);
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   if (cfg->child_image)
+      assert(cfg->dims == 2);
+#endif
 
    assert(v3d_addr_aligned(cfg->l0_addr, V3D_TMU_ML_ALIGN));
 
@@ -930,19 +879,34 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    assert((cfg->cyoff + cfg->cheight) <= cfg->height);
 #endif
 
-   if ((cfg->ltype == V3D_TMU_LTYPE_CHILD_IMAGE) || cfg->unnorm)
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   if (cfg->unnorm)
+#else
+   if (cfg->child_image || cfg->unnorm)
+#endif
    {
       /* Aniso/mipmapping not supported... */
       assert(cfg->aniso_level == 0);
-      assert(!v3d_tmu_min_filt_does_mipmapping(cfg->minfilt));
+#if V3D_HAS_SEP_ANISO_CFG
+      assert(cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST);
+#else
+      assert((cfg->mipfilt == V3D_TMU_MIPFILT_BASE) || (cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST));
+#endif
+      assert(cfg->minlvl == cfg->base_level);
+      assert(cfg->miplvls == (cfg->base_level + 1));
    }
 
    if (cfg->gather)
    {
       /* Only bilinear filtering allowed for gather */
       assert(cfg->aniso_level == 0);
-      assert(cfg->minfilt == V3D_TMU_MIN_FILT_LINEAR || cfg->minfilt == V3D_TMU_MIN_FILT_LIN_MIP_NEAR);
-      assert(cfg->magfilt == V3D_TMU_MAG_FILT_LINEAR);
+      assert(cfg->magfilt == V3D_TMU_FILTER_LINEAR);
+      assert(cfg->minfilt == V3D_TMU_FILTER_LINEAR);
+#if V3D_HAS_SEP_ANISO_CFG
+      assert(cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST);
+#else
+      assert((cfg->mipfilt == V3D_TMU_MIPFILT_BASE) || (cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST));
+#endif
 
       /* Doesn't make sense to enable both gather and coefficient mode */
       assert(!cfg->coefficient);
@@ -959,10 +923,10 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    {
       assert(!cfg->pix_mask);
 
-      if (v3d_tmu_ltype_is_cube(cfg->ltype))
+      if (cfg->cube)
       {
-         assert(cfg->minfilt == V3D_TMU_MIN_FILT_NEAREST);
-         assert(cfg->magfilt == V3D_TMU_MAG_FILT_NEAREST);
+         assert(cfg->magfilt == V3D_TMU_FILTER_NEAREST);
+         assert(cfg->minfilt == V3D_TMU_FILTER_NEAREST);
       }
    }
 #endif
@@ -972,7 +936,7 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    assert(!cfg->fetch || !cfg->unnorm);
 
    if (cfg->fetch || cfg->unnorm)
-      assert(!v3d_tmu_ltype_is_cube(cfg->ltype));
+      assert(!cfg->cube);
 
    if (cfg->fetch)
    {
@@ -984,11 +948,13 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
 
    if (cfg->aniso_level != 0)
    {
-      assert(cfg->ltype != V3D_TMU_LTYPE_3D); /* Aniso not supported with 3D */
+      assert(cfg->dims < 3); /* Aniso not supported with 3D */
+#if !V3D_HAS_SEP_ANISO_CFG
       assert(!cfg->bslod);
+#endif
    }
 
-   if (v3d_tmu_ltype_is_cube(cfg->ltype))
+   if (cfg->cube)
    {
       assert(cfg->width == cfg->height);
       assert(!cfg->flipx);
@@ -996,7 +962,7 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   if (cfg->ltype == V3D_TMU_LTYPE_CUBE_MAP_ARRAY)
+   if (cfg->array && cfg->cube)
       /* wrap_i=border does not work with cubemap arrays! */
       assert(cfg->wrap_i != V3D_TMU_WRAP_I_BORDER);
 #endif
@@ -1004,8 +970,8 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    if (cfg->tmuoff_4x)
    {
       assert(!cfg->fetch);
-      assert(!v3d_tmu_ltype_is_cube(cfg->ltype));
-      assert(cfg->ltype != V3D_TMU_LTYPE_3D);
+      assert(!cfg->cube);
+      assert(cfg->dims < 3);
    }
 
    if ((cfg->op != V3D_TMU_OP_REGULAR) || cfg->is_write)
@@ -1106,27 +1072,18 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    cfg->texture = true;
 
    cfg->is_write = written->d;
-   if (written->i)
+   if (written->scm)
    {
-      if (written->scm)
-         cfg->ltype = V3D_TMU_LTYPE_CUBE_MAP_ARRAY;
-      else
-      {
-         assert(!written->r); /* 3D arrays not supported */
-         if (written->t)
-            cfg->ltype = V3D_TMU_LTYPE_2D_ARRAY;
-         else
-            cfg->ltype = V3D_TMU_LTYPE_1D_ARRAY;
-      }
+      cfg->dims = 2;
+      cfg->cube = true;
    }
-   else if (written->scm)
-      cfg->ltype = V3D_TMU_LTYPE_CUBE_MAP;
    else if (written->r)
-      cfg->ltype = V3D_TMU_LTYPE_3D;
+      cfg->dims = 3;
    else if (written->t)
-      cfg->ltype = V3D_TMU_LTYPE_2D;
+      cfg->dims = 2;
    else
-      cfg->ltype = V3D_TMU_LTYPE_1D;
+      cfg->dims = 1;
+   cfg->array = written->i;
    cfg->shadow = written->dref;
    cfg->fetch = written->sfetch;
 
@@ -1136,7 +1093,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    if (p1)
    {
       cfg->output_32 = p1->output_32;
-      cfg->unnorm = !v3d_tmu_ltype_is_cube(cfg->ltype) && !cfg->fetch && p1->unnorm;
+      cfg->unnorm = !cfg->cube && !cfg->fetch && p1->unnorm;
       cfg->pix_mask = p1->pix_mask;
       assert(!p1->sampler_addr == !sampler);
    }
@@ -1169,7 +1126,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    cfg->ahdr = tex_state->ahdr;
    cfg->l0_addr = tex_state->l0_addr;
    cfg->arr_str = tex_state->arr_str;
-   set_dims(cfg, tex_state->width, tex_state->height, tex_state->depth);
+   set_whd_elems(cfg, tex_state->width, tex_state->height, tex_state->depth);
    cfg->type = tex_state->type;
    memcpy(cfg->swizzles, tex_state->swizzles, sizeof(cfg->swizzles));
    cfg->base_level = tex_state->base_level;
@@ -1182,10 +1139,29 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->uif_cfg.xor_dis = tex_extension->xor_dis;
    }
 
-   cfg->min_lod = cfg->max_lod = (tex_state->base_level << 8);
+   cfg->min_lod = cfg->max_lod = (tex_state->base_level << V3D_TMU_F_BITS);
    if (sampler)
    {
-      set_filter(cfg, sampler->filter);
+#if V3D_HAS_SEP_ANISO_CFG
+      if (sampler->aniso_en)
+      {
+         switch (sampler->max_aniso)
+         {
+         case V3D_MAX_ANISO_2:   cfg->aniso_level = 1; break;
+         case V3D_MAX_ANISO_4:   cfg->aniso_level = 2; break;
+         case V3D_MAX_ANISO_8:   cfg->aniso_level = 3; break;
+         case V3D_MAX_ANISO_16:  cfg->aniso_level = 4; break;
+         default:                unreachable();
+         }
+      }
+      else
+         cfg->aniso_level = 0;
+      cfg->magfilt = sampler->magfilt;
+      cfg->minfilt = sampler->minfilt;
+      cfg->mipfilt = sampler->mipfilt;
+#else
+      set_filters(cfg, sampler->filters);
+#endif
       cfg->compare_func = sampler->compare_func;
       cfg->min_lod += sampler->min_lod;
       cfg->max_lod += sampler->max_lod;
@@ -1196,8 +1172,13 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    else
    {
       cfg->aniso_level = 0;
-      cfg->minfilt = V3D_TMU_MIN_FILT_LINEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+#if V3D_HAS_SEP_ANISO_CFG
+      cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
+#else
+      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
+#endif
       cfg->compare_func = V3D_COMPARE_FUNC_LEQUAL;
       cfg->max_lod += 0xfff;
       cfg->fixed_bias = 0;
@@ -1205,8 +1186,9 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->wrap_i = V3D_TMU_WRAP_I_BORDER;
    }
 
-   /* Anisotropic filtering not supported with bslod or 3D textures. Just disable... */
-   if (cfg->bslod || (cfg->ltype == V3D_TMU_LTYPE_3D))
+   /* Anisotropic filtering not supported with 3D textures. Just disable... */
+   /* On old hardware it was also incompatible with bslod */
+   if ((cfg->dims == 3) || (!V3D_HAS_SEP_ANISO_CFG && cfg->bslod))
       cfg->aniso_level = 0;
 
    if (cfg->gather)
@@ -1214,20 +1196,28 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       assert(p2->gather_comp < 4);
       cfg->swizzles[0] = cfg->swizzles[p2->gather_comp];
       cfg->aniso_level = 0;
-      cfg->minfilt = V3D_TMU_MIN_FILT_LIN_MIP_NEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+      cfg->magfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->minfilt = V3D_TMU_FILTER_LINEAR;
+      cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
    }
 
+   assert(tex_state->max_level >= tex_state->base_level);
    if (!cfg->fetch && (tex_state->base_level == tex_state->max_level))
    {
       /* See GFXS-732 */
+#if V3D_HAS_SEP_ANISO_CFG
+      cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
+      cfg->min_lod = gfx_umin(cfg->min_lod, (tex_state->base_level << V3D_TMU_F_BITS) + 1);
+      cfg->max_lod = gfx_umin(cfg->max_lod, (tex_state->base_level << V3D_TMU_F_BITS) + 1);
+#else
       cfg->aniso_level = 0;
-      cfg->minfilt = v3d_tmu_min_filt_disable_mipmapping(cfg->minfilt);
+      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
+#endif
    }
    else
    {
-      cfg->min_lod = gfx_umin(cfg->min_lod, tex_state->max_level << 8);
-      cfg->max_lod = gfx_umin(cfg->max_lod, tex_state->max_level << 8);
+      cfg->min_lod = gfx_umin(cfg->min_lod, tex_state->max_level << V3D_TMU_F_BITS);
+      cfg->max_lod = gfx_umin(cfg->max_lod, tex_state->max_level << V3D_TMU_F_BITS);
    }
 
    calc_derived_texture(cfg);
@@ -1282,10 +1272,28 @@ static v3d_tmu_wrap_t wrap_from_cfg0(
    case V3D_TMU_WRAP_CFG0_1D:
       assert(ltype);
       *ltype = V3D_TMU_LTYPE_1D;
-      return V3D_TMU_WRAP_CLAMP; /* Simpenrose insists on a valid value here */
+      return V3D_TMU_WRAP_CLAMP;
    default:
       unreachable();
       return V3D_TMU_WRAP_INVALID;
+   }
+}
+
+static void set_ltype(struct v3d_tmu_cfg *cfg, v3d_tmu_ltype_t ltype)
+{
+   cfg->array = false;
+   cfg->cube = false;
+   cfg->child_image = false;
+   switch (ltype)
+   {
+   case V3D_TMU_LTYPE_2D:           cfg->dims = 2; break;
+   case V3D_TMU_LTYPE_2D_ARRAY:     cfg->dims = 2; cfg->array = true; break;
+   case V3D_TMU_LTYPE_3D:           cfg->dims = 3; break;
+   case V3D_TMU_LTYPE_CUBE_MAP:     cfg->dims = 2; cfg->cube = true; break;
+   case V3D_TMU_LTYPE_1D:           cfg->dims = 1; break;
+   case V3D_TMU_LTYPE_1D_ARRAY:     cfg->dims = 1; cfg->array = true; break;
+   case V3D_TMU_LTYPE_CHILD_IMAGE:  cfg->dims = 2; cfg->child_image = true; break;
+   default:                         unreachable();
    }
 }
 
@@ -1317,16 +1325,18 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->srgb = p0->u.cfg0.srgb;
       cfg->pix_mask = p0->u.cfg0.pix_mask;
 
+      v3d_tmu_ltype_t ltype = V3D_TMU_LTYPE_2D;
       set_wraps(cfg,
          wrap_from_cfg0(NULL, p1_cfg0->wrap_s),
-         wrap_from_cfg0(&cfg->ltype, p1_cfg0->wrap_t),
+         wrap_from_cfg0(&ltype, p1_cfg0->wrap_t),
          V3D_TMU_WRAP_REPEAT);
-      set_filter(cfg, p1_cfg0->filter);
+      set_ltype(cfg, ltype);
+      set_filters(cfg, p1_cfg0->filters);
       cfg->bslod = p1_cfg0->bslod;
       cfg->l0_addr = p1_cfg0->base;
 
-      /* Must be done after cfg->ltype is set */
-      set_dims(cfg, p0->u.cfg0.width, p0->u.cfg0.height, 1);
+      /* Must be done after set_ltype */
+      set_whd_elems(cfg, p0->u.cfg0.width, p0->u.cfg0.height, 1);
       /* Can't do child image with cfg0... */
       cfg->cwidth = cfg->width;
       cfg->cheight = cfg->height;
@@ -1346,7 +1356,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->swizzles[2] = V3D_TMU_SWIZZLE_B;
       cfg->swizzles[3] = V3D_TMU_SWIZZLE_A;
 
-      cfg->max_lod = (get_miplvls_from_dims(cfg) - 1) << 8;
+      cfg->max_lod = (get_miplvls_from_dims(cfg) - 1) << V3D_TMU_F_BITS;
 
       output_type = misccfg->ovrtmuout ? V3D_TMU_OUTPUT_TYPE_16 : V3D_TMU_OUTPUT_TYPE_AUTO;
 
@@ -1354,14 +1364,14 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    case 1:
       assert(!p1_cfg0);
 
-      cfg->ltype = p0->u.cfg1.ltype;
+      set_ltype(cfg, p0->u.cfg1.ltype);
       cfg->fetch = p0->u.cfg1.fetch;
       cfg->gather = p0->u.cfg1.gather;
       cfg->bias = p0->u.cfg1.bias;
       cfg->bslod = p0->u.cfg1.bslod;
       cfg->coefficient = p0->u.cfg1.coefficient;
       cfg->shadow = p0->u.cfg1.shadow;
-      set_wraps(cfg, p0->u.cfg1.wrap_s, p0->u.cfg1.wrap_t, p0->u.cfg1.wrap_r); /* Must be after cfg->ltype & cfg->fetch set */
+      set_wraps(cfg, p0->u.cfg1.wrap_s, p0->u.cfg1.wrap_t, p0->u.cfg1.wrap_r); /* Must be after cfg->dims & cfg->fetch set */
       cfg->tex_off_s = p0->u.cfg1.tex_off_s;
       cfg->tex_off_t = p0->u.cfg1.tex_off_t;
       cfg->tex_off_r = p0->u.cfg1.tex_off_r;
@@ -1373,11 +1383,11 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->word_en[3] = p1_cfg1->word3_en;
       cfg->unnorm = p1_cfg1->unnorm;
 
-      set_filter(cfg, ind->filter);
+      set_filters(cfg, ind->filters);
       border_rrra = ind->border_rrra;
       cfg->l0_addr = ind->base;
       cfg->arr_str = ind->arr_str;
-      set_dims(cfg, ind->width, ind->height, ind->depth);
+      set_whd_elems(cfg, ind->width, ind->height, ind->depth);
       cfg->type = ind->ttype;
       cfg->srgb = ind->srgb;
       cfg->ahdr = ind->ahdr;
@@ -1388,13 +1398,13 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       assert(ind->etcflip); /* We do not support etcflip=0 */
       bcolour[0] = (uint32_t)ind->bcolour;
       bcolour[1] = (uint32_t)(ind->bcolour >> 32);
-      if (cfg->ltype == V3D_TMU_LTYPE_CHILD_IMAGE)
+      if (cfg->child_image)
       {
          /* max_lod not provided. Mipmapping is not supported in child image
           * mode, but lambda is still used for min/mag determination. Hardware
-          * defaults max_lod to 0x100 (rather than 0) to avoid always choosing
-          * magnification. */
-         cfg->max_lod = 0x100;
+          * defaults max_lod to V3D_TMU_F_ONE (rather than 0) to avoid always
+          * choosing magnification. */
+         cfg->max_lod = V3D_TMU_F_ONE;
          cfg->cwidth = ind->u.child_image.cwidth;
          cfg->cheight = ind->u.child_image.cheight;
          cfg->cxoff = ind->u.child_image.cxoff;

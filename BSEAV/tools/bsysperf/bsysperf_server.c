@@ -382,7 +382,7 @@ static int bmemperf_computeIrqData(
             irqAvgCount++;
             irqAvg /= irqAvgCount;
 
-            PRINTF2( " 2222 avg (%5.1f * %lu) + %5.1f = %5.1f; first (%lu - %lu)/%lu = %lu\n", oldAvg, oldCount, delta, irqAvg, irqDataNow.irqTotal, irqAvgFirst, irqAvgCount,
+            PRINTF2( "avg (%5.1f * %lu) + %5.1f = %5.1f; first (%lu - %lu)/%lu = %lu\n", oldAvg, oldCount, delta, irqAvg, irqDataNow.irqTotal, irqAvgFirst, irqAvgCount,
                 ( irqDataNow.irqTotal - irqAvgFirst )/irqAvgCount );
         }
     }
@@ -400,6 +400,29 @@ static int bmemperf_computeIrqData(
             pIrqData->irqDetails[irq].irqCountPrev[cpu] = g_savedIrqData.irqDetails[irq].irqCount[cpu];
         }
     }
+#if 0
+    for (irq = 0; irq < BMEMPERF_IRQ_MAX_TYPES; irq++)
+    {
+        unsigned long int total = 0;
+        unsigned long int delta = 0;
+        for (cpu = 0; cpu < numActiveCpus; cpu++)
+        {
+            bool match = strstr( pIrqData->irqDetails[irq].irqName, "arch_timer");
+            delta = pIrqData->irqDetails[irq].irqCount[cpu] - pIrqData->irqDetails[irq].irqCountPrev[cpu];
+            if ( match && delta > 0 )
+            {
+                if( cpu==0) printf("IRQ %d (%s) ... ", irq, pIrqData->irqDetails[irq].irqName );
+                total += delta;
+                printf("%3ld    ", delta );
+                if ( (cpu+1) == numActiveCpus)
+                {
+                    printf("= %4ld\n", total );
+                    total = 0;
+                }
+            }
+        }
+    }
+#endif
     /* save the current values to be used to compute the delta the next pass through */
     g_savedIrqData = irqDataNow;
 
@@ -670,6 +693,11 @@ static pthread_t Bsysperf_WifiAmpduStart(
     void
     )
 {
+    /* check if the wifi driver is loaded */
+    if ( Bsysperf_WifiDriverIsLoaded() == false )
+    {
+        return ( 0 );
+    }
 
     if ( g_wifiAmpduStartTime )
     {

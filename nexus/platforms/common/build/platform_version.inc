@@ -41,4 +41,4 @@
 ############################################################
 
 NEXUS_PLATFORM_VERSION_MAJOR = 17
-NEXUS_PLATFORM_VERSION_MINOR = 1
+NEXUS_PLATFORM_VERSION_MINOR = 2

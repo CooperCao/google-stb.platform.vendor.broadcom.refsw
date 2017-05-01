@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_reghint_visitor.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow.h"
@@ -20,7 +12,7 @@ static void Destroy(void *me)
 
 static void Accept(void *me, DFlowNode *node)
 {
-   DFlowRegHintVisitor  *self = (DFlowRegHintVisitor *)me;
+   UNUSED(me);
    const NodeList       *children;
 
    // If this node is a "given" i.e. the result must use a given register file,

@@ -190,6 +190,10 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLSIGNALSYNCKHRPROC) (EGLDisplay dpy, EGLSy
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLGETSYNCATTRIBKHRPROC) (EGLDisplay dpy, EGLSyncKHR sync, EGLint attribute, EGLint *value);
 #endif
 
+#ifndef EGL_KHR_get_all_proc_addresses
+#define EGL_KHR_get_all_proc_addresses 1
+#endif /* EGL_KHR_get_all_proc_addresses */
+
 /*
  * Android extensions.
  */

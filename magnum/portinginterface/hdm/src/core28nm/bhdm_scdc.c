@@ -313,6 +313,8 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 		goto done ;
 	}
 
+	BKNI_Memset(&statusControlData, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
+
 	items = sizeof(scdcStatusControlDataMap) / sizeof(BHDM_SCDC_DataMap) ;
 	i2cHandle = hHDMI->hI2cRegHandle ;
 
@@ -363,6 +365,25 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 
 
 	/* get derived values */
+
+	/*******************************/
+	/* Clock and Channel Lock Status */
+	/*******************************/
+	statusControlData.Clock_Detected =
+		statusControlData.StatusFlags_0 & BHDM_SCDC_STATUS_FLAGS_0_MASK_CLOCK_DETECTED ;
+
+	statusControlData.Ch0_Locked =
+		statusControlData.StatusFlags_0 & BHDM_SCDC_STATUS_FLAGS_0_MASK_CH0_LOCKED ;
+	statusControlData.Ch1_Locked =
+		statusControlData.StatusFlags_0 & BHDM_SCDC_STATUS_FLAGS_0_MASK_CH1_LOCKED ;
+	statusControlData.Ch2_Locked =
+		statusControlData.StatusFlags_0 & BHDM_SCDC_STATUS_FLAGS_0_MASK_CH2_LOCKED ;
+
+	/*******************************/
+	/* Character Error Detection (CED) */
+	/*******************************/
+
+	/* CED is calculated over all 3 channels and includes the checksum itself */
 	checksum = 0 ;
 	for (i = 0 ; i < 3 ; i++)
 	{
@@ -384,7 +405,7 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	/* report any detected errors if valid status/checksum read */
 	if (checksum)
 	{
-		BDBG_WRN(("Invalid CED checksum: Read: %02X Calc: %02X ",
+		BDBG_WRN(("Invalid CED (all 3 channels) checksum: Read: %02X Calculated: %02X ",
 			statusControlData.ErrorDetectionChecksum, checksum)) ;
 	}
 	else if ((statusControlData.ch[0].valid && statusControlData.ch[0].errorCount)
@@ -403,6 +424,7 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	}
 #endif
 
+	statusControlData.valid = true ;
 	*pStatusControlData = statusControlData ;
 	hHDMI->stStatusControlData = statusControlData ;
 
@@ -488,7 +510,7 @@ void BHDM_SCDC_DisableScrambleTx(BHDM_Handle hHDMI)
 		BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, 0) ;
 }
 
-void BHDM_SCDC_P_ReadStatusUpdates_isr(BHDM_Handle hHDMI)
+static void BHDM_SCDC_P_ReadStatusUpdates_isr(BHDM_Handle hHDMI)
 {
 	BERR_Code rc ;
 	uint8_t slaveAddress, slaveOffset, length ;

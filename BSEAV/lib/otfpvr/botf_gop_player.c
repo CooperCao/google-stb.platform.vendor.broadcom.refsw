@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1008,7 +1008,7 @@ b_pvr_gop_filter_seq(bpvr_gop_player player)
                 player->frame_count = 0;
                 player->disp_count = 0;
             }			
-            if (player->frame_count >= player->disp_count) {                
+            if (player->frame_count >= player->disp_count && !gop->flags.disp_iframe) {
                 /*
                  * Following logic need to make sure that if there is no filtered frame where we are 
                  * supposed to display a frame, it will display previous filtered frame.

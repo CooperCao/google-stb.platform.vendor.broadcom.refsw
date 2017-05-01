@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,6 @@
 /* Magnum */
 #include "bstd.h"
 #include "bkni.h"
-#include "bmem.h"
 #include "bchp_xpt_rave.h"
 
 /* OTF */
@@ -114,7 +113,7 @@ BERR_Code BOTF_Open(const BOTF_Params *Params, BOTF_Handle *hOtf)
     rc = BKNI_CreateEvent(&lhOtf->DataEndEvent);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_event; }
 
-    lhOtf->hBMem = Params->hBMem;
+    lhOtf->mma = Params->mma;
     lhOtf->hBReg = Params->hBReg;
     lhOtf->InputParserCDBSize = Params->InputParserCDBSize;
     lhOtf->InputParserITBSize = Params->InputParserITBSize;
@@ -125,15 +124,8 @@ BERR_Code BOTF_Open(const BOTF_Params *Params, BOTF_Handle *hOtf)
     lhOtf->IpParserRegMap = Params->inputContext;
     lhOtf->OpParserRegMap = Params->outputContext;
 
-	if (rc == BERR_SUCCESS) {
-        BMEM_HeapInfo hi;
-
-        /* Calculate the mem_base value, this value will be added
-         * to the CDB base address from ITB entries.
-         * This may be negative value depending on the memory mapping.
-         */
-        BMEM_Heap_GetInfo(lhOtf->hBMem, &hi);
-        botf_mem_init(&lhOtf->mem, hi.ulOffset, hi.pvAddress, hi.zSize, lhOtf);
+    if (rc == BERR_SUCCESS) {
+        botf_mem_init(&lhOtf->mem, Params->itb_heap.addr, Params->itb_heap.cached_ptr, Params->itb_heap.size, lhOtf, Params->itb_heap.FlushCache);
         lhOtf->OPParserPtrs.mem = &lhOtf->mem;
         lhOtf->IPParserPtrs.mem = &lhOtf->mem;
     }
@@ -321,15 +313,6 @@ BERR_Code BOTF_ConfigSet( BOTF_Handle hOtf, const BOTF_Config *Config)
 	hOtf->Settings = *Config;
 
     return BERR_SUCCESS;
-}
-
-void BOTF_PTSReferenceGet( BOTF_Handle hOtf)
-{
-    BDBG_OBJECT_ASSERT(hOtf, BOTF);
-
-    hOtf->DataEndTime = 0;
-
-	return;
 }
 
 void BOTF_DisableForFlush(BOTF_Handle hOtf)

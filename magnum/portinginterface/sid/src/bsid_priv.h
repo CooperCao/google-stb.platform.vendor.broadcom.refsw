@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -295,6 +295,7 @@ typedef struct BSID_P_Channel {
     BSID_ChannelQueue    sDataQueue; /* large data exchange between mips and arc (stream info, decoded image) */
     bool                 b_FlushPending;
     bool                 bAbortInitiated;
+    bool                 bStarted;            /* indicates if the channel has been started */
     BKNI_EventHandle     hSyncEvent;
     BKNI_EventHandle     hAbortedEvent;
 
@@ -339,7 +340,6 @@ BERR_Code BSID_P_ResumeActiveChannels(BSID_Handle hSid);
 void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh);
 bool BSID_P_IsStillOperationAllowed(BSID_Handle hSid);
 bool BSID_P_IsMotionOperationAllowed(BSID_Handle hSid);
-bool BSID_P_AllChannelAvailable(BSID_Handle hSid);
 bool BSID_P_AnyChannelAvailable(BSID_Handle hSid, uint32_t *idleChannel);
 void BSID_P_Watchdog_isr(void *pContext, int iParam);
 bool BSID_P_IsChannelQueueFull(BSID_ChannelHandle hSidCh);

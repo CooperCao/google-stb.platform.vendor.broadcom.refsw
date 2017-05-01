@@ -71,15 +71,15 @@ void PageTable::init() {
     kernPageTable = new(kernPageTableMem) PageTable;
 
     uint64_t l1Table;
-    register unsigned int ttbr0Low, ttbr0High;
-	ARCH_SPECIFIC_GET_TTBR0(ttbr0Low,ttbr0High);
-    l1Table = ((uint64_t)ttbr0High << 32) | ttbr0Low;
+    register unsigned int ttbr1Low, ttbr1High;
+    ARCH_SPECIFIC_GET_TTBR1(ttbr1Low,ttbr1High);
+    l1Table = ((uint64_t)ttbr1High << 32) | ttbr1Low;
 
     sys_page_table = (void *)l1Table;
 
     kernPageTable->topLevelDir = (uint64_t *)TzMem::physToVirt((const void *)l1Table);
     kernPageTable->asid = KERNEL_ASID;
-	printf("Kernel page table base addr %p\n", (void *)kernPageTable->topLevelDir);
+    printf("Kernel page table base addr %p\n", (void *)kernPageTable->topLevelDir);
 
     spinLockInit(&allocLock);
 }
@@ -250,7 +250,8 @@ void PageTable::reserveRange(TzMem::VirtAddr vaddrFirstPage, TzMem::VirtAddr vad
 
     while (vaddr < vaddrLastPage) {
 
-		const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+		int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        l1Idx = l1Idx & 0x01;
 		uint64_t l1Entry = topLevelDir[l1Idx];
         // printf("Mapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
         if (l1Entry == 0) {
@@ -315,7 +316,8 @@ void PageTable::releaseAddrRange(TzMem::VirtAddr vaddrFirstPage, unsigned int ra
         return;
 
     while (vaddr < vaddrLastPage) {
-		const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+		int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        l1Idx = l1Idx & 0x01;
 		uint64_t l1Entry = topLevelDir[l1Idx];
         // printf("UnMapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
         if (l1Entry == 0)
@@ -366,7 +368,8 @@ void PageTable::mapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::
 
     while (vaddr <= vaddrLastPage) {
 
-		const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+		 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        l1Idx = l1Idx & 0x01;
 		uint64_t l1Entry = topLevelDir[l1Idx];
         // printf("Mapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
         if (l1Entry == 0) {
@@ -455,7 +458,8 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem
     TzMem::VirtAddr vaddr = vaddrFirstPage;
 
     while (vaddr <= vaddrLastPage) {
-		const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+		 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        l1Idx = l1Idx & 0x01;
 		if (topLevelDir[l1Idx] == 0) {
 			err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped. No L1 entry.\n", __PRETTY_FUNCTION__, vaddr);
             kernelHalt("Attempted unmap a page that wasn't mapped");
@@ -577,7 +581,8 @@ TzMem::PhysAddr PageTable::lookUpNoLock(TzMem::VirtAddr vaddr, PageTable::EntryA
 	if (topLevelDir == nullptr)
         return nullptr;
 
-	const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+	 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    l1Idx = l1Idx & 0x01;
 	const uint64_t l1Entry = topLevelDir[l1Idx];
     if (l1Entry == 0)
         return nullptr;
@@ -711,7 +716,8 @@ void PageTable::copyOnWrite(void *va) {
 }
 
 void PageTable::makePageCopyOnWrite(const TzMem::VirtAddr vaddr) {
-	const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+	 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    l1Idx = l1Idx & 0x01;
 	if (topLevelDir[l1Idx] == 0) {
         err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");
@@ -754,7 +760,8 @@ void PageTable::makePageCopyOnWrite(const TzMem::VirtAddr vaddr) {
 
 void PageTable::changePageAccessPerms(TzMem::VirtAddr vaddr, int accessPerms, bool noExec) {
 
-	const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+	 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    l1Idx = l1Idx & 0x01;
 	if (topLevelDir[l1Idx] == 0) {
         err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");

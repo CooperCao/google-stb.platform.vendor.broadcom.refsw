@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,6 +65,40 @@ Description: Audio Post Processing stage
 
 typedef struct NEXUS_AudioProcessor *NEXUS_AudioProcessorHandle;
 
+
+/***************************************************************************
+Summary:
+Advanced Audio Tsm processing mode
+***************************************************************************/
+typedef enum NEXUS_AudioAdvancedTsmMode
+{
+    NEXUS_AudioAdvancedTsmMode_eOff,
+    NEXUS_AudioAdvancedTsmMode_eDsola, /* stretches or shrinks audio, using pitch correction */
+    NEXUS_AudioAdvancedTsmMode_ePpm,   /* repeat or drop audio samples, smoothing with neighboring samples */
+    NEXUS_AudioAdvancedTsmMode_eMax
+} NEXUS_AudioAdvancedTsmMode;
+
+/***************************************************************************
+Summary:
+Advanced Audio Tsm Settings
+***************************************************************************/
+typedef struct NEXUS_AudioAdvancedTsmSettings
+{
+    NEXUS_AudioAdvancedTsmMode mode;
+} NEXUS_AudioAdvancedTsmSettings;
+
+/***************************************************************************
+Summary:
+Advanced Audio Tsm Status
+***************************************************************************/
+typedef struct NEXUS_AudioAdvancedTsmStatus
+{
+    NEXUS_AudioAdvancedTsmMode mode;    /* current mode of Advanced TSM processor */
+    uint32_t pts;                       /* current PTS in 45kHz units */
+    NEXUS_PtsType ptsType;              /* PTS Type */
+    int correction;                     /* Correction to this PTS in milliseconds */
+} NEXUS_AudioAdvancedTsmStatus;
+
 /***************************************************************************
 Summary:
 Audio Processor Settings
@@ -76,6 +110,7 @@ typedef struct NEXUS_AudioProcessorSettings
     {
         NEXUS_AudioFadeSettings fade;
         NEXUS_KaraokeVocalSettings karaokeVocal;
+        NEXUS_AudioAdvancedTsmSettings advancedTsm;
     } settings;
 } NEXUS_AudioProcessorSettings;
 
@@ -100,6 +135,7 @@ typedef struct NEXUS_AudioProcessorStatus
     NEXUS_AudioPostProcessing type;
     union
     {
+        NEXUS_AudioAdvancedTsmStatus advancedTsm;
         NEXUS_AudioFadeStatus fade;
     } status;
 } NEXUS_AudioProcessorStatus;
@@ -164,6 +200,15 @@ Summary:
 ***************************************************************************/
 NEXUS_AudioInputHandle NEXUS_AudioProcessor_GetConnector(
     NEXUS_AudioProcessorHandle handle
+    );
+
+/***************************************************************************
+Summary:
+    Get the audio connector for a AudioProcessor stage
+***************************************************************************/
+NEXUS_AudioInputHandle NEXUS_AudioProcessor_GetConnectorByType(
+    NEXUS_AudioProcessorHandle handle,
+    NEXUS_AudioConnectorType type
     );
 
 /***************************************************************************

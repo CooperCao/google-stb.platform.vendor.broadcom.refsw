@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Contains per-process state and per-thread state
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdlib.h>
 #include "vcos.h"
 #include "khrn_options.h"
@@ -42,6 +34,7 @@ static struct statics {
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    V3D_MISCCFG_T misccfg;
 #endif
+   char device_name[32];
    char gl11_exts_str[GL11_EXTS_STR_MAX_SIZE];
    char gl3x_exts_str[GL20_EXTS_STR_MAX_SIZE];
    unsigned num_gl3x_exts;
@@ -66,6 +59,11 @@ gmem_handle_t khrn_get_gfxh_1320_buffer(void)
    return statics.gfxh_1320_buffer;
 }
 #endif
+
+const char *khrn_get_device_name(void)
+{
+   return statics.device_name;
+}
 
 const char *khrn_get_gl11_exts_str(void)
 {
@@ -128,7 +126,7 @@ static bool khrn_statics_init(struct statics *s)
 {
    unsigned int *p;
    unsigned int i;
-   /* TODO - this size is assumed by glxx_calculate_and_hide() */
+   /* This size is assumed by compute_texture_uniforms() */
    const unsigned int texture_size = 64
       * 6;/* Alloc more space for cube map textures. */
 
@@ -160,6 +158,8 @@ static bool khrn_statics_init(struct statics *s)
    if (s->gfxh_1320_buffer == GMEM_HANDLE_INVALID)
       goto error;
 #endif
+
+   v3d_sprint_device_name(statics.device_name, sizeof(statics.device_name), 0, v3d_scheduler_get_identity());
 
    verif((gl11_exts_str(statics.gl11_exts_str) - statics.gl11_exts_str) < sizeof(statics.gl11_exts_str));
    verif((gl20_exts_str(statics.gl3x_exts_str) - statics.gl3x_exts_str) < sizeof(statics.gl3x_exts_str));
@@ -198,7 +198,9 @@ void khrn_process_shutdown(void)
       khrn_statics_shutdown(&statics);
       khrn_mem_term();
       khrn_fmem_client_pool_deinit();
+#if !V3D_HAS_QTS
       khrn_tile_state_deinit();
+#endif
       v3d_parallel_term();
       v3d_platform_shutdown();
       profile_shutdown();
@@ -244,7 +246,9 @@ bool khrn_process_init(void)
          {
             if (khrn_statics_init(&statics))
             {
+             #if !V3D_HAS_QTS
                khrn_tile_state_init();
+             #endif
                return true;
             }
             khrn_fmem_client_pool_deinit();

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -811,15 +811,8 @@ typedef struct BAPE_SrcCoefficientsSettings
     }modeSettings;
 } BAPE_SrcCoefficientsSettings;
 
-/***************************************************************************
-Summary:
-Get Default SRC Coefficient Memory Parameters
-***************************************************************************/
-void BAPE_SrcCoefficients_P_GetDefaultSettings(
-    BAPE_Handle deviceHandle,
-    const BAPE_SrcCoefficientsSettings *pSettings
-    );
 
+#if BAPE_CHIP_SRC_TYPE_IS_IIR
 /***************************************************************************
 Summary:
 Allocate SRC Coefficient Memory
@@ -839,6 +832,17 @@ void BAPE_SrcCoefficients_P_Free(
     BAPE_SrcCoefficients *pCoefficients             /* [modified] Coefficients will be released */
     );
 
+/***************************************************************************
+Summary:
+Update Coefficients in the SRC Coefficients Memory
+***************************************************************************/
+void BAPE_SrcGroup_P_UpdateCoefficients_isr(
+    BAPE_SrcGroupHandle src,
+    BAPE_SRC_P_IIRCoeff *pCoeff,
+    unsigned *pStepSize          /* NULL indicates No Ramping */
+    );
+
+#endif
 typedef struct BAPE_SrcGroupCoefficients
 {
     BAPE_SrcCoefficients    srcCoefficients[BAPE_ChannelPair_eMax];
@@ -972,16 +976,6 @@ Get FCI Connection IDs for this group
 void BAPE_SrcGroup_P_GetOutputFciIds(
     BAPE_SrcGroupHandle handle,
     BAPE_FciIdGroup *pFciGroup      /* [out] */
-    );
-
-/***************************************************************************
-Summary:
-Update Coefficients in the SRC Coefficients Memory
-***************************************************************************/
-void BAPE_SrcGroup_P_UpdateCoefficients_isr(
-    BAPE_SrcGroupHandle src,
-    BAPE_SRC_P_IIRCoeff *pCoeff,
-    unsigned *pStepSize          /* NULL indicates No Ramping */
     );
 
 /***************************************************************************

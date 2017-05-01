@@ -36,6 +36,11 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
+ifeq ($(B_REFSW_ARCH),arm-linux)
+AONA_VER = v7
+else ifeq ($(B_REFSW_ARCH),aarch64-linux)
+AONA_VER = v8
+endif
 
 #
 # Conditional Options for this Makefile
@@ -45,13 +50,13 @@
 #
 
 # Include standard files
-BDSP_ARM_INCLUDES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/v7
+BDSP_ARM_INCLUDES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/$(AONA_VER)
 
 
 #
 # All Firmware sources must be in BDSP_ARM_IMG_SOURCES, not BDSP_SOURCES.  Based on BDSP_ARM_IMG_EXTERNAL, choose to include the firmware files or not at the end.
 #
-BDSP_ARM_IMG_SOURCES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/bdsp_arm_img.c
+BDSP_ARM_IMG_SOURCES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/$(AONA_VER)/bdsp_arm_img.c
 #
 
 # Determine defines based on presence of files.
@@ -59,8 +64,9 @@ BDSP_ARM_IMG_SOURCES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/bdsp_arm_i
 # Based on algo defines, include proper firmware files.
 # Add firmware files here
 BDSP_ARM_IMG_SOURCES += \
-	$(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/barm_sys_code.c \
-	$(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/barm_hbc_code.c
+	$(MAGNUM)/basemodules/dsp/src/arm/firmware/$(AONA_VER)/barm_sys_code.c \
+	$(MAGNUM)/basemodules/dsp/src/arm/firmware/$(AONA_VER)/barm_dma_code.c \
+	$(MAGNUM)/basemodules/dsp/src/arm/firmware/$(AONA_VER)/barm_hbc_code.c
 
 
 #
@@ -68,7 +74,7 @@ BDSP_ARM_IMG_SOURCES += \
 #
 ifneq ($(BDSP_ARM_DDPENC_SUPPORT),n)
 BDSP_ARM_DDPENC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/barm_aenc_ddp.c
+	$(MAGNUM)/basemodules/dsp/src/arm/firmware/$(AONA_VER)/barm_aenc_ddp.c
 endif
 ifeq ($(BDSP_ARM_DDPENC_SUPPORT),y)
 BDSP_DEFINES += BDSP_ARM_DDPENC_SUPPORT

@@ -799,7 +799,10 @@ eRet CPlayback::stop(CPidMgr * pidMgr)
     BDBG_MSG((" STOPING %s file and its Playback Active %d", _currentVideo->getVideoName().s(), _currentVideo->isPlaybackActive()));
 
     /* Close all Pids associate with this playback and close the PID channels */
-    NEXUS_Playback_Stop(_playback);
+    if (NULL != _playback)
+    {
+        NEXUS_Playback_Stop(_playback);
+    }
 
     /* IP playback Case*/
     if ((isIp() == true) && (pidMgr != NULL))

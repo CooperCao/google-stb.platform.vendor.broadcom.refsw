@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,21 +70,21 @@
 /***************************************************************************
  *XPT_PMU_SCB - XPT PMU SCB Control Registers
  ***************************************************************************/
-#define BCHP_XPT_PMU_SCB_SCB_CLK_CTRL            0x20a00380 /* [RW] Power Management control */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_CLK_GATE_SUB_MODULE_EN 0x20a00384 /* [RW] Hardware Controlled Clock Gating sub-module enable */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_CLK_GATE_SUB_MODULE_STATUS 0x20a00388 /* [RO] Hardware Controlled Clock Gating sub-module status */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_MIN_START_DELAY 0x20a0038c /* [RW] Hardware Controlled Clock Gating minimum start delay */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_MIN_RUN_DELAY   0x20a00390 /* [RW] Hardware Controlled Clock Gating minimum run delay */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_CTRL_END_DELAY  0x20a00394 /* [RW] Hardware Controlled Clock Gating end delay */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_PDA_SETUP_DELAY 0x20a00398 /* [RW] Hardware Controlled PDA SETUP DELAY */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_PDA_HOLD_DELAY  0x20a0039c /* [RW] Hardware Controlled PDA HOLD DELAY */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_CLCT_CTRL       0x20a003a0 /* [RW] Collecting Control */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_CLCT_RST        0x20a003a4 /* [RW] Collecting Reset */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_CLCT_FREEZE     0x20a003a8 /* [RW] Collecting Freeze */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_FR_CLK_VALUE_HI 0x20a003ac /* [RO] Free running clock higher value */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_FR_CLK_VALUE_LO 0x20a003b0 /* [RO] Free running clock lower value */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_GT_CLK_VALUE_HI 0x20a003b4 /* [RO] Gated Clock higher value */
-#define BCHP_XPT_PMU_SCB_SCB_HWG_GT_CLK_VALUE_LO 0x20a003b8 /* [RO] Gated Clock lower value */
+#define BCHP_XPT_PMU_SCB_SCB_CLK_CTRL            0x20a00380 /* [RW][32] Power Management control */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_CLK_GATE_SUB_MODULE_EN 0x20a00384 /* [RW][32] Hardware Controlled Clock Gating sub-module enable */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_CLK_GATE_SUB_MODULE_STATUS 0x20a00388 /* [RO][32] Hardware Controlled Clock Gating sub-module status */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_MIN_START_DELAY 0x20a0038c /* [RW][32] Hardware Controlled Clock Gating minimum start delay */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_MIN_RUN_DELAY   0x20a00390 /* [RW][32] Hardware Controlled Clock Gating minimum run delay */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_CTRL_END_DELAY  0x20a00394 /* [RW][32] Hardware Controlled Clock Gating end delay */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_PDA_SETUP_DELAY 0x20a00398 /* [RW][32] Hardware Controlled PDA SETUP DELAY */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_PDA_HOLD_DELAY  0x20a0039c /* [RW][32] Hardware Controlled PDA HOLD DELAY */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_CLCT_CTRL       0x20a003a0 /* [RW][32] Collecting Control */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_CLCT_RST        0x20a003a4 /* [RW][32] Collecting Reset */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_CLCT_FREEZE     0x20a003a8 /* [RW][32] Collecting Freeze */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_FR_CLK_VALUE_HI 0x20a003ac /* [RO][32] Free running clock higher value */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_FR_CLK_VALUE_LO 0x20a003b0 /* [RO][32] Free running clock lower value */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_GT_CLK_VALUE_HI 0x20a003b4 /* [RO][32] Gated Clock higher value */
+#define BCHP_XPT_PMU_SCB_SCB_HWG_GT_CLK_VALUE_LO 0x20a003b8 /* [RO][32] Gated Clock lower value */
 
 /***************************************************************************
  *SCB_CLK_CTRL - Power Management control

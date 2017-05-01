@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  3D Tools
-Module   :  2760 3D ("Penrose") Simulator
-
-FILE DESCRIPTION
-Emulates QPU floating point operations and 16-bit float packing/unpacking.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef QPU_FLOAT_H
 #define QPU_FLOAT_H
 

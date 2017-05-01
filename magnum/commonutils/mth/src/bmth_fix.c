@@ -1,40 +1,41 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #include "bmth_fix.h"
 #include "bstd.h"
 
@@ -187,7 +188,7 @@ int64_t BMTH_FIX_SIGNED_MUL_64_isrsafe(int64_t x, int64_t y, uint32_t xfract, ui
  * BMTH_FIX_LOG2
  *
  *************************************************************************/
-uint32_t BMTH_FIX_LOG2(uint32_t x)
+uint32_t BMTH_FIX_LOG2_isrsafe(uint32_t x)
 {
 	const uint32_t bitarray[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
 	const uint32_t shiftarray[] = {1, 2, 4, 8, 16};
@@ -205,10 +206,32 @@ uint32_t BMTH_FIX_LOG2(uint32_t x)
 }
 
 /*************************************************************************
- * BMTH_P_FIX_SIGNED_MININTBITS
+ * BMTH_FIX_LOG2_64
  *
  *************************************************************************/
-uint32_t BMTH_P_FIX_SIGNED_MININTBITS(uint32_t x, uint32_t intbits, uint32_t fractbits)
+uint32_t BMTH_FIX_LOG2_64_isrsafe(uint64_t x)
+{
+	uint64_t bitarray[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF};
+	const uint64_t shiftarray[] = {1, 2, 4, 8, 16, 32};
+	int32_t i = 0;
+	uint32_t log = 0;
+	bitarray[5] = bitarray[5] << 31;
+	for (i = 5; i >= 0; i--)
+	{
+		if (x & bitarray[i])
+		{
+			x >>= shiftarray[i];
+			log |= shiftarray[i];
+		}
+	}
+	return log;
+}
+
+/*************************************************************************
+ * BMTH_P_FIX_SIGNED_MININTBITS_isrsafe
+ *
+ *************************************************************************/
+uint32_t BMTH_P_FIX_SIGNED_MININTBITS_isrsafe(uint32_t x, uint32_t intbits, uint32_t fractbits)
 {
 	uint32_t ulMinIntBits;
 	int32_t ulFixInput = BMTH_FIX_SIGNED_CONVERT_isrsafe(x, intbits, fractbits, BMTH_P_FIX_SIGNED_MAX_BITS, 0);
@@ -226,10 +249,31 @@ uint32_t BMTH_P_FIX_SIGNED_MININTBITS(uint32_t x, uint32_t intbits, uint32_t fra
 
 
 /*************************************************************************
+ * BMTH_P_FIX_SIGNED_MININTBITS_64_isrsafe
+ *
+ *************************************************************************/
+uint32_t BMTH_P_FIX_SIGNED_MININTBITS_64_isrsafe(int64_t x, uint32_t intbits, uint32_t fractbits)
+{
+	uint32_t ulMinIntBits;
+	int64_t lFixInput = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(x, fractbits, 0);
+
+	if(x & BMTH_P_FIX_SIGN_BIT(intbits, fractbits))
+	{
+		ulMinIntBits = BMTH_FIX_LOG2_64((uint64_t)((int64_t)lFixInput * (-1)));
+	}
+	else
+	{
+		ulMinIntBits = BMTH_FIX_LOG2_64(lFixInput) + 1;
+	}
+	return ulMinIntBits;
+}
+
+
+/*************************************************************************
  * BMTH_FIX_SIGNED_MOD
  *
  *************************************************************************/
-uint32_t BMTH_FIX_SIGNED_MOD(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfract, uint32_t yint, uint32_t yfract, uint32_t outint, uint32_t outfract)
+uint32_t BMTH_FIX_SIGNED_MOD_isrsafe(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfract, uint32_t yint, uint32_t yfract, uint32_t outint, uint32_t outfract)
 {
 	int32_t  lFixX;
 	int32_t  lFixY;
@@ -241,8 +285,8 @@ uint32_t BMTH_FIX_SIGNED_MOD(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfr
 	uint32_t ulTempXIntBits = 0;
 	uint32_t ulTempYIntBits = 0;
 
-	ulTempXIntBits = BMTH_P_FIX_SIGNED_MININTBITS(x, xint, xfract);
-	ulTempYIntBits = BMTH_P_FIX_SIGNED_MININTBITS(y, yint, yfract);
+	ulTempXIntBits = BMTH_P_FIX_SIGNED_MININTBITS_isrsafe(x, xint, xfract);
+	ulTempYIntBits = BMTH_P_FIX_SIGNED_MININTBITS_isrsafe(y, yint, yfract);
 	ulTempIntBits = (ulTempXIntBits > ulTempYIntBits) ? ulTempXIntBits : ulTempYIntBits;
 
 	if (ulTempIntBits < outint)
@@ -266,11 +310,45 @@ uint32_t BMTH_FIX_SIGNED_MOD(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfr
 }
 
 
+/*************************************************************************
+ * BMTH_FIX_SIGNED_MOD_64
+ *
+ *************************************************************************/
+int64_t BMTH_FIX_SIGNED_MOD_64_isrsafe(int64_t x, int64_t y, uint32_t xint, uint32_t xfract, uint32_t yint, uint32_t yfract, uint32_t outint, uint32_t outfract)
+{
+	int64_t  lFixX;
+	int64_t  lFixY;
+	int64_t  lFixMod;
+	uint32_t ulTempIntBits = 0;
+	uint32_t ulTempFractBits = 0;
+	uint32_t ulTempXIntBits = 0;
+	uint32_t ulTempYIntBits = 0;
+
+	ulTempXIntBits = BMTH_P_FIX_SIGNED_MININTBITS_64_isrsafe(x, xint, xfract);
+	ulTempYIntBits = BMTH_P_FIX_SIGNED_MININTBITS_64_isrsafe(y, yint, yfract);
+	ulTempIntBits = (ulTempXIntBits > ulTempYIntBits) ? ulTempXIntBits : ulTempYIntBits;
+
+	if (ulTempIntBits < outint)
+	{
+		ulTempIntBits = outint;
+	}
+
+	ulTempFractBits = BMTH_P_FIX_SIGNED_MAX_BITS - ulTempIntBits;
+
+	/* convert to common format */
+	lFixX = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(x, xfract, ulTempFractBits);
+	lFixY = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(y, yfract, ulTempFractBits);
+	lFixMod = lFixX % lFixY;
+
+	return BMTH_FIX_SIGNED_CONVERT_64_isrsafe(lFixMod, ulTempFractBits, outfract);
+}
+
+
 /***************************************************************************
  * {private}
  *
  */
-uint32_t BMTH_P_FIX_SIGNED_SIN_CALC(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
+uint32_t BMTH_P_FIX_SIGNED_SIN_CALC_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
 {
 	uint32_t ulRadIntBits      = xint;
 	uint32_t ulRadFractBits    = xfract;
@@ -312,7 +390,7 @@ uint32_t BMTH_P_FIX_SIGNED_SIN_CALC(uint32_t x, uint32_t xint, uint32_t xfract, 
 			ulFixXModPi : (ulFixPi - ulFixXModPi);
 
 	/* get sin magnitude table index */
-	ulSinMagTableSizeBits = BMTH_P_FIX_SIGNED_MININTBITS((BMTH_P_FIX_SINMAG_TABLE_SIZE - 1), BMTH_P_FIX_SIGNED_MAX_BITS, 0);
+	ulSinMagTableSizeBits = BMTH_P_FIX_SIGNED_MININTBITS_isrsafe((BMTH_P_FIX_SINMAG_TABLE_SIZE - 1), BMTH_P_FIX_SIGNED_MAX_BITS, 0);
 	ulTotalBits = ulRadIntBits + ulRadFractBits + ulSinMagTableSizeBits;
 
 	if (ulTotalBits > BMTH_P_FIX_SIGNED_MAX_BITS)
@@ -364,6 +442,102 @@ uint32_t BMTH_P_FIX_SIGNED_SIN_CALC(uint32_t x, uint32_t xint, uint32_t xfract, 
 }
 
 
+/***************************************************************************
+ * {private}
+ *
+ */
+int64_t BMTH_P_FIX_SIGNED_SIN_CALC_64_isrsafe(int64_t x, uint32_t xint, uint32_t xfract, uint32_t sinfract)
+{
+	uint32_t ulRadIntBits      = xint;
+	uint32_t ulRadFractBits    = xfract;
+	uint32_t ulSinMagFractBits = BMTH_P_FIX_SIGNED_SINMAG_FRACT_BITS;
+	uint32_t ulInterpFractBits = BMTH_P_FIX_SIGNED_RAD_INTERP_FRACT_BITS;
+
+	int64_t lFixX = x;
+	int64_t lFixXModPi;
+	int64_t lFixFirstQuadX;
+	int64_t lFixPi = BMTH_FIX_SIGNED_GET_PI(ulRadIntBits, ulRadFractBits);
+	int64_t lFixHalfPi = lFixPi / 2;
+
+	uint32_t ulRadShiftBits = 0;
+	uint32_t ulSinMagTableSizeBits = 0;
+	uint32_t ulTotalBits = 0;
+	uint32_t ulSinMagIdx = 0;
+	int64_t lFixSinMag = 0;
+	int64_t lFixSinMagNext = 0;
+
+	int64_t lFixInterpNum = 0;
+	int64_t lFixInterpDem = 0;
+	int64_t lFixInterpCoeff = 0;
+
+
+	/* convert to positive angle */
+	lFixX = (lFixX & BMTH_P_FIX_SIGN_BIT(ulRadIntBits, ulRadFractBits)) ?
+			 (lFixX + (2 * lFixPi)) : lFixX;
+	lFixX &= BMTH_P_FIX_SIGNED_MASK(ulRadIntBits, ulRadFractBits);
+
+	lFixXModPi = BMTH_FIX_SIGNED_MOD_64(lFixX, lFixPi,
+	                                    ulRadIntBits, ulRadFractBits,
+	                                    ulRadIntBits, ulRadFractBits,
+	                                    ulRadIntBits, ulRadFractBits);
+
+	/* convert to first quadrant equivalent with same sin value */
+	lFixFirstQuadX = (lFixXModPi <= lFixHalfPi) ?
+			lFixXModPi : (lFixPi - lFixXModPi);
+
+	/* get sin magnitude table index */
+	ulSinMagTableSizeBits = BMTH_P_FIX_SIGNED_MININTBITS_isrsafe((BMTH_P_FIX_SINMAG_TABLE_SIZE - 1), BMTH_P_FIX_SIGNED_MAX_BITS, 0);
+	ulTotalBits = ulRadIntBits + ulRadFractBits + ulSinMagTableSizeBits;
+
+	if (ulTotalBits > BMTH_P_FIX_SIGNED_MAX_BITS_64)
+	{
+		ulRadShiftBits = ulTotalBits - BMTH_P_FIX_SIGNED_MAX_BITS_64;
+	}
+
+	ulSinMagIdx = ((lFixFirstQuadX >> ulRadShiftBits) * (BMTH_P_FIX_SINMAG_TABLE_SIZE - 1)) /
+		           (lFixHalfPi >> ulRadShiftBits);
+	lFixSinMag = s_lFixSinMagTable[ulSinMagIdx];
+	lFixSinMagNext = (ulSinMagIdx < (BMTH_P_FIX_SINMAG_TABLE_SIZE - 1)) ?
+		(s_lFixSinMagTable[ulSinMagIdx + 1]) : (s_lFixSinMagTable[ulSinMagIdx]);
+
+
+	lFixInterpNum = lFixFirstQuadX - (((ulSinMagIdx * (lFixHalfPi >> ulRadShiftBits)) /
+	                                     (BMTH_P_FIX_SINMAG_TABLE_SIZE - 1)) << ulRadShiftBits);
+	lFixInterpDem = lFixHalfPi / BMTH_P_FIX_SINMAG_TABLE_SIZE;
+
+
+	lFixInterpNum = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(lFixInterpNum,
+											 ulRadFractBits,
+											 ulInterpFractBits);
+
+	lFixInterpDem = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(lFixInterpDem,
+											 ulRadFractBits,
+											 ulInterpFractBits);
+
+	lFixInterpCoeff = BMTH_FIX_SIGNED_DIV_64(lFixInterpNum, lFixInterpDem,
+								           ulInterpFractBits,
+								           ulInterpFractBits,
+								           ulInterpFractBits);
+
+	lFixSinMag = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(lFixSinMag,
+										  ulSinMagFractBits,
+										  ulInterpFractBits);
+
+	lFixSinMagNext = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(lFixSinMagNext,
+											  ulSinMagFractBits,
+											  ulInterpFractBits);
+
+	return (BMTH_FIX_SIGNED_CONVERT_64_isrsafe(lFixSinMag,
+									ulInterpFractBits,
+									sinfract) +
+		    BMTH_FIX_SIGNED_MUL_64_isrsafe((lFixSinMagNext - lFixSinMag), lFixInterpCoeff,
+							    ulInterpFractBits,
+								ulInterpFractBits,
+	                            sinfract)) *
+		   ((lFixX > lFixPi) ? -1 : 1);  /* add the sign back */
+}
+
+
 /*************************************************************************
  * BMTH_FIX_SIGNED_COS
  *
@@ -377,7 +551,24 @@ uint32_t BMTH_FIX_SIGNED_COS_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract,
 	ulFixX = BMTH_FIX_SIGNED_RADTO2PI(x, xint, xfract, ulRadIntBits, ulRadFractBits);
 	ulFixX += BMTH_FIX_SIGNED_GET_HALF_PI(ulRadIntBits, ulRadFractBits);
 
-	return BMTH_P_FIX_SIGNED_SIN_CALC(ulFixX, ulRadIntBits, ulRadFractBits, sinint, sinfract);
+	return BMTH_P_FIX_SIGNED_SIN_CALC_isrsafe(ulFixX, ulRadIntBits, ulRadFractBits, sinint, sinfract);
+}
+
+
+/*************************************************************************
+ * BMTH_FIX_SIGNED_COS_64
+ *
+ *************************************************************************/
+int64_t BMTH_FIX_SIGNED_COS_64_isrsafe(int64_t x, uint32_t xint, uint32_t xfract, uint32_t sinfract)
+{
+	int64_t lFixX;
+	uint32_t ulRadIntBits      = BMTH_P_FIX_SIGNED_RAD_INT_BITS;
+	uint32_t ulRadFractBits    = BMTH_P_FIX_SIGNED_RAD_FRACT_BITS;
+
+	lFixX = BMTH_FIX_SIGNED_RADTO2PI_64(x, xint, xfract, ulRadIntBits, ulRadFractBits);
+	lFixX += BMTH_FIX_SIGNED_GET_HALF_PI(ulRadIntBits, ulRadFractBits);
+
+	return BMTH_P_FIX_SIGNED_SIN_CALC_64_isrsafe(lFixX, ulRadIntBits, ulRadFractBits, sinfract);
 }
 
 
@@ -393,7 +584,23 @@ uint32_t BMTH_FIX_SIGNED_SIN_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract,
 
 	ulFixX = BMTH_FIX_SIGNED_RADTO2PI(x, xint, xfract, ulRadIntBits, ulRadFractBits);
 
-	return BMTH_P_FIX_SIGNED_SIN_CALC(ulFixX, ulRadIntBits, ulRadFractBits, sinint, sinfract);
+	return BMTH_P_FIX_SIGNED_SIN_CALC_isrsafe(ulFixX, ulRadIntBits, ulRadFractBits, sinint, sinfract);
+}
+
+
+/*************************************************************************
+ * BMTH_FIX_SIGNED_SIN_64
+ *
+ *************************************************************************/
+int64_t BMTH_FIX_SIGNED_SIN_64_isrsafe(int64_t x, uint32_t xint, uint32_t xfract, uint32_t sinfract)
+{
+	int64_t lFixX;
+	uint32_t ulRadIntBits      = BMTH_P_FIX_SIGNED_RAD_INT_BITS;
+	uint32_t ulRadFractBits    = BMTH_P_FIX_SIGNED_RAD_FRACT_BITS;
+
+	lFixX = BMTH_FIX_SIGNED_RADTO2PI_64(x, xint, xfract, ulRadIntBits, ulRadFractBits);
+
+	return BMTH_P_FIX_SIGNED_SIN_CALC_64_isrsafe(lFixX, ulRadIntBits, ulRadFractBits, sinfract);
 }
 
 

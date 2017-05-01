@@ -123,6 +123,12 @@ typedef struct NEXUS_Sage {
     NEXUS_TaskCallbackHandle watchdogCallback;
 } NEXUS_Sage;
 
+typedef enum NEXUS_SageSWState
+{
+    NEXUS_SageSWState_eUnknown,
+    NEXUS_SageSWState_eRunning,
+    NEXUS_SageSWState_eError
+} NEXUS_SageSWState;
 
 typedef struct NEXUS_SageModule_P_Handle
 {
@@ -139,7 +145,7 @@ typedef struct NEXUS_SageModule_P_Handle
     BKNI_EventHandle hEventReceive; /* receive event to sync on channel destroy */
 
     uint8_t reset;                  /* 0= no, SAGE CPU is running. ;  1= yes, SAGE CPU is in reset */
-    uint8_t booted;                 /* 0= no, SAGE-side is not ready.;1= yes, SAGE-side is ready   */
+    NEXUS_SageSWState SWState;      /* Indicates SW state over boot process */
 
     NEXUS_SageChannelHandle waitingChannel; /* currently in a WaitForEvent on hEventReceive */
     BLST_S_HEAD(NEXUS_SageList, NEXUS_Sage) instances;

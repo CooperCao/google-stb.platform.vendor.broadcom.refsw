@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -497,6 +497,7 @@ typedef struct BXPT_Playback_ChannelSettings
     /* memory block and offset for descriptors */
     BMMA_Block_Handle descBlock;
     unsigned descOffset;
+    BMMA_Heap_Handle mmaHeap; /* Handle used to allocate the descBlock. */
 }
 BXPT_Playback_ChannelSettings;
 

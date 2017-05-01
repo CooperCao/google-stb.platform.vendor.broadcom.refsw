@@ -2748,33 +2748,50 @@ wlc_lq_chanim_phy_noise(wlc_info_t *wlc)
 	int32 rxiq = 0;
 	int8 result = 0;
 	int err = 0;
+	wl_iqest_params_t params;
+	int16 rxiq_core[WL_STA_ANT_MAX] = {0};
 
 	if (SCAN_IN_PROGRESS(wlc->scan)) {
 		int cnt = 10, valid_cnt = 0;
 		int i;
 		int sum = 0;
 
-		rxiq = 10 << 8 | 3; /* default: samples = 1024 (2^10) and antenna = 3 */
+		memset(&params, 0, sizeof(params));
+		params.niter = 1;
+		params.delay = PHY_RXIQEST_AVERAGING_DELAY;
+		params.rxiq = 10 << 8 | 3; /* default: samples = 1024 (2^10) and antenna = 3 */
 
-		if ((err = wlc_iovar_setint(wlc, "phy_rxiqest", rxiq)) < 0) {
-			WL_TRACE(("failed to set phy_rxiqest\n"));
+		/* iovar set */
+		if ((err = wlc_iovar_op(wlc, "phy_rxiqest", NULL, 0, &params, sizeof(params),
+			IOV_SET, NULL)) < 0) {
+			WL_ERROR(("failed to set phy_rxiqest\n"));
+			return err;
+		}
+		for (i =  0; i < cnt; i++) {
+			memset(rxiq_core, 0, sizeof(rxiq_core));
+			rxiq = 0;
+			if ((err = wlc_iovar_op(wlc, "phy_rxiqest", NULL, 0,
+				(void *)&rxiq_core, sizeof(rxiq_core), IOV_GET, NULL)) < 0) {
+				WL_ERROR(("failed to get phy_rxiqest\n"));
+				return err;
+			}
+			/* use the last byte to compute the bgnoise estimation
+			* phy_rxiqest returns values in dBm (negative number).
+			* We require only some portion of the values as determined
+			* by the last byte.
+			*/
+			rxiq_core[1] &= 0xff;
+			rxiq_core[0] &= 0xff;
+			rxiq = (int32)(rxiq_core[1]<<16) + (int32)rxiq_core[0];
 		}
 
-		for (i =  0; i < cnt; i++) {
-
-			if ((err = wlc_iovar_getint(wlc, "phy_rxiqest", &rxiq)) < 0) {
-				WL_TRACE(("failed to get phy_rxiqest\n"));
-			}
-
-			if (rxiq >> 8)
-				result = (int8)MAX((rxiq >> 8) & 0xff, (rxiq & 0xff));
-			else
-				result = (int8)(rxiq & 0xff);
-
-			if (result) {
-				sum += result;
-				valid_cnt++;
-			}
+		if (rxiq >> 8)
+			result = (int8)MAX((rxiq >> 8) & 0xff, (rxiq & 0xff));
+		else
+			result = (int8)(rxiq & 0xff);
+		if (result) {
+			sum += result;
+			valid_cnt++;
 		}
 
 		if (valid_cnt)
@@ -2799,8 +2816,7 @@ wlc_lq_chanim_close(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t* acc,
 {
 	int i;
 	uint8 stats_frac = 0;
-	uint32 temp;
-	int32 aci_chan_idle_dur;
+	int32 aci_chan_vld_dur;
 	uint txop_us = 0;
 	uint slottime = APHY_SLOT_TIME;
 	uint txop = 0, txop_nom = 0;
@@ -2809,24 +2825,23 @@ wlc_lq_chanim_close(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t* acc,
 	if (cur_stats == NULL || acc == NULL)
 		return;
 
-	temp = acc->ccastats_us[CCASTATS_INBSS] + acc->ccastats_us[CCASTATS_OBSS] +
-		acc->ccastats_us[CCASTATS_NOCTG] + acc->ccastats_us[CCASTATS_DOZE] +
-		acc->ccastats_us[CCASTATS_TXDUR];
-
-	aci_chan_idle_dur = (int32) ((acc->stats_ms * 1000 - temp + 500) / 1000);
+	// Don't include valid TX & RX in idle time, as that bloats the glitches un-necesarily
+	// raising desense. Only use doze(sleep time) and stats_ms(in case its doing p2p)
+	aci_chan_vld_dur = (int32) ((acc->stats_ms * 1000) - acc->ccastats_us[CCASTATS_DOZE] + 500)
+			/ 1000;
 
 	/* normalized to per second count */
-	if ((acc->stats_ms) && (aci_chan_idle_dur > 0)) {
+	if ((acc->stats_ms) && (aci_chan_vld_dur > 0)) {
 
-		cur_stats->chanim_stats.glitchcnt = acc->glitch_cnt * 1000 / aci_chan_idle_dur;
+		cur_stats->chanim_stats.glitchcnt = acc->glitch_cnt * 1000 / aci_chan_vld_dur;
 
 		cur_stats->chanim_stats.bphy_glitchcnt = acc->bphy_glitch_cnt *
-			1000 / aci_chan_idle_dur;
+			1000 / aci_chan_vld_dur;
 
-		cur_stats->chanim_stats.badplcp = acc->badplcp_cnt * 1000 / aci_chan_idle_dur;
+		cur_stats->chanim_stats.badplcp = acc->badplcp_cnt * 1000 / aci_chan_vld_dur;
 
 		cur_stats->chanim_stats.bphy_badplcp = acc->bphy_badplcp_cnt *
-			1000 / aci_chan_idle_dur;
+			1000 / aci_chan_vld_dur;
 
 		cur_stats->is_valid = TRUE;
 
@@ -2866,10 +2881,7 @@ wlc_lq_chanim_close(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t* acc,
 	}
 
 	/* calc chan_idle */
-	txop_us = acc->stats_ms * 1000 -
-		acc->ccastats_us[CCASTATS_INBSS] - acc->ccastats_us[CCASTATS_OBSS] -
-		acc->ccastats_us[CCASTATS_NOCTG] - acc->ccastats_us[CCASTATS_DOZE] +
-		acc->ccastats_us[CCASTATS_BDTXDUR];
+	txop_us = (acc->stats_ms * 1000) - acc->ccastats_us[CCASTATS_DOZE];
 
 
 	txop_nom = txop_us / slottime;
@@ -4106,6 +4118,20 @@ wlc_rsdb_get_lq_load(wlc_info_t *wlc)
 	return load;
 }
 #endif /* WLCHANIM */
+
+#ifdef WLCHANIM
+chanim_stats_t *
+wlc_lq_get_chanim_stats(wlc_info_t *wlc)
+{
+	wlc_chanim_stats_t *stats = NULL;
+
+	/* Update the stats */
+	stats = wlc_lq_chanim_chanspec_to_stats(wlc->chanim_info, wlc->chanspec);
+
+	return &wlc->chanim_info->stats->chanim_stats;
+}
+#endif /* WLCHANIM */
+
 void
 wlc_lq_rssi_ant_get_api(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, int8 *rssi)
 {

@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-This is a default implementation of a Nexus platform layer used by V3D.
-This illustrates one way in which the abstract display interface might be
-implemented. You can replace this with your own custom version if preferred.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __DISPLAY_NEXUS_H__
 #define __DISPLAY_NEXUS_H__
 

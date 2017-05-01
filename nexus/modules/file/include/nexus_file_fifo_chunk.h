@@ -103,6 +103,16 @@ NEXUS_ChunkedFifoRecordHandle NEXUS_ChunkedFifoRecord_Create(
 
 /*
 Summary:
+Re-open an existing timeshifting buffer for export.
+This cannot be used for new recording.
+*/
+NEXUS_ChunkedFifoRecordHandle NEXUS_ChunkedFifoRecord_ReOpenForExport(
+    const char *mpegFileName,
+    const char *indexFileName
+    );
+
+/*
+Summary:
 This function returns a handle to be passed into the NEXUS_Record_Start().
 */
 NEXUS_FileRecordHandle NEXUS_ChunkedFifoRecord_GetFile(

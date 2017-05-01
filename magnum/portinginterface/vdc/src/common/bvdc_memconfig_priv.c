@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -377,15 +377,12 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
 
     if(pSystemConfigInfo->ulNumMadUsed < pSystemConfigInfo->ulNumMad)
     {
-#if (BCHP_CHIP==7445)
+        const BVDC_P_ResourceFeature *pResourceFeature;
+        pResourceFeature = BVDC_P_Window_GetResourceFeature_isrsafe(ulWinIndex);
+
         pWindow->eDeinterlacerMode =
-            ((ulDispIndex == 0) || bStg)
+            (pResourceFeature->ulMad != BVDC_P_Able_eInvalid)
             ? BVDC_DeinterlacerMode_eBestQuality : BVDC_DeinterlacerMode_eNone;
-#else
-        pWindow->eDeinterlacerMode =
-            ( ((ulDispIndex == 0) || bStg) && (ulWinIndex == 0) )
-            ? BVDC_DeinterlacerMode_eBestQuality : BVDC_DeinterlacerMode_eNone;
-#endif
 
         pSystemConfigInfo->ulNumMadUsed +=
             BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode);

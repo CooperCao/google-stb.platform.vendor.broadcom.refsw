@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
- 
+
 #include "bstd.h"
 #include "bchp_4506.h"
 #include "bast.h"
@@ -123,7 +143,7 @@ static const BAST_Settings defDevSettings =
       BAST_4506_P_SetFskChannel,
       BAST_4506_P_GetFskChannel,
       BAST_4506_P_SetPeakScanSymbolRateRange,
-      BAST_4506_P_GetPeakScanSymbolRateRange, 
+      BAST_4506_P_GetPeakScanSymbolRateRange,
       NULL, /* BAST_SetAdcSelect */
       NULL, /* BAST_GetAdcSelect */
       NULL  /* BAST_GetVersionInfo */
@@ -232,13 +252,13 @@ BERR_Code BAST_4506_CalculateTunerVco(BAST_ChannelHandle h, uint32_t fcw, uint32
 
    BAST_CHK_RETCODE(BAST_ReadRegister(h, BCM4506_TUNER_ANACTL10, &anactl10));
    if (anactl10 == 5)
-      div = div >> 1; 
+      div = div >> 1;
    else if (anactl10 == 4)
       div = div >> 2;
    else if (anactl10 == 6)
       div = div >> 3;
 
-   /* vco = (Fddfs * fcw / 16777216.0) * div; */ 
+   /* vco = (Fddfs * fcw / 16777216.0) * div; */
    BAST_MultU32U32(Fddfs, fcw * div, &P_hi, &P_lo);
    BAST_DivU64U32(P_hi, P_lo, 16777216, &Q_hi, pVco);
 
@@ -295,7 +315,7 @@ BERR_Code BAST_4506_GetTunerExpectedVco(BAST_ChannelHandle h, uint32_t freq, uin
    if (anactl10 == 5)
    {
       *pDiv = 2;
-      lo_divider = lo_divider >> 1; 
+      lo_divider = lo_divider >> 1;
    }
    else if (anactl10 == 4)
    {
@@ -376,9 +396,9 @@ BERR_Code BAST_4506_EnableFskCarrier(
 
 
 /******************************************************************************
- BAST_4506_DeepSleep()
+ BAST_4506_P_DeepSleep()
 ******************************************************************************/
-BERR_Code BAST_4506_DeepSleep(
+BERR_Code BAST_4506_P_DeepSleep(
    BAST_Handle h  /* [in] BAST handle */
 )
 {
@@ -388,43 +408,43 @@ BERR_Code BAST_4506_DeepSleep(
 
    /* power down ftm */
    BAST_4506_P_PowerDownFtm(h);
-   
+
    /* power down both channels */
    BAST_4506_P_PowerDown(h->pChannels[0], BAST_CORE_ALL);
    if (p4506->numTuners > 1)
       BAST_4506_P_PowerDown(h->pChannels[1], BAST_CORE_ALL);
-   
+
    /* wait for power down tasks to complete */
    BKNI_Sleep(10);
-   
+
    /* kill AP pll */
    sb = BCM4506_SH_IND_PLL_MODE0;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb));
    BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
    sb |= 0x04;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
-   
+
    sb = BCM4506_SH_IND_PLL_PWRDN1;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb));
    sb = 0x0F;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
-   
+
    sb = BCM4506_SH_IND_PLL_PWRDN0;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb));
    sb = 0x1F;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
-   
+
    /* kill xtal */
    sb = BCM4506_SH_IND_OSC_CNTRL0;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb));
    sb = 0xFD;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
-   
+
    sb = BCM4506_SH_IND_XTAL_PWRDN;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb));
    sb = 0x01;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
-   
+
    done:
    return retCode;
 }

@@ -197,10 +197,10 @@ def print_globals(outf, matrix_types):
     print(file=outf)
 
 def print_extern_c_begin(outf):
-    print("VCOS_EXTERN_C_BEGIN", file=outf)
+    print("EXTERN_C_BEGIN", file=outf)
 
 def print_extern_c_end(outf):
-    print("VCOS_EXTERN_C_END", file=outf)
+    print("EXTERN_C_END", file=outf)
 
 def print_sampler_info(outf, sampler_names, scalar_types, value_types, sampler_types, output_name):
     type_map = {}
@@ -517,14 +517,11 @@ void glsl_prim_init(void) {
             pad = " " * (maxlen - len(p))
             if p == "void":
                 sc = 0
-                name = p
             elif p in value_types:
                 sc = find_scalar_count(p)
-                name = p
             else:
                 sc = 1
-                name = p
-            print("   primitiveTypes[%s%s].name                   = \"%s\";" % (prim_index(p),pad,name), file=outf)
+            print("   primitiveTypes[%s%s].name                   = \"%s\";" % (prim_index(p),pad,p), file=outf)
             print("   primitiveTypes[%s%s].scalar_count           = %d;" % (prim_index(p), pad, sc), file=outf)
             print(file=outf)
 

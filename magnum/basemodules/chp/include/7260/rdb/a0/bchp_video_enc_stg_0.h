@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:08 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,30 +70,30 @@
 /***************************************************************************
  *VIDEO_ENC_STG_0 - VEC Simple Trigger Generator Controls
  ***************************************************************************/
-#define BCHP_VIDEO_ENC_STG_0_REVISION_ID         0x206e6400 /* [RO] STG REVISION ID register */
-#define BCHP_VIDEO_ENC_STG_0_BVB_SIZE            0x206e6404 /* [RW] BVB Size Register. */
-#define BCHP_VIDEO_ENC_STG_0_BVB_RSTATUS         0x206e6408 /* [RO] BVB status read Register. */
-#define BCHP_VIDEO_ENC_STG_0_BVB_CSTATUS         0x206e640c /* [WO] BVB status clear Register. */
-#define BCHP_VIDEO_ENC_STG_0_CONTROL             0x206e6410 /* [RW] STG CONTROL Register */
-#define BCHP_VIDEO_ENC_STG_0_DOWN_SAMP           0x206e6414 /* [RW] STG DOWN SAMPLING Register */
-#define BCHP_VIDEO_ENC_STG_0_STATUS              0x206e6418 /* [RO] STG STATUS Register */
-#define BCHP_VIDEO_ENC_STG_0_STATUS_CLR          0x206e641c /* [WO] STG STATUS CLEAR Register */
-#define BCHP_VIDEO_ENC_STG_0_HOST_ARM            0x206e6420 /* [RW] STG  HOST ARM register */
-#define BCHP_VIDEO_ENC_STG_0_FRAME_SIZE          0x206e6424 /* [RW] STG  Frame size */
-#define BCHP_VIDEO_ENC_STG_0_CRC_SIG             0x206e6428 /* [RO] STG  CRC signature */
-#define BCHP_VIDEO_ENC_STG_0_FORCE_EOP_TOP_TRIG  0x206e642c /* [WO] STG FORCE EOP Trigger */
-#define BCHP_VIDEO_ENC_STG_0_FORCE_EOP_BOT_TRIG  0x206e6430 /* [WO] STG FORCE EOP Trigger */
-#define BCHP_VIDEO_ENC_STG_0_FORCE_TIMER_TOP_TRIG 0x206e6434 /* [WO] STG FORCE TIMER Trigger */
-#define BCHP_VIDEO_ENC_STG_0_FORCE_TIMER_BOT_TRIG 0x206e6438 /* [WO] STG FORCE TIMER Trigger */
-#define BCHP_VIDEO_ENC_STG_0_STC_CONTROL         0x206e643c /* [RW] STG STC control register */
-#define BCHP_VIDEO_ENC_STG_0_CRC_CONTROL         0x206e6440 /* [RW] STG CRC control register */
-#define BCHP_VIDEO_ENC_STG_0_REPEAT_POLARITY     0x206e6444 /* [RW] STG REPEAT POLARITY register */
-#define BCHP_VIDEO_ENC_STG_0_EOP_TRIGGER_DELAY   0x206e6448 /* [RW] STG EOP TRIGGER DELAY register */
-#define BCHP_VIDEO_ENC_STG_0_STG_HW_CONFIGURATION 0x206e644c /* [RO] STG HW Configuration register */
-#define BCHP_VIDEO_ENC_STG_0_DEBUG_STATUS        0x206e6450 /* [RO] STG DEBUG STATUS Register */
-#define BCHP_VIDEO_ENC_STG_0_LINE_COUNT_STATUS   0x206e6454 /* [RO] STG Line Count STATUS Register */
-#define BCHP_VIDEO_ENC_STG_0_INP_PIXEL_COUNT_STATUS 0x206e6458 /* [RO] STG Input Pixel Count STATUS Register */
-#define BCHP_VIDEO_ENC_STG_0_OUT_PIXEL_COUNT_STATUS 0x206e645c /* [RO] STG Output Pixel Count STATUS Register */
+#define BCHP_VIDEO_ENC_STG_0_REVISION_ID         0x206e6400 /* [RO][32] STG REVISION ID register */
+#define BCHP_VIDEO_ENC_STG_0_BVB_SIZE            0x206e6404 /* [RW][32] BVB Size Register. */
+#define BCHP_VIDEO_ENC_STG_0_BVB_RSTATUS         0x206e6408 /* [RO][32] BVB status read Register. */
+#define BCHP_VIDEO_ENC_STG_0_BVB_CSTATUS         0x206e640c /* [WO][32] BVB status clear Register. */
+#define BCHP_VIDEO_ENC_STG_0_CONTROL             0x206e6410 /* [RW][32] STG CONTROL Register */
+#define BCHP_VIDEO_ENC_STG_0_DOWN_SAMP           0x206e6414 /* [RW][32] STG DOWN SAMPLING Register */
+#define BCHP_VIDEO_ENC_STG_0_STATUS              0x206e6418 /* [RO][32] STG STATUS Register */
+#define BCHP_VIDEO_ENC_STG_0_STATUS_CLR          0x206e641c /* [WO][32] STG STATUS CLEAR Register */
+#define BCHP_VIDEO_ENC_STG_0_HOST_ARM            0x206e6420 /* [RW][32] STG  HOST ARM register */
+#define BCHP_VIDEO_ENC_STG_0_FRAME_SIZE          0x206e6424 /* [RW][32] STG  Frame size */
+#define BCHP_VIDEO_ENC_STG_0_CRC_SIG             0x206e6428 /* [RO][32] STG  CRC signature */
+#define BCHP_VIDEO_ENC_STG_0_FORCE_EOP_TOP_TRIG  0x206e642c /* [WO][32] STG FORCE EOP Trigger */
+#define BCHP_VIDEO_ENC_STG_0_FORCE_EOP_BOT_TRIG  0x206e6430 /* [WO][32] STG FORCE EOP Trigger */
+#define BCHP_VIDEO_ENC_STG_0_FORCE_TIMER_TOP_TRIG 0x206e6434 /* [WO][32] STG FORCE TIMER Trigger */
+#define BCHP_VIDEO_ENC_STG_0_FORCE_TIMER_BOT_TRIG 0x206e6438 /* [WO][32] STG FORCE TIMER Trigger */
+#define BCHP_VIDEO_ENC_STG_0_STC_CONTROL         0x206e643c /* [RW][32] STG STC control register */
+#define BCHP_VIDEO_ENC_STG_0_CRC_CONTROL         0x206e6440 /* [RW][32] STG CRC control register */
+#define BCHP_VIDEO_ENC_STG_0_REPEAT_POLARITY     0x206e6444 /* [RW][32] STG REPEAT POLARITY register */
+#define BCHP_VIDEO_ENC_STG_0_EOP_TRIGGER_DELAY   0x206e6448 /* [RW][32] STG EOP TRIGGER DELAY register */
+#define BCHP_VIDEO_ENC_STG_0_STG_HW_CONFIGURATION 0x206e644c /* [RO][32] STG HW Configuration register */
+#define BCHP_VIDEO_ENC_STG_0_DEBUG_STATUS        0x206e6450 /* [RO][32] STG DEBUG STATUS Register */
+#define BCHP_VIDEO_ENC_STG_0_LINE_COUNT_STATUS   0x206e6454 /* [RO][32] STG Line Count STATUS Register */
+#define BCHP_VIDEO_ENC_STG_0_INP_PIXEL_COUNT_STATUS 0x206e6458 /* [RO][32] STG Input Pixel Count STATUS Register */
+#define BCHP_VIDEO_ENC_STG_0_OUT_PIXEL_COUNT_STATUS 0x206e645c /* [RO][32] STG Output Pixel Count STATUS Register */
 
 /***************************************************************************
  *REVISION_ID - STG REVISION ID register

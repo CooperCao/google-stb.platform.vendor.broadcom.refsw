@@ -39,6 +39,7 @@
 #ifndef MODEL_H__
 #define MODEL_H__
 
+#include "model_types.h"
 #include "mvc.h"
 #include "nexus_ir_input.h"
 #if NEXUS_HAS_UHF_INPUT
@@ -48,6 +49,7 @@
 #include "nexus_simple_video_decoder_server.h"
 #include "nexus_simple_audio_decoder_server.h"
 #include "nexus_simple_encoder_server.h"
+#include "video_decode_types.h"
 
 class CChannelMgr;
 #if DVR_LIB_SUPPORT
@@ -99,30 +101,6 @@ class CConfig;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef enum
-{
-    eMode_Live,
-    eMode_Scan,
-#if DVR_LIB_SUPPORT
-    eMode_Tsb,
-#endif
-    eMode_Playback,
-    eMode_Record,
-    eMode_Invalid,
-    eMode_Max
-} eMode;
-
-typedef enum
-{
-    eWindowType_Main,
-    eWindowType_Pip,
-    eWindowType_Mosaic1,
-    eWindowType_Mosaic2,
-    eWindowType_Mosaic3,
-    eWindowType_Mosaic4,
-    eWindowType_Max
-} eWindowType;
 
 class CModel : public CMvcModel
 {
@@ -222,9 +200,11 @@ public:
     CAudioCapture *                      getAudioCapture(void) { return(_pAudioCapture); }
     unsigned                             getConnectId(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _connectId[_fullScreenWindowType] : _connectId[windowType]); }
     void                                 setConnectId(uint32_t connectId, eWindowType windowType = eWindowType_Max);
-    NEXUS_SimpleVideoDecoderServerHandle getSimpleVideoDecoderServer() {return _simpleVideoDecoderServer;}
-    NEXUS_SimpleAudioDecoderServerHandle getSimpleAudioDecoderServer() {return _simpleAudioDecoderServer;}
-    NEXUS_SimpleEncoderServerHandle      getSimpleEncoderServer() {return _simpleEncoderServer;}
+    NEXUS_SimpleVideoDecoderServerHandle getSimpleVideoDecoderServer(void) { return(_simpleVideoDecoderServer); }
+    NEXUS_SimpleAudioDecoderServerHandle getSimpleAudioDecoderServer(void) { return(_simpleAudioDecoderServer); }
+    NEXUS_SimpleEncoderServerHandle      getSimpleEncoderServer(void) { return(_simpleEncoderServer); }
+    eDynamicRange                        getLastDynamicRange(void) { return(_dynamicRangeLast); }
+    void                                 setLastDynamicRange(eDynamicRange dynamicRange) { _dynamicRangeLast = dynamicRange; }
 
 #ifdef WPA_SUPPLICANT_SUPPORT
     CWifi *                              getWifi(void) { return(_pWifi); }
@@ -345,6 +325,7 @@ protected:
     NEXUS_SimpleVideoDecoderServerHandle _simpleVideoDecoderServer;
     NEXUS_SimpleAudioDecoderServerHandle _simpleAudioDecoderServer;
     NEXUS_SimpleEncoderServerHandle      _simpleEncoderServer;
+    eDynamicRange                        _dynamicRangeLast;
 #ifdef CPUTEST_SUPPORT
     CCpuTest *                           _pCpuTest;
 #endif

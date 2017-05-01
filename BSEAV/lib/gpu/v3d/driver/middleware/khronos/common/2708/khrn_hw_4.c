@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Various cross-API hardware-specific functions
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_parallel.h"
 #include "interface/khronos/common/khrn_api_interposer.h"
@@ -206,7 +198,6 @@ void khrn_issue_swapbuffers_job(MEM_HANDLE_T image)
 {
    BEGL_HWCallbackRecord      *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob                 job;
-   bool                       abandon = false;
 
    memset(&job, 0, sizeof(BEGL_HWJob));
 

@@ -1,7 +1,6 @@
-/*=============================================================================
-Copyright (C) 2012 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #undef GL_TRUE
 #undef GL_FALSE
 
@@ -41,6 +40,8 @@ Copyright (C) 2012 Broadcom.  The term "Broadcom" refers to Broadcom Limited and
 #endif
 
 #include <map>
+#include <vector>
+#include <string>
 
 #include "platform.h"
 #include "packet.h"
@@ -746,7 +747,7 @@ static void CtrlCHandler(int SPY_UNUSED dummy)
    exit(0);
 }
 
-static void SetCapture(bool tf, char * processName)
+static void SetCapture(bool tf, const char *processName)
 {
    sCaptureStream = tf;
 
@@ -1377,6 +1378,28 @@ extern "C"
    }\
 }
 
+#ifndef WIN32
+static std::string get_process_filename(void)
+{
+   char *filename;
+   asprintf(&filename, "/proc/%d/cmdline", getpid());
+   FILE *fp = fopen(filename, "r");
+   free(filename);
+   if (fp == NULL)
+      return std::string();
+
+#define READ_SIZE 4096
+   std::vector<char> contents(READ_SIZE);
+   contents[0] = '\0';
+   fgets(&contents[0], contents.size(), fp);
+   fclose(fp);
+
+   char *res;
+   asprintf(&res, "%s", basename(strtok(&contents[0], ": \n")));
+   return std::string(res);
+}
+#endif
+
 DLLEXPORT bool DLLEXPORTENTRY remote_log_initialize(REAL_GL_API_TABLE *table, uint32_t size, uint32_t debugBuild,
                                                     uint32_t majorVer, uint32_t minorVer)
 {
@@ -1402,7 +1425,6 @@ DLLEXPORT bool DLLEXPORTENTRY remote_log_initialize(REAL_GL_API_TABLE *table, ui
    {
       // Do we have an environment / property that tells us to capture?
       bool capture = false;
-      char buf[4096];
 
 #ifdef ANDROID
       char value[PROPERTY_VALUE_MAX];
@@ -1419,44 +1441,33 @@ DLLEXPORT bool DLLEXPORTENTRY remote_log_initialize(REAL_GL_API_TABLE *table, ui
       value = getenv("GPUMonitorCaptureProcName");
 #endif
 
+      std::string capture_name;
 #ifndef WIN32
 #ifndef ANDROID
       if (value != NULL)
       {
 #endif
-         if (value[0] != '\0')
+         std::string tmp = get_process_filename();
+         if (tmp != value)
          {
-            snprintf(buf, sizeof(buf), "/proc/%d/comm", getpid());
-
-            FILE *fp = fopen(buf, "r");
-            if (fp != NULL)
-            {
-               buf[0] = '\0';
-               fgets(buf, 4096, fp);
-               fclose(fp);
-
-               if (buf[strlen(buf) - 1] == '\n')
-                  buf[strlen(buf) - 1] = '\0';
-
-               if (buf[0] != '\0' && strcmp(buf, value))
-               {
-                  capture = false;
-                  sOrphaned = true;
-                  return false;
-               }
-            }
+            capture = false;
+            sOrphaned = true;
+            return false;
          }
+         capture_name = tmp;
 #ifndef ANDROID
       }
 #endif
+#else
+      capture_name = "win32_capture";
 #endif
 
 #ifdef ANDROID
-      LOGD("************ Process name %s, capture = %s ************", buf, (capture) ? "true" : "false");
+      LOGD("************ Process name %s, capture = %s ************", capture_name.c_str(), (capture) ? "true" : "false");
 #endif
 
       /* on Android use the process name to generate the file save name */
-      SetCapture(capture, buf);
+      SetCapture(capture, capture_name.c_str());
    }
 
    inited = true;
@@ -2239,7 +2250,7 @@ DLLEXPORT bool DLLEXPORTENTRY remote_glDrawElements (GLenum mode, GLsizei count,
                for (GLint a = 0; a < maxAttribs; a++)
                {
                   void   *attribs = NULL;
-                  GLint   binding;
+                  GLint   binding = 0;
                   GLint   enabled;
                   GLint   location;
                   GLint   size;

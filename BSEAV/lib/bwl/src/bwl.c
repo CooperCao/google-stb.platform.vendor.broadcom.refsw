@@ -115,6 +115,7 @@
 #define BWL_LOCK() pthread_mutex_lock(&hBwl->bwlMutex)
 #define BWL_UNLOCK() pthread_mutex_unlock(&hBwl->bwlMutex)
 
+char *GetFileContents( const char *filename );
 #ifdef INCLUDE_WPS
 wps_ap_list_info_t *create_aplist(void);
 void config_init(void);
@@ -1437,8 +1438,27 @@ int32_t BWL_Init
     char        *iface   /* [in] interface to bind to*/
 )
 {
-    int32_t         err = 0;
-    BWL_Handle      hBwl;
+    int32_t         err        = BWL_ERR_IOCTL;
+    char            tempBuffer[1024];
+    FILE           *fp         = NULL;
+    BWL_Handle      hBwl       = NULL;
+
+    memset( tempBuffer, 0, sizeof(tempBuffer) );
+    fp = fopen( "/proc/modules", "r" );
+    if ( fp )
+    {
+        int num_bytes = fread( tempBuffer, 1, sizeof(tempBuffer)-1, fp);
+        if ( num_bytes )
+        {
+            /* if the wl driver is found as one of the installed modules */
+            if ( strstr( tempBuffer, "wl" ) )
+            {
+                err = BWL_ERR_SUCCESS;
+            }
+        }
+    }
+
+    if ( err == BWL_ERR_IOCTL ) return (err);
 
     hBwl = (BWL_Handle) malloc( sizeof( BWL_P_Handle ) );
     if( hBwl == 0 )
@@ -8073,7 +8093,6 @@ const char * BWL_escanresults_get_ssid( unsigned char *buffer )
     return( "SSID UNKNOWN" );
 }
 
-char *GetFileContents( const char *filename );
 static int fd;
 static fpos_t pos;
 static void switchStdout(const char *newStream)
@@ -8686,4 +8705,45 @@ int BWL_ClearCounters(
 #endif /* WL_NAN */
 
     return (0);
+}
+
+/* sample command ... wl -i wlan0 wowl_pkt 104 ucast 00:10:18:D5:C3:10 magic */
+int BWL_SendWakeOnWlan(
+    BWL_Handle      hBwl,  /* [in] BWL Handle */
+    char           *pkt_len,
+    char           *destination_frame,
+    char           *macAddress,
+    char           *pkt_type
+    )
+{
+    char *argv[6];
+    void *wl = hBwl->wl;
+
+    memset( argv, 0, sizeof(argv) );
+
+    /* create argv array like it would be like if user entered commands from the command line */
+    argv[0] = "wowl_pkt";
+    argv[1] = pkt_len;
+    argv[2] = destination_frame;
+    argv[3] = macAddress;
+    argv[4] = pkt_type;
+
+    wl_wowl_pkt( wl, NULL, &argv[0] );
+
+    return 0;
+}
+
+/* Caller is responsible for allocating space for the outputList array */
+int BWL_GetMacAssocList(
+    BWL_Handle       hBwl,  /* [in] BWL Handle */
+    BWL_MAC_ADDRESS *outputList,
+    int              outputListLen
+    )
+{
+    int num_addresses = 0;
+    void *wl = hBwl->wl;
+
+    num_addresses = wl_maclist_2( wl, outputList, outputListLen );
+
+    return ( num_addresses );
 }

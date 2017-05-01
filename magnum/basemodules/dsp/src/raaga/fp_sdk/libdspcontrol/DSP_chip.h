@@ -63,7 +63,9 @@
 #  include <stdint.h>
 #else
 #  include "bstd.h"
-#  include "bdsp_common_priv.h"
+#  if FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+#    include "bdsp_common_priv.h"
+#  endif
 #endif
 #if defined(MCPHY)
 #  include "DMA_Drv.h"

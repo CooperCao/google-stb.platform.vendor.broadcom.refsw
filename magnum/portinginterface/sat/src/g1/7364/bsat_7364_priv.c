@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bsat.h"
@@ -127,7 +119,7 @@ BERR_Code BSAT_g1_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 /******************************************************************************
  BSAT_g1_P_GetRegisterAddress_isrsafe()
 ******************************************************************************/
-void BSAT_g1_P_GetRegisterAddress_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t *pAddr)
+static void BSAT_g1_P_GetRegisterAddress_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t *pAddr)
 {
    *pAddr = reg;
 
@@ -236,7 +228,7 @@ BERR_Code BSAT_g1_P_InitChannelHandleExt(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_IsTunerOn()
 ******************************************************************************/
-bool BSAT_g1_P_IsTunerOn(BSAT_ChannelHandle h)
+static bool BSAT_g1_P_IsTunerOn(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t val;

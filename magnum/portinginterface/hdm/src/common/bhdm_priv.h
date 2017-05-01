@@ -109,11 +109,6 @@
 #include "bchp_int_id_hdmi_tx_scdc_intr2_0.h"
 #endif
 
-#if BHDM_CONFIG_MHL_SUPPORT
-#include "bhdm_mhl_priv.h"
-#endif
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -146,21 +141,6 @@ typedef enum BHDM_P_HdmCoreId
 #define	MAKE_INTR_ENUM(IntName)	BHDM_INTR_e##IntName
 #define	MAKE_INTR_NAME(IntName)	"BHDM_" #IntName
 #define	MAKE_HAE_INTR_ENUM(IntName) BHDM_HAE_INTR_e##IntName
-
-#if BCHP_PWR_SUPPORT
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX0_CLK
-#define BCHP_PWR_RESOURCE_HDMI_TX_CLK BCHP_PWR_RESOURCE_HDMI_TX0_CLK
-#endif
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX1_CLK
-#define BCHP_PWR_RESOURCE_HDMI_TX_1_CLK BCHP_PWR_RESOURCE_HDMI_TX1_CLK
-#endif
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX0_PHY
-#define BCHP_PWR_RESOURCE_HDMI_TX_PHY BCHP_PWR_RESOURCE_HDMI_TX0_PHY
-#endif
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX1_PHY
-#define BCHP_PWR_RESOURCE_HDMI_TX_1_PHY BCHP_PWR_RESOURCE_HDMI_TX1_PHY
-#endif
-#endif
 
 /******************************************************************************
 Summary:
@@ -234,6 +214,73 @@ typedef struct BHDM_EDID_VideoDescriptorHead BHDM_EDID_VideoDescriptorHead;
 BLST_Q_HEAD(BHDM_EDID_VideoDescriptorHead, BHDM_EDID_P_VideoDescriptor );
 
 
+/******************************************************************************
+Summary:
+struct containing Video Format information specified EDID
+*******************************************************************************/
+typedef struct BHDM_EDID_P_CEA_861B_VIDEO_FORMAT
+{
+	uint8_t            CeaVideoCode ;      /* Short Descriptor */
+	uint16_t           HorizontalPixels ;  /* Horiz Active Pixels */
+	uint16_t           VerticalPixels ;	  /* Vertical Active Pixels */
+	BAVC_ScanType      eScanType ;         /* Progressive, Interlaced */
+	BAVC_FrameRateCode eFrameRateCode ;    /* Vertical Frequency */
+	BFMT_AspectRatio   eAspectRatio ;      /* Horiz  to Vertical Ratio */
+} BHDM_EDID_P_CEA_861B_VIDEO_FORMAT ;
+
+
+/******************************************************************************
+Summary:
+Enumeration containing Audio Formats specified in CEA Short Audio Descriptors
+*******************************************************************************/
+typedef enum BHDM_EDID_P_AudioFormat
+{
+	BHDM_EDID_P_AudioFormat_eReserved,
+	BHDM_EDID_P_AudioFormat_ePCM,
+	BHDM_EDID_P_AudioFormat_eAC3,
+	BHDM_EDID_P_AudioFormat_eMPEG1,
+	BHDM_EDID_P_AudioFormat_eMP3,
+	BHDM_EDID_P_AudioFormat_eMPEG2,
+	BHDM_EDID_P_AudioFormat_eAAC,
+	BHDM_EDID_P_AudioFormat_eDTS,
+	BHDM_EDID_P_AudioFormat_eATRAC,
+	BHDM_EDID_P_AudioFormat_eOneBit,
+	BHDM_EDID_P_AudioFormat_eDDPlus,
+	BHDM_EDID_P_AudioFormat_eDTSHD,
+	BHDM_EDID_P_AudioFormat_eMATMLP,
+	BHDM_EDID_P_AudioFormat_eDST,
+	BHDM_EDID_P_AudioFormat_eWMAPro,
+	BHDM_EDID_P_AudioFormat_eMaxCount
+} BHDM_EDID_P_AudioFormat ;
+
+
+/******************************************************************************
+Summary:
+Enumeration containing Sample Rates specified in CEA Short Audio Descriptors
+*******************************************************************************/
+typedef enum BHDM_EDID_P_AudioSampleRate
+{
+	BHDM_EDID_P_AudioSampleRate_e32KHz  =  1,
+	BHDM_EDID_P_AudioSampleRate_e44KHz  =  2,
+	BHDM_EDID_P_AudioSampleRate_e48KHz  =  4,
+	BHDM_EDID_P_AudioSampleRate_e88KHz  =  8,
+	BHDM_EDID_P_AudioSampleRate_e96KHz  = 16,
+	BHDM_EDID_P_AudioSampleRate_e176KHz = 32,
+	BHDM_EDID_P_AudioSampleRate_e192KHz = 64
+} BHDM_EDID_P_AudioSampleRate;
+
+
+typedef struct BHDM_EDID_P_AUDIO_FORMATS  {
+	BHDM_EDID_P_AudioFormat EdidAudioFormat ;
+	BAVC_AudioFormat BcmAudioFormat ;
+} BHDM_EDID_P_AUDIO_FORMATS ;
+
+typedef struct BHDM_EDID_P_AUDIO_SAMPLE_RATES {
+	BHDM_EDID_P_AudioSampleRate EdidAudioSampleRate ;
+	BAVC_AudioSamplingRate BcmAudioSampleRate ;
+} BHDM_EDID_P_AUDIO_SAMPLE_RATES ;
+
+
 typedef struct _BHDM_EDID_DATA_
 {
 	uint8_t Block[BHDM_EDID_BLOCKSIZE] ;
@@ -243,10 +290,12 @@ typedef struct _BHDM_EDID_DATA_
 	bool BcmMonitorRangeParsed ;
 	BHDM_EDID_MonitorRange MonitorRange ;
 	uint8_t                MonitorName[BHDM_EDID_DESC_ASCII_STRING_LEN] ;
- 	BHDM_EDID_DetailTiming SupportedDetailTimings[2] ; /* keep two most preferred timings */
- 	uint8_t                SupportedDetailTimingsIn1stBlock ;
+	BHDM_EDID_DetailTiming SupportedDetailTimings[2] ; /* keep two most preferred timings */
+	uint8_t                SupportedDetailTimingsIn1stBlock ;
 	uint8_t                RxHasHdmiSupport ;
 	BHDM_EDID_RxVendorSpecificDB RxVSDB ;
+	uint8_t uiRxVendorSpecificDBLength ;
+
 	BHDM_EDID_RxHfVsdb	RxHdmiForumVsdb ;
 
 	BHDM_EDID_VideoDescriptorHead   VideoDescriptorList ;
@@ -264,6 +313,8 @@ typedef struct _BHDM_EDID_DATA_
 	bool UnsupportedVideoFormatReported[BFMT_VideoFmt_eMaxCount] ;
 
 	/* keep track of Broadcom 4:2:0 Video Formats supported by the EDID/monitor */
+	bool YCbCr420CapabilityMapDBFound ;
+	bool YCbCr420CapabilityVideDBFound ;
 	bool BcmSupported420VideoFormatsChecked ;
 	bool BcmSupported420VideoFormats[BFMT_VideoFmt_eMaxCount] ;
 	bool BcmSupported420VideoFormatsReported ;
@@ -280,6 +331,9 @@ typedef struct _BHDM_EDID_DATA_
 
 
 	BHDM_EDID_ColorimetryDataBlock ColorimetryDB ;
+	uint8_t uiColorimetryDBSupportByte ;
+	uint8_t uiColorimetryDBMetaDataSupportByte ;
+
 	BHDM_EDID_VideoCapabilityDataBlock VideoCapabilityDB ;
 	BHDM_EDID_HDRStaticDB HdrDB ;
 
@@ -301,9 +355,6 @@ typedef enum
 
 typedef enum
 {
-#if BHDM_CONFIG_MHL_SUPPORT
-	BHDM_P_TIMER_eCbusTimer,
-#endif
 	BHDM_P_TIMER_eHotPlug,  /* hotplug settle time */
 	BHDM_P_TIMER_eHotPlugChange,   /* monitor hotplug changes */
 	BHDM_P_TIMER_eFormatDetection,
@@ -542,13 +593,6 @@ typedef struct BHDM_P_Handle
 
 #endif
 #endif
-
-#if BHDM_CONFIG_MHL_SUPPORT
-	BHDM_P_Mhl_Handle hMhl ;
-	BHDM_P_Mhl_Settings stMhlSettings ;
-	bool bMhlMode ;
-#endif
-
  } BHDM_P_Handle ;
 
 
@@ -748,6 +792,9 @@ void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI);
 const uint8_t * BHDM_EDID_P_GetDebugEdid(void) ;
 
 const char * BHDM_P_GetVersion(void) ;
+
+const char * BHDM_EDID_DEBUG_CeaAudioSampleRateToStr(
+    uint8_t uiCeaSampleRateId) ;
 
 
 BERR_Code BHDM_P_BREG_I2C_Read(

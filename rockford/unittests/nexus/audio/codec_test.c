@@ -71,6 +71,7 @@ int main(void) {
     unsigned loops = 500;
     NEXUS_Error rc;
     NEXUS_AudioDecoderOpenSettings audioDecoderOpenSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
 #ifdef IP_STREAMER_SUBST
     IpsHandle ips;
     IpsOpenSettings ipsOpenSettings;
@@ -120,12 +121,16 @@ int main(void) {
 #endif
     pcmDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, &audioDecoderOpenSettings);
-#if NEXUS_NUM_AUDIO_DACS
-    rc = NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioConnectorType_eStereo));
-    BDBG_ASSERT(!rc);
-#endif
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numOutputs.dac > 0) {
+        rc = NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioConnectorType_eStereo));
+        BDBG_ASSERT(!rc);
+    }
+
 #ifdef IP_STREAMER_SUBST
     ipsTimebaseSettings.timebaseStc = NEXUS_Timebase_e0;
     ipsTimebaseSettings.timebaseDecouple = NEXUS_Timebase_e1;
@@ -155,7 +160,7 @@ int main(void) {
         Codecs that should work should keep on working.
         **/
 
-#if NEXUS_NUM_SPDIF_OUTPUTS
+    if (audioCapabilities.numOutputs.spdif > 0) {
         NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
         if ( audioProgram.codec == NEXUS_AudioCodec_eAc3Plus || audioProgram.codec == NEXUS_AudioCodec_eWmaPro )
         {
@@ -173,7 +178,7 @@ int main(void) {
             BDBG_ASSERT(!rc);
             useCompressedDecoder = true;
         }
-#endif
+    }
 
         printf("starting codec %d\n", audioProgram.codec);
         rc = NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
@@ -196,12 +201,14 @@ int main(void) {
         }
     }
 
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-#endif
+    if (audioCapabilities.numOutputs.dac > 0) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
+    }
+
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioConnectorType_eStereo));
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed));
     NEXUS_AudioDecoder_Close(pcmDecoder);

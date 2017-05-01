@@ -71,6 +71,7 @@ public:
     virtual uint32_t     getTextColor(void);
     virtual void         setTextColor(uint32_t color);
     bwin_image_t         getImage(void);
+    virtual MRect        getImageGeometry(const char * filename);
     virtual eRet         loadImage(const char * filename, bwin_image_render_mode renderMode = bwin_image_render_mode_single);
     virtual eRet         loadImage(const void * mem, unsigned length, bwin_image_render_mode renderMode = bwin_image_render_mode_single);
     virtual eRet         loadFramebuffer(bwin_framebuffer_t framebuffer, bwin_image_render_mode renderMode = bwin_image_render_mode_single);

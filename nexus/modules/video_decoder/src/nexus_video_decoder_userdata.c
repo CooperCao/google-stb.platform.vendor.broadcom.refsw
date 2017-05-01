@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_video_decoder_module.h"
@@ -118,6 +110,11 @@ void NEXUS_VideoDecoder_UserDataReadComplete(NEXUS_VideoDecoderHandle videoDecod
 
 static void NEXUS_VideoDecoder_P_UserDataFreeSpace_isr(NEXUS_VideoDecoderHandle videoDecoder, unsigned *immediate_space, unsigned *after_wrap_space)
 {
+    if (!videoDecoder->openSettings.openSettings.userDataBufferSize) {
+        *immediate_space = 0;
+        *after_wrap_space = 0;
+        return;
+    }
     if (videoDecoder->userdata.rptr > videoDecoder->userdata.wptr) {
         *immediate_space = videoDecoder->userdata.rptr - videoDecoder->userdata.wptr - 1;
         *after_wrap_space = 0;

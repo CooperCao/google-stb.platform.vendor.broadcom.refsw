@@ -1,16 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-Project  :  PPP
-Module   :  MMM
+#pragma once
 
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
-#ifndef __REMOTE_H__
-#define __REMOTE_H__
+#include "datasink.h"
+#include "datasinkbuffer.h"
+#include "datasourcesinkfile.h"
 
 #include <stdint.h>
 
@@ -19,7 +15,7 @@ DESC
 
 class Packet;
 
-class Remote
+class Remote: public DataSink
 {
 public:
    enum
@@ -28,31 +24,23 @@ public:
    };
 
 public:
-   Remote();
    Remote(uint16_t port);
    virtual ~Remote();
 
-   virtual bool Connect();
-   virtual void Disconnect();
+   bool Connect();
+   void Disconnect();
 
-   virtual void Send(uint8_t *data, uint32_t size, bool isArray = false);
-   virtual void Flush();
+   bool ReceivePacket(Packet *p);
 
-   virtual bool ReceivePacket(Packet *p);
-
-private:
-   uint32_t To32(uint8_t *ptr) { return *(uint32_t*)ptr; }
-   int32_t Read32();
-   int32_t ReadAll(int fd, void * buf, size_t count);
+public: //DataSink interface
+   virtual size_t Write(const void *data, size_t size) override;
+   virtual bool Flush() override;
 
 private:
    std::string m_server;
    uint16_t    m_port;
    int         m_socket;
 
-protected:
-   uint32_t    m_queuedLen;
-   uint8_t     *m_queuedData;
+   DataSourceSinkFile m_tcp;
+   DataSinkBuffer m_buffer;
 };
-
-#endif /* __REMOTE_H__ */

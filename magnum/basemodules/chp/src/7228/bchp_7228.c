@@ -300,16 +300,14 @@ Example: 0x72280000 becomes "7228A0" */
     /* All done. now return the new fresh context to user. */
     *phChip = (BCHP_Handle)pChip;
 
-#if BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD0);
 #endif
-
-#if BCHP_PWR_SUPPORT
-        BCHP_P_ResetMagnumCores( pChip );
-#endif
-
     /* Clear AVD/SVD shutdown enable bit */
     BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
+#if BCHP_PWR_RESOURCE_AVD0
+    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD0);
+#endif
 
     /* TODO: Bring up the clocks */
     BDBG_MSG(("Hack Hack,programming BCHP_SUN_GISB_ARB_REQ_MASK, this should be done in CFE"));
@@ -337,11 +335,6 @@ Example: 0x72280000 becomes "7228A0" */
         ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, GFX_M2MC_CORE_CLOCK, 0x1));
         BREG_Write32(hRegister, BCHP_CLKGEN_INTERNAL_MUX_SELECT, ulVal);
     }
-
-
-#if BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
-#endif
 
     BDBG_LEAVE(BCHP_Open7228);
     return BERR_SUCCESS;

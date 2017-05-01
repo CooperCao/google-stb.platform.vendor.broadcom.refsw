@@ -133,6 +133,8 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListChanged).s(), "eNotify_ChannelL
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListVersion).s(), "eNotify_ChannelListVersion")     /* status   - channel list is incompatible version */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_CurrentChannel).s(), "eNotify_CurrentChannel")             /* status   - current channel has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_CurrentChannelNull).s(), "eNotify_CurrentChannelNull")     /* status   - current channel has been untuned */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelStart).s(), "eNotify_ChannelStart")                 /* status   - channel has started decoding */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelFinish).s(), "eNotify_ChannelFinish")               /* status   - channel has untuned */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelStateChanged).s(), "eNotify_ChannelStateChanged")   /* status   - channel state has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_DeferredChannel).s(), "eNotify_DeferredChannel")           /* status   - deferred channel has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStarted).s(), "eNotify_ScanStarted")                   /* status   - scan has started */
@@ -151,6 +153,8 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStopped).s(), "eNotify_RecordStopped
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStarted).s(), "eNotify_EncodeStarted")                             /* status   - encode has started */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStopped).s(), "eNotify_EncodeStopped")                             /* status   - encode has stopped */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoSourceChanged).s(), "eNotify_VideoSourceChanged")                   /* status   - video source has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoStreamChanged).s(), "eNotify_VideoStreamChanged")                   /* status   - video source has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoPlmChanged).s(), "eNotify_VideoPlmChanged")                         /* status   - video programmable luma mapping has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoDecodeStarted).s(), "eNotify_VideoDecodeStarted")                   /* status   - video decode started */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoDecodeStopped).s(), "eNotify_VideoDecodeStopped")                   /* status   - video decode stopped */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioSourceChanged).s(), "eNotify_AudioSourceChanged")                   /* status   - audio source has changed */

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bhdm.h"
@@ -42,6 +41,52 @@
 #include "bavc.h"
 
 BDBG_MODULE(BHDM_PACKET_VSI) ;
+
+/******************************************************************************
+Summary:
+	Display  Vendor Specific Info Frame
+*******************************************************************************/
+void BHDM_DisplayVendorSpecificInfoFrame(
+	const BHDM_Handle hHDMI,			/* [in] HDMI handle */
+	const BAVC_HDMI_VendorSpecificInfoFrame *pstVSI)
+{
+#if BDBG_DEBUG_BUILD
+	BDBG_LOG(("*** Vendor Specific INFOFRAME")) ;
+	BDBG_LOG(("Tx%d: IEEE Reg ID 0x%02x%02x%02x", hHDMI->eCoreId,
+		pstVSI->uIEEE_RegId[2], pstVSI->uIEEE_RegId[1], pstVSI->uIEEE_RegId[0])) ;
+
+
+	BDBG_LOG(("Tx%d: HDMI VideoFormat: %s   (PB4: %#x)", hHDMI->eCoreId,
+		BAVC_HDMI_VsInfoFrame_HdmiVideoFormatToStr(pstVSI->eHdmiVideoFormat),
+		pstVSI->eHdmiVideoFormat)) ;
+
+	if (pstVSI->eHdmiVideoFormat == BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_eExtendedResolution)
+	{
+		BDBG_LOG(("Tx%d: HDMI_VIC: 0x%d  %s (PB5: %#x)", hHDMI->eCoreId,
+			pstVSI->eHdmiVic,
+			BAVC_HDMI_VsInfoFrame_HdmiVicToStr(pstVSI->eHdmiVic),
+			pstVSI->eHdmiVic));
+	}
+	else if (pstVSI->eHdmiVideoFormat == BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_e3DFormat)
+	{
+		BDBG_LOG(("Tx%d: HDMI 2D/3D Structure: %s (PB5: %#x)", hHDMI->eCoreId,
+			BAVC_HDMI_VsInfoFrame_3DStructureToStr(pstVSI->e3DStructure),
+			pstVSI->e3DStructure));
+
+		if (pstVSI->e3DStructure == BAVC_HDMI_VSInfoFrame_3DStructure_eSidexSideHalf)
+		{
+			BDBG_LOG(("Tx%d: HDMI 3D_Ext_Data: %s (PB6: %#x)", hHDMI->eCoreId,
+				BAVC_HDMI_VsInfoFrame_3DExtDataToStr(pstVSI->e3DExtData),
+				pstVSI->e3DExtData));
+		}
+	}
+	BDBG_LOG((" ")) ;
+#else
+	BSTD_UNUSED(hHDMI) ;
+	BSTD_UNUSED(pstVSI) ;
+#endif
+}
+
 
 /******************************************************************************
 Summary:
@@ -181,42 +226,27 @@ BERR_Code BHDM_SetVendorSpecificInfoFrame(
 		PacketLength++;
 	}
 
-
 done:
 
-	BDBG_MSG(("-------------------- NEW  VS  INFOFRAME -------------------")) ;
-	BDBG_MSG(("Tx%d: Packet Type: 0x%02x  Version %d  Length: %d",
-		hHDMI->eCoreId, PacketType, PacketVersion, PacketLength)) ;
+    if (pVendorSpecificInfoFrame->bDolbyVisionEnabled)
+    {
+        PacketLength = 24;
+    }
 
-	BDBG_MSG(("Tx%d: IEEE Registration ID 0x%02x%02x%02x", hHDMI->eCoreId,
-		NewVSI.uIEEE_RegId[2], NewVSI.uIEEE_RegId[1], NewVSI.uIEEE_RegId[0])) ;
-
-
-	BDBG_MSG(("Tx%d: HDMI VideoFormat: %s   (PB4: %#x)", hHDMI->eCoreId,
-		BAVC_HDMI_VsInfoFrame_HdmiVideoFormatToStr(NewVSI.eHdmiVideoFormat),
-		NewVSI.eHdmiVideoFormat)) ;
-
-	if (NewVSI.eHdmiVideoFormat == BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_eExtendedResolution)
+#if BDBG_DEBUG_BUILD
 	{
-		BDBG_MSG(("Tx%d: HDMI_VIC: 0x%d  %s (PB5: %#x)", hHDMI->eCoreId,
-			NewVSI.eHdmiVic,
-			BAVC_HDMI_VsInfoFrame_HdmiVicToStr(NewVSI.eHdmiVic),
-			NewVSI.eHdmiVic));
-	}
-	else if (NewVSI.eHdmiVideoFormat == BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_e3DFormat)
-	{
-		BDBG_MSG(("Tx%d: HDMI 2D/3D Structure: %s (PB5: %#x)", hHDMI->eCoreId,
-			BAVC_HDMI_VsInfoFrame_3DStructureToStr(NewVSI.e3DStructure),
-			NewVSI.e3DStructure));
+		BDBG_Level level ;
 
-		if (NewVSI.e3DStructure == BAVC_HDMI_VSInfoFrame_3DStructure_eSidexSideHalf)
+		BDBG_GetModuleLevel("BHDM_PACKET_VSI", &level) ;
+		if (level == BDBG_eMsg)
 		{
-			BDBG_MSG(("Tx%d: HDMI 3D_Ext_Data: %s (PB6: %#x)", hHDMI->eCoreId,
-				BAVC_HDMI_VsInfoFrame_3DExtDataToStr(NewVSI.e3DExtData),
-				NewVSI.e3DExtData));
+			BDBG_LOG(("Tx%d: VSI Packet Type: 0x%02x  Version %d  Length: %d", hHDMI->eCoreId,
+				PacketType, PacketVersion, PacketLength)) ;
+
+			BHDM_DisplayVendorSpecificInfoFrame(hHDMI, &NewVSI) ;
 		}
 	}
-	BDBG_MSG(("--------------------- END VS  INFOFRAME ---------------------")) ;
+#endif
 
 	/* update current device settings with new information on VendorSpecificInfoFrame */
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stVendorSpecificInfoFrame, &NewVSI,

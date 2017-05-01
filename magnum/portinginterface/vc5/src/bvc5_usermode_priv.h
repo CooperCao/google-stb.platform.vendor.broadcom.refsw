@@ -1,5 +1,5 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2015 Broadcom.  All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef BVC5_USERMODE_H__
 #define BVC5_USERMODE_H__
 
@@ -54,14 +53,17 @@ typedef struct BVC5_P_UsermodeState
    BVC5_P_InternalJob   *psRunningJob;
 } BVC5_P_UsermodeState;
 
+/* As this is now part of the client state, we cannot use BVC5_ClientHandle here */
+struct BVC5_P_Client;
+
 void BVC5_P_IssueUsermodeJob(
    BVC5_Handle           hVC5,
-   BVC5_ClientHandle     hClient,
+   struct BVC5_P_Client *hClient,
    BVC5_P_InternalJob   *psJob
 );
 
 bool BVC5_P_UsermodeIsAvailable(
-   BVC5_Handle hVC5
+   struct BVC5_P_Client *hClient
 );
 
 #endif /* BVC5_USERMODE_H__ */

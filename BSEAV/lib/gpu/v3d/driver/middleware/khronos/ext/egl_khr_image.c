@@ -1,18 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Server-side implementation of the EGLImage extensions for EGL:
-   EGL_KHR_image
-   EGL_KHR_vg_parent_image
-   EGL_KHR_gl_texture_2D_image
-   EGL_KHR_gl_texture_cubemap_image
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/ext/egl_khr_image.h"
 #include "middleware/khronos/egl/egl_platform.h"

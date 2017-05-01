@@ -52,9 +52,10 @@ void file_switcher_set_position(FileSwitcherHandle switcher, int position);
 void file_switcher_first(FileSwitcherHandle switcher);
 void file_switcher_last(FileSwitcherHandle switcher);
 void file_switcher_next(FileSwitcherHandle switcher);
-void file_switcher_previous(FileSwitcherHandle switcher);
+void file_switcher_prev(FileSwitcherHandle switcher);
 const char * file_switcher_get_path(FileSwitcherHandle switcher);
 int file_switcher_get_position(FileSwitcherHandle switcher);
+int file_switcher_find(FileSwitcherHandle switcher, const char * path);
 unsigned file_switcher_get_count(FileSwitcherHandle switcher);
 void file_switcher_print(FileSwitcherHandle switcher);
 

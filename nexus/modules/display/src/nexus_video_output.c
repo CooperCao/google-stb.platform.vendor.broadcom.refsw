@@ -68,8 +68,8 @@ static BERR_Code NEXUS_Ccir656Output_P_Connect(void *output,  NEXUS_DisplayHandl
 static void NEXUS_VideoOutputs_P_HdmiCfcHeap(BVDC_Display_HdmiSettings *pSettings)
 {
     /* cfc LUT heap */
-    if(NEXUS_MAX_HEAPS != g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId]) {
-        pSettings->hCfcHeap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId]].mma;
+    if(NEXUS_MAX_HEAPS != g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId-BVDC_Hdmi_0]) {
+        pSettings->hCfcHeap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId-BVDC_Hdmi_0]].mma;
     }
 }
 
@@ -1291,7 +1291,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     /* certain settings, like color depth and color space, ought to trigger a format change */
     if (hdmiFormatChange) {
         NEXUS_HdmiOutputStatus *hdmiOutputStatus;
-        bool aspectRatioChangeOnly;
+        bool contentChangeOnly;
         bool hdmiMasterMode ;
         hdmiOutputStatus = &g_NEXUS_DisplayModule_State.functionData.NEXUS_VideoOutput_P_SetHdmiFormat.hdmiOutputStatus;
         rc = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus);
@@ -1322,15 +1322,27 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         if (hdmiOutputStatus->connected)
         {
             BAVC_HDMI_BitsPerPixel colorDepth;
+            bool displaySyncOnly ;
 
-            /* If only aspect ratio is changing, set the aspectRatioChangeOnly flag for later use in hdmi_output module*/
-            aspectRatioChangeOnly = ((display->cfg.aspectRatio != aspectRatio) && (display->cfg.format == format) && (!_3dOrientationChange));
+            rc = BVDC_Display_GetHdmiSyncOnly(display->displayVdc, &displaySyncOnly) ;
+            if (rc) {
+                rc = BERR_TRACE(rc);
+                /* Keep going, they asked for it... */
+            }
+
+            /* If only content (i.e. aspect ratio, displaySync) is changing and not timing,
+                 set the contentChangeOnly flag for later use in hdmi_output module*/
+
+            contentChangeOnly =
+                (((display->cfg.aspectRatio != aspectRatio) && (display->cfg.format == format) && (!_3dOrientationChange))
+                || (displaySyncOnly != settings.syncOnly)) ;
+
             rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &videoFmt);
             if (rc) {
                 videoFmt = BFMT_VideoFmt_eNTSC; /* don't proceed with uninitialized value. */
             }
             NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-            rc = NEXUS_HdmiOutput_P_PreFormatChange_priv(hdmiOutput, videoFmt, aspectRatioChangeOnly);
+            rc = NEXUS_HdmiOutput_P_PreFormatChange_priv(hdmiOutput, videoFmt, contentChangeOnly);
             NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
             if (rc) {
                 rc = BERR_TRACE(rc);
@@ -1344,8 +1356,9 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
                 /* Keep going, they asked for it... */
             }
 
-            /* Additional step to configure deep color mode */
-            requested.videoFormat = format ;
+            /* if HDMI Output is to be scaled, */
+            /* use the scaled vs internal format to validate the requested HDMI output settings */
+            requested.videoFormat = settings.outputFormat ? settings.outputFormat : format ;
             requested.colorDepth = settings.colorDepth ;
             requested.colorSpace = settings.colorSpace ;
             BKNI_Memset(&preferred, 0, sizeof(NEXUS_HdmiOutputVideoSettings)) ;
@@ -1375,6 +1388,9 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             displayHdmiSettings.eColorRange = magnumColorRange;
             displayHdmiSettings.eEotf = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
             NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
+#if NEXUS_DBV_SUPPORT
+            NEXUS_Display_P_DbvUpdateOutputInfo(display, hdmiOutput, &displayHdmiSettings);
+#endif
             rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
             if (rc) return BERR_TRACE(rc);
             doneHdmiSettings = true;
@@ -1398,9 +1414,13 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         displayHdmiSettings.eColorRange   = magnumColorRange;
         displayHdmiSettings.eEotf         = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
         NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
+#if NEXUS_DBV_SUPPORT
+        NEXUS_Display_P_DbvUpdateOutputInfo(display, hdmiOutput, &displayHdmiSettings);
+#endif
         rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
         if (rc) return BERR_TRACE(rc);
     }
+
 
     NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
     {
@@ -1524,8 +1544,11 @@ NEXUS_VideoOutput_P_ConnectHdmi(void *output,  NEXUS_DisplayHandle display)
     /* make sure HDMI Core is enabled; TMDS clock ON and data OFF until properly configured */
     BDBG_MSG(("Add HDMI to nexus display...")) ;
     NEXUS_Module_Lock(video->modules.hdmiOutput) ;
+        rc = NEXUS_HdmiOutput_Connect_priv(hdmi) ;
+        if (rc) return BERR_TRACE(rc);
+
         rc = NEXUS_HdmiOutput_P_SetTmdsSignalData(hdmi, false) ;
-        if (!rc)
+         if (!rc)
         {
             rc = NEXUS_HdmiOutput_P_SetTmdsSignalClock(hdmi, true) ;
             if (rc) BERR_TRACE(rc) ;
@@ -1557,7 +1580,7 @@ NEXUS_VideoOutput_P_ConnectHdmi(void *output,  NEXUS_DisplayHandle display)
     BDBG_ASSERT(!display->hdmi.outputNotify);
     display->hdmi.outputNotify = hdmi;
     display->hdmi.forceFormatChange = true;
-    NEXUS_VideoOutput_P_SetHdmiSettings(display);
+NEXUS_VideoOutput_P_SetHdmiSettings(display);
 
     return BERR_SUCCESS;
 }

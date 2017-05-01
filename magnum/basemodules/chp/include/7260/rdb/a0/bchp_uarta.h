@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,18 +70,18 @@
 /***************************************************************************
  *UARTA - UART A
  ***************************************************************************/
-#define BCHP_UARTA_RBR                           0x2040c000 /* [RO] Receive Buffer Register */
-#define BCHP_UARTA_THR                           0x2040c000 /* [WO] Transmit Holding Register */
-#define BCHP_UARTA_DLL                           0x2040c000 /* [RW] Divisor Latch Low */
-#define BCHP_UARTA_DLH                           0x2040c004 /* [RW] Divisor Latch High */
-#define BCHP_UARTA_IER                           0x2040c004 /* [RW] Interrupt Enable Register */
-#define BCHP_UARTA_IIR                           0x2040c008 /* [RO] Interrupt Identity Register */
-#define BCHP_UARTA_FCR                           0x2040c008 /* [WO] FIFO Control Register */
-#define BCHP_UARTA_LCR                           0x2040c00c /* [RW] Line Control Register */
-#define BCHP_UARTA_MCR                           0x2040c010 /* [RW] Modem Control Register */
-#define BCHP_UARTA_LSR                           0x2040c014 /* [RO] Line Status Register */
-#define BCHP_UARTA_MSR                           0x2040c018 /* [RO] Modem Status Register */
-#define BCHP_UARTA_SCR                           0x2040c01c /* [RW] Scratchpad Register */
+#define BCHP_UARTA_RBR                           0x2040c000 /* [RO][32] Receive Buffer Register */
+#define BCHP_UARTA_THR                           0x2040c000 /* [WO][32] Transmit Holding Register */
+#define BCHP_UARTA_DLL                           0x2040c000 /* [RW][32] Divisor Latch Low */
+#define BCHP_UARTA_DLH                           0x2040c004 /* [RW][32] Divisor Latch High */
+#define BCHP_UARTA_IER                           0x2040c004 /* [RW][32] Interrupt Enable Register */
+#define BCHP_UARTA_IIR                           0x2040c008 /* [RO][32] Interrupt Identity Register */
+#define BCHP_UARTA_FCR                           0x2040c008 /* [WO][32] FIFO Control Register */
+#define BCHP_UARTA_LCR                           0x2040c00c /* [RW][32] Line Control Register */
+#define BCHP_UARTA_MCR                           0x2040c010 /* [RW][32] Modem Control Register */
+#define BCHP_UARTA_LSR                           0x2040c014 /* [RO][32] Line Status Register */
+#define BCHP_UARTA_MSR                           0x2040c018 /* [RO][32] Modem Status Register */
+#define BCHP_UARTA_SCR                           0x2040c01c /* [RW][32] Scratchpad Register */
 
 /***************************************************************************
  *RBR - Receive Buffer Register

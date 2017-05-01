@@ -42,6 +42,7 @@
 #include "nxclient.h"
 
 #define CALLBACK_VDECODE_SOURCE_CHANGED  "callbackVDecodeSourceChanged"
+#define CALLBACK_VDECODE_STREAM_CHANGED  "callbackVDecodeStreamChanged"
 
 BDBG_MODULE(atlas_video_decode);
 
@@ -56,8 +57,22 @@ static void bwinSimpleVideoDecodeSourceChangedCallback(
     BSTD_UNUSED(strCallback);
     BDBG_ASSERT(NULL != pSimpleVideoDecode);
 
-    pSimpleVideoDecode->videoDecodeCallback();
+    pSimpleVideoDecode->videoDecodeSourceChangedCallback();
 } /* bwinSimpleVideoDecodeSourceChangedCallback */
+
+/* bwin io callback that is triggered when it is safe to handle callbacks */
+static void bwinSimpleVideoDecodeStreamChangedCallback(
+        void *       pObject,
+        const char * strCallback
+        )
+{
+    CSimpleVideoDecode * pSimpleVideoDecode = (CSimpleVideoDecode *)pObject;
+
+    BSTD_UNUSED(strCallback);
+    BDBG_ASSERT(NULL != pSimpleVideoDecode);
+
+    pSimpleVideoDecode->videoDecodeStreamChangedCallback();
+} /* bwinSimpleVideoDecodeStreamChangedCallback */
 
 /* nexus callback that is executed when the video source has changed */
 static void NexusVideoDecodeSourceChangedCallback(
@@ -65,7 +80,7 @@ static void NexusVideoDecodeSourceChangedCallback(
         int    param
         )
 {
-    CVideoDecode * pVideoDecode = (CVideoDecode *)context;
+    CSimpleVideoDecode * pVideoDecode = (CSimpleVideoDecode *)context;
 
     BSTD_UNUSED(param);
     BDBG_ASSERT(NULL != pVideoDecode);
@@ -80,6 +95,28 @@ static void NexusVideoDecodeSourceChangedCallback(
         pWidgetEngine->syncCallback(pVideoDecode, CALLBACK_VDECODE_SOURCE_CHANGED);
     }
 } /* NexusVideoDecodeSourceChangedCallback */
+
+/* nexus callback that is executed when the video stream has changed */
+static void NexusVideoDecodeStreamChangedCallback(
+        void * context,
+        int    param
+        )
+{
+    CVideoDecode * pVideoDecode = (CVideoDecode *)context;
+
+    BSTD_UNUSED(param);
+    BDBG_ASSERT(NULL != pVideoDecode);
+
+    CWidgetEngine * pWidgetEngine = pVideoDecode->getWidgetEngine();
+
+    pVideoDecode->setStreamChanged(true);
+
+    /* sync with bwin loop */
+    if (NULL != pWidgetEngine)
+    {
+        pWidgetEngine->syncCallback(pVideoDecode, CALLBACK_VDECODE_STREAM_CHANGED);
+    }
+} /* NexusVideoDecodeStreamChangedCallback */
 
 CSimpleVideoDecodeNx::CSimpleVideoDecodeNx(
         const char *     name,
@@ -126,6 +163,7 @@ eRet CSimpleVideoDecodeNx::open(
     {
         _pWidgetEngine = pWidgetEngine;
         _pWidgetEngine->addCallback(this, CALLBACK_VDECODE_SOURCE_CHANGED, bwinSimpleVideoDecodeSourceChangedCallback);
+        _pWidgetEngine->addCallback(this, CALLBACK_VDECODE_STREAM_CHANGED, bwinSimpleVideoDecodeStreamChangedCallback);
     }
     else
     {
@@ -160,6 +198,9 @@ eRet CSimpleVideoDecodeNx::open(
         videoDecoderSettings.sourceChanged.callback = NexusVideoDecodeSourceChangedCallback;
         videoDecoderSettings.sourceChanged.context  = this;
         videoDecoderSettings.sourceChanged.param    = 0;
+        videoDecoderSettings.streamChanged.callback = NexusVideoDecodeStreamChangedCallback;
+        videoDecoderSettings.streamChanged.context  = this;
+        videoDecoderSettings.streamChanged.param    = 0;
         videoDecoderSettings.dropFieldMode          = GET_BOOL(_pCfg, DROP_FIELD_MODE_ENABLED);
 
         if ((0 < _maxWidth) && (0 < _maxHeight))
@@ -197,6 +238,7 @@ CStc * CSimpleVideoDecodeNx::close()
 
     if (NULL != _pWidgetEngine)
     {
+        _pWidgetEngine->removeCallback(this, CALLBACK_VDECODE_STREAM_CHANGED);
         _pWidgetEngine->removeCallback(this, CALLBACK_VDECODE_SOURCE_CHANGED);
         _pWidgetEngine = NULL;
     }
@@ -214,58 +256,99 @@ eRet CSimpleVideoDecodeNx::setPosition(
     NEXUS_Error nerror = NEXUS_SUCCESS;
 
     NEXUS_SurfaceClient_GetSettings(_surfaceClientVideoWin, &settings);
-    settings.composition.position.x      = (int16_t)rect.x();
-    settings.composition.position.y      = (int16_t)rect.y();
-    settings.composition.position.width  = rect.width();
-    settings.composition.position.height = rect.height();
-    settings.composition.zorder          = zorder;
-    nerror                               = NEXUS_SurfaceClient_SetSettings(_surfaceClientVideoWin, &settings);
-    CHECK_NEXUS_ERROR_GOTO("unable to set position", ret, nerror, error);
+
+    /* only update settings if different from requested geometry */
+    if ((settings.composition.position.x != (int16_t)rect.x()) ||
+        (settings.composition.position.y != (int16_t)rect.y()) ||
+        (settings.composition.position.width != rect.width()) ||
+        (settings.composition.position.height != rect.height())
+       )
+    {
+        settings.composition.position.x      = (int16_t)rect.x();
+        settings.composition.position.y      = (int16_t)rect.y();
+        settings.composition.position.width  = rect.width();
+        settings.composition.position.height = rect.height();
+        settings.composition.zorder          = zorder;
+        nerror                               = NEXUS_SurfaceClient_SetSettings(_surfaceClientVideoWin, &settings);
+        CHECK_NEXUS_ERROR_GOTO("unable to set position", ret, nerror, error);
+    }
 
 error:
     return(ret);
 } /* setPosition */
 
+/* percent, border, and *pRectPercent are expressed in terms: 0-1000 = 0-100.0% */
 eRet CSimpleVideoDecodeNx::setGeometryVideoWindow(
         MRect    rect,
-        uint8_t  percent,
+        uint16_t  percent,
         eWinArea area,
-        uint8_t  border,
-        uint16_t zorder
+        uint16_t  border,
+        uint16_t zorder,
+        MRect *  pRectPercent
         )
 {
     eRet     ret       = eRet_Ok;
     uint16_t borderGap = 0;
     MRect    rectScaled;
 
-    BDBG_ASSERT(100 >= percent);
+    BDBG_ASSERT(1000 >= percent);
 
-    borderGap = border * rect.height() / 100;
+    borderGap = border * rect.height() / 1000;
 
-    rectScaled.setWidth(rect.width() * percent / 100);
-    rectScaled.setHeight(rect.height() * percent / 100);
+    rectScaled.setWidth(rect.width() * percent / 1000);
+    rectScaled.setHeight(rect.height() * percent / 1000);
+
+    if (pRectPercent)
+    {
+        pRectPercent->setWidth(percent);
+        pRectPercent->setHeight(percent);
+    }
 
     switch (area)
     {
     case eWinArea_LowerLeft:
         rectScaled.setX(borderGap);
         rectScaled.setY(rect.height() - borderGap - rectScaled.height());
+
+        if (pRectPercent)
+        {
+            pRectPercent->setX(border);
+            pRectPercent->setY(rectScaled.y() * 1000 / rect.height());
+        }
         break;
 
     case eWinArea_LowerRight:
         rectScaled.setX(rect.width() - borderGap - rectScaled.width());
         rectScaled.setY(rect.height() - borderGap - rectScaled.height());
+
+        if (pRectPercent)
+        {
+            pRectPercent->setX(rectScaled.x() * 1000 / rect.width());
+            pRectPercent->setY(rectScaled.y() * 1000 / rect.height());
+        }
         break;
 
     case eWinArea_UpperLeft:
         rectScaled.setX(borderGap);
         rectScaled.setY(borderGap);
+
+        if (pRectPercent)
+        {
+            pRectPercent->setX(border);
+            pRectPercent->setY(border);
+        }
         break;
 
     case eWinArea_UpperRight:
     default:
         rectScaled.setX(rect.width() - borderGap - rectScaled.width());
         rectScaled.setY(borderGap);
+
+        if (pRectPercent)
+        {
+            pRectPercent->setX(rectScaled.x() * 1000 / rect.width());
+            pRectPercent->setY(border);
+        }
         break;
     } /* switch */
 
@@ -284,10 +367,9 @@ NEXUS_VideoFormat CSimpleVideoDecodeNx::getFormat()
     return(settings.format);
 }
 
-eRet CSimpleVideoDecodeNx::start(
-        CPid * pPid,
-        CStc * pStc
-        )
+/* given rect values are in percent where 0-1000 == 0%-100.0%.
+   if rectGeom.isNull() is true, then default video window sizes will be used */
+eRet CSimpleVideoDecodeNx::setVideoWindowGeometryPercent(MRect * pRectGeomPercent)
 {
     eRet          ret       = eRet_Ok;
     NEXUS_Error   nerror    = NEXUS_SUCCESS;
@@ -321,53 +403,77 @@ eRet CSimpleVideoDecodeNx::start(
         CHECK_NEXUS_ERROR("unable to disable closed caption routing", nerror);
     }
 
-    if (eWindowType_Mosaic1 == getWindowType())
+    if (true == pRectGeomPercent->isNull())
     {
-        BDBG_MSG(("---------------------------------- resizing mosaic1 video window"));
-        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_UpperLeft, 0, 1);
+        /* invalid geometry given so use some default video */
+
+        if (eWindowType_Mosaic1 == getWindowType())
+        {
+            BDBG_MSG(("---------------------------------- resizing mosaic1 video window"));
+            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_UpperLeft, 0, 1, pRectGeomPercent);
+            *pRectGeomPercent = MRect(0, 0, 500, 500);
+        }
+        else
+        if (eWindowType_Mosaic2 == getWindowType())
+        {
+            BDBG_MSG(("---------------------------------- resizing mosaic2 video window"));
+            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_UpperRight, 0, 1, pRectGeomPercent);
+            *pRectGeomPercent = MRect(500, 0, 500, 500);
+        }
+        else
+        if (eWindowType_Mosaic3 == getWindowType())
+        {
+            BDBG_MSG(("---------------------------------- resizing mosaic3 video window"));
+            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_LowerLeft, 0, 1, pRectGeomPercent);
+            *pRectGeomPercent = MRect(0, 500, 500, 500);
+        }
+        else
+        if (eWindowType_Mosaic4 == getWindowType())
+        {
+            BDBG_MSG(("---------------------------------- resizing mosaic4 video window"));
+            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_LowerRight, 0, 1, pRectGeomPercent);
+            *pRectGeomPercent = MRect(500, 500, 500, 500);
+        }
+        else
+        if (getWindowType() != _pModel->getFullScreenWindowType())
+        {
+            BDBG_MSG(("---------------------------------- resizing decimate video window"));
+            ret = setGeometryVideoWindow(
+                    rectVideoFormat,
+                    GET_INT(_pCfg, PIP_PERCENTAGE),
+                    (eWinArea)GET_INT(_pCfg, PIP_POSITION),
+                    GET_INT(_pCfg, PIP_BORDER_PERCENTAGE),
+                    1,
+                    pRectGeomPercent);
+            CHECK_ERROR_GOTO("unable to set default video window geometry", ret, error);
+        }
+        else
+        {
+            BDBG_MSG(("---------------------------------- resizing full screen window x:%d y:%d w:%d h:%d",
+                      rectVideoFormat.x(), rectVideoFormat.y(), rectVideoFormat.width(), rectVideoFormat.height()));
+            setPosition(rectVideoFormat, 0);
+            *pRectGeomPercent = MRect(0, 0, 1000, 1000);
+        }
     }
     else
-    if (eWindowType_Mosaic2 == getWindowType())
     {
-        BDBG_MSG(("---------------------------------- resizing mosaic2 video window"));
-        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_UpperRight, 0, 1);
-    }
-    else
-    if (eWindowType_Mosaic3 == getWindowType())
-    {
-        BDBG_MSG(("---------------------------------- resizing mosaic3 video window"));
-        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_LowerLeft, 0, 1);
-    }
-    else
-    if (eWindowType_Mosaic4 == getWindowType())
-    {
-        BDBG_MSG(("---------------------------------- resizing mosaic4 video window"));
-        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_LowerRight, 0, 1);
-    }
-    else
-    if (getWindowType() != _pModel->getFullScreenWindowType())
-    {
-        BDBG_MSG(("---------------------------------- resizing decimate video window"));
-        ret = setGeometryVideoWindow(
-                rectVideoFormat,
-                GET_INT(_pCfg, PIP_PERCENTAGE),
-                (eWinArea)GET_INT(_pCfg, PIP_POSITION),
-                GET_INT(_pCfg, PIP_BORDER_PERCENTAGE),
-                1);
-        CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
-    }
-    else
-    {
+        /* valid geometry given so use it */
+        MRect rectGeomAbsolute = SCALE_RECT_PERCENT(rectVideoFormat, (*pRectGeomPercent));
+
         BDBG_MSG(("---------------------------------- resizing full screen window x:%d y:%d w:%d h:%d",
                   rectVideoFormat.x(), rectVideoFormat.y(), rectVideoFormat.width(), rectVideoFormat.height()));
-        setPosition(rectVideoFormat, 0);
+        BDBG_MSG(("---------------------------------- resizing window x:%d y:%d w:%d h:%d",
+                  rectGeomAbsolute.x(), rectGeomAbsolute.y(), rectGeomAbsolute.width(), rectGeomAbsolute.height()));
+
+        BDBG_MSG(("Set video window type:%d geometry x:%d y:%d w:%d h:%d", getType(), rectGeomAbsolute.x(), rectGeomAbsolute.y(), rectGeomAbsolute.width(), rectGeomAbsolute.height()));
+        ret = setPosition(rectGeomAbsolute, 1);
+        CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
     }
 
-    return(CSimpleVideoDecode::start(pPid, pStc));
 
 error:
     return(ret);
-} /* start */
+}
 
 eRet CSimpleVideoDecodeNx::updateConnectSettings(
         NxClient_ConnectSettings * pSettings,

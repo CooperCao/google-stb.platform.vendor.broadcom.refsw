@@ -1,45 +1,6 @@
 /******************************************************************************
- *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
- * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
- * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
- * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "pg.h"
 #include "pg_dummyData.h"
 
@@ -189,7 +150,7 @@ public:
    //! Return true if you recognize the argument and have handled it.
    //! Return false to indicate this is an option you don't recognize - an error.
    virtual bool ParseArgument(const std::string &arg)
-   {     
+   {
       if (ApplicationOptions::ArgMatch(arg.c_str(), "+old"))
       {
          s_oldBackdrop = true;
@@ -210,7 +171,7 @@ public:
          s_demo = true;
          return true;
       }
-      
+
       return false;
    }
 
@@ -480,7 +441,6 @@ BCMGuilloche::BCMGuilloche() :
       m_guilloche.SetScale(1.8f, 0.4f, 1.1f);
    else
       m_guilloche.SetScale(1.6f, 0.4f, 2.0f);
-      
 
    m_guilloche.SetWidth(0.007f);
 }
@@ -594,10 +554,10 @@ App::App(Platform &platform) :
    // between two different keep region
    bsg::Mat4 projectionMat;
    m_camera->MakeProjectionMatrix(&projectionMat);
-   m_longScrolling.Init(this, 
-                        m_controller, 
-                        projectionMat, 
-                        TimeToXCoord(m_activeRegion.GetDuration()), 
+   m_longScrolling.Init(this,
+                        m_controller,
+                        projectionMat,
+                        TimeToXCoord(m_activeRegion.GetDuration()),
                         ChannelStride() * (float)m_activeRegion.GetNumChannels());
 
    m_rootNode->AppendChild(m_cameraNode);
@@ -639,7 +599,7 @@ App::App(Platform &platform) :
    {
       // Making the help menu
       m_helpMenu = new HelpMenu(theApp, eHELP_BUTTON_RED, "Help", "DroidSans.ttf", Vec4(1.0f, 0.5f, 0.0f, 1.0f), 0.025f, 0.93f, 0.03f, true);
-   
+
       m_helpMenu->SetMenuItemHeaderColour(Vec4(1.0f, 0.5f, 0.0f, 1.0f));
       m_helpMenu->SetMenuItemTextColour(Vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -661,7 +621,7 @@ App::App(Platform &platform) :
       m_helpMenu->SetMenuBackgroundColour(Vec4(0.0f,0.0f,0.0f,0.9f), roundedCorners);
       m_helpMenu->SetMenuPosition(eMENU_POSITION_BOT_RIGHT, Vec2(0.0f));
 
-      unsigned int animationType = eMENU_ANIM_FADE | eMENU_ANIM_SCALE | eMENU_ANIM_MOVE_FROM_BOT_RIGHT; 
+      unsigned int animationType = eMENU_ANIM_FADE | eMENU_ANIM_SCALE | eMENU_ANIM_MOVE_FROM_BOT_RIGHT;
       m_helpMenu->SetAnimationType(animationType);
       m_helpMenu->FinaliseMenuLayout();
    }
@@ -688,7 +648,7 @@ static const std::string &DayString(uint32_t day)
 
 void App::DrawTime(const Vec2 &pos)
 {
-   std::string timeStr = FrameTimestamp().CalendarTimeString("%A %B ") + DayString(FrameTimestamp().CalendarDay() - 1) + 
+   std::string timeStr = FrameTimestamp().CalendarTimeString("%A %B ") + DayString(FrameTimestamp().CalendarDay() - 1) +
                          FrameTimestamp().CalendarTimeString(" %Y - %X");
 
    DrawTextString(timeStr, pos[0], pos[1], m_smallFont, Vec4(1, 1, 1, 1));
@@ -758,7 +718,7 @@ bool App::UpdateFrame(int32_t * /*idleMs*/)
 void App::RenderFrame()
 {
    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   
+
    // If there is no backdrop at all the Guilloche can be drawn first
    if ((!m_oldBackground) && (!s_withBackdrop))
       m_guilloche.Render();
@@ -772,21 +732,21 @@ void App::RenderFrame()
    else
    {
       // Animating the long home scrolling
-      bsg::AnimBindingBase * anim = m_longScrolling.RenderScene(m_rootNode, 
-                                                            m_guiDisplay, 
-                                                            FrameTimestamp(), 
-                                                            TimeToXCoord(m_activeRegion.GetDuration()), 
+      bsg::AnimBindingBase * anim = m_longScrolling.RenderScene(m_rootNode,
+                                                            m_guiDisplay,
+                                                            FrameTimestamp(),
+                                                            TimeToXCoord(m_activeRegion.GetDuration()),
                                                             this);
       // If animation has been created
       if (NULL != anim)
          m_appAnim.Set(anim, KeyEvent::eKEY_HOME);
    }
 
-   // If there is a backdrop the Guilloche curves need 
+   // If there is a backdrop the Guilloche curves need
    // to be drawn after it
    if ((!m_oldBackground) && (s_withBackdrop))
       m_guilloche.Render();
-   
+
    if (m_oldBackground)
       DrawTime(Metrics::GetCurrentTimePositionOld());
    else
@@ -837,7 +797,7 @@ void App::Notify(const Time &/*time*/)
 
          AnimBindingHermiteQuaternionAngle *anim = new AnimBindingHermiteQuaternionAngle(&m_controller->GetPanelRotation());
          anim->Evaluator()->Init(Vec3(1.0f, 0.0f, 0.0f), 90.0f, 0.0f);
-         anim->Interpolator()->Init(NowTimestamp(), NowTimestamp() + Metrics::GetHorizPageScrollTime() * 0.5f, 
+         anim->Interpolator()->Init(NowTimestamp(), NowTimestamp() + Metrics::GetHorizPageScrollTime() * 0.5f,
                                     BaseInterpolator::eLIMIT);
          m_animList.Append(anim);
       }
@@ -877,7 +837,7 @@ void App::NextDemoStep()
       anim->Init(0.0f, FrameTimestamp(), 1.0f, FrameTimestamp() + Metrics::GetDemoPauseTime(), BaseInterpolator::eLIMIT, this);
       m_appAnim.Set(anim, m_demoKey);
    }
-   else  
+   else
    {
       if (m_demoKey == KeyEvent::eKEY_USER_2 && m_activeRegion.GetStartIndex() >= m_database.GetNumChannels() - m_activeRegion.GetNumChannels() - 1)
          m_demoKey = KeyEvent::eKEY_USER_1;
@@ -995,8 +955,8 @@ bool App::ScrollUp(uint32_t numLines, Time scrollTime, KeyEvent::eKeyCode keyCod
       m_controller->HighlightSelection(m_selection);
 
       AnimBindingHermiteFloat *animStart = new AnimBindingHermiteFloat(&m_activeRegion.GetStartIndex());
-      animStart->Init(m_activeRegion.GetStartIndex(), now, 
-                     targetChannel, now + scrollTime, 
+      animStart->Init(m_activeRegion.GetStartIndex(), now,
+                     targetChannel, now + scrollTime,
                      BaseInterpolator::eLIMIT, this);
 
       m_appAnim.Set(animStart, keyCode);
@@ -1012,7 +972,7 @@ bool App::ScrollDown(uint32_t numLines, Time scrollTime, KeyEvent::eKeyCode keyC
 
    if (m_activeRegion.GetStartIndex() < m_database.GetNumChannels() - numLines)
    {
-      float targetChannel = std::min((float)m_database.GetNumChannels() - numLines, 
+      float targetChannel = std::min((float)m_database.GetNumChannels() - numLines,
                                        m_activeRegion.GetStartIndex() + (float)numLines);
       float numScrollChannels = targetChannel - m_activeRegion.GetStartIndex();
 
@@ -1025,8 +985,8 @@ bool App::ScrollDown(uint32_t numLines, Time scrollTime, KeyEvent::eKeyCode keyC
       m_controller->HighlightSelection(m_selection);
 
       AnimBindingHermiteFloat *animStart = new AnimBindingHermiteFloat(&m_activeRegion.GetStartIndex());
-      animStart->Init(m_activeRegion.GetStartIndex(), now, 
-         targetChannel, now + scrollTime, 
+      animStart->Init(m_activeRegion.GetStartIndex(), now,
+         targetChannel, now + scrollTime,
          BaseInterpolator::eLIMIT, this);
 
       m_appAnim.Set(animStart, keyCode);
@@ -1057,8 +1017,8 @@ bool App::ScrollLeft(Time offset, Time scrollTime, KeyEvent::eKeyCode keyCode)
    m_controller->HighlightSelection(m_selection);
 
    AnimBindingHermiteTime *animStart = new AnimBindingHermiteTime(&m_activeRegion.GetStartTime());
-   animStart->Init(m_activeRegion.GetStartTime(), now, 
-      targetTime, now + scrollTime, 
+   animStart->Init(m_activeRegion.GetStartTime(), now,
+      targetTime, now + scrollTime,
       BaseInterpolator::eLIMIT, this);
 
    m_appAnim.Set(animStart, keyCode);
@@ -1079,9 +1039,9 @@ bool App::ScrollRight(Time offset, Time scrollTime, KeyEvent::eKeyCode keyCode)
    m_controller->HighlightSelection(m_selection);
 
    AnimBindingHermiteTime *animStart = new AnimBindingHermiteTime(&m_activeRegion.GetStartTime());
-   animStart->Init(m_activeRegion.GetStartTime(), now, 
-      m_activeRegion.GetStartTime() + offset, 
-      now + scrollTime, 
+   animStart->Init(m_activeRegion.GetStartTime(), now,
+      m_activeRegion.GetStartTime() + offset,
+      now + scrollTime,
       BaseInterpolator::eLIMIT, this);
 
    m_appAnim.Set(animStart, keyCode);
@@ -1101,7 +1061,7 @@ void App::ChangeDescription()
    const std::string &titleStr = progInfo.GetTitle();
    const std::string &descStr  = progInfo.GetDescription();
 
-   std::string infoStr = start.CalendarTimeString("%A\n%B ") + DayString(start.CalendarDay() - 1) + 
+   std::string infoStr = start.CalendarTimeString("%A\n%B ") + DayString(start.CalendarDay() - 1) +
                          start.CalendarTimeString("\n%H:%M - ") + end.CalendarTimeString("%H:%M");
 
    PrintHandle title(New);
@@ -1281,7 +1241,7 @@ void App::KeyEventHandler(KeyEvents &queue)
                StopDemoMode();
             break;
          }
-         
+
          switch (ev.Code())
          {
          // Rotate the panels
@@ -1328,7 +1288,7 @@ void App::KeyEventHandler(KeyEvents &queue)
                else
                {
                   // If the current program is out of the keep region
-                  // we scroll from the current active region to 
+                  // we scroll from the current active region to
                   // an active region containing the current programs
                   if (! m_longScrolling.IsActive())
                   {
@@ -1371,7 +1331,7 @@ void App::KeyEventHandler(KeyEvents &queue)
          case KeyEvent::eKEY_RED:
          case KeyEvent::eKEY_F9:
             {
-               if (m_helpMenu) 
+               if (m_helpMenu)
                   m_helpMenu->ToggleMenu();
             }
             break;
@@ -1381,7 +1341,7 @@ void App::KeyEventHandler(KeyEvents &queue)
             {
                ChangeDescription();
                if (!m_activeRegion.ContainsChannel(m_selection.GetChannel()))
-                  ScrollUp((uint32_t)m_activeRegion.GetStartIndex() - m_selection.GetChannel(), 
+                  ScrollUp((uint32_t)m_activeRegion.GetStartIndex() - m_selection.GetChannel(),
                            Metrics::GetLineScrollTime(), ev.Code());
             }
             break;
@@ -1391,7 +1351,7 @@ void App::KeyEventHandler(KeyEvents &queue)
             {
                ChangeDescription();
                if (!m_activeRegion.ContainsChannel(m_selection.GetChannel()))
-                  ScrollDown(m_selection.GetChannel() - ((uint32_t)m_activeRegion.GetStartIndex() + m_activeRegion.GetNumChannels() - 1), 
+                  ScrollDown(m_selection.GetChannel() - ((uint32_t)m_activeRegion.GetStartIndex() + m_activeRegion.GetNumChannels() - 1),
                               Metrics::GetLineScrollTime(), ev.Code());
             }
             break;
@@ -1403,7 +1363,7 @@ void App::KeyEventHandler(KeyEvents &queue)
             {
                ChangeDescription();
                if (!m_activeRegion.ContainsChannel(m_selection.GetChannel()))
-                  ScrollUp(m_activeRegion.GetNumChannels(), 
+                  ScrollUp(m_activeRegion.GetNumChannels(),
                            m_demoMode ? Metrics::GetDemoPageScrollTime() : Metrics::GetPageScrollTime(),
                            ev.Code());
             }
@@ -1416,7 +1376,7 @@ void App::KeyEventHandler(KeyEvents &queue)
             {
                ChangeDescription();
                if (!m_activeRegion.ContainsChannel(m_selection.GetChannel()))
-                  ScrollDown(m_activeRegion.GetNumChannels(), 
+                  ScrollDown(m_activeRegion.GetNumChannels(),
                               m_demoMode ? Metrics::GetDemoPageScrollTime() : Metrics::GetPageScrollTime(),
                               ev.Code());
             }
@@ -1443,7 +1403,7 @@ void App::KeyEventHandler(KeyEvents &queue)
             }
             break;
 
-         default : 
+         default :
             break;
          }
       }
@@ -1475,8 +1435,8 @@ bsg::Time App::MinVisibleTime() const
 }
 
 void App::BackdropVisible(bool visible)
-{ 
-   if (visible) 
+{
+   if (visible)
       m_pBackdrop->RootNode()->SetOpacity(1);
    else
       m_pBackdrop->RootNode()->SetOpacity(0);
@@ -1489,8 +1449,8 @@ MaterialHandle GetPanelMaterial()
    return theApp->GetPanelMaterial();
 }
 
-float TimeToXCoord(const bsg::Time &time) 
-{ 
+float TimeToXCoord(const bsg::Time &time)
+{
    return time.FloatHours() * Metrics::GetPanelWidthForOneHour();
 }
 
@@ -1528,5 +1488,3 @@ int main(int argc, char **argv)
 
    return ret;
 }
-
-

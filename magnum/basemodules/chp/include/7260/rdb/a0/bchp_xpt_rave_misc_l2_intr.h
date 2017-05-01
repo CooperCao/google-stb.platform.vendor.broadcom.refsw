@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,18 +70,18 @@
 /***************************************************************************
  *XPT_RAVE_MISC_L2_INTR - Miscellaneous interrupt
  ***************************************************************************/
-#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_STATUS_MISC 0x20a4f040 /* [RO] CPU interrupt Status Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_SET_MISC  0x20a4f044 /* [WO] CPU interrupt Set Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_CLEAR_MISC 0x20a4f048 /* [WO] CPU interrupt Clear Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_MASK_STATUS_MISC 0x20a4f04c /* [RO] CPU interrupt Mask Status Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_MASK_SET_MISC 0x20a4f050 /* [WO] CPU interrupt Mask Set Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_MASK_CLEAR_MISC 0x20a4f054 /* [WO] CPU interrupt Mask Clear Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_STATUS_MISC 0x20a4f058 /* [RO] PCI interrupt Status Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_SET_MISC  0x20a4f05c /* [WO] PCI interrupt Set Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_CLEAR_MISC 0x20a4f060 /* [WO] PCI interrupt Clear Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_MASK_STATUS_MISC 0x20a4f064 /* [RO] PCI interrupt Mask Status Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_MASK_SET_MISC 0x20a4f068 /* [WO] PCI interrupt Mask Set Register */
-#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_MASK_CLEAR_MISC 0x20a4f06c /* [WO] PCI interrupt Mask Clear Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_STATUS_MISC 0x20a4f040 /* [RO][32] CPU interrupt Status Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_SET_MISC  0x20a4f044 /* [WO][32] CPU interrupt Set Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_CLEAR_MISC 0x20a4f048 /* [WO][32] CPU interrupt Clear Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_MASK_STATUS_MISC 0x20a4f04c /* [RO][32] CPU interrupt Mask Status Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_MASK_SET_MISC 0x20a4f050 /* [WO][32] CPU interrupt Mask Set Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_CPU_MASK_CLEAR_MISC 0x20a4f054 /* [WO][32] CPU interrupt Mask Clear Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_STATUS_MISC 0x20a4f058 /* [RO][32] PCI interrupt Status Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_SET_MISC  0x20a4f05c /* [WO][32] PCI interrupt Set Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_CLEAR_MISC 0x20a4f060 /* [WO][32] PCI interrupt Clear Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_MASK_STATUS_MISC 0x20a4f064 /* [RO][32] PCI interrupt Mask Status Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_MASK_SET_MISC 0x20a4f068 /* [WO][32] PCI interrupt Mask Set Register */
+#define BCHP_XPT_RAVE_MISC_L2_INTR_PCI_MASK_CLEAR_MISC 0x20a4f06c /* [WO][32] PCI interrupt Mask Clear Register */
 
 /***************************************************************************
  *CPU_STATUS_MISC - CPU interrupt Status Register

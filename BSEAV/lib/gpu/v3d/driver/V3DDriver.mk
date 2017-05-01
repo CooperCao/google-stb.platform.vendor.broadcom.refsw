@@ -87,6 +87,9 @@ CFLAGS += \
 	-fms-extensions
 endif
 
+CFLAGS_AUTOGEN = \
+	-Wno-sign-compare
+
 ifeq ($(NO_OPENVG),1)
 CFLAGS += \
 	-DNO_OPENVG
@@ -294,8 +297,6 @@ SOURCES = \
 	middleware/khronos/glsl/glsl_ast_visitor.c \
 	middleware/khronos/glsl/glsl_ast.c \
 	middleware/khronos/glsl/glsl_ast_print.c \
-	middleware/khronos/glsl/lex.yy.c \
-	middleware/khronos/glsl/y.tab.c \
 	middleware/khronos/glxx/2708/glxx_shader_4.c \
 	middleware/khronos/glxx/2708/glxx_inner_4.c \
 	middleware/khronos/glxx/2708/glxx_hw_4.c \
@@ -313,7 +314,12 @@ SOURCES = \
 	interface/vcos/generic/vcos_mem_from_malloc.c \
 	interface/vcos/generic/vcos_generic_named_sem.c \
 	interface/vcos/generic/vcos_abort.c \
-    interface/vcos/generic/vcos_log.c
+	interface/vcos/generic/vcos_log.c
+
+ifneq ("$(wildcard tools/v3d/v3d_debug/v3d_debug.c)","")
+SOURCES +=
+	tools/v3d/v3d_debug/v3d_debug.c
+endif
 
 SOURCES_VG = \
 	interface/khronos/vg/vg_int_mat3x3.c \
@@ -376,6 +382,18 @@ $(2) : $(1)
 endef
 
 $(foreach src,$(SOURCES),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
+
+# $(1) = src
+# $(2) = obj
+define CCompileRule_Autogen
+OBJS += $(2)
+$(2) : $(1)
+	$(Q)echo Compiling autogen $(1)
+	$(Q)$(CC) -c $(CFLAGS) $(CFLAGS_AUTOGEN) -o "$(2)" "$(1)"
+
+endef
+
+$(foreach src,$(AUTO_FILES),$(eval $(call CCompileRule_Autogen,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
 
 # $(1) = src
 # $(2) = d

@@ -53,7 +53,7 @@ void dpostv_node_combine(Backflow *node, void *data) {
       if (operand->magic_write != REG_UNDECIDED || operand->dependencies[0] != NULL) return;
       if (operand->any_io_dependents) return;
       /* XXX: We don't need to bail in this case, if we remember to transfer the iodependency */
-      if (operand->io_dependencies.count != 0) return;
+      if (operand->io_dependencies.head != NULL) return;
 
       /* Can't combine ldvpm with moves to register targets */
       if (operand->type == ALU_A && glsl_sched_node_requires_regfile(operand->u.alu.op)) return;
@@ -67,8 +67,8 @@ void dpostv_node_combine(Backflow *node, void *data) {
       node->u.alu.unpack[1] = operand->u.alu.unpack[1];
       node->age = operand->age;
 
-      BackflowChainNode *n;
-      LIST_FOR_EACH(n, &node->io_dependencies, l) node->age = gfx_umax(node->age, n->ptr->age);
+      for (BackflowIODepChainNode *n=node->io_dependencies.head; n; n=n->next)
+         node->age = gfx_umax(node->age, n->val.dep->age);
 
       /* Validity checking: These would be invalid nodes, and would break this */
       assert(operand->unif == BACKEND_UNIFORM_UNASSIGNED);
@@ -96,7 +96,7 @@ void dpostv_node_combine(Backflow *node, void *data) {
             if (operand->magic_write != REG_UNDECIDED || operand->dependencies[0] != NULL) continue;
             if (operand->any_io_dependents) continue;
             /* XXX: We don't need to bail in this case, if we remember to transfer the iodendency */
-            if (operand->io_dependencies.count != 0) continue;
+            if (operand->io_dependencies.head != NULL) continue;
 
             /* Bail if the unpack slot is already in use */
             if (node->u.alu.unpack[i-1] != UNPACK_NONE) continue;
@@ -123,9 +123,8 @@ void glsl_combine_sched_nodes(SchedBlock *b) {
       glsl_backflow_visit(b->outputs[i], comb_visit);
    }
 
-   BackflowChainNode *chain_node;
-   LIST_FOR_EACH(chain_node, &b->iodeps, l) {
-      glsl_backflow_visit(chain_node->ptr, comb_visit);
+   for (BackflowChainNode *n=b->iodeps.head; n; n=n->next) {
+      glsl_backflow_visit(n->val, comb_visit);
    }
 
    /* Texture dependencies have not been resolved yet, so data written will not be combined */

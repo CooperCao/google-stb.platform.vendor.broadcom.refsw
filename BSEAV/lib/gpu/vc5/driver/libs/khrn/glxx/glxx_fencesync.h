@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-fence sync structure declaration + API.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_FENCESYNC_H
 #define GLXX_FENCESYNC_H
 
@@ -20,13 +13,13 @@ fence sync structure declaration + API.
 typedef struct glxx_fencesync
 {
    uint32_t name;
-   KHRN_FENCE_T *fence;
+   khrn_fence *fence;
    char *debug_label;
 
 } GLXX_FENCESYNC_T;
 
 extern GLXX_FENCESYNC_T* glxx_fencesync_create(unsigned name,
-      const KHRN_FENCE_T *fence);
+      const khrn_fence *fence);
 
 /* a gl fencesync object is signaled when the dependencies specified in fence
  * reach state = completed */

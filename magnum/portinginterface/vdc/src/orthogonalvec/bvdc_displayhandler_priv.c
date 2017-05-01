@@ -1,39 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -66,11 +66,6 @@
 
 #if (BVDC_P_SUPPORT_VEC_GRPD)
 #include "bchp_grpd_0.h"
-#endif
-
-#if BVDC_P_SUPPORT_MHL
-#include "bchp_mpm_cpu_ctrl.h"
-#define BVDC_P_FORCED_MHL_MODE 0 /* for debug purposes only */
 #endif
 
 #ifdef BCHP_PWR_SUPPORT
@@ -2414,16 +2409,7 @@ BERR_Code BVDC_P_AllocDviChanResources_isr
     BERR_Code err = BERR_SUCCESS;
     uint32_t  ulHdmiCap = (ulHdmi == BVDC_Hdmi_1) ? BVDC_P_Able_eHdmi1 : BVDC_P_Able_eHdmi0;
 
-#if BVDC_P_SUPPORT_MHL
-#if BVDC_P_FORCED_MHL_MODE
     BSTD_UNUSED(hRegister);
-#else
-    uint32_t ulData;
-#endif
-#else
-    BSTD_UNUSED(hRegister);
-#endif
-
     BSTD_UNUSED(ulSrcId);
 
     if(pstChan->ulDvi == BVDC_P_HW_ID_INVALID)
@@ -2435,18 +2421,6 @@ BERR_Code BVDC_P_AllocDviChanResources_isr
         }
         else
         {
-
-#if BVDC_P_SUPPORT_MHL
-
-#if BVDC_P_FORCED_MHL_MODE
-            pstChan->bMhlMode = true;
-#else
-            ulData = BREG_Read32(hRegister, BCHP_MPM_CPU_CTRL_STATUS);
-            pstChan->bMhlMode = BCHP_GET_FIELD_DATA(ulData, MPM_CPU_CTRL_STATUS, STRAP_MHL_POWERUP)?true:false;
-#endif
-            BDBG_MSG(("     MHL mode = %d", pstChan->bMhlMode));
-#endif
-
             BVDC_P_Display_CalculateOffset_isr(NULL, pstChan, BVDC_P_ResourceType_eDvi);
             BDBG_MSG(("     ulDvi = %d DviOffset=0x%08x DvpOffset=0x%08x",
                 pstChan->ulDvi, pstChan->ulDviRegOffset, pstChan->ulDvpRegOffset));
@@ -2464,9 +2438,6 @@ void BVDC_P_FreeDviChanResources_isr
     {
         BVDC_P_Resource_ReleaseHwId_isr(hResource, BVDC_P_ResourceType_eDvi, pstChan->ulDvi);
         pstChan->ulDvi = BVDC_P_HW_ID_INVALID;
-#if BVDC_P_SUPPORT_MHL
-        pstChan->bMhlMode = false;
-#endif
     }
 
 #ifdef BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY0
@@ -2785,16 +2756,6 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
             ulPixelClkRate |=  BFMT_PXL_27MHz_MUL_1_001;
         }
     }
-
-#if BVDC_P_SUPPORT_MHL
-    /* Look up MHL frequency and use this to look up RM and PLL parameters */
-    if (pstChan->bMhlMode)
-    {
-        ulPixelClkRate = BVDC_P_PxlFreqToMhlFreq_isr(ulPixelClkRate);
-        BDBG_ASSERT(ulPixelClkRate);
-    }
-#endif
-
 
     bModified = BVDC_P_HdmiRmTable_isr(
         pFmtInfo->eVideoFmt,
@@ -3274,7 +3235,7 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].pcAvcCsStr));
 #if BCHP_DVI_MISC_0_REG_START
     bDviCscPassThrough = (hDisplay->hCompositor->bBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
-    BDBG_MODULE_MSG(BVDC_CFC_2, ("Display%d %s DVI_CSC (due to %d || %d)", hDisplay->eId, (bDviCscPassThrough)? "bypass" : "not bypass",
+    BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d %s DVI_CSC (due to %d || %d)", hDisplay->eId, (bDviCscPassThrough)? "bypass" : "not bypass",
                                  hDisplay->hCompositor->bBypassDviCsc, hDisplay->stCurInfo.bBypassVideoProcess));
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL + pstChan->ulDviRegOffset);
@@ -4097,8 +4058,7 @@ static BERR_Code BVDC_P_Display_Validate_AnalogChan
 static BERR_Code BVDC_P_Display_Validate_DviRm
     ( const BVDC_P_DisplayInfo *pDispInfo,
       const BFMT_VideoInfo     *pFmtInfo,
-      bool                      bFullRate,
-      BVDC_P_DisplayDviChan    *pstChan )
+      bool                      bFullRate )
 {
     const uint32_t          *pTable;
     BAVC_VdcDisplay_Info     lRateInfo;
@@ -4127,17 +4087,6 @@ static BERR_Code BVDC_P_Display_Validate_DviRm
             ulPixelClkRate |=  BFMT_PXL_27MHz_MUL_1_001;
         }
     }
-
-#if BVDC_P_SUPPORT_MHL
-    /* Look up MHL frequency and use this to look up RM and PLL parameters */
-    if (pstChan->bMhlMode)
-    {
-        ulPixelClkRate = BVDC_P_PxlFreqToMhlFreq_isr(ulPixelClkRate);
-        BDBG_ASSERT(ulPixelClkRate);
-    }
-#else
-    BSTD_UNUSED(pstChan);
-#endif
 
     (void)BVDC_P_HdmiRmTable_isr(
         pFmtInfo->eVideoFmt,
@@ -4175,8 +4124,8 @@ static BERR_Code BVDC_P_Display_Validate_DviChan
         return BERR_TRACE(BVDC_ERR_INVALID_HDMI_MODE);
     }
 
-    if((BVDC_P_Display_Validate_DviRm(pNewInfo, pFmtInfo, true, &hDisplay->stDviChan)  != BERR_SUCCESS) ||
-       (BVDC_P_Display_Validate_DviRm(pNewInfo, pFmtInfo, false, &hDisplay->stDviChan) != BERR_SUCCESS))
+    if((BVDC_P_Display_Validate_DviRm(pNewInfo, pFmtInfo, true)  != BERR_SUCCESS) ||
+       (BVDC_P_Display_Validate_DviRm(pNewInfo, pFmtInfo, false) != BERR_SUCCESS))
     {
         BDBG_ERR(("DISP[%d] Invalid HDMI video format (%s)", hDisplay->eId, pFmtInfo->pchFormatStr));
         return BERR_TRACE(BVDC_ERR_INVALID_HDMI_MODE);
@@ -5774,7 +5723,16 @@ static void BVDC_P_Display_Apply_InputColorSpace_Setting_isr
     }
 #endif
 
-    hDisplay->stCurInfo.stDirty.stBits.bInputCS = BVDC_P_CLEAN;
+#if BVDC_P_DBV_SUPPORT
+    /* DBV input may assert it on every vsync */
+    /* send dvi metadata twice (controlled by counter) before cleaning dirty bit
+       to populate double-buffer hdmi metadata ram for DBV output */
+    if(hDisplay->stCfc.ucRulBuildCntr == 0 ||
+       !hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled)
+#endif
+    {
+        hDisplay->stCurInfo.stDirty.stBits.bInputCS = BVDC_P_CLEAN;
+    }
 
     BSTD_UNUSED(eFieldPolarity);
 

@@ -75,8 +75,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     }
     else
     {
-        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 258*1024*1024;
-        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 112*1024 *1024;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 260*1024*1024;
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 96*1024 *1024;
         pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 192*1024*1024;
     }
 

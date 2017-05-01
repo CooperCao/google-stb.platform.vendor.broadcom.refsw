@@ -1,22 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2003-2010, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #ifndef BUTIL_SLIST_H
@@ -24,9 +41,9 @@
 
 /*================== Module Overview =====================================
 This modules defines macros to control singly-linked list.
-All operations are typesafe (doesn't required typecasting) and constant time.
+All operations are typesafe (don't require typecasting) and run in constant time.
 
-This list allow:
+This list allows:
   o Insert a new entry at the head of the list
   o Insert a new entry after any element in the list
   o O(1) removal of an entry from the list head
@@ -103,7 +120,7 @@ Returns:
 
 /***************************************************************************
 Summary:
-    Initializes lists head
+    Initializes list's head
 
 Description:
     Initializes the head of the list. The head shall be initialized before list can be used.
@@ -179,7 +196,7 @@ Returns:
 Example:
     struct block *second=BLST_S_NEXT(first, link);
 ****************************************************************************/
-#define BLST_S_NEXT(pitem, field) (pitem->field.sl_next)
+#define BLST_S_NEXT(elm, field) (elm->field.sl_next)
 
 /***************************************************************************
 Summary:
@@ -190,7 +207,7 @@ Description:
 
 Input:
     phead - pointer to the list head
-    pitem - pointer to the new element
+    elm - pointer to the new element
     field - name of the elements link field
 
 Returns:
@@ -199,9 +216,9 @@ Returns:
 Example:
     BLST_S_INSERT_HEAD(&head, new_block, link);
 ****************************************************************************/
-#define BLST_S_INSERT_HEAD(phead, pitem, field) do { \
-                (pitem)->field.sl_next = (phead)->sl_first; \
-                (phead)->sl_first = (pitem); \
+#define BLST_S_INSERT_HEAD(phead, elm, field) do { \
+                (elm)->field.sl_next = (phead)->sl_first; \
+                (phead)->sl_first = (elm); \
                } while(0)
 
 /***************************************************************************
@@ -212,7 +229,7 @@ Description:
     Inserts new element after existing element.
 
 Input:
-    head - pointer to the list head
+    phead - pointer to the list head
     elm - pointer to the element from the list
     new_elm - pointer to the new element
     field - name of the elements link field
@@ -223,7 +240,7 @@ Returns:
 Example:
     BLST_S_INSERT_AFTER(&head, first, second, link);
 ****************************************************************************/
-#define BLST_S_INSERT_AFTER(head, elm, new_elm, field) do { \
+#define BLST_S_INSERT_AFTER(phead, elm, new_elm, field) do { \
         (new_elm)->field.sl_next = (elm)->field.sl_next; \
         (elm)->field.sl_next = new_elm; \
       } while(0)
@@ -237,7 +254,7 @@ Description:
     Removes element from the head of the list.
 
 Input:
-    head - pointer to the list head
+    phead - pointer to the list head
     field - name of the elements link field
 
 See also:
@@ -257,11 +274,11 @@ Summary:
     Removes element from the list
 
 Description:
-    Removes element from the of the list. This implementation is O(n),
-    where n it's position of the element in the list
+    Removes element from the list. This implementation is O(n),
+    where n is the position of the element in the list
 
 Input:
-    head - pointer to the list head
+    phead - pointer to the list head
     elm - pointer to the list element
     type - datatype for an element of the list
     field - name of the elements link field
@@ -288,13 +305,10 @@ Example:
 
 /***************************************************************************
 Summary:
-    Removes element from the list
-
-Description:
-    Removes next element from the list.
+    Removes next element from the list
 
 Input:
-    head - pointer to the list head
+    phead - pointer to the list head
     elm - pointer to the element from the list
     field - name of the elements link field
 
@@ -307,7 +321,7 @@ Returns:
 Example:
     BLST_S_REMOVE_NEXT(elm, link);
 ****************************************************************************/
-#define BLST_S_REMOVE_NEXT(head, elm, field) \
+#define BLST_S_REMOVE_NEXT(phead, elm, field) \
            elm->field.sl_next=elm->field.sl_next->field.sl_next;
 
 /***************************************************************************
@@ -315,15 +329,15 @@ Summary:
     Adds new entry to the dictionary
 
 Description:
-    Adds new element to the dictionary implemented as sordted single linked list
+    Adds new element to the dictionary implemented as descending-order sorted single linked list
 
 Input:
-    head - pointer to the list head
+    phead - pointer to the list head
     elm - pointer to the element from the list
     type - datatype for an element of the list
-    key - name of the key element
-    link - name of the elements link field
-    duplicate - label that would be used (gotoed) if duplicate element is found
+    key - name of the sorting element (elm->key and type.key)
+    field - name of the elements link field
+    duplicate - label that would be used (goto-ed) if duplicate element is found
 
 See also:
     BLST_S_DICT_FIND
@@ -333,16 +347,21 @@ Returns:
     <none>
 
 Example:
-    BLST_S_DICT_ADD(head, elm, block, key, link, err_duplicate);
+    struct element {
+        BLST_S_ENTRY(element) link;
+        unsigned key;
+    } *ptr;
+    BLST_S_HEAD(elementlisttype, element) elementlist;
+    BLST_S_DICT_ADD(&elementlist, ptr, element, key, link, err_duplicate);
 ****************************************************************************/
-#define BLST_S_DICT_ADD(head, elm, type, key, link, duplicate) do { \
+#define BLST_S_DICT_ADD(phead, elm, type, key, field, duplicate) do { \
     struct type *blst_s_dict_add_i, *blst_s_dict_add_prev; \
-    for(blst_s_dict_add_prev=NULL,blst_s_dict_add_i=BLST_S_FIRST((head));blst_s_dict_add_i!=NULL;blst_s_dict_add_prev=blst_s_dict_add_i,blst_s_dict_add_i=BLST_S_NEXT(blst_s_dict_add_i, link)) { \
+    for(blst_s_dict_add_prev=NULL,blst_s_dict_add_i=BLST_S_FIRST((phead));blst_s_dict_add_i!=NULL;blst_s_dict_add_prev=blst_s_dict_add_i,blst_s_dict_add_i=BLST_S_NEXT(blst_s_dict_add_i, field)) { \
         if((elm)->key > blst_s_dict_add_i->key) {  break;} \
         if((elm)->key == blst_s_dict_add_i->key) { goto duplicate; } \
     } \
-    if(blst_s_dict_add_prev) { BLST_S_INSERT_AFTER((head), blst_s_dict_add_prev, (elm), link);} \
-    else { BLST_S_INSERT_HEAD(head, (elm), link);}\
+    if(blst_s_dict_add_prev) { BLST_S_INSERT_AFTER((phead), blst_s_dict_add_prev, (elm), field);} \
+    else { BLST_S_INSERT_HEAD(phead, (elm), field);}\
     } while(0)
 
 /***************************************************************************
@@ -353,11 +372,11 @@ Description:
     Finds element in the dictinary with matching key
 
 Input:
-    head - pointer to the list head
+    phead - pointer to the list head
     elm - pointer to the element from the list
-    key - value of key to find
-    field - name of the key element
-    link - name of the elements link field
+    keyvalue - value of key to find
+    key - name of the key element (elm->key)
+    field - name of the elements link field
 
 See also:
     BLST_S_DICT_ADD
@@ -370,26 +389,23 @@ Returns:
 Example:
     BLST_S_DICT_FIND(head, elm, 123, key, link);
 ****************************************************************************/
-#define BLST_S_DICT_FIND(head, elm, key, field, link) do { \
-    for((elm) = BLST_S_FIRST(head); (elm)!=NULL ; (elm) = BLST_S_NEXT((elm), link)) { \
-        if(key == (elm)->field )  { break; } \
-        else if( key > (elm)->field ) { (elm) = NULL;break; } } } while(0)
+#define BLST_S_DICT_FIND(phead, elm, keyvalue, key, field) do { \
+    for((elm) = BLST_S_FIRST(phead); (elm)!=NULL ; (elm) = BLST_S_NEXT((elm), field)) { \
+        if(keyvalue == (elm)->key )  { break; } \
+        else if( keyvalue > (elm)->key ) { (elm) = NULL;break; } } } while(0)
 
 
 /***************************************************************************
 Summary:
-    Removed element in the dictionary
-
-Description:
-    Removes element in the dictinary with matching key
+    Remove an element in the dictionary with matching key
 
 Input:
-    head - pointer to the list head
+    phead - pointer to the list head
     elm - pointer to the element from the list
     type - datatype for an element of the list
-    key - value of key to find
-    field - name of the key element
-    link - name of the elements link field
+    keyvalue - value of key to find
+    key - name of the key element
+    field - name of the elements link field
 
 See also:
     BLST_S_DICT_ADD
@@ -402,13 +418,13 @@ Returns:
 Example:
     BLST_S_DICT_REMOVE(head, elm, 123, block, key, link);
 ****************************************************************************/
-#define BLST_S_DICT_REMOVE(head, elm_, key, type, field, link) do { \
+#define BLST_S_DICT_REMOVE(phead, elm_, keyvalue, type, key, field) do { \
     struct type *blst_s_dict_remove_prev, *blst_s_dict_remove_elm; \
-    for(blst_s_dict_remove_prev=NULL,(blst_s_dict_remove_elm)=BLST_S_FIRST((head));(blst_s_dict_remove_elm)!=NULL;blst_s_dict_remove_prev=blst_s_dict_remove_elm, blst_s_dict_remove_elm=BLST_S_NEXT((blst_s_dict_remove_elm), link)) { \
-        if( (key) == (blst_s_dict_remove_elm)->field ) { \
-            if(blst_s_dict_remove_prev) { BLST_S_REMOVE_NEXT((head), blst_s_dict_remove_prev, link); } \
-            else { BLST_S_REMOVE_HEAD((head), link);} break; \
-        } else if( key > blst_s_dict_remove_elm->field ) { blst_s_dict_remove_elm = NULL;break; } \
+    for(blst_s_dict_remove_prev=NULL,(blst_s_dict_remove_elm)=BLST_S_FIRST((phead));(blst_s_dict_remove_elm)!=NULL;blst_s_dict_remove_prev=blst_s_dict_remove_elm, blst_s_dict_remove_elm=BLST_S_NEXT((blst_s_dict_remove_elm), field)) { \
+        if( (keyvalue) == (blst_s_dict_remove_elm)->key ) { \
+            if(blst_s_dict_remove_prev) { BLST_S_REMOVE_NEXT((phead), blst_s_dict_remove_prev, field); } \
+            else { BLST_S_REMOVE_HEAD((phead), field);} break; \
+        } else if( keyvalue > blst_s_dict_remove_elm->key ) { blst_s_dict_remove_elm = NULL;break; } \
     } (elm_)=blst_s_dict_remove_elm;} while(0)
 
 

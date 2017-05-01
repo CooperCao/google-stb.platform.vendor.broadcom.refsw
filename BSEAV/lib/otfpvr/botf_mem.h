@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,17 +53,17 @@ struct BOTF_Data;
 
 typedef struct botf_mem {
     /* this is virtuall addrees corresponding to the physical address 0, it's used to convert from physicall to virtual (CPU) addresses */
-    signed long base; /* base0 is just a cheap way to convert from address to offset, offset = address - base0 and address = offset + base0 */
+    int64_t base; /* base0 is just a cheap way to convert from address to offset, offset = address - base0 and address = offset + base0 */
     BSTD_DeviceOffset addr;/* used for debugging */
     const uint8_t *ptr;/* cached_ptr  - used for debugging */
-    const uint8_t *uncached_ptr;/* used for debugging */
-    size_t range; /* used for debugging */
+    unsigned range; /* used for debugging */
     struct BOTF_Data *otf;
+    void (*FlushCache)(const void *, size_t);
 } botf_mem;
 
 typedef const struct botf_mem *botf_mem_t;
 
-void botf_mem_init(botf_mem *mem, BSTD_DeviceOffset addr, void *ptr, size_t range, struct BOTF_Data *otf);
+void botf_mem_init(botf_mem *mem, BSTD_DeviceOffset addr, void *cached_ptr, uint64_t range, struct BOTF_Data *otf, void (*FlushCache)(const void *, size_t));
 BSTD_DeviceOffset botf_mem_paddr(botf_mem_t mem, const void *ptr);
 void *botf_mem_vaddr(botf_mem_t mem, BSTD_DeviceOffset addr);
 void botf_mem_flush(botf_mem_t mem, const void *ptr, size_t len);

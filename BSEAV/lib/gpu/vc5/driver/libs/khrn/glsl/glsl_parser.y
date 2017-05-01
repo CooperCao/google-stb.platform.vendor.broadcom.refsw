@@ -1074,8 +1074,9 @@ invariant_qualifier
    ;
 
 interpolation_qualifier
-   : SMOOTH { $$ = INTERP_SMOOTH; }
-   | FLAT   { $$ = INTERP_FLAT;   }
+   : SMOOTH        { $$ = INTERP_SMOOTH;        }
+   | NOPERSPECTIVE { $$ = INTERP_NOPERSPECTIVE; }
+   | FLAT          { $$ = INTERP_FLAT;          }
    ;
 
 layout_qualifier

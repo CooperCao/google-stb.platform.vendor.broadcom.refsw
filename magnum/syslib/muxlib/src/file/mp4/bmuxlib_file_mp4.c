@@ -181,6 +181,7 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
    if (NULL != hMux)
    {
       bool bCachesOk = true;
+      bool bInputsOk = true;
       /* fill in the "create data" (information about objects created (typically allocated memory) ... */
       BMUXlib_File_MP4_P_CreateData *pCreateData = &hMux->stCreate;
       /* create the objects required by this context, based on user settings ... */
@@ -238,8 +239,35 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
       pCreateData->pOutputCBDataFreeList = (BMUXlib_File_MP4_P_OutputCallbackData *)BKNI_Malloc(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_OutputCallbackData));
       BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Output callback data: Allocating %d bytes", (int)(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_OutputCallbackData))));
 
+      /* create the input handles */
+      for ( i = 0; i < BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS; i++ )
+      {
+         BMUXlib_Input_CreateSettings stInputSettings;
+
+         BMUXlib_Input_GetDefaultCreateSettings( &stInputSettings );
+
+         if ( BERR_SUCCESS != BMUXlib_Input_Create( &hMux->stCreate.aInputs[i], &stInputSettings ) )
+         {
+            bInputsOk = false;
+            break;
+         }
+      }
+
+      /* create input group */
+      {
+         BMUXlib_InputGroup_CreateSettings stInputGroupCreateSettings;
+
+         BMUXlib_InputGroup_GetDefaultCreateSettings( &stInputGroupCreateSettings );
+
+         stInputGroupCreateSettings.uiMaxInputCount = BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS;
+
+         BMUXlib_InputGroup_Create( &hMux->stCreate.hInputGroup, &stInputGroupCreateSettings );
+      }
+
       /* verify all objects were created successfully ... */
       if ((true == bCachesOk) &&
+          (true == bInputsOk) &&
+          (NULL != hMux->stCreate.hInputGroup) &&
           (NULL != pCreateData->pBoxBuffer) &&
           (NULL != pCreateData->pSizeBuffer) &&
           (NULL != pCreateData->pReleaseQFreeList) &&
@@ -300,6 +328,23 @@ void BMUXlib_File_MP4_Destroy(BMUXlib_File_MP4_Handle hMP4Mux)
       b) has already been destroyed
    */
    BDBG_OBJECT_ASSERT(hMP4Mux, BMUXlib_File_MP4_P_Context);
+
+   /* destroy input group handle */
+   if ( NULL != hMP4Mux->stCreate.hInputGroup )
+   {
+      BMUXlib_InputGroup_Destroy( hMP4Mux->stCreate.hInputGroup );
+      hMP4Mux->stCreate.hInputGroup = NULL;
+   }
+
+   /* destroy the input handles */
+   for ( i = 0; i < BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS; i++ )
+   {
+      if ( NULL != hMP4Mux->stCreate.aInputs[i] )
+      {
+         BMUXlib_Input_Destroy( hMP4Mux->stCreate.aInputs[i] );
+         hMP4Mux->stCreate.aInputs[i] = NULL;
+      }
+   }
 
    pCreateData = &hMP4Mux->stCreate;
    BDBG_OBJECT_ASSERT(pCreateData, BMUXlib_File_MP4_P_CreateData);
@@ -459,7 +504,7 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
       uint32_t uiNumActiveInputs = 0;
       BMUXlib_Input_Handle hInput;
       BMUXlib_Input_Handle aInputTable[BMUXLIB_FILE_MP4_P_MAX_ACTIVE_INPUTS];
-      BMUXlib_Input_CreateSettings stInputSettings;
+      BMUXlib_Input_StartSettings stInputSettings;
       BMUXlib_File_MP4_P_CodingType eCoding = BMUXlib_File_MP4_P_CodingType_eUnknown;
 
       /* save the storage interface used for the main output ... */
@@ -501,7 +546,8 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
             break;
 
          /* create the input ... */
-         BMUXlib_Input_GetDefaultCreateSettings(&stInputSettings);
+         hInput = hMP4Mux->stCreate.aInputs[uiNumActiveInputs];
+         BMUXlib_Input_GetDefaultStartSettings(&stInputSettings);
          stInputSettings.eType = BMUXlib_Input_Type_eVideo;
          stInputSettings.interface.stVideo = pVideo->stInterface;
          /* NOTE: MP4 can't operate in frame mode since it needs access to the first descriptor of the next
@@ -510,10 +556,10 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
          stInputSettings.pMetadata = pInput;
          stInputSettings.uiMuxId = hMP4Mux->stCreate.uiMuxId;
          stInputSettings.uiTypeInstance = uiInputIndex;
-         rc = BMUXlib_Input_Create(&hInput, &stInputSettings);
+         rc = BMUXlib_Input_Start(hInput, &stInputSettings);
          if (BERR_SUCCESS != rc)
          {
-            BDBG_ERR(("Unable to Create Video Input %d", uiInputIndex));
+            BDBG_ERR(("Unable to Start Video Input %d", uiInputIndex));
             break;
          }
 
@@ -570,7 +616,8 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
             break;
 
          /* create the input ... */
-         BMUXlib_Input_GetDefaultCreateSettings(&stInputSettings);
+         hInput = hMP4Mux->stCreate.aInputs[uiNumActiveInputs];
+         BMUXlib_Input_GetDefaultStartSettings(&stInputSettings);
          stInputSettings.eType = BMUXlib_Input_Type_eAudio;
          stInputSettings.interface.stAudio = pAudio->stInterface;
          /* NOTE: MP4 can't operate in frame mode since it needs access to the first descriptor of the next
@@ -579,7 +626,7 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
          stInputSettings.pMetadata = pInput;
          stInputSettings.uiMuxId = hMP4Mux->stCreate.uiMuxId;
          stInputSettings.uiTypeInstance = uiInputIndex;
-         rc = BMUXlib_Input_Create(&hInput, &stInputSettings);
+         rc = BMUXlib_Input_Start(hInput, &stInputSettings);
          if (BERR_SUCCESS != rc)
          {
             BDBG_ERR(("Unable to Create Audio Input %d", uiInputIndex));
@@ -608,16 +655,16 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
 
       if (BERR_SUCCESS == rc)
       {
-         BMUXlib_InputGroup_CreateSettings stInputGroupCreateSettings;
+         BMUXlib_InputGroup_StartSettings stInputGroupStartSettings;
 
          hMP4Mux->uiExpectedDurationMs = pStartSettings->uiExpectedDurationMs;
          hMP4Mux->uiCreateTimeUTC = pStartSettings->uiCreateTimeUTC;
          hMP4Mux->bMoovAtStart = (pStartSettings->bProgressiveDownloadCompatible == true);
 
-         BMUXlib_InputGroup_GetDefaultCreateSettings(&stInputGroupCreateSettings);
-         stInputGroupCreateSettings.pInputTable = aInputTable;
-         stInputGroupCreateSettings.uiInputCount = uiNumActiveInputs;
-         rc = BMUXlib_InputGroup_Create(&hMP4Mux->hInputGroup, &stInputGroupCreateSettings);
+         BMUXlib_InputGroup_GetDefaultStartSettings(&stInputGroupStartSettings);
+         stInputGroupStartSettings.pInputTable = aInputTable;
+         stInputGroupStartSettings.uiInputCount = uiNumActiveInputs;
+         rc = BMUXlib_InputGroup_Start(hMP4Mux->stCreate.hInputGroup, &stInputGroupStartSettings);
          if (BERR_SUCCESS == rc)
          {
             BMUXlib_InputGroup_Settings stInputGroupSettings;
@@ -626,7 +673,7 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
             /* MP4 mux needs to wait for all inputs to have a DTS before it can select an input */
             stInputGroupSettings.bWaitForAllInputs = true;
             stInputGroupSettings.fSelector = BMUXlib_InputGroup_DescriptorSelectLowestDTS;
-            rc = BMUXlib_InputGroup_SetSettings(hMP4Mux->hInputGroup, &stInputGroupSettings);
+            rc = BMUXlib_InputGroup_SetSettings(hMP4Mux->stCreate.hInputGroup, &stInputGroupSettings);
          }
          if (BERR_SUCCESS == rc)
          {
@@ -1013,13 +1060,13 @@ BERR_Code BMUXlib_File_MP4_DoMux(BMUXlib_File_MP4_Handle hMP4Mux, BMUXlib_DoMux_
    /* SW7425-3684: Update completed duration */
    if ( ( BMUXlib_State_eStopped != BMUXLIB_FILE_MP4_P_GET_MUX_STATE(hMP4Mux) )
         && ( BMUXlib_State_eFinished != BMUXLIB_FILE_MP4_P_GET_MUX_STATE(hMP4Mux) )
-        && ( NULL != hMP4Mux->hInputGroup )
+        && ( NULL != hMP4Mux->stCreate.hInputGroup )
        )
    {
       BMUXlib_InputGroup_Status stStatus;
 
       BMUXlib_InputGroup_GetStatus(
-         hMP4Mux->hInputGroup,
+         hMP4Mux->stCreate.hInputGroup,
          &stStatus
          );
 

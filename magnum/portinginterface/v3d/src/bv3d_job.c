@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
+ *     Copyright (C) 2012 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,7 +71,7 @@ void BV3D_P_InstructionClear(
 }
 
 /***************************************************************************/
-void BV3D_P_JobAdvanceInstruction(
+static void BV3D_P_JobAdvanceInstruction(
    BV3D_Job *psJob)
 {
    if (psJob->uiCurrentInstr < V3D_JOB_MAX_INSTRUCTIONS)
@@ -79,7 +79,7 @@ void BV3D_P_JobAdvanceInstruction(
 }
 
 /***************************************************************************/
-BV3D_Instruction * BV3D_P_JobGetCurrentInstruction(
+static BV3D_Instruction * BV3D_P_JobGetCurrentInstruction(
    BV3D_Job *psJob
 )
 {

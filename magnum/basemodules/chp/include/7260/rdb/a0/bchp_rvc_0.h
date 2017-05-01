@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:11 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,15 +70,15 @@
 /***************************************************************************
  *RVC_0
  ***************************************************************************/
-#define BCHP_RVC_0_CTL                           0x20026c00 /* [CFG] Control register */
-#define BCHP_RVC_0_PUT                           0x20026c04 /* [RO] Put pointer */
-#define BCHP_RVC_0_GET                           0x20026c08 /* [CFG] Get pointer */
-#define BCHP_RVC_0_BASE                          0x20026c0c /* [RW] Circular buffer base address */
-#define BCHP_RVC_0_END                           0x20026c10 /* [RW] Circular buffer end address */
-#define BCHP_RVC_0_RANGE1_START                  0x20026c14 /* [CFG] Address range start */
-#define BCHP_RVC_0_RANGE1_END                    0x20026c18 /* [CFG] Address range end */
-#define BCHP_RVC_0_RANGE2_START                  0x20026c1c /* [CFG] Address range start */
-#define BCHP_RVC_0_RANGE2_END                    0x20026c20 /* [CFG] Address range end */
+#define BCHP_RVC_0_CTL                           0x20026c00 /* [CFG][32] Control register */
+#define BCHP_RVC_0_PUT                           0x20026c04 /* [RO][32] Put pointer */
+#define BCHP_RVC_0_GET                           0x20026c08 /* [CFG][32] Get pointer */
+#define BCHP_RVC_0_BASE                          0x20026c0c /* [RW][32] Circular buffer base address */
+#define BCHP_RVC_0_END                           0x20026c10 /* [RW][32] Circular buffer end address */
+#define BCHP_RVC_0_RANGE1_START                  0x20026c14 /* [CFG][32] Address range start */
+#define BCHP_RVC_0_RANGE1_END                    0x20026c18 /* [CFG][32] Address range end */
+#define BCHP_RVC_0_RANGE2_START                  0x20026c1c /* [CFG][32] Address range start */
+#define BCHP_RVC_0_RANGE2_END                    0x20026c20 /* [CFG][32] Address range end */
 
 /***************************************************************************
  *CTL - Control register

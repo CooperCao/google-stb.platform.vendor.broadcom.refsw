@@ -61,22 +61,27 @@ BEGIN
     $gStartDir = Cwd::getcwd();  chdir $1 if(defined $1);
     $gCodeBase = Cwd::getcwd();  chdir $gStartDir;
 
-    if ($^O =~ m/linux/i)
+    my $ver = "$^V";
+    # $ver = substr "$ver" , 1;
+    # my ($major, $minor) = split /\./, $ver;
+    my ($major, $minor, $subminor) = split /\./, (substr $ver, 1);
+    if ($major lt 5)
     {
-        if ($^V !~ m/v5.14.1/)
+        printf("\nYou must use Perl v5.14.2 or later\n");
+        die;
+    }
+    elsif ($major eq 5)
+    {
+        if ( (!defined $minor) || ($minor lt 14))
         {
-            printf("\nYou must use Perl v5.14.1\n");
-            printf("Set your PATH to include /tools/oss/packages/x86_64-rhel6/perl/5.14.1/bin/\n\n");
+            printf("\nYou must use Perl v5.14.2 or later\n");
             die;
         }
-    }
-    else
-    {
-        if ($^O =~ m/Win32/i)
+        elsif ($minor eq 14)
         {
-            if ($^V !~ m/v5.14.2/)
+            if ( (!defined $subminor) || ($subminor lt 2) )
             {
-                printf("\nYou must use Perl v5.14.2\n");
+                printf("\nYou must use Perl v5.14.2 or later\n");
                 die;
             }
         }
@@ -124,7 +129,7 @@ our $g_hush = 1;
 
 # Command line options
 our %g_CmdOption = ();
-our $g_Options   = "hnR:I:S:E:";
+our $g_Options   = "hnR:I:S:E:D:";
 getopts($g_Options, \%g_CmdOption);
 
 # List of registers to watch
@@ -281,6 +286,10 @@ if (defined $g_CmdOption{E} && defined $g_CmdOption{S})
 {
     die "Please specify either Regscope or SOAP server, not both!\n";
 }
+if (defined $g_CmdOption{D} && defined $g_CmdOption{R})
+{
+    die "Please do not specify both -D and -R options\n";
+}
 
 ##
 # Open device
@@ -320,13 +329,24 @@ else
     #
     # Load RDBs -- Register DataBases
     #
+    my $args = ARGV2RDB->new(@ARGV);
+
+    # Future use
+    # Keep certain args that may be used by the script
+    # $args->ParseArgs(@ARGV);
 
     if (!defined $g_CmdOption{n})
     {
-        @g_RDBFiles = StdRDBFiles($g_CmdOption{R}, @INC);
-        $g_rdb      = RDB->new(@g_RDBFiles);
-        $g_rdb->CheckChipWithHW();
+        @g_RDBFiles = StdRDBFilesL($g_CmdOption{D}, $g_CmdOption{R}, @INC);
+        my $pathnameRDB = $g_RDBFiles[0];
+        my $filenameRDB = $g_RDBFiles[1];
+        $g_rdb = RDB->new();
+        $g_rdb->set_strict();
+        $g_rdb->AllowRegOverlap(1);
+        my $error = $g_rdb->ParseFile($pathnameRDB, $filenameRDB);
+        CheckChipWithHWL($g_rdb);
         $g_rdb->SetVarHush($g_hush);
+        ERROR($error->ErrorMsg) if ($error);
         InteractiveMode();
     }
     else
@@ -386,8 +406,8 @@ sub ReConnect
     ##
     # Load RDBs -- Register DataBases
     #
-    @g_RDBFiles = StdRDBFiles($g_CmdOption{R}, @INC);
-    $g_rdb->CheckChipWithHW();
+    @g_RDBFiles = StdRDBFilesL($g_CmdOption{D}, $g_CmdOption{R}, @INC);
+    CheckChipWithHWL($g_rdb);
     $g_rdb->SetVarHush($g_hush);
 
     return;
@@ -3070,6 +3090,8 @@ sub PrintUsage
     print "\t              registers. No advance regscope features, eg., 'bvn' are\n";
     print "\t              available. This option is used when the intended RDB\n";
     print "\t              failed load.\n";
+    print "\t-D RDBdir     RDB directory holding uncompressed .rdb files for\n";
+    print "\t              all chips.\n";
     print "\t-R RDBfile    RDB file that contain register field definitions.\n";
     print "\t              If this option is omit it will search for location\n";
     print "\t              specified by environment variable called RDBFILE.\n";
@@ -4435,5 +4457,106 @@ sub _CreateUnsignedArray
     {
         return undef;
     }
+}
+
+#****************************************************************************
+# StdRDBFilesL -
+#   Where are we getting the files from?
+#     (1) Command line option
+#     NO!  (2) Environment varible name
+#     (3) Try to guess chip
+#
+# Arguments -
+#     $cmd_D - -D argument, if any.
+#     $cmd_R - -R argument, if any.
+#     @INC   - @INC array.
+#
+# Return -
+#       $formatted_str - String containing lines of formatted columns
+#****************************************************************************
+sub StdRDBFilesL
+{
+  my $cmd_D = shift;
+  my $cmd_R = shift;
+  my @INC     = @_;
+
+  my ($chipdef, $potentialrdbfile) = GuessChipRDB(0);
+
+  my @RDBFiles = ();
+
+  if(defined $cmd_R)
+  {
+    @RDBFiles = split(/\;/, $cmd_R);
+  }
+  #elsif(defined($ENV{RDBFILE}))
+  #{
+  #  @RDBFiles = split(/\;/, $ENV{RDBFILE});
+  #}
+  elsif(defined $potentialrdbfile)
+  {
+    my $rdbfile = "";
+    my $chip;
+
+    my $sourceDirectory = "";
+    if(defined $cmd_D)
+    {
+        $sourceDirectory = $cmd_D;
+    }
+    else
+    {
+        # The old default
+        # $sourceDirectory = '//nvlinas03.lvn.broadcom.net/projects/crdbe/silver/rdb/';
+        $sourceDirectory = './silver/';
+    }
+
+    # if($^O =~ m/Win32/i)
+    $chip = lc $chipdef;
+
+    $RDBFiles[0] = $sourceDirectory . $chip . "/current/src/top/";
+    $RDBFiles[1] = $chip . ".rdb";
+    $rdbfile = $sourceDirectory . $chip . "/current/src/top/". $chip . ".rdb";
+
+    printf "%s\n", $rdbfile;
+
+    if(!(-e $rdbfile))
+    {
+        ERROR("Unable to find RDB file \"$potentialrdbfile\".") if($rdbfile eq "");
+    }
+  }
+  else
+  {
+    ERROR("No RDB files specified");
+  }
+
+  return @RDBFiles;
+}
+
+#****************************************************************************
+# CheckChipWithHWL -
+#
+# Arguments -
+#     $rdb - loaded rdb
+#
+# Return -
+#     NA
+#****************************************************************************
+sub CheckChipWithHWL
+{
+  my $rdb       = shift;
+  my $rdbchip   = (${$rdb->Chips}[0])->ID;
+
+  ERROR("RDBFile does not contain a chip definitions.") if(!defined $rdbchip);
+
+  my ($chipdef) = GuessChipRDB(1);
+
+  if($rdbchip ne $chipdef)
+  {
+    print "\n\n";
+    print "WARNING:  The RDB defines the registers for $rdbchip, but\n";
+    print "WARNING:  but a $chipdef was detected in the system.\n";
+    print "\n";
+    print "(Press <return> to continue, or ctrl-C to abort.)\n";
+    my $gak = <STDIN>;
+  }
 }
 # End of File

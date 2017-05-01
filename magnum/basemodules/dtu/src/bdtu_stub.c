@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,12 +54,14 @@ void BDTU_Destroy( BDTU_Handle handle )
 {
     BSTD_UNUSED(handle);
 }
-BERR_Code BDTU_Remap( BDTU_Handle handle, BSTD_DeviceOffset devAddr, BSTD_DeviceOffset fromPhysAddr, BSTD_DeviceOffset toPhysAddr )
+void BDTU_GetDefaultRemapSettings( BDTU_RemapSettings *pSettings )
+{
+    BSTD_UNUSED(pSettings);
+}
+BERR_Code BDTU_Remap( BDTU_Handle handle, const BDTU_RemapSettings *pSettings )
 {
     BSTD_UNUSED(handle);
-    BSTD_UNUSED(devAddr);
-    BSTD_UNUSED(fromPhysAddr);
-    BSTD_UNUSED(toPhysAddr);
+    BSTD_UNUSED(pSettings);
     return BERR_NOT_SUPPORTED;
 }
 BERR_Code BDTU_ReadDeviceAddress( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BSTD_DeviceOffset *devAddr )

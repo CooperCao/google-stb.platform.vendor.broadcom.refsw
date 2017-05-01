@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:09 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:46 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,66 +70,66 @@
 /***************************************************************************
  *XPT_XMEMIF - XPT XMEMIF Control Registers
  ***************************************************************************/
-#define BCHP_XPT_XMEMIF_SCB_WR_BO_RSBUFF         0x20a00100 /* [RW] SCB Write Client Block Out Control for RSBUFF */
-#define BCHP_XPT_XMEMIF_SCB_WR_BO_XCBUFF         0x20a00104 /* [RW] SCB Write Client Block Out Control for XCBUFF */
-#define BCHP_XPT_XMEMIF_SCB_WR_BO_RAVE_CDB       0x20a00108 /* [RW] SCB Write Client Block Out Control for RAVE CDB */
-#define BCHP_XPT_XMEMIF_SCB_WR_BO_RAVE_ITB       0x20a0010c /* [RW] SCB Write Client Block Out Control for RAVE ITB */
-#define BCHP_XPT_XMEMIF_SCB_WR_BO_MSG            0x20a00110 /* [RW] SCB Write Client Block Out Control for MESSAGE */
-#define BCHP_XPT_XMEMIF_SCB_WR_BO_WDMA_DATA      0x20a00114 /* [RW] SCB Write Client Block Out Control for Write_DMA Data */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_RSBUFF         0x20a0011c /* [RW] SCB Read Client Block Out Control for RSBUFF */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_RSBUFF_MPOD    0x20a00120 /* [RW] SCB Read Client Block Out Control for RSBUFF MPOD */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_RAVE    0x20a00124 /* [RW] SCB Read Client Block Out Control for XCBUFF RAVE */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_RMX0    0x20a00128 /* [RW] SCB Read Client Block Out Control for XCBUFF RMX0 */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_RMX1    0x20a0012c /* [RW] SCB Read Client Block Out Control for XCBUFF RMX1 */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_MSG     0x20a00130 /* [RW] SCB Read Client Block Out Control for XCBUFF MSG */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_PSUB           0x20a00134 /* [RW] SCB Read Client Block Out Control for PSUB */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_MCPB0_DESC     0x20a00138 /* [RW] SCB Read Client Block Out Control for MCPB0 Descriptor */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_MCPB0_DATA     0x20a0013c /* [RW] SCB Read Client Block Out Control for MCPB0 Data */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_RSBUFF_TSIO    0x20a00140 /* [RW] SCB Read Client Block Out Control for RSBUFF TSIO */
-#define BCHP_XPT_XMEMIF_SCB_RD_BO_WDMA_DESC      0x20a00144 /* [RW] SCB Read Client Block Out Control for Write_DMA Descriptor */
-#define BCHP_XPT_XMEMIF_SCB_WR_ARB_SEL_CTRL      0x20a00150 /* [RW] SCB Write Client Arbiter select Control */
-#define BCHP_XPT_XMEMIF_SCB_RD_ARB_SEL_CTRL      0x20a00154 /* [RW] SCB Read Client Arbiter select Control */
-#define BCHP_XPT_XMEMIF_SCB_WR_REPLY_CTRL        0x20a00158 /* [RW] SCB Write Client Write Reply Control */
-#define BCHP_XPT_XMEMIF_SCB_WR_ARB_MODE          0x20a0015c /* [RW] SCB Write Client Arbiter Mode Control */
-#define BCHP_XPT_XMEMIF_SCB_RD_ARB_MODE          0x20a00160 /* [RW] SCB Read Client Arbiter Mode Control */
-#define BCHP_XPT_XMEMIF_INTR_STATUS_REG          0x20a00164 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_XMEMIF_INTR_STATUS_REG_EN       0x20a00168 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_XMEMIF_WR_DEBUG                 0x20a0016c /* [RW] Debug and Test register for XMEMIF write */
-#define BCHP_XPT_XMEMIF_RD_DEBUG0                0x20a00170 /* [RW] Debug and Test register for XMEMIF read */
-#define BCHP_XPT_XMEMIF_RD_DEBUG1                0x20a00174 /* [RW] Debug and Test register for XMEMIF read */
-#define BCHP_XPT_XMEMIF_WR_RDY_ACCEPT_STATUS     0x20a00178 /* [RO] Ready Accept Status On the Wr XMEM interface */
-#define BCHP_XPT_XMEMIF_RD_RDY_ACCEPT_STATUS_CL0_6 0x20a0017c /* [RO] Ready Accept Status On the RD XMEM interface for CL0_6 */
-#define BCHP_XPT_XMEMIF_RD_RDY_ACCEPT_PB_LCTOXMEM 0x20a00180 /* [RO] Ready Accept Status on the RD XMEM interface for Playback LC to xmem */
-#define BCHP_XPT_XMEMIF_RD_RDY_ACCEPT_PB_XMEMTOLC 0x20a00184 /* [RO] Ready Accept Status On the RD XMEM interface for Playback xmem to LC */
-#define BCHP_XPT_XMEMIF_SEC_REGION_CTRL          0x20a0018c /* [RO] DRAM Secured Address Range1-7 status */
-#define BCHP_XPT_XMEMIF_SEC_REGION1_START_LO     0x20a00190 /* [RO] DRAM Secured Address Range1 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION1_START_HI     0x20a00194 /* [RO] DRAM Secured Address Range1 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION1_END_LO       0x20a00198 /* [RO] DRAM Secured Address Range1 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION1_END_HI       0x20a0019c /* [RO] DRAM Secured Address Range1 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION2_START_LO     0x20a001a0 /* [RO] DRAM Secured Address Range2 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION2_START_HI     0x20a001a4 /* [RO] DRAM Secured Address Range2 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION2_END_LO       0x20a001a8 /* [RO] DRAM Secured Address Range2 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION2_END_HI       0x20a001ac /* [RO] DRAM Secured Address Range2 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION3_START_LO     0x20a001b0 /* [RO] DRAM Secured Address Range3 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION3_START_HI     0x20a001b4 /* [RO] DRAM Secured Address Range3 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION3_END_LO       0x20a001b8 /* [RO] DRAM Secured Address Range3 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION3_END_HI       0x20a001bc /* [RO] DRAM Secured Address Range3 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION4_START_LO     0x20a001c0 /* [RO] DRAM Secured Address Range4 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION4_START_HI     0x20a001c4 /* [RO] DRAM Secured Address Range4 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION4_END_LO       0x20a001c8 /* [RO] DRAM Secured Address Range4 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION4_END_HI       0x20a001cc /* [RO] DRAM Secured Address Range4 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION5_START_LO     0x20a001d0 /* [RO] DRAM Secured Address Range5 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION5_START_HI     0x20a001d4 /* [RO] DRAM Secured Address Range5 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION5_END_LO       0x20a001d8 /* [RO] DRAM Secured Address Range5 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION5_END_HI       0x20a001dc /* [RO] DRAM Secured Address Range5 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION6_START_LO     0x20a001e0 /* [RO] DRAM Secured Address Range6 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION6_START_HI     0x20a001e4 /* [RO] DRAM Secured Address Range6 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION6_END_LO       0x20a001e8 /* [RO] DRAM Secured Address Range6 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION6_END_HI       0x20a001ec /* [RO] DRAM Secured Address Range6 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION7_START_LO     0x20a001f0 /* [RO] DRAM Secured Address Range7 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION7_START_HI     0x20a001f4 /* [RO] DRAM Secured Address Range7 Start (MSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION7_END_LO       0x20a001f8 /* [RO] DRAM Secured Address Range7 Start (LSbs) */
-#define BCHP_XPT_XMEMIF_SEC_REGION7_END_HI       0x20a001fc /* [RO] DRAM Secured Address Range7 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SCB_WR_BO_RSBUFF         0x20a00100 /* [RW][32] SCB Write Client Block Out Control for RSBUFF */
+#define BCHP_XPT_XMEMIF_SCB_WR_BO_XCBUFF         0x20a00104 /* [RW][32] SCB Write Client Block Out Control for XCBUFF */
+#define BCHP_XPT_XMEMIF_SCB_WR_BO_RAVE_CDB       0x20a00108 /* [RW][32] SCB Write Client Block Out Control for RAVE CDB */
+#define BCHP_XPT_XMEMIF_SCB_WR_BO_RAVE_ITB       0x20a0010c /* [RW][32] SCB Write Client Block Out Control for RAVE ITB */
+#define BCHP_XPT_XMEMIF_SCB_WR_BO_MSG            0x20a00110 /* [RW][32] SCB Write Client Block Out Control for MESSAGE */
+#define BCHP_XPT_XMEMIF_SCB_WR_BO_WDMA_DATA      0x20a00114 /* [RW][32] SCB Write Client Block Out Control for Write_DMA Data */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_RSBUFF         0x20a0011c /* [RW][32] SCB Read Client Block Out Control for RSBUFF */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_RSBUFF_MPOD    0x20a00120 /* [RW][32] SCB Read Client Block Out Control for RSBUFF MPOD */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_RAVE    0x20a00124 /* [RW][32] SCB Read Client Block Out Control for XCBUFF RAVE */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_RMX0    0x20a00128 /* [RW][32] SCB Read Client Block Out Control for XCBUFF RMX0 */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_RMX1    0x20a0012c /* [RW][32] SCB Read Client Block Out Control for XCBUFF RMX1 */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_XCBUFF_MSG     0x20a00130 /* [RW][32] SCB Read Client Block Out Control for XCBUFF MSG */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_PSUB           0x20a00134 /* [RW][32] SCB Read Client Block Out Control for PSUB */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_MCPB0_DESC     0x20a00138 /* [RW][32] SCB Read Client Block Out Control for MCPB0 Descriptor */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_MCPB0_DATA     0x20a0013c /* [RW][32] SCB Read Client Block Out Control for MCPB0 Data */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_RSBUFF_TSIO    0x20a00140 /* [RW][32] SCB Read Client Block Out Control for RSBUFF TSIO */
+#define BCHP_XPT_XMEMIF_SCB_RD_BO_WDMA_DESC      0x20a00144 /* [RW][32] SCB Read Client Block Out Control for Write_DMA Descriptor */
+#define BCHP_XPT_XMEMIF_SCB_WR_ARB_SEL_CTRL      0x20a00150 /* [RW][32] SCB Write Client Arbiter select Control */
+#define BCHP_XPT_XMEMIF_SCB_RD_ARB_SEL_CTRL      0x20a00154 /* [RW][32] SCB Read Client Arbiter select Control */
+#define BCHP_XPT_XMEMIF_SCB_WR_REPLY_CTRL        0x20a00158 /* [RW][32] SCB Write Client Write Reply Control */
+#define BCHP_XPT_XMEMIF_SCB_WR_ARB_MODE          0x20a0015c /* [RW][32] SCB Write Client Arbiter Mode Control */
+#define BCHP_XPT_XMEMIF_SCB_RD_ARB_MODE          0x20a00160 /* [RW][32] SCB Read Client Arbiter Mode Control */
+#define BCHP_XPT_XMEMIF_INTR_STATUS_REG          0x20a00164 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_XMEMIF_INTR_STATUS_REG_EN       0x20a00168 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_XMEMIF_WR_DEBUG                 0x20a0016c /* [RW][32] Debug and Test register for XMEMIF write */
+#define BCHP_XPT_XMEMIF_RD_DEBUG0                0x20a00170 /* [RW][32] Debug and Test register for XMEMIF read */
+#define BCHP_XPT_XMEMIF_RD_DEBUG1                0x20a00174 /* [RW][32] Debug and Test register for XMEMIF read */
+#define BCHP_XPT_XMEMIF_WR_RDY_ACCEPT_STATUS     0x20a00178 /* [RO][32] Ready Accept Status On the Wr XMEM interface */
+#define BCHP_XPT_XMEMIF_RD_RDY_ACCEPT_STATUS_CL0_6 0x20a0017c /* [RO][32] Ready Accept Status On the RD XMEM interface for CL0_6 */
+#define BCHP_XPT_XMEMIF_RD_RDY_ACCEPT_PB_LCTOXMEM 0x20a00180 /* [RO][32] Ready Accept Status on the RD XMEM interface for Playback LC to xmem */
+#define BCHP_XPT_XMEMIF_RD_RDY_ACCEPT_PB_XMEMTOLC 0x20a00184 /* [RO][32] Ready Accept Status On the RD XMEM interface for Playback xmem to LC */
+#define BCHP_XPT_XMEMIF_SEC_REGION_CTRL          0x20a0018c /* [RO][32] DRAM Secured Address Range1-7 status */
+#define BCHP_XPT_XMEMIF_SEC_REGION1_START_LO     0x20a00190 /* [RO][32] DRAM Secured Address Range1 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION1_START_HI     0x20a00194 /* [RO][32] DRAM Secured Address Range1 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION1_END_LO       0x20a00198 /* [RO][32] DRAM Secured Address Range1 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION1_END_HI       0x20a0019c /* [RO][32] DRAM Secured Address Range1 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION2_START_LO     0x20a001a0 /* [RO][32] DRAM Secured Address Range2 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION2_START_HI     0x20a001a4 /* [RO][32] DRAM Secured Address Range2 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION2_END_LO       0x20a001a8 /* [RO][32] DRAM Secured Address Range2 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION2_END_HI       0x20a001ac /* [RO][32] DRAM Secured Address Range2 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION3_START_LO     0x20a001b0 /* [RO][32] DRAM Secured Address Range3 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION3_START_HI     0x20a001b4 /* [RO][32] DRAM Secured Address Range3 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION3_END_LO       0x20a001b8 /* [RO][32] DRAM Secured Address Range3 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION3_END_HI       0x20a001bc /* [RO][32] DRAM Secured Address Range3 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION4_START_LO     0x20a001c0 /* [RO][32] DRAM Secured Address Range4 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION4_START_HI     0x20a001c4 /* [RO][32] DRAM Secured Address Range4 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION4_END_LO       0x20a001c8 /* [RO][32] DRAM Secured Address Range4 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION4_END_HI       0x20a001cc /* [RO][32] DRAM Secured Address Range4 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION5_START_LO     0x20a001d0 /* [RO][32] DRAM Secured Address Range5 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION5_START_HI     0x20a001d4 /* [RO][32] DRAM Secured Address Range5 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION5_END_LO       0x20a001d8 /* [RO][32] DRAM Secured Address Range5 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION5_END_HI       0x20a001dc /* [RO][32] DRAM Secured Address Range5 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION6_START_LO     0x20a001e0 /* [RO][32] DRAM Secured Address Range6 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION6_START_HI     0x20a001e4 /* [RO][32] DRAM Secured Address Range6 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION6_END_LO       0x20a001e8 /* [RO][32] DRAM Secured Address Range6 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION6_END_HI       0x20a001ec /* [RO][32] DRAM Secured Address Range6 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION7_START_LO     0x20a001f0 /* [RO][32] DRAM Secured Address Range7 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION7_START_HI     0x20a001f4 /* [RO][32] DRAM Secured Address Range7 Start (MSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION7_END_LO       0x20a001f8 /* [RO][32] DRAM Secured Address Range7 Start (LSbs) */
+#define BCHP_XPT_XMEMIF_SEC_REGION7_END_HI       0x20a001fc /* [RO][32] DRAM Secured Address Range7 Start (MSbs) */
 
 /***************************************************************************
  *SCB_WR_BO_RSBUFF - SCB Write Client Block Out Control for RSBUFF

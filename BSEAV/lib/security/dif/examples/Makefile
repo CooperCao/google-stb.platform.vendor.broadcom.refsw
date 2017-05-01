@@ -90,7 +90,7 @@ include $(BSEAV_TOP)/lib/security/bcrypt/bcrypt_libdir.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
 include $(BSEAV_TOP)/lib/security/dif/dif_libdir.inc
--include $(BSEAV_TOP)/lib/protobuf/protobuf.inc
+-include $(BSEAV_TOP)/opensource/protobuf/protobuf.inc
 ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 endif
@@ -188,7 +188,7 @@ LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbc
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm$(PREBLT_LIB_SUFFIX)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 ifeq ($(SAGE_SUPPORT),y)
-include $(BSEAV_TOP)/lib/playready/http/prdyhttp.inc
+include $(BSEAV_TOP)/thirdparty/playready/http/prdyhttp.inc
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
 LDFLAGS += -lplayready30pk
 LDFLAGS += -lplayreadypk$(PREBLT_LIB_SUFFIX)_host

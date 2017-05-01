@@ -40,6 +40,8 @@
 #include "media_player_priv.h"
 #include "glob.h"
 #include "nexus_file_chunk.h"
+#include "bcmindexer.h"
+#include "bcmindexer_nav.h"
 #include <sys/stat.h>
 
 BDBG_MODULE(media_player);
@@ -50,7 +52,10 @@ BDBG_OBJECT_ID(media_player);
 
 void media_player_get_default_create_settings( media_player_create_settings *psettings )
 {
+    NxClient_ConnectSettings connectSettings;
     memset(psettings, 0, sizeof(*psettings));
+    NxClient_GetDefaultConnectSettings(&connectSettings);
+    psettings->userDataBufferSize = connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize;
 }
 
 void media_player_get_default_settings(media_player_settings *psettings)
@@ -201,6 +206,37 @@ static bool media_player_p_test_disconnect(media_player_t player, NEXUS_SimpleVi
          player->colorDepth != player->videoDecoderSettings.colorDepth);
 }
 
+static int media_player_p_connect_persistents(media_player_t player)
+{
+    NxClient_ConnectSettings audioConnectSettings;
+    int rc;
+
+    if (!player->master || !player->audio.allocResults.simpleAudioDecoder.id) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+    if (!player->create_settings.audio.usePersistent) {
+        BDBG_ERR(("media_player_p_connect_persistents should only used for connecting persisent decoders"));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
+    NxClient_GetDefaultConnectSettings(&audioConnectSettings);
+    audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
+    audioConnectSettings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
+
+    if (player->master && player->master->audio.persistentMasterConnectId != 0) {
+        audioConnectSettings.simpleAudioDecoder.primer = true;
+    }
+
+    rc = NxClient_Connect(&audioConnectSettings, &player->audio.connectId);
+    if (rc) return BERR_TRACE(rc);
+
+    if (player->master && player->master->audio.persistentMasterConnectId == 0) {
+        player->master->audio.persistentMasterConnectId = player->audio.connectId;
+    }
+
+    return 0;
+}
+
 /* connect client resources to server's resources */
 static int media_player_p_connect(media_player_t player)
 {
@@ -223,7 +259,11 @@ static int media_player_p_connect(media_player_t player)
         media_player_t p;
 
         if (player->master->mosaic_start_count) {
-            /* already connected */
+            /* already connected but get connectIds for persistent decoders */
+            if (player->create_settings.audio.usePersistent) {
+                rc = media_player_p_connect_persistents(player);
+                if (rc) return BERR_TRACE(rc);
+            }
             player->master->mosaic_start_count++;
             return 0;
         }
@@ -241,8 +281,8 @@ static int media_player_p_connect(media_player_t player)
             }
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.colorDepth = player->colorDepth;
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.fifoSize = player->start_settings.video.fifoSize;
+            connectSettings.simpleVideoDecoder[i].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
             connectSettings.simpleVideoDecoder[i].windowCapabilities.type = player->start_settings.videoWindowType;
-            /* connectSettings.simpleVideoDecoder[i].decoderCapabilities.supportedCodecs[player->videoProgram.settings.codec] = true; */
         }
         if (player->audio.allocResults.simpleAudioDecoder.id) {
             rc = media_player_switch_audio(player);
@@ -270,12 +310,14 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.colorDepth = player->colorDepth;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.fifoSize = player->start_settings.video.fifoSize;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = player->start_settings.video.secure;
+            connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
             connectSettings.simpleVideoDecoder[0].windowCapabilities.type = player->start_settings.videoWindowType;
         }
 #if NEXUS_HAS_AUDIO
         if (player->audioProgram.primary.pidChannel) {
             connectSettings.simpleAudioDecoder.id = player->allocResults.simpleAudioDecoder.id;
             connectSettings.simpleAudioDecoder.primer = (player->start_settings.audio_primers == media_player_audio_primers_immediate);
+            connectSettings.simpleAudioDecoder.decoderCapabilities.type = (player->create_settings.audio.usePersistent ? NxClient_AudioDecoderType_ePersistent : NxClient_AudioDecoderType_eDynamic);
         }
 #endif
     }
@@ -864,6 +906,13 @@ int media_player_start( media_player_t player, const media_player_start_settings
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
 
+    if (player->start_settings.crcMode) {
+        NEXUS_VideoInputCrcData data;
+        unsigned num;
+        /* need to call once, before start, to start decoder in CRC mode */
+        NEXUS_SimpleVideoDecoder_GetVideoInputCrcData(player->videoDecoder, &data, 1, &num);
+    }
+
     /* crypto */
     if (player->start_settings.decrypt.algo < NEXUS_SecurityAlgorithm_eMax) {
         struct dvr_crypto_settings settings;
@@ -899,6 +948,12 @@ int media_player_start( media_player_t player, const media_player_start_settings
         default: /* just ignore */ break;
         }
         NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &settings);
+    }
+
+    /* special start settings for persistent decode */
+    if (player->create_settings.audio.usePersistent) {
+        player->audioProgram.primary.mixingMode = player->start_settings.audio.mixingMode;
+        player->audioProgram.master = player->start_settings.audio.master;
     }
 
     /* special start settings based on codec */
@@ -1044,6 +1099,9 @@ void media_player_stop(media_player_t player)
             NEXUS_FilePlay_Close(player->file);
         }
     }
+    if (player->start_settings.forceStopDisconnect) {
+        media_player_p_disconnect(player);
+    }
     player->started = false;
 }
 
@@ -1060,7 +1118,7 @@ int media_player_ac4_status( media_player_t player, int action )
         BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
         if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
             unsigned i;
-            BDBG_ERR(("The current presentation index is %lu", (unsigned long)codecSettings.codecSettings.ac4.presentationIndex));
+            BDBG_ERR(("The current presentation index is %lu", (unsigned long)audStatus.codecStatus.ac4.currentPresentationIndex));
             BDBG_ERR(("numPresentations %lu", (unsigned long)audStatus.codecStatus.ac4.numPresentations));
             for (i = 0; i<audStatus.codecStatus.ac4.numPresentations; i++) {
                 NEXUS_AudioDecoderPresentationStatus presentStatus;
@@ -1082,13 +1140,14 @@ int media_player_ac4_status( media_player_t player, int action )
     else if (action == 2) {
         BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
         if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
-            BDBG_ERR(("The currentPresentation index is %lu. Moving to the next presentation", (unsigned long)(codecSettings.codecSettings.ac4.presentationIndex)));
-            if ( codecSettings.codecSettings.ac4.presentationIndex >= audStatus.codecStatus.ac4.numPresentations ) {
-                codecSettings.codecSettings.ac4.presentationIndex = 0;
+            codecSettings.codecSettings.ac4.programs[0].presentationIndex = audStatus.codecStatus.ac4.currentPresentationIndex;
+            BDBG_ERR(("The currentPresentation index is %lu. Moving to the next presentation", (unsigned long)(codecSettings.codecSettings.ac4.programs[0].presentationIndex)));
+            if ( codecSettings.codecSettings.ac4.programs[0].presentationIndex >= audStatus.codecStatus.ac4.numPresentations ) {
+                codecSettings.codecSettings.ac4.programs[0].presentationIndex = 0;
             }
-            codecSettings.codecSettings.ac4.presentationIndex = codecSettings.codecSettings.ac4.presentationIndex + 1;
-            if ( codecSettings.codecSettings.ac4.presentationIndex >= audStatus.codecStatus.ac4.numPresentations ) {
-                codecSettings.codecSettings.ac4.presentationIndex = 0;
+            codecSettings.codecSettings.ac4.programs[0].presentationIndex += 1;
+            if ( codecSettings.codecSettings.ac4.programs[0].presentationIndex >= audStatus.codecStatus.ac4.numPresentations ) {
+                codecSettings.codecSettings.ac4.programs[0].presentationIndex = 0;
             }
             NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary,&codecSettings);
         }
@@ -1125,16 +1184,39 @@ int media_player_switch_audio(media_player_t player)
     if (!player->master || !player->audio.allocResults.simpleAudioDecoder.id) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
-    if (player->audio.connectId) {
-        rc = NxClient_RefreshConnect(player->audio.connectId);
-        if (rc) return BERR_TRACE(rc);
+    if (!player->create_settings.audio.usePersistent) {
+        if (player->audio.connectId) {
+            rc = NxClient_RefreshConnect(player->audio.connectId);
+            if (rc) return BERR_TRACE(rc);
+        }
+        else {
+            NxClient_ConnectSettings audioConnectSettings;
+            NxClient_GetDefaultConnectSettings(&audioConnectSettings);
+            audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
+            rc = NxClient_Connect(&audioConnectSettings, &player->audio.connectId);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
     else {
-        NxClient_ConnectSettings audioConnectSettings;
-        NxClient_GetDefaultConnectSettings(&audioConnectSettings);
-        audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
-        rc = NxClient_Connect(&audioConnectSettings, &player->audio.connectId);
-        if (rc) return BERR_TRACE(rc);
+        if (player->audio.connectId)
+        {
+            if (player->master && player->master->audio.persistentMasterConnectId != 0)
+            {
+                NxClient_ReconfigSettings reconfig;
+                NxClient_GetDefaultReconfigSettings(&reconfig);
+                reconfig.command[0].connectId1 = player->audio.connectId;
+                reconfig.command[0].connectId2 = player->master->audio.persistentMasterConnectId;
+                reconfig.command[0].type = NxClient_ReconfigType_eRerouteAudio;
+                rc = NxClient_Reconfig(&reconfig);
+                if (rc) return BERR_TRACE(rc);
+                player->master->audio.persistentMasterConnectId = player->audio.connectId;
+
+            }
+        }
+        else {
+            rc = media_player_p_connect_persistents(player);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
     return 0;
 }
@@ -1184,6 +1266,21 @@ void media_player_destroy(media_player_t player)
     }
 }
 
+static bool index_has_rai(const char *indexfile)
+{
+    bool result = false;
+    FILE *f;
+    f = fopen(indexfile, "rb");
+    if (f) {
+        BNAV_AVC_Entry nav;
+        if (fread(&nav, sizeof(nav), 1, f) == 1) {
+            result = BNAV_get_RandomAccessIndicator(&nav);
+        }
+        fclose(f);
+    }
+    return result;
+}
+
 int media_player_trick( media_player_t player, int rate)
 {
     enum { smooth_rewind_mpeg, smooth_rewind, by_rate } rewind = by_rate;
@@ -1218,7 +1315,7 @@ int media_player_trick( media_player_t player, int rate)
                 break;
             case NEXUS_VideoCodec_eH264:
             case NEXUS_VideoCodec_eH265:
-                if (rate == -1000) {
+                if (rate == -1000 && index_has_rai(player->start_settings.index_url)) {
                     rewind = smooth_rewind;
                 }
                 break;

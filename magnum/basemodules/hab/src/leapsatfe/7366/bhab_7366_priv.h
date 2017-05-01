@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #ifndef BHAB_7366_PRIV_H
@@ -138,10 +130,6 @@ BERR_Code BHAB_7366_P_HandleInterrupt_isr(
     BHAB_Handle handle   /* [in] BHAB handle */
 );
 
-BERR_Code BHAB_7366_P_ProcessInterruptEvent(
-    BHAB_Handle handle  /* [in] HAB device handle */
-);
-
 BERR_Code BHAB_7366_P_InstallInterruptCallback(
     BHAB_Handle          handle,    /* [in] BHAB handle */
     BHAB_DevId           eDevId,    /* [in] Device ID */
@@ -166,51 +154,16 @@ BERR_Code BHAB_7366_P_SendHabCommand(
     uint16_t    command_len
 );
 
+#if BHAB_CHIP==4548
 BERR_Code BHAB_7366_P_GetInterruptEventHandle(
     BHAB_Handle      handle,  /* [in] BHAB handle */
     BKNI_EventHandle *hEvent  /* [out] interrupt event handle */
 );
-
-BERR_Code BHAB_7366_P_WriteBbsi(
-   BHAB_Handle h,    /* [in] BHAB PI Handle */
-   uint8_t     addr, /* [in] address */
-   uint8_t     *buf, /* [in] data to write */
-   uint32_t    n     /* [in] number of bytes to write */
-);
-
-BERR_Code BHAB_7366_P_ReadBbsi(
-   BHAB_Handle h,    /* [in] BHAB PI Handle */
-   uint8_t     addr, /* [in] address */
-   uint8_t     *buf, /* [out] buffer that holds the data */
-   uint32_t    n     /* [in] number of bytes to read */
-);
-
-BERR_Code BHAB_7366_P_ReadRbus(
-   BHAB_Handle h,    /* [in] BHAB PI Handle */
-   uint32_t    addr, /* [in] address */
-   uint32_t    *buf, /* [in] data to write */
-   uint32_t    n     /* [in] number of 32-bit words to read */
-);
-
-BERR_Code BHAB_7366_P_WriteRbus(
-   BHAB_Handle h,    /* [in] BHAB PI Handle */
-   uint32_t    addr, /* [in] address */
-   uint32_t    *buf, /* [out] buffer that holds the data */
-   uint32_t    n     /* [in] number of 32-bit words to read */
-);
-
-BERR_Code BHAB_7366_P_ResetAp(
-   BHAB_Handle h  /* [in] BHAB PI Handle */
-);
+#endif
 
 BERR_Code BHAB_7366_P_GetVersionInfo(
     BHAB_Handle             handle,         /* [in]  BHAB handle */
     BFEC_SystemVersionInfo  *pVersionInfo   /* [out]  Returns FW version information */
-);
-
-BERR_Code BHAB_7366_P_GetAvsData(
-   BHAB_Handle handle,  /* [in] BHAB handle */
-   BHAB_AvsData *pData  /* [out] returned AVS data */
 );
 
 BERR_Code BHAB_7366_P_Reset(

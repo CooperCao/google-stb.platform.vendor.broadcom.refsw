@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
@@ -97,7 +94,7 @@ BERR_Code BSAT_g1_P_TunerInit(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct)
 /******************************************************************************
  BSAT_g1_P_TunerUpdateActualTunerFreq_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_TunerUpdateActualTunerFreq_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_TunerUpdateActualTunerFreq_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
@@ -109,7 +106,7 @@ BERR_Code BSAT_g1_P_TunerUpdateActualTunerFreq_isr(BSAT_ChannelHandle h)
 /******************************************************************************
  BSAT_g1_P_SetChanDecFcw_isr() - sets CHAN_DEC_FCW_CHx based on Fs and Fc
 ******************************************************************************/
-BERR_Code BSAT_g1_P_SetChanDecFcw_isr(BSAT_ChannelHandle h)
+static BERR_Code BSAT_g1_P_SetChanDecFcw_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
@@ -156,7 +153,7 @@ BERR_Code BSAT_g1_P_ConfigChanAgc_isr(BSAT_ChannelHandle h, bool bTracking)
 /******************************************************************************
  BSAT_g1_P_EnableNotch_isr()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_EnableNotch_isr(BSAT_ChannelHandle h, BSAT_NotchSelect n, int32_t freqHz, BSAT_NotchSettings *pSettings)
+static BERR_Code BSAT_g1_P_EnableNotch_isr(BSAT_ChannelHandle h, BSAT_NotchSelect n, int32_t freqHz, BSAT_NotchSettings *pSettings)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, ctl_reg, fcw_reg, freq, P_hi, P_lo, Q_hi, Q_lo;
@@ -203,7 +200,7 @@ BERR_Code BSAT_g1_P_EnableNotch_isr(BSAT_ChannelHandle h, BSAT_NotchSelect n, in
 /******************************************************************************
  BSAT_g1_P_DisableNotch_isrsafe()
 ******************************************************************************/
-BERR_Code BSAT_g1_P_DisableNotch_isrsafe(BSAT_ChannelHandle h, BSAT_NotchSelect n)
+static BERR_Code BSAT_g1_P_DisableNotch_isrsafe(BSAT_ChannelHandle h, BSAT_NotchSelect n)
 {
    uint32_t ctl_reg, fcw_reg, int_reg;
 
@@ -362,6 +359,19 @@ BERR_Code BSAT_g1_P_TunerSetFreq_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFun
 
 
 /******************************************************************************
+ BSAT_g1_P_FreezeChanAgc_isr()
+******************************************************************************/
+BERR_Code BSAT_g1_P_FreezeChanAgc_isr(BSAT_ChannelHandle h, bool bFreeze)
+{
+   if (bFreeze)
+      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_STB_CHAN_CHx_AGC_CTRL, (1<<28)); /* AGC_LF_FRZ=1 */
+   else
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_STB_CHAN_CHx_AGC_CTRL, ~(1<<28)); /* AGC_LF_FRZ=0 */
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
  BSAT_g1_P_TunerQuickTune_isr()
 ******************************************************************************/
 BERR_Code BSAT_g1_P_TunerQuickTune_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct)
@@ -450,4 +460,20 @@ BERR_Code BSAT_g1_ResetXbarFifo(BSAT_Handle h, uint8_t adcSelect)
    BSAT_g1_P_OrRegister_isrsafe(hChn, BCHP_STB_CHAN_CTRL_XBAR_CTRL, (1 << adcSelect));   /* turn on adc fifo */
 
    return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_LoadAciFilterCoeff_isr()
+******************************************************************************/
+void BSAT_g1_P_LoadAciFilterCoeff_isr(BSAT_ChannelHandle h, const int16_t *pCoeff)
+{
+   int i;
+   uint32_t val;
+
+   for (i = 0; i < 36; i++)
+   {
+      val = (uint32_t)pCoeff[i];
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_STB_CHAN_CHx_ACI_H0 + (i*4), val);
+   }
 }

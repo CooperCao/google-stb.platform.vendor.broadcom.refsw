@@ -142,13 +142,21 @@ BBOX_SOURCES += \
 ifeq (${HAS_BOX_MODES},y)
 include $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/bbox_$(BCHP_CHIP).inc
 BBOX_DEFINES += BBOX_BOX_MODES_SUPPORTED=1
+BBOX_SOURCES += \
+        $(MAGNUM)/commonutils/box/src/common/bbox_priv_rts_common.c
 else
 BBOX_INCLUDES += \
         $(MAGNUM)/commonutils/box/src/legacy
 BBOX_SOURCES += \
         $(MAGNUM)/commonutils/box/src/legacy/bbox_priv_vdc.c \
+        $(MAGNUM)/commonutils/box/src/legacy/bbox_priv_rts.c \
         $(MAGNUM)/commonutils/box/src/common/bbox_priv_vce_nop.c \
         $(MAGNUM)/commonutils/box/src/common/bbox_priv_xvd_nobox.c
+endif
+
+# Use default box mode 0 RTS loaded by BOLT
+ifneq (${BBOX_USE_BOX_MODE_0_RTS},y)
+BBOX_DEFINES += BBOX_LOAD_RTS=1
 endif
 
 BBOX_SOURCES += \

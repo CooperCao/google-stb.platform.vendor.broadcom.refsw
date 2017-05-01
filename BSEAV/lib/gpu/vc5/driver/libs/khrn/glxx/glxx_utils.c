@@ -1,13 +1,6 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Miscellaneous glxx functions
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_utils.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 

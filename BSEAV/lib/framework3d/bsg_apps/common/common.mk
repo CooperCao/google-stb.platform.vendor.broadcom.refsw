@@ -37,6 +37,50 @@
 #
 #############################################################################
 
-all:
-	@echo "Nothing to do -- this is not an application"
+# Get the platform locations sorted
+ifndef NEXUS_PLATFORM
+	$(error NEXUS_PLATFORM is not defined)
+endif
 
+ifndef BCHP_VER
+	$(error BCHP_VER is not defined)
+endif
+
+BSEAV_DIR	:= $(shell cd ../../../..            ; pwd)
+NEXUS_TOP	?= $(shell cd $(BSEAV_DIR)/../nexus  ; pwd)
+BSG_DIR     := $(shell pwd)/../../bsg
+
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+
+V3D_DIR ?= $(shell cd $(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/driver; pwd)
+
+B_REFSW_OBJ_DIR  ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= ${BSEAV_DIR}/../${B_REFSW_OBJ_DIR}
+
+BSG_OBJ_DIR      ?= $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bsg_apps/common
+
+CXXFLAGS += -O2 -DNDEBUG -std=c++0x
+CXXFLAGS += -I$(BSG_DIR)
+CXXFLAGS += -I$(V3D_DIR)/interface/khronos/include
+
+all: $(BSG_OBJ_DIR)/bsg_common.a
+.PHONY: all clean
+
+SOURCES = bcm_backdrop.cpp \
+			 bcm_guilloche.cpp \
+			 bcm_help_menu.cpp \
+			 bcm_wiggle.cpp
+
+OBJECTS = $(addprefix $(BSG_OBJ_DIR)/, $(addsuffix .o, $(basename $(SOURCES))))
+$(info $(OBJECTS))
+
+$(OBJECTS): $(BSG_OBJ_DIR)/%.o: %.cpp
+	@echo Compiling $^
+	@mkdir -p $(BSG_OBJ_DIR)
+	@$(CXX) $(CXXFLAGS) -c $^ -o $@
+
+$(BSG_OBJ_DIR)/bsg_common.a: $(OBJECTS)
+	@$(AR) rcs $@ $?
+
+clean:
+	@rm -rf $(BSG_OBJ_DIR)

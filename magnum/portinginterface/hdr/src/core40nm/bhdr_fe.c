@@ -66,11 +66,6 @@ do                                                \
 
 
 
-/* The timers run at 27Mhz (27,000,000 times a second) and a microsecond is 1,000,000th of a second, so ... */
-#define BHDR_P_ConversionFactor (27000000/1000000) /* <- yeah, I know, its 27 -- but the compiler will figure that out, right? */
-unsigned long BHDR_P_MicroSecondsToTimer(unsigned long microSeconds) { return microSeconds * BHDR_P_ConversionFactor; }
-
-
 /*******************************************************************************
 BERR_Code BHDR_FE_GetDefaultSettings
 Summary: Get the default settings for the HDMI device.
@@ -515,7 +510,6 @@ BERR_Code BHDR_FE_P_GetPixelClockEstimate_isr(BHDR_FE_ChannelHandle hFeChannel,
 
 	bool bPixelClockChange ;
 	bool bPllLocked ;
-	uint8_t ClockStopped ;
 
 	BDBG_OBJECT_ASSERT(hFeChannel, BHDR_FE_P_ChannelHandle) ;
 
@@ -528,7 +522,6 @@ BERR_Code BHDR_FE_P_GetPixelClockEstimate_isr(BHDR_FE_ChannelHandle hFeChannel,
 	BHDR_FE_P_GetPixelClockStatus_isr(hFeChannel, FePixelClockStatus) ;
 
 	PixelClockCount = FePixelClockStatus[BHDR_FE_P_CLOCK_eChRef].PixelCount ;
-	ClockStopped = FePixelClockStatus[BHDR_FE_P_CLOCK_eChRef].bClockStopped ;
 
 	if ((hFeChannel->PreviousPixelClockCount > PixelClockCount + 5)
 	|| (hFeChannel->PreviousPixelClockCount + 5 < PixelClockCount ))
@@ -884,23 +877,6 @@ BERR_Code BHDR_FE_UnInstallHotPlugCallback(
 done :
 	BDBG_LEAVE(BHDR_FE_UnInstallHotPlugCallback) ;
 	return rc ;
-}
-
-
-/**************************************************************************
-Summary: Power Down Core Sequence
-**************************************************************************/
-void BHDR_FE_P_PowerDownCore(
-	BHDR_FE_ChannelHandle hFeChannel)
-{
-	BREG_Handle hRegister ;
-
-	uint32_t ulOffset  ;
-
-	BDBG_OBJECT_ASSERT(hFeChannel, BHDR_FE_P_ChannelHandle) ;
-	hRegister = hFeChannel->hRegister ;
-	/* get offset for Front End */
-	ulOffset = hFeChannel->ulOffset ;
 }
 
 

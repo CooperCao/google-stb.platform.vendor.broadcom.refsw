@@ -1,14 +1,6 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-  All rights reserved.
-
-Project  :  glxx
-Module   :  Header file
-
-FILE DESCRIPTION
-Implement glTexLevelParam
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #if KHRN_GLES31_DRIVER
 
 #include "gl_public_api.h"
@@ -166,7 +158,7 @@ static unsigned get_texlevel_param(GLXX_SERVER_STATE_T *state,
    }
 
    unsigned face =  glxx_texture_get_face(target);
-   const KHRN_IMAGE_T *img = NULL;
+   const khrn_image *img = NULL;
    const struct tex_buffer_s *tex_buffer = NULL;
 
    /* texture buffer is treated differently  because we create an image only at

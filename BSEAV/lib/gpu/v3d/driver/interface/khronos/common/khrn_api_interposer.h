@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-
-FILE DESCRIPTION
-API re-entrancy protection (for multi-threading) and logging over
-a remote interface.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_API_INTERPOSER_H
 #define KHRN_API_INTERPOSER_H
 
@@ -333,11 +324,6 @@ typedef struct {
    void (*real_glInsertEventMarkerEXT)(GLsizei length, const GLchar *marker);
    void (*real_glPushGroupMarkerEXT)(GLsizei length, const GLchar *marker);
    void (*real_glPopGroupMarkerEXT)(void);
-
-   void (*real_glCurrentPaletteMatrixOES)(GLuint matrixpaletteindex);
-   void (*real_glLoadPaletteFromModelViewMatrixOES) (void);
-   void (*real_glMatrixIndexPointerOES) (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-   void (*real_glWeightPointerOES) (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
 
    EGLint (*real_eglGetError)(void);
    EGLDisplay (*real_eglGetDisplay)(EGLNativeDisplayType display_id);

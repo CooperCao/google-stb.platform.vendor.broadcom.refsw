@@ -56,15 +56,23 @@ typedef enum PlatformMediaPlayerState
     PlatformMediaPlayerState_eMax
 } PlatformMediaPlayerState;
 
+typedef struct PlatformMediaPlayerContext
+{
+    media_player_t nxPlayerMosaic[MAX_MOSAICS];
+    media_player_t nxPlayer;
+    media_player_create_settings nxCreateSettings;
+    unsigned count;
+} PlatformMediaPlayerContext;
+
 typedef struct PlatformMediaPlayer
 {
     PlatformHandle platform;
     PlatformListenerHandle streamInfoGatherer;
     BKNI_MutexHandle mutex;
     media_player_t nxPlayer;
-    media_player_create_settings nxCreateSettings;
     media_player_start_settings nxStartSettings;
     int trickRate;
+    unsigned index;
     PlatformMediaPlayerState state;
     struct
     {

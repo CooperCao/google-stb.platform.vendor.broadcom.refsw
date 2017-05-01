@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1189,13 +1189,20 @@ static void BXDM_PPCB_S_EvaluateCriteria_PtsStcOffset_isr(
     * - the TSM result is a "BXDM_PictureProvider_P_TSMState_ePass"
     * - AND the "selection" mode for this picture is TSM.
     *   (It could be overriden to "vsync" if auto vsync mode has kicked in.)
+    * - AND the decode is active (SWSTB-4454)
     * - AND the context has been validated
     * - AND either
     *   - the callback has NOT been called at least once (SW7405-3774/SW7550-379)
     *   - or this element is being displayed for the first time
-    */
+    *
+    * SWSTB-4454: found a corner case, the PtsStcCallback was firing while video decode
+    * was stopped.  This was happening as a result of "bElementRepeated" becoming "false"
+    * for the last picture of the previous decode, i.e. the content was interlaced, the
+    * second field end up being selected at just the right time to generate a bogus callback. */
+
    if( BXDM_PictureProvider_TSMResult_ePass == pstSelectedPicture->stPicParms.stTSM.stDynamic.eTsmResult
          && BXDM_PictureProvider_DisplayMode_eTSM == pstSelectedPicture->stPicParms.stTSM.stDynamic.eSelectionMode
+         && BXDM_PictureProvider_P_DecodeState_eStarted == hXdmPP->stDMState.stChannel.eDecodeState
          && true == pstSelectedPicture->bValidated
          &&  ( false == hXdmPP->stDMState.stDecode.bExecutedInitialPtsStcOffsetCB
                || false == pstSelectedPicture->stPicParms.stDisplay.stDynamic.bElementRepeated )

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,6 +64,7 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r);
 static NEXUS_Error NEXUS_Recpump_P_StartFlow(struct NEXUS_RecpumpFlow *flow);
 static void        NEXUS_Recpump_P_StopFlow(struct NEXUS_RecpumpFlow *flow);
 static NEXUS_Recpump_P_BufferState NEXUS_Recpump_P_TestDataReadyCallback(struct NEXUS_RecpumpFlow *flow);
+static NEXUS_Error NEXUS_Recpump_P_ApplyTpitStartSettings(NEXUS_RecpumpHandle r);
 
 #define NEXUS_RECPUMP_PID_IS_INDEX(PSETTINGS) \
     ( (((PSETTINGS)->pidType == NEXUS_PidType_eVideo) && ((PSETTINGS)->pidTypeSettings.video.index)) || \
@@ -391,6 +392,8 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     r->inputTransportType = NEXUS_TransportType_eTs;
     r->scdIdx = NULL;
     r->scdPidCount = 0;
+    r->scdUsedMap = 0;
+    r->scdMapMode = -1;
     NEXUS_Recpump_GetDefaultSettings(&r->settings);
 
     BXPT_Rave_GetDefaultAllocCxSettings(&allocSettings);
@@ -477,7 +480,11 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     if (!r->data.eventCallback) { rc=BERR_TRACE(NEXUS_UNKNOWN);goto error;}
 
     r->data.irqEnabled = false;
+#if BXPT_HAS_RAVE_MIN_DEPTH_INTR
+    BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eCdbMinDepthThresh, &int_id);
+#else
     BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eCdbUpperThresh, &int_id);
+#endif
     rc = BINT_CreateCallback(&r->data.irq, g_pCoreHandles->bint, int_id, NEXUS_Recpump_isr, &r->data, 0);
     if (rc) { rc=BERR_TRACE(rc); goto error; }
 
@@ -492,7 +499,11 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     if (!r->index.eventCallback) { rc=BERR_TRACE(NEXUS_UNKNOWN);goto error;}
 
     r->index.irqEnabled = false;
+#if BXPT_HAS_RAVE_MIN_DEPTH_INTR
+    BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eItbMinDepthThresh, &int_id);
+#else
     BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eItbUpperThresh, &int_id);
+#endif
     rc = BINT_CreateCallback(&r->index.irq, g_pCoreHandles->bint, int_id, NEXUS_Recpump_isr, &r->index, 0);
     if (rc) { rc=BERR_TRACE(rc); goto error; }
 
@@ -506,7 +517,7 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     if (rc) { rc=BERR_TRACE(rc); goto error; }
     r->tsioDmaEndCallback = NEXUS_IsrCallback_Create(r, NULL);
 #endif
-#if NEXUS_ENCRYPTED_DVR_WITH_M2M
+#if NEXUS_ENCRYPTED_DVR_WITH_M2M && (!NEXUS_HAS_XPT_DMA)
     rc = BKNI_CreateEvent(&r->crypto.event);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
 
@@ -552,573 +563,142 @@ error:
     return NULL;
 }
 
-static void NEXUS_Recpump_P_Release(NEXUS_RecpumpHandle r)
+static NEXUS_Error NEXUS_Recpump_P_ProvisionTpitIndexer(NEXUS_RecpumpHandle r)
 {
-    NEXUS_OBJECT_ASSERT(NEXUS_Recpump, r);
-    NEXUS_CLIENT_RESOURCES_RELEASE(recpump,Count,NEXUS_ANY_ID);
-}
-
-static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
-{
-    NEXUS_OBJECT_ASSERT(NEXUS_Recpump, r);
-    if (r->started) {
-        NEXUS_Recpump_Stop(r);
-    }
-    NEXUS_Recpump_RemoveAllPidChannels(r);
-
-    if (r->openSettings.dummyRecpump) {
-        NEXUS_OBJECT_RELEASE(r, NEXUS_Recpump, r->openSettings.dummyRecpump);
-    }
-
-    if (r->rave_rec_mem.data.buffer) {
-        BMMA_Unlock(r->rave_rec_mem.data.block, r->rave_rec_mem.data.buffer);
-        BMMA_UnlockOffset(r->rave_rec_mem.data.block, r->rave_rec_mem.data.offset);
-    }
-    if (r->rave_rec_mem.index.buffer) {
-        BMMA_Unlock(r->rave_rec_mem.index.block, r->rave_rec_mem.index.buffer);
-        BMMA_UnlockOffset(r->rave_rec_mem.index.block, r->rave_rec_mem.index.offset);
-    }
-    if (r->extra_rave_rec_mem.data.buffer) {
-        BMMA_Unlock(r->extra_rave_rec_mem.data.block, r->extra_rave_rec_mem.data.buffer);
-        BMMA_UnlockOffset(r->extra_rave_rec_mem.data.block, r->extra_rave_rec_mem.data.offset);
-    }
-    if (r->extra_rave_rec_mem.index.buffer) {
-        BMMA_Unlock(r->extra_rave_rec_mem.index.block, r->extra_rave_rec_mem.index.buffer);
-        BMMA_UnlockOffset(r->extra_rave_rec_mem.index.block, r->extra_rave_rec_mem.index.offset);
-    }
-
-#if NEXUS_ENCRYPTED_DVR_WITH_M2M
-    if(r->crypto.callback) {
-        NEXUS_UnregisterEvent(r->crypto.callback);
-    }
-    if(r->crypto.event) {
-        BKNI_DestroyEvent(r->crypto.event);
-    }
-    if(r->settings.securityDma) {
-        NEXUS_OBJECT_RELEASE(r, NEXUS_Dma, r->settings.securityDma);
-    }
-#endif
-    if (r->index.overflow_irq) {
-        BINT_DestroyCallback(r->index.overflow_irq);
-    }
-    if (r->data.overflow_irq) {
-        BINT_DestroyCallback(r->data.overflow_irq);
-    }
-    if (r->index.irq) {
-        BINT_DestroyCallback(r->index.irq);
-    }
-    if(r->index.eventCallback) {
-        NEXUS_UnregisterEvent(r->index.eventCallback);
-    }
-    if (r->index.event) {
-        BKNI_DestroyEvent(r->index.event);
-    }
-    if (r->data.irq) {
-        BINT_DestroyCallback(r->data.irq);
-    }
-    if(r->data.eventCallback) {
-        NEXUS_UnregisterEvent(r->data.eventCallback);
-    }
-    if (r->data.event) {
-        BKNI_DestroyEvent(r->data.event);
-    }
-    if (r->tpitIdx) {
-        BXPT_Rave_FreeIndexer(r->tpitIdx);
-    }
-    if (r->scdIdx) {
-        BXPT_Rave_FreeIndexer(r->scdIdx);
-    }
-
-    if (r->extra_rave_rec) {
-        BXPT_Rave_FreeContext(r->extra_rave_rec);
-    }
-    if (r->rave_rec) {
-        BXPT_Rave_FreeContext(r->rave_rec);
-    }
-
-    /* free blocks after BXPT_Rave_FreeContext */
-    if (r->rave_rec_mem.data.mmaHeap) {
-        BMMA_Free(r->rave_rec_mem.data.block);
-    }
-    if (r->rave_rec_mem.index.mmaHeap) {
-        BMMA_Free(r->rave_rec_mem.index.block);
-    }
-    if (r->extra_rave_rec_mem.data.mmaHeap) {
-        BMMA_Free(r->extra_rave_rec_mem.data.block);
-    }
-    if (r->extra_rave_rec_mem.index.mmaHeap) {
-        BMMA_Free(r->extra_rave_rec_mem.index.block);
-    }
-
-    if (r->data.overflowCallback) {
-        NEXUS_IsrCallback_Destroy(r->data.overflowCallback);
-    }
-    if (r->data.dataReadyCallback) {
-        NEXUS_TaskCallback_Destroy(r->data.dataReadyCallback);
-    }
-    if (r->index.overflowCallback) {
-        NEXUS_IsrCallback_Destroy(r->index.overflowCallback);
-    }
-    if (r->index.dataReadyCallback) {
-        NEXUS_TaskCallback_Destroy(r->index.dataReadyCallback);
-    }
-
-#if BXPT_NUM_TSIO
-    if (r->tsioDmaEndIrq) {
-        BINT_DestroyCallback(r->tsioDmaEndIrq);
-    }
-    if (r->tsioDmaEndCallback) {
-        NEXUS_IsrCallback_Destroy(r->tsioDmaEndCallback);
-    }
-#endif
-    NEXUS_RaveErrorCounter_Uninit_priv(&r->raveErrors);
-
-    r->rave_rec = NULL;
-    pTransport->recpump[r->tindex] = NULL;
-    NEXUS_OBJECT_DESTROY(NEXUS_Recpump, r);
-    BKNI_Free(r);
-}
-
-NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_Recpump, NEXUS_Recpump_Close);
-
-void NEXUS_Recpump_GetSettings(NEXUS_RecpumpHandle r, NEXUS_RecpumpSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
-    *pSettings = r->settings;
-}
-
-NEXUS_Error NEXUS_Recpump_SetSettings(NEXUS_RecpumpHandle r, const NEXUS_RecpumpSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
-
-    if(pSettings->securityContext && !pSettings->securityDma) {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-    if (pSettings->securityDma) {
-#if NEXUS_HAS_XPT_DMA && !NEXUS_INTEGRATED_M2M_SUPPORT
-        BDBG_ERR(("Recpump M2M crypto not supported on this platform. Use NEXUS_KeySlot_AddPidChannel instead."));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-#else
-        BDBG_WRN(("Recpump M2M crypto has been deprecated. Use NEXUS_KeySlot_AddPidChannel instead."));
-#if !NEXUS_HAS_XPT_DMA
-        if (!pTransport->moduleSettings.dma) {
-            BDBG_ERR(("Transport module does not have dma module handle."));
-            return BERR_TRACE(BERR_NOT_SUPPORTED);
-        }
-#endif
-#endif
-    }
-    if(r->started &&
-        (r->settings.securityDma != pSettings->securityDma ||
-        r->settings.securityContext != pSettings->securityContext)) {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-
-    if (r->settings.dropBtpPackets != pSettings->dropBtpPackets) {
-        BXPT_Rave_ContextSettings cxSettings;
-        BXPT_Rave_GetContextConfig(r->rave_rec, &cxSettings);
-        cxSettings.EnableBppSearch = pSettings->dropBtpPackets;
-        BXPT_Rave_SetContextConfig(r->rave_rec, &cxSettings);
-    }
-
-#if NEXUS_ENCRYPTED_DVR_WITH_M2M
-    if (pSettings->securityDma != r->settings.securityDma) {
-        if(r->settings.securityDma) {
-            NEXUS_OBJECT_RELEASE(r, NEXUS_Dma, r->settings.securityDma);
-        }
-        if(pSettings->securityDma) {
-            NEXUS_OBJECT_ACQUIRE(r, NEXUS_Dma, pSettings->securityDma);
+    NEXUS_Error rc;
+    bool needed = r->settings.tpit.idleEventEnable
+        || r->settings.tpit.firstPacketEnable
+        || r->settings.tpit.recordEventEnable;
+    if (!needed) {
+        int i;
+        for (i = 0; i < NEXUS_NUM_ECM_TIDS; i++) {
+            if (r->settings.tpit.ecmPair[i].enabled) {
+                needed = true;
+            }
         }
     }
-#endif
-
-    r->settings = *pSettings;
-    NEXUS_IsrCallback_Set(r->data.overflowCallback, &r->settings.data.overflow);
-    NEXUS_TaskCallback_Set(r->data.dataReadyCallback, &r->settings.data.dataReady);
-    NEXUS_IsrCallback_Set(r->index.overflowCallback, &r->settings.index.overflow);
-    NEXUS_TaskCallback_Set(r->index.dataReadyCallback, &r->settings.index.dataReady);
-#if BXPT_NUM_TSIO
-    NEXUS_IsrCallback_Set( r->tsioDmaEndCallback, &r->settings.tsioDmaEnd );
-#endif
-    return NEXUS_SUCCESS;
-}
-
-static NEXUS_Error NEXUS_Recpump_P_StartPid(NEXUS_RecpumpHandle r, NEXUS_Recpump_P_PidChannel *pid)
-{
-    NEXUS_Error rc = 0;
-    BSTD_UNUSED(r);
-    NEXUS_PidChannel_ConsumerStarted(pid->pidChn);
-    return rc;
-}
-
-static void NEXUS_Recpump_P_GetThresholds(bool bandHold, unsigned dataReadyThreshold, unsigned bufferSize, uint16_t *upperThreshold, uint16_t *lowerThreshold)
-{
-    /* The XPT threshold values are in units of NEXUS_RAVE_THRESHOLD_UNITS bytes. */
-    if(bandHold) {
-        unsigned threshold = (bufferSize *3)/4;
-        dataReadyThreshold = dataReadyThreshold + (NEXUS_RAVE_THRESHOLD_UNITS - 1);
-        dataReadyThreshold -= dataReadyThreshold%NEXUS_RAVE_THRESHOLD_UNITS;
-        if(threshold<dataReadyThreshold) {
-            threshold = dataReadyThreshold;
-        }
-        *upperThreshold = threshold / NEXUS_RAVE_THRESHOLD_UNITS;
-        *lowerThreshold = threshold / NEXUS_RAVE_THRESHOLD_UNITS;
-        if(*lowerThreshold>*upperThreshold) {
-            *lowerThreshold = *upperThreshold - 1;
-        }
-
-    } else {
-        *lowerThreshold = 0;
-        *upperThreshold = dataReadyThreshold / NEXUS_RAVE_THRESHOLD_UNITS;
-    }
-}
-
-static NEXUS_PlaypumpHandle nexus_p_get_playpump(const NEXUS_P_HwPidChannel *hwPidChannel)
-{
-    if (hwPidChannel->status.playback) {
-        return pTransport->playpump[hwPidChannel->status.playbackIndex].playpump;
-    }
-    else {
-        return NULL;
-    }
-}
-
-static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
-{
-    BERR_Code rc;
-    BXPT_Rave_RecordSettings rec_cfg;
-    const NEXUS_RecpumpSettings *pSettings = &r->settings;
-    unsigned packetSize, atom;
-    bool startIndex = false;
-    bool svcVideo = false;
-    NEXUS_Recpump_P_PidChannel *pid;
-    unsigned scdNo;
-    bool bandHold;
-
-    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
-    BDBG_ASSERT(r->started && !r->actuallyStarted);
-
-    if (!pSettings->data.dataReady.callback) {
-        BDBG_ERR(("dataReady.callback is required"));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-
-    r->rave_state = Ready;
-
-    rc = BXPT_Rave_ResetContext(r->rave_rec);
-    if (rc) {return BERR_TRACE(rc);}
-
-    /* disable context before we set various RAVE config */
-    rc = BXPT_Rave_DisableContext(r->rave_rec);
-    if (rc) {return BERR_TRACE(rc);}
-
-#ifdef BXPT_VCT_SUPPORT
-    if (r->openSettings.nullifyVct) {
-        rc = BXPT_Rave_NullifyVCT(r->rave_rec, true, r->openSettings.nullifyVct == 1 ? BXPT_RaveVct_Tvct : BXPT_RaveVct_Cvct);
-        if (rc) {return BERR_TRACE(rc);}
-    }
-#endif
-
-    rc = BXPT_Rave_GetRecordConfig(r->rave_rec, &rec_cfg);
-    if (rc) {return BERR_TRACE(rc);}
-
-    switch (r->inputTransportType) {
-    case NEXUS_TransportType_eTs:
-    case NEXUS_TransportType_eDssEs:
-    case NEXUS_TransportType_eDssPes:
-#if BXPT_HAS_MULTICHANNEL_PLAYBACK
-    case NEXUS_TransportType_eBulk:
-#endif
-        /* all outputs possible */
-        break;
-    case NEXUS_TransportType_eMpeg2Pes:
-        if (r->settings.outputTransportType != NEXUS_TransportType_eMpeg2Pes &&
-            r->settings.outputTransportType != NEXUS_TransportType_eEs)
-        {
-            BDBG_ERR(("cannot convert from transportType %d to %d", r->inputTransportType, r->settings.outputTransportType));
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        }
-        break;
-    case NEXUS_TransportType_eEs:
-        if (r->settings.outputTransportType != NEXUS_TransportType_eEs &&
-            r->settings.outputTransportType != NEXUS_TransportType_eTs )
-        {
-            BDBG_ERR(("cannot convert from transportType %d to %d", r->inputTransportType, r->settings.outputTransportType));
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        }
-        break;
-    default:
-        BDBG_ERR(("transport input format %d not supported", r->inputTransportType));
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-
-    rec_cfg.MpegMode = !NEXUS_IS_DSS_MODE(r->inputTransportType);
-    rec_cfg.CountRecordedPackets = pSettings->tpit.countRecordedPackets;
-
-    /* if you turn on band hold based on playback, then the CDB_UPPER_THRESHOLD interrupt will hold playback.
-    however, recpump already uses CDB_UPPER_THRESHOLD for the dataready interrupt. you cannot have the band hold and
-    dataready on the same condition, otherwise you can't establish an I/O pipeline (i.e. new data coming in while you are
-    writing out previous data) . what's needed is a second upper threshold interrupt: one for data ready and another
-    for band hold. that said, if you want to set band hold, enable this code, set the dataReadyThreshold to be a much higher
-    percentage (like 80%), then have your app poll recpump so that you can have an I/O pipeline. */
-    switch(pSettings->bandHold) {
-    case NEXUS_RecpumpFlowControl_eEnable:
-        bandHold = true;
-        break;
-    case NEXUS_RecpumpFlowControl_eDisable:
-        bandHold = false;
-        break;
-    case NEXUS_RecpumpFlowControl_eAuto:
-        bandHold = false;
+    if (!needed) {
+        NEXUS_Recpump_P_PidChannel *pid;
         for(pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
-            BDBG_ASSERT(pid->pidChn);
-            if (pid->pidChn->hwPidChannel->status.playback) {
-                bandHold = true;
+            if (pid->tpit.enabled) {
+                needed = true;
                 break;
             }
         }
-        bandHold = false; /* Can't use band hold, revert it back */
-        break;
-    default:
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
-    rec_cfg.BandHoldEn = bandHold;
 
-#if BXPT_HAS_MULTICHANNEL_PLAYBACK
-    rec_cfg.BulkMode = false;   /* Default to false. Only _eBulk should use true */
-#endif
-    switch (r->settings.outputTransportType) {
-    case NEXUS_TransportType_eTs:
-    case NEXUS_TransportType_eDssEs:
-    case NEXUS_TransportType_eDssPes:
-        /* if input is DSS, a default output type of eTs is understood to be DSS. */
-        rec_cfg.OutputFormat = BAVC_StreamType_eTsMpeg; /* this applies to DSS too */
-        packetSize = NEXUS_IS_DSS_MODE(r->inputTransportType)?130:188;
-        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
-            packetSize += 4;
+    if (needed && !r->tpitIdx) {
+        rc = BXPT_Rave_AllocIndexer(pTransport->rave[0].channel, BXPT_RaveIdx_eTpit, 1, r->rave_rec, &r->tpitIdx);
+        if (rc) return BERR_TRACE(rc);
+    }
+    else if (!needed && r->tpitIdx) {
+        BXPT_Rave_FreeIndexer(r->tpitIdx);
+        r->tpitIdx = NULL;
+    }
+    return NEXUS_SUCCESS;
+}
+
+static void
+NEXUS_Recpump_P_FreeScdIndexer(NEXUS_RecpumpHandle r)
+{
+    if(r->scdIdx) {
+        NEXUS_Recpump_P_PidChannel *pid;
+        BXPT_Rave_FreeIndexer(r->scdIdx);
+        r->scdPidCount = 0;
+        r->scdIdx = NULL;
+
+        for(pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
+            pid->assignedScd = -1;
         }
-        break;
-    case NEXUS_TransportType_eMpeg2Pes:
-        /* the current impl does not use STREAM_ID_HI/LO for PES id filtering */
-        rec_cfg.OutputFormat = BAVC_StreamType_ePes;
-        packetSize = 0; /* there is no packet alignment for PES record. app can use M2M DMA to assemble byte aligned data into I/O sized (e.g. 4K) chunks. */
-        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        }
-        break;
-    case NEXUS_TransportType_eEs:
-        rec_cfg.OutputFormat = BAVC_StreamType_eEs;
-        packetSize = 0; /* there is no packet alignment for ES record */
-        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        }
-        break;
-#if BXPT_HAS_MULTICHANNEL_PLAYBACK
-    case NEXUS_TransportType_eBulk:
-        rec_cfg.OutputFormat = BAVC_StreamType_eTsMpeg; /* this applies to DSS too */
-        packetSize = NEXUS_IS_DSS_MODE(r->inputTransportType)?130:188;
-        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
-            packetSize += 4;
-        }
-        rec_cfg.BulkMode = true;
-        break;
-#endif
-    default:
-        BDBG_ERR(("transport output format not supported"));
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        r->scdUsedMap = 0;
+        r->scdMapMode = -1;
     }
+}
 
+static NEXUS_Error NEXUS_Recpump_P_ProvisionScdIndexer(NEXUS_RecpumpHandle r)
+{
+    NEXUS_Error rc;
+    unsigned scdNo;
+    NEXUS_Recpump_P_PidChannel *pid;
+    unsigned requiredScds = 0;
+    int newMapMode = -1;
 
-    if (r->openSettings.data.atomSize % 64 != 0) {
-        BDBG_ERR(("data.atomSize not supported. Recpump can be extended to support other atomSizes if required."));
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
+    /* 1. Count the indexed pids, and detect the (new) pid mapping mode needed */
 
-    /* find "atom" which is a multiple of data.atomSize and packetSize */
-    switch (packetSize) {
-    case 188: atom = r->openSettings.data.atomSize * packetSize / 4; break;
-    case 130: atom = r->openSettings.data.atomSize * packetSize / 2; break;
-    case 192: atom = r->openSettings.data.atomSize * packetSize / 64; break;
-    case 134: atom = r->openSettings.data.atomSize * packetSize / 2; break;
-    default:  atom = 0; break; /* no alignment. should only occur for packetSize = 0. */
-    }
-
-    /* Remove the last transport packet and replace with one whole XC packet. */
-    if (pSettings->data.useBufferSize) {
-        rec_cfg.UseCdbSize = pSettings->data.useBufferSize;
-    } else {
-        rec_cfg.UseCdbSize = r->openSettings.data.bufferSize;
-    }
-    if (atom) {
-        rec_cfg.UseCdbSize -= rec_cfg.UseCdbSize % atom;
-    }
-    if (packetSize) {
-        /* Remove the last transport packet and replace it with a whole NEXUS_RAVE_MEMC_BLOCK_SIZE, then remove an atom or packetSize in order
-        to get be under the actual bufferSize. This is required for correct RAVE wraparound logic.
-        Note that this logic allows a single recpump buffer to be used for any packet size and any atom size. It's just that some combinations
-        result in more truncation at the end of the buffer. The only way to avoid any truncation is to only use one packet size, one atom size,
-        and to anticipate the NEXUS_RAVE_MEMC_BLOCK_SIZE replacement in your application (e.g. bufferSize = bufferSize - 188 + 256). */
-        rec_cfg.UseCdbSize -= packetSize;
-        rec_cfg.UseCdbSize += NEXUS_RAVE_MEMC_BLOCK_SIZE;
-        /* be sure we stick within the memory we're given */
-        while (rec_cfg.UseCdbSize > r->openSettings.data.bufferSize) {
-            rec_cfg.UseCdbSize -= atom?atom:packetSize;
-        }
-        BDBG_ASSERT(rec_cfg.UseCdbSize <= r->openSettings.data.bufferSize);
-    }
-
-    NEXUS_Recpump_P_GetThresholds(bandHold, r->openSettings.data.dataReadyThreshold, rec_cfg.UseCdbSize, &rec_cfg.CdbUpperThreshold, &rec_cfg.CdbLowerThreshold);
-    NEXUS_Recpump_P_GetThresholds(bandHold, r->openSettings.index.dataReadyThreshold, r->openSettings.index.bufferSize, &rec_cfg.ItbUpperThreshold, &rec_cfg.ItbLowerThreshold);
-
-    BDBG_MSG(("Start: CDB alloc=%u use=%d, threshold=%d, ITB alloc=%u threshold=%d",
-        (unsigned)r->openSettings.data.bufferSize, rec_cfg.UseCdbSize, r->openSettings.data.dataReadyThreshold,
-        (unsigned)r->openSettings.index.bufferSize, r->openSettings.index.dataReadyThreshold));
-
-    switch (pSettings->timestampType) {
-    case NEXUS_TransportTimestampType_eNone:
-        rec_cfg.UseTimeStamps = false;
-        break;
-    case NEXUS_TransportTimestampType_e30_2U_Mod300:
-        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Mod300;
-        rec_cfg.UseTimeStamps = true;
-        rec_cfg.DisableTimestampParityCheck = false;
-        break;
-    case NEXUS_TransportTimestampType_e30_2U_Binary:
-        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Binary;
-        rec_cfg.UseTimeStamps = true;
-        rec_cfg.DisableTimestampParityCheck = false;
-        break;
-    case NEXUS_TransportTimestampType_e32_Mod300:
-        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Mod300;
-        rec_cfg.UseTimeStamps = true;
-        rec_cfg.DisableTimestampParityCheck = true;
-        break;
-    case NEXUS_TransportTimestampType_e32_Binary:
-        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Binary;
-        rec_cfg.UseTimeStamps = true;
-        rec_cfg.DisableTimestampParityCheck = true;
-        break;
-    case NEXUS_TransportTimestampType_e28_4P_Mod300:
-        rec_cfg.TimestampMode = BXPT_TimestampMode_e28_4P_Mod300;
-        rec_cfg.UseTimeStamps = true;
-        rec_cfg.DisableTimestampParityCheck = true;
-        break;
-    default:
-        BDBG_ERR(("Invalid timestamp mode"));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-
-    /* 1. Count number of pids that require indexing */
-    for(scdNo=0,pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
-        NEXUS_PlaypumpHandle playpump;
+    for(pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
         if (NEXUS_RECPUMP_PID_IS_INDEX(&pid->settings)) {
-            scdNo++;
-            if( pid->settings.pidType == NEXUS_PidType_eVideo &&
-               (pid->settings.pidTypeSettings.video.codec == NEXUS_VideoCodec_eH264_Svc || pid->settings.pidTypeSettings.video.codec == NEXUS_VideoCodec_eH264_Mvc)) {
-                svcVideo = true;
-            }
-        }
-        playpump = nexus_p_get_playpump(pid->pidChn->hwPidChannel);
-        if (playpump) {
-            NEXUS_PlaypumpOpenSettings openSettings;
-            NEXUS_Playpump_P_GetOpenSettings(playpump, &openSettings);
-            if (openSettings.streamMuxCompatible) {
-                rec_cfg.EnableSingleChannelMuxCapableIndexer = true;
-            }
-        }
-    }
-
-    /* Timestamps should be passed through as-is to the recpump when the playpump and record timestamp formats are the same. */
-    if( pSettings->timestampType != NEXUS_TransportTimestampType_eNone && r->playback )
-    {
-        /* NEXUS_Recpump_AddPidChannel() ensures that PID channels are all from live or all are from a playpump.
-        So, we just need to check the first channel, if there is one. */
-        NEXUS_Recpump_P_PidChannel *playPid = BLST_S_FIRST( &r->pid_list );
-
-        if( playPid )
-        {
-            NEXUS_PlaypumpHandle playpump = nexus_p_get_playpump(playPid->pidChn->hwPidChannel);
-            if (playpump) {
-                NEXUS_PlaypumpSettings playpumpSettings;
-                NEXUS_Playpump_GetSettings(playpump, &playpumpSettings );
-                /* BXPT_TimestampMode_e28_4P_Mod300 maps to REC_TIMESTAMP_MODE 0, which uses internal hw structures
-                to determine the timestamp type used in the stream. If that matches the type requested for the record,
-                the stream timestamp is used without modification. */
-                /* Also need to disable timestamp parity checking. */
-                if( pSettings->timestampType == playpumpSettings.timestamp.type ) {
-                    rec_cfg.TimestampMode = BXPT_TimestampMode_e28_4P_Mod300;
-                    rec_cfg.DisableTimestampParityCheck = true;
+            requiredScds++;
+            if (newMapMode >= 0) {
+                bool requiredMode = pid->settings.pidType == NEXUS_PidType_eVideo && pid->settings.pidTypeSettings.video.pid == 0x1fff;
+                if (requiredMode != newMapMode) {
+                    BDBG_ERR(("Mixed video indexing modes not supported"));
+                    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
                 }
             }
+            else {
+                newMapMode = pid->settings.pidType == NEXUS_PidType_eVideo && pid->settings.pidTypeSettings.video.pid == 0x1fff;
+            }
         }
     }
 
-#if BXPT_HAS_ATS
-    /* Adjust recorded timestamps to stay locked to the stream's PCRs. In other words,
-    the delta between PTSs on PCR carrying packets will match the delta between the
-    PCRs. */
-    if(r->settings.adjustTimestampUsingPcrs)
-    {
-        if( NULL == r->settings.pcrPidChannel )
-        {
-            BDBG_ERR(("NULL pcrPidChannel for timestamp adjustments."));
-            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        }
-        rec_cfg.PcrPidChannelIndex = r->settings.pcrPidChannel->hwPidChannel->status.pidChannelIndex;
-    }
-    rec_cfg.LockTimestampsToPcrs = r->settings.adjustTimestampUsingPcrs;
-#else /* #if BXPT_HAS_ATS */
-    if(r->settings.adjustTimestampUsingPcrs) {
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-#endif /* #if BXPT_HAS_ATS */
-#if BXPT_HAS_LOCAL_ATS
-    if(r->settings.localTimestamp) {
-        rec_cfg.GenerateLocalAts = true;
-        rec_cfg.LocalAtsFormat = 0;
-    } else {
-        rec_cfg.GenerateLocalAts = false;
-    }
-#else /* #if BXPT_HAS_LOCAL_ATS */
-    if(r->settings.localTimestamp) {
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-#endif /* #if BXPT_HAS_LOCAL_ATS */
-
-    if (r->bipPidChannelNum) {
-        /* these are cleared automatically on RAVE flush */
-        rec_cfg.bipIndexing = true;
-        rec_cfg.bipPidChannel = r->bipPidChannelNum;
-    }
-
-    rc = BXPT_Rave_SetRecordConfig(r->rave_rec, &rec_cfg);
-    if (rc) {return BERR_TRACE(rc);}
+    BDBG_MSG(("requiredScds %d newMapMode %d", requiredScds, newMapMode));
 
     /* 2. Allocate SCD indexer for desired number of pids (we only increase  number of SCD) */
-    if(scdNo>r->scdPidCount) {
-        if(r->scdIdx) {
-            BXPT_Rave_FreeIndexer(r->scdIdx);
-            r->scdPidCount = 0;
-            r->scdIdx = NULL;
-        }
-        rc = BXPT_Rave_AllocIndexer(pTransport->rave[0].channel, BXPT_RaveIdx_eScd, scdNo, r->rave_rec, &r->scdIdx);
-        if (rc) { return BERR_TRACE(rc); }
-        r->scdPidCount = scdNo;
-    }
 
-    for(scdNo=0,pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
+    if(requiredScds>r->scdPidCount) {
+        if (r->actuallyStarted && r->scdUsedMap) {
+            BDBG_WRN(("reallocating indexers after start: event loss likely"));
+        }
+        NEXUS_Recpump_P_FreeScdIndexer(r);
+        rc = BXPT_Rave_AllocIndexer(pTransport->rave[0].channel, BXPT_RaveIdx_eScd, requiredScds, r->rave_rec, &r->scdIdx);
+        if (rc) { return BERR_TRACE(rc); }
+        r->scdPidCount = requiredScds;
+    }
+    /* What is SetPidChannelSettings turns off the last index? NEXUS_Recpump_P_FreeScdIndexer won't be called until we remove the last pidchannel. Is that ok? */
+
+    /* 3. For each indexed pid, make allocation state match requirement  */
+
+    for(pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
         BXPT_Rave_IndexerSettings indx_cfg;
         BXPT_Rave_ScdEntry ScdConfig;
-        const NEXUS_RecpumpAddPidChannelSettings *pSettings = &pid->settings;
+        const NEXUS_RecpumpPidChannelSettings *pSettings = &pid->settings;
 
         if (!pid->pidChn) continue;
 
         if (!NEXUS_RECPUMP_PID_IS_INDEX(&pid->settings)) {
-            if (pid->tpit.enabled) {
-                startIndex = true;
+            if (pid->assignedScd >= 0) {
+                /* Detector assigned, but not needed. Disable this detector */
+                BKNI_Memset(&ScdConfig, 0, sizeof(ScdConfig));
+                /* use previous (not new) mapMode to control disable */
+                if (r->scdMapMode == 0) {
+                    BXPT_Rave_SetScdUsingPid(r->scdIdx, pid->assignedScd, 0x1fff, &ScdConfig);
+                }
+                else if (r->scdMapMode == 1) {
+                    ScdConfig.PidChannel = 0x1fff;
+                    BXPT_Rave_SetScdEntry(r->scdIdx, pid->assignedScd, &ScdConfig);
+                }
+                /* then free it */
+                r->scdUsedMap &= ~(1 << pid->assignedScd);
+                pid->assignedScd = -1;
             }
             continue;
         }
+
+        if (pid->assignedScd < 0) {
+            /* No detector assigned, but needed. Search bitmap for free detector */
+            unsigned mask;
+            for (scdNo = 0, mask = 1; scdNo < r->scdPidCount; scdNo++, mask <<= 1) {
+                if ((r->scdUsedMap & mask) == 0) {
+                    break;
+                }
+            }
+            BDBG_ASSERT(scdNo < r->scdPidCount);
+        }
+        else {
+            scdNo = pid->assignedScd;
+        }
+
+        /* scdNo is the free or existing detector - reprogram it */
 
         BKNI_Memset(&ScdConfig, 0, sizeof(ScdConfig));
 
@@ -1132,16 +712,19 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
             /* Set Index Configuration */
             BDBG_ASSERT(r->scdIdx);
             if(scdNo==0) {
+                bool svcVideo = false;
                 /* We are only capturing Index Data on the main video PID*/
                 rc = BXPT_Rave_GetIndexerConfig( r->scdIdx, &indx_cfg);
                 if (rc) {return BERR_TRACE(rc);}
 
 
                 switch (pSettings->pidTypeSettings.video.codec) {
-                case NEXUS_VideoCodec_eH265:
-                case NEXUS_VideoCodec_eH264:
                 case NEXUS_VideoCodec_eH264_Mvc:
                 case NEXUS_VideoCodec_eH264_Svc:
+                    svcVideo = true;
+                    /* fallthrough */
+                case NEXUS_VideoCodec_eH265:
+                case NEXUS_VideoCodec_eH264:
                 case NEXUS_VideoCodec_eH263:
                 case NEXUS_VideoCodec_eVc1:
                 case NEXUS_VideoCodec_eVc1SimpleMain:
@@ -1238,29 +821,628 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
             rc = BXPT_Rave_SetScdEntry(r->scdIdx, scdNo, &ScdConfig);
             if (rc) {return BERR_TRACE(rc);}
         }
-        scdNo++;
-        startIndex = true;
+
+        /* complete allocation of detector */
+        pid->assignedScd = scdNo;
+        r->scdUsedMap |= 1 << scdNo;
     }
 
+    /* stash the new mapMode */
+    r->scdMapMode = newMapMode;
+    return NEXUS_SUCCESS;
+}
+
+static void NEXUS_Recpump_P_Release(NEXUS_RecpumpHandle r)
+{
+    NEXUS_OBJECT_ASSERT(NEXUS_Recpump, r);
+    NEXUS_CLIENT_RESOURCES_RELEASE(recpump,Count,NEXUS_ANY_ID);
+}
+
+static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
+{
+    NEXUS_OBJECT_ASSERT(NEXUS_Recpump, r);
+    if (r->started) {
+        NEXUS_Recpump_Stop(r);
+    }
+    NEXUS_Recpump_RemoveAllPidChannels(r);
+
+    if (r->openSettings.dummyRecpump) {
+        NEXUS_OBJECT_RELEASE(r, NEXUS_Recpump, r->openSettings.dummyRecpump);
+    }
+
+    if (r->rave_rec_mem.data.buffer) {
+        BMMA_Unlock(r->rave_rec_mem.data.block, r->rave_rec_mem.data.buffer);
+        BMMA_UnlockOffset(r->rave_rec_mem.data.block, r->rave_rec_mem.data.offset);
+    }
+    if (r->rave_rec_mem.index.buffer) {
+        BMMA_Unlock(r->rave_rec_mem.index.block, r->rave_rec_mem.index.buffer);
+        BMMA_UnlockOffset(r->rave_rec_mem.index.block, r->rave_rec_mem.index.offset);
+    }
+    if (r->extra_rave_rec_mem.data.buffer) {
+        BMMA_Unlock(r->extra_rave_rec_mem.data.block, r->extra_rave_rec_mem.data.buffer);
+        BMMA_UnlockOffset(r->extra_rave_rec_mem.data.block, r->extra_rave_rec_mem.data.offset);
+    }
+    if (r->extra_rave_rec_mem.index.buffer) {
+        BMMA_Unlock(r->extra_rave_rec_mem.index.block, r->extra_rave_rec_mem.index.buffer);
+        BMMA_UnlockOffset(r->extra_rave_rec_mem.index.block, r->extra_rave_rec_mem.index.offset);
+    }
+
+#if NEXUS_ENCRYPTED_DVR_WITH_M2M
+#if (!NEXUS_HAS_XPT_DMA)
+    if(r->crypto.callback) {
+        NEXUS_UnregisterEvent(r->crypto.callback);
+    }
+    if(r->crypto.event) {
+        BKNI_DestroyEvent(r->crypto.event);
+    }
+#endif
+    if(r->settings.securityDma) {
+        NEXUS_OBJECT_RELEASE(r, NEXUS_Dma, r->settings.securityDma);
+    }
+#endif
+    if (r->index.overflow_irq) {
+        BINT_DestroyCallback(r->index.overflow_irq);
+    }
+    if (r->data.overflow_irq) {
+        BINT_DestroyCallback(r->data.overflow_irq);
+    }
+    if (r->index.irq) {
+        BINT_DestroyCallback(r->index.irq);
+    }
+    if(r->index.eventCallback) {
+        NEXUS_UnregisterEvent(r->index.eventCallback);
+    }
+    if (r->index.event) {
+        BKNI_DestroyEvent(r->index.event);
+    }
+    if (r->data.irq) {
+        BINT_DestroyCallback(r->data.irq);
+    }
+    if(r->data.eventCallback) {
+        NEXUS_UnregisterEvent(r->data.eventCallback);
+    }
+    if (r->data.event) {
+        BKNI_DestroyEvent(r->data.event);
+    }
     if (r->tpitIdx) {
-        unsigned i;
+        BXPT_Rave_FreeIndexer(r->tpitIdx);
+    }
+    NEXUS_Recpump_P_FreeScdIndexer(r);
+    if (r->extra_rave_rec) {
+        BXPT_Rave_FreeContext(r->extra_rave_rec);
+    }
+    if (r->rave_rec) {
+        BXPT_Rave_FreeContext(r->rave_rec);
+    }
 
-        BXPT_Rave_IndexerSettings indx_cfg;
-        (void)BXPT_Rave_GetIndexerConfig(r->tpitIdx, &indx_cfg);
-        indx_cfg.Cfg.Tpit.FirstPacketEnable = pSettings->tpit.firstPacketEnable;
-        indx_cfg.Cfg.Tpit.StorePcrMsb = pSettings->tpit.storePcrMsb;
-        indx_cfg.Cfg.Tpit.IdleEventEnable = pSettings->tpit.idleEventEnable;
-        indx_cfg.Cfg.Tpit.RecordEventEnable = pSettings->tpit.recordEventEnable;
-        rc = BXPT_Rave_SetIndexerConfig(r->tpitIdx, &indx_cfg);
-        if (rc) {return BERR_TRACE(rc);}
+    /* free blocks after BXPT_Rave_FreeContext */
+    if (r->rave_rec_mem.data.mmaHeap) {
+        BMMA_Free(r->rave_rec_mem.data.block);
+    }
+    if (r->rave_rec_mem.index.mmaHeap) {
+        BMMA_Free(r->rave_rec_mem.index.block);
+    }
+    if (r->extra_rave_rec_mem.data.mmaHeap) {
+        BMMA_Free(r->extra_rave_rec_mem.data.block);
+    }
+    if (r->extra_rave_rec_mem.index.mmaHeap) {
+        BMMA_Free(r->extra_rave_rec_mem.index.block);
+    }
 
-        for (i=0;i<NEXUS_NUM_ECM_TIDS;i++) {
-            if (pSettings->tpit.ecmPair[i].enabled) {
-                rc = BXPT_Rave_SetTpitEcms(r->tpitIdx, i+1 /* PI is one-based */, pSettings->tpit.ecmPair[i].evenTid, pSettings->tpit.ecmPair[i].oddTid);
-                if (rc) {return BERR_TRACE(rc);}
-            }
-            /* TODO: no disable */
+    if (r->data.overflowCallback) {
+        NEXUS_IsrCallback_Destroy(r->data.overflowCallback);
+    }
+    if (r->data.dataReadyCallback) {
+        NEXUS_TaskCallback_Destroy(r->data.dataReadyCallback);
+    }
+    if (r->index.overflowCallback) {
+        NEXUS_IsrCallback_Destroy(r->index.overflowCallback);
+    }
+    if (r->index.dataReadyCallback) {
+        NEXUS_TaskCallback_Destroy(r->index.dataReadyCallback);
+    }
+
+#if BXPT_NUM_TSIO
+    if (r->tsioDmaEndIrq) {
+        BINT_DestroyCallback(r->tsioDmaEndIrq);
+    }
+    if (r->tsioDmaEndCallback) {
+        NEXUS_IsrCallback_Destroy(r->tsioDmaEndCallback);
+    }
+#endif
+    NEXUS_RaveErrorCounter_Uninit_priv(&r->raveErrors);
+
+    r->rave_rec = NULL;
+    pTransport->recpump[r->tindex] = NULL;
+    NEXUS_OBJECT_DESTROY(NEXUS_Recpump, r);
+    BKNI_Free(r);
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_Recpump, NEXUS_Recpump_Close);
+
+void NEXUS_Recpump_GetSettings(NEXUS_RecpumpHandle r, NEXUS_RecpumpSettings *pSettings)
+{
+    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
+    *pSettings = r->settings;
+}
+
+static NEXUS_Error NEXUS_Recpump_P_CheckStartTpitIndexAndFlow(NEXUS_RecpumpHandle r)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    if (r->actuallyStarted && !r->indexing && r->tpitIdx) {
+        /* start Index data flow */
+        rc = NEXUS_Recpump_P_ApplyTpitStartSettings(r);
+        if (rc) {rc=BERR_TRACE(rc);goto err_applystart; }
+
+        rc = NEXUS_Recpump_P_StartFlow(&r->index);
+        if (rc) {rc=BERR_TRACE(rc);goto err_startflow; }
+
+        /* keep track of indexing with a separate variable. the indexPidChannel might be removed before we stop the flow. */
+        r->indexing = true;
+    }
+
+err_applystart:
+err_startflow:
+    return rc;
+}
+
+NEXUS_Error NEXUS_Recpump_SetSettings(NEXUS_RecpumpHandle r, const NEXUS_RecpumpSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
+
+    if(pSettings->securityContext && !pSettings->securityDma) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if (pSettings->securityDma) {
+#if NEXUS_HAS_XPT_DMA && !NEXUS_INTEGRATED_M2M_SUPPORT
+        BDBG_ERR(("Recpump M2M crypto not supported on this platform. Use NEXUS_KeySlot_AddPidChannel instead."));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+#else
+        BDBG_WRN(("Recpump M2M crypto has been deprecated. Use NEXUS_KeySlot_AddPidChannel instead."));
+#if !NEXUS_HAS_XPT_DMA
+        if (!pTransport->moduleSettings.dma) {
+            BDBG_ERR(("Transport module does not have dma module handle."));
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
+#endif
+#endif
+    }
+    if(r->started &&
+        (r->settings.securityDma != pSettings->securityDma ||
+        r->settings.securityContext != pSettings->securityContext)) {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    if (r->settings.dropBtpPackets != pSettings->dropBtpPackets) {
+        BXPT_Rave_ContextSettings cxSettings;
+        BXPT_Rave_GetContextConfig(r->rave_rec, &cxSettings);
+        cxSettings.EnableBppSearch = pSettings->dropBtpPackets;
+        BXPT_Rave_SetContextConfig(r->rave_rec, &cxSettings);
+    }
+
+#if NEXUS_ENCRYPTED_DVR_WITH_M2M
+    if (pSettings->securityDma != r->settings.securityDma) {
+        if(r->settings.securityDma) {
+            NEXUS_OBJECT_RELEASE(r, NEXUS_Dma, r->settings.securityDma);
+        }
+        if(pSettings->securityDma) {
+            NEXUS_OBJECT_ACQUIRE(r, NEXUS_Dma, pSettings->securityDma);
+        }
+    }
+#endif
+
+    r->settings = *pSettings;
+    NEXUS_Recpump_P_ProvisionTpitIndexer(r);
+
+    NEXUS_IsrCallback_Set(r->data.overflowCallback, &r->settings.data.overflow);
+    NEXUS_TaskCallback_Set(r->data.dataReadyCallback, &r->settings.data.dataReady);
+    NEXUS_IsrCallback_Set(r->index.overflowCallback, &r->settings.index.overflow);
+    NEXUS_TaskCallback_Set(r->index.dataReadyCallback, &r->settings.index.dataReady);
+#if BXPT_NUM_TSIO
+    NEXUS_IsrCallback_Set( r->tsioDmaEndCallback, &r->settings.tsioDmaEnd );
+#endif
+
+    rc = NEXUS_Recpump_P_CheckStartTpitIndexAndFlow(r);
+
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Recpump_P_StartPid(NEXUS_RecpumpHandle r, NEXUS_Recpump_P_PidChannel *pid)
+{
+    NEXUS_Error rc = 0;
+    BSTD_UNUSED(r);
+    NEXUS_PidChannel_ConsumerStarted(pid->pidChn);
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Recpump_P_UpdateScdIndexing(NEXUS_RecpumpHandle r, NEXUS_Recpump_P_PidChannel *pid)
+{
+    NEXUS_Error rc = NEXUS_Recpump_P_ProvisionScdIndexer(r);
+    if (rc == NEXUS_SUCCESS) {
+        if (!r->indexing && r->scdUsedMap) {
+            /* start Index data flow */
+            rc = NEXUS_Recpump_P_StartFlow(&r->index);
+            if (rc == NEXUS_SUCCESS) {
+                r->indexing = true;
+            }
+        }
+    }
+    if (rc == NEXUS_SUCCESS) {
+        (void)NEXUS_Recpump_P_StartPid(r, pid);
+    }
+    return rc;
+}
+
+static void NEXUS_Recpump_P_GetThresholds(bool bandHold, unsigned dataReadyThreshold, unsigned bufferSize, uint16_t *upperThreshold, uint16_t *lowerThreshold, uint32_t *minDepthThreshold)
+{
+    /* The XPT threshold values are in units of NEXUS_RAVE_THRESHOLD_UNITS bytes. */
+    if(bandHold) {
+#if BXPT_HAS_RAVE_MIN_DEPTH_INTR
+        unsigned threshold = (bufferSize *9)/10;
+#else
+        unsigned threshold = (bufferSize *3)/4;
+#endif
+        dataReadyThreshold = dataReadyThreshold + (NEXUS_RAVE_THRESHOLD_UNITS - 1);
+        dataReadyThreshold -= dataReadyThreshold%NEXUS_RAVE_THRESHOLD_UNITS;
+        if(threshold<dataReadyThreshold) {
+            threshold = dataReadyThreshold;
+        }
+        *upperThreshold = threshold / NEXUS_RAVE_THRESHOLD_UNITS;
+        *lowerThreshold = threshold / NEXUS_RAVE_THRESHOLD_UNITS;
+        if(*lowerThreshold>*upperThreshold) {
+            *lowerThreshold = *upperThreshold - 1;
+        }
+
+    } else {
+        *lowerThreshold = 0;
+#if BXPT_HAS_RAVE_MIN_DEPTH_INTR
+        *upperThreshold = 0;
+#else
+        *upperThreshold = dataReadyThreshold / NEXUS_RAVE_THRESHOLD_UNITS;
+#endif
+    }
+    *minDepthThreshold = dataReadyThreshold; /* dataReadyCallback if BXPT_HAS_RAVE_MIN_DEPTH_INTR, else ignored */
+}
+
+static NEXUS_PlaypumpHandle nexus_p_get_playpump(const NEXUS_P_HwPidChannel *hwPidChannel)
+{
+    if (hwPidChannel->status.playback) {
+        return pTransport->playpump[hwPidChannel->status.playbackIndex].playpump;
+    }
+    else {
+        return NULL;
+    }
+}
+
+static unsigned calc_percentage(unsigned n, unsigned d)
+{
+    return d ? n * 100 / d : 0;
+}
+
+static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
+{
+    BERR_Code rc;
+    BXPT_Rave_RecordSettings rec_cfg;
+    const NEXUS_RecpumpSettings *pSettings = &r->settings;
+    unsigned packetSize, atom;
+    NEXUS_Recpump_P_PidChannel *pid;
+    unsigned scdNo;
+    bool bandHold;
+
+    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
+    BDBG_ASSERT(r->started && !r->actuallyStarted);
+
+    if (!pSettings->data.dataReady.callback) {
+        BDBG_ERR(("dataReady.callback is required"));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    r->rave_state = Ready;
+
+    rc = BXPT_Rave_ResetContext(r->rave_rec);
+    if (rc) {return BERR_TRACE(rc);}
+
+    /* disable context before we set various RAVE config */
+    rc = BXPT_Rave_DisableContext(r->rave_rec);
+    if (rc) {return BERR_TRACE(rc);}
+
+#ifdef BXPT_VCT_SUPPORT
+    if (r->openSettings.nullifyVct) {
+        rc = BXPT_Rave_NullifyVCT(r->rave_rec, true, r->openSettings.nullifyVct == 1 ? BXPT_RaveVct_Tvct : BXPT_RaveVct_Cvct);
+        if (rc) {return BERR_TRACE(rc);}
+    }
+#endif
+
+    rc = BXPT_Rave_GetRecordConfig(r->rave_rec, &rec_cfg);
+    if (rc) {return BERR_TRACE(rc);}
+
+    switch (r->inputTransportType) {
+    case NEXUS_TransportType_eTs:
+    case NEXUS_TransportType_eDssEs:
+    case NEXUS_TransportType_eDssPes:
+#if BXPT_HAS_MULTICHANNEL_PLAYBACK
+    case NEXUS_TransportType_eBulk:
+#endif
+        /* all outputs possible */
+        break;
+    case NEXUS_TransportType_eMpeg2Pes:
+        if (r->settings.outputTransportType != NEXUS_TransportType_eMpeg2Pes &&
+            r->settings.outputTransportType != NEXUS_TransportType_eEs)
+        {
+            BDBG_ERR(("cannot convert from transportType %d to %d", r->inputTransportType, r->settings.outputTransportType));
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+        break;
+    case NEXUS_TransportType_eEs:
+        if (r->settings.outputTransportType != NEXUS_TransportType_eEs &&
+            r->settings.outputTransportType != NEXUS_TransportType_eTs )
+        {
+            BDBG_ERR(("cannot convert from transportType %d to %d", r->inputTransportType, r->settings.outputTransportType));
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+        break;
+    default:
+        BDBG_ERR(("transport input format %d not supported", r->inputTransportType));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
+    rec_cfg.MpegMode = !NEXUS_IS_DSS_MODE(r->inputTransportType);
+    rec_cfg.CountRecordedPackets = pSettings->tpit.countRecordedPackets;
+
+    /* if BXPT_HAS_RAVE_MIN_DEPTH_INTR is defined, we have separate interrupts for dataReady and bandhold.
+    if not, then the following applies... */
+    /* if you turn on band hold based on playback, then the CDB_UPPER_THRESHOLD interrupt will hold playback.
+    however, recpump already uses CDB_UPPER_THRESHOLD for the dataready interrupt. you cannot have the band hold and
+    dataready on the same condition, otherwise you can't establish an I/O pipeline (i.e. new data coming in while you are
+    writing out previous data) . what's needed is a second upper threshold interrupt: one for data ready and another
+    for band hold. that said, if you want to set band hold, enable this code, set the dataReadyThreshold to be a much higher
+    percentage (like 80%), then have your app poll recpump so that you can have an I/O pipeline. */
+    switch(pSettings->bandHold) {
+    case NEXUS_RecpumpFlowControl_eEnable:
+        bandHold = true;
+        break;
+    case NEXUS_RecpumpFlowControl_eDisable:
+        bandHold = false;
+        break;
+    case NEXUS_RecpumpFlowControl_eAuto:
+        bandHold = false;
+#if BXPT_HAS_RAVE_MIN_DEPTH_INTR
+        for(pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
+            BDBG_ASSERT(pid->pidChn);
+            if (pid->pidChn->hwPidChannel->status.playback) {
+                bandHold = true;
+                break;
+            }
+        }
+#endif
+        break;
+    default:
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    rec_cfg.BandHoldEn = bandHold;
+
+#if BXPT_HAS_MULTICHANNEL_PLAYBACK
+    rec_cfg.BulkMode = false;   /* Default to false. Only _eBulk should use true */
+#endif
+    switch (r->settings.outputTransportType) {
+    case NEXUS_TransportType_eTs:
+    case NEXUS_TransportType_eDssEs:
+    case NEXUS_TransportType_eDssPes:
+        /* if input is DSS, a default output type of eTs is understood to be DSS. */
+        rec_cfg.OutputFormat = BAVC_StreamType_eTsMpeg; /* this applies to DSS too */
+        packetSize = NEXUS_IS_DSS_MODE(r->inputTransportType)?130:188;
+        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
+            packetSize += 4;
+        }
+        break;
+    case NEXUS_TransportType_eMpeg2Pes:
+        /* the current impl does not use STREAM_ID_HI/LO for PES id filtering */
+        rec_cfg.OutputFormat = BAVC_StreamType_ePes;
+        packetSize = 0; /* there is no packet alignment for PES record. app can use M2M DMA to assemble byte aligned data into I/O sized (e.g. 4K) chunks. */
+        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+        break;
+    case NEXUS_TransportType_eEs:
+        rec_cfg.OutputFormat = BAVC_StreamType_eEs;
+        packetSize = 0; /* there is no packet alignment for ES record */
+        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+        break;
+#if BXPT_HAS_MULTICHANNEL_PLAYBACK
+    case NEXUS_TransportType_eBulk:
+        rec_cfg.OutputFormat = BAVC_StreamType_eTsMpeg; /* this applies to DSS too */
+        packetSize = NEXUS_IS_DSS_MODE(r->inputTransportType)?130:188;
+        if (pSettings->timestampType != NEXUS_TransportTimestampType_eNone) {
+            packetSize += 4;
+        }
+        rec_cfg.BulkMode = true;
+        break;
+#endif
+    default:
+        BDBG_ERR(("transport output format not supported"));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
+
+    if (r->openSettings.data.atomSize % 64 != 0) {
+        BDBG_ERR(("data.atomSize not supported. Recpump can be extended to support other atomSizes if required."));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
+    /* find "atom" which is a multiple of data.atomSize and packetSize */
+    switch (packetSize) {
+    case 188: atom = r->openSettings.data.atomSize * packetSize / 4; break;
+    case 130: atom = r->openSettings.data.atomSize * packetSize / 2; break;
+    case 192: atom = r->openSettings.data.atomSize * packetSize / 64; break;
+    case 134: atom = r->openSettings.data.atomSize * packetSize / 2; break;
+    default:  atom = 0; break; /* no alignment. should only occur for packetSize = 0. */
+    }
+
+    /* Remove the last transport packet and replace with one whole XC packet. */
+    if (pSettings->data.useBufferSize) {
+        rec_cfg.UseCdbSize = pSettings->data.useBufferSize;
+    } else {
+        rec_cfg.UseCdbSize = r->openSettings.data.bufferSize;
+    }
+    if (atom) {
+        rec_cfg.UseCdbSize -= rec_cfg.UseCdbSize % atom;
+    }
+    if (packetSize) {
+        /* Remove the last transport packet and replace it with a whole NEXUS_RAVE_MEMC_BLOCK_SIZE, then remove an atom or packetSize in order
+        to get be under the actual bufferSize. This is required for correct RAVE wraparound logic.
+        Note that this logic allows a single recpump buffer to be used for any packet size and any atom size. It's just that some combinations
+        result in more truncation at the end of the buffer. The only way to avoid any truncation is to only use one packet size, one atom size,
+        and to anticipate the NEXUS_RAVE_MEMC_BLOCK_SIZE replacement in your application (e.g. bufferSize = bufferSize - 188 + 256). */
+        rec_cfg.UseCdbSize -= packetSize;
+        rec_cfg.UseCdbSize += NEXUS_RAVE_MEMC_BLOCK_SIZE;
+        /* be sure we stick within the memory we're given */
+        while (rec_cfg.UseCdbSize > r->openSettings.data.bufferSize) {
+            rec_cfg.UseCdbSize -= atom?atom:packetSize;
+        }
+        BDBG_ASSERT(rec_cfg.UseCdbSize <= r->openSettings.data.bufferSize);
+    }
+
+    NEXUS_Recpump_P_GetThresholds(bandHold, r->openSettings.data.dataReadyThreshold, rec_cfg.UseCdbSize, &rec_cfg.CdbUpperThreshold, &rec_cfg.CdbLowerThreshold,
+        &rec_cfg.CdbMinDepthThreshold);
+    NEXUS_Recpump_P_GetThresholds(bandHold, r->openSettings.index.dataReadyThreshold, r->openSettings.index.bufferSize, &rec_cfg.ItbUpperThreshold, &rec_cfg.ItbLowerThreshold,
+        &rec_cfg.ItbMinDepthThreshold);
+
+    BDBG_MSG(("Start: CDB alloc=%u use=%d (bandhold %u%%, dataready %u%%), ITB alloc=%u (bandhold %u%%, dataready %u%%)",
+        (unsigned)r->openSettings.data.bufferSize,
+        rec_cfg.UseCdbSize,
+        calc_percentage(rec_cfg.CdbUpperThreshold*NEXUS_RAVE_THRESHOLD_UNITS,rec_cfg.UseCdbSize),
+        calc_percentage(rec_cfg.CdbMinDepthThreshold,rec_cfg.UseCdbSize),
+        (unsigned)r->openSettings.index.bufferSize,
+        calc_percentage(rec_cfg.ItbUpperThreshold*NEXUS_RAVE_THRESHOLD_UNITS,r->openSettings.index.bufferSize),
+        calc_percentage(rec_cfg.ItbMinDepthThreshold,r->openSettings.index.bufferSize)));
+
+    switch (pSettings->timestampType) {
+    case NEXUS_TransportTimestampType_eNone:
+        rec_cfg.UseTimeStamps = false;
+        break;
+    case NEXUS_TransportTimestampType_e30_2U_Mod300:
+        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Mod300;
+        rec_cfg.UseTimeStamps = true;
+        rec_cfg.DisableTimestampParityCheck = false;
+        break;
+    case NEXUS_TransportTimestampType_e30_2U_Binary:
+        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Binary;
+        rec_cfg.UseTimeStamps = true;
+        rec_cfg.DisableTimestampParityCheck = false;
+        break;
+    case NEXUS_TransportTimestampType_e32_Mod300:
+        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Mod300;
+        rec_cfg.UseTimeStamps = true;
+        rec_cfg.DisableTimestampParityCheck = true;
+        break;
+    case NEXUS_TransportTimestampType_e32_Binary:
+        rec_cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Binary;
+        rec_cfg.UseTimeStamps = true;
+        rec_cfg.DisableTimestampParityCheck = true;
+        break;
+    case NEXUS_TransportTimestampType_e28_4P_Mod300:
+        rec_cfg.TimestampMode = BXPT_TimestampMode_e28_4P_Mod300;
+        rec_cfg.UseTimeStamps = true;
+        rec_cfg.DisableTimestampParityCheck = true;
+        break;
+    default:
+        BDBG_ERR(("Invalid timestamp mode"));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    /* 1. Count number of pids that require indexing */
+    for(scdNo=0,pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
+        NEXUS_PlaypumpHandle playpump;
+        if (NEXUS_RECPUMP_PID_IS_INDEX(&pid->settings)) {
+            scdNo++;
+        }
+        playpump = nexus_p_get_playpump(pid->pidChn->hwPidChannel);
+        if (playpump) {
+            NEXUS_PlaypumpOpenSettings openSettings;
+            NEXUS_Playpump_P_GetOpenSettings(playpump, &openSettings);
+            if (openSettings.streamMuxCompatible) {
+                rec_cfg.EnableSingleChannelMuxCapableIndexer = true;
+            }
+        }
+    }
+
+    /* Timestamps should be passed through as-is to the recpump when the playpump and record timestamp formats are the same. */
+    if( pSettings->timestampType != NEXUS_TransportTimestampType_eNone && r->playback )
+    {
+        /* NEXUS_Recpump_AddPidChannel() ensures that PID channels are all from live or all are from a playpump.
+        So, we just need to check the first channel, if there is one. */
+        NEXUS_Recpump_P_PidChannel *playPid = BLST_S_FIRST( &r->pid_list );
+
+        if( playPid )
+        {
+            NEXUS_PlaypumpHandle playpump = nexus_p_get_playpump(playPid->pidChn->hwPidChannel);
+            if (playpump) {
+                NEXUS_PlaypumpSettings playpumpSettings;
+                NEXUS_Playpump_GetSettings(playpump, &playpumpSettings );
+                /* BXPT_TimestampMode_e28_4P_Mod300 maps to REC_TIMESTAMP_MODE 0, which uses internal hw structures
+                to determine the timestamp type used in the stream. If that matches the type requested for the record,
+                the stream timestamp is used without modification. */
+                /* Also need to disable timestamp parity checking. */
+                if( pSettings->timestampType == playpumpSettings.timestamp.type ) {
+                    rec_cfg.TimestampMode = BXPT_TimestampMode_e28_4P_Mod300;
+                    rec_cfg.DisableTimestampParityCheck = true;
+                }
+            }
+        }
+    }
+
+#if BXPT_HAS_ATS
+    /* Adjust recorded timestamps to stay locked to the stream's PCRs. In other words,
+    the delta between PTSs on PCR carrying packets will match the delta between the
+    PCRs. */
+    if(r->settings.adjustTimestampUsingPcrs)
+    {
+        if( NULL == r->settings.pcrPidChannel )
+        {
+            BDBG_ERR(("NULL pcrPidChannel for timestamp adjustments."));
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        rec_cfg.PcrPidChannelIndex = r->settings.pcrPidChannel->hwPidChannel->status.pidChannelIndex;
+    }
+    rec_cfg.LockTimestampsToPcrs = r->settings.adjustTimestampUsingPcrs;
+#else /* #if BXPT_HAS_ATS */
+    if(r->settings.adjustTimestampUsingPcrs) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+#endif /* #if BXPT_HAS_ATS */
+#if BXPT_HAS_LOCAL_ATS
+    if(r->settings.localTimestamp) {
+        rec_cfg.GenerateLocalAts = true;
+        rec_cfg.LocalAtsFormat = 0;
+    } else {
+        rec_cfg.GenerateLocalAts = false;
+    }
+#else /* #if BXPT_HAS_LOCAL_ATS */
+    if(r->settings.localTimestamp) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+#endif /* #if BXPT_HAS_LOCAL_ATS */
+
+    if (r->bipPidChannelNum) {
+        /* these are cleared automatically on RAVE flush */
+        rec_cfg.bipIndexing = true;
+        rec_cfg.bipPidChannel = r->bipPidChannelNum;
+    }
+
+    rc = BXPT_Rave_SetRecordConfig(r->rave_rec, &rec_cfg);
+    if (rc) {return BERR_TRACE(rc);}
+
+    rc = NEXUS_Recpump_P_ProvisionScdIndexer(r);
+    if (rc) {return BERR_TRACE(rc);}
+
+    if (r->tpitIdx) {
+        rc = NEXUS_Recpump_P_ApplyTpitStartSettings(r);
+        if (rc) {return BERR_TRACE(rc);}
     }
 
     NEXUS_RaveErrorCounter_Reset_priv(&r->raveErrors);
@@ -1343,7 +1525,7 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
     rc = NEXUS_Recpump_P_StartFlow(&r->data);
     if (rc) {rc=BERR_TRACE(rc);goto err_record_data; }
 
-    if (startIndex) {
+    if ((r->scdIdx && scdNo > 0) || r->tpitIdx) {
         /* start Index data flow */
         BDBG_MSG(("Starting Index flow"));
         rc = NEXUS_Recpump_P_StartFlow(&r->index);
@@ -1495,7 +1677,7 @@ void NEXUS_Recpump_Stop(NEXUS_RecpumpHandle r)
     return;
 }
 
-void NEXUS_Recpump_GetDefaultAddPidChannelSettings(NEXUS_RecpumpAddPidChannelSettings *pSettings)
+void NEXUS_Recpump_GetDefaultAddPidChannelSettings(NEXUS_RecpumpPidChannelSettings *pSettings)
 {
     unsigned i;
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
@@ -1527,10 +1709,10 @@ static bool nexus_recpump_p_already_has_pidch(NEXUS_RecpumpHandle r, NEXUS_PidCh
     return false;
 }
 
-NEXUS_Error NEXUS_Recpump_AddPidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChannelHandle pidChannel, const NEXUS_RecpumpAddPidChannelSettings *pSettings)
+NEXUS_Error NEXUS_Recpump_AddPidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChannelHandle pidChannel, const NEXUS_RecpumpPidChannelSettings *pSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_RecpumpAddPidChannelSettings settings;
+    NEXUS_RecpumpPidChannelSettings settings;
     NEXUS_TransportType transportType;
     NEXUS_Recpump_P_PidChannel *pid;
     NEXUS_P_HwPidChannel *hwPidChannel;
@@ -1564,14 +1746,9 @@ NEXUS_Error NEXUS_Recpump_AddPidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChannelH
     BKNI_Memset((void*)pid, 0x0, sizeof(*pid));
     pid->pidChn = pidChannel;
     BLST_S_DICT_ADD(&r->pid_list, pid, NEXUS_Recpump_P_PidChannel, pidChn, link, err_duplicate);
-    pid->settings = *pSettings;
+    pid->settings = *(NEXUS_RecpumpPidChannelSettings *)pSettings;
+    pid->assignedScd = -1;
     NEXUS_OBJECT_ACQUIRE(r, NEXUS_PidChannel, pidChannel);
-
-    if (NEXUS_RECPUMP_PID_IS_INDEX(pSettings)) {
-        if (r->actuallyStarted) {
-            BDBG_WRN(("You must add the index pid channel before starting recpump. This pid channel's index setting will be ignored."));
-        }
-    }
 
     if (hwPidChannel->status.playback) {
         NEXUS_PlaypumpSettings playpumpSettings;
@@ -1617,8 +1794,7 @@ NEXUS_Error NEXUS_Recpump_AddPidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChannelH
             rc = NEXUS_Recpump_P_Start(r);
         }
         else {
-            /* already started, so just start this pid */
-            (void)NEXUS_Recpump_P_StartPid(r, pid);
+            rc = NEXUS_Recpump_P_UpdateScdIndexing(r, pid);
         }
     }
 
@@ -1658,6 +1834,52 @@ err_duplicate:
 err_duplicate_rave:
     BKNI_Free(raveLink);
     return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_Recpump_GetPidChannelSettings(NEXUS_RecpumpHandle r, NEXUS_PidChannelHandle pidChannel, NEXUS_RecpumpPidChannelSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_Recpump_P_PidChannel *pid;
+
+    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
+    BDBG_OBJECT_ASSERT(pidChannel, NEXUS_PidChannel);
+    BLST_S_DICT_FIND(&r->pid_list, pid, pidChannel, pidChn, link);
+    if(pid==NULL) {
+        BDBG_WRN(("NEXUS_Recpump_GetPidChannelSettings: %#lx can't find pid:%#lx", (unsigned long)r, (unsigned long)pidChannel));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    *pSettings = pid->settings;
+
+    return rc;
+}
+
+NEXUS_Error NEXUS_Recpump_SetPidChannelSettings(NEXUS_RecpumpHandle r, NEXUS_PidChannelHandle pidChannel, const NEXUS_RecpumpPidChannelSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_Recpump_P_PidChannel *pid;
+
+    BDBG_OBJECT_ASSERT(r, NEXUS_Recpump);
+    BDBG_OBJECT_ASSERT(pidChannel, NEXUS_PidChannel);
+    BLST_S_DICT_FIND(&r->pid_list, pid, pidChannel, pidChn, link);
+    if(pid==NULL) {
+        BDBG_WRN(("NEXUS_Recpump_SetPidChannelSettings: %#lx can't find pid:%#lx", (unsigned long)r, (unsigned long)pidChannel));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    /* probably should ban various transitions here */
+    if (pid->settings.useRPipe != pSettings->useRPipe) {
+        BDBG_WRN(("NEXUS_Recpump_SetPidChannelSettings: %#lx can't change useRPipe for pid:%#lx", (unsigned long)r, (unsigned long)pidChannel));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    pid->settings = *pSettings;
+
+    if (r->actuallyStarted) {
+        rc = NEXUS_Recpump_P_UpdateScdIndexing(r, pid);
+    }
+
+    return rc;
 }
 
 NEXUS_Error NEXUS_Recpump_RemovePidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChannelHandle pidChannel)
@@ -1700,9 +1922,7 @@ NEXUS_Error NEXUS_Recpump_RemovePidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChann
 
     pid->pidChn = NULL;
     if (r->scdIdx && !BLST_S_FIRST(&r->pid_list)) { /* when all pids were removed free indexer */
-        BXPT_Rave_FreeIndexer(r->scdIdx);
-        r->scdIdx=NULL;
-        r->scdPidCount = 0;
+        NEXUS_Recpump_P_FreeScdIndexer(r);
     }
 
     BKNI_Free(pid);
@@ -1873,7 +2093,7 @@ NEXUS_Recpump_P_GetBuffer(struct NEXUS_RecpumpFlow *flow, const void **buffer, s
                     rc = NEXUS_DmaJob_ProcessBlocks_priv(pump->crypto.job, pump->crypto.blocks, nvecs, pump->crypto.event);
                     NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.moduleSettings.dma);
 #else
-                    rc = NEXUS_DmaJob_ProcessBlocks_priv(pump->crypto.job, pump->crypto.blocks, nvecs, pump->crypto.event);
+                    rc = NEXUS_DmaJob_ProcessBlocks_priv(pump->crypto.job, pump->crypto.blocks, nvecs, NEXUS_Recpump_P_DmaCallback, pump);
 #endif
                     BDBG_MSG(("NEXUS_Recpump_P_GetBuffer:%#lx DMA(%#lx:%u) %u->%u", (unsigned long)pump, (unsigned long)pump->crypto.tail, nvecs, size, rc));
                     if(rc==NEXUS_SUCCESS) {
@@ -1987,7 +2207,7 @@ NEXUS_Recpump_P_WriteComplete(struct NEXUS_RecpumpFlow *flow, size_t amount_writ
     if (rc) {return BERR_TRACE(rc);}
 
     flow->pending = false;
-    flow->lastGetBuffer = 0;
+    flow->lastGetBuffer -= amount_written;
 
     if (flow == &flow->recpump->data || flow->recpump->indexing) {
         bufferState = NEXUS_Recpump_P_TestDataReadyCallback(flow);
@@ -2258,19 +2478,20 @@ NEXUS_Error NEXUS_Recpump_SetTpitFilter( NEXUS_RecpumpHandle r, NEXUS_PidChannel
         /* validation */
         if (pFilter->mpegMode != !NEXUS_IS_DSS_MODE(r->inputTransportType)) {
             BDBG_ERR(("NEXUS_RecpumpTpitFilter.mpegMode does not match parser band's transportType"));
-            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            goto err_validate;
         }
 
         /* recpump init */
-        if (r->tpitCount == 0) {
-            BDBG_ASSERT(!r->tpitIdx);
-            rc = BXPT_Rave_AllocIndexer(pTransport->rave[0].channel, BXPT_RaveIdx_eTpit, 1, r->rave_rec, &r->tpitIdx);
-            if (rc) return BERR_TRACE(rc);
-        }
-
         if (!pid->tpit.enabled) {
-            /* enable a new filter. this requires finding an available tpit filter index. */
             unsigned availableIndex;
+
+            /* enable a new filter. this requires finding an available tpit filter index. */
+            pid->tpit.enabled = true;
+
+            rc = NEXUS_Recpump_P_ProvisionTpitIndexer(r);
+            if (rc) {rc=BERR_TRACE(rc); goto err_alloc;}
+
             for (availableIndex=0;availableIndex<BXPT_NUM_TPIT_PIDS;availableIndex++) {
                 bool taken = false;
 
@@ -2286,7 +2507,8 @@ NEXUS_Error NEXUS_Recpump_SetTpitFilter( NEXUS_RecpumpHandle r, NEXUS_PidChannel
                 if (!taken) break;
             }
             if (availableIndex == BXPT_NUM_TPIT_PIDS) {
-                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                goto err_findindex;
             }
 
             pid->tpit.index = availableIndex;
@@ -2307,11 +2529,12 @@ NEXUS_Error NEXUS_Recpump_SetTpitFilter( NEXUS_RecpumpHandle r, NEXUS_PidChannel
         rc = BXPT_Rave_SetTpitFilter(r->tpitIdx, pid->tpit.index, (const BXPT_Rave_TpitEntry *)&pid->tpit.filter);
         if (rc) return BERR_TRACE(rc);
 
-        /* only do bookkeeping after complete success */
-        if (!pid->tpit.enabled) {
-            pid->tpit.enabled = true;
-            r->tpitCount++;
-            BDBG_ASSERT(r->tpitCount);
+        /* start Index data flow */
+        BDBG_MSG(("Starting Index flow late"));
+        rc = NEXUS_Recpump_P_CheckStartTpitIndexAndFlow(r);
+
+        if (rc != NEXUS_SUCCESS) {
+            goto err_startflow;
         }
     }
     else {
@@ -2325,18 +2548,43 @@ NEXUS_Error NEXUS_Recpump_SetTpitFilter( NEXUS_RecpumpHandle r, NEXUS_PidChannel
 
             pid->tpit.enabled = false;
             pid->tpit.index = 0xFFFFFFFF; /* don't care */
-            BDBG_ASSERT(r->tpitCount);
-            r->tpitCount--;
         }
 
-        /* recpump uninit */
-        if (r->tpitCount == 0 && r->tpitIdx) {
-            BXPT_Rave_FreeIndexer(r->tpitIdx);
-            r->tpitIdx = NULL;
-        }
+        NEXUS_Recpump_P_ProvisionTpitIndexer(r);
     }
 
     return 0;
+err_startflow:
+err_findindex:
+err_alloc:
+    pid->tpit.enabled = false;
+    NEXUS_Recpump_P_ProvisionTpitIndexer(r);
+err_validate:
 err_pid:
     return rc;
+}
+
+static NEXUS_Error NEXUS_Recpump_P_ApplyTpitStartSettings(NEXUS_RecpumpHandle r)
+{
+    unsigned i;
+    const NEXUS_RecpumpSettings *pSettings = &r->settings;
+    BXPT_Rave_IndexerSettings indx_cfg;
+    NEXUS_Error rc;
+
+    (void)BXPT_Rave_GetIndexerConfig(r->tpitIdx, &indx_cfg);
+    indx_cfg.Cfg.Tpit.FirstPacketEnable = pSettings->tpit.firstPacketEnable;
+    indx_cfg.Cfg.Tpit.StorePcrMsb = pSettings->tpit.storePcrMsb;
+    indx_cfg.Cfg.Tpit.IdleEventEnable = pSettings->tpit.idleEventEnable;
+    indx_cfg.Cfg.Tpit.RecordEventEnable = pSettings->tpit.recordEventEnable;
+    rc = BXPT_Rave_SetIndexerConfig(r->tpitIdx, &indx_cfg);
+    if (rc) {return BERR_TRACE(rc);}
+
+    for (i=0;i<NEXUS_NUM_ECM_TIDS;i++) {
+        if (pSettings->tpit.ecmPair[i].enabled) {
+            rc = BXPT_Rave_SetTpitEcms(r->tpitIdx, i+1 /* PI is one-based */, pSettings->tpit.ecmPair[i].evenTid, pSettings->tpit.ecmPair[i].oddTid);
+            if (rc) {return BERR_TRACE(rc);}
+        }
+        /* TODO: no disable */
+    }
+    return NEXUS_SUCCESS;
 }

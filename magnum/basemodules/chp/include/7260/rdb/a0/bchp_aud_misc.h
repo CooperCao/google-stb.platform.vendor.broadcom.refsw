@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:12 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,32 +70,32 @@
 /***************************************************************************
  *AUD_MISC - Audio I/O Miscellaneous Registers
  ***************************************************************************/
-#define BCHP_AUD_MISC_REVISION                   0x20c80000 /* [RO] Audio I/O System Revision */
-#define BCHP_AUD_MISC_INIT                       0x20c80004 /* [RW] AIO Soft Init */
-#define BCHP_AUD_MISC_INIT_ACK                   0x20c80008 /* [RO] AIO Soft Init Ack */
-#define BCHP_AUD_MISC_CTRL                       0x20c8000c /* [RW] AIO Misc Controls */
-#define BCHP_AUD_MISC_PWRDOWN                    0x20c80010 /* [RW] Audio Powerdown Control */
-#define BCHP_AUD_MISC_MAILBOX                    0x20c80014 /* [RW] Mailbox Test Register */
-#define BCHP_AUD_MISC_DIAG_SEL                   0x20c80018 /* [RW] Test Port Select */
-#define BCHP_AUD_MISC_TEST_DIAG                  0x20c8001c /* [RO] Diagnostic Port */
-#define BCHP_AUD_MISC_STCRX_MODE_SEL             0x20c80020 /* [RW] STC Receiver Mode Select */
-#define BCHP_AUD_MISC_SEROUT_OE                  0x20c800a0 /* [RW] Serial I/O Output Enables */
-#define BCHP_AUD_MISC_SEROUT_SEL                 0x20c800a4 /* [RW] Serial I/O Output selection */
-#define BCHP_AUD_MISC_SERIN_SEL                  0x20c800a8 /* [RW] Serial Input Selection */
-#define BCHP_AUD_MISC_HIFIOUT_SEL                0x20c800ac /* [RW] Hifidac Output Selection */
-#define BCHP_AUD_MISC_FCI_SPLTR0_OUT_CFG         0x20c800c0 /* [RW] FCI Splitter0 Output Configuration */
-#define BCHP_AUD_MISC_FCI_SPLTR0_OUT_ENA         0x20c800c4 /* [RW] FCI Splitter0 Output Enable */
-#define BCHP_AUD_MISC_FCI_DIAG_CTRL              0x20c800c8 /* [RW] FCI bus diagnostic control */
-#define BCHP_AUD_MISC_FCI_DIAG_OUTL              0x20c800cc /* [RO] FCI bus left */
-#define BCHP_AUD_MISC_FCI_DIAG_OUTR              0x20c800d0 /* [RO] FCI bus right */
-#define BCHP_AUD_MISC_FCI_DIAG_OUTD              0x20c800d4 /* [RO] FCI bus ID and vaild */
-#define BCHP_AUD_MISC_CRC_FCI_BLOCK_ID           0x20c800d8 /* [RW] CRC Module FCI Block ID */
-#define BCHP_AUD_MISC_CRC_ESR_STATUS             0x20c8010c /* [RO] CRC Error Status Register */
-#define BCHP_AUD_MISC_CRC_ESR_STATUS_SET         0x20c80110 /* [WO] CRC Error Set Register */
-#define BCHP_AUD_MISC_CRC_ESR_STATUS_CLEAR       0x20c80114 /* [WO] CRC Error Clear Register */
-#define BCHP_AUD_MISC_CRC_ESR_MASK               0x20c80118 /* [RO] CRC Mask Status Register */
-#define BCHP_AUD_MISC_CRC_ESR_MASK_SET           0x20c8011c /* [WO] CRC Mask Set Register */
-#define BCHP_AUD_MISC_CRC_ESR_MASK_CLEAR         0x20c80120 /* [WO] CRC Mask Clear Register */
+#define BCHP_AUD_MISC_REVISION                   0x20c80000 /* [RO][32] Audio I/O System Revision */
+#define BCHP_AUD_MISC_INIT                       0x20c80004 /* [RW][32] AIO Soft Init */
+#define BCHP_AUD_MISC_INIT_ACK                   0x20c80008 /* [RO][32] AIO Soft Init Ack */
+#define BCHP_AUD_MISC_CTRL                       0x20c8000c /* [RW][32] AIO Misc Controls */
+#define BCHP_AUD_MISC_PWRDOWN                    0x20c80010 /* [RW][32] Audio Powerdown Control */
+#define BCHP_AUD_MISC_MAILBOX                    0x20c80014 /* [RW][32] Mailbox Test Register */
+#define BCHP_AUD_MISC_DIAG_SEL                   0x20c80018 /* [RW][32] Test Port Select */
+#define BCHP_AUD_MISC_TEST_DIAG                  0x20c8001c /* [RO][32] Diagnostic Port */
+#define BCHP_AUD_MISC_STCRX_MODE_SEL             0x20c80020 /* [RW][32] STC Receiver Mode Select */
+#define BCHP_AUD_MISC_SEROUT_OE                  0x20c800a0 /* [RW][32] Serial I/O Output Enables */
+#define BCHP_AUD_MISC_SEROUT_SEL                 0x20c800a4 /* [RW][32] Serial I/O Output selection */
+#define BCHP_AUD_MISC_SERIN_SEL                  0x20c800a8 /* [RW][32] Serial Input Selection */
+#define BCHP_AUD_MISC_HIFIOUT_SEL                0x20c800ac /* [RW][32] Hifidac Output Selection */
+#define BCHP_AUD_MISC_FCI_SPLTR0_OUT_CFG         0x20c800c0 /* [RW][32] FCI Splitter0 Output Configuration */
+#define BCHP_AUD_MISC_FCI_SPLTR0_OUT_ENA         0x20c800c4 /* [RW][32] FCI Splitter0 Output Enable */
+#define BCHP_AUD_MISC_FCI_DIAG_CTRL              0x20c800c8 /* [RW][32] FCI bus diagnostic control */
+#define BCHP_AUD_MISC_FCI_DIAG_OUTL              0x20c800cc /* [RO][32] FCI bus left */
+#define BCHP_AUD_MISC_FCI_DIAG_OUTR              0x20c800d0 /* [RO][32] FCI bus right */
+#define BCHP_AUD_MISC_FCI_DIAG_OUTD              0x20c800d4 /* [RO][32] FCI bus ID and vaild */
+#define BCHP_AUD_MISC_CRC_FCI_BLOCK_ID           0x20c800d8 /* [RW][32] CRC Module FCI Block ID */
+#define BCHP_AUD_MISC_CRC_ESR_STATUS             0x20c8010c /* [RO][32] CRC Error Status Register */
+#define BCHP_AUD_MISC_CRC_ESR_STATUS_SET         0x20c80110 /* [WO][32] CRC Error Set Register */
+#define BCHP_AUD_MISC_CRC_ESR_STATUS_CLEAR       0x20c80114 /* [WO][32] CRC Error Clear Register */
+#define BCHP_AUD_MISC_CRC_ESR_MASK               0x20c80118 /* [RO][32] CRC Mask Status Register */
+#define BCHP_AUD_MISC_CRC_ESR_MASK_SET           0x20c8011c /* [WO][32] CRC Mask Set Register */
+#define BCHP_AUD_MISC_CRC_ESR_MASK_CLEAR         0x20c80120 /* [WO][32] CRC Mask Clear Register */
 
 /***************************************************************************
  *REVISION - Audio I/O System Revision

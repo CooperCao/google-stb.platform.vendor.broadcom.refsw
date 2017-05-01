@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_options.h"
 #include "interface/khronos/common/khrn_client_vector.h"
@@ -531,7 +523,6 @@ QPUResource *InstrState_FindFreeResource(InstrState *self, DFlowRegFile file, QP
 
 // static methods
 static void     DFlowNode_AddToList(NodeList *set, DFlowNode *node) { NodeList_push_back(set, node); }
-static uint32_t DFlowNode_ListSize(const NodeList *set)             { return NodeList_size(set);     }
 
 static uint32_t DFlowNode_RemoveFromList(NodeList *set, DFlowNode *node);
 static void     DFlowNode_SetWrittenAt(InstrState *state, Register_Enum reg, int32_t extraDelay /*= 0*/);
@@ -582,12 +573,10 @@ static Register_Enum  DFlowNode_GetSFUReg(const DFlowNode *self);
 static Register_Enum  DFlowNode_GetIOInputReg(const DFlowNode *self);
 static Register_Enum  DFlowNode_GetIOOutputReg(const DFlowNode *self);
 static CondCode_Enum  DFlowNode_GetCondCode(const DFlowNode *self);
-static uint32_t       DFlowNode_GetTextureUnit(const DFlowNode *self);
 static Sig_Enum       DFlowNode_GetSignal(const DFlowNode *self);
 static bool           DFlowNode_GetSpecificOutputReg(DFlowNode *self, InstrState *state, QPUResource **output);
 static bool           DFlowNode_CanShortcutPack(DFlowNode *self, InstrState *state);
 static bool           DFlowNode_IsMulOperation(const DFlowNode *self);
-static bool           DFlowNode_IsAddOperation(const DFlowNode *self);
 static Mul_Pack_Enum  DFlowNode_GetMulPackCode(const DFlowNode *self);
 static RegA_Pack_Enum DFlowNode_GetRegAPackCode(const DFlowNode *self);
 
@@ -1597,7 +1586,6 @@ DFlowNode_ScheduleStatus DFlowNode_HandleDelayedLoadc(DFlowNode *self, InstrStat
 
 DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *sched, QPUGenericInstr *genericInstr)
 {
-   int32_t   curSlot = Scheduler_FirstEmptySlot(sched);
    DFlowNode *acc5node = NULL;
    InstrState state;
    QPUOperand leftOp, rightOp, operand;

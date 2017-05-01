@@ -1,14 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_common.h"
 #include "v3d_ident.h"
 #include "v3d_limits.h"
 #include "libs/util/gfx_options/gfx_options.h"
 #include "libs/util/demand.h"
 #include "libs/util/log/log.h"
+#include "libs/util/snprintf.h"
 
 LOG_DEFAULT_CAT("v3d_ident")
 
@@ -79,4 +78,27 @@ void v3d_check_hub_ident(const V3D_HUB_IDENT_T *ident)
    v3d_check_ver(v3d_ver_from_hub_ident(ident));
 
    assert(ident->num_cores <= V3D_MAX_CORES);
+}
+
+size_t v3d_sprint_device_name(char *buf, size_t buf_size, size_t offset, const V3D_IDENT_T *ident)
+{
+   // The format is "VideoCore XX HW (V3D-<H><S><T>)" where...
+   // <H> is "5" for vc5 / "6" for vc6
+   // <S> is the number of slices per core
+   // <T> is (texture units per core - 1) * 5
+
+   const char *vcx;
+   switch (ident->v3d_tech_version)
+   {
+   case 3: vcx = "V";    break;    // VC5
+   case 4: vcx = "VI";   break;    // VC6
+   case 5: vcx = "VII";  break;
+   case 6: vcx = "VIII"; break;
+   case 7: vcx = "IX";   break;    // Future h/w dev tag
+   default: unreachable();
+   }
+
+   return vcos_safe_sprintf(buf, buf_size, offset, "VideoCore %s HW (V3D-%u%u%u)",
+            vcx, ident->v3d_tech_version + 2,
+            ident->num_slices, (ident->num_tmus - 1) * 5);
 }

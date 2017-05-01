@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97364 B0 Phase 17.1 Set-Top Unified Reference Software Release</title>
+<title>Broadcom 97364 B0 Phase 17.2 Set-Top Unified Reference Software Release</title>
 <style>
 <!--
  /* Font Definitions */
@@ -161,7 +161,7 @@ Release</a></p>
 
 <div>
 
-<p><a name=top><strong>Broadcom 97364 B0/C0 Phase 17.1 Set-Top Engineering
+<p><a name=top><strong>Broadcom 97364 B0/C0 Phase 17.2 Set-Top Engineering
 Reference Software Release</strong></a></p>
 
 <p><strong>Release Notes</strong></p>
@@ -170,9 +170,9 @@ Reference Software Release</strong></a></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>March 29, 2017</p>
+<p>May 21, 2017</p>
 
-<p>Phase 17.1 Engineering Release </p>
+<p>Phase 17.2 Engineering Release </p>
 
 </blockquote>
 
@@ -231,7 +231,7 @@ Reference Software Release</strong></a></p>
   <p class=MsoNormal>toolchain binary</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>linux/stbgcc-4.8-1.5.tar.bz2 (source available upon
+  <p class=MsoNormal>linux/stbgcc-4.8-1.6.tar.bz2 (source available upon
   request)</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
@@ -243,7 +243,7 @@ Reference Software Release</strong></a></p>
   <p class=MsoNormal>BOLT bootloader binary</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>bolt/bolt-v1.26-7364b0-bb-bfw-4.1.5.bin</p>
+  <p class=MsoNormal>bolt/bolt-v1.29-7364b0-bb-bfw-4.1.5.bin</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>Broadcom SLA (see notes below)</p>
@@ -276,7 +276,7 @@ Reference Software Release</strong></a></p>
   <p class=MsoNormal>Reference Software source</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>refsw_release_97364_20170329.src.tgz</p>
+  <p class=MsoNormal>refsw_release_97364_20170521.src.tgz</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>Broadcom SLA </p>
@@ -453,7 +453,7 @@ Reference Software Release</strong></a></p>
   <p class=MsoNormal>Reference Software binary for 97364</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>refsw-20170329.97364b0-linux-atlas.bin.tgz (Atlas
+  <p class=MsoNormal>refsw-20170521.97364b0-linux-atlas.bin.tgz (Atlas
   application binary)</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
@@ -503,8 +503,8 @@ included in the release bundle for <u>the specific</u> licensing terms and notic
   <p class=MsoNormal>Reference Software auto-generated documentation</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>doxygen_magnum_20170329.tgz<br>
-  doxygen_nexus_20170329.tgz</p>
+  <p class=MsoNormal>doxygen_magnum_20170521.tgz<br>
+  doxygen_nexus_20170521.tgz</p>
   </td>
  </tr>
  <tr>
@@ -634,7 +634,7 @@ included in the release bundle for <u>the specific</u> licensing terms and notic
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>BSEAV/lib/playready/2.5/doc/PlayReady_25_User_Guide.pdf<br>
-  in refsw_release_unified_20170329-prd_bin.tgz to licensed recipients only</p>
+  in refsw_release_unified_20170521-prd_bin.tgz to licensed recipients only</p>
   </td>
  </tr>
 </table>
@@ -1147,7 +1147,7 @@ noted.</i></b></p>
  </tr>
 </table>
 
-<p><strong><a name="features">Features in this Release</a></strong><br/><a href="#top">(Top)</a></p><p>All features listed in <span style="color:green">green</span> are new to this release.</p><p>Platforms Supported</p><ul><li>Board Support: BCM7364SV</li><li>Chip Rev Support: C0</li><li>Kernel Version: 4.1-1.7</li><li>Toolchain: stbgcc-4.8-1.5</li></ul><h4></h4><p>Real-Time Transcode using Raaga DSP</p><ul><li>416x224@ 30 / 29.97 Hz, 800kbps</li><li>Concurrent A/V path on main display</li><li>H.264 Baseline 3.0 encoding</li></ul><p>Video Decoder</p><ul><li>Dual HD</li><li>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP, HP} @L4.2)</li><li>MPEG-1</li><li>MPEG-2 - (MP@{LL, ML, HL})</li><li>HD + SD</li><li>HEVC - ({MP} @L5.1 1080/60p, HDR Metadata Extraction, HDR-HLG (Hrybrid-Log Gamma))</li><li>DSS - DIRECTV TS</li><li>HW Still Image Decode - (JPEG, MJPEG)</li><li>Mosaic</li><li>Single MPEG2 I-frame Decode</li><li>Still Picture decoding (Live HD video, MPEG2 and AVC, with SD still)</li></ul><p>Audio Decoder</p><ul><li>AAC - (+, HE 5.1, HE 5.1 Low Power, HE Stereo, LC 5.1, LC Stereo, V1)</li><li>AC3 - (5.1, Stereo)</li><li>MPEG - (MPEG-2, MPEG-4, MPEG-I LI/LII/LIII)</li><li>Dolby - (DD, DDP to DD convert)</li><li>Dolby MS11</li><li>MP3 - (Stereo)</li><li>Dolby MS11 + 2nd Audio Decode Mixing - (AAC-HE 2.0 Channel, AAC-LC 2.0 Channel)</li><li>Dolby MS12 - (Config C, AC4 (A specific Box mode is required), Config A (A specific Box mode is required))</li></ul><p>Audio Post Process</p><ul><li>Dolby - (DDRE, DV-258)</li><li>PCM Mixing</li><li>Karaoke support - (Karaoke Decode processing, Karaoke Vocal processing)</li><li>Audio Decoder Fade effect</li><li>ATSC A/85 volume leveling</li><li>Equalizer - (5-band Graphic EQ, 7-band PEQ, Sub sonic filtering, Sub woofer channel extraction, Tone Balancing)</li><li>Independent SPDIF delay</li><li>Ramping Mute</li><li>SRS - (SRS-HD4, SRS-TruVolume)</li></ul><p>System</p><ul><li>Fast Channel Change</li><li>LE</li><li>User Mode</li><li>Graphics - (2D GFX)</li><li>Kernel Mode</li><li>On-chip Temp Sensor</li></ul><p>A/V Display</p><ul><li>Audio  - HDMI output - (Compressed on HDMI, PCM on HDMI)</li><li>Audio - DAC output</li><li>Audio Output - (DAC, SPDIF (Compressed), SPDIF (Stereo PCM))</li><li>PIP: Simulataneous HD+HD display</li><li>PIP: Simultaneous HD+SD display</li><li>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)</li><li>Video - CVBS and S Video Output</li><li>Video - HDMI output</li><li>All NTSC/ATSC/PAL resolutions</li><li>Audio - SPDIF output - (Compressed on SPDIF, PCM on SPDIF)</li><li>HDCP support - (HDMI TX, HDCP 2.2 for HDMI Repeater)</li><li>HDMI CEC</li><li>Video - Component output</li></ul><p>IPTV</p><ul><li>BIP API - (Dynamic clock recovery reconfiguration)</li></ul><p>Networking</p><ul><li>Ethernet MAC - (10/100 Eth MAC)</li></ul><p>Miscellaneous</p><ul><li>EJTAG</li><li>RCU - (IR)</li><li>NxClient Multiprocess library - (Audio Primer for fast main/PIP audio swap, Main/PIP video swap)</li><li>Virtual L2 interrupt</li></ul><p>Transport</p><ul><li>Message Filtering</li><li>MTSIF</li><li>PID Filtering</li></ul><p>Power Management</p><ul><li>Adaptive Voltage Scaling</li><li>AVS (Adaptive Voltage Scaling) - (Closed Loop, Open Loop)</li><li>Power Management in Nexus Multi-Process Environment - (S0, S1)</li><li>S1: Active Standby</li></ul><p>Picture Quality</p><ul><li>MAD-R (Motion Adaptive Deinterlacer Re-architected)</li></ul><p>3D Video Display</p><ul><li>3D packing format - (1920x1080i@50Hz, 1920x1080i@59.94/60Hz, 1920x1080p@24Hz)</li></ul><p>Satellite FE</p><ul><li>8PSK Turbo</li><li>DiSEqC (Digital Satellite Equipment Control)</li><li>Tuning &amp; Acquisition</li></ul><p>Linux</p><ul><li>Ethernet link and Ethernet GPhy</li><li>File system - (UBIFS)</li><li>Flash - (SPI, NOR)</li><li>SATA</li><li>UART port</li><li>USB</li><li>CMA</li><li>Generic driver for SPI interface</li><li>Generic I2C driver</li><li>MoCA - (V2.0)</li><li>RF4CE</li></ul>
+<p><strong><a name="features">Features in this Release</a></strong><br/><a href="#top">(Top)</a></p><p>All features listed in <span style="color:green">green</span> are new to this release.</p><p>Platforms Supported</p><ul><li>Board Support: BCM7364SV</li><li>Chip Rev Support: C0</li><li>Kernel Version: 4.1-1.7</li><li>Toolchain: stbgcc-4.8-1.6</li></ul><h4></h4><p>Real-Time Transcode using Raaga DSP</p><ul><li>416x224@ 30 / 29.97 Hz, 800kbps</li><li>Concurrent A/V path on main display</li><li>H.264 Baseline 3.0 encoding</li></ul><p>Video Decoder</p><ul><li>Dual HD</li><li>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP, HP} @L4.2)</li><li>MPEG-1</li><li>MPEG-2 - (MP@{LL, ML, HL})</li><li>HD + SD</li><li>HEVC - ({MP} @L5.1 1080/60p, HDR Metadata Extraction, HDR-HLG (Hrybrid-Log Gamma))</li><li>DSS - DIRECTV TS</li><li>HW Still Image Decode - (JPEG, MJPEG)</li><li>Mosaic</li><li>Single MPEG2 I-frame Decode</li><li>Still Picture decoding (Live HD video, MPEG2 and AVC, with SD still)</li></ul><p>Audio Decoder</p><ul><li>AAC - (+, HE 5.1, HE 5.1 Low Power, HE Stereo, LC 5.1, LC Stereo, V1)</li><li>AC3 - (5.1, Stereo)</li><li>MPEG - (MPEG-2, MPEG-4, MPEG-I LI/LII/LIII)</li><li>Dolby - (DD, DDP to DD convert)</li><li>Dolby MS11</li><li>MP3 - (Stereo)</li><li>Dolby MS11 + 2nd Audio Decode Mixing - (AAC-HE 2.0 Channel, AAC-LC 2.0 Channel)</li><li>Dolby MS12 - (Config C, AC4 (A specific Box mode is required), Config A (A specific Box mode is required))</li></ul><p>Audio Post Process</p><ul><li>Dolby - (DDRE, DV-258)</li><li>PCM Mixing</li><li>Karaoke support - (Karaoke Decode processing, Karaoke Vocal processing)</li><li>Audio Decoder Fade effect</li><li>ATSC A/85 volume leveling</li><li>Equalizer - (5-band Graphic EQ, 7-band PEQ, Sub sonic filtering, Sub woofer channel extraction, Tone Balancing)</li><li>Independent SPDIF delay</li><li>Ramping Mute</li><li>SRS - (SRS-HD4, SRS-TruVolume)</li></ul><p>System</p><ul><li>Fast Channel Change</li><li>LE</li><li>User Mode</li><li>Graphics - (2D GFX)</li><li>Kernel Mode</li><li>On-chip Temp Sensor</li></ul><p>A/V Display</p><ul><li>Audio  - HDMI output - (Compressed on HDMI, PCM on HDMI)</li><li>Audio - DAC output</li><li>Audio Output - (DAC, SPDIF (Compressed), SPDIF (Stereo PCM))</li><li>PIP: Simulataneous HD+HD display</li><li>PIP: Simultaneous HD+SD display</li><li>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)</li><li>Video - CVBS and S Video Output</li><li>Video - HDMI output</li><li>All NTSC/ATSC/PAL resolutions</li><li>Audio - SPDIF output - (Compressed on SPDIF, PCM on SPDIF)</li><li>HDCP support - (HDMI TX, HDCP 2.2 for HDMI Repeater)</li><li>HDMI CEC</li><li>Video - Component output</li></ul><p>IPTV</p><ul><li>BIP API - (Dynamic clock recovery reconfiguration)</li></ul><p>Networking</p><ul><li>Ethernet MAC - (10/100 Eth MAC)</li></ul><p>Miscellaneous</p><ul><li>EJTAG</li><li>RCU - (IR)</li><li>NxClient Multiprocess library - (Audio Primer for fast main/PIP audio swap, Main/PIP video swap)</li><li>Virtual L2 interrupt</li></ul><p>Transport</p><ul><li>Message Filtering</li><li>MTSIF</li><li>PID Filtering</li></ul><p>Power Management</p><ul><li>Adaptive Voltage Scaling</li><li>AVS (Adaptive Voltage Scaling) - (Closed Loop, Open Loop)</li><li>Power Management in Nexus Multi-Process Environment - (S0, S1)</li><li>S1: Active Standby</li></ul><p>Picture Quality</p><ul><li>MAD-R (Motion Adaptive Deinterlacer Re-architected)</li></ul><p>3D Video Display</p><ul><li>3D packing format - (1920x1080i@50Hz, 1920x1080i@59.94/60Hz, 1920x1080p@24Hz)</li></ul><p>Satellite FE</p><ul><li>8PSK Turbo</li><li>DiSEqC (Digital Satellite Equipment Control)</li><li>Tuning &amp; Acquisition</li></ul><p>Linux</p><ul><li>Ethernet link and Ethernet GPhy</li><li>File system - (UBIFS)</li><li>Flash - (SPI, NOR)</li><li>SATA</li><li>UART port</li><li>USB</li><li>CMA</li><li>Generic driver for SPI interface</li><li>Generic I2C driver</li><li>MoCA - (V2.0)</li><li>RF4CE</li></ul>
 <p>Transcoder</p><ul><li>Audio Codec Pass-through - (Audio AAC, AC3, MPEG1/2, MP3/HE-AAC/AAC-LC stereo)</li><li>AAC to AC3 transcode</li></ul><p>Transcode - Audio</p><ul><li>Pass-through Codecs - (AC3)</li></ul><p>Transcode - Video</p><ul><li>Memory Bandwidth Reduction Modes</li><li>Segment Mode RC</li></ul><p>Transcode - System</p><ul><li>TS Stream Mux - Features - (Single MCPB Channel Mode)</li></ul><br><h4><p><strong><a name="features_future">Features Planned for the Next Release</a></strong><br/><a href="#top">(Top)</a></p></h4>
 
 </div>

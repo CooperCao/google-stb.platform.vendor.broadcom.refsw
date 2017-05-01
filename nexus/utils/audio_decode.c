@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
@@ -214,18 +206,18 @@ int main(int argc, const char *argv[])
 
     /* Bring up audio decoders and outputs */
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    rc = NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    BDBG_ASSERT(!rc);
-#endif
+    if (platformConfig.outputs.audioDacs[0]) {
+        rc = NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        BDBG_ASSERT(!rc);
+    }
     NEXUS_AudioDecoder_GetSettings(audioDecoder, &audioDecoderSettings);
     audioDecoderSettings.wideGaThreshold = opts.looseAudioTsm;
     rc = NEXUS_AudioDecoder_SetSettings(audioDecoder, &audioDecoderSettings);
     BDBG_ASSERT(!rc);
     /* TODO: param for compressed passthrough of same or different pid */
-#if NEXUS_NUM_SPDIF_OUTPUTS
+    if (platformConfig.outputs.spdif[0]) {
         if ( opts.common.audioCodec == NEXUS_AudioCodec_eAc3Plus || opts.common.audioCodec == NEXUS_AudioCodec_eWmaPro )
         {
             /* These codecs pasthrough as part of decode (ac3+ is transcoded to ac3, wma pro is not transcoded) */
@@ -242,7 +234,7 @@ int main(int argc, const char *argv[])
                 NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
                 NEXUS_AudioDecoder_GetConnector(audioPassthroughDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
         }
-#endif
+    }
 #if NEXUS_HAS_HDMI_OUTPUT
     if (opts.common.useHdmiOutput ) {
         NEXUS_HdmiOutputStatus hdmiStatus;

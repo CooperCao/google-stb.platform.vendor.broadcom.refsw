@@ -531,7 +531,7 @@ static const BSCD_P_DFSmartCardStruct BSCD_P_DF[8][16][14] = {
 
     /* D = 6 */
    {{0x08,0x02,0x1F,0x02}, {0x08,0x02,0x1F,0x02}, {0x10,0x08,0x1F,0x01},
-    {0x04,0x02,0x1F,0x04}, {0x08,0x08,0x1F,0x02}, {0x02,0x02,0x1F,0x08},
+    {0x04,0x02,0x1F,0x02}, {0x08,0x08,0x1F,0x02}, {0x02,0x02,0x1F,0x08},
     {0x08,0x0E,0x1F,0x02}, {0x00,0x00,0x00,0x00}, {0x00,0x00,0x00,0x00},
     {0x04,0x01,0x20,0x02}, {0x04,0x02,0x20,0x04}, {0x02,0x01,0x20,0x08},
     {0x02,0x02,0x20,0x08}, {0x01,0x01,0x20,0x08}},
@@ -575,11 +575,11 @@ static const BSCD_P_DFSmartCardStruct BSCD_P_DF[8][16][14] = {
          {0,0,0,0}, {0,0,0,0}},
                  /* D = 14 */
         {{0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
-         {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+         {0x08,0x05,0x1f,0x01}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
          {0,0,0,0}, {0,0,0,0}},
                  /* D = 15 */
-        {{0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
-         {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+        {{0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0x4,0x1,0x20,0x1},
+         {0x01,0x01,0x0a,0x04}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
          {0,0,0,0}, {0,0,0,0}}
 },
 {
@@ -5465,7 +5465,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
                         ulVal = 0;
                         ulVal &= ~BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK;
                         ulVal |= 0xc <<BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT;
-#if     (BCHP_VER < BCHP_VER_B0)
+#if     (BCHP_VER < BCHP_VER_B0) && (BCHP_CHIP!=73465)
         BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
                                         BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0,BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK,
                                         ulVal);
@@ -5514,7 +5514,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
 
                         ulVal &= ~BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK;
                         ulVal |= 0x28 <<BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT;
-#if     (BCHP_VER < BCHP_VER_B0)
+#if     (BCHP_VER < BCHP_VER_B0)&& (BCHP_CHIP!=73465)
                 BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
                                         BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0,BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK,
                                         ulVal);
@@ -5561,7 +5561,7 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
                         ulVal = 0;
                         ulVal &= ~BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK;
                         ulVal |= 81 <<BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT;
-#if     (BCHP_VER < BCHP_VER_B0)
+#if     (BCHP_VER < BCHP_VER_B0)&& (BCHP_CHIP!=73465)
                 BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
                                         BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0,BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK,
                                         ulVal);
@@ -5611,7 +5611,7 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 
                                 ulVal &= ~BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK;
                                 ulVal |= 100 <<BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT;
-#if     (BCHP_VER < BCHP_VER_B0)
+#if     (BCHP_VER < BCHP_VER_B0)&& (BCHP_CHIP!=73465)
                             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
                                         BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0,BCHP_CLKGEN_PLL_SC_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK,
                                         ulVal);
@@ -6159,7 +6159,7 @@ BERR_Code BSCD_Channel_P_SetFreq(
         if (inp_sSettings->ucFFactor == 0) {
                 in_channelHandle->currentChannelSettings.ucFFactor = BSCD_DEFAULT_F;
         }
-        else if ((inp_sSettings->ucFFactor >= 1 ) && (inp_sSettings->ucFFactor <= 13)){
+        else if ((inp_sSettings->ucFFactor >= 1 ) && (inp_sSettings->ucFFactor <= 14)){
                 in_channelHandle->currentChannelSettings.ucFFactor = inp_sSettings->ucFFactor;
         }
         else {
@@ -6251,10 +6251,9 @@ BERR_Code BSCD_Channel_P_SetFreq(
                 in_channelHandle->currentChannelSettings.ucFFactor);
 
         }
-        else if ( (inp_sSettings->ucBaudDiv == 31) || (inp_sSettings->ucBaudDiv == 32) ||(inp_sSettings->ucBaudDiv == 25) ) {
-
+        else if ( (inp_sSettings->ucBaudDiv == 31) || (inp_sSettings->ucBaudDiv == 32) ||(inp_sSettings->ucBaudDiv == 25)||(inp_sSettings->ucBaudDiv == 20)||(inp_sSettings->ucBaudDiv == 10) ) {
                 in_channelHandle->currentChannelSettings.ucBaudDiv = inp_sSettings->ucBaudDiv;
-        }
+       }
         else {
                 BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, true);
         }

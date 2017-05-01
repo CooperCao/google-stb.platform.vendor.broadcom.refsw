@@ -2984,7 +2984,7 @@ BWL_PRE_PACKED_STRUCT struct d11ac_tso_s {
 
 /** Security Algorithm defines */
 #define WOWL_TSCPN_SIZE 6
-#define WOWL_TSCPN_COUNT  4			/**< 4 ACs */
+#define WOWL_TSCPN_COUNT  16			/**< only 8 TIDs will be used */
 #define WOWL_TSCPN_BLK_SIZE	(WOWL_TSCPN_SIZE * WOWL_TSCPN_COUNT)
 
 #define	WOWL_SECSUITE_GRP_ALGO_MASK		0x0007

@@ -74,7 +74,8 @@ static const BBOX_MemConfig stBoxMemConfig_7435B0_box1 =
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 6 */
       }
    },
-   2
+   2, /* number of MEMC */
+   BBOX_MK_DRAM_REFRESH_RATE(1x)
 };
 
 void BBOX_P_GetBox1MemConfig

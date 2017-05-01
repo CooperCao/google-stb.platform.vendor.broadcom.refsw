@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  v3d_platform
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../bcm_sched_api.h"
 #include "../bcm_perf_api.h"
 #include "sched_abstract.h"
@@ -225,13 +218,43 @@ int bcm_sched_create_fence(
 {
    demand(s_context.sched_iface.MakeFenceForJobs);
    return s_context.sched_iface.MakeFenceForJobs(
-      s_context.session_id, completed_deps, finalised_deps, force_create);
+      s_context.sched_iface.context, completed_deps, finalised_deps, force_create);
 }
 
-int bcm_sched_create_fence_for_any_non_finalised(void)
+bool bcm_sched_wait_for_any_non_finalised(void)
 {
-   demand(s_context.sched_iface.MakeFenceForAnyNonFinalizedJob);
-   return s_context.sched_iface.MakeFenceForAnyNonFinalizedJob(s_context.session_id);
+   demand(s_context.sched_iface.WaitForAnyNonFinalisedJob);
+   return s_context.sched_iface.WaitForAnyNonFinalisedJob(
+      s_context.sched_iface.context);
+}
+
+bcm_wait_status bcm_sched_wait_any_job_timeout(
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps,
+   int timeout)
+{
+   demand(s_context.sched_iface.WaitForAnyJobTimeout);
+   return s_context.sched_iface.WaitForAnyJobTimeout(
+      s_context.sched_iface.context, completed_deps, finalised_deps, timeout);
+}
+
+void bcm_sched_wait_jobs(
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps)
+{
+   demand(s_context.sched_iface.WaitJobs);
+   s_context.sched_iface.WaitJobs(
+      s_context.sched_iface.context, completed_deps, finalised_deps);
+}
+
+bcm_wait_status bcm_sched_wait_jobs_timeout(
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps,
+   int timeout)
+{
+   demand(s_context.sched_iface.WaitJobsTimeout);
+   return s_context.sched_iface.WaitJobsTimeout(
+      s_context.sched_iface.context, completed_deps, finalised_deps, timeout);
 }
 
 bool v3d_platform_init(void)

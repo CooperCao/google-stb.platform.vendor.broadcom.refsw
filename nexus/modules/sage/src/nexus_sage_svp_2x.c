@@ -447,10 +447,11 @@ ERROR_EXIT:
 /* Not to be called from within SAGE module itself */
 NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
 {
+	uint32_t coreListSize;
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     NEXUS_LockModule();
-    uint32_t coreListSize=sizeof(*pCoreList);
+    coreListSize=sizeof(*pCoreList);
 
 #ifdef NEXUS_SAGE_SVP_TEST
     NEXUS_Sage_P_SecureCores_test(pCoreList, true);
@@ -592,4 +593,11 @@ void NEXUS_Sage_P_SvpStop(bool reset)
 void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode)
 {
     BSTD_UNUSED(standbyMode);
+}
+/* Dummy function for 3.x compatibility */
+NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings *pSettings)
+{
+    BSTD_UNUSED(memcIndex);
+    BSTD_UNUSED(pSettings);
+    return BERR_SUCCESS;
 }

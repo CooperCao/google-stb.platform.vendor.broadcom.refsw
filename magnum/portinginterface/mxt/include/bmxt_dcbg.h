@@ -42,7 +42,6 @@
 #include "bstd.h"
 #include "breg_mem.h"
 #include "bchp.h"
-#include "bmem.h"
 
 #ifdef __cplusplus
 extern "C" {

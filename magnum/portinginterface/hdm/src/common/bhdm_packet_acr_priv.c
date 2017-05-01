@@ -200,7 +200,7 @@ static const  BHDM_BAVC_Clock BHDM_SupportedClocks[] =
  *        Also, HDMI_CRP_CFG.USE_MAI_BUS_SYNC_FOR_CTS_GENERATION must be
  *        set to 0
  *******************************************************************************/
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_32KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_32KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {   4096,   4096,  25200,  25200,    1,    1 }, /*   0 *//*            25.2 MHz,  24,     32.000000 kHz,    1000 Hz *//*   Spec Settings */
@@ -289,7 +289,7 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_32KHz_AudioClkValues[] =
  *        Also, HDMI_CRP_CFG.USE_MAI_BUS_SYNC_FOR_CTS_GENERATION must be
  *        set to 0
  *******************************************************************************/
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_128KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_128KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {  16384,  16384,  25200,  25200,    1,    1 }, /*   0 *//*            25.2 MHz,  24,    128.000000 kHz,    1000 Hz *//*   Spec Settings */
@@ -378,7 +378,7 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_128KHz_AudioClkValues[] =
  *        Also, HDMI_CRP_CFG.USE_MAI_BUS_SYNC_FOR_CTS_GENERATION must be
  *        set to 0
  *******************************************************************************/
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_44_1KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_44_1KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {   6272,      0,  28000,  28000,    1,    1 }, /*   0 *//*            25.2 MHz,  24,     44.100000 kHz,     900 Hz *//*   Spec Settings */
@@ -467,7 +467,7 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_44_1KHz_AudioClkValues[] =
  *        Also, HDMI_CRP_CFG.USE_MAI_BUS_SYNC_FOR_CTS_GENERATION must be
  *        set to 0
  *******************************************************************************/
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_88_2KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_88_2KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {  12544,      0,  28000,  28000,    1,    1 }, /*   0 *//*            25.2 MHz,  24,     88.200000 kHz,     900 Hz *//*   Spec Settings */
@@ -556,7 +556,7 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_88_2KHz_AudioClkValues[] =
  *        Also, HDMI_CRP_CFG.USE_MAI_BUS_SYNC_FOR_CTS_GENERATION must be
  *        set to 0
  *******************************************************************************/
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_176_4KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_176_4KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {  25088,      0,  28000,  28000,    1,    1 }, /*   0 *//*            25.2 MHz,  24,    176.400000 kHz,     900 Hz *//*   Spec Settings */
@@ -645,7 +645,7 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_176_4KHz_AudioClkValues[] =
  *        Also, HDMI_CRP_CFG.USE_MAI_BUS_SYNC_FOR_CTS_GENERATION must be
  *        set to 0
  *******************************************************************************/
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_48KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_48KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {   6144,   6144,  25200,  25200,    1,    1 }, /*   0 *//*            25.2 MHz,  24,     48.000000 kHz,    1000 Hz *//*   Spec Settings */
@@ -734,7 +734,7 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_48KHz_AudioClkValues[] =
  *        Also, HDMI_CRP_CFG.USE_MAI_BUS_SYNC_FOR_CTS_GENERATION must be
  *        set to 0
  *******************************************************************************/
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_96KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_96KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {  12288,  12288,  25200,  25200,    1,    1 }, /*   0 *//*            25.2 MHz,  24,     96.000000 kHz,    1000 Hz *//*   Spec Settings */
@@ -825,7 +825,7 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_96KHz_AudioClkValues[] =
  *        set to 0
  *******************************************************************************/
 
-static const BHDM_P_AUDIO_CLK_VALUES BHDM_192KHz_AudioClkValues[] =
+static const BHDM_PACKET_ACR_CONFIG BHDM_192KHz_AudioClkValues[] =
 {   /* SW-N,   HW-N,  CTS_0,  CTS_1, RPT0, RPT1 *//*     TMDS Clock Rate, BPP,   Comp Audio Rate,    ACR Rate*/
 
     {  24576,  24576,  25200,  25200,    1,    1 }, /*   0 *//*            25.2 MHz,  24,    192.000000 kHz,    1000 Hz *//*   Spec Settings */
@@ -898,6 +898,60 @@ static const BHDM_P_AUDIO_CLK_VALUES BHDM_192KHz_AudioClkValues[] =
 
 };
 
+
+#if BDBG_DEBUG_BUILD
+
+static const char * const AudioSampleRateText[]	= {
+	BDBG_STRING("32kHz"), BDBG_STRING("44.1kHz"), BDBG_STRING("48kHz"),
+	BDBG_STRING("96kHz"), BDBG_STRING("16kHz"), BDBG_STRING("22_05kHz"),
+	BDBG_STRING("24kHz"), BDBG_STRING("64kHz"), BDBG_STRING("88_2kHz"),
+	BDBG_STRING("128kHz"), BDBG_STRING("176_4kHz"), BDBG_STRING("192kHz"),
+	BDBG_STRING("8kHz"), BDBG_STRING("12kHz"), BDBG_STRING("11_025kHz")
+} ;
+
+void BHDM_PACKET_ACR_DisplayConfiguration(
+		const BHDM_Handle hHDMI,			/* [in] HDMI handle */
+		const BHDM_PACKET_ACR_CONFIG *pstAcrPacketConfig)
+{
+#if BDBG_DEBUG_BUILD
+	BAVC_AudioSamplingRate eAudioSamplingRate ;
+
+	BDBG_LOG(("*** ACR Packet Configuration:")) ;
+	BDBG_LOG(("Tx%d:   Pixel Clock Rate:  %s MHz", hHDMI->eCoreId,
+		BHDM_P_TmdsClockToText_isrsafe(hHDMI->eTmdsClock))) ;
+
+	eAudioSamplingRate = hHDMI->DeviceSettings.eAudioSamplingRate ;
+
+	if (eAudioSamplingRate < BAVC_AudioSamplingRate_eUnknown)
+	{
+	BDBG_LOG(("Tx%d:   Audio Sample Rate: %s", hHDMI->eCoreId,
+			AudioSampleRateText[eAudioSamplingRate])) ;
+	}
+	else
+	{
+		BDBG_LOG(("Tx%d:   Audio Sample Rate: Unknown", hHDMI->eCoreId)) ;
+	}
+
+	BDBG_LOG(("ACR Packet:")) ;
+	BDBG_LOG(("   Tx%d:   N= %d   CTS 0= %d   CTS 1= %d",
+		hHDMI->eCoreId, 	pstAcrPacketConfig->NValue,
+		pstAcrPacketConfig->CTS_0, pstAcrPacketConfig->CTS_1)) ;
+
+	BDBG_LOG(("Hw Config:")) ;
+	BDBG_LOG(("Tx%d: CTS 0 Repeat: %d Period: %d", hHDMI->eCoreId,
+		pstAcrPacketConfig->CTS_0_REPEAT, pstAcrPacketConfig->CTS_0)) ;
+	BDBG_LOG(("Tx%d: CTS 1 Repeat: %d Period: %d", hHDMI->eCoreId,
+		pstAcrPacketConfig->CTS_1_REPEAT, pstAcrPacketConfig->CTS_1)) ;
+	BDBG_LOG((" ")) ;
+#else
+	BSTD_UNUSED(hHDMI) ;
+	BSTD_UNUSED(pstAcrPacketConfig) ;
+#endif
+}
+#endif
+
+
+
 BERR_Code BHDM_PACKET_ACR_P_LookupTmdsClock_isrsafe(
 	BHDM_Handle hHDMI,
 	uint64_t ulPixelClkRate64BitMask, const BHDM_Video_Settings *stVideoSettings,
@@ -913,9 +967,8 @@ BERR_Code BHDM_PACKET_ACR_P_LookupTmdsClock_isrsafe(
 	BAVC_HDMI_AviInfoFrame_Colorspace lookupColorSpace ;
 	uint8_t tableIndex ;  /* index into BHDM_SupportedClocks Table */
 
-#if BDBG_DEBUG_BUILD
-#else
-        BSTD_UNUSED (hHDMI);
+#if !BDBG_DEBUG_BUILD
+        BSTD_UNUSED(hHDMI);
 #endif
 
 	*eTmdsClock = BHDM_P_TmdsClock_eMax ;
@@ -1018,8 +1071,6 @@ BERR_Code BHDM_PACKET_ACR_P_LookupTmdsClock_isrsafe(
 	}
 
 
-
-
 #if BDBG_DEBUG_BUILD
 	BDBG_MSG(("Tx%d:   TMDS Pixel Clock Rate:	%s", hHDMI->eCoreId,
 		BHDM_P_TmdsClockToText_isrsafe(*eTmdsClock))) ;
@@ -1040,66 +1091,57 @@ BERR_Code BHDM_PACKET_ACR_P_LookupN_CTSValues_isrsafe(
 	BHDM_Handle hHDMI,
 	BAVC_AudioSamplingRate eAudioSamplingRate, BHDM_P_TmdsClock eTmdsClock,
 
-	BHDM_P_AUDIO_CLK_VALUES *stAcrPacket
+	BHDM_PACKET_ACR_CONFIG *pstAcrPacketConfig
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
-	BHDM_P_AUDIO_CLK_VALUES *pAudioParameters ;
+	BHDM_PACKET_ACR_CONFIG *pAudioParameters ;
 
 #if BDBG_DEBUG_BUILD
 #else
         BSTD_UNUSED (hHDMI);
 #endif
 
-#if BDBG_DEBUG_BUILD
-	static const char * const AudioSampleRateText[]	= {
-		BDBG_STRING("32kHz"), BDBG_STRING("44.1kHz"), BDBG_STRING("48kHz"),
-		BDBG_STRING("96kHz"), BDBG_STRING("16kHz"), BDBG_STRING("22_05kHz"),
-		BDBG_STRING("24kHz"), BDBG_STRING("64kHz"), BDBG_STRING("88_2kHz"),
-		BDBG_STRING("128kHz"), BDBG_STRING("176_4kHz"), BDBG_STRING("192kHz"),
-		BDBG_STRING("8kHz"), BDBG_STRING("12kHz"), BDBG_STRING("11_025kHz")
-	} ;
-#endif
 
 	switch( eAudioSamplingRate )
 	{
 	case BAVC_AudioSamplingRate_e32k :
-		pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_32KHz_AudioClkValues ;
+		pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_32KHz_AudioClkValues ;
 		break ;
 
-    case BAVC_AudioSamplingRate_e44_1k :
-        pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_44_1KHz_AudioClkValues ;
-        break ;
+	case BAVC_AudioSamplingRate_e44_1k :
+		pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_44_1KHz_AudioClkValues ;
+		break ;
 
-    case BAVC_AudioSamplingRate_e48k :
-        pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_48KHz_AudioClkValues ;
-        break ;
+	case BAVC_AudioSamplingRate_e48k :
+		pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_48KHz_AudioClkValues ;
+		break ;
 
 #if BHDM_CONFIG_88_2KHZ_AUDIO_SUPPORT
-    case BAVC_AudioSamplingRate_e88_2k :
-        pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_88_2KHz_AudioClkValues ;
-        break ;
+	case BAVC_AudioSamplingRate_e88_2k :
+		pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_88_2KHz_AudioClkValues ;
+		break ;
 #endif
 
 #if BHDM_CONFIG_96KHZ_AUDIO_SUPPORT
     case BAVC_AudioSamplingRate_e96k    :
-        pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_96KHz_AudioClkValues ;
+        pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_96KHz_AudioClkValues ;
         break ;
 #endif
 
 	case BAVC_AudioSamplingRate_e128k :
-		pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_128KHz_AudioClkValues ;
+		pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_128KHz_AudioClkValues ;
 		break ;
 
 #if BHDM_CONFIG_176_4KHZ_AUDIO_SUPPORT
     case BAVC_AudioSamplingRate_e176_4k    :
-        pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_176_4KHz_AudioClkValues ;
+        pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_176_4KHz_AudioClkValues ;
         break ;
 #endif
 
 #if BHDM_CONFIG_192KHZ_AUDIO_SUPPORT
     case BAVC_AudioSamplingRate_e192k:
-        pAudioParameters = (BHDM_P_AUDIO_CLK_VALUES *) &BHDM_192KHz_AudioClkValues;
+        pAudioParameters = (BHDM_PACKET_ACR_CONFIG *) &BHDM_192KHz_AudioClkValues;
         break ;
 #endif
 
@@ -1109,40 +1151,13 @@ BERR_Code BHDM_PACKET_ACR_P_LookupN_CTSValues_isrsafe(
 		goto done ;
 	}
 
-	stAcrPacket->NValue = pAudioParameters[eTmdsClock].NValue ;
-	stAcrPacket->HW_NValue = pAudioParameters[eTmdsClock].HW_NValue ;
-	stAcrPacket->CTS_0 = pAudioParameters[eTmdsClock].CTS_0 ;
-	stAcrPacket->CTS_1 = pAudioParameters[eTmdsClock].CTS_1 ;
-	stAcrPacket->CTS_0_REPEAT = pAudioParameters[eTmdsClock].CTS_0_REPEAT ;
-	stAcrPacket->CTS_1_REPEAT = pAudioParameters[eTmdsClock].CTS_1_REPEAT ;
-
-#if BDBG_DEBUG_BUILD
-	BDBG_MSG(("Tx%d: HDMI Audio Configuration:", hHDMI->eCoreId)) ;
-	BDBG_MSG(("Tx%d:   Pixel Clock Rate:	%s MHz", hHDMI->eCoreId,
-		BHDM_P_TmdsClockToText_isrsafe(eTmdsClock))) ;
-
-
-	if (eAudioSamplingRate < BAVC_AudioSamplingRate_eUnknown)
-	{
-		BDBG_MSG(("Tx%d:   Audio Sample Rate: %s", hHDMI->eCoreId,
-			AudioSampleRateText[eAudioSamplingRate])) ;
-	}
-	else
-	{
-		BDBG_MSG(("Tx%d:   Audio Sample Rate: Unknown", hHDMI->eCoreId)) ;
-	}
-
-
-	BDBG_MSG(("Tx%d:   N         CTS 0 - CTS 1", hHDMI->eCoreId)) ;
-	BDBG_MSG(("Tx%d: %4d	%6d-%6d", hHDMI->eCoreId,
-		stAcrPacket->NValue,
-		stAcrPacket->CTS_0, stAcrPacket->CTS_1)) ;
-
-	BDBG_MSG(("Tx%d: CTS 0 Repeat: %d Period: %d", hHDMI->eCoreId,
-		stAcrPacket->CTS_0_REPEAT, stAcrPacket->CTS_0)) ;
-	BDBG_MSG(("Tx%d: CTS 1 Repeat: %d Period: %d", hHDMI->eCoreId,
-		stAcrPacket->CTS_1_REPEAT, stAcrPacket->CTS_1)) ;
-#endif
+	pstAcrPacketConfig->NValue = pAudioParameters[eTmdsClock].NValue ;
+	pstAcrPacketConfig->HW_NValue = pAudioParameters[eTmdsClock].HW_NValue ;
+	pstAcrPacketConfig->CTS_0 = pAudioParameters[eTmdsClock].CTS_0 ;
+	pstAcrPacketConfig->CTS_1 = pAudioParameters[eTmdsClock].CTS_1 ;
+	pstAcrPacketConfig->CTS_0_REPEAT = pAudioParameters[eTmdsClock].CTS_0_REPEAT ;
+	pstAcrPacketConfig->CTS_1_REPEAT = pAudioParameters[eTmdsClock].CTS_1_REPEAT ;
+	hHDMI->DeviceStatus.stAcrPacketConfig = *pstAcrPacketConfig ;
 
 done :
 	return rc ;
@@ -1157,7 +1172,7 @@ BERR_Code BHDM_PACKET_ACR_P_TableLookup_isrsafe(
 	BAVC_HDMI_PixelRepetition ePixelRepetition,
 
 	BHDM_P_TmdsClock *eTmdsClock,
-	BHDM_P_AUDIO_CLK_VALUES *stAcrPacket
+	BHDM_PACKET_ACR_CONFIG *pstAcrPacketConfig
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
@@ -1174,7 +1189,7 @@ BERR_Code BHDM_PACKET_ACR_P_TableLookup_isrsafe(
 	*/
 	rc = BHDM_PACKET_ACR_P_LookupN_CTSValues_isrsafe(hHDMI,
 		eAudioSamplingRate, *eTmdsClock,
-		stAcrPacket) ;
+		pstAcrPacketConfig) ;
 	if (rc) {rc = BERR_TRACE(rc) ; goto done ;}
 
 done :

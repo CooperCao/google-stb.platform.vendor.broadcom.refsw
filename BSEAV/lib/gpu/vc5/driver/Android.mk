@@ -53,9 +53,7 @@ LOCAL_CFLAGS := \
 	-DGFX_DEFAULT_UIF_NUM_BANKS=8 \
 	-DGFX_DEFAULT_UIF_XOR_ADDR=16 \
 	-DGFX_DEFAULT_DRAM_MAP_MODE=2 \
-	-DEGL_SERVER_SMALLINT \
 	-DEMBEDDED_SETTOP_BOX=1 \
-	-DKHRN_LIBRARY_INIT \
 	-DKHRN_GLES31_DRIVER=$(V3D_VER_AT_LEAST_3_3_0) \
 	-DKHRN_GLES32_DRIVER=0 \
 	-DGLSL_310_SUPPORT=1 \
@@ -160,7 +158,11 @@ LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 intermediates := $(call local-generated-sources-dir)
 GENERATED_SRC_FILES := $(addprefix $(intermediates)/driver/libs/khrn/glsl/, $(COMMON_GENERATED_SRC_FILES))
 LOCAL_GENERATED_SOURCES := $(GENERATED_SRC_FILES)
+ifeq (,$(strip $(OUT_DIR_COMMON_BASE)))
 GENERATED_SRC_DIR := $(ANDROID_TOP)/$(intermediates)
+else
+GENERATED_SRC_DIR := $(intermediates)
+endif
 LOCAL_C_INCLUDES += \
 	$(intermediates)/driver/libs/util/dglenum \
 	$(intermediates)/driver/libs/khrn/glsl
@@ -336,6 +338,8 @@ LOCAL_SHARED_LIBRARIES += libsync
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_RELATIVE_PATH := egl
+LOCAL_C_INCLUDES := $(subst ${ANDROID}/,,$(LOCAL_C_INCLUDES))
+
 LOCAL_C_INCLUDES := $(subst ${ANDROID}/,,$(LOCAL_C_INCLUDES))
 
 include $(BUILD_SHARED_LIBRARY)

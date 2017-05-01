@@ -101,7 +101,7 @@ BRCM_PLAT_DOT_OVERRIDE=y
 source ../../../tools/build/plat 97425 b2 le VMS_SFF
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3383ib_3383oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3383ib_3383oob-linux-atlas.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/bcm*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 cp ../../../cable/bin/$NEXUS_PLATFORM/boot*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
@@ -111,7 +111,7 @@ make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y N
 source ../../../tools/build/plat  97425 b2 le VMS_SFF
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n  CABLE_SUPPORT=y  NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y  NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y  ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3128ib_3383oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3128ib_3383oob-linux-atlas.bin.tgz
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n  CABLE_SUPPORT=y  NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 # 97425_3128ib_3128oob
@@ -119,7 +119,7 @@ make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y N
 source ../../../tools/build/plat  97425 b2 le VMS_SFF
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n BCM3128_OOB_CABLECARD_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y ESTB_SNMP_SUPPORT=n clean
 make -j  NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n BCM3128_OOB_CABLECARD_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3128ib_3128oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3128ib_3128oob-linux-atlas.bin.tgz
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n BCM3128_OOB_CABLECARD_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y ESTB_SNMP_SUPPORT=n clean
 
 # 97425_3383_plus_3128ib_3383oob
@@ -127,8 +127,8 @@ make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y N
 source ../../../tools/build/plat  97425 b2 le VMS_SFF
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3383_plus_3128ib_3383oob-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/internal/97425/refsw-$reldate.97425b2_3383b0_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3383_plus_3128ib_3383oob-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97425/refsw-$reldate.97425b2_3383b0_vms_sff-linux-atlas-cable.bin.tgz
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 # 97425_33843ib_33843oob
@@ -136,7 +136,7 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_POWER_MANAGEMENT=y PL
 source ../../../tools/build/plat  97425 b2 le VMS_SFF
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_33843ib_33843oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_33843ib_33843oob-linux-atlas.bin.tgz
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 # 97425_3128ib_33843oob
@@ -144,7 +144,7 @@ make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y N
 source ../../../tools/build/plat  97425 b2 le VMS_SFF
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3128ib_33843oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_3128ib_33843oob-linux-atlas.bin.tgz
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 # 97425_33843_plus_3128ib_33843oob
@@ -152,7 +152,7 @@ make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y N
 source ../../../tools/build/plat  97425 b2 le VMS_SFF
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97425-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_33843_plus_3128ib_33843oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97425-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97425b2_33843_plus_3128ib_33843oob-linux-atlas.bin.tgz
 make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y NETACCEL_SUPPORT=n LIVE_STREAMING_SUPPORT=y HLS_PROTOCOL_SUPPORT=n CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 
@@ -161,7 +161,7 @@ make -j NEXUS_POWER_MANAGEMENT=y PLAYBACK_IP_SUPPORT=y VIDEO_ENCODER_SUPPORT=y N
 source ../../../tools/build/plat 97435 b0 le VMS_SFF
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3383ib_3383oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3383ib_3383oob-linux-atlas.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/bcm*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/3383/
 cp ../../../cable/bin/$NEXUS_PLATFORM/boot*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/3383/
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
@@ -171,7 +171,7 @@ make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEX
 source ../../../tools/build/plat 97435 b0 le VMS_SFF
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3128ib_3383oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3128ib_3383oob-linux-atlas.bin.tgz
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 # 97435_3128ib_3128oob
@@ -179,7 +179,7 @@ make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NE
 source ../../../tools/build/plat 97435 b0 le VMS_SFF
 make -j BCM3128_OOB_CABLECARD_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y ESTB_SNMP_SUPPORT=n clean
 make -j  BCM3128_OOB_CABLECARD_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3128ib_3128oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3128ib_3128oob-linux-atlas.bin.tgz
 make -j BCM3128_OOB_CABLECARD_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y ESTB_SNMP_SUPPORT=n clean
 
 
@@ -188,8 +188,8 @@ make -j BCM3128_OOB_CABLECARD_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7
 source ../../../tools/build/plat 97435 b0 le VMS_SFF
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.3383.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.3383.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM.3383.internal/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3383_plus_3128ib_3383oob-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.3383.internal/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/internal/97435/refsw-$reldate.97435b0_3383b0_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.3383.internal/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3383_plus_3128ib_3383oob-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.3383.internal/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97435/refsw-$reldate.97435b0_3383b0_vms_sff-linux-atlas-cable.bin.tgz
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.3383.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 
@@ -198,7 +198,7 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.3383.internal CABLE_SUPPORT=y NEXUS_
 source ../../../tools/build/plat 97435 b0 le VMS_SFF
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j  CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_33843ib_33843oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_33843ib_33843oob-linux-atlas.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/33843/bcm*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/33843/
 cp ../../../cable/bin/$NEXUS_PLATFORM/33843/boot*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/33843/
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
@@ -208,7 +208,7 @@ make -j CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_
 source ../../../tools/build/plat 97435 b0 le VMS_SFF
 make CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make  CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3128ib_33843oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_3128ib_33843oob-linux-atlas.bin.tgz
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 # 97435_33843_plus_3128ib_33843oob
@@ -216,8 +216,8 @@ make -j CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_
 source ../../../tools/build/plat 97435 b0 le VMS_SFF
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.33843.internal CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.33843.internal CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM.33843.internal/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_33843_plus_3128ib_33843oob-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.33843.internal/BSEAV/bin/refsw-$today.97435-linux-atlas.bin.tgz $destination/binaries/internal/97435/refsw-$reldate.97435b0_33843a0_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.33843.internal/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97435b0_33843_plus_3128ib_33843oob-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.33843.internal/BSEAV/bin/refsw-$today.97435-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97435/refsw-$reldate.97435b0_33843a0_vms_sff-linux-atlas-cable.bin.tgz
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.33843.internal CABLE_SUPPORT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y NEXUS_PLATFORM_7425_CABLE=y  NEXUS_USE_7425_VMS_SFF=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 
 
@@ -226,8 +226,8 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.33843.internal CABLE_SUPPORT=y NEXUS
 source ../../../tools/build/plat  97429 b0 le
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97429-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97429b0_3383ib_3383oob-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97429-linux-atlas.bin.tgz $destination/binaries/internal/97429/refsw-$reldate.97429b0_dvr-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97429-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97429b0_3383ib_3383oob-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97429-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97429/refsw-$reldate.97429b0_dvr-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/bcm*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 cp ../../../cable/bin/$NEXUS_PLATFORM/boot*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y clean
@@ -237,7 +237,7 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal CABLE_SUPPORT=y NEXUS_PLATF
 source ../../../tools/build/plat  97429 b0 le
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y clean
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97429-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97429b0_33843ib_33843oob-linux-atlas.bin.tgz
+cp ../../../../${B_REFSW_OBJ_DIR}/BSEAV/bin/refsw-$today.97429-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97429b0_33843ib_33843oob-linux-atlas.bin.tgz
 #cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97429-linux-atlas.bin.tgz $destination/binaries/internal/refsw-$reldate.97429b0_dvr-linux-atlas-cable.bin.tgz
 make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y clean
 
@@ -245,8 +245,8 @@ make -j CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y  VIDEO_ENCODER_SUPPORT=y BDS
 source ../../../tools/build/plat  974295 A0 le
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n  AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y  NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n  AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y  NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-linux-atlas.bin.tgz $destination/binaries/build_scripts/refsw-$reldate.974295a0_3384ib_3384oob-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-linux-atlas.bin.tgz $destination/binaries/internal/$NEXUS_PLATFORM/refsw-$reldate.974295a0_dvr-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_scripts/refsw-$reldate.974295a0_3384ib_3384oob-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/$NEXUS_PLATFORM/refsw-$reldate.974295a0_dvr-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/33843/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal CABLE_SUPPORT=y NEXUS_PLATFORM_7429_CABLE=y VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n  AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y  NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT=y clean
 
@@ -267,8 +267,8 @@ source ../../../tools/build/plat  97439 B0 le VMS_SFF
 export CABLECARD_SUPPORT=y
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  NEXUS_FRONTEND_3128=y ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y CABLE_SUPPORT=y NEXUS_FRONTEND_DOCSIS=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  NEXUS_FRONTEND_3128=y ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y CABLE_SUPPORT=y NEXUS_FRONTEND_DOCSIS=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97439-linux-atlas.bin.tgz $destination/binaries/internal/97439/refsw-$reldate.97252S_vms_sff-linux-atlas-cable.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97439-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97252S_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97439-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97439/refsw-$reldate.97252S_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97439-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97252S_vms_sff-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/bcm*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 cp ../../../cable/bin/$NEXUS_PLATFORM/boot*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  NEXUS_FRONTEND_3128=y ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y CABLE_SUPPORT=y NEXUS_FRONTEND_DOCSIS=y NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT=y clean
@@ -279,8 +279,8 @@ source ../../../tools/build/plat  97439 B0 le VMS_SFF
 unset NEXUS_USE_7252S_VMS_SFF
 make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.93390.internal clean
 make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.93390.internal install
-cp ../../../../obj.93390.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-linux-atlas.bin.tgz $destination/binaries/internal/93390/refsw-$reldate.93390VMS52S-linux-atlas-cable.bin.tgz
-cp ../../../../obj.93390.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.93390VMS52S-linux-atlas-cable.bin.tgz
+cp ../../../../obj.93390.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/93390/refsw-$reldate.93390VMS52S-linux-atlas-cable.bin.tgz
+cp ../../../../obj.93390.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.93390VMS52S-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/93390/* $destination/binaries/docsis/93390/
 make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.93390.internal clean
 
@@ -288,15 +288,15 @@ make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABL
 source ../../../tools/build/plat 97439 B0 le
 make -j NEXUS_USE_7252S_GW=y VIDEO_ENCODER_SUPPORT=y B_REFSW_OBJ_DIR=obj.97252S_GW clean
 make -j NEXUS_USE_7252S_GW=y VIDEO_ENCODER_SUPPORT=y B_REFSW_OBJ_DIR=obj.97252S_GW install
-cp ../../../../obj.97252S_GW/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97252S_GW-linux-atlas-cable.bin.tgz
+cp ../../../../obj.97252S_GW/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97252S_GW-linux-atlas-cable.bin.tgz
 make -j NEXUS_USE_7252S_GW=y VIDEO_ENCODER_SUPPORT=y B_REFSW_OBJ_DIR=obj.97252S_GW clean
 
 # 97268 A0 VMS
 source ../../../tools/build/plat 97268 A0 32
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-linux-atlas.bin.tgz $destination/binaries/internal/$NEXUS_PLATFORM/refsw-$reldate.97268a0_vms-linux-atlas-cable.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-linux-atlas.bin.tgz $destination/binaries/build_scripts/refsw-$reldate.97268a0_vms-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/$NEXUS_PLATFORM/refsw-$reldate.97268a0_vms-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_scripts/refsw-$reldate.97268a0_vms-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n clean
 
@@ -304,8 +304,8 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_SYSTEM_CABLE=y NEXUS_
 source ../../../tools/build/plat  97445 E0 le VMS_SFF
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  DCC_SUPPORT=n  NEXUS_SYSTEM_CABLE=y CABLE_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  DCC_SUPPORT=n  NEXUS_SYSTEM_CABLE=y CABLE_SUPPORT=y ESTB_SNMP_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97445-linux-atlas.bin.tgz $destination/binaries/internal/97445/refsw-$reldate.97445e0_vms_sff-linux-atlas-cable.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97445-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97445e0_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97445-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97445/refsw-$reldate.97445e0_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97445-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97445e0_vms_sff-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/bcm*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 cp ../../../cable/bin/$NEXUS_PLATFORM/boot*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  DCC_SUPPORT=n  NEXUS_SYSTEM_CABLE=y CABLE_SUPPORT=y ESTB_SNMP_SUPPORT=n clean
@@ -316,8 +316,8 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal BHDM_CEC_SUPPORT=n CDL_SUPP
 source ../../../tools/build/plat 97584 a0 le
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97584-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97584a0_3349-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97584-linux-atlas.bin.tgz $destination/binaries/internal/97584/refsw-$reldate.97584a0_3349a0-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97584-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97584a0_3349-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97584-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97584/refsw-$reldate.97584a0_3349a0-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 
@@ -327,8 +327,8 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDS
 source ../../../tools/build/plat  97241 b0 le
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_PLATFORM_7241_DCSFBTSFF=y  NEXUS_REVERSE_RMAGNUM_SUPPORT=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_PLATFORM_7241_DCSFBTSFF=y  NEXUS_REVERSE_RMAGNUM_SUPPORT=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97241-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97241b0_3349-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97241-linux-atlas.bin.tgz $destination/binaries/internal/97241/refsw-$reldate.97241b0_3349a0-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97241-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97241b0_3349-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97241-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97241/refsw-$reldate.97241b0_3349a0-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_PLATFORM_7241_DCSFBTSFF=y  NEXUS_REVERSE_RMAGNUM_SUPPORT=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y clean
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012 Broadcom Corporation
+ *     Copyright (C) 2012 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -39,7 +39,6 @@
 #include "bv3d.h"
 #include "bv3d_binmem_priv.h"
 #include "bkni.h"
-#include "bmem.h"
 
 BDBG_MODULE(BV3D_P);
 
@@ -464,7 +463,7 @@ void BV3D_P_BinMemDebugDump(BV3D_BinMemManagerHandle hBinMemManager)
 /* Calculate the number of free blocks
  * The overspill block is not treated as allocated.
  */
-uint32_t BV3D_P_BinMemNumFreeBlocks(
+static uint32_t BV3D_P_BinMemNumFreeBlocks(
     BV3D_BinMemManagerHandle  hBinMemManager)
 {
    return hBinMemManager->uiFreeChunks;

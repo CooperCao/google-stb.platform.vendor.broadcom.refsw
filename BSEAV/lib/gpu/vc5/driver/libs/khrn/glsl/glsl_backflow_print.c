@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "glsl_common.h"
 
@@ -21,7 +21,7 @@ static void dpostv_gather(Backflow* dataflow, void* data)
    assert(chain != NULL);
 
    // Add this node to the chain.
-   glsl_backflow_chain_append(chain, dataflow);
+   glsl_backflow_chain_push_back(chain, dataflow);
 }
 
 typedef enum
@@ -56,11 +56,9 @@ static void print_edges(FILE *f, Backflow *node)
          print_edge(f, EDGE_SOLID, node->dependencies[i], node);
    }
 
-   BackflowChainNode *n;
-   LIST_FOR_EACH(n, &node->io_dependencies, l)
-   {
+   for (BackflowIODepChainNode *n=node->io_dependencies.head; n; n=n->next) {
       // Dependency: dashed line.
-      print_edge(f, EDGE_DASHED, n->ptr, node);
+      print_edge(f, EDGE_DASHED, n->val.dep, node);
    }
 }
 
@@ -87,6 +85,11 @@ static void print_node(FILE *f, Backflow *backflow)
             case V3D_QPU_SIG_WRTMUC: fprintf(f, "wrtmuc");  break;
 #else
             case V3D_QPU_SIG_LDVPM:  fprintf(f, "vpm");     break;
+#endif
+#if V3D_HAS_LDUNIFRF
+            case V3D_QPU_SIG_LDUNIFRF:  fprintf(f, "ldunifrf");  break;
+            case V3D_QPU_SIG_LDUNIFA:   fprintf(f, "ldunifa");   break;
+            case V3D_QPU_SIG_LDUNIFARF: fprintf(f, "ldunifarf"); break;
 #endif
          }
          break;
@@ -304,8 +307,6 @@ static void print_node(FILE *f, Backflow *backflow)
 // Outputs graphviz dot representation of these nodes,
 static void print_backflow_from_chain(FILE *f, BackflowChain *chain)
 {
-   BackflowChainNode *node;
-
    assert(chain != NULL);
    assert(chain->head != NULL);
 
@@ -314,10 +315,12 @@ static void print_backflow_from_chain(FILE *f, BackflowChain *chain)
    fprintf(f, "{\n");
 
    // Declare all the nodes
-   LIST_FOR_EACH(node, chain, l) print_node(f, node->ptr);
+   for (BackflowChainNode *n=chain->head; n; n=n->next)
+      print_node(f, n->val);
 
    // Print all the edges
-   LIST_FOR_EACH(node, chain, l) print_edges(f, node->ptr);
+   for (BackflowChainNode *n=chain->head; n; n=n->next)
+      print_edges(f, n->val);
 
    // Print closing.
    fprintf(f, "}\n");
@@ -334,8 +337,8 @@ void glsl_print_backflow_from_roots(FILE *f, Backflow **roots, int num_roots, co
    for (int i=0; i<num_roots; i++) {
       glsl_backflow_visit(roots[i], v);
    }
-   for (BackflowChainNode *n=iodeps->head; n; n=n->l.next)
-      glsl_backflow_visit(n->ptr, v);
+   for (BackflowChainNode *n=iodeps->head; n; n=n->next)
+      glsl_backflow_visit(n->val, v);
 
    glsl_backflow_visitor_end(v);
 

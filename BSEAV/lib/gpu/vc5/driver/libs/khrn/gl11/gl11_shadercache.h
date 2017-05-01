@@ -1,17 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Handles vertex and fragment shader caches.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GL11_SHADERCACHE_4_H
 #define GL11_SHADERCACHE_4_H
 
-#include "../common/khrn_interlock.h"
+#include "../common/khrn_resource.h"
 #include "gl11_shader_cache.h"
 #include "../common/khrn_fmem.h"
 extern void gl11_hw_shader_cache_reset(GL11_CACHE_ENTRY_T *cache);

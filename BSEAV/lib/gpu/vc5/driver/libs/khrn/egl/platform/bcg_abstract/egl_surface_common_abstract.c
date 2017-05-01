@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-Common implementations for surface implementations
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "vcos.h"
 #include "../../egl_display.h"
 #include "../../egl_surface.h"
@@ -195,10 +188,10 @@ static void image_term_abstract(void *nativeSurface)
       platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Decrement);
 }
 
-KHRN_IMAGE_T *image_from_surface_abstract(void *nativeSurface, bool flipY)
+khrn_image *image_from_surface_abstract(void *nativeSurface, bool flipY)
 {
-   KHRN_IMAGE_T            *image = NULL;
-   KHRN_BLOB_T             *image_blob = NULL;
+   khrn_image            *image = NULL;
+   khrn_blob             *image_blob = NULL;
    gmem_handle_t           gmem_handle = GMEM_HANDLE_INVALID;
    GFX_BUFFER_DESC_T       buffer_desc;
    BEGL_DisplayInterface   *platform = &g_bcgPlatformData.displayInterface;

@@ -65,7 +65,7 @@ void BAPE_Playback_GetDefaultOpenSettings(
     pSettings->watermarkThreshold = 64*1024;
 }
 
-void BAPE_Playback_P_FreeBuffer(BAPE_PlaybackHandle hPlayback, unsigned idx)
+static void BAPE_Playback_P_FreeBuffer(BAPE_PlaybackHandle hPlayback, unsigned idx)
 {
     if ( hPlayback->block[idx] )
     {

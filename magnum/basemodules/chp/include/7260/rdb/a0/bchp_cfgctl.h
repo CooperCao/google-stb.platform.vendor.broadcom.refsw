@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 12 14:43:29 2016
- *                 Full Compile MD5 Checksum  72623f627b5a03f6b5e6bed43d8441e3
+ * Date:           Generated on               Mon Sep 12 16:41:48 2016
+ *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
  *                     (minus title and desc)
- *                 MD5 Checksum               83b582150f6fd1fe9527fa7ebef26cb7
+ *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     899
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -68,11 +70,11 @@
 /***************************************************************************
  *CFGCTL
  ***************************************************************************/
-#define BCHP_CFGCTL_ID                           0x2041d000 /* [RO] BPCM ID Register */
-#define BCHP_CFGCTL_CAPABILITY                   0x2041d004 /* [RO] BPCM Capability Register */
-#define BCHP_CFGCTL_CONTROL                      0x2041d008 /* [RW] BPCM Control Register */
-#define BCHP_CFGCTL_STATUS                       0x2041d00c /* [RO] BPCM Status Register */
-#define BCHP_CFGCTL_SFTRST_CONTROL               0x2041d010 /* [RW] SR and General control Register */
+#define BCHP_CFGCTL_ID                           0x2041d000 /* [RO][32] BPCM ID Register */
+#define BCHP_CFGCTL_CAPABILITY                   0x2041d004 /* [RO][32] BPCM Capability Register */
+#define BCHP_CFGCTL_CONTROL                      0x2041d008 /* [RW][32] BPCM Control Register */
+#define BCHP_CFGCTL_STATUS                       0x2041d00c /* [RO][32] BPCM Status Register */
+#define BCHP_CFGCTL_SFTRST_CONTROL               0x2041d010 /* [RW][32] SR and General control Register */
 
 /***************************************************************************
  *ID - BPCM ID Register

@@ -825,6 +825,7 @@ done:
     {
         bcmReleaseMutex(g_hSocketMutex);
         bcmDestroyMutex(g_hSocketMutex);
+        g_hSocketMutex = 0;
     }
 
     return iError;

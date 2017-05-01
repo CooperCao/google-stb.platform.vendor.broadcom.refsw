@@ -71,6 +71,7 @@
 #define CONTENT_TYPE_HTML "Content-type: text/html\n\n"
 #define MYUUID_LEN 16
 #define RECORD_BUTTON_HEIGHT 10
+#define TCP_STATISTICS_LEN   1024
 
 char         *g_client_name[BMEMPERF_MAX_NUM_CLIENT];
 int           g_MegaBytes           = 0;                   /* set to 1 when user wants data displayed in megabytes instead of megabits (default) */
@@ -479,7 +480,9 @@ static int output_memory_controls(
             "(<input type=input id=PerfCacheDuration style=\"width:2em;\" value=2>sec)</td>\n" );
     printf( "</tr>\n" );
 
-    printf( "<tr id=row_memory_html style=\"visibility:display;\" ><th align=left valign=top id=MEMORY_HTML colspan=4 ></th></tr>\n" );
+    printf( "<tr id=row_memory_html0 style=\"visibility:display;\" ><th align=left valign=top id=MEMORY_HTML0 colspan=4 ></th></tr>\n" );
+    printf( "<tr id=row_memory_html1 style=\"visibility:display;\" ><th align=left valign=top id=MEMORY_HTML1 colspan=4 ></th></tr>\n" );
+    printf( "<tr id=row_memory_html2 style=\"visibility:display;\" ><th align=left valign=top id=MEMORY_HTML2 colspan=4 ></th></tr>\n" );
 
     printf( "</table>" );                                  /* end MEMORY */
 
@@ -498,7 +501,7 @@ static int get_PerfCache_Results(
     char *contents = NULL;
     char  tempFilename[TEMP_FILE_FULL_PATH_LEN];
 
-    printf( "~HEAPTABLE~" );
+    printf( "~PERFCACHE~" );
     printf( "<table id=heapstable border=0 ><tr><td colspan=5 ><textarea cols=120 rows=24 id=textareaPerfCache >" );
 
     PrependTempDirectory( tempFilename, sizeof( tempFilename ), PERF_STAT_OUTPUT_FILE );
@@ -981,6 +984,8 @@ int main(
     int   netStatsInit     = 0; // when true, send to browser the Net Stats html table structure
     int   netStatsUpdate   = 0; // when true, send network interface values from last second; browser will populate the html table structure
     int   NetTuningInit    = 0;
+    int   NetTcpInit       = 0;
+    int   NetIgmpInit      = 0;
     int   iperfInit        = 0;
     int   iperfPidClient   = 0;
     int   iperfPidServer   = 0;
@@ -993,6 +998,7 @@ int main(
     int   wifiAmpduStart   = 0;
     int   wifiAmpduGraph   = 0;
     int   wifiScanResults  = -1;
+    char  WifiWakeOnWlan[20]; /* typical MAC address 00:11:22:33:44:55 */
     int   irqInfo          = 0;
     int   heapStats        = 0;
     int   sataUsb          = 0;
@@ -1025,6 +1031,7 @@ int main(
 
     memset( &versionInfo, 0, sizeof( versionInfo ));
     memset( &response, 0, sizeof( response ));
+    memset( &request, 0, sizeof( request ));
     memset( &irqTotalStr, 0, sizeof( irqTotalStr ));
     memset( &PerfFlameCmdLine, 0, sizeof( PerfFlameCmdLine ));
     memset( strUuid, 0, sizeof(strUuid) );
@@ -1033,6 +1040,7 @@ int main(
     memset( &wifiDriverVersion, 0, sizeof(wifiDriverVersion));
     memset( &ProcFileFullname, 0, sizeof(ProcFileFullname));
     memset( &ProcFileContents, 0, sizeof(ProcFileContents));
+    memset( &WifiWakeOnWlan, 0, sizeof(WifiWakeOnWlan));
 
     queryString   = getenv( "QUERY_STRING" );
 
@@ -1045,6 +1053,8 @@ int main(
         scanForInt( queryString, "netStatsInit=", &netStatsInit );
         scanForInt( queryString, "netStatsUpdate=", &netStatsUpdate );
         scanForInt( queryString, "NetTuningInit=", &NetTuningInit );
+        scanForInt( queryString, "NetTcpInit=", &NetTcpInit );
+        scanForInt( queryString, "NetIgmpInit=", &NetIgmpInit );
         scanForInt( queryString, "iperfInit=", &iperfInit );
         scanForInt( queryString, "iperfPidClient=", &iperfPidClient);
         scanForInt( queryString, "iperfPidServer=", &iperfPidServer);
@@ -1078,6 +1088,7 @@ int main(
         scanForStr( queryString, "uuid=", sizeof( strUuid ), strUuid );
         scanForStr( queryString, "ProcFileFullname=", sizeof( ProcFileFullname ), ProcFileFullname );
         scanForStr( queryString, "ProcFileContents=", sizeof( ProcFileContents ), ProcFileContents );
+        scanForStr( queryString, "WifiWakeOnWlan=", sizeof( WifiWakeOnWlan ), WifiWakeOnWlan );
     }
     else
     {
@@ -1545,15 +1556,15 @@ int main(
         printf( "~netStatsInit~" );
         printf( "<table cols=9 width=\"1024\" style=\"border-collapse:collapse;\" border=0 cellpadding=0 >" );
 
-        printf( "<tr><td class=whiteborders18 align=left style=\"font-weight:bold;width:320px;\" >Network Interface Statistics</td>" );
-        printf( "<td style=\"width:20px;\" ><input type=checkbox id=checkboxiperfrow onclick=\"MyClick(event);\" ></td>");
-        printf( "<td style=\"width:50px;\" align=left >iperf</td>" );
-        printf( "<td style=\"width:20px;\" ><input type=checkbox id=checkboxNetTuningRow onclick=\"MyClick(event);\" ></td>");
-        printf( "<td style=\"width:50px;\" align=left >Tuning</td>" );
-        printf( "<td>&nbsp;</td>" );
-        printf( "<td>&nbsp;</td>" );
-        printf( "<td>&nbsp;</td>" );
-        printf( "<td>&nbsp;</td>" );
+        printf( "<tr><td class=whiteborders18 align=left style=\"font-weight:bold;width:300px;\" >Network Interface Statistics</td>" );
+        printf( "<td style=\"width:30px;\" align=right ><input type=checkbox id=checkboxiperfrow onclick=\"MyClick(event);\" ></td>");
+        printf( "<td style=\"width:30px;\" align=left >iperf</td>" );
+        printf( "<td style=\"width:30px;\" align=right ><input type=checkbox id=checkboxNetTuningRow onclick=\"MyClick(event);\" ></td>");
+        printf( "<td style=\"width:30px;\" align=left >Tuning</td>" );
+        printf( "<td style=\"width:30px;\" align=right ><input type=checkbox id=checkboxNetTcpRow onclick=\"MyClick(event);\" ></td>");
+        printf( "<td style=\"width:30px;\" align=left >TCP</td>" );
+        printf( "<td style=\"width:30px;\" align=right ><input type=checkbox id=checkboxNetIgmpRow onclick=\"MyClick(event);\" ></td>");
+        printf( "<td style=\"width:300px;\" align=left >IGMP</td><!-- the width:300 pushes values to the left -->" );
         printf( "</tr>" );
         printf( "<tr><td colspan=9><table width=\"100%%\" style=\"border-collapse:collapse;\" border=1 cellpadding=3 >\n" );
         printf( "<tr bgcolor=lightgray ><th>Name</th><th>IP Addr</th><th>Rx Bytes</th><th>Tx Bytes</th><th>Rx Errors</th><th>Tx Errors</th>"
@@ -1755,6 +1766,33 @@ int main(
             printf( "</table></div>~" ); /* end NetTuningInit */
         }
 
+        if (NetTcpInit)
+        {
+            char * contents = malloc( TCP_STATISTICS_LEN );
+            printf( "~NetTcpInit~" );
+            if ( contents )
+            {
+                memset( contents, 0, TCP_STATISTICS_LEN );
+                Bsysperf_GetTcpStatistics( contents, TCP_STATISTICS_LEN );
+                printf( "%s~", contents );
+                Bsysperf_Free( contents );
+            }
+            else
+            {
+                printf( "Could not malloc(%d) bytes~", TCP_STATISTICS_LEN );
+            }
+        }
+
+        if (NetIgmpInit)
+        {
+            char contents[1024];
+            FILE *fp = fopen( PATH_PROCNET_IGMP, "r" );
+            fread( contents, 1,PATH_PROCNET_IGMP_MAX, fp );
+            fclose( fp );
+
+            printf( "~NetIgmpInit~%s~", contents );
+        }
+
         if ( iperfRunningClient || iperfRunningServer )
         {
             char *iperf_processes = Bsysperf_GetProcessCmdline( "iperf -" );
@@ -1867,20 +1905,54 @@ int main(
 
         printf( "<tr><th style=\"vertical-align:middle;font-size:18.0pt; \" align=left width=250 ><span>WiFi&nbsp;Statistics</span></th>");
         printf( "<th colspan=6 style=\"vertical-align:middle;\" >");
-        printf( "<table border=0 style=\"border-collapse:collapse;\" ><tr><td><input type=button id=WifiScan value=Scan onclick=\"MyClick(event);\" ></td>");
-        printf( "<td width=30 >&nbsp;</td>");
-        printf(" <td><table border=0 ><tr><td><input type=checkbox checked>Stats</td><td id=WIFICOUNTDOWN >ab</td></tr></table></td>");
-        printf( "<td width=30 >&nbsp;</td>");
-        printf(" <td><table border=0 ><tr><td><input type=checkbox id=checkboxWifiAmpduGraph onclick=\"MyClick(event);\" >AMPDU Graph</td><td id=countWifiAmpduGraph ></td></tr></table></td>");
-        printf( "<td width=30 >&nbsp;</td>");
-        printf( "</tr></table></td>" );
-        printf(" </tr>");
+        printf( "  <table border=0 style=\"border-collapse:collapse;\" >");
+        printf( "    <tr><td><input type=button id=WifiScan value=Scan onclick=\"MyClick(event);\" ></td>");
+        printf( "        <td><table border=0 ><tr><td>Stats</td><td id=WIFICOUNTDOWN ></td></tr></table></td>");
+        printf( "        <td width=30 >&nbsp;</td>"); /* spacer */
+        printf( "        <td><table border=0 ><tr><td><input type=checkbox id=checkboxWifiAmpduGraph onclick=\"MyClick(event);\" >AMPDU Graph</td>" );
+        printf( "                                 <td width=30 >&nbsp;</td>"); /* spacer */
+        printf( "                                 <td><table border=0 >");
+        printf( "                                       <tr>");
+        printf( "                                         <td><input type=checkbox id=checkboxWifiWakeOnWlan onclick=\"MyClick(event);\" >Wake On Wlan</td>");
+        printf( "                                       </tr></table></td>");
+        printf( "                             </tr>");
+        printf( "            </table></td>");
+        printf( "    </tr></table>" );
+        printf( "</th></tr>");
 
         /* this row is where the wifi statistics will be put */
         printf( "<tr><td colspan=8><div id=WIFISTATS></div></td></tr>");
 
         /* this row is where the results from the SCAN will be put */
         printf( "<tr><td colspan=8 ><table border=0 style=\"border-collapse:collapse;\" ><tbody id=WIFISCANRESULTS ></tbody></table></td></tr>");
+
+        /* this row is where the wake on wlan controls will be put */
+        printf( "<tr id=WIFI_WAKE_ON_WLAN_ROW style=\"visibility:hidden;\" ><td colspan=8>");
+        printf( "<div id=WIFI_WAKE_ON_WLAN style=\"width:1000px; border-style:solid; border-width:thin; \" >" );
+        printf( "<table style=\"border-collapse:collapse;\" border=0 cellspacing=5 >");
+        printf( "<tr style=\"height:5px;\" ></tr>" );
+        printf( "<tr><td>Wake On Wlan Controls: </td> ");
+        printf( "<td width=5 >&nbsp;</td>"); /* spacer */
+        printf( "<td ><select id=dropdownWifiWakeOnWlan onchange=\"MySelect(event);\" style=\"width:170px;font-size:11pt;\" >" );
+        {
+            int idx = 0;
+            int num_addresses_found = 0;
+            BWL_MAC_ADDRESS addresses[5];
+            printflog( "%s: addresses %p\n", __FUNCTION__, addresses );
+            num_addresses_found = Bsysperf_WifiGetMacAssocList( WIFI_INTERFACE_NAME, &(addresses[0]), 5 );
+            for( idx=0; idx<num_addresses_found; idx++ )
+            {
+                printf( "<option value=%d >%s</option>", idx, addresses[idx] );
+            }
+        }
+        printf( "</select></td>" );
+        printf( "<td width=10 >&nbsp;</td>"); /* spacer */
+        printf( "<td><input type=button id=WIFI_WAKE_ON_WLAN_SEND value=\"Send Pkt\" onclick=\"MyClick(event);\" ></td>");
+        printf( "<td width=10 >&nbsp;</td>"); /* spacer */
+        printf( "<td width=500 id=WIFI_WAKE_ON_WLAN_COMMAND style=\"font-family:Courier New; font-size:10pt;\" >&nbsp;</td>");
+        printf( "</tr><tr style=\"height:5px;\" ></tr>" );
+        printf( "</table>");
+        printf( "</div></td></tr>");
 
         printf("</table>");
 
@@ -2144,6 +2216,12 @@ int main(
         }
     }
 
+    if ( strlen(WifiWakeOnWlan) > 0 )
+    {
+        int rc = Bsysperf_WifiWakeOnWlanSend( WIFI_INTERFACE_NAME, WifiWakeOnWlan );
+        printf( "~WIFI_WAKE_ON_WLAN_COMMAND~RC %d~", rc );
+    }
+
 #endif /* BWL_SUPPORT */
 
     /* if the memory row is displaying, output the controls */
@@ -2266,13 +2344,16 @@ int main(
     }
 
     /* we need to send this last to allow the previous functions to send back the HTML that might get disabled if gPerfError is true */
-    if (gPerfError == true)
+    if (epochSeconds)
     {
-        printf( "~PERFERROR~" );
-    }
-    else
-    {
-        printf( "~PERFENABLED~" );
+        if (gPerfError == true)
+        {
+            printf( "~PERFERROR~" );
+        }
+        else
+        {
+            printf( "~PERFENABLED~" );
+        }
     }
 
     /* if the checkbox for context switch per second is checked */

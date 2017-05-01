@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -168,6 +168,7 @@ typedef struct NEXUS_VideoEncoderBounds
     } bitrate;
     struct {
         struct {
+            unsigned framesP; /* number of P frames between I frames */
             unsigned framesB; /* number of B frames between I or P frames */
         } max;
     } streamStructure;
@@ -477,6 +478,15 @@ typedef struct NEXUS_VideoEncoderCapabilities
 
 void NEXUS_GetVideoEncoderCapabilities(
     NEXUS_VideoEncoderCapabilities *pCapabilities
+    );
+
+typedef struct NEXUS_VideoEncoderModuleStatistics
+{
+    unsigned numStarts; /* total number of times video encode was started since NEXUS_Platform_Init */
+} NEXUS_VideoEncoderModuleStatistics;
+
+void NEXUS_VideoEncoderModule_GetStatistics(
+    NEXUS_VideoEncoderModuleStatistics *pStats
     );
 
 #ifdef __cplusplus

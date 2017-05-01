@@ -872,7 +872,7 @@ void SysCalls::doCacheOp(TzTask *currTask, CacheOp cacheOp) {
         uintptr_t kvaStart = (uintptr_t)kernPage + ((userPage == userPageStart) ? offsetStart : 0);
         uintptr_t kvaLast  = (uintptr_t)kernPage + ((userPage == userPageLast)  ? offsetLast  : PAGE_SIZE_4K_BYTES - 1);
 
-        register uint32_t mva;
+        register uintptr_t mva;
         for (mva = kvaStart; mva < kvaLast; mva += lineSize) {
             if (cacheOp == CacheInval) {
                 // DCIMVAC - Invalidate data cache by MVA to PoC

@@ -96,4 +96,8 @@ BERR_Code BDSP_Arm_P_GetFWSize (
     unsigned firmware_id,
     uint32_t *size
     );
+
+extern const char * BDSP_ARM_AlgoFileName[BDSP_ARM_AF_P_AlgoId_eMax];
+
+
 #endif /*BDSP_ARM_FW_ALGO_H_*/

@@ -1,7 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include "libs/core/gfx_buffer/gfx_buffer.h"
@@ -12,12 +11,7 @@ VCOS_EXTERN_C_BEGIN
 
 struct v3d_rt_cfg
 {
-   /* wps (words per sample) can be:
-    * 1 for 8-bit types (all 4 components)
-    * 1 or 2 for 16-bit types (either 2 or 4 components)
-    * 1, 2, 3, or 4 for 32-bit types */
-   v3d_rt_type_t type;
-   uint32_t wps;
+   V3D_RT_FORMAT_T format;
 
    uint32_t clear[V3D_MAX_RT_WORDS_PER_SAMPLE];
 
@@ -60,6 +54,9 @@ struct v3d_rcfg
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    struct v3d_tlb_ldst_params depth_default_ldst_params;
 #endif
+
+   bool ez_disable;
+   v3d_ez_direction_t ez_direction;
 
    uint8_t stencil_clear;
 #if !V3D_VER_AT_LEAST(4,0,2,0)

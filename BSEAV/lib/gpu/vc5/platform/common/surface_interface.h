@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __SURFACE_INTERFACE_H__
 #define __SURFACE_INTERFACE_H__
 
@@ -11,6 +9,11 @@ All rights reserved.
 #include "list.h"
 #include <EGL/begl_displayplatform.h>
 #include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 typedef struct SurfaceInterface
 {
@@ -32,5 +35,9 @@ bool SurfaceInterface_Create(const SurfaceInterface *si,
 
 void SurfaceInterface_Destroy(const SurfaceInterface *si,
       void *surface);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __SURFACE_INTERFACE_H__ */

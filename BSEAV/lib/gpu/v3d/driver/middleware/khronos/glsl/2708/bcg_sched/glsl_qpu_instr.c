@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_qpu_instr.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_registers.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_exception.h"
@@ -44,7 +36,7 @@ static void _SetExplicitCoding(uint64_t *var, uint64_t value, uint64_t mask, uin
    ((unsigned int)GET_EXPLICIT_CODING(self->m_coding, name))
 
 CODING(IMMEDIATE,       0, 32);
-CODING(LS_BIT,          0, 16);
+//CODING(LS_BIT,          0, 16);
 CODING(SEMAPHORE,       0, 4);
 CODING(MUL_B,           0, 3);
 CODING(MUL_A,           3, 3);
@@ -53,12 +45,12 @@ CODING(ADD_B,           6, 3);
 CODING(ADD_A,           9, 3);
 CODING(RADDR_B,        12, 6);
 CODING(SMALL_IMMED,    12, 6);
-CODING(BRANCH_RADDR_A, 13, 5);
-CODING(MS_BIT,         16, 16);
+//CODING(BRANCH_RADDR_A, 13, 5);
+//CODING(MS_BIT,         16, 16);
 CODING(RADDR_A,        18, 6);
-CODING(REG,            18, 1);
-CODING(REL,            19, 1);
-CODING(COND_BR,        20, 4);
+//CODING(REG,            18, 1);
+//CODING(REL,            19, 1);
+//CODING(COND_BR,        20, 4);
 CODING(OP_ADD,         24, 5);
 CODING(OP_MUL,         29, 3);
 
@@ -1181,6 +1173,7 @@ static void NeedsSem(QPUGenericInstr *self)
    }
 }
 
+#if 0
 static void NeedsBranch(QPUGenericInstr *self)
 {
    if (QPUInstr_GetType(&self->m_instr) == QPUInstr_UNKNOWN)
@@ -1188,6 +1181,7 @@ static void NeedsBranch(QPUGenericInstr *self)
       QPUInstr_Constr(&self->m_instr, QPUInstr_BRANCH);
    }
 }
+#endif
 
 static bool CheckUnpackClash(QPUGenericInstr *self, const QPUOperand *op)
 {

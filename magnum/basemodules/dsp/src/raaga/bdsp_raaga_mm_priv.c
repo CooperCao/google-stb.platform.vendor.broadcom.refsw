@@ -127,7 +127,7 @@ BERR_Code BDSP_Raaga_P_GetFwMemRequired(
         if(Algotype == BDSP_AlgorithmType_eAudioProcessing){
             pAlgoTypeBuf[Algotype].ui32Size += ui32AlgorithmSize;
         }
-        else
+        else if(Algotype < BDSP_AlgorithmType_eMax)
         {
             if(pAlgoTypeBuf[Algotype].ui32Size < ui32AlgorithmSize){
                 pAlgoTypeBuf[Algotype].ui32Size  = ui32AlgorithmSize;

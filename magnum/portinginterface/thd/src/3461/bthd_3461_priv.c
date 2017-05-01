@@ -61,7 +61,7 @@ BDBG_MODULE(bthd_3461_priv);
 /******************************************************************************
   BTHD_3461_P_EventCallback_isr()
  ******************************************************************************/
-BERR_Code BTHD_3461_P_EventCallback_isr(
+static BERR_Code BTHD_3461_P_EventCallback_isr(
     void * pParam1, int param2
     )
 {
@@ -1125,6 +1125,7 @@ BERR_Code BTHD_3461_P_ProcessInterruptEvent(BTHD_Handle h)
     return BERR_SUCCESS;
 }
 
+#if 0
 /******************************************************************************
   BTHD_3461_CheckStatus()
  ******************************************************************************/
@@ -1133,6 +1134,7 @@ BERR_Code BTHD_3461_CheckStatus(uint8_t status)
     BSTD_UNUSED(status);
     return BERR_SUCCESS;
 }
+#endif
 
 /******************************************************************************
   BTHD_3461_P_GetSoftDecisionBuf()

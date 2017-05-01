@@ -468,7 +468,9 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
 };
 #endif
 
-const BVCE_VideoFormatInfo* BVCE_Platform_P_GetVideoFormatInfo( const BFMT_VideoFmt eVideoFormat )
+static
+const BVCE_VideoFormatInfo*
+BVCE_Platform_S_GetVideoFormatInfo( const BFMT_VideoFmt eVideoFormat )
 {
    unsigned i;
 
@@ -497,7 +499,7 @@ BVCE_Platform_P_OverrideChannelDefaultStartEncodeSettings(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_S_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
             BDBG_ASSERT( pstVideoFormatInfo );
             {
                BAVC_ScanType eInputType = pstVideoFormatInfo->eDefaultInputType;
@@ -530,7 +532,7 @@ BVCE_Platform_P_OverrideChannelDefaultEncodeSettings(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_S_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
             BDBG_ASSERT( pstVideoFormatInfo );
             {
                BAVC_ScanType eInputType = pstVideoFormatInfo->eDefaultInputType;
@@ -557,7 +559,7 @@ BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_S_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
             BDBG_ASSERT( pstVideoFormatInfo );
             {
                BAVC_ScanType eInputType = pstVideoFormatInfo->eDefaultInputTypeMemory;
@@ -588,7 +590,7 @@ BVCE_Platform_P_OverrideChannelDimensionBounds(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_S_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
             BDBG_ASSERT( pstVideoFormatInfo );
             {
                bool bOverride = false;

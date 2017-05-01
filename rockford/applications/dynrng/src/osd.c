@@ -59,8 +59,8 @@ static const char * STR_OSD_INSTRUCTIONS[] =
     "  FFWD/REW:  CHANGE IMAGES",
     "  SELECT:  TOGGLE THESE ON-SCREEN INSTRUCTIONS",
     "  PLAY/PAUSE:  TOGGLE PLAY/PAUSE",
-    "  BACK(LAST):  CYCLE OUTPUT EOTF (RESETS ON STREAM CHANGE UNLESS MADE STICKY)",
-    "  POWER:  TOGGLE OUTPUT EOTF STICKINESS (DEFAULT OFF)",
+    "  BACK(LAST):  CYCLE OUTPUT DYNRNG (RESETS ON STREAM CHANGE UNLESS MADE STICKY)",
+    "  POWER:  TOGGLE OUTPUT DYNRNG LOCK (DEFAULT OFF)",
     "  STOP:  CYCLE OUTPUT COLORIMETRY (AUTO, SD/601, HD/709, UHD/2020)"
 };
 
@@ -87,7 +87,6 @@ BWT_PanelHandle osd_p_create_guide_panel(OsdHandle osd, const BWT_Dimensions * m
 {
     BWT_PanelHandle guide;
     BWT_LabelHandle label;
-    unsigned textColor;
     unsigned i;
     unsigned count;
     const char ** instructions;
@@ -157,22 +156,20 @@ BWT_LabelHandle osd_p_add_name_value_pair(
 
 static const char * STR_GUIDE_INSTRUCTION = "Press <select> or <enter> to view instructions";
 static const char * STR_DESC = "DESC";
-static const char * STR_VID = "VID";
+/*static const char * STR_VID = "VID";*/
 static const char * STR_VID_LONG = "VIDEO IN";
-static const char * STR_GFX = "GFX";
+/*static const char * STR_GFX = "GFX";*/
 static const char * STR_GFX_LONG = "GRAPHICS";
 static const char * STR_SEL = "SELECTOR";
-static const char * STR_OUT = "OUT";
+/*static const char * STR_OUT = "OUT";*/
 static const char * STR_OUT_LONG = "VIDEO OUT";
 static const char * STR_RCV = "EDID SUPPORT";
 static const char * STR_FORMAT = "FORMAT";
-static const char * STR_SPACE = "CSPC";
+/*static const char * STR_SPACE = "CSPC";*/
 static const char * STR_DYNRNG = "DYNRNG";
 static const char * STR_GAMUT = "GAMUT";
 static const char * STR_DEPTH = "BITDEPTH";
 static const char * STR_PLM = "PLM";
-static const char * STR_plm_ON = "PLM ON";
-static const char * STR_plm_OFF = "PLM OFF";
 static const char * STR_SEL_USER = "USER";
 static const char * STR_SEL_AUTO = "AUTO";
 static const char * STR_DETAILS_PANEL_NAME = "details";
@@ -183,7 +180,14 @@ static const unsigned COLOR_GREEN_100 = 0xff00ff00;
 static const unsigned COLOR_GREEN_20 = 0x3300ff00;
 static const unsigned COLOR_BLUE_20 = 0x330000ff;
 static const unsigned COLOR_LIGHT_BLUE_20 = 0x33000080;
-static const unsigned COLOR_LIGHT_GREY_20 = 0x333f3f3f;
+/*static const unsigned COLOR_LIGHT_GREY_20 = 0x333f3f3f;*/
+static const char * STR_TABLE_PLM[] =
+{
+    "PLM OFF",
+    "PLM ON",
+    "PLM PASS",
+    NULL
+};
 
 /*
  * |DESC        |FORMAT      |DYNRNG      |GAMUT       |BITDEPTH    |PLM         |
@@ -228,7 +232,7 @@ void osd_details_panel_p_populate_headers(OsdHandle osd, BWT_TableHandle table)
     osd_details_panel_p_populate_cell(osd, table, row, ++c, STR_PLM);
 }
 
-void osd_details_panel_p_populate_row(OsdHandle osd, BWT_TableHandle table, OsdPictureDetailsView * pView, unsigned r, const char * desc, bool plm)
+void osd_details_panel_p_populate_row(OsdHandle osd, BWT_TableHandle table, OsdPictureInfoView * pView, unsigned r, const char * desc, bool plm)
 {
     BWT_WidgetHandle row;
     unsigned c;
@@ -254,39 +258,39 @@ void osd_details_panel_p_populate_row(OsdHandle osd, BWT_TableHandle table, OsdP
     }
 }
 
-static BWT_TableHandle osd_details_panel_p_create_table(OsdHandle osd, unsigned textHeight)
+static BWT_TableHandle osd_details_panel_p_create_table(OsdHandle osd, OsdInfoPanel *detailsPanel, unsigned textHeight, unsigned numVideos)
 {
     BWT_TableHandle table;
     BWT_TableCreateSettings tableSettings;
-    BWT_WidgetHandle row;
-    unsigned r;
+    unsigned r, i;
 
     BWT_Table_GetDefaultCreateSettings(&tableSettings);
     tableSettings.colWidth = 135;
     tableSettings.rowHeight = osd_p_compute_external_dim(textHeight, tableSettings.padding);
     tableSettings.cols = 6;
-    tableSettings.rows = 6;
+    tableSettings.rows = 5 + numVideos;
     tableSettings.fgColor = osd->theme.textForegroundColor;
     table = BWT_Table_Create(osd->bwt, &tableSettings);
     assert(table);
 
     r = 0;
     osd_details_panel_p_populate_headers(osd, table);
-    osd_details_panel_p_populate_row(osd, table, &osd->details.vid, ++r, STR_VID_LONG, true);
-    osd_details_panel_p_populate_row(osd, table, &osd->details.gfx, ++r, STR_GFX_LONG, true);
-    osd_details_panel_p_populate_row(osd, table, &osd->details.sel, ++r, STR_SEL, false);
-    osd_details_panel_p_populate_row(osd, table, &osd->details.out, ++r, STR_OUT_LONG, false);
-    osd_details_panel_p_populate_row(osd, table, &osd->details.rcv, ++r, STR_RCV, false);
+    for(i=0; i<numVideos; i++) {
+        char buffer [16];
+        snprintf(buffer, 16, "%s %d", STR_VID_LONG, i);
+        osd_details_panel_p_populate_row(osd, table, &detailsPanel->vid[i], ++r, buffer, true);
+    }
+    osd_details_panel_p_populate_row(osd, table, &detailsPanel->gfx, ++r, STR_GFX_LONG, true);
+    osd_details_panel_p_populate_row(osd, table, &detailsPanel->sel, ++r, STR_SEL, false);
+    osd_details_panel_p_populate_row(osd, table, &detailsPanel->out, ++r, STR_OUT_LONG, false);
+    osd_details_panel_p_populate_row(osd, table, &detailsPanel->rcv, ++r, STR_RCV, false);
 
     return table;
 }
 
-BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, const BWT_Dimensions * mainDims, unsigned mainPadding, unsigned textHeight)
+BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, OsdInfoPanel *detailsPanel, const BWT_Dimensions * mainDims, unsigned mainPadding, unsigned textHeight, unsigned numVideos)
 {
     BWT_PanelHandle details;
-    unsigned col1x;
-    unsigned col2x;
-    unsigned y;
     BWT_PanelCreateSettings settings;
     const BWT_Dimensions * dims;
     BWT_TableHandle table;
@@ -294,7 +298,7 @@ BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, const BWT_Dimensions *
     assert(mainDims);
     assert(osd);
 
-    table = osd_details_panel_p_create_table(osd, textHeight);
+    table = osd_details_panel_p_create_table(osd, detailsPanel, textHeight, numVideos);
     dims = BWT_Widget_GetDimensions((BWT_WidgetHandle)table);
 
     BWT_Panel_GetDefaultCreateSettings(&settings);
@@ -320,15 +324,15 @@ BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, const BWT_Dimensions *
     }
 
     BWT_Panel_AddChild(details, (BWT_WidgetHandle)table, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eDefault);
-    osd->details.table = table;
+    detailsPanel->table = table;
 
     return details;
 }
 
 /*
  * Smaller Info Panel
- * |VIDEO IN |HDR10|PLM ON | ON -> GREEN
- * |GRAPHICS |SDR  |PLM OFF| OFF -> RED
+ * |VIDEO IN |HDR10|PLM ON | # ON -> GREEN
+ * |GRAPHICS |SDR  |PLM OFF| # OFF -> RED
  * |VIDEO OUT|HDR10|
  */
 static BWT_LabelHandle osd_info_panel_p_populate_cell(OsdHandle osd, BWT_TableHandle table, BWT_WidgetHandle row, unsigned c, const char * text, BWT_HorizontalAlignment halign, BWT_VerticalAlignment valign)
@@ -379,43 +383,43 @@ void osd_info_panel_p_populate_row(OsdHandle osd, BWT_TableHandle table, OsdPict
     }
 }
 
-static BWT_TableHandle osd_info_panel_p_create_table(OsdHandle osd, unsigned textHeight)
+static BWT_TableHandle osd_info_panel_p_create_table(OsdHandle osd, OsdInfoPanel *infoPanel, unsigned textHeight, unsigned numVideos)
 {
     BWT_TableHandle table;
     BWT_TableCreateSettings tableSettings;
-    BWT_WidgetHandle row;
-    unsigned r;
+    unsigned r,i;
 
     BWT_Table_GetDefaultCreateSettings(&tableSettings);
     tableSettings.colWidth = 110;
     tableSettings.rowHeight = osd_p_compute_external_dim(textHeight, tableSettings.padding);
     tableSettings.cols = 3;
-    tableSettings.rows = 3;
+    tableSettings.rows = 2 + numVideos;
     tableSettings.fgColor = osd->theme.textForegroundColor;
     table = BWT_Table_Create(osd->bwt, &tableSettings);
     assert(table);
 
-    r = 0;
-    osd_info_panel_p_populate_row(osd, table, &osd->info.vid,   r, STR_VID_LONG, true);
-    osd_info_panel_p_populate_row(osd, table, &osd->info.gfx, ++r, STR_GFX_LONG, true);
-    osd_info_panel_p_populate_row(osd, table, &osd->info.out, ++r, STR_OUT_LONG, false);
+    r = -1;
+    for(i=0; i<numVideos; i++) {
+        char buffer [16];
+        snprintf(buffer, 16, "%s %d", STR_VID_LONG, i);
+        osd_info_panel_p_populate_row(osd, table, &infoPanel->vid[i], ++r, buffer, true);
+    }
+    osd_info_panel_p_populate_row(osd, table, &infoPanel->gfx, ++r, STR_GFX_LONG, true);
+    osd_info_panel_p_populate_row(osd, table, &infoPanel->out, ++r, STR_OUT_LONG, false);
 
     return table;
 }
 
-BWT_PanelHandle osd_p_create_info_panel(OsdHandle osd, unsigned textHeight)
+BWT_PanelHandle osd_p_create_info_panel(OsdHandle osd, OsdInfoPanel *infoPanel, unsigned textHeight, unsigned numVideos)
 {
     BWT_PanelHandle info;
-    unsigned col1x;
-    unsigned col2x;
-    unsigned y;
     BWT_PanelCreateSettings settings;
     const BWT_Dimensions * dims;
     BWT_TableHandle table;
 
     assert(osd);
 
-    table = osd_info_panel_p_create_table(osd, textHeight);
+    table = osd_info_panel_p_create_table(osd, infoPanel, textHeight, numVideos);
     dims = BWT_Widget_GetDimensions((BWT_WidgetHandle)table);
 
     BWT_Panel_GetDefaultCreateSettings(&settings);
@@ -425,12 +429,12 @@ BWT_PanelHandle osd_p_create_info_panel(OsdHandle osd, unsigned textHeight)
     settings.dims.width = osd_p_compute_external_dim(dims->width, settings.padding);
     settings.dims.height = osd_p_compute_external_dim(dims->height, settings.padding);
     settings.color = osd->theme.infoPanelBackgroundColor;
-    settings.visible = true;
+    settings.visible = false;
     info = BWT_Panel_Create(osd->bwt, &settings);
     assert(info);
 
     BWT_Panel_AddChild(info, (BWT_WidgetHandle)table, BWT_VerticalAlignment_eDefault, BWT_HorizontalAlignment_eDefault);
-    osd->info.table = table;
+    infoPanel->table = table;
 
     return info;
 }
@@ -459,7 +463,7 @@ BWT_PanelHandle osd_p_create_main_panel(OsdHandle osd)
     return panel;
 }
 
-BWT_VideoWindowHandle osd_p_create_window(OsdHandle osd)
+BWT_VideoWindowHandle osd_p_create_window(OsdHandle osd, const BWT_Dimensions * videoDims, unsigned id)
 {
     BWT_VideoWindowHandle window;
     BWT_VideoWindowCreateSettings settings;
@@ -473,59 +477,93 @@ BWT_VideoWindowHandle osd_p_create_window(OsdHandle osd)
     BWT_VideoWindow_GetDefaultCreateSettings(&settings);
     settings.visible = true;
     settings.name = windowName;
+    settings.dims = *videoDims;
+    settings.id = id;
     window = BWT_VideoWindow_Create(osd->bwt, &settings);
     assert(window);
 
     return window;
 }
 
+static const char * STR_VIDEO_PANEL_NAME = "video";
+
+BWT_PanelHandle osd_p_create_video_panel(OsdHandle osd, const BWT_Dimensions * mainDims, unsigned mainPadding)
+{
+    BWT_PanelHandle video;
+    BWT_PanelCreateSettings panelSettings;
+/*    unsigned padding = (mainDims->width>mainDims->height ? mainDims->height : mainDims->width)*mainPadding/BWT_RELATIVE_BASE;*/
+    unsigned i;
+
+    assert(osd);
+
+    BWT_Panel_GetDefaultCreateSettings(&panelSettings);
+    panelSettings.name = STR_VIDEO_PANEL_NAME;
+    panelSettings.dims.width = mainDims->width;
+    panelSettings.dims.height = mainDims->height;
+    panelSettings.padding = 0;
+    panelSettings.spacing = 0;
+    panelSettings.flow = BWT_LayoutFlow_eHorizontal;
+    video = BWT_Panel_Create(osd->bwt, &panelSettings);
+    assert(video);
+
+    for(i=0; i<MAX_MOSAICS; i++) {
+        osd->window[i] = osd_p_create_window(osd, &panelSettings.dims, i);
+        assert(osd->window[i]);
+    }
+
+    return video;
+}
+
 OsdHandle osd_create(PlatformHandle platform, PlatformGraphicsHandle gfx, const OsdTheme * pTheme)
 {
     OsdHandle osd;
     const BWT_Dimensions * mainDims;
-    const BWT_Dimensions * infoDims;
     BWT_ToolkitCreateSettings settings;
     unsigned mainPadding;
     unsigned textHeight;
-    static const char * bgPanelName = "bg";
 
     assert(gfx);
     assert(pTheme);
 
     osd = malloc(sizeof(*osd));
-    assert(osd);
+    if (!osd) goto error;
     memset(osd, 0, sizeof(*osd));
     BWT_Toolkit_GetDefaultCreateSettings(&settings);
     settings.gfx = gfx;
     osd->bwt = BWT_Toolkit_Create(&settings);
-    assert(osd->bwt);
+    if (!osd->bwt) goto error;
 
     osd->platform = platform;
+    osd->gfx = gfx;
+
     platform_get_default_model(&osd->model);
 
     memcpy(&osd->theme, pTheme, sizeof(*pTheme));
 
     osd->main = osd_p_create_main_panel(osd);
-    assert(osd->main);
+    if (!osd->main) goto error;
     mainDims = BWT_Widget_GetDimensions((BWT_WidgetHandle)osd->main);
     mainPadding = BWT_Widget_GetPadding((BWT_WidgetHandle)osd->main);
     textHeight = BWT_Toolkit_GetTextHeight(osd->bwt);
 
-    osd->window = osd_p_create_window(osd);
-    assert(osd->window);
-    BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->window, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
+    osd->video = osd_p_create_video_panel(osd, mainDims, mainPadding);
+    if (!osd->video) goto error;
+    BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->video, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
 
     osd->guide = osd_p_create_guide_panel(osd, mainDims, mainPadding, textHeight);
-    assert(osd->guide);
+    if (!osd->guide) goto error;
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->guide, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eRight);
 
-    osd->details.base = osd_p_create_details_panel(osd, mainDims, mainPadding, textHeight);
-    assert(osd->details.base);
-    /* start with info panel up, not details */
-
-    osd->info.base = osd_p_create_info_panel(osd, textHeight);
-    assert(osd->info.base);
+    osd->details.base = osd_p_create_details_panel(osd, &osd->details, mainDims, mainPadding, textHeight, 1);
+    if (!osd->details.base) goto error;
+    osd->mosaicDetails.base = osd_p_create_details_panel(osd, &osd->mosaicDetails, mainDims, mainPadding, textHeight, MAX_MOSAICS);
+    if (!osd->mosaicDetails.base) goto error;
+    osd->info.base = osd_p_create_info_panel(osd, &osd->info, textHeight, 1);
+    if (!osd->info.base) goto error;
+    osd->mosaicInfo.base = osd_p_create_info_panel(osd, &osd->mosaicInfo, textHeight, MAX_MOSAICS);
+    if (!osd->mosaicInfo.base) goto error;
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->info.base, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eCenter);
+    osd->current = &osd->info;
 
     osd->renderer = platform_scheduler_add_listener(platform_get_scheduler(platform), &osd_p_scheduler_callback, osd);
     if (!osd->renderer)
@@ -588,22 +626,36 @@ void osd_toggle_details_mode(OsdHandle osd)
     osd_set_details_mode(osd, !osd->detailed);
 }
 
+static void osd_p_configure_info_panel_layout(OsdHandle osd, bool mosaic, bool layout, bool detailed)
+{
+    BWT_VerticalAlignment vAlign;
+    BWT_HorizontalAlignment hAlign;
+    OsdInfoPanel *infoPanel = NULL;
+
+    if(mosaic && layout == 1) {
+        vAlign = BWT_VerticalAlignment_eCenter;
+        hAlign = BWT_HorizontalAlignment_eLeft;
+    } else {
+        vAlign = BWT_VerticalAlignment_eBottom;
+        hAlign = BWT_HorizontalAlignment_eCenter;
+    }
+    if (detailed) {
+        infoPanel = mosaic?&osd->mosaicDetails:&osd->details;
+    } else {
+        infoPanel = mosaic?&osd->mosaicInfo:&osd->info;
+    }
+
+    BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->current->base, false);
+    BWT_Panel_RemoveChild(osd->main, (BWT_WidgetHandle)osd->current->base);
+    BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)infoPanel->base, vAlign, hAlign);
+    BWT_Widget_SetVisibility((BWT_WidgetHandle)infoPanel->base, true);
+
+    osd->current = infoPanel;
+}
+
 void osd_set_details_mode(OsdHandle osd, bool enable)
 {
-    if (enable)
-    {
-        BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->info.base, false);
-        BWT_Panel_RemoveChild(osd->main, (BWT_WidgetHandle)osd->info.base);
-        BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->details.base, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eLeft);
-        BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->details.base, true);
-    }
-    else
-    {
-        BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->details.base, false);
-        BWT_Panel_RemoveChild(osd->main, (BWT_WidgetHandle)osd->details.base);
-        BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->info.base, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eCenter);
-        BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->info.base, true);
-    }
+    osd_p_configure_info_panel_layout(osd, osd->mosaic, osd->layout, enable);
     osd->detailed = enable;
 }
 
@@ -624,25 +676,78 @@ void osd_toggle_pig_mode(OsdHandle osd)
     osd_set_pig_mode(osd, !osd->pig);
 }
 
+void osd_toggle_mosaic_layout(OsdHandle osd)
+{
+    osd_set_mosaic_mode(osd, osd->mosaic, osd->layout^1);
+}
+
 void osd_set_pig_mode(OsdHandle osd, bool enable)
 {
+    unsigned id = platform_graphics_get_non_mosaic_window_id(osd->gfx);
     if (enable)
     {
         if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, false);
         if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, true);
-        BWT_Panel_RemoveChild(osd->main, (BWT_WidgetHandle)osd->window);
-        BWT_VideoWindow_SetScale(osd->window, 30);
-        BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->window, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
+        BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[id]);
+        BWT_VideoWindow_SetScale(osd->window[id], 30);
+        BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[id], BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
     }
     else
     {
         if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, false);
         if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, true);
-        BWT_Panel_RemoveChild(osd->main, (BWT_WidgetHandle)osd->window);
-        BWT_VideoWindow_SetScale(osd->window, 100);
-        BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->window, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
+        BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[id]);
+        BWT_VideoWindow_SetScale(osd->window[id], 100);
+        BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[id], BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
     }
     osd->pig = enable;
+}
+
+void osd_set_mosaic_mode(OsdHandle osd, bool enable, unsigned layout)
+{
+    BWT_VerticalAlignment vAlign = BWT_VerticalAlignment_eTop;
+    BWT_HorizontalAlignment hAlign = BWT_HorizontalAlignment_eLeft;
+    unsigned i;
+
+    if (osd->mosaic == enable && osd->layout == layout) return;
+
+    /* First Remove all windows. */
+    for (i=0; i<MAX_MOSAICS; i++) {
+        if(osd->window[i]) BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[i]);
+    }
+
+    osd_p_configure_info_panel_layout(osd, enable, layout, osd->detailed);
+
+    if (enable) {
+        if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, false);
+        if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, layout==0?false:true);
+        if (layout == 1) {
+            for(i=0; i<MAX_MOSAICS; i++) {
+                BWT_VideoWindow_SetScale(osd->window[i], i==0?50:33);
+                vAlign = i==0?BWT_VerticalAlignment_eTop:BWT_VerticalAlignment_eBottom;
+                hAlign = i==0?BWT_VerticalAlignment_eCenter:BWT_HorizontalAlignment_eLeft;
+                BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[i], vAlign, hAlign);
+            }
+        } else {
+            unsigned windows_per_row = MAX_MOSAICS/2;
+            for(i=0; i<MAX_MOSAICS; ) {
+                BWT_VideoWindow_SetScale(osd->window[i], 50);
+                BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[i], vAlign, hAlign);
+                if (++i%windows_per_row == 0) {
+                    vAlign = BWT_VerticalAlignment_eBottom;
+                }
+            }
+        }
+    } else {
+        unsigned id = platform_graphics_get_non_mosaic_window_id(osd->gfx);
+        if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, true);
+        if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, false);
+        BWT_VideoWindow_SetScale(osd->window[id], 100);
+        BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[id], vAlign, hAlign);
+    }
+
+    osd->mosaic = enable;
+    osd->layout = layout;
 }
 
 void osd_label_p_update_dynrng(BWT_LabelHandle label, PlatformDynamicRange dynrng)
@@ -661,6 +766,25 @@ void osd_label_p_update_space(BWT_LabelHandle label, PlatformColorSpace space)
 {
     assert(label);
     BWT_Label_SetText(label, platform_get_color_space_name(space));
+}
+
+void osd_label_p_update_plm(BWT_LabelHandle label, PlatformTriState plm)
+{
+    unsigned color;
+    assert(label);
+    BWT_Label_SetText(label, STR_TABLE_PLM[plm]);
+    switch (plm)
+    {
+        case PlatformTriState_eOn:
+        case PlatformTriState_eInactive:
+            color = COLOR_GREEN_100;
+            break;
+        default:
+        case PlatformTriState_eOff:
+            color = COLOR_RED_100;
+            break;
+    }
+    BWT_Widget_SetColor(BWT_Widget_GetParent((BWT_WidgetHandle)label), color);
 }
 
 #define OSD_UPDATE_INT_TEMPLATE(X,V,N,C,OP) \
@@ -783,7 +907,7 @@ static void osd_p_update_format_view(const PlatformPictureFormat * pNewFormat, P
     }
 }
 
-static void osd_p_update_picture_details_view(const PlatformPictureModel * pNewModel, PlatformPictureModel * pCurModel, OsdPictureDetailsView * pView, bool plm)
+static void osd_p_update_picture_details_view(const PlatformPictureModel * pNewModel, PlatformPictureModel * pCurModel, OsdPictureInfoView * pView, bool plm)
 {
     assert(pCurModel);
     assert(pNewModel);
@@ -798,7 +922,7 @@ static void osd_p_update_picture_details_view(const PlatformPictureModel * pNewM
     OSD_UPDATE_UNSIGNED_TEMPLATE(depth, pView, &pNewModel->info, &pCurModel->info);
     if (plm)
     {
-        OSD_UPDATE_SIGNED_TEMPLATE(plm, pView, pNewModel, pCurModel);
+        OSD_UPDATE_ENUM_TEMPLATE(plm, pView, pNewModel, pCurModel);
     }
 }
 
@@ -811,7 +935,7 @@ static void osd_p_update_picture_info_view(const PlatformPictureModel * pNewMode
     OSD_UPDATE_ENUM_TEMPLATE(dynrng, pView, &pNewModel->info, &pCurModel->info);
     if (plm)
     {
-        OSD_UPDATE_BOOL_TEMPLATE(plm, pView, pNewModel, pCurModel, >);
+        OSD_UPDATE_ENUM_TEMPLATE(plm, pView, pNewModel, pCurModel);
     }
 }
 
@@ -819,11 +943,11 @@ void osd_update_out_model(OsdHandle osd, const PlatformPictureModel * pModel)
 {
     if (osd->detailed)
     {
-        osd_p_update_picture_details_view(pModel, &osd->model.out, &osd->details.out, false);
+        osd_p_update_picture_details_view(pModel, &osd->model.out, &osd->current->out, false);
     }
     else
     {
-        osd_p_update_picture_info_view(pModel, &osd->model.out, &osd->info.out, false);
+        osd_p_update_picture_info_view(pModel, &osd->model.out, &osd->current->out, false);
     }
 }
 
@@ -831,23 +955,23 @@ void osd_update_gfx_model(OsdHandle osd, const PlatformPictureModel * pModel)
 {
     if (osd->detailed)
     {
-        osd_p_update_picture_details_view(pModel, &osd->model.gfx, &osd->details.gfx, true);
+        osd_p_update_picture_details_view(pModel, &osd->model.gfx, &osd->current->gfx, true);
     }
     else
     {
-        osd_p_update_picture_info_view(pModel, &osd->model.gfx, &osd->info.gfx, true);
+        osd_p_update_picture_info_view(pModel, &osd->model.gfx, &osd->current->gfx, true);
     }
 }
 
-void osd_update_vid_model(OsdHandle osd, const PlatformPictureModel * pModel)
+void osd_update_vid_model(OsdHandle osd, const PlatformPictureModel * pModel, unsigned index)
 {
     if (osd->detailed)
     {
-        osd_p_update_picture_details_view(pModel, &osd->model.vid, &osd->details.vid, true);
+        osd_p_update_picture_details_view(pModel, &osd->model.vid[index], &osd->current->vid[index], true);
     }
     else
     {
-        osd_p_update_picture_info_view(pModel, &osd->model.vid, &osd->info.vid, true);
+        osd_p_update_picture_info_view(pModel, &osd->model.vid[index], &osd->current->vid[index], true);
     }
 }
 
@@ -855,26 +979,30 @@ void osd_update_sel_model(OsdHandle osd, const PlatformSelectorModel * pModel)
 {
     assert(osd);
     assert(pModel);
-    OSD_UPDATE_SEL_TEMPLATE(format, &osd->details.sel, pModel, &osd->model.sel);
-    OSD_UPDATE_SEL_TEMPLATE(dynrng, &osd->details.sel, pModel, &osd->model.sel);
-    OSD_UPDATE_SEL_TEMPLATE(gamut, &osd->details.sel, pModel, &osd->model.sel);
+    if (osd->detailed) {
+        OSD_UPDATE_SEL_TEMPLATE(format, &osd->details.sel, pModel, &osd->model.sel);
+        OSD_UPDATE_SEL_TEMPLATE(dynrng, &osd->details.sel, pModel, &osd->model.sel);
+        OSD_UPDATE_SEL_TEMPLATE(gamut, &osd->details.sel, pModel, &osd->model.sel);
 #if 0
-    OSD_UPDATE_SEL_TEMPLATE(space, &osd->details.sel, pModel, &osd->model.sel);
+        OSD_UPDATE_SEL_TEMPLATE(space, &osd->details.sel, pModel, &osd->model.sel);
 #endif
-    OSD_UPDATE_SEL_TEMPLATE(depth, &osd->details.sel, pModel, &osd->model.sel);
+        OSD_UPDATE_SEL_TEMPLATE(depth, &osd->details.sel, pModel, &osd->model.sel);
+    }
 }
 
 void osd_update_rcv_model(OsdHandle osd, const PlatformReceiverModel * pModel)
 {
     assert(osd);
     assert(pModel);
-    OSD_UPDATE_RCV_TEMPLATE(format, &osd->details.rcv, pModel, &osd->model.rcv);
-    OSD_UPDATE_RCV_TEMPLATE(dynrng, &osd->details.rcv, pModel, &osd->model.rcv);
-    OSD_UPDATE_RCV_TEMPLATE(gamut, &osd->details.rcv, pModel, &osd->model.rcv);
+    if (osd->detailed) {
+        OSD_UPDATE_RCV_TEMPLATE(format, &osd->details.rcv, pModel, &osd->model.rcv);
+        OSD_UPDATE_RCV_TEMPLATE(dynrng, &osd->details.rcv, pModel, &osd->model.rcv);
+        OSD_UPDATE_RCV_TEMPLATE(gamut, &osd->details.rcv, pModel, &osd->model.rcv);
 #if 0
-    OSD_UPDATE_RCV_TEMPLATE(space, &osd->details.rcv, pModel, &osd->model.rcv);
+        OSD_UPDATE_RCV_TEMPLATE(space, &osd->details.rcv, pModel, &osd->model.rcv);
 #endif
-    OSD_UPDATE_RCV_TEMPLATE(depth, &osd->details.rcv, pModel, &osd->model.rcv);
+        OSD_UPDATE_RCV_TEMPLATE(depth, &osd->details.rcv, pModel, &osd->model.rcv);
+    }
 }
 
 void osd_update_thumbnail(OsdHandle osd, PlatformPictureHandle pic)
@@ -897,7 +1025,7 @@ void osd_update_thumbnail(OsdHandle osd, PlatformPictureHandle pic)
         BWT_Image_GetDefaultCreateSettings(&settings);
         settings.name = STR_THUMBNAIL_NAME;
         settings.pic = pic;
-        settings.visible = !osd->pig;
+        settings.visible = !osd->pig && !osd->mosaic;
         osd->thumbnail = BWT_Image_Create(osd->bwt, &settings);
         assert(osd->thumbnail);
         BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->thumbnail, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eRight);
@@ -924,7 +1052,7 @@ void osd_update_background(OsdHandle osd, PlatformPictureHandle pic)
         BWT_Image_GetDefaultCreateSettings(&settings);
         settings.name = STR_BACKGROUND_NAME;
         settings.pic = pic;
-        settings.visible = osd->pig;
+        settings.visible = osd->pig || (osd->mosaic && osd->layout == 1);
         osd->background = BWT_Image_Create(osd->bwt, &settings);
         assert(osd->background);
         BWT_Panel_SetBackground(osd->main, osd->background);

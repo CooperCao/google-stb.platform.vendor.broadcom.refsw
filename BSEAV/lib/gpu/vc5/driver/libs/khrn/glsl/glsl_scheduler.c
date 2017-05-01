@@ -63,7 +63,7 @@ static void dpostv_init_backend_fields(Backflow *backend, void *data) {
    {
       if (backend->dependencies[i] != NULL) {
          backend->dependencies[i]->remaining_dependents++;
-         glsl_backflow_chain_append(&backend->dependencies[i]->data_dependents, backend);
+         glsl_backflow_chain_push_back(&backend->dependencies[i]->data_dependents, backend);
       }
    }
 
@@ -110,9 +110,13 @@ static bool some_tmu_deps_in_section(struct tmu_dep_s *deps,
 
 static void iodep_texture(struct sched_deps_s *deps, Backflow *consumer, Backflow *supplier) {
    if (consumer != NULL && supplier != NULL) {
-      glsl_backflow_chain_append(&consumer->io_dependencies, supplier);
-      glsl_backflow_chain_append(&deps->consumers, consumer);
-      glsl_backflow_chain_append(&deps->suppliers, supplier);
+      BackflowIODep dep = {
+         .dep = supplier,
+         .io_timestamp_offset = 0
+      };
+      glsl_backflow_iodep_chain_push_back(&consumer->io_dependencies, dep);
+      glsl_backflow_chain_push_back(&deps->consumers, consumer);
+      glsl_backflow_chain_push_back(&deps->suppliers, supplier);
    }
 }
 
@@ -340,7 +344,7 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
           * dependency, then create texture iodeps to the new nodes */
          /* TODO: Could we do this more directly? The sched_deps structure might just work for this */
          Backflow *dummy = glsl_backflow_dummy();
-         glsl_backflow_chain_append(&block->iodeps, dummy);
+         glsl_backflow_chain_push_back(&block->iodeps, dummy);
          iodep_texture(sched_deps, dummy, new_dep);
       }
 
@@ -365,21 +369,26 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
 }
 
 static void clean_up_scheduler_iodeps(BackflowChain *consumers, BackflowChain *suppliers) {
-   Backflow *consumer, *supplier;
 
-   assert(consumers->count == suppliers->count);
    BackflowChainNode *cnode = consumers->head;
    BackflowChainNode *snode = suppliers->head;
    while (cnode != NULL)
    {
       assert(snode != NULL);
-      consumer = cnode->ptr;
-      supplier = snode->ptr;
+      Backflow *consumer = cnode->val;
+      Backflow *supplier = snode->val;
 
-      glsl_backflow_chain_remove(&consumer->io_dependencies, supplier);
+      BackflowIODepChainNode* n;
+      for (n=consumer->io_dependencies.head; n; n=n->next) {
+         if (n->val.dep == supplier) {
+            glsl_backflow_iodep_chain_erase(&consumer->io_dependencies, n);
+            break;
+         }
+      }
+      assert(n != NULL); // should have removed one.
 
-      cnode = cnode->l.next;
-      snode = snode->l.next;
+      cnode = cnode->next;
+      snode = snode->next;
    }
    assert(snode == NULL);
 }
@@ -428,8 +437,8 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
    for (int i=0; i<block->num_outputs; i++)
       glsl_backflow_visit(block->outputs[i], sched_visit);
 
-   for (BackflowChainNode *n=block->iodeps.head; n; n=n->l.next)
-      glsl_backflow_visit(n->ptr, sched_visit);
+   for (BackflowChainNode *n=block->iodeps.head; n; n=n->next)
+      glsl_backflow_visit(n->val, sched_visit);
 
    glsl_backflow_visitor_end(sched_visit);
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1561,10 +1561,14 @@ readagain:
                         BDBG_ERR(("Could not remove O_DIRECT flag"));
                     }
                 }
+                else
+                {
+                    BDBG_ERR(("%s: fd=%d dioRetry is false: errno=%d", __FUNCTION__, fd, errno));
+                }
             }
 #endif
             else {
-                BDBG_MSG(("%s: read for fd %d; unexpected errno %d (%s) ", __FUNCTION__, fd, errno, strerror(errno) ));
+                BDBG_WRN(("%s: read for fd %d; unexpected errno %d (%s) ", __FUNCTION__, fd, errno, strerror(errno) ));
             }
             if (bytesRead == 0 || errno == EINVAL) {
                 /* reached file end */
@@ -1575,6 +1579,7 @@ readagain:
                 }
                 else {
                     fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eEof;
+                    BDBG_WRN(("%s: read(fd %d) errno %d is EINVAL(str=%s) or read 0 bytes bytesRead %lu ", __FUNCTION__, fd, errno, strerror(errno), (long unsigned int)bytesRead ));
                 }
             }
             else {
@@ -1607,7 +1612,7 @@ readagain:
         if (bytesWritten <= 0) {
             /* this happens if client closed the connection or client connection is dead */
             if (fileStreamingHandle->ipVerboseLog)
-                BDBG_MSG(("%s: failed to write %d bytes, fd %d, handle %p, wrote %d bytes, errno %d, streamed %"PRId64 " bytes in %d send calls", __FUNCTION__, bytesToWrite, streamingFd, (void *)fileStreamingHandle, bytesWritten, errno, fileStreamingHandle->totalBytesStreamed, loopCount));
+                BDBG_ERR(("%s: failed to write %d bytes, fd %d, handle %p, wrote %d bytes, errno %d, streamed %"PRId64 " bytes in %d send calls", __FUNCTION__, bytesToWrite, streamingFd, (void *)fileStreamingHandle, bytesWritten, errno, fileStreamingHandle->totalBytesStreamed, loopCount));
             fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
             break;
         }

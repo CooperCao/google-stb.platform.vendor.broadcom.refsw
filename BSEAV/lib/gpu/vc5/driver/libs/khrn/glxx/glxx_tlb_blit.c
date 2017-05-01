@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_tlb_blit.h"
 #include "glxx_hw.h"
 #include "glxx_framebuffer.h"
@@ -88,6 +86,7 @@ static bool try_init_blit(
             if (gfx_lfmt_present_channels(dst_api_fmt) & ~gfx_lfmt_present_channels(src_api_fmt))
                goto not_supported;
 
+#if !V3D_HAS_RT_CLAMP
             /* Do not support blits from UFLOAT to FLOAT. The TLB will actually
              * contain signed floats (there is no unsigned float internal
              * type). These should be clamped to 0 before the blit happens, but
@@ -96,14 +95,20 @@ static bool try_init_blit(
             if ((gfx_lfmt_get_type(&src_api_fmt) == GFX_LFMT_TYPE_UFLOAT) &&
                   (gfx_lfmt_get_type(&dst_api_fmt) == GFX_LFMT_TYPE_FLOAT))
                goto not_supported;
+#endif
 
             GFX_LFMT_T dst_lfmt = khrn_image_plane_lfmt(&blit->dst_fb.color[b]);
-            v3d_pixel_format_t dst_pixel_format = gfx_lfmt_translate_pixel_format(dst_lfmt);
+            v3d_pixel_format_t dst_pixel_format;
+#if V3D_HAS_TLB_SWIZZLE
+            bool reverse, rb_swap;
+            gfx_lfmt_translate_pixel_format(dst_lfmt, &dst_pixel_format, &reverse, &rb_swap);
+#else
+            dst_pixel_format = gfx_lfmt_translate_pixel_format(dst_lfmt);
+#endif
 
-            /* Destination format must be compatible with internal TLB type/bpp */
-            if (!v3d_pixel_format_and_internal_type_bpp_compatible(dst_pixel_format,
-                  src_hw_fb->color_internal_type[blit->color_read_buffer],
-                  src_hw_fb->color_internal_bpp[blit->color_read_buffer]))
+            /* Destination format must be compatible with internal format */
+            if (!v3d_pixel_format_and_rt_format_compatible(dst_pixel_format,
+                  &src_hw_fb->color_rt_format[blit->color_read_buffer]))
                goto not_supported;
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -222,7 +227,7 @@ static bool blit_compatible(const GLXX_HW_RENDER_STATE_T *rs, const GLXX_BLIT_T 
 }
 #endif
 
-static bool record_interlock_writes(GLXX_HW_RENDER_STATE_T *rs, const GLXX_BLIT_T *blit, bool *requires_flush)
+static bool record_resource_writes(GLXX_HW_RENDER_STATE_T *rs, const GLXX_BLIT_T *blit, bool *requires_flush)
 {
    if (blit->color)
    {
@@ -230,10 +235,10 @@ static bool record_interlock_writes(GLXX_HW_RENDER_STATE_T *rs, const GLXX_BLIT_
       {
          if (mask & 1)
          {
-            KHRN_RES_INTERLOCK_T *res_i = khrn_image_get_res_interlock(blit->dst_fb.color[b].image);
-            if (!khrn_fmem_record_res_interlock_self_read_conflicting_write(
-                  &rs->fmem, res_i, KHRN_INTERLOCK_STAGE_RENDER,
-                  khrn_image_plane_interlock_parts(&blit->dst_fb.color[b],
+            khrn_resource *res = khrn_image_get_resource(blit->dst_fb.color[b].image);
+            if (!khrn_fmem_record_resource_self_read_conflicting_write(
+                  &rs->fmem, res, KHRN_STAGE_RENDER,
+                  khrn_image_plane_resource_parts(&blit->dst_fb.color[b],
                      KHRN_CHANGRP_ALL, /*subset=*/false),
                   requires_flush))
                return false;
@@ -243,10 +248,10 @@ static bool record_interlock_writes(GLXX_HW_RENDER_STATE_T *rs, const GLXX_BLIT_
 
    if (blit->depth)
    {
-      KHRN_RES_INTERLOCK_T *res_i = khrn_image_get_res_interlock(blit->dst_fb.depth.image);
-      if (!khrn_fmem_record_res_interlock_self_read_conflicting_write(
-            &rs->fmem, res_i, KHRN_INTERLOCK_STAGE_RENDER,
-            khrn_image_plane_interlock_parts(&blit->dst_fb.depth,
+      khrn_resource *res = khrn_image_get_resource(blit->dst_fb.depth.image);
+      if (!khrn_fmem_record_resource_self_read_conflicting_write(
+            &rs->fmem, res, KHRN_STAGE_RENDER,
+            khrn_image_plane_resource_parts(&blit->dst_fb.depth,
                KHRN_CHANGRP_NONSTENCIL, /*subset=*/false),
             requires_flush))
          return false;
@@ -260,7 +265,8 @@ static bool add_blit_to_rs(GLXX_SERVER_STATE_T *state,
 {
    for (;;)
    {
-      GLXX_HW_RENDER_STATE_T *rs = glxx_install_rs(state, src_hw_fb, /*for_tlb_blit=*/true);
+      bool existing;
+      GLXX_HW_RENDER_STATE_T *rs = glxx_install_rs(state, src_hw_fb, &existing, /*for_tlb_blit=*/true);
       if (!rs)
          return false;
 
@@ -275,7 +281,7 @@ static bool add_blit_to_rs(GLXX_SERVER_STATE_T *state,
       }
 
       bool requires_flush;
-      if (!record_interlock_writes(rs, blit, &requires_flush))
+      if (!record_resource_writes(rs, blit, &requires_flush))
       {
          if (requires_flush)
          {
