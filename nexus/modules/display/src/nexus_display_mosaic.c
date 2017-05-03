@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "nexus_display_module.h"
@@ -152,6 +144,7 @@ NEXUS_Error NEXUS_VideoWindow_P_ApplyMosaic(NEXUS_VideoWindowHandle window)
     unsigned mosaicTrackIndex = NEXUS_NUM_MOSAIC_DECODES;
     NEXUS_VideoInput_P_Link *link;
     BAVC_MFD_Picture *pPrevPicture = NULL;
+    unsigned minzorder = UINT32_MAX;
 
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
     BDBG_ASSERT(!window->mosaic.parent);
@@ -194,6 +187,9 @@ NEXUS_Error NEXUS_VideoWindow_P_ApplyMosaic(NEXUS_VideoWindowHandle window)
             BDBG_WRN(("mosaicWindow->cfg.zorder(%u) > 255", mosaicWindow->cfg.zorder));
         }
         mosaic_zorder[index] = mosaicWindow->cfg.zorder;
+        if (mosaicWindow->cfg.zorder < minzorder) {
+            minzorder = mosaicWindow->cfg.zorder;
+        }
         BDBG_MSG(("mosaic %d: v=%c z=%d position=%d,%d,%d,%d", index,
             mosaicWindow->cfg.visible?'y':'n',
             mosaicWindow->cfg.zorder,
@@ -223,7 +219,11 @@ NEXUS_Error NEXUS_VideoWindow_P_ApplyMosaic(NEXUS_VideoWindowHandle window)
         bool dummy;
         NEXUS_DisplayHandle display = window->display;
         BVDC_MosaicConfiguration mosaic_config;
-         unsigned i;
+        unsigned i;
+
+        /* set the zorder of the parent to the min zorder of all mosaics */
+        rc = BVDC_Window_SetZOrder(windowVdc, minzorder);
+        if (rc) {return BERR_TRACE(rc);}
 
          /* VDC does not ignore invisible windows, so we must ensure ok values */
          for (i=0;i<cnt;i++) {
