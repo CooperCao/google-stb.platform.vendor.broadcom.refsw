@@ -190,6 +190,8 @@ Uninit the Core module
 ****************************************************************************/
 void NEXUS_CoreModule_Uninit(void);
 
+void NEXUS_CoreModule_PostInit(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -592,6 +592,17 @@ BERR_Code BSID_Open(
         return BERR_TRACE(retCode);
     }
 
+#ifdef BSID_P_CLOCK_CONTROL
+    retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
+    if (retCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Open failed to acquire clock with error 0x%x", retCode));
+        BSID_Close(hSid);
+        BDBG_LEAVE( BSID_Open );
+        return BERR_TRACE(retCode);
+    }
+#endif
+
     /* create and associate dispatch callback for sid general purpose interrupt */
     retCode = BINT_CreateCallback(
         &hSid->hServiceIsr,
@@ -623,6 +634,17 @@ BERR_Code BSID_Open(
         BDBG_LEAVE(BSID_Open);
         return BERR_TRACE(retCode);
     }
+
+#ifdef BSID_P_CLOCK_CONTROL
+    retCode = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
+    if (retCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Open failed to release clock with error 0x%x", retCode));
+        BSID_Close(hSid);
+        BDBG_LEAVE( BSID_Open );
+        return BERR_TRACE(retCode);
+    }
+#endif
 
     /* create event for maibox handling */
     retCode = BKNI_CreateEvent(&hSid->sMailbox.hMailboxEvent);
@@ -688,6 +710,10 @@ void BSID_Close(
     /* else, core is already suspended, so we do nothing */
     /* ... so now we just take care of host-side resources ... */
 
+#ifdef BSID_P_CLOCK_CONTROL
+    BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
+#endif
+
     /* destroy sid interrupt callback */
     if (NULL != hSid->hServiceIsr)
        BINT_DestroyCallback(hSid->hServiceIsr);
@@ -698,6 +724,10 @@ void BSID_Close(
     /* destroy mailbox event */
     if (NULL != hSid->sMailbox.hMailboxEvent)
        BKNI_DestroyEvent(hSid->sMailbox.hMailboxEvent);
+
+#ifdef BSID_P_CLOCK_CONTROL
+    BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
+#endif
 
     /* free sid memory buffer(s) */
     BSID_P_ResetFwHwDefault(hSid);

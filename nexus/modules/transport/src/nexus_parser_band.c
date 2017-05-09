@@ -590,6 +590,7 @@ void NEXUS_ParserBand_P_UninitAll(void)
     unsigned i;
     for (i=0;i<NEXUS_NUM_PARSER_BANDS;i++) {
         if (pTransport->parserBand[i]) {
+            NEXUS_OBJECT_UNREGISTER(NEXUS_ParserBand, pTransport->parserBand[i], Destroy);
             NEXUS_ParserBand_P_Uninit(pTransport->parserBand[i]);
         }
     }

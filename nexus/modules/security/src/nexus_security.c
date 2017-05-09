@@ -418,15 +418,6 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
     rc = NEXUS_RegionVerify_Init( );                     /* region verification public interface. */
     if (rc) { rc = BERR_TRACE(rc); goto err_init; }
 
-    if (pModuleSettings->callTransportPostInit) {
-
-        NEXUS_Module_Lock( g_security.moduleSettings.transport );
-        rc = NEXUS_TransportModule_PostInit_priv( secureFirmwareRave );
-        NEXUS_Module_Unlock( g_security.moduleSettings.transport );
-
-        if (rc) { rc = BERR_TRACE(rc); goto err_transport_postinit; }
-    }
-
     /* IP licensing is supported for Zeus1.0 and newer. */
     if( pSettings->ipLicense.valid )
     {
@@ -457,7 +448,6 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
 
     return NEXUS_P_SecurityModule;
 
-err_transport_postinit:
 err_init:
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(NEXUS_P_SecurityModule);
@@ -465,6 +455,16 @@ err_init:
 
     BDBG_LEAVE(NEXUS_SecurityModule_Init);
     return NULL;
+}
+
+NEXUS_Error NEXUS_SecurityModule_InitTransport_priv(void)
+{
+    NEXUS_Error rc;
+    NEXUS_Module_Lock( g_security.moduleSettings.transport );
+    rc = NEXUS_TransportModule_PostInit_priv( secureFirmwareRave );
+    NEXUS_Module_Unlock( g_security.moduleSettings.transport );
+    if (rc) return BERR_TRACE(rc);
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_SecurityModule_GetCurrentSettings(NEXUS_ModuleHandle module, NEXUS_SecurityModuleSettings *pSettings)

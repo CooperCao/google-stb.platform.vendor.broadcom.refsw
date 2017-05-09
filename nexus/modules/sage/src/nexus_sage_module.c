@@ -53,8 +53,6 @@
 
 #include "nexus_dma.h"
 #include "nexus_memory.h"
-/* Grant access to BCHP_SAGE_Reset in order to reset SAGE */
-BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
 
 NEXUS_SageModule_P_Handle g_NEXUS_sageModule;
 

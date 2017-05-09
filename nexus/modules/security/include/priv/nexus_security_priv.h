@@ -93,6 +93,9 @@ Summary:
 */
 void NEXUS_Security_PrintArchViolation_priv( void );
 
+/* Transport must be brought up via the Security module because of how
+RAVE FW authentication is written. */
+NEXUS_Error NEXUS_SecurityModule_InitTransport_priv(void);
 
 #ifdef __cplusplus
 } /* extern "C" */
