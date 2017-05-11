@@ -147,21 +147,6 @@ typedef enum BHDM_P_HdmCoreId
 #define	MAKE_INTR_NAME(IntName)	"BHDM_" #IntName
 #define	MAKE_HAE_INTR_ENUM(IntName) BHDM_HAE_INTR_e##IntName
 
-#if BCHP_PWR_SUPPORT
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX0_CLK
-#define BCHP_PWR_RESOURCE_HDMI_TX_CLK BCHP_PWR_RESOURCE_HDMI_TX0_CLK
-#endif
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX1_CLK
-#define BCHP_PWR_RESOURCE_HDMI_TX_1_CLK BCHP_PWR_RESOURCE_HDMI_TX1_CLK
-#endif
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX0_PHY
-#define BCHP_PWR_RESOURCE_HDMI_TX_PHY BCHP_PWR_RESOURCE_HDMI_TX0_PHY
-#endif
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX1_PHY
-#define BCHP_PWR_RESOURCE_HDMI_TX_1_PHY BCHP_PWR_RESOURCE_HDMI_TX1_PHY
-#endif
-#endif
-
 /******************************************************************************
 Summary:
 Enumeration of BHDM_Interrupts
