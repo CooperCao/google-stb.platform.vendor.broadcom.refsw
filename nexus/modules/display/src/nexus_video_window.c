@@ -1728,7 +1728,7 @@ void NEXUS_VideoWindow_GetSyncSettings_priv( NEXUS_VideoWindowHandle window, NEX
 NEXUS_Error NEXUS_VideoWindow_SetSyncSettings_priv( NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowSyncSettings *pSyncSettings )
 {
     BERR_Code rc;
-    BVDC_Window_Handle windowVdc = window->vdcState.window;
+    BVDC_Window_Handle windowVdc;
     bool hookingUp = false;
 
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
@@ -1739,6 +1739,14 @@ NEXUS_Error NEXUS_VideoWindow_SetSyncSettings_priv( NEXUS_VideoWindowHandle wind
 
     window->syncSettings = *pSyncSettings;
 
+    if (!window->mosaic.parent)
+    {
+        windowVdc = window->vdcState.window;
+    }
+    else
+    {
+        windowVdc = window->mosaic.parent->vdcState.window;
+    }
     if (windowVdc)
     {
         rc = BVDC_Window_SetDelayOffset(windowVdc, window->cfg.delay + window->syncSettings.delay);
