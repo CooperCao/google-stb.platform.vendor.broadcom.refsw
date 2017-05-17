@@ -489,6 +489,7 @@ static void BCEC_P_TimerExpiration_isr (BCEC_Handle hCEC, int parm2)
 	/* override status */
 	hCEC->lastTransmitMessageStatus.uiStatus = 1;
 	hCEC->lastTransmitMessageStatus.uiEOM = 1;
+	hCEC->firstCecMessage = true;
 
 	/* Manually fire CEC Sent Event */
 	BKNI_SetEvent(hCEC->BCEC_EventCec_Transmitted);
