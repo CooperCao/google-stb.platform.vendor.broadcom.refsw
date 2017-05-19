@@ -128,11 +128,8 @@ key_aes_destroy(wlc_key_t *key)
 {
 	KM_DBG_ASSERT(AES_KEY_VALID(key));
 
-	if (key->algo_impl.ctx != NULL) {
-		if (KEY_NUM_RX_SEQ(key) != WLC_KEY_NUM_RX_SEQ)
-			KEY_PUB(key)->tunables->num_rxivs = WLC_KEY_NUM_RX_SEQ;
+	if (key->algo_impl.ctx != NULL)
 		MFREE(KEY_OSH(key), key->algo_impl.ctx, AES_KEY_STRUCT_SIZE(key));
-	}
 
 	key->algo_impl.cb = NULL;
 	key->algo_impl.ctx = NULL;

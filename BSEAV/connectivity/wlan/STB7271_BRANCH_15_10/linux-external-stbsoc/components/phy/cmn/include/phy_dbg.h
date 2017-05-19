@@ -71,7 +71,7 @@ char *wlc_dbg_get_hw_timestamp(void);
 #define PHY_WD(args)	do {if (phyhal_msg_level & PHYHAL_WD) PHY_PRINT(args);} while (0)
 #define PHY_CHANLOG(w, s, i, j)  \
 	do {if (phyhal_msg_level & PHYHAL_CHANLOG) phy_log(w, s, i, j);} while (0)
-
+#define PHY_CMDS(args)	do {if (phyhal_msg_level & PHYHAL_CMDS) PHY_PRINT(args);} while (0)
 #define	PHY_NONE(args)	do {} while (0)
 #else
 #define	PHY_TRACE(args)
@@ -87,6 +87,7 @@ char *wlc_dbg_get_hw_timestamp(void);
 #define PHY_RXIQ(args)
 #define PHY_WD(args)
 #define PHY_CHANLOG(w, s, i, j)
+#define PHY_CMDS(args)
 #define	PHY_NONE(args)
 #endif /* BCMDBG || PHYDBG */
 

@@ -66,6 +66,9 @@ enum {
 #define LINK_BW_ENTRY	0
 static const bcm_iovar_t scbrate_iovars[] = {
 	{"scbrate_dummy", IOV_SCBRATE_DUMMY, (IOVF_SET_DOWN), 0, IOVT_BOOL, 0},
+#if defined(BCMINTDBG)
+	{"scb_rateset", IOV_SCB_RATESET, 0, 0, IOVT_BUFFER, 0},
+#endif
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -87,6 +90,7 @@ typedef struct ppr_support_rates {
 	ppr_rateset_t ppr_80_rates;
 	ppr_rateset_t ppr_160_rates;
 #endif
+	uint8 txstreams;
 } ppr_support_rates_t;
 
 struct wlc_ratesel_info {
@@ -127,6 +131,10 @@ static int wlc_scb_ratesel_scb_update(void *context, struct scb *scb, wlc_bsscfg
 static void wlc_scb_ratesel_dump_scb(void *ctx, struct scb *scb, struct bcmstrbuf *b);
 #else
 #define wlc_scb_ratesel_dump_scb NULL
+#endif
+#ifdef BCMINTDBG
+static int wlc_scb_ratesel_dump_rateset(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
+	const struct ether_addr *ea, void *buf, int len);
 #endif
 
 static ratespec_t wlc_scb_ratesel_getcurspec(wlc_ratesel_info_t *wrsi,
@@ -337,6 +345,12 @@ wlc_scb_ratesel_doiovar(void *hdl, uint32 actionid,
 	ASSERT(bsscfg != NULL);
 
 	switch (actionid) {
+#if defined(BCMINTDBG)
+	case IOV_GVAL(IOV_SCB_RATESET):
+		err = wlc_scb_ratesel_dump_rateset(wlc, bsscfg,
+			(struct ether_addr *)params, arg, alen);
+		break;
+#endif
 	default:
 		err = BCME_UNSUPPORTED;
 	}
@@ -376,6 +390,110 @@ wlc_scb_ratesel_dump_scb(void *ctx, struct scb *scb, struct bcmstrbuf *b)
 }
 #endif /* BCMDBG */
 
+#ifdef BCMINTDBG
+/* get the fixrate per scb/ac. */
+int
+wlc_scb_ratesel_get_fixrate(void *ctx, struct scb *scb, struct bcmstrbuf *b)
+{
+	wlc_ratesel_info_t *wrsi = (wlc_ratesel_info_t *)ctx;
+	int ac;
+	rcb_t *state;
+
+	for (ac = 0; ac < WME_MAX_AC(wrsi->wlc, scb); ac++) {
+		if (!(state = SCB_RATESEL_CUBBY(wrsi, scb, ac))) {
+			WL_ERROR(("skip ac %d\n", ac));
+			continue;
+		}
+		wlc_ratesel_get_fixrate(state, ac, b);
+	}
+	return 0;
+}
+
+/* set the fixrate per scb/ac. */
+int
+wlc_scb_ratesel_set_fixrate(void *ctx, struct scb *scb, int ac, uint8 val)
+{
+	wlc_ratesel_info_t *wrsi = (wlc_ratesel_info_t *)ctx;
+	int i;
+	rcb_t *state = NULL;
+
+	/* check AC validity */
+	if (ac == -1) { /* For all access class */
+		for (i = 0; i < WME_MAX_AC(wrsi->wlc, scb); i++) {
+			if (!(state = SCB_RATESEL_CUBBY(wrsi, scb, i))) {
+				WL_ERROR(("ac %d does not exist!\n", ac));
+				return BCME_ERROR;
+			}
+
+			if (wlc_ratesel_set_fixrate(state, i, val) < 0)
+				return BCME_BADARG;
+		}
+	} else if ((ac >= 0) && (ac < WME_MAX_AC(wrsi->wlc, scb))) { /* For single ac */
+		if (!(state = SCB_RATESEL_CUBBY(wrsi, scb, ac))) {
+				WL_ERROR(("ac %d does not exist!\n", ac));
+				return BCME_ERROR;
+		}
+
+		if (wlc_ratesel_set_fixrate(state, ac, val) < 0)
+			return BCME_BADARG;
+	} else {
+		WL_ERROR(("ac %d out of range [0, %d]\n", ac, WME_MAX_AC(wrsi->wlc, scb) - 1));
+		return BCME_ERROR;
+	}
+
+	return 0;
+}
+
+/* dump per-scb state, tunable parameters, upon request, (say by wl ratedump) */
+int
+wlc_scb_ratesel_scbdump(void *ctx, struct scb *scb, struct bcmstrbuf *b)
+{
+	wlc_ratesel_info_t *wrsi = (wlc_ratesel_info_t *)ctx;
+	int32 ac;
+	rcb_t *state;
+
+	for (ac = 0; ac < WME_MAX_AC(wrsi->wlc, scb); ac++) {
+		state = SCB_RATESEL_CUBBY(wrsi, scb, ac);
+		if (state) {
+			bcm_bprintf(b, "AC[%d] --- \n\t", ac);
+			wlc_ratesel_scbdump(state, b);
+		}
+	}
+
+	return 0;
+}
+
+/* dump the per scb rate set used by rate sel */
+static int
+wlc_scb_ratesel_dump_rateset(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
+	const struct ether_addr *ea, void *buf, int len)
+{
+	struct scb *scb;
+	wlc_ratesel_info_t *wrsi;
+	rcb_t *state;
+	int ac, max_ac;
+	struct bcmstrbuf b;
+
+	ASSERT(ea != NULL);
+	if (ea == NULL)
+		return BCME_BADARG;
+
+	if ((scb = wlc_scbfind(wlc, bsscfg, ea)) == NULL)
+		return BCME_BADADDR;
+
+	wrsi = wlc->wrsi;
+	bcm_binit(&b, (char*)buf, len);
+	max_ac = WME_MAX_AC(wlc, scb);
+
+	for (ac = 0; ac < max_ac; ac ++) {
+		state = SCB_RATESEL_CUBBY(wrsi, scb, ac);
+		if (max_ac > 1)
+			bcm_bprintf(&b, "AC[%d] --- \n\t", ac);
+		wlc_ratesel_dump_rateset(state, &b);
+	}
+	return BCME_OK;
+}
+#endif 
 
 #ifdef WL11N
 bool
@@ -1145,30 +1263,30 @@ wlc_scb_ratesel_clr_cache(wlc_ratesel_info_t *wrsi, struct scb *scb, uint8 ac)
 static ppr_rateset_t *
 wlc_scb_ratesel_get_ppr_rates(wlc_info_t *wlc, wl_tx_bw_t bw)
 {
-#ifdef WL11AC
 	wlc_ratesel_info_t *wrsi = wlc->wrsi;
-	if ((wrsi->ppr_rates->chanspec != wlc->chanspec ||
-		wrsi->ppr_rates->country != wlc_get_country(wlc)) &&
-		(wlc_scb_ratesel_ppr_upd(wlc) != BCME_OK)) {
-			return NULL;
+	if (wrsi->ppr_rates->chanspec != wlc->chanspec ||
+		wrsi->ppr_rates->country != wlc_get_country(wlc) ||
+		wrsi->ppr_rates->txstreams != wlc->stf->txstreams) {
+		wlc_scb_ratesel_ppr_upd(wlc);
 	}
 
 	switch (bw) {
 	case WL_TX_BW_20:
 		return &wrsi->ppr_rates->ppr_20_rates;
+#if defined(WL11AC) || defined(WL11N)
 	case WL_TX_BW_40:
 		return &wrsi->ppr_rates->ppr_40_rates;
+#endif
+#ifdef WL11AC
 	case WL_TX_BW_80:
 		return &wrsi->ppr_rates->ppr_80_rates;
 	case WL_TX_BW_160:
 		return &wrsi->ppr_rates->ppr_160_rates;
+#endif
 	default:
 		ASSERT(0);
 		return NULL;
 	}
-#else
-	return NULL;
-#endif /* WL11AC */
 }
 
 static void
@@ -1294,6 +1412,7 @@ wlc_scb_ratesel_ppr_upd(wlc_info_t *wlc)
 
 	wlc->wrsi->ppr_rates->country = country;
 	wlc->wrsi->ppr_rates->chanspec = wlc->chanspec;
+	wlc->wrsi->ppr_rates->txstreams = wlc->stf->txstreams;
 	return BCME_OK;
 fail:
 	return ret;

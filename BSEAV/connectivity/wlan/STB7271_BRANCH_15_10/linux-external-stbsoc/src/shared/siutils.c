@@ -160,6 +160,9 @@ static void si_config_gcigpio(si_t *sih, uint32 gci_pos, uint8 gcigpio,
 #endif 
 #endif /* !defined(BCMDONGLEHOST) */
 
+#ifdef STB_SOC_SIM
+int noradio_override = 0;
+#endif /* STB_SOC_SIM */
 
 /* global variable to indicate reservation/release of gpio's */
 static uint32 si_gpioreservation = 0;
@@ -5458,6 +5461,35 @@ si_ccreg(si_t *sih, uint32 offset, uint32 mask, uint32 val)
 	return reg_val;
 }
 
+#ifdef BCMINTDBG
+uint32
+si_pciesbreg(si_t *sih, uint32 offset, uint32 mask, uint32 val)
+{
+	si_info_t *sii;
+
+	sii = SI_INFO(sih);
+
+	if (!PCIE_GEN1(sii)) {
+		SI_ERROR(("%s: Not a PCIE device\n", __FUNCTION__));
+		return 0;
+	}
+
+	if ((offset == OFFSETOF(sbpcieregs_t, u.pcie1.clkreqenctrl)) &&
+	    sih->buscorerev < 6) {
+		SI_ERROR(("%d not valid for corerev < 6\n", offset));
+		return 0;
+	}
+
+	if (((offset == OFFSETOF(sbpcieregs_t, gpiosel)) ||
+	     (offset == OFFSETOF(sbpcieregs_t, gpioouten))) &&
+	    sih->buscorerev == 1) {
+		SI_ERROR(("%d not valid for corerev 1\n", offset));
+		return 0;
+	}
+
+	return (si_corereg(sih, sih->buscoreidx, offset, mask, val));
+}
+#endif 
 
 #ifdef SR_DEBUG
 void
@@ -6214,6 +6246,161 @@ si_dump_pcieregs(si_t *sih, struct bcmstrbuf *b)
 #endif 
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(BCMDBG_PHYDUMP)
+#if defined(BCMINTDBG)
+void
+si_dump(si_t *sih, struct bcmstrbuf *b)
+{
+	si_info_t *sii = SI_INFO(sih);
+	si_cores_info_t *cores_info = (si_cores_info_t *)sii->cores_info;
+	uint i;
+
+	bcm_bprintf(b, "si %p chip 0x%x chiprev 0x%x boardtype 0x%x boardvendor 0x%x bus %d\n",
+		OSL_OBFUSCATE_BUF(sii), sih->chip, sih->chiprev,
+		sih->boardtype, sih->boardvendor, sih->bustype);
+	bcm_bprintf(b, "osh %p curmap %p\n",
+		OSL_OBFUSCATE_BUF(sii->osh), OSL_OBFUSCATE_BUF(sii->curmap));
+
+	if (CHIPTYPE(sih->socitype) == SOCI_SB)
+		bcm_bprintf(b, "sonicsrev %d ", sih->socirev);
+	bcm_bprintf(b, "ccrev %d buscoretype 0x%x buscorerev %d curidx %d\n",
+	            CCREV(sih->ccrev), sih->buscoretype, sih->buscorerev, sii->curidx);
+
+#ifdef	BCMDBG
+	if ((BUSTYPE(sih->bustype) == PCI_BUS) && (sii->pch))
+		pcicore_dump(sii->pch, b);
+#endif
+
+	bcm_bprintf(b, "cores:  ");
+	for (i = 0; i < sii->numcores; i++)
+		bcm_bprintf(b, "0x%x ", cores_info->coreid[i]);
+	bcm_bprintf(b, "\n");
+}
+
+void
+si_ccreg_dump(si_t *sih, struct bcmstrbuf *b)
+{
+	si_info_t *sii = SI_INFO(sih);
+	uint origidx;
+	uint i, intr_val = 0;
+	chipcregs_t *cc;
+
+	/* only support corerev 22 for now */
+	if (CCREV(sih->ccrev) != 23)
+		return;
+
+	origidx = sii->curidx;
+
+	INTR_OFF(sii, intr_val);
+
+	cc = (chipcregs_t *)si_setcore(sih, CC_CORE_ID, 0);
+	ASSERT(cc);
+
+	bcm_bprintf(b, "\n===cc(rev %d) registers(offset val)===\n", CCREV(sih->ccrev));
+	for (i = 0; i <= 0xc4; i += 4) {
+		if (i == 0x4c) {
+			bcm_bprintf(b, "\n");
+			continue;
+		}
+		bcm_bprintf(b, "0x%x\t0x%x\n", i, *(uint32 *)((uintptr)cc + i));
+	}
+
+	bcm_bprintf(b, "\n");
+
+	for (i = 0x1e0; i <= 0x1e4; i += 4) {
+		bcm_bprintf(b, "0x%x\t0x%x\n", i, *(uint32 *)((uintptr)cc + i));
+	}
+	bcm_bprintf(b, "\n");
+
+	if (sih->cccaps & CC_CAP_PMU) {
+		for (i = 0x600; i <= 0x660; i += 4) {
+			bcm_bprintf(b, "0x%x\t0x%x\n", i, *(uint32 *)((uintptr)cc + i));
+		}
+	}
+	bcm_bprintf(b, "\n");
+
+	si_setcoreidx(sih, origidx);
+	INTR_RESTORE(sii, intr_val);
+}
+
+/** dump dynamic clock control related registers */
+void
+si_clkctl_dump(si_t *sih, struct bcmstrbuf *b)
+{
+	si_info_t *sii = SI_INFO(sih);
+	chipcregs_t *cc;
+	uint origidx;
+	uint intr_val = 0;
+
+	if (!(sih->cccaps & CC_CAP_PWR_CTL))
+		return;
+
+	INTR_OFF(sii, intr_val);
+	origidx = sii->curidx;
+	if ((cc = (chipcregs_t *)si_setcore(sih, CC_CORE_ID, 0)) == NULL)
+		goto done;
+
+	bcm_bprintf(b, "pll_on_delay 0x%x fref_sel_delay 0x%x ",
+		cc->pll_on_delay, cc->fref_sel_delay);
+	if ((CCREV(sih->ccrev) >= 6) && (CCREV(sih->ccrev) < 10))
+		bcm_bprintf(b, "slow_clk_ctl 0x%x ", cc->slow_clk_ctl);
+	if (CCREV(sih->ccrev) >= 10) {
+		bcm_bprintf(b, "system_clk_ctl 0x%x ", cc->system_clk_ctl);
+		bcm_bprintf(b, "clkstatestretch 0x%x ", cc->clkstatestretch);
+	}
+
+	if (BUSTYPE(sih->bustype) == PCI_BUS)
+		bcm_bprintf(b, "gpioout 0x%x gpioouten 0x%x ",
+		            OSL_PCI_READ_CONFIG(sii->osh, PCI_GPIO_OUT, sizeof(uint32)),
+		            OSL_PCI_READ_CONFIG(sii->osh, PCI_GPIO_OUTEN, sizeof(uint32)));
+
+	if (sih->cccaps & CC_CAP_PMU) {
+		/* dump some PMU register ? */
+	}
+	bcm_bprintf(b, "\n");
+
+	si_setcoreidx(sih, origidx);
+done:
+	INTR_RESTORE(sii, intr_val);
+}
+
+int
+si_gpiodump(si_t *sih, struct bcmstrbuf *b)
+{
+	si_info_t *sii = SI_INFO(sih);
+	uint origidx;
+	uint intr_val = 0;
+	chipcregs_t *cc;
+
+	INTR_OFF(sii, intr_val);
+
+	origidx = si_coreidx(sih);
+
+	cc = (chipcregs_t *)si_setcore(sih, CC_CORE_ID, 0);
+	ASSERT(cc);
+
+	bcm_bprintf(b, "GPIOregs\t");
+
+	bcm_bprintf(b, "gpioin 0x%x ", R_REG(sii->osh, &cc->gpioin));
+	bcm_bprintf(b, "gpioout 0x%x ", R_REG(sii->osh, &cc->gpioout));
+	bcm_bprintf(b, "gpioouten 0x%x ", R_REG(sii->osh, &cc->gpioouten));
+	bcm_bprintf(b, "gpiocontrol 0x%x ", R_REG(sii->osh, &cc->gpiocontrol));
+	bcm_bprintf(b, "gpiointpolarity 0x%x ", R_REG(sii->osh, &cc->gpiointpolarity));
+	bcm_bprintf(b, "gpiointmask 0x%x ", R_REG(sii->osh, &cc->gpiointmask));
+
+	if (CCREV(sii->pub.ccrev) >= 16) {
+		bcm_bprintf(b, "gpiotimerval 0x%x ", R_REG(sii->osh, &cc->gpiotimerval));
+		bcm_bprintf(b, "gpiotimeroutmask 0x%x", R_REG(sii->osh, &cc->gpiotimeroutmask));
+	}
+	bcm_bprintf(b, "\n");
+
+	/* restore the original index */
+	si_setcoreidx(sih, origidx);
+
+	INTR_RESTORE(sii, intr_val);
+	return 0;
+
+}
+#endif /* BCMINTDBG */
 #endif /* BCMDBG || BCMDBG_DUMP || BCMDBG_PHYDUMP */
 
 #endif /* !defined(BCMDONGLEHOST) */

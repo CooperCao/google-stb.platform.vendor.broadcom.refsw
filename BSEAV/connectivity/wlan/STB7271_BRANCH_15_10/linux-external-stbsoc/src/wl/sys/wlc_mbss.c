@@ -44,6 +44,7 @@
 #include "wlc_scan.h"
 #include "wlc_apps.h"
 #include "wlc_stf.h"
+#include "wlc_pcb.h"
 #include <wlc_hw.h>
 #include <wlc_rspec.h>
 
@@ -64,6 +65,7 @@ static void wlc_mbss16_updssid_len(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 static void bcmc_fid_shm_commit(wlc_bsscfg_t *bsscfg);
 static void wlc_mbss16_updssid(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 static void wlc_bsscfg_disablemulti(wlc_info_t *wlc);
+static void wlc_mbss_bcmc_free_cb(wlc_info_t *wlc, void *pkt, uint txs);
 
 /* MBSS wlc fields */
 struct wlc_mbss_info {
@@ -267,6 +269,11 @@ BCMATTACHFN(wlc_mbss_attach)(wlc_info_t *wlc)
 
 	wlc->pub->_mbss_support = TRUE;
 	wlc->pub->tunables->maxucodebss = WLC_MAX_AP_BSS(wlc->pub->corerev);
+
+	if (wlc_pcb_fn_set(wlc->pcb, 0, WLF2_PCB1_MBSS_BCMC, wlc_mbss_bcmc_free_cb) != BCME_OK) {
+		WL_ERROR(("wl%d: %s wlc_pcb_fn_set() failed\n", wlc->pub->unit, __FUNCTION__));
+		goto fail;
+	}
 
 	return mbss;
 
@@ -782,8 +789,7 @@ mbss_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 	 */
 	wlc_shm_ssid_upd(wlc, cfg);
 
-	cfg->bcmc_fid = INVALIDFID;
-	cfg->bcmc_fid_shm = INVALIDFID;
+	wlc_mbss_bcmc_reset(wlc, cfg);
 
 	cfg->flags &= ~(WLC_BSSCFG_SW_BCN | WLC_BSSCFG_SW_PRB);
 	cfg->flags &= ~(WLC_BSSCFG_HW_BCN | WLC_BSSCFG_HW_PRB);
@@ -795,6 +801,66 @@ mbss_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 
 	return result;
 }
+
+/**
+ * This function is used to reinitialize the bcmc firmware/ucode interface for a certain bsscfg.
+ * Only to be called when there is no bcmc traffic pending.
+ *
+ * For MBSS, for each bss, every DTIM the last transmitted bcmc fid is set in SHM.
+ * Ucode will only transmit up to and including this fid even if more bcmc packets are added later.
+ * When there is no more bcmc traffic pending for a certain bss:
+ * 1) bcmc_fid and bcmc_fid_shm are set to INVALIDFID, in case last traffic was flushed shm needs to
+ *    be updated as well.
+ * 2) mc_fifo_pkts is set to 0.
+ * 3) a ps off transition can be marked as complete so that the PS bit for the bcmc scb of that bss
+ *    is properly set.
+ */
+void
+wlc_mbss_bcmc_reset(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
+{
+	uint fid_addr = 0;
+	bss_mbss_info_t *bmi;
+
+	if (TXPKTPENDGET(wlc, TX_BCMC_FIFO) != 0) {
+		WL_ERROR(("wl%d.%d: There are still bcmc packets in transit!! %p\n",
+			wlc->pub->unit, WLC_BSSCFG_IDX(cfg), __builtin_return_address(0)));
+	}
+
+	cfg->bcmc_fid = INVALIDFID;
+	cfg->bcmc_fid_shm = INVALIDFID;
+
+	ASSERT(MBSS_SUPPORT(wlc->pub));
+
+	bmi = BSS_MBSS_INFO(wlc->mbss, cfg);
+	if (bmi == NULL) {
+		return;
+	}
+
+	WL_MBSS(("wl%d.%d: %s: resetting fids %d, %d; mc pkts %d\n",
+		wlc->pub->unit, WLC_BSSCFG_IDX(cfg),
+		__FUNCTION__, cfg->bcmc_fid, cfg->bcmc_fid_shm, bmi->mc_fifo_pkts));
+
+	bmi->mc_fifo_pkts = 0;
+
+	if (wlc->pub->hw_up) {
+		/* Let's also update the shm */
+		if (MBSS_ENAB(wlc->pub)) {
+			fid_addr = SHM_MBSS_BC_FID_ADDR16(wlc, bmi->_ucidx);
+		}
+#ifdef WLC_LOW
+		else {
+			fid_addr = SHM_MBSS_BC_FID_ADDR(bmi->_ucidx);
+		}
+#endif /* WLC_LOW */
+		if (fid_addr) {
+			wlc_write_shm((wlc), fid_addr, INVALIDFID);
+		}
+	}
+	if (cfg->flags & WLC_BSSCFG_PS_OFF_TRANS) {
+		wlc_apps_bss_ps_off_done(wlc, cfg);
+	}
+}
+
 
 int
 wlc_mbss_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
@@ -991,7 +1057,7 @@ wlc_mbss_dotxstatus_mcmx(wlc_info_t *wlc, wlc_bsscfg_t *cfg, tx_status_t *txs)
 	bmi->mc_fifo_pkts--; /* Decrement mc fifo counter */
 
 	/* Check if this was last frame uCode knew about */
-	if (cfg->bcmc_fid_shm == txs->frameid) {
+	if (WLC_TXFID_GET_SEQ(cfg->bcmc_fid_shm) == WLC_TXFID_GET_SEQ(txs->frameid)) {
 		cfg->bcmc_fid_shm = INVALIDFID;
 		if ((cfg->flags & WLC_BSSCFG_PS_OFF_TRANS) && (cfg->bcmc_fid == INVALIDFID)) {
 			/* Mark transition complete as pkts out of BCMC fifo */
@@ -1316,8 +1382,39 @@ wlc_mbss_shm_ssid_upd(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint16 *base)
 	}
 }
 
+static void
+wlc_mbss_bcmc_free_cb(wlc_info_t *wlc, void *pkt, uint txs)
+{
+	int err;
+	wlc_bsscfg_t *cfg;
+	uint16 frameid;
+
+	ASSERT(MBSS_ENAB(wlc->pub));
+
+	cfg = wlc_bsscfg_find(wlc, WLPKTTAGBSSCFGGET(pkt), &err);
+
+	/* if bsscfg or scb are stale or bad, then ignore this pkt for acctg purposes */
+	if (!err && cfg) {
+		/* Check if this was last frame uCode knew about */
+		frameid = wlc_get_txh_frameid(wlc, pkt);
+		if ((cfg->bcmc_fid_shm != INVALIDFID) &&
+			(WLC_TXFID_GET_SEQ(cfg->bcmc_fid_shm) == WLC_TXFID_GET_SEQ(frameid))) {
+			cfg->bcmc_fid_shm = INVALIDFID;
+			if ((cfg->flags & WLC_BSSCFG_PS_OFF_TRANS) &&
+				(cfg->bcmc_fid == INVALIDFID)) {
+				/* Mark transition complete as pkts out of BCMC fifo */
+				wlc_apps_bss_ps_off_done(wlc, cfg);
+			}
+			WL_ERROR(("wl%d.%d: BCMC packet freed that was not accounted for"
+				", fid: %d\n",
+				wlc->pub->unit, WLC_BSSCFG_IDX(cfg), frameid));
+			ASSERT(0);
+		}
+	}
+}
+
 void
-wlc_mbss_txq_update_bcmc_counters(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
+wlc_mbss_txq_update_bcmc_counters(wlc_info_t *wlc, wlc_bsscfg_t *cfg, void *p)
 {
 	bss_mbss_info_t *bmi;
 
@@ -1327,6 +1424,8 @@ wlc_mbss_txq_update_bcmc_counters(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 	ASSERT(bmi != NULL);
 
 	bmi->mc_fifo_pkts++;
+	WLF2_PCB1_REG(p, WLF2_PCB1_MBSS_BCMC);
+
 #ifdef WLCNT
 	if (bmi->mc_fifo_pkts > bmi->cnt->mc_fifo_max)
 		bmi->cnt->mc_fifo_max = bmi->mc_fifo_pkts;

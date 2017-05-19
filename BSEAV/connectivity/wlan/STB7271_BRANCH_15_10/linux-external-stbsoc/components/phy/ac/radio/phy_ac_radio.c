@@ -156,8 +156,11 @@ typedef struct {
 
 /* local functions */
 static void phy_ac_radio_std_params_attach(phy_ac_radio_info_t *info);
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void wlc_phy_radio20693_mimo_cm1_lpopt_saveregs(phy_info_t *pi);
 static void wlc_phy_radio20693_mimo_cm23_lp_opt_saveregs(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+
 static void phy_ac_radio_switch(phy_type_radio_ctx_t *ctx, bool on);
 static void phy_ac_radio_on(phy_type_radio_ctx_t *ctx);
 static void phy_ac_radio_init_lpmode(phy_ac_radio_info_t *ri);
@@ -172,6 +175,7 @@ static int phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b);
 #define phy_ac_radio_dump NULL
 #endif 
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 /* 20693 tuning Table related */
 static void wlc_phy_radio20693_pll_tune(phy_info_t *pi, const void *chan_info_pll,
 	uint8 core);
@@ -193,71 +197,92 @@ static void wlc_phy_radio20693_set_logen_mimosrcdes_pu(phy_info_t *pi, uint8 cor
 	radio_20693_adc_modes_t adc_mode, uint16 mac_mode);
 static void wlc_phy_radio20693_tx2g_set_freq_tuning_ipa_as_epa(phy_info_t *pi,
 	uint8 core, uint8 chan);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+
 static void wlc_phy_set_regtbl_on_pwron_acphy(phy_info_t *pi);
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void wlc_phy_radio20693_mimo_cm1_lpopt(phy_info_t *pi);
 static void wlc_phy_radio20693_mimo_cm1_lpopt_restore(phy_info_t *pi);
 static void wlc_phy_radio20693_mimo_cm23_lp_opt(phy_info_t *pi, uint8 coremask);
 static void wlc_phy_radio20693_mimo_cm23_lp_opt_restore(phy_info_t *pi);
 static void wlc_phy_radio20693_afecal(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
 /** 20696 ADC cap cal modes */
 #define ADC_CAP_CAL_MODE_BYPASS		0
 #define ADC_CAP_CAL_MODE_PARALLEL	1
 #define ADC_CAP_CAL_MODE_SEQUENTIAL	2
 
-static void
-wlc_phy_radio20696_adc_setup(phy_info_t *pi, uint8 core);
-static void
-wlc_phy_radio20696_adc_cap_cal(phy_info_t *pi, int mode);
-static void
-wlc_phy_radio20696_adc_cap_cal_setup(phy_info_t *pi, uint8 core);
-static void
-wlc_phy_radio20696_adc_cap_cal_parallel(phy_info_t *pi, uint8 core, uint16 *timeout);
-static void
-wlc_phy_radio20696_adc_cap_cal_sequential(phy_info_t *pi, uint8 core, uint16 *timeout);
-static void
-wlc_phy_radio20696_apply_adc_cal_result(phy_info_t *pi, uint8 core);
-
-static void
-wlc_phy_radio20696_apply_adc_cal_result_from_cache(phy_info_t *pi, uint8 core);
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+static void wlc_phy_radio20696_adc_setup(phy_info_t *pi, uint8 core);
+static void wlc_phy_radio20696_adc_cap_cal(phy_info_t *pi, int mode);
+static void wlc_phy_radio20696_adc_cap_cal_setup(phy_info_t *pi, uint8 core);
+static void wlc_phy_radio20696_adc_cap_cal_parallel(phy_info_t *pi, uint8 core, uint16 *timeout);
+static void wlc_phy_radio20696_adc_cap_cal_sequential(phy_info_t *pi, uint8 core, uint16 *timeout);
+static void wlc_phy_radio20696_apply_adc_cal_result(phy_info_t *pi, uint8 core);
+static void wlc_phy_radio20696_apply_adc_cal_result_from_cache(phy_info_t *pi, uint8 core);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
 /* Cleanup Chanspec */
-static void chanspec_setup_radio_20693(phy_info_t *pi);
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void chanspec_setup_radio_20691(phy_info_t *pi);
-static void chanspec_setup_radio_2069(phy_info_t *pi);
-static void chanspec_setup_radio_20695(phy_info_t *pi);
-static void chanspec_setup_xtal_20695(phy_info_t *pi);
-static void chanspec_setup_radio_20694(phy_info_t *pi);
-static void chanspec_setup_radio_20696(phy_info_t *pi);
-static void chanspec_tune_radio_20693(phy_info_t *pi);
 static void chanspec_tune_radio_20691(phy_info_t *pi);
-static void chanspec_tune_radio_2069(phy_info_t *pi);
-static void chanspec_tune_radio_20695(phy_info_t *pi);
-static void chanspec_tune_radio_20694(phy_info_t *pi);
-
 static void wlc_phy_chanspec_radio20691_setup(phy_info_t *pi, uint8 ch, uint8 toggle_logen_reset);
-static void wlc_phy_chanspec_radio2069_setup(phy_info_t *pi, const void *chan_info,
-	uint8 toggle_logen_reset);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
+static void chanspec_setup_radio_20693(phy_info_t *pi);
+static void chanspec_tune_radio_20693(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+static void chanspec_setup_radio_20694(phy_info_t *pi);
+static void chanspec_tune_radio_20694(phy_info_t *pi);
 static void wlc_phy_chanspec_radio20694_setup(phy_info_t *pi, uint8 ch,
 	uint8 toggle_logen_reset, uint8 core);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+static void chanspec_setup_radio_20695(phy_info_t *pi);
+static void chanspec_setup_xtal_20695(phy_info_t *pi);
+static void chanspec_tune_radio_20695(phy_info_t *pi);
 static void wlc_phy_chanspec_radio20695_setup(phy_info_t *pi, uint8 ch,
 	uint8 toggle_logen_reset, uint8 core);
-static void wlc_phy_chanspec_radio20696_setup(phy_info_t *pi, uint8 ch,
-	uint8 toggle_logen_reset);
-
 static int BCMRAMFN(wlc_phy_ac_populate_20695_chan_info_tbl)(phy_info_t *pi,
 		phy_ac_radio_info_t *radioi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+static void chanspec_setup_radio_20696(phy_info_t *pi);
+static void wlc_phy_chanspec_radio20696_setup(phy_info_t *pi, uint8 ch,
+	uint8 toggle_logen_reset);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
+static void chanspec_setup_radio_2069(phy_info_t *pi);
+static void chanspec_tune_radio_2069(phy_info_t *pi);
+static void wlc_phy_chanspec_radio2069_setup(phy_info_t *pi, const void *chan_info,
+	uint8 toggle_logen_reset);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static int BCMRAMFN(wlc_phy_ac_get_20694_chan_info_tbl)(phy_info_t *pi,
 	const chan_info_radio20694_rffe_t **chan_info, uint32 *p_tbl_len);
-static pll_config_20695_tbl_t *
-BCMRAMFN(wlc_phy_ac_get_20695_pll_config)(phy_info_t *pi);
 static pll_config_20694_tbl_t *
 BCMRAMFN(wlc_phy_ac_get_20694_pll_config)(phy_info_t *pi);
 static radio_20xx_prefregs_t *
-BCMRAMFN(wlc_phy_ac_get_20695_prfd_vals_tbl)(phy_info_t *pi);
-
-static radio_20xx_prefregs_t *
 BCMRAMFN(wlc_phy_ac_get_20694_prfd_vals_tbl)(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+static pll_config_20695_tbl_t *
+BCMRAMFN(wlc_phy_ac_get_20695_pll_config)(phy_info_t *pi);
+static radio_20xx_prefregs_t *
+BCMRAMFN(wlc_phy_ac_get_20695_prfd_vals_tbl)(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+
 
 #define RADIO20693_TUNE_REG_WR_SHIFT 0
 #define RADIO20693_TUNE_REG_CRISSCROSS_WR_SHIFT 1
@@ -358,8 +383,11 @@ static const uint16 tiaRC_tiny_16b_80_rem_war[]= { /* LUT 79--82 (80 MHz) */
 	0x0007, 0x1ff8, 0xc500, 0x00ff
 };
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || \
+	defined(RADIO_BCM20693)))
 static const uint16 *tiaRC_tiny_16b_40 = tiaRC_tiny_16b_20;  /* LUT 52--78 (40 MHz) (no LUT 67) */
 static const uint16 *tiaRC_tiny_16b_40_rem = tiaRC_tiny_16b_20_rem;  /* LUT 79--82 (40 MHz) */
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || defined(RADIO_BCM20693))) */
 
 /* Coefficients generated by 47xxtcl/rgphy/20691/ */
 /* lpf_tx_coefficient_generator/filter_tx_tiny_generate_python_and_tcl.py */
@@ -417,6 +445,7 @@ static const uint16 biases[7] = {24, 48, 96, 96, 128, 128, 96};
 static const int8 g_index1[15] = {0, 1, 2, 3, 4, 5, -2, -9, -8, -7, -6, -5, -4, -3, -1};
 static rxadccal_coeffs_t rxadccal_coeffs_cache[PHY_CORE_MAX];
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static uint8 wlc_phy_radio20693_tuning_get_access_info(phy_info_t *pi, uint8 core, uint8 reg_type);
 static uint8 wlc_phy_radio20693_tuning_get_access_type(phy_info_t *pi, uint8 core, uint8 reg_type);
 
@@ -426,86 +455,113 @@ static void wlc_phy_radio20693_xtal_pwrup(phy_info_t *pi);
 static void wlc_phy_radio20693_upd_prfd_values(phy_info_t *pi);
 static void wlc_phy_radio20693_pmu_pll_config(phy_info_t *pi);
 static void wlc_phy_switch_radio_acphy_20693(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+
 static void wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on);
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void wlc_phy_radio2069_mini_pwron_seq_rev16(phy_info_t *pi);
 static void wlc_phy_radio2069_mini_pwron_seq_rev32(phy_info_t *pi);
 static void wlc_phy_radio2069_pwron_seq(phy_info_t *pi);
-static void wlc_phy_tiny_radio_pwron_seq(phy_info_t *pi);
 static void wlc_phy_radio2069_rcal(phy_info_t *pi);
-static void wlc_phy_radio2069_rccal(phy_info_t *pi);
-static void wlc_phy_switch_radio_acphy_20691(phy_info_t *pi);
 static void wlc_phy_radio2069_upd_prfd_values(phy_info_t *pi);
-static void wlc_phy_radio20691_upd_prfd_values(phy_info_t *pi);
-static void WLBANDINITFN(wlc_phy_static_table_download_acphy)(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM2069) || \
+	defined(RADIO_BCM20696)))
+static void wlc_phy_radio2069_rccal(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM2069) || defined(RADIO_BCM20696))) */
+
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || \
+	defined(RADIO_BCM20693)))
+static void wlc_phy_tiny_radio_pwron_seq(phy_info_t *pi);
 static void wlc_phy_radio_tiny_rcal(phy_info_t *pi, acphy_tiny_rcal_modes_t mode);
-static void wlc_phy_radio_tiny_rcal_wave2(phy_info_t *pi, uint8 mode);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || defined(RADIO_BCM20693))) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
+static void wlc_phy_switch_radio_acphy_20691(phy_info_t *pi);
+static void wlc_phy_radio20691_upd_prfd_values(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+static void WLBANDINITFN(wlc_phy_static_table_download_acphy)(phy_info_t *pi);
 static void wlc_phy_radio_tiny_rccal(phy_ac_radio_info_t *ri);
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
+static void wlc_phy_radio_tiny_rcal_wave2(phy_info_t *pi, uint8 mode);
 static void wlc_phy_radio_tiny_rccal_wave2(phy_ac_radio_info_t *ri);
-static void wlc_phy_radio20695_minipmu_pupd_seq(phy_info_t *pi, uint8 pupdbit);
-static void wlc_phy_radio20696_minipmu_pwron_seq(phy_info_t *pi);
-static void wlc_phy_28nm_radio_pwron_seq_phyregs(phy_info_t *pi, uint8 core);
-static void wlc_phy_radio20695_upd_prfd_values(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void wlc_phy_radio20694_upd_prfd_values(phy_info_t *pi);
-static void wlc_phy_switch_radio_acphy_20695(phy_info_t *pi);
 static void wlc_phy_radio20694_pwron_seq_phyregs(phy_info_t *pi);
-static void wlc_phy_radio20696_pwron_seq_phyregs(phy_info_t *pi);
 static void wlc_phy_switch_radio_acphy_20694(phy_info_t *pi);
-int8 wlc_phy_28nm_radio_minipmu_cal(phy_info_t *pi);
 int8 wlc_phy_20694_radio_minipmu_cal(phy_info_t *pi);
 int8 wlc_phy_20694_radio_minipmu_cal_byaux(phy_info_t *pi);
-static void wlc_phy_radio20696_minipmu_cal(phy_info_t *pi);
-static void wlc_phy_28nm_radio_rcal(phy_info_t *pi, uint8 mode);
 static void wlc_phy_20694_radio_rcal(phy_info_t *pi, uint8 mode);
 static void wlc_phy_20694_radio_rcal_byaux(phy_info_t *pi, uint8 mode);
-static void wlc_phy_radio20696_r_cal(phy_info_t *pi, uint8 mode);
-static void wlc_phy_28nm_radio_rccal(phy_info_t *pi);
-static void wlc_phy_radio20696_rccal(phy_info_t *pi);
-static void wlc_phy_28nm_radio_pll_logen_pupd_seq(phy_info_t *pi, pll_logen_block_20695_t block,
-		uint8 pupdbit, uint8 core);
 static void wlc_phy_radio20694_rccal(phy_info_t *pi);
-static radio_pll_sel_t
-wlc_phy_radio20695_pll_tune(phy_info_t *pi, uint32 chan_freq, uint8 core);
 static void wlc_phy_20694_logen_mode(phy_info_t *pi, uint8 core);
 static void
 wlc_phy_radio20694_pll_tune(phy_info_t *pi, uint32 chan_freq, uint8 core);
-static void wlc_phy_radio20695_rffe_tune(phy_info_t *pi,
-		const chan_info_radio20695_rffe_t *chan_info_rffe, uint8 core);
 static void wlc_phy_radio20694_rffe_tune(phy_info_t *pi,
 		const chan_info_radio20694_rffe_t *chan_info_rffe, uint8 core);
-static void wlc_phy_radio20696_rffe_tune(phy_info_t *pi,
-		const chan_info_radio20696_rffe_t *chan_info_rffe);
 static void wlc_phy_radio20694_upd_band_related_reg(phy_info_t *pi);
-static void wlc_phy_radio20696_upd_band_related_reg(phy_info_t *pi);
-static void phy_ac_radio20695_pll_config_ch_dep_calc(phy_info_t *pi, uint32 lo_freq,
-		pll_config_20695_tbl_t *pll);
 static void phy_ac_radio20694_pll_config_ch_dep_calc(phy_info_t *pi, uint32 lo_freq,
 	uint8 vco_select, uint32 icp_fx, uint32 loop_band,
 	uint8 ac_mode, pll_config_20694_tbl_t *pll);
-static void phy_ac_radio20695_write_pll_config(phy_info_t *pi, radio_pll_sel_t pll_sel,
-		pll_config_20695_tbl_t *pll);
-static void BCMRAMFN(phy_ac_radio20695_extra_pll_config_write)(phy_info_t *pi, uint16 chan_freq,
-		radio_pll_sel_t pll_sel);
 static void phy_ac_radio20694_write_pll_config(phy_info_t *pi, pll_config_20694_tbl_t *pll);
-static void wlc_phy_radio20695_pll_logen_pu_config(phy_info_t *pi, uint32 chan_freq, uint8 core);
-static void wlc_phy_radio20695_clear_adc_dac_en_ovr(phy_info_t *pi);
-static void wlc_phy_radio20696_pmu_pll_pwrup(phy_info_t *pi);
-static void wlc_phy_radio20696_wars(phy_info_t *pi);
-static void wlc_phy_radio20696_refclk_en(phy_info_t *pi);
-static void wlc_phy_radio20696_upd_prfd_values(phy_info_t *pi);
-static void wlc_phy_set_clb_femctrl_static_settings(phy_info_t *pi);
-
-
-static void BCMATTACHFN(phy_ac_radio20695_pll_config_const_calc)(phy_info_t *pi,
-		pll_config_20695_tbl_t *pll);
-static int BCMATTACHFN(phy_ac_radio20695_populate_pll_config_tbl)(phy_info_t *pi,
-		pll_config_20695_tbl_t *pll);
-
 static void BCMATTACHFN(phy_ac_radio20694_pll_config_const_calc)(phy_info_t *pi,
 		pll_config_20694_tbl_t *pll);
 static int BCMATTACHFN(phy_ac_radio20694_populate_pll_config_tbl)(phy_info_t *pi,
 		pll_config_20694_tbl_t *pll);
-
 static void wlc_phy_radio20694_low_current_mode(phy_info_t *pi, uint8 mode);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+static void wlc_phy_radio20695_minipmu_pupd_seq(phy_info_t *pi, uint8 pupdbit);
+static void wlc_phy_radio20695_upd_prfd_values(phy_info_t *pi);
+static void wlc_phy_switch_radio_acphy_20695(phy_info_t *pi);
+static radio_pll_sel_t
+wlc_phy_radio20695_pll_tune(phy_info_t *pi, uint32 chan_freq, uint8 core);
+static void wlc_phy_radio20695_rffe_tune(phy_info_t *pi,
+		const chan_info_radio20695_rffe_t *chan_info_rffe, uint8 core);
+static void phy_ac_radio20695_pll_config_ch_dep_calc(phy_info_t *pi, uint32 lo_freq,
+		pll_config_20695_tbl_t *pll);
+static void phy_ac_radio20695_write_pll_config(phy_info_t *pi, radio_pll_sel_t pll_sel,
+		pll_config_20695_tbl_t *pll);
+static void BCMRAMFN(phy_ac_radio20695_extra_pll_config_write)(phy_info_t *pi, uint16 chan_freq,
+		radio_pll_sel_t pll_sel);
+static void wlc_phy_radio20695_pll_logen_pu_config(phy_info_t *pi, uint32 chan_freq, uint8 core);
+static void wlc_phy_radio20695_clear_adc_dac_en_ovr(phy_info_t *pi);
+static void BCMATTACHFN(phy_ac_radio20695_pll_config_const_calc)(phy_info_t *pi,
+		pll_config_20695_tbl_t *pll);
+static int BCMATTACHFN(phy_ac_radio20695_populate_pll_config_tbl)(phy_info_t *pi,
+		pll_config_20695_tbl_t *pll);
+static void wlc_phy_28nm_radio_pwron_seq_phyregs(phy_info_t *pi, uint8 core);
+static void wlc_phy_28nm_radio_rcal(phy_info_t *pi, uint8 mode);
+static void wlc_phy_28nm_radio_rccal(phy_info_t *pi);
+static void wlc_phy_28nm_radio_pll_logen_pupd_seq(phy_info_t *pi, pll_logen_block_20695_t block,
+		uint8 pupdbit, uint8 core);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+static void wlc_phy_radio20696_minipmu_pwron_seq(phy_info_t *pi);
+static void wlc_phy_radio20696_pwron_seq_phyregs(phy_info_t *pi);
+static void wlc_phy_radio20696_minipmu_cal(phy_info_t *pi);
+static void wlc_phy_radio20696_r_cal(phy_info_t *pi, uint8 mode);
+static void wlc_phy_radio20696_rccal(phy_info_t *pi);
+static void wlc_phy_radio20696_rffe_tune(phy_info_t *pi,
+		const chan_info_radio20696_rffe_t *chan_info_rffe);
+static void wlc_phy_radio20696_upd_band_related_reg(phy_info_t *pi);
+static void wlc_phy_radio20696_pmu_pll_pwrup(phy_info_t *pi);
+static void wlc_phy_radio20696_wars(phy_info_t *pi);
+static void wlc_phy_radio20696_refclk_en(phy_info_t *pi);
+static void wlc_phy_radio20696_upd_prfd_values(phy_info_t *pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
+
+int8 wlc_phy_28nm_radio_minipmu_cal(phy_info_t *pi);
+
+static void wlc_phy_set_clb_femctrl_static_settings(phy_info_t *pi);
+
 #ifdef RADIO_HEALTH_CHECK
 static bool phy_ac_radio_check_pll_lock(phy_type_radio_ctx_t *ctx);
 #endif /* RADIO_HEALTH_CHECK */
@@ -527,13 +583,19 @@ _phy_ac_radio_query_idcode(phy_type_radio_ctx_t *ctx)
 	return idcode;
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 /* Structure to hold 20695 PLL config values */
 static pll_config_20695_tbl_t pll_conf_20695;
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 /* Structure to hold 20694 PLL config values */
 static pll_config_20694_tbl_t pll_conf_20694;
 
 void print_pll_config_20694(pll_config_20694_tbl_t *pll, uint32 lo_freq,
 	uint32 loop_bw, uint32 icp_fx);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
 static void phy_ac_radio_nvram_attach(phy_info_t *pi, phy_ac_radio_info_t *radioi);
 
@@ -578,6 +640,7 @@ BCMATTACHFN(phy_ac_radio_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 	/* By default, use 5g pll for 2g will be disabled */
 	info->data->use_5g_pll_for_2g = (uint8)PHY_GETINTVAR_DEFAULT(pi, rstr_use5gpllfor2g, 0);
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 	/* Compute 20695 PLL config constants */
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 		pll_config_20695_tbl_t *pll;
@@ -600,6 +663,9 @@ BCMATTACHFN(phy_ac_radio_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 
 		phy_ac_radio20695_pll_config_const_calc(pi, pll);
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 		if (pi->fabid == BCM4349_TSMC_FAB_ID)
 			pi->rcal_value = TSMC_FAB_RCAL_VAL;
@@ -609,7 +675,9 @@ BCMATTACHFN(phy_ac_radio_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 		/* falling back to some value */
 		pi->rcal_value = UMC_FAB_RCAL_VAL;
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 	/* Compute 20694 PLL config constants */
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 		pll_config_20694_tbl_t *pll;
@@ -625,6 +693,7 @@ BCMATTACHFN(phy_ac_radio_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 
 		phy_ac_radio20694_pll_config_const_calc(pi, pll);
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
 	/* Populate 20696 PLL configuration table */
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
@@ -697,6 +766,7 @@ BCMATTACHFN(phy_ac_radio_unregister_impl)(phy_ac_radio_info_t *info)
 
 	phy_mfree(pi, info->pmu_c1_off_info_orig, sizeof(acphy_pmu_core1_off_radregs_t));
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 		pll_config_20695_tbl_t *pll;
 
@@ -718,7 +788,9 @@ BCMATTACHFN(phy_ac_radio_unregister_impl)(phy_ac_radio_info_t *info)
 		phy_mfree(pi, info->chan_info_tbl,
 				(sizeof(chan_info_radio20695_rffe_t) * NROWS_CHAN_TUNE_20695));
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 		pll_config_20694_tbl_t *pll;
 
@@ -743,6 +815,7 @@ BCMATTACHFN(phy_ac_radio_unregister_impl)(phy_ac_radio_info_t *info)
 				(sizeof(uint16) * PLL_CONFIG_20694_MAIN_ARRAY_SIZE));
 		}
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
 	phy_mfree(pi, info->pmu_lp_opt_orig, sizeof(acphy_pmu_mimo_lp_opt_radregs_t));
 
@@ -807,13 +880,18 @@ phy_ac_radio_switch(phy_type_radio_ctx_t *ctx, bool on)
 	phy_info_t *pi = info->pi;
 	uint8 core;
 
+	core = 0;
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 	if ((RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) &&
 		(RADIOMAJORREV(pi) != 3) && (pi->radio_is_on == TRUE) && (!on)) {
 		if (phy_get_phymode(pi) == PHYMODE_MIMO) {
 			wlc_phy_radio20693_mimo_lpopt_restore(pi);
 		}
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 	/* Set read override to before mux in 20695 radio */
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 		FOREACH_CORE(pi, core) {
@@ -823,7 +901,9 @@ phy_ac_radio_switch(phy_type_radio_ctx_t *ctx, bool on)
 					ReadOverrides_reg, 0x0);
 		}
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 	/* ported from tcl confirm ??  bpeiris (janath) */
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 		FOREACH_CORE(pi, core) {
@@ -837,6 +917,7 @@ phy_ac_radio_switch(phy_type_radio_ctx_t *ctx, bool on)
 
 		}
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
 	/* sync up soft_radio_state with hard_radio_state */
 	pi->radio_is_on = FALSE;
@@ -1049,6 +1130,7 @@ acphy_set_lpmode(phy_info_t *pi, acphy_lp_opt_levels_t lp_opt_lvl)
 		switch (lp_opt_lvl) {
 		case ACPHY_LP_RADIO_LVL_OPT:
 		{
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 			if ((RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) &&
 					(phy_get_phymode(pi) == PHYMODE_MIMO) &&
 					((for_2g == TRUE) || (for_5g == TRUE))) {
@@ -1073,6 +1155,7 @@ acphy_set_lpmode(phy_info_t *pi, acphy_lp_opt_levels_t lp_opt_lvl)
 					wlc_phy_radio20693_mimo_cm23_lp_opt(pi, new_rxchain);
 				}
 			}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 		}
 		break;
 		case ACPHY_LP_CHIP_LVL_OPT:
@@ -1172,6 +1255,8 @@ phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b)
 	uint16 addr = 0;
 	const radio_20xx_dumpregs_t *radio20xxdumpregs = NULL;
 
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 		name = "20693";
 		if ((RADIO20693_MAJORREV(pi->pubpi->radiorev) == 1) ||
@@ -1190,7 +1275,11 @@ phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b)
 		} else {
 			return BCME_NOTFOUND;
 		}
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID)) {
 		name = "2069";
 		if (RADIO2069_MAJORREV(pi->pubpi->radiorev) == 2) {
 			radio20xxdumpregs = dumpregs_2069_rev32;
@@ -1208,7 +1297,10 @@ phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b)
 		} else {
 			radio20xxdumpregs = dumpregs_2069_rev0;
 		}
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) {
 		name = "20691";
 		switch (RADIO20691REV(pi->pubpi->radiorev)) {
 		case 60:
@@ -1231,7 +1323,10 @@ phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b)
 		default:
 			;
 		}
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 		name = "20694";
 		switch (HW_RADIOREV(pi->pubpi->radiorev)) {
 		   case 5:
@@ -1249,12 +1344,15 @@ phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b)
 		default:
 			return 0;
 		}
-	}
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 	    name = "20695";
 		radio20xxdumpregs = dumpregs_20695_rev39;
-	}
-	else
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+
 		return BCME_ERROR;
 
 	i = 0;
@@ -1388,6 +1486,7 @@ BCMATTACHFN(phy_ac_radio_nvram_attach)(phy_info_t *pi, phy_ac_radio_info_t *radi
 #endif /* BOARD_FLAGS3 */
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 /* 20695 radio related functions */
 void
 wlc_phy_radio20695_afe_div_ratio(phy_info_t *pi, uint8 ulp_tx_mode, uint8 ulp_adc_mode)
@@ -1672,13 +1771,17 @@ BCMRAMFN(wlc_phy_ac_get_20695_pll_config)(phy_info_t *pi)
 {
 	return &pll_conf_20695;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static pll_config_20694_tbl_t *
 BCMRAMFN(wlc_phy_ac_get_20694_pll_config)(phy_info_t *pi)
 {
 	return &pll_conf_20694;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 int
 wlc_phy_chan2freq_20695(phy_info_t *pi, uint8 channel,
 	const chan_info_radio20695_rffe_t **chan_info)
@@ -1819,7 +1922,9 @@ wlc_phy_radio20695_minipmu_pupd_seq(phy_info_t *pi, uint8 pupdbit)
 		MOD_RADIO_REG_28NM(pi, RFP, LDO1P8_STAT, 0, ldo1p8_pu, 0x0);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 /* PLL PWR-UP */
 static void wlc_phy_radio20696_pmu_pll_pwrup(phy_info_t *pi)
 {
@@ -2019,7 +2124,9 @@ static void wlc_phy_radio20696_upd_prfd_values(phy_info_t *pi)
 		MOD_RADIO_REG_20696(pi, RX5G_WRSSI, core, rx5g_wrssi1_high_pu, 1);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 wlc_phy_28nm_radio_pwron_seq_phyregs(phy_info_t *pi, uint8 core)
 {
@@ -2038,10 +2145,13 @@ wlc_phy_28nm_radio_pwron_seq_phyregs(phy_info_t *pi, uint8 core)
 	WRITE_PHYREG(pi, RfctrlCoreGlobalPus, 0);
 	WRITE_PHYREG(pi, RfctrlOverrideGlobalPus, 0xd);
 
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 	/* Update preferred values */
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 		wlc_phy_radio20695_upd_prfd_values(pi);
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
 	/* Make RfctrlCmd.chip_pu = 1
 	   This indicates WLAN RF active
@@ -2055,6 +2165,7 @@ BCMRAMFN(wlc_phy_ac_get_20695_prfd_vals_tbl)(phy_info_t *pi)
 {
 	/* Choose the right table to use */
 	switch (RADIOREV(pi->pubpi->radiorev)) {
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 		case 32:
 			return prefregs_20695_rev32;
 
@@ -2066,6 +2177,7 @@ BCMRAMFN(wlc_phy_ac_get_20695_prfd_vals_tbl)(phy_info_t *pi)
 
 		case 39:
 			return prefregs_20695_rev39;
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
 		default:
 			PHY_ERROR(("wl%d: %s: Unsupported radio revision %d\n",
@@ -2075,7 +2187,10 @@ BCMRAMFN(wlc_phy_ac_get_20695_prfd_vals_tbl)(phy_info_t *pi)
 			return NULL;
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (!defined(RADIO_BCM20696) || \
+	defined(RADIO_BCM20691) || defined(RADIO_BCM20694) || defined(RADIO_BCM20695)))
 static uint
 wlc_phy_init_radio_prefregs_allbands(phy_info_t *pi, const radio_20xx_prefregs_t *radioregs)
 {
@@ -2091,7 +2206,9 @@ wlc_phy_init_radio_prefregs_allbands(phy_info_t *pi, const radio_20xx_prefregs_t
 
 	return i;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && !defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 wlc_phy_radio20695_upd_prfd_values(phy_info_t *pi)
 {
@@ -2156,6 +2273,7 @@ wlc_phy_switch_radio_acphy_20695(phy_info_t *pi)
 	chanspec_setup_xtal_20695(pi);
 
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
 int8
 wlc_phy_28nm_radio_minipmu_cal(phy_info_t *pi)
@@ -2214,6 +2332,7 @@ wlc_phy_28nm_radio_minipmu_cal(phy_info_t *pi)
 	return cal_status;
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 /*  R Calibration (takes ~50us) */
 static void
 wlc_phy_28nm_radio_rcal(phy_info_t *pi, uint8 mode)
@@ -2638,7 +2757,9 @@ wlc_phy_chanspec_radio20695_setup(phy_info_t *pi, uint8 ch, uint8 toggle_logen_r
 		ACPHY_REG_LIST_EXECUTE(pi);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 void
 wlc_phy_chanspec_radio20696_setup(phy_info_t *pi, uint8 ch, uint8 toggle_logen_reset)
 {
@@ -2670,7 +2791,9 @@ wlc_phy_chanspec_radio20696_setup(phy_info_t *pi, uint8 ch, uint8 toggle_logen_r
 	/* Do a VCO cal */
 	wlc_phy_20696_radio_vcocal(pi, VCO_CAL_MODE_20696, VCO_CAL_COUPLING_MODE_20696);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 wlc_phy_radio20695_pll_logen_pu_config(phy_info_t *pi, uint32 lo_freq, uint8 core)
 {
@@ -2789,7 +2912,9 @@ wlc_phy_radio20695_pll_tune(phy_info_t *pi, uint32 chan_freq, uint8 core)
 
 	return pll_sel;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 wlc_phy_20694_logen_mode(phy_info_t *pi, uint8 core)
 {
@@ -2874,7 +2999,9 @@ wlc_phy_radio20694_pll_tune(phy_info_t *pi, uint32 chan_freq, uint8 core)
 	}
 
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 wlc_phy_radio20695_rffe_tune(phy_info_t *pi, const chan_info_radio20695_rffe_t *chan_info_rffe,
 	uint8 core)
@@ -3308,7 +3435,9 @@ phy_ac_radio20695_pll_config_ch_dep_calc(phy_info_t *pi, uint32 lo_freq,
 	PLL_CONFIG_20695_VAL_ENTRY(pll, RFPLL_RFVCO_TEMP_CODE, (uint16)temp_code_fx[band_idx]);
 	/* ------------------------------------------------------------------- */
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 phy_ac_radio20694_pll_config_ch_dep_calc(phy_info_t *pi, uint32 lo_freq, uint8 vco_select,
 	uint32 icp_fx, uint32 loop_band, uint8 ac_mode, pll_config_20694_tbl_t *pll)
@@ -3901,7 +4030,9 @@ print_pll_config_20694(pll_config_20694_tbl_t *pll, uint32 lo_freq, uint32 loop_
 	PRINT_PLL_CONFIG_20694(pll, RFPLL_CP_KPD_SCALE);
 
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 BCMATTACHFN(phy_ac_radio20695_pll_config_const_calc)(phy_info_t *pi, pll_config_20695_tbl_t *pll)
 {
@@ -3997,7 +4128,9 @@ BCMATTACHFN(phy_ac_radio20695_pll_config_const_calc)(phy_info_t *pi, pll_config_
 	PLL_CONFIG_20695_VAL_ENTRY(pll, OVR_MUX_SEL_BAND, 1);
 	/* ------------------------------------------------------------------- */
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 BCMATTACHFN(phy_ac_radio20694_pll_config_const_calc)(phy_info_t *pi, pll_config_20694_tbl_t *pll)
 {
@@ -4108,7 +4241,9 @@ BCMATTACHFN(phy_ac_radio20694_pll_config_const_calc)(phy_info_t *pi, pll_config_
 	PLL_CONFIG_20694_VAL_ENTRY(pll, RFPLL_VCO_CAP_MODE, RFPLL_VCO_CAP_MODE_DEC);
 	/* ------------------------------------------------------------------- */
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static int
 BCMATTACHFN(phy_ac_radio20695_populate_pll_config_tbl)(phy_info_t *pi,
 		pll_config_20695_tbl_t *pll)
@@ -4339,7 +4474,9 @@ fail:
 
 	return BCME_NOMEM;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static int
 BCMATTACHFN(phy_ac_radio20694_populate_pll_config_tbl)(phy_info_t *pi,
 		pll_config_20694_tbl_t *pll)
@@ -4589,7 +4726,9 @@ fail:
 	}
 	return BCME_NOMEM;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 phy_ac_radio20695_write_pll_config(phy_info_t *pi, radio_pll_sel_t pll_sel,
 		pll_config_20695_tbl_t *pll)
@@ -4686,7 +4825,9 @@ BCMRAMFN(phy_ac_radio20695_extra_pll_config_write)(phy_info_t *pi, uint16 chan_f
 		ACPHY_REG_LIST_EXECUTE(pi);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 phy_ac_radio20694_write_pll_config(phy_info_t *pi, pll_config_20694_tbl_t *pll)
 {
@@ -4764,7 +4905,9 @@ wlc_phy_chan2freq_20694(phy_info_t *pi, uint8 channel,
 		return -1;
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 int
 wlc_phy_chan2freq_20696(phy_info_t *pi, uint8 channel,
 	const chan_info_radio20696_rffe_t **chan_info)
@@ -4791,7 +4934,9 @@ wlc_phy_chan2freq_20696(phy_info_t *pi, uint8 channel,
 	*chan_info = p_chan_info_tbl + index;
 	return p_chan_info_tbl[index].freq;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 wlc_phy_radio20694_upd_prfd_values(phy_info_t *pi)
 {
@@ -4919,7 +5064,9 @@ wlc_phy_radio20694_rffe_tune(phy_info_t *pi, const chan_info_radio20694_rffe_t *
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void wlc_phy_radio20696_rffe_tune(phy_info_t *pi,
 	const chan_info_radio20696_rffe_t *chan_info_rffe)
 {
@@ -5013,7 +5160,9 @@ static void wlc_phy_radio20696_rffe_tune(phy_info_t *pi,
 				chan_info_rffe->u.val_2G.RF3_lna2g_reg1_lna2g_lna1_freq_tune);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 wlc_phy_radio20694_upd_band_related_reg(phy_info_t *pi)
 {
@@ -5192,7 +5341,9 @@ wlc_phy_radio20694_upd_band_related_reg(phy_info_t *pi)
 		WRITE_RADIO_REG_20694(pi, RF, READOVERRIDES, core, 1);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void
 wlc_phy_radio20696_upd_band_related_reg(phy_info_t *pi)
 {
@@ -5227,7 +5378,9 @@ wlc_phy_radio20696_upd_band_related_reg(phy_info_t *pi)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 wlc_phy_switch_radio_acphy_20694(phy_info_t *pi)
 {
@@ -5286,12 +5439,14 @@ chanspec_tune_radio_20694(phy_info_t *pi)
 		wlc_phy_radio20694_txdac_bw_setup(pi, 0, dacbw);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void
 chanspec_tune_radio_20696(phy_info_t *pi)
 {
 	uint8 core, dacbw;
-	uint16 bbmult[2], bbmult_zero = 0;
+	uint16 bbmult[4], bbmult_zero = 0;
 	phy_info_acphy_t *pi_ac = pi->u.pi_acphy;
 	pi_ac->radioi->data->dac_mode = CHSPEC_IS2G(pi->radio_chanspec) ?
 		pi->dacratemode2g : pi->dacratemode5g;
@@ -5319,7 +5474,9 @@ chanspec_tune_radio_20696(phy_info_t *pi)
 		wlc_phy_radio20696_txdac_bw_setup(pi, 0, dacbw);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 void
 wlc_phy_radio20694_afe_div_ratio(phy_info_t *pi, uint8 use_ovr, uint8 ipapd)
 {
@@ -5669,7 +5826,9 @@ wlc_phy_radio20694_rccal(phy_info_t *pi)
 	}
 
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void
 wlc_phy_radio20696_rccal(phy_info_t *pi)
 {
@@ -5777,7 +5936,9 @@ wlc_phy_radio20696_rccal(phy_info_t *pi)
 	}
 
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 wlc_phy_radio20694_pwron_seq_phyregs(phy_info_t *pi)
 {
@@ -5834,7 +5995,9 @@ wlc_phy_radio20694_pwron_seq_phyregs(phy_info_t *pi)
 		WRITE_PHYREGCE(pi, RfctrlOverrideTxPus, core, 0x180);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 /* Global Radio PU's */
 static void wlc_phy_radio20696_pwron_seq_phyregs(phy_info_t *pi)
 {
@@ -5873,8 +6036,9 @@ static void wlc_phy_radio20696_pwron_seq_phyregs(phy_info_t *pi)
 	ACPHYREG_BCAST(pi, RfctrlCoreTxPus0, 0x80);
 	ACPHYREG_BCAST(pi, RfctrlOverrideTxPus0, 0x180);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
-
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 wlc_phy_chanspec_radio20694_setup(phy_info_t *pi, uint8 ch, uint8 toggle_logen_reset, uint8 core)
 {
@@ -5995,7 +6159,9 @@ wlc_phy_20694_radio_rcal_byaux(phy_info_t *pi, uint8 mode)
 
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 /*  R Calibration (takes ~50us) */
 /* copied from IGUANA and adabted for 7271 */
 /* original code in wlc_phy_28nm_radio_rcal */
@@ -6077,7 +6243,9 @@ wlc_phy_radio20696_r_cal(phy_info_t *pi, uint8 mode)
 		MOD_RADIO_REG_20696(pi, RCAL_CFG_NORTH, core, rcal_pu, 0);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 void
 wlc_phy_radio20694_txdac_bw_setup(phy_info_t *pi, uint8 filter_type, uint8 dacbw)
 {
@@ -6111,8 +6279,9 @@ wlc_phy_radio20694_txdac_bw_setup(phy_info_t *pi, uint8 filter_type, uint8 dacbw
 		MOD_RADIO_REG_20694(pi, RF, TXDAC_REG1, core, iqdac_buf_Cfb, code_cfb);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
-
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 void
 wlc_phy_radio20696_txdac_bw_setup(phy_info_t *pi, uint8 filter_type, uint8 dacbw)
 {
@@ -6132,7 +6301,9 @@ wlc_phy_radio20696_txdac_bw_setup(phy_info_t *pi, uint8 filter_type, uint8 dacbw
 		MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_buf_Cfb, 127);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 int8
 wlc_phy_20694_radio_minipmu_cal(phy_info_t *pi)
 {
@@ -6275,7 +6446,9 @@ wlc_phy_20694_radio_minipmu_cal_byaux(phy_info_t *pi)
 
 	return cal_status;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 /* Perform MINI PMU CAL */
 static void wlc_phy_radio20696_minipmu_cal(phy_info_t *pi)
 {
@@ -6316,7 +6489,9 @@ static void wlc_phy_radio20696_minipmu_cal(phy_info_t *pi)
 		MOD_RADIO_REG_20696(pi, BG_REG9, 1, bg_wlpmu_cal_mancodes, tempcalcode);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 /* 20693 radio related functions */
 int
 wlc_phy_chan2freq_20693(phy_info_t *pi, uint8 channel,
@@ -7344,7 +7519,9 @@ wlc_phy_radio20693_minipmu_pwron_seq(phy_info_t *pi)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 /* PU the TX/RX/VCO/..LDO's */
 static void wlc_phy_radio20696_minipmu_pwron_seq(phy_info_t *pi)
 {
@@ -7383,7 +7560,9 @@ static void wlc_phy_radio20696_minipmu_pwron_seq(phy_info_t *pi)
 		MOD_RADIO_REG_20696(pi, PMU_CFG3, core, vref_select, 0x0);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void wlc_phy_radio20693_pmu_override(phy_info_t *pi)
 {
 	uint8  core;
@@ -7567,6 +7746,7 @@ wlc_phy_radio20693_vco_opt(phy_info_t *pi, bool isVCOTUNE_5G)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
 int8
 wlc_phy_tiny_radio_minipmu_cal(phy_info_t *pi)
@@ -7707,6 +7887,7 @@ wlc_phy_tiny_radio_minipmu_cal(phy_info_t *pi)
 	return cal_status;
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 wlc_phy_radio20693_pmu_pll_config(phy_info_t *pi)
 {
@@ -7889,6 +8070,7 @@ wlc_phy_switch_radio_acphy_20693(phy_info_t *pi)
 		wlc_phy_radio_tiny_rcal(pi, TINY_RCAL_MODE1_STATIC);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
 static void
 wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
@@ -7905,6 +8087,7 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 
 	if (on) {
 		if (!pi->radio_is_on) {
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 			if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID)) {
 				if (RADIO2069_MAJORREV(pi->pubpi->radiorev) == 1) {
 					/*  set the low pwoer reg before radio init */
@@ -7933,10 +8116,16 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 				if (IS_4364_1x1(pi) || IS_4364_3x3(pi)) {
 					si_gci_set_femctrl_mask_ant01(pi->sh->sih, pi->sh->osh, 1);
 				}
-			} else if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
+			if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) {
 				wlc_phy_tiny_radio_pwron_seq(pi);
 				wlc_phy_switch_radio_acphy_20691(pi);
-			} else if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
+			if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 				acphy_pmu_core1_off_radregs_t *porig =
 					(pi_ac->radioi->pmu_c1_off_info_orig);
 				acphy_pmu_mimo_lp_opt_radregs_t *pmu_lp_opt_orig =
@@ -7983,7 +8172,10 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 
 				/* pll config, minipmu cal, RCAL */
 				wlc_phy_switch_radio_acphy_20693(pi);
-			} else if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+			if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 
 				/* PHY regs configuration and update preferred values */
 				wlc_phy_radio20694_pwron_seq_phyregs(pi);
@@ -7994,7 +8186,10 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 				wlc_phy_switch_radio_acphy_20694(pi);
 				PHY_TRACE(("wl%d: AFTER wlc_phy_switch_radio_acphy_20694\n",
 					pi->sh->unit));
-			} else if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+			if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 				/* PHY regs configuration and update preferred values */
 				wlc_phy_28nm_radio_pwron_seq_phyregs(pi, 0);
 
@@ -8003,7 +8198,10 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 
 				/* pll PU, minipmu cal, RCAL, RCCAL */
 				wlc_phy_switch_radio_acphy_20695(pi);
-			} else if (RADIOID(pi->pubpi->radioid) == BCM20696_ID) {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+			if (RADIOID(pi->pubpi->radioid) == BCM20696_ID) {
 				/* 20696procs.tcl proc 20696_init */
 
 				/* Global Radio PU's */
@@ -8030,6 +8228,7 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 				/* WAR's */
 				wlc_phy_radio20696_wars(pi);
 			}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
 			if (!TINY_RADIO(pi) &&
 				!(RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) &&
@@ -8069,7 +8268,10 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 					   MOD_RADIO_REG(pi, RF2, OVR2, ovr_otp_rcal_sel, 0);
 					}
 					else {
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 							wlc_phy_radio2069_rcal(pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+
 					}
 				}
 
@@ -8099,24 +8301,36 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 			}
 
 			if (TINY_RADIO(pi)) {
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 				if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID) &&
 				    RADIOMAJORREV(pi) == 3) {
 					wlc_phy_radio_tiny_rccal_wave2(pi_ac->radioi);
-				} else {
+				} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+				{
 					wlc_phy_radio_tiny_rccal(pi_ac->radioi);
 				}
-			} else if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
+			} else
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+			if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 				if (!ISSIM_ENAB(pi->sh->sih)) {
 					wlc_phy_radio20694_rccal(pi);
 
 				} else {
 					PHY_ERROR(("bypass rccal in QT\n"));
 				}
-			} else if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+			if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 				wlc_phy_28nm_radio_rccal(pi);
-			} else if (!RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+			if (!RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
 				wlc_phy_radio2069_rccal(pi);
 			}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
 			if (phy_ac_chanmgr_get_data(pi_ac->chanmgri)->init_done) {
 				wlc_phy_set_regtbl_on_pwron_acphy(pi);
@@ -8329,6 +8543,7 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 			MOD_RADIO_REG_20694(pi, RFP, XTAL5, 0, xtal_pu_RCCAL, 0);
 		}
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 		if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 			/* Turn off 2G and 5G PLL */
 			wlc_phy_28nm_radio_pll_logen_pupd_seq(pi, PLL2G, 0, 0);
@@ -8339,6 +8554,7 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 			/* Turn off minipmu */
 			wlc_phy_radio20695_minipmu_pupd_seq(pi, 0);
 		}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
 		/* These register turn on AFE_CLK_DIV block in "wl down" path. Leaving the block
 		 * turned on was causing BT BER issue. RB: 46565.
@@ -8356,6 +8572,7 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 		}
 	}
 
+#ifndef STB_SOC_WIFI
 	if ((CHIPID(pi->sh->chip) == BCM4335_CHIP_ID &&
 	     !CST4335_CHIPMODE_USB20D(pi->sh->sih->chipst)) ||
 	    (BCM4350_CHIP(pi->sh->chip) &&
@@ -8374,6 +8591,7 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 			MOD_RADIO_REG_20691(pi, PLL_XTAL_OVR1, core, ovr_xtal_pu_HSIC, 0x1);
 		}
 	}
+#endif /* STB_SOC_WIFI */
 
 #ifdef LOW_TX_CURRENT_SETTINGS_2G
 /* TODO: iPa low power in 2G - check if condition is needed) */
@@ -8394,6 +8612,7 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 #endif /* LOW_TX_CURRENT_SETTINGS_2G */
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 wlc_phy_radio2069_mini_pwron_seq_rev16(phy_info_t *pi)
 {
@@ -8466,7 +8685,9 @@ wlc_phy_radio2069_mini_pwron_seq_rev32(phy_info_t *pi)
 	}
 	phy_utils_write_radioreg(pi, RFX_2069_GE32_PMU_OP, 0xbe);
 }
+#endif /* #if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 wlc_phy_radio2069_pwron_seq(phy_info_t *pi)
 {
@@ -8517,7 +8738,10 @@ wlc_phy_radio2069_pwron_seq(phy_info_t *pi)
 	WRITE_PHYREG(pi, RfctrlCoreGlobalPus, 0x4);
 	WRITE_PHYREG(pi, RfctrlCoreTxPus0, txovrd & 0xfeff);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || \
+	defined(RADIO_BCM20693)))
 static void
 wlc_phy_tiny_radio_pwron_seq(phy_info_t *pi)
 {
@@ -8557,12 +8781,17 @@ wlc_phy_tiny_radio_pwron_seq(phy_info_t *pi)
 	OSL_DELAY(100);
 	WRITE_PHYREG(pi, RfctrlCmd, 0x6);
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 	/* Update preferred values (not required for uCode PM) */
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) {
 		wlc_phy_radio20691_upd_prfd_values(pi);
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 		wlc_phy_radio20693_upd_prfd_values(pi);
 	}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 	ACPHY_REG_LIST_START
 		/* # {rfpll, pllldo, logen}_{pu, reset} */
 		/* # pllldo_{pu, reset} = 1, rfpll_reset = 1 */
@@ -8590,9 +8819,11 @@ wlc_phy_tiny_radio_pwron_seq(phy_info_t *pi)
 		ACPHY_REG_LIST_EXECUTE(pi);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || defined(RADIO_BCM20693))) */
 
 #define MAX_2069_RCAL_WAITLOOPS 100
 /* rcal takes ~50us */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 wlc_phy_radio2069_rcal(phy_info_t *pi)
 {
@@ -8682,6 +8913,7 @@ wlc_phy_radio2069_rcal(phy_info_t *pi)
 		MOD_RADIO_REG_ENTRY(pi, RF2, RCAL_CFG, pu, 0)
 	ACPHY_REG_LIST_EXECUTE(pi);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
 /* rccal takes ~3ms per, i.e. ~9ms total */
 static void
@@ -8862,6 +9094,7 @@ wlc_phy_radio2069_rccal(phy_info_t *pi)
 	MOD_RADIO_REG(pi, RFP, PLL_XTAL2, xtal_pu_RCCAL, 0);
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void
 wlc_phy_switch_radio_acphy_20691(phy_info_t *pi)
 {
@@ -8949,7 +9182,9 @@ wlc_phy_switch_radio_acphy_20691(phy_info_t *pi)
 		wlc_phy_radio_tiny_rcal(pi, TINY_RCAL_MODE1_STATIC);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 wlc_phy_radio2069_upd_prfd_values(phy_info_t *pi)
 {
@@ -9126,7 +9361,9 @@ wlc_phy_radio2069_upd_prfd_values(phy_info_t *pi)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void
 wlc_phy_radio20691_upd_prfd_values(phy_info_t *pi)
 {
@@ -9308,7 +9545,9 @@ wlc_phy_radio20691_xtal_tune(phy_info_t *pi)
 		ACPHY_REG_LIST_EXECUTE(pi);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 wlc_2069_rfpll_150khz(phy_info_t *pi)
 {
@@ -9492,7 +9731,9 @@ wlc_phy_2069_4350_set_ovrds(phy_ac_radio_info_t *ri)
 	/* set xtal_pu_RCCAL1 to 0 by default to avoid it staying high without rcal */
 	MOD_RADIO_REG(pi, RFP, PLL_XTAL2, xtal_pu_RCCAL1, 0);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void
 wlc_phy_chanspec_radio20691_setup(phy_info_t *pi, uint8 ch, uint8 toggle_logen_reset)
 {
@@ -9597,7 +9838,9 @@ wlc_phy_chanspec_radio20691_setup(phy_info_t *pi, uint8 ch, uint8 toggle_logen_r
 		                    ovr_rxdiv2g_pu_bias);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 wlc_phy_chanspec_radio2069_setup(phy_info_t *pi, const void *chan_info, uint8 toggle_logen_reset)
 {
@@ -10219,6 +10462,7 @@ wlc_phy_chanspec_radio2069_setup(phy_info_t *pi, const void *chan_info, uint8 to
 	/* Do a VCO cal after writing the tuning table regs */
 	wlc_phy_radio2069_vcocal(pi);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
 /**
  * initialize the static tables defined in auto-generated wlc_phytbl_ac.c,
@@ -10333,6 +10577,8 @@ WLBANDINITFN(wlc_phy_static_table_download_acphy)(phy_info_t *pi)
 	ACPHY_ENABLE_STALL(pi, stall_val);
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || \
+	defined(RADIO_BCM20693)))
 /*  R Calibration (takes ~50us) */
 static void
 wlc_phy_radio_tiny_rcal(phy_info_t *pi, acphy_tiny_rcal_modes_t calmode)
@@ -10510,7 +10756,9 @@ wlc_phy_radio_tiny_rcal(phy_info_t *pi, acphy_tiny_rcal_modes_t calmode)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 wlc_phy_radio_tiny_rcal_wave2(phy_info_t *pi, uint8 mode)
 {
@@ -10593,6 +10841,7 @@ wlc_phy_radio_tiny_rcal_wave2(phy_info_t *pi, uint8 mode)
 		MOD_RADIO_PLLREG_20693(pi, WL_XTAL_CFG1, 0, wl_xtal_out_pu, 0x3);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
 static void
 wlc_phy_radio_tiny_rccal(phy_ac_radio_info_t *ri)
@@ -10710,6 +10959,7 @@ wlc_phy_radio_tiny_rccal(phy_ac_radio_info_t *ri)
 	MOD_RADIO_REG_TINY(pi, PLL_XTAL2, 0, xtal_pu_RCCAL, 0);
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 wlc_phy_radio_tiny_rccal_wave2(phy_ac_radio_info_t *ri)
 {
@@ -10806,6 +11056,7 @@ wlc_phy_radio_tiny_rccal_wave2(phy_ac_radio_info_t *ri)
 
 	MOD_RADIO_PLLREG_20693(pi, WL_XTAL_CFG1, 0, wl_xtal_out_pu, 0x3);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
 /* ***************************** */
 /*		External Defintions			*/
@@ -11374,6 +11625,7 @@ wlc_acphy_set_radio_loft(phy_info_t *pi,
 	return;
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 void
 wlc_phy_radio20693_config_bf_mode(phy_info_t *pi, uint8 core)
 {
@@ -11769,16 +12021,20 @@ static void wlc_phy_radio20693_tx2g_set_freq_tuning_ipa_as_epa(phy_info_t *pi,
 	MOD_RADIO_REG_20693(pi, TXMIX2G_CFG5, core,
 		mx2g_tune, mix2g_tune_val);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
 void
 phy_ac_dsi_radio_fns(phy_info_t *pi)
 {
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 	wlc_phy_radio2069_mini_pwron_seq_rev16(pi);
 	wlc_phy_radio2069_pwron_seq(pi);
 	wlc_phy_radio2069_vcocal(pi);
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 	wlc_phy_radio2069x_vcocal_isdone(pi, TRUE, FALSE);
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 chanspec_setup_radio_20693(phy_info_t *pi)
 {
@@ -11835,7 +12091,9 @@ chanspec_setup_radio_20693(phy_info_t *pi)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void
 chanspec_setup_radio_20691(phy_info_t *pi)
 {
@@ -11852,7 +12110,9 @@ chanspec_setup_radio_20691(phy_info_t *pi)
 			CCT_BAND_CHG(pi_ac) | CCT_BW_CHG(pi_ac));
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 chanspec_setup_radio_2069(phy_info_t *pi)
 {
@@ -11882,7 +12142,9 @@ chanspec_setup_radio_2069(phy_info_t *pi)
 			CCT_BAND_CHG(pi_ac) | CCT_BW_CHG(pi_ac));
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 chanspec_tune_radio_20693(phy_info_t *pi)
 {
@@ -12022,7 +12284,9 @@ chanspec_tune_radio_20693(phy_info_t *pi)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void
 chanspec_tune_radio_20691(phy_info_t *pi)
 {
@@ -12086,7 +12350,9 @@ chanspec_tune_radio_20691(phy_info_t *pi)
 
 	OSL_DELAY(20);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
 static void
 chanspec_tune_radio_2069(phy_info_t *pi)
 {
@@ -12130,7 +12396,9 @@ chanspec_tune_radio_2069(phy_info_t *pi)
 	pi_ac->radioi->prev_subband =
 		phy_ac_chanmgr_get_chan_freq_range(pi, 0, PRIMARY_FREQ_SEGMENT);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 chanspec_setup_radio_20695(phy_info_t *pi)
 {
@@ -12189,7 +12457,9 @@ chanspec_setup_xtal_20695(phy_info_t *pi)
 		(0x2 << PMUCCTL08_43012_XTAL_SEL_BIAS_RES_NORMAL_SHIFT));
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void
 chanspec_setup_radio_20694(phy_info_t *pi)
 {
@@ -12213,7 +12483,9 @@ chanspec_setup_radio_20694(phy_info_t *pi)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void
 chanspec_setup_radio_20696(phy_info_t *pi)
 {
@@ -12228,23 +12500,42 @@ chanspec_setup_radio_20696(phy_info_t *pi)
 	wlc_phy_chanspec_radio20696_setup(pi, ch_num,
 		CCT_BAND_CHG(pi_ac) | CCT_BW_CHG(pi_ac));
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
 void
 chanspec_setup_radio(phy_info_t *pi)
 {
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID))
 		chanspec_setup_radio_20693(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID))
 		chanspec_setup_radio_20691(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID))
 		chanspec_setup_radio_2069(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID))
 		chanspec_setup_radio_20694(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID))
 		chanspec_setup_radio_20695(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID))
 		chanspec_setup_radio_20696(pi);
-	else {
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
+	{
 		PHY_ERROR(("wl%d %s: Invalid RADIOID! %d\n",
 			PI_INSTANCE(pi), __FUNCTION__, pi->pubpi->radioid));
 		ASSERT(0);
@@ -12269,26 +12560,44 @@ chanspec_tune_radio(phy_info_t *pi)
 			wlc_phy_radio2069x_vcocal_isdone(pi, FALSE, FALSE);
 		}
 	}
-
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID))
 		chanspec_tune_radio_20693(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID))
 		chanspec_tune_radio_20691(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM2069_ID))
 		chanspec_tune_radio_2069(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM2069)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID))
 		chanspec_tune_radio_20694(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID))
 		chanspec_tune_radio_20695(pi);
-	else if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID))
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID))
 		chanspec_tune_radio_20696(pi);
-	else {
+	else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
+	{
 		PHY_ERROR(("wl%d %s: Invalid RADIOID! %d\n",
 			PI_INSTANCE(pi), __FUNCTION__, pi->pubpi->radioid));
 		ASSERT(0);
 	}
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static int
 BCMRAMFN(wlc_phy_ac_get_20694_chan_info_tbl)(phy_info_t *pi,
 	const chan_info_radio20694_rffe_t **chan_info,
@@ -12353,7 +12662,9 @@ BCMRAMFN(wlc_phy_ac_get_20694_prfd_vals_tbl)(phy_info_t *pi)
 		return NULL;
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 void
 wlc_phy_radio20695_txdac_bw_setup(phy_info_t *pi, uint8 filter_type, uint8 dacbw)
 {
@@ -12409,6 +12720,7 @@ wlc_phy_radio20695_txdac_bw_setup(phy_info_t *pi, uint8 filter_type, uint8 dacbw
 	}
 
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
 uint16
 wlc_phy_get_dac_rate_from_mode(phy_info_t *pi, uint8 dac_rate_mode)
@@ -12590,6 +12902,7 @@ static int phy_ac_radio_getlistandsize(phy_type_radio_ctx_t *ctx,
 }
 #endif /* PHY_DUMP_BINARY */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void
 wlc_idac_preload_20691(phy_info_t *pi, int16 i, int16 q)
 {
@@ -12637,6 +12950,7 @@ wlc_idac_preload_20691(phy_info_t *pi, int16 i, int16 q)
 
 	MOD_PHYREG(pi, RfseqTrigger, en_pkt_proc_dcc_ctrl, 0x1);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
 void
 phy_ac_radio_cal_init(phy_info_t *pi)
@@ -12682,10 +12996,13 @@ phy_ac_radio_cal_reset(phy_info_t *pi, int16 idac_i, int16 idac_q)
 		}
 
 		if (ACMAJORREV_3(pi->pubpi->phy_rev)) {
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 			if (PHY_ILNA(pi)) {
 				wlc_idac_preload_20691(pi, idac_i, idac_q);
 				wlc_phy_enable_lna_dcc_comp_20691(pi, PHY_ILNA(pi));
-			} else {
+			} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+			{
 				phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, TRUE);
 				wlc_dcc_fsm_reset(pi);
 				phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, FALSE);
@@ -12707,6 +13024,7 @@ phy_ac_radio_cal_reset(phy_info_t *pi, int16 idac_i, int16 idac_q)
 	}
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void wlc_phy_radio20694_low_current_mode(phy_info_t *pi, uint8 mode)
 {
 	uint8 core;
@@ -12739,7 +13057,10 @@ static void wlc_phy_radio20694_low_current_mode(phy_info_t *pi, uint8 mode)
 		WRITE_RADIO_REG_20694(pi, RF, READOVERRIDES, core, 1);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || \
+	defined(RADIO_BCM20693)))
 static int
 wlc_tiny_sigdel_fast_mult(int raw_p8, int mult_p12, int max_val, int rshift)
 {
@@ -12755,10 +13076,13 @@ wlc_tiny_sigdel_wrap(int prod, int max_val)
 	/* to make sure you hit the maximum number of bits in word allocated  */
 	return (prod > max_val) ? max_val : prod;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || defined(RADIO_BCM20693))) */
 
 #define WLC_TINY_GI_MULT_P12		4096U
 #define WLC_TINY_GI_MULT_TWEAK_P12	4096U
 #define WLC_TINY_GI_MULT		WLC_TINY_GI_MULT_P12
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || \
+	defined(RADIO_BCM20693)))
 static void
 wlc_tiny_sigdel_slow_tune(phy_info_t *pi, int g_mult_raw_p12,
 	tiny_adc_tuning_array_t *gvalues, uint8 bw)
@@ -13153,7 +13477,9 @@ wlc_tiny_adc_setup_fast(phy_info_t *pi, tiny_adc_tuning_array_t *gvalues, uint8 
 		MOD_RADIO_REG_TINY(pi, ADC_OVR1, core, ovr_reset_adc, 0x0);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || defined(RADIO_BCM20693))) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 wlc_phy_radio20693_adc_setup(phy_ac_radio_info_t *ri, uint8 core,
 	radio_20693_adc_modes_t adc_mode)
@@ -13178,7 +13504,9 @@ wlc_phy_radio20693_adc_setup(phy_ac_radio_info_t *ri, uint8 core,
 		wlc_tiny_adc_setup_slow(pi, &gvalues, bw, core);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void
 wlc_phy_radio20696_adc_setup(phy_info_t *pi, uint8 core)
 {
@@ -13199,6 +13527,7 @@ wlc_phy_radio20696_adc_setup(phy_info_t *pi, uint8 core)
 	}
 	MOD_RADIO_REG_20696(pi, RXADC_CFG0, core, rxadc_power_mode, mode);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
 
 /*
@@ -13208,6 +13537,8 @@ wlc_phy_radio20696_adc_setup(phy_info_t *pi, uint8 core)
  *  Mapping for each gain step is:
  *  pwrup_amp2, amp2_bypass, R1, R2, R3, R4, C1, C2, enable_st1
  */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || \
+	defined(RADIO_BCM20693)))
 static void
 wlc_tiny_tia_config(phy_info_t *pi, uint8 core)
 {
@@ -13289,7 +13620,9 @@ wlc_tiny_tia_config(phy_info_t *pi, uint8 core)
 		} while (lut <= lut_82);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && (defined(RADIO_BCM20691) || defined(RADIO_BCM20693))) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 void
 wlc_phy_set_regtbl_on_band_change_acphy_20691(phy_info_t *pi)
 {
@@ -13422,6 +13755,7 @@ wlc_phy_set_regtbl_on_band_change_acphy_20691(phy_info_t *pi)
 	    wlc_tiny_tia_config(pi, core);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
 /*  lookup radio-chip-specific channel code */
 int
@@ -13747,6 +14081,7 @@ wlc_phy_chan2freq_acphy(phy_info_t *pi, uint8 channel, const void **chan_info)
 	return freq;
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 int
 wlc_phy_chan2freq_20691(phy_info_t *pi, uint8 channel, const chan_info_radio20691_t **chan_info)
 {
@@ -13813,6 +14148,7 @@ wlc_phy_chan2freq_20691(phy_info_t *pi, uint8 channel, const chan_info_radio2069
 
 	return chan_info_tbl[i].freq;
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
 /* 20691_lpf_tx_set is the top Tx LPF function and should be the usual */
 /* function called from acphyprocs or used from the REPL in the lab */
@@ -13897,6 +14233,7 @@ wlc_phy_radio_tiny_lpf_tx_set(phy_info_t *pi, int8 bq_bw, int8 bq_gain,
 	}
 }
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 wlc_phy_radio20693_set_channel_bw(phy_info_t *pi,
 	radio_20693_adc_modes_t adc_mode, uint8 core)
@@ -14063,7 +14400,9 @@ wlc_phy_radio20693_setup_crisscorss_ovr(phy_info_t *pi, uint8 core)
 	MOD_RADIO_REG_20693(pi, RX_TOP_2G_OVR_EAST, core, ovr_rx2g_20p20_des_pu, pupd);
 	MOD_RADIO_REG_20693(pi, RX_TOP_2G_OVR_EAST, core, ovr_rx2g_20p20_gc, pupd);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 wlc_phy_radio20695_apply_adccal_result(phy_info_t *pi)
 {
@@ -14095,7 +14434,9 @@ wlc_phy_radio20695_apply_adccal_result(phy_info_t *pi)
 	MOD_RADIO_REG_20695_MULTI_3(pi, RF, RXADC_CFG7, 0, rxadc_coeff_cap0_adc_Q, temp_var[0],
 		rxadc_coeff_cap1_adc_Q, temp_var[1], rxadc_coeff_cap2_adc_Q, temp_var[2]);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 static void
 wlc_phy_radio20691_afecal(phy_info_t *pi)
 {
@@ -14126,7 +14467,9 @@ wlc_phy_radio20691_afecal(phy_info_t *pi)
 		wlc_tiny_tia_config(pi, core);
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 static void
 wlc_phy_radio20693_afecal(phy_info_t *pi)
 {
@@ -14153,7 +14496,9 @@ wlc_phy_radio20693_afecal(phy_info_t *pi)
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 static void phy_ac_radio_verify_20694_afecal(phy_info_t *pi, uint16 invclk_sv[]);
 static void phy_ac_radio_apply_20694_afecal(phy_info_t *pi, uint16 r[], uint16 invclk_sv[],
 	uint8 adccapcal_timeout[]);
@@ -14440,7 +14785,9 @@ phy_ac_radio_apply_20694_afecal(phy_info_t *pi, uint16 r[], uint16 invclk_sv[],
 		}
 	}
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
 static void
 wlc_phy_radio20695_afecal(phy_info_t *pi)
 {
@@ -14571,7 +14918,9 @@ wlc_phy_radio20695_afecal(phy_info_t *pi)
 	/* Change coeff sel to one after cal (take bypass coeffs) */
 	MOD_RADIO_REG_28NM(pi, RF, RXADC_CFG1, 0, rxadc_coeff_sel, 1);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void
 wlc_phy_radio20696_afecal(phy_info_t *pi)
 {
@@ -15031,6 +15380,7 @@ wlc_phy_radio2069_afecal_invert(phy_info_t *pi)
 	/* Turn off the clk */
 	MOD_RADIO_REG(pi, RFP, PLL_XTAL2, xtal_pu_RCCAL, 0);
 }
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
 #define MAX_2069_AFECAL_WAITLOOPS 10
 #define SAVE_RESTORE_AFE_CFG_REGS 3
@@ -15117,17 +15467,32 @@ wlc_phy_radio_afecal(phy_info_t *pi)
 {
 	wlc_phy_resetcca_acphy(pi);
 	OSL_DELAY(1);
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 	if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) {
 		wlc_phy_radio20691_afecal(pi);
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 		wlc_phy_radio20693_afecal(pi);
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
 		phy_ac_radio_20694_afecal(pi);
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20695_ID)) {
 		wlc_phy_radio20695_afecal(pi);
-	} else if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20695)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+	if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
 		wlc_phy_radio20696_afecal(pi);
-	} else {
+	} else
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
+	{
 		wlc_phy_radio2069_afecal(pi);
 	}
 

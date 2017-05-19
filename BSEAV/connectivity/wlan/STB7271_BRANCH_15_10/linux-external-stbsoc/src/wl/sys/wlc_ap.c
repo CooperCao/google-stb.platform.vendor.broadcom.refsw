@@ -502,6 +502,12 @@ static const bcm_iovar_t wlc_ap_iovars[] = {
 	(IOVF_SET_DOWN|IOVF_RSDB_SET), 0, IOVT_BOOL, 0,
 	},
 #endif /* APSTA */
+#ifdef BCMINTDBG
+	{"crash", IOV_AP_ASSERT,
+	(0), 0, IOVT_INT32, 0
+	},
+	{"ap_reset", IOV_AP_RESET, (0), 0, IOVT_INT32, 0},
+#endif
 #ifdef BCM_DCS
 	{"bcm_dcs", IOV_BCMDCS,
 	(0), 0, IOVT_BOOL, 0
@@ -1782,6 +1788,12 @@ wlc_ap_assreq_verify_rates(wlc_assoc_req_t *param, wlc_iem_ft_pparm_t *ftpparm,
 					ftpparm->assocreq.vht_op_ie,
 				        TLV_HDR_LEN + ftpparm->assocreq.vht_op_ie[TLV_LEN_OFF],
 				        &vht_op);
+			/* Have a copy of STAs actual MCS rate and NSS.
+			 *  Will be used if AP is upgraded to max NSS
+			 */
+			if (vht_cap_p) {
+				scb->vhtcap_orig_mcsmap = vht_cap_p->rx_mcs_map;
+			}
 			wlc_vht_update_scb_state(wlc->vhti, wlc->band->bandtype, scb, ht_cap_p,
 			                vht_cap_p, vht_op_p, ftpparm->assocreq.vht_ratemask);
 
@@ -4308,6 +4320,18 @@ wlc_ap_doiovar(void *hdl, uint32 actionid,
 			if (RSDB_ENAB(wlc->pub) && (bsscfg != NULL))
 				wlc = bsscfg->wlc;
 #endif /* WLRSDB */
+#ifdef BCMINTDBG
+			/* delete bsscfg */
+			if (int_val2 == WLC_AP_IOV_OP_DELETE) {
+				if (bsscfg != NULL) {
+					if (bsscfg->enable) {
+						wlc_bsscfg_disable(wlc, bsscfg);
+					}
+					wlc_bsscfg_free(wlc, bsscfg);
+				}
+				break;
+			}
+#endif /* BCMINTDBG*/
 		}
 
 #ifdef STA
@@ -4426,6 +4450,27 @@ wlc_ap_doiovar(void *hdl, uint32 actionid,
 	}
 #endif /* APSTA */
 
+#ifdef BCMINTDBG
+	case IOV_SVAL(IOV_AP_ASSERT):
+		if (int_val < 0 || int_val > 1) {
+			err = BCME_RANGE;
+			break;
+		}
+		if (int_val == 0) { /* Oops... reference NULL pointer */
+			*ret_int_ptr = 0;
+			ret_int_ptr = NULL;
+			wlc = NULL;
+			WL_PRINT(("wl%d: Oops... reference NULL pointer\n", wlc->pub->unit));
+		}
+		if (int_val == 1)  /* Force an ASSERT */
+			ASSERT(!"Forced ASSERT");
+		break;
+
+	case IOV_SVAL(IOV_AP_RESET):
+		wlc_down(wlc);
+		wlc_up(wlc);
+		break;
+#endif /* BCMINTDBG */
 
 #ifdef RXCHAIN_PWRSAVE
 	case IOV_GVAL(IOV_RXCHAIN_PWRSAVE_ENABLE):

@@ -952,7 +952,7 @@ wlc_userscb_alloc(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
 	struct scb *scb;
 
 	/* Make sure we live within our budget, and kick someone out if needed. */
-	if (scbstate->nscb >= wlc->pub->tunables->maxscb ||
+	if (scbstate->nscb > wlc->pub->tunables->maxscb ||
 	    /* age scb in low memory situation as well */
 	    (OSL_MEM_AVAIL() <= (uint)wlc->pub->tunables->min_scballoc_mem &&
 	     /* apply scb aging in low memory situation in a limited way
@@ -972,7 +972,7 @@ wlc_userscb_alloc(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
 			return NULL;
 		}
 	}
-	ASSERT(scbstate->nscb < wlc->pub->tunables->maxscb);
+	ASSERT(scbstate->nscb <= wlc->pub->tunables->maxscb);
 
 	if (TRUE &&
 #ifdef SCBFREELIST

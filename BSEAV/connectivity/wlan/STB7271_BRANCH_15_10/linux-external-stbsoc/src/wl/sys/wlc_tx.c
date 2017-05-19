@@ -1121,7 +1121,7 @@ txq_hw_fill(txq_info_t *txqi, txq_t *txq, uint fifo_idx)
 				 */
 				if (MBSS_ENAB(pub)) {
 					bsscfg->bcmc_fid = TxFrameID;
-					wlc_mbss_txq_update_bcmc_counters(wlc, bsscfg);
+					wlc_mbss_txq_update_bcmc_counters(wlc, bsscfg, p);
 				} else
 #endif /* MBSS */
 				{
@@ -3072,7 +3072,8 @@ wlc_block_datafifo(wlc_info_t *wlc, uint32 mask, uint32 val)
 void BCMFASTPATH
 wlc_send_q(wlc_info_t *wlc, wlc_txq_info_t *qi)
 {
-	if (!wlc->pub->up) {
+	/* Don't send the packets while flushing DMA and low tx queues */
+	if (!wlc->pub->up || wlc->hw->reinit) {
 		return;
 	}
 
@@ -7838,6 +7839,8 @@ wlc_d11hdrs_rev40(wlc_info_t *wlc, void *p, struct scb *scb, uint txparams_flags
 					RSPEC_BW_SHIFT) - BW_20MHZ][TXBF_OFF_IDX])) & txpwr_mask;
 				rate_hdr->Bfm0 |=
 					(uint16)(RSPEC_ISSTBC(rspec) ? stbc_val : 0);
+
+				rate_hdr->Bfm0 = htol16(rate_hdr->Bfm0);
 			}
 
 			txpwr_bfsel = bfen ? 1 : 0;
@@ -10465,6 +10468,43 @@ wlc_txq_free_pkt(wlc_info_t *wlc, void *pkt, uint16 *time_adj)
 	PKTFREE(wlc->osh, pkt, TRUE);
 }
 
+#ifdef AP
+/**
+ * This function is used to 'reset' bcmc administration for all applicable bsscfgs to prevent bcmc
+ * fifo lockup.
+ * Should only be called when there is no more bcmc traffic pending due to flush.
+ */
+void
+wlc_tx_fifo_sync_bcmc_reset(wlc_info_t *wlc)
+{
+	uint i;
+
+	if (MBSS_ENAB(wlc->pub)) {
+		wlc_bsscfg_t *cfg = NULL;
+		FOREACH_AP(wlc, i, cfg) {
+			if (cfg->bcmc_fid_shm != INVALIDFID) {
+				WL_INFORM(("wl%d.%d: %s: cfg(%p) bcmc_fid = 0x%x bcmc_fid_shm ="
+					" 0x%x, resetting bcmc_fids mc_pkts %d\n",
+					WLCWLUNIT(wlc), WLC_BSSCFG_IDX(cfg), __FUNCTION__,
+					cfg, cfg->bcmc_fid, cfg->bcmc_fid_shm,
+					TXPKTPENDGET(wlc, TX_BCMC_FIFO)));
+			}
+			/* Let's reset the FIDs since we have completed flush */
+			wlc_mbss_bcmc_reset(wlc, cfg);
+		}
+	} else if (wlc->cfg != NULL) {
+		struct scb *bcmc_scb = WLC_BCMCSCB_GET(wlc, wlc->cfg);
+		if (bcmc_scb != NULL) {
+			BCMCFID(wlc, INVALIDFID);
+			if ((SCB_PS(bcmc_scb) == TRUE) &&
+				(!BSSCFG_IBSS(wlc->cfg) || !AIBSS_ENAB(wlc->pub))) {
+				bcmc_scb->PS = FALSE;
+			}
+		}
+	}
+}
+#endif /* AP */
+
 static struct scb*
 wlc_recover_pkt_scb(wlc_info_t *wlc, void *pkt)
 {
@@ -10903,6 +10943,18 @@ wlc_tx_fifo_sync_complete(wlc_info_t *wlc, uint fifo_bitmap, uint8 flag)
 		}
 
 		spktq_deinit(&pkt_list);
+
+#ifdef AP
+		/**
+		 * Rather than checking fids on a per-packet basis using wlc_mbss_dotxstatus_mcmx
+		 * for each freed bcmc packet in wlc_low_txq_account, simply 'reset' the bcmc
+		 * administration. (a speed optimization)
+		 */
+		if ((i == TX_BCMC_FIFO) && (TXPKTPENDGET(wlc, i) == 0) &&
+			(wlc->txfifo_detach_transition_queue == wlc->primary_queue)) {
+			wlc_tx_fifo_sync_bcmc_reset(wlc);
+		}
+#endif /* AP */
 
 #ifdef WLAMPDU_MAC
 		/*
@@ -11434,6 +11486,14 @@ wlc_sdu_to_pdu(wlc_info_t *wlc, void *sdu, struct scb *scb, bool is_8021x)
 	/* wlc_dofrag --> Get the d11hdr put on it with TKIP MIC at the tail for TKIP */
 	wlc_dofrag(wlc, pkt, 0, 1, 0, scb, is_8021x, TX_AC_BE_FIFO, key,
 		&key_info, prio, frag_length);
+
+	/* TKIP MIC space reservation */
+	/* Need to compensate one more time */
+	pkt_length = pkttotlen(wlc->osh, pkt);
+	if (key_info.algo == CRYPTO_ALGO_TKIP) {
+		pkt_length += TKIP_MIC_SIZE;
+		PKTSETLEN(wlc->osh, pkt, pkt_length);
+	}
 
 	return pkt;
 } /* wlc_sdu_to_pdu */

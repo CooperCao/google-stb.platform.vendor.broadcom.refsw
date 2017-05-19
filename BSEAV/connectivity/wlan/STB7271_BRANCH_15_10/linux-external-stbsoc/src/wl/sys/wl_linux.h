@@ -290,12 +290,19 @@ extern wl_info_t *  wl_wlcreate(osl_t *osh, void *pdev);
 #endif
 
 
+#if defined(WOWL_DRV_NORELOAD)
+int wl_resume_normalmode(void);
+#endif /* WOWL_DRV_NORELOAD */
+
 struct wl_platform_info {
 #if defined(PLATFORM_INTEGRATED_WIFI) && defined(CONFIG_OF)
 	struct platform_device *pdev;
 #endif /* PLATFORM_INTEGRATED_WIFI && CONFIG_OF */
 	void __iomem *regs;	/* Base ioremap address for platform device */
 	int irq;
+#if defined(WOWL_DRV_NORELOAD)
+	int wowl_irq;
+#endif /*  WOWL_DRV_NORELOAD  */
 	uint16 deviceid;
 	void	*plat_priv;
 };

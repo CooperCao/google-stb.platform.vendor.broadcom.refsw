@@ -47,7 +47,11 @@
 #endif /* ENABLE_CORECAPTURE */
 
 
+#if defined(BCMINTDBG)
+#define	SI_MSG(args)	printf args
+#else
 #define	SI_MSG(args)
+#endif	/* BCMDBG */
 
 #ifdef BCMDBG_SI
 #define	SI_VMSG(args)	printf args
@@ -55,7 +59,14 @@
 #define	SI_VMSG(args)
 #endif
 
+#ifdef STB_SOC_SIM
+extern int noradio_override;
+#define	IS_SIM(chippkg)	((noradio_override != 0) || \
+			 (chippkg == HDLSIM_PKG_ID) || (chippkg == HWSIM_PKG_ID))
+#else
 #define	IS_SIM(chippkg)	((chippkg == HDLSIM_PKG_ID) || (chippkg == HWSIM_PKG_ID))
+
+#endif
 
 typedef uint32 (*si_intrsoff_t)(void *intr_arg);
 typedef void (*si_intrsrestore_t)(void *intr_arg, uint32 arg);

@@ -970,6 +970,18 @@ wlc_p2p_enab(wlc_p2p_info_t *pm, bool enable)
 
 	wlc->pub->_p2p = enable;
 
+#ifdef BCMINTDBG
+	/* turn on/off event forwarding */
+	if (wlc->eventq != NULL) {
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_P2P_PROBREQ_MSG, enable);
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_ESCAN_RESULT, enable);
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_SCAN_COMPLETE, enable);
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_P2P_DISC_LISTEN_COMPLETE, enable);
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_ACTION_FRAME, enable);
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_ACTION_FRAME_COMPLETE, enable);
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_ACTION_FRAME_OFF_CHAN_COMPLETE, enable);
+	}
+#endif
 
 	return BCME_OK;
 }

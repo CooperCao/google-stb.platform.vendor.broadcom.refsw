@@ -93,6 +93,9 @@ static const bcm_iovar_t wme_iovars[] = {
 	{"wme_tx_params", IOV_WME_TX_PARAMS,
 	IOVF_OPEN_ALLOW, 0, IOVT_BUFFER, WL_WME_TX_PARAMS_IO_BYTES},
 #endif
+#if defined(BCMINTDBG) && defined(WLCAC)
+	{"wme_maxbw_params", IOV_WME_MBW_PARAMS, 0, 0, IOVT_BUFFER, WL_WME_MBW_PARAMS_IO_BYTES},
+#endif	/* BCMINTDBG && WLCAC */
 #ifdef STA
 	{"send_frame", IOV_SEND_FRAME, IOVF_SET_UP, 0, IOVT_BUFFER, 0},
 #endif
@@ -983,6 +986,15 @@ wlc_qos_doiovar(void *ctx, uint32 actionid,
 
 #endif /* WME_PER_AC_TUNING && PER_AC_TX_PARAMS */
 
+#if defined(BCMINTDBG) && defined(WLCAC)
+	case IOV_GVAL(IOV_WME_MBW_PARAMS):
+		bcopy((uint8*)&wlc->wme_maxbw_ac, (uint8*)arg, sizeof(wlc->wme_maxbw_ac));
+		break;
+
+	case IOV_SVAL(IOV_WME_MBW_PARAMS):
+		bcopy((uint8*)arg, (uint8*)&wlc->wme_maxbw_ac, sizeof(wlc->wme_maxbw_ac));
+		break;
+#endif	/* BCMINTDBG && WLCAC */
 
 	default:
 		err = BCME_UNSUPPORTED;

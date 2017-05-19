@@ -137,6 +137,7 @@ static int wlc_apps_cubby_get(void *ctx, wlc_bsscfg_t *cfg, uint8 *data, int *le
 static int wlc_apps_cubby_set(void *ctx, wlc_bsscfg_t *cfg, const uint8 *data, int len);
 static void wlc_apps_bss_deinit(void *ctx, wlc_bsscfg_t *cfg);
 static int wlc_apps_scb_update(void *context, struct scb *scb, wlc_bsscfg_t* new_cfg);
+static void wlc_apps_bss_wd_ps_check(void *handle);
 
 
 #if defined(MBSS)
@@ -568,7 +569,8 @@ BCMATTACHFN(wlc_apps_attach)(wlc_info_t *wlc)
 	}
 
 	/* register module */
-	if (wlc_module_register(wlc->pub, NULL, "apps", wlc, NULL, NULL, NULL, wlc_apps_down)) {
+	if (wlc_module_register(wlc->pub, NULL, "apps", wlc, NULL, wlc_apps_bss_wd_ps_check, NULL,
+		wlc_apps_down)) {
 		WL_ERROR(("wl%d: %s wlc_module_register() failed\n",
 		          wlc->pub->unit, __FUNCTION__));
 		return -4;
@@ -1876,8 +1878,7 @@ wlc_apps_psq(wlc_info_t *wlc, void *pkt, int prec)
 
 				if (scb_psinfo->apsd_cnt > 1 &&
 				    wlc_apps_apsd_delv_count(wlc, scb) == 1) {
-					uint8 prec_bmp =
-					        WLC_ACBITMAP_TO_PRECBITMAP(scb->apsd.ac_delv);
+					uint8 prec_bmp = (uint8)scb->apsd.ac_delv & AC_BITMAP_ALL;
 					wlc_wlfc_psmode_request(wlc->wlfc, scb,
 						1, prec_bmp, WLFC_CTL_TYPE_MAC_REQUEST_PACKET);
 					wl_add_timer(wlc->wl, scb_psinfo->apsd_hpkt_timer,
@@ -3703,6 +3704,7 @@ wlc_apps_apsd_send(wlc_info_t *wlc, struct scb *scb)
 		if (!scb_psinfo->apsd_hpkt_timer_on &&
 		    scb_psinfo->apsd_cnt > 1 &&
 		    wlc_apps_apsd_delv_count(wlc, scb) == 1) {
+			prec_bmp = (uint)scb->apsd.ac_delv & AC_BITMAP_ALL;
 			wlc_wlfc_psmode_request(wlc->wlfc, scb,
 				1, prec_bmp, WLFC_CTL_TYPE_MAC_REQUEST_PACKET);
 			wl_add_timer(wlc->wl, scb_psinfo->apsd_hpkt_timer,
@@ -4202,6 +4204,47 @@ wlc_apps_apsd_ac_available(wlc_info_t *wlc, struct scb *scb)
 		ac_bitmap |= TDLS_PU_BUFFER_STATUS_AC_VI;
 
 	return ac_bitmap;
+}
+
+/* periodically check whether BC/MC queue needs to be flushed */
+static void
+wlc_apps_bss_wd_ps_check(void *handle)
+{
+	wlc_info_t *wlc = (wlc_info_t *)handle;
+	struct scb *bcmc_scb;
+	wlc_bsscfg_t *bsscfg;
+	uint i;
+
+	FOREACH_AP(wlc, i, bsscfg) {
+		if (!(bsscfg->flags & WLC_BSSCFG_NOBCMC) && !wlc->excursion_active &&
+			BSSCFG_HAS_BCMC_SCB(bsscfg)) {
+			bcmc_scb = WLC_BCMCSCB_GET(wlc, bsscfg);
+			ASSERT(bcmc_scb != NULL);
+			ASSERT(bcmc_scb->bsscfg == bsscfg);
+
+			if ((SCB_PS(bcmc_scb) == TRUE) && (TXPKTPENDGET(wlc, TX_BCMC_FIFO) == 0)) {
+				if (MBSS_ENAB(wlc->pub)) {
+					if (bsscfg->bcmc_fid_shm != INVALIDFID) {
+						WL_ERROR(("wl%d.%d: %s: cfg(%p) bcmc_fid = 0x%x "
+							"bcmc_fid_shm = 0x%x, resetting bcmc_fids"
+							" tot pend %d mc_pkts %d\n",
+							wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg),
+							__FUNCTION__, bsscfg, bsscfg->bcmc_fid,
+							bsscfg->bcmc_fid_shm,
+							TXPKTPENDTOT(wlc),
+							wlc_mbss_get_bcmc_pkts_sent(wlc, bsscfg)));
+					}
+					/* Let's reset the FIDs since we have completed flush */
+					wlc_mbss_bcmc_reset(wlc, bsscfg);
+				} else {
+					BCMCFID(wlc, INVALIDFID);
+					if (!BSSCFG_IBSS(bsscfg) || !AIBSS_ENAB(wlc->pub)) {
+						bcmc_scb->PS = FALSE;
+					}
+				}
+			}
+		}
+	}
 }
 
 #if defined(MBSS)

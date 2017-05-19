@@ -266,11 +266,8 @@ tkip_destroy(wlc_key_t *key)
 {
 	KM_DBG_ASSERT(TKIP_KEY_VALID(key));
 
-	if (key->algo_impl.ctx != NULL) {
-		if (KEY_NUM_RX_SEQ(key) != WLC_KEY_NUM_RX_SEQ)
-			KEY_PUB(key)->tunables->num_rxivs = WLC_KEY_NUM_RX_SEQ;
+	if (key->algo_impl.ctx != NULL)
 		MFREE(KEY_OSH(key), key->algo_impl.ctx, SIZEOF_TKIP_KEY(key));
-	}
 
 	key->algo_impl.cb = NULL;
 	key->algo_impl.ctx = NULL;

@@ -61,6 +61,8 @@ typedef struct acphy_aci_params {
 	acphy_desense_values_t desense;
 	int8 weakest_rssi;
 
+	uint8 txop, jammer_cnt;
+
 	desense_history_t bphy_hist;
 	desense_history_t ofdm_hist;
 	uint8 glitch_buff_idx, glitch_upd_wait;
@@ -119,7 +121,8 @@ typedef struct {
 #ifndef WLC_DISABLE_ACI
 static uint32 wlc_phy_desense_aci_get_avg_max_glitches_acphy(uint32 glitches[]);
 static uint8 wlc_phy_desense_aci_calc_acphy(phy_info_t *pi, desense_history_t *aci_desense,
-	uint8 desense, uint32 glitch_cnt, uint16 glitch_th_lo, uint16 glitch_th_hi);
+	uint8 desense, uint32 glitch_cnt, uint16 glitch_th_lo, uint16 glitch_th_hi,
+	bool jammer_present, uint8 *desense_half_dB);
 #ifdef WL_ACI_FCBS
 static void wlc_phy_init_FCBS_hwaci(phy_info_t *pi);
 #endif /* WL_ACI_FCBS */
@@ -683,14 +686,18 @@ phy_ac_noise_dump(phy_type_noise_ctx_t *ctx, struct bcmstrbuf *b)
 	acphy_desense_values_t desense;
 	phy_info_acphy_t *pi_ac = pi->u.pi_acphy;
 	int8 rssi = 0;
+	uint8 jammer_cnt = 0, txop = 0;
 
 	if (SCAN_RM_IN_PROGRESS(pi)) {
 		bcm_bprintf(b, "Scanning is in progress. Can't dump aci mitigation info.\n");
 		return BCME_ERROR;
 	}
 
-	if (noise_info->aci != NULL)
+	if (noise_info->aci != NULL) {
 		rssi = noise_info->aci->weakest_rssi;
+		jammer_cnt = noise_info->aci->jammer_cnt;
+		txop = noise_info->aci->txop;
+	}
 
 	bw = CHSPEC_BW_LE20(pi->radio_chanspec) ? 20 : (CHSPEC_IS40(pi->radio_chanspec) ? 40 : 80);
 
@@ -708,7 +715,10 @@ phy_ac_noise_dump(phy_type_noise_ctx_t *ctx, struct bcmstrbuf *b)
 		            CHSPEC_CHANNEL(pi->radio_chanspec), bw, desense.on);
 	}
 	bcm_bprintf(b, "OFDM desense (dB) = %d\n", desense.ofdm_desense);
+	bcm_bprintf(b, "OFDM desense (halfdB) = %d\n", desense.ofdm_desense_extra_halfdB);
 	bcm_bprintf(b, "BPHY desense (dB) = %d\n", desense.bphy_desense);
+	bcm_bprintf(b, "jammer_cnt = %d. txop = %d\n", jammer_cnt, txop);
+
 	if (ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev)) {
 		if (noise_info->aci != NULL) {
 			bcm_bprintf(b, "HWACI mitigation triggered = %d\n",
@@ -820,7 +830,8 @@ wlc_phy_desense_aci_get_avg_max_glitches_acphy(uint32 glitches[])
 
 static uint8
 wlc_phy_desense_aci_calc_acphy(phy_info_t *pi, desense_history_t *aci_desense, uint8 desense,
-	uint32 glitch_cnt, uint16 glitch_th_lo, uint16 glitch_th_hi)
+	uint32 glitch_cnt, uint16 glitch_th_lo, uint16 glitch_th_hi,
+	bool enable_half_dB, uint8 *desense_half_dB)
 {
 	uint8 hi, lo, cnt, cnt_thresh = 0;
 
@@ -830,9 +841,16 @@ wlc_phy_desense_aci_calc_acphy(phy_info_t *pi, desense_history_t *aci_desense, u
 
 	if (glitch_cnt > glitch_th_hi) {
 		hi = desense;
-		if (hi >= lo) desense += ACPHY_ACI_COARSE_DESENSE_UP;
-		else desense = MAX(desense + 1, (hi + lo) >> 1);
+		if (hi > lo) desense += ACPHY_ACI_COARSE_DESENSE_UP;
+		else if(enable_half_dB) {
+		/* If half dB desense is enabled, then when going up, increase by 2dBs */
+			desense = MAX(desense + 2, (hi + lo) >> 1);
+		} else {
+			desense = MAX(desense + 1, (hi + lo) >> 1);
+		}
 		cnt = 0;
+
+		if (!enable_half_dB) *desense_half_dB = 0;
 	} else {
 		/* Sleep for different times under different conditions */
 		if (desense - hi == 1) {
@@ -842,11 +860,25 @@ wlc_phy_desense_aci_calc_acphy(phy_info_t *pi, desense_history_t *aci_desense, u
 			        ACPHY_ACI_LO_GLITCH_SLEEP;
 		}
 
+		/* Double the wait time if we are going down by 1/2 dB steps */
+		if (enable_half_dB)
+			cnt_thresh = (cnt_thresh << 1);
+
 		if (cnt > cnt_thresh) {
 			lo = desense;
-			if (lo <= hi) desense = MAX(0, desense - ACPHY_ACI_COARSE_DESENSE_DN);
-			else desense = MAX(0, MIN(desense - 1, (hi + lo) >> 1));
 			cnt = 0;
+			if (enable_half_dB) {
+				if (*desense_half_dB) {
+					*desense_half_dB = 0;
+				} else {
+					*desense_half_dB = 1;
+					desense = MAX(0, desense - 1);
+				}
+			} else {
+				*desense_half_dB = 0;
+				if (lo <= hi) desense = MAX(0, desense - ACPHY_ACI_COARSE_DESENSE_DN);
+				else desense = MAX(0, MIN(desense - 1, (hi + lo) >> 1));
+			}
 		}
 	}
 
@@ -1148,6 +1180,17 @@ phy_ac_noise_get_weakest_rssi(phy_ac_noise_info_t *noisei)
 		return 0;
 	}
 }
+
+int8
+phy_ac_noise_get_jammer_cnt(phy_ac_noise_info_t *noisei)
+{
+	if (noisei->aci != NULL) {
+		return noisei->aci->jammer_cnt;
+	} else {
+		return 0;
+	}
+}
+
 
 #ifndef WLC_DISABLE_ACI
 void
@@ -2888,10 +2931,15 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 	uint32 ofdm_glitches, bphy_glitches;
 	phy_info_acphy_t *pi_ac = pi->u.pi_acphy;
 	uint32 avg_glitch_ofdm, avg_glitch_bphy;
-	uint8 new_bphy_desense, new_ofdm_desense;
+	uint8 new_bphy_desense, new_ofdm_desense, new_ofdm_desense_extra_halfdB = 0;
 	acphy_desense_values_t *desense;
 	acphy_desense_values_t zero_desense;
 	acphy_aci_params_t *aci;
+	bool enable_half_dB, jammer_present = FALSE;
+	uint8 max_rssi, zero = 0;
+	uint8 max_lesi_desense;
+
+	max_lesi_desense = phy_ac_rxgcrs_get_lesi(pi_ac->rxgcrsi) ? ACPHY_ACI_MAX_LESI_DESENSE_DB : 0;
 
 	if (pi_ac->noisei->aci == NULL) {
 		pi_ac->noisei->aci = wlc_phy_desense_aci_getset_chanidx_acphy(pi,
@@ -2953,6 +3001,16 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 	PHY_ACI(("aci_mode1, max {bphy, ofdm} = {%d %d}, rssi = %d, aci_on = %d\n",
 	         avg_glitch_bphy, avg_glitch_ofdm, aci->weakest_rssi, desense->on));
 
+	/* **** JAMMER DETECTION (0 reserved for no txop info) *** */
+	if ((aci->txop > 0) && (aci->txop < 6) && (avg_glitch_ofdm > 10000)) {
+		jammer_present = TRUE;
+		aci->jammer_cnt = ACPHY_JAMMER_SLEEP;
+	} else if (aci->jammer_cnt > 0) {
+		jammer_present = TRUE;
+		aci->jammer_cnt = (avg_glitch_ofdm > ACPHY_ACI_OFDM_HI_GLITCH_THRESH) ?
+		ACPHY_JAMMER_SLEEP : aci->jammer_cnt - 1;
+	}
+
 	/* Don't need to do anything is interference mitigation is off & glitches < thresh */
 	/* Using different MACROS for 4349
 	 */
@@ -2969,39 +3027,61 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 	}
 
 	new_bphy_desense = wlc_phy_desense_aci_calc_acphy(pi, &aci->bphy_hist,
-	                                             desense->bphy_desense,
-	                                             avg_glitch_bphy,
-	                                             ACPHY_ACI_BPHY_LO_GLITCH_THRESH,
-	                                             ACPHY_ACI_BPHY_HI_GLITCH_THRESH);
+								desense->bphy_desense,
+								avg_glitch_bphy,
+								ACPHY_ACI_BPHY_LO_GLITCH_THRESH,
+								ACPHY_ACI_BPHY_HI_GLITCH_THRESH,
+								FALSE, &zero);
+
+	new_ofdm_desense_extra_halfdB = desense->ofdm_desense_extra_halfdB;
+	enable_half_dB = (jammer_present ||
+						(phy_ac_rxgcrs_get_lesi(pi_ac->rxgcrsi) && (desense->ofdm_desense <= max_lesi_desense)));
+
 
 	if (ACMAJORREV_4(pi->pubpi->phy_rev) || ACMAJORREV_32(pi->pubpi->phy_rev) ||
 		ACMAJORREV_33(pi->pubpi->phy_rev) || ACMAJORREV_37(pi->pubpi->phy_rev) ||
 		ACMAJORREV_36(pi->pubpi->phy_rev)) {
 		new_ofdm_desense = wlc_phy_desense_aci_calc_acphy(pi, &aci->ofdm_hist,
-			desense->ofdm_desense,
-			avg_glitch_ofdm,
-			ACPHY_ACI_OFDM_LO_GLITCH_THRESH_TINY,
-			ACPHY_ACI_OFDM_HI_GLITCH_THRESH_TINY);
+								desense->ofdm_desense,
+								avg_glitch_ofdm,
+								ACPHY_ACI_OFDM_LO_GLITCH_THRESH_TINY,
+								ACPHY_ACI_OFDM_HI_GLITCH_THRESH_TINY,
+								enable_half_dB,
+								&new_ofdm_desense_extra_halfdB);
 	} else {
 		new_ofdm_desense = wlc_phy_desense_aci_calc_acphy(pi, &aci->ofdm_hist,
-			desense->ofdm_desense,
-			avg_glitch_ofdm,
-			ACPHY_ACI_OFDM_LO_GLITCH_THRESH,
-			ACPHY_ACI_OFDM_HI_GLITCH_THRESH);
+								desense->ofdm_desense,
+								avg_glitch_ofdm,
+								ACPHY_ACI_OFDM_LO_GLITCH_THRESH,
+								ACPHY_ACI_OFDM_HI_GLITCH_THRESH,
+								enable_half_dB,
+								&new_ofdm_desense_extra_halfdB);
 	}
-
 
 	/* Limit desnese */
 	new_bphy_desense = MIN(new_bphy_desense, ACPHY_ACI_MAX_DESENSE_BPHY_DB);
 	new_ofdm_desense = MIN(new_ofdm_desense, ACPHY_ACI_MAX_DESENSE_OFDM_DB);
 
-	if (ASSOC_INPROG_PHY(pi) || PUB_NOT_ASSOC(pi)) {
-		new_bphy_desense = 0;
-		new_ofdm_desense = 0;
-	}
+	PHY_ACI(("aci_mode1, txop = %d, avg_glitch %d, jammer = %d\n", aci->txop, avg_glitch_ofdm, aci->jammer_cnt));
 
-	new_bphy_desense = MIN(new_bphy_desense, MAX(0, aci->weakest_rssi + 85));
-	new_ofdm_desense = MIN(new_ofdm_desense, MAX(0, aci->weakest_rssi + 80));
+	/* BPHY */
+	if (ASSOC_INPROG_PHY(pi) || PUB_NOT_ASSOC(pi))
+		/* if no-assoc, then reduce gracefully */
+		new_bphy_desense = MIN(new_bphy_desense, MAX(0, desense->bphy_desense - 1));
+	else
+		new_bphy_desense = MIN(new_bphy_desense, MAX(0, aci->weakest_rssi + 85));
+
+
+	/* OFDM */
+	if (ASSOC_INPROG_PHY(pi) || PUB_NOT_ASSOC(pi)) {
+		/* if no-assoc & no jammer, then reduce gracefully until max_lesi, but if jammer present, don't limit */
+		if (!jammer_present)
+			new_ofdm_desense = MIN(new_ofdm_desense, MAX(max_lesi_desense, desense->ofdm_desense - 1));
+	} else {
+		max_rssi = jammer_present ? 90 : 80;	/* more aggressive if jammer present (too many glitches) */
+		/* Always allow LESI to desense (upto lesi off), irrespective of RSSI	*/
+		new_ofdm_desense = MIN(new_ofdm_desense, max_lesi_desense + MAX(0, aci->weakest_rssi + max_rssi));
+	}
 
 	PHY_ACI(("aci_mode1, old desense = {%d %d}, new = {%d %d}\n",
 	         desense->bphy_desense,
@@ -3017,9 +3097,11 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 			aci->bphy_hist.glitches[i] = ACPHY_ACI_BPHY_LO_GLITCH_THRESH;
 	}
 
-	if (new_ofdm_desense != desense->ofdm_desense) {
+	if ((new_ofdm_desense != desense->ofdm_desense) ||
+		(new_ofdm_desense_extra_halfdB != desense->ofdm_desense_extra_halfdB)) {
 		call_mitigation = TRUE;
 		desense->ofdm_desense = new_ofdm_desense;
+		desense->ofdm_desense_extra_halfdB = new_ofdm_desense_extra_halfdB;
 
 		/* Clear old glitch history when desnese changed */
 		if (ACMAJORREV_4(pi->pubpi->phy_rev) || ACMAJORREV_32(pi->pubpi->phy_rev) ||
@@ -3859,6 +3941,7 @@ wlc_phy_desense_aci_reset_params_acphy(phy_info_t *pi, bool call_gainctrl, bool 
 		bzero(&noisei->aci->ofdm_hist, sizeof(desense_history_t));
 		noisei->aci->glitch_buff_idx = 0;
 		noisei->aci->glitch_upd_wait = 1;
+		noisei->aci->jammer_cnt = 0;
 		bzero(&noisei->aci->desense, sizeof(acphy_desense_values_t));
 	}
 
@@ -3866,6 +3949,20 @@ wlc_phy_desense_aci_reset_params_acphy(phy_info_t *pi, bool call_gainctrl, bool 
 	if (call_gainctrl)
 		wlc_phy_desense_apply_acphy(pi, TRUE);
 }
+
+void
+wlc_phy_desense_aci_upd_txop_acphy(phy_info_t *pi, chanspec_t chanspec, uint8 txop)
+{
+	acphy_aci_params_t *aci;
+
+	aci = (acphy_aci_params_t *)
+	        wlc_phy_desense_aci_getset_chanidx_acphy(pi, chanspec, FALSE);
+
+	if (aci == NULL) return;   /* not found in phy list of channels */
+
+	aci->txop = MAX(1, txop);   // reserve 0 for no update of txop
+}
+
 
 /* Update chan stats offline, i.e. we might not be on this channel currently */
 static void
@@ -4739,7 +4836,7 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 			WRITE_PHYREG(pi, PREMPT_per_pkt_en0, 0x0);
 		}
 	} else if ((ACMAJORREV_32(pi->pubpi->phy_rev) && !ACMINORREV_0(pi)) ||
-	           ACMAJORREV_33(pi->pubpi->phy_rev) || ACMAJORREV_37(pi->pubpi->phy_rev)) {
+	           ACMAJORREV_33(pi->pubpi->phy_rev)) {
 		/* 4365B0 PREEMPTion SETTINGs */
 		if (enable_preempt) {
 			WRITE_PHYREG(pi, PktAbortCtrl, 0xf041);
@@ -4788,17 +4885,23 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 				WRITE_PHYREG_ENTRY(pi, BphyAbortExitCtrl, 0x3840)
 				WRITE_PHYREG_ENTRY(pi, PktAbortCounterClr, 0x118)
 				WRITE_PHYREG_ENTRY(pi, BphyAbortExitCtrl, 0x3840)
-				WRITE_PHYREG_ENTRY(pi, PktAbortSupportedStates, 0x2bff)
-				/* fill register value for 4 cores  */
-				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th0, 0x2000)
+				WRITE_PHYREG_ENTRY(pi, PktAbortSupportedStates, 0x2bbf)
+				/* fill register value for 4 cores	*/
+				if (CHSPEC_IS5G(pi->radio_chanspec)) {
+					/* 5G ofdm_nominal_clip_th & ofdm_low_power_mismatch_th */
+					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th0, 0x2200);
+					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_low_power_mismatch_th0, 25)
+				} else {
+					/* 2G ofdm_nominal_clip_th & ofdm_low_power_mismatch_th */
+					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th0, 0x3200);
+					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_low_power_mismatch_th0, 30)
+				}
 				ACPHYREG_BCAST_ENTRY(pi, PREMPT_cck_nominal_clip_th0, 0x2400)
-				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th_xtra_bits0,
-					0x2800)
+				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th_hipwr_xtra_bits0,0x3200)
 				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th_hipwr0, 0xffff)
 				ACPHYREG_BCAST_ENTRY(pi, PREMPT_cck_nominal_clip_th_hipwr0, 0xffff)
-				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_large_gain_mismatch_th0, 0x1f)
-				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_low_power_mismatch_th0, 0x1e)
-				ACPHYREG_BCAST_ENTRY(pi, PREMPT_cck_low_power_mismatch_th0, 0x1e)
+				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_large_gain_mismatch_th0, 0x1e)
+				ACPHYREG_BCAST_ENTRY(pi, PREMPT_cck_low_power_mismatch_th0, 30)
 			ACPHY_REG_LIST_EXECUTE(pi);
 		} else {
 			/* Disable Preempt */

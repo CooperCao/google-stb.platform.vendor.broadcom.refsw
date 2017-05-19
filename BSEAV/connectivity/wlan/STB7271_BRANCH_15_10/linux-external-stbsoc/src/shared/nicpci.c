@@ -1156,8 +1156,10 @@ pciedev_crwlpciegen2(void *pch)
 {
 	pcicore_info_t *pi = (pcicore_info_t *)pch;
 	si_t *sih = pi->sih;
+#if defined(WAR2_HWJIRA_CRWLPCIEGEN2_162)
 	osl_t *osh = si_osh(sih);
 	sbpcieregs_t *pcieregs = pi->regs.pcieregs;
+#endif
 	bool pciewar160, pciewar162;
 
 	pciewar160 = (sih->buscorerev == 7 || sih->buscorerev == 9 || sih->buscorerev == 11);

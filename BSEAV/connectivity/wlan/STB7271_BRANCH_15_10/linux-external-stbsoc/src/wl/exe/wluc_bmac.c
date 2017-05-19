@@ -54,6 +54,10 @@ static cmd_func_t wl_otpw, wl_otpraw;
 static cmd_func_t wl_devpath;
 static cmd_func_t wl_diag;
 static cmd_func_t wl_var_setintandprintstr;
+#ifdef BCMINTDBG
+static cmd_func_t wlu_reg1or3args;
+static cmd_func_t wl_coma;
+#endif /* BCMINTDBG */
 static cmd_func_t wl_otpdump_iter;
 static cmd_func_t wlu_srwrite_data;
 
@@ -72,6 +76,21 @@ static cmd_t wl_bmac_cmds[] = {
 	"\tUsage: gpiomask gpioval"},
 	{ "devpath", wl_devpath, WLC_GET_VAR, -1,
 	"print device path" },
+#ifdef BCMINTDBG
+	{ "corereg", wlu_reg3args, WLC_GET_VAR, WLC_SET_VAR,
+	"!!! internal only !!! g/set ANY registers in ANY core: core offset [val]"},
+	{ "corewrapperreg", wlu_reg3args, WLC_GET_VAR, WLC_SET_VAR,
+	"!!! internal only !!! g/set ANY core wrapper register in ANY core: coreidx offset [val]"},
+	{ "sflags", wlu_reg1or3args, WLC_GET_VAR, WLC_SET_VAR, "g/set core iostatus flags"},
+	{ "cflags", wlu_reg1or3args, WLC_GET_VAR, WLC_SET_VAR, "g/set core ioctrl flags"},
+	{ "jtagureg", wlu_reg2args, WLC_GET_VAR, WLC_SET_VAR, "g/set JTAG user registers"},
+	{ "coma", wl_coma, -1, WLC_SET_VAR, "Put the router in a catatonic state"},
+	{ "pciereg", wlu_reg2args, WLC_GET_VAR, WLC_SET_VAR, "g/set pcie tlp/dlp/plp registers"},
+	{ "pllreset", wl_var_void, -1, WLC_SET_VAR, "set the pll to reset value\n"
+	"\tUsage: wl pllreset"},
+	{ "timestamp", wl_var_getandprintstr, WLC_GET_VAR, -1,
+	"Get the debug hw timestamp"},
+#endif /* BCMINTDBG */
 	{ "otpraw", wl_otpraw, WLC_GET_VAR, WLC_SET_VAR,
 	"Read/Write raw data to on-chip otp\n"
 	"Usage: wl otpraw <offset> <bits> [<data>]"},
@@ -554,6 +573,94 @@ wlu_reg3args(void *wl, cmd_t *cmd, char **argv)
 	return ret;
 }
 
+#ifdef BCMINTDBG
+/*
+ * wlu_reg1or3args is a generic function that is used for setting/getting
+ * WL_IOVAR variables that require address for read, and
+ * address + mask + data for write.
+ */
+static int
+wlu_reg1or3args(void *wl, cmd_t *cmd, char **argv)
+{
+	char var[256];
+	uint32 int_val;
+	bool get = TRUE;
+	uint32 len, i;
+	void *ptr = NULL;
+	char *endptr;
+	uint numargs;
+	int ret = 0;
+
+	len = 0;
+
+	if (!argv[1]) {
+		printf("Wrong syntax => cmd addr [mask val]\n");
+		return BCME_USAGE_ERROR;
+	}
+
+	if (!argv[2]) {
+		numargs = 1;
+	} else {
+		if (!argv[3]) {
+			printf("Wrong syntax => cmd addr [mask val]\n");
+			return BCME_USAGE_ERROR;
+		}
+		get = FALSE;
+		numargs = 3;
+	}
+
+	for (i = 1; i <= numargs; i++) {
+		int_val = htod32(strtoul(argv[i], &endptr, 0));
+		memcpy(&var[len], (char *)&int_val, sizeof(int_val));
+		len += sizeof(int_val);
+	}
+
+	if (get) {
+		if ((ret = wlu_var_getbuf(wl, cmd->name, var, sizeof(var), &ptr)) < 0)
+			return ret;
+
+		printf("0x%x\n", dtoh32(*(int *)ptr));
+	} else
+		ret = wlu_var_setbuf(wl, cmd->name, &var, sizeof(var));
+	return ret;
+}
+
+static int
+wl_coma(void *wl, cmd_t *cmd, char **argv)
+{
+	char var[256];
+	uint32 int_val;
+	uint32 len, i;
+	char *endptr;
+	uint numargs;
+	int err = 0;
+
+	len = 0;
+
+	if (!argv[1]) {
+		printf("Wrong syntax => coma [reset-time] [delay]\n");
+		return BCME_USAGE_ERROR;
+	}
+
+	if (!argv[2]) {
+		numargs = 1;
+	} else if (!argv[3]) {
+		numargs = 2;
+	} else {
+		numargs = 3;
+	}
+
+	for (i = 1; i <= numargs; i++) {
+		int_val = htod32(strtoul(argv[i], &endptr, 0));
+		memcpy(&var[len], (char *)&int_val, sizeof(int_val));
+		len += sizeof(int_val);
+	}
+
+	err = wlu_var_setbuf(wl, cmd->name, &var, sizeof(var));
+
+	return err;
+}
+#endif	/* BCMINTDBG */
 
 static int
 wl_var_getinthex(void *wl, cmd_t *cmd, char **argv)

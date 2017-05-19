@@ -1621,4 +1621,6 @@ int wl_cfg80211_random_mac_enable(struct net_device *dev);
 int wl_cfg80211_random_mac_disable(struct net_device *dev);
 #endif /* SUPPORT_RANDOM_MAC_SCAN */
 int wl_cfg80211_iface_count(struct net_device *dev);
+extern void wl_cfg80211_gtk_rekey_notify(struct bcm_cfg80211 *cfg, const u8 *bssid,
+	const uint8 *replay_ctr);
 #endif /* _wl_cfg80211_h_ */

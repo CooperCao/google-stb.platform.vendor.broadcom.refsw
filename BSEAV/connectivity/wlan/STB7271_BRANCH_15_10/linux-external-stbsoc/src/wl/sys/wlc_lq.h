@@ -197,6 +197,8 @@ void wlc_lq_noise_cb(wlc_info_t *wlc, uint8 channel, int8 noise_dbm);
 
 void wlc_lq_channel_qa_sample_req(wlc_info_t *wlc);
 uint32 wlc_rsdb_get_lq_load(wlc_info_t *wlc);
+chanim_stats_t *wlc_lq_get_chanim_stats(wlc_info_t *wlc);
+
 int8 wlc_lq_read_noise_lte(wlc_info_t *wlc);
 
 #define RSSI_MONITOR_ENABLED    (1 << 0)

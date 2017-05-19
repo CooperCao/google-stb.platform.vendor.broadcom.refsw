@@ -209,8 +209,8 @@ void
 wl_stbsoc_enable_intrs(struct wl_platform_info *plat)
 {
 	stbsocregs_t *d2hregs = (stbsocregs_t *)plat->plat_priv;
-
-	*(volatile uint32 *)(uintptr)d2hregs->d2hcpumaskclear = 0xFFFFF;
+	if (d2hregs)
+		*(volatile uint32 *)(uintptr)d2hregs->d2hcpumaskclear = 0xFFFFF;
 	return;
 }
 
@@ -218,8 +218,8 @@ void
 wl_stbsoc_disable_intrs(struct wl_platform_info *plat)
 {
 	stbsocregs_t *d2hregs = (stbsocregs_t *)plat->plat_priv;
-
-	*(volatile uint32 *)(uintptr)d2hregs->d2hcpumaskset = 0xFFFFF;
+	if (d2hregs)
+		*(volatile uint32 *)(uintptr)d2hregs->d2hcpumaskset = 0xFFFFF;
 	return;
 }
 

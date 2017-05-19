@@ -1143,7 +1143,8 @@ wlc_modesw_bss_tbtt(wlc_modesw_info_t *modesw_info, wlc_bsscfg_t *cfg)
 		return;
 	}
 	if (cfg->oper_mode_enabled && pmodesw_bsscfg &&
-		(pmodesw_bsscfg->state == MSW_AP_DN_WAIT_DTIM) &&
+		(pmodesw_bsscfg->state == MSW_AP_DN_WAIT_DTIM ||
+		pmodesw_bsscfg->state == MSW_DN_AF_WAIT_ACK) &&
 		!CTRL_FLAGS_HAS(pmodesw_bsscfg->ctrl_flags, MODESW_CTRL_DN_SILENT_DNGRADE))
 	{
 		/* sanity checks */
@@ -1162,10 +1163,17 @@ wlc_modesw_bss_tbtt(wlc_modesw_info_t *modesw_info, wlc_bsscfg_t *cfg)
 			} else
 #endif /* WLMCHAN */
 			{
-			WL_MODE_SWITCH(("TBTT Timer set....\n"));
-				WL_MODE_SWITCH(("DTIM Tbtt..Start timer for 5 msec \n"));
+				WL_MODE_SWITCH(("wl%d: DTIM Tbtt..Start timer for 5 msec\n",
+					WLCWLUNIT(wlc)));
 				ASSERT(pmodesw_bsscfg->timer_ctx->notif == 0);
 				pmodesw_bsscfg->timer_ctx->notif = MODESW_TIMER_AP_BACKOFF_EXP;
+				if (pmodesw_bsscfg->state == MSW_DN_AF_WAIT_ACK) {
+					WL_MODE_SWITCH(("wl%d: Updating state in TBTT timer\n",
+						WLCWLUNIT(wlc)));
+					pmodesw_bsscfg->action_sendout_counter = 0;
+					wlc_modesw_change_state(modesw_info, cfg, MSW_DN_PERFORM);
+				}
+				WL_MODE_SWITCH(("wl%d: TBTT Timer set....\n", WLCWLUNIT(wlc)));
 				if (pmodesw_bsscfg->oper_mode_timer != NULL) {
 					wl_add_timer(wlc->wl, pmodesw_bsscfg->oper_mode_timer,
 						MODESW_AP_DOWNGRADE_BACKOFF, FALSE);
@@ -2581,6 +2589,12 @@ wlc_modesw_send_action_frame_complete(wlc_info_t *wlc, uint txstatus, void *arg)
 		          wlc->pub->unit, __FUNCTION__, OSL_OBFUSCATE_BUF(ctx->pkt)));
 		wlc_user_wake_upd(wlc, WLC_USER_WAKE_REQ_VHT, FALSE);
 		wlc_modesw_update_PMstate(wlc, bsscfg);
+		return;
+	}
+	if (BSSCFG_AP(bsscfg) && (pmodesw_bsscfg->state != MSW_DN_AF_WAIT_ACK) &&
+		(pmodesw_bsscfg->state != MSW_UP_AF_WAIT_ACK)) {
+		WL_MODE_SWITCH(("wl%d: TBTT timer handled the downgrade already\n",
+			WLCWLUNIT(wlc)));
 		return;
 	}
 	/* Retry Action frame sending upto RETRY LIMIT if ACK not received for STA and AP case */

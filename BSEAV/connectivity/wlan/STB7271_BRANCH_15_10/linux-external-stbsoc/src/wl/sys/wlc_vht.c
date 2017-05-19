@@ -1989,16 +1989,18 @@ wlc_vht_write_vht_brcm_ie(wlc_vht_info_t *vhti, wlc_bsscfg_t *cfg, int band,
 		vht_features_ie.rate_mask = WLC_VHT_FEATURES_RATES_2G(wlc->pub);
 	}
 
-	if (scb)
-		bw = wlc_scb_ratesel_get_link_bw(wlc, scb);
-	if (WLCISACPHY(wlc->band) && (ACREV_IS(wlc->band->phyrev, 32) ||
-		ACREV_IS(wlc->band->phyrev, 33) || ACREV_IS(wlc->band->phyrev, 37)) &&
-		((scb && bw == BW_20MHZ) ||
-		(AP_ENAB(wlc->pub) && CHSPEC_IS20(wlc->chanspec)))) {
-			WL_INFORM(("wl%d: %s: disable proprates and 1024QAM in 20Mhz\n",
-				wlc->pub->unit, __FUNCTION__));
-			vht_features_ie.rate_mask &= ~(WL_VHT_FEATURES_1024QAM |
-				WL_VHT_FEATURES_5G_20M | WL_VHT_FEATURES_2G_20M);
+	if ((int)wlc_bmac_pay_decode_war_get(wlc->hw)) {
+		if (scb)
+			bw = wlc_scb_ratesel_get_link_bw(wlc, scb);
+		if (WLCISACPHY(wlc->band) && (ACREV_IS(wlc->band->phyrev, 32) ||
+			ACREV_IS(wlc->band->phyrev, 33) || ACREV_IS(wlc->band->phyrev, 37)) &&
+			((scb && bw == BW_20MHZ) ||
+			(AP_ENAB(wlc->pub) && CHSPEC_IS20(wlc->chanspec)))) {
+				WL_INFORM(("wl%d: %s: disable proprates and 1024QAM in 20Mhz\n",
+					wlc->pub->unit, __FUNCTION__));
+				vht_features_ie.rate_mask &= ~(WL_VHT_FEATURES_1024QAM |
+					WL_VHT_FEATURES_5G_20M | WL_VHT_FEATURES_2G_20M);
+		}
 	}
 
 	/* Write out the Vendor specific  IE header */
@@ -2193,6 +2195,15 @@ wlc_vht_upd_rate_mcsmap(wlc_vht_info_t *vhti, struct scb *scb)
 {
 	struct wlc_vht_scb_info *cubby_info = SCB_VHT_INFO(vhti, scb);
 	uint16 rxmcsmap = cubby_info->rxmcsmap;
+	wlc_info_t *wlc = vhti->wlc;
+	wlc_bsscfg_t *cfg = SCB_BSSCFG(scb);
+
+	if (BSSCFG_AP(cfg) && (rxmcsmap != scb->vhtcap_orig_mcsmap)) {
+		rxmcsmap = wlc_rateset_filter_mcsmap(scb->vhtcap_orig_mcsmap,
+				wlc->stf->txstreams,
+				WLC_VHT_FEATURES_MCS_GET(wlc->pub));
+		cubby_info->rxmcsmap = rxmcsmap;
+	}
 
 	wlc_vht_upd_rate_mcsmap_ex(vhti, scb, rxmcsmap);
 	wlc_vht_upd_rate_mcsmap_prop_ex(vhti, scb, rxmcsmap);
@@ -3167,21 +3178,23 @@ wlc_vht_up(void *ctx)
 	wlc_bss_info_t *bss = wlc->default_bss;
 	wlc_rateset_t rateset;
 
-	if (WLCISACPHY(wlc->band) && (ACREV_IS(wlc->band->phyrev, 32) ||
-		ACREV_IS(wlc->band->phyrev, 33) || ACREV_IS(wlc->band->phyrev, 37))) {
-		uint8  vht_features_rates;
-		vht_features_rates = WLC_VHT_FEATURES_RATES(wlc->pub);
-		if (AP_ENAB(wlc->pub) && CHSPEC_IS20(wlc->chanspec)) {
-			WL_INFORM(("wl%d: %s: disable proprates and 1024QAM in 20Mhz\n",
-				wlc->pub->unit, __FUNCTION__));
-			vhti->orig_vht_features_rates = vht_features_rates;
-			vhti->vht_features_rates_change = TRUE;
-			vht_features_rates &= ~(WL_VHT_FEATURES_1024QAM |
-				WL_VHT_FEATURES_5G_20M | WL_VHT_FEATURES_2G_20M);
-			WLC_VHT_FEATURES_RATES_SET(wlc->pub, vht_features_rates);
-		} else if (vhti->vht_features_rates_change) {
-			WLC_VHT_FEATURES_RATES_SET(wlc->pub, vhti->orig_vht_features_rates);
-			vhti->vht_features_rates_change = FALSE;
+	if ((int)wlc_bmac_pay_decode_war_get(wlc->hw)) {
+		if (WLCISACPHY(wlc->band) && (ACREV_IS(wlc->band->phyrev, 32) ||
+			ACREV_IS(wlc->band->phyrev, 33) || ACREV_IS(wlc->band->phyrev, 37))) {
+			uint8  vht_features_rates;
+			vht_features_rates = WLC_VHT_FEATURES_RATES(wlc->pub);
+			if (AP_ENAB(wlc->pub) && CHSPEC_IS20(wlc->chanspec)) {
+				WL_INFORM(("wl%d: %s: disable proprates and 1024QAM in 20Mhz\n",
+					wlc->pub->unit, __FUNCTION__));
+				vhti->orig_vht_features_rates = vht_features_rates;
+				vhti->vht_features_rates_change = TRUE;
+				vht_features_rates &= ~(WL_VHT_FEATURES_1024QAM |
+					WL_VHT_FEATURES_5G_20M | WL_VHT_FEATURES_2G_20M);
+				WLC_VHT_FEATURES_RATES_SET(wlc->pub, vht_features_rates);
+			} else if (vhti->vht_features_rates_change) {
+				WLC_VHT_FEATURES_RATES_SET(wlc->pub, vhti->orig_vht_features_rates);
+				vhti->vht_features_rates_change = FALSE;
+			}
 		}
 	}
 
@@ -3434,6 +3447,18 @@ wlc_vht_update_scb_state(wlc_vht_info_t *vhti, int band, struct scb *scb,
 		if (!(scb_vht_flags & SCB3_IS_80_80)) {
 			reinit_ratesel = TRUE;
 	    }
+	}
+
+	/* Have a copy of peer WDS actual MCS rate and NSS.
+	 * Will be used if AP is upgraded to max NSS
+	 */
+	if (SCB_LEGACY_WDS(scb)) {
+		scb->vhtcap_orig_mcsmap = vht_cap_ie->rx_mcs_map;
+
+		/* Force reinit ratesel for the scb when it gains VHT capabilities */
+		if (!vht_cap) {
+			reinit_ratesel = TRUE;
+		}
 	}
 
 	/* Merge incoming rate with MCS rate of this device and store

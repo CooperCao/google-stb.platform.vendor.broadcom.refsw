@@ -378,15 +378,15 @@ initvars_file(si_t *sih, osl_t *osh, char **nvramp, int *nvraml)
 	void	*nvram_fp = NULL;
 	int ret = 0, len = 0;
 
-#if (defined(OEM_ANDROID) && defined(STB_SOC_WIFI))
-	nvram_fp = (void*)osl_os_open_image("/system/vendor/broadcom/nvrams/nvram.txt");
-#else
 #if	defined(BCMNVRAMR)
 	extern char nvram_path[];
 	if (nvram_path[0])
 		nvram_fp = (void*)osl_os_open_image(nvram_path);
 	else
 #endif /* BCMNVRAMR */
+#if (defined(OEM_ANDROID) && defined(STB_SOC_WIFI))
+		nvram_fp = (void*)osl_os_open_image("/hwcfg/nvm.txt");
+#else
 		nvram_fp = (void*)osl_os_open_image("nvram.txt");
 #endif /* OEM_ANDROID && STB_SOC_WIFI */
 	if (nvram_fp != NULL) {

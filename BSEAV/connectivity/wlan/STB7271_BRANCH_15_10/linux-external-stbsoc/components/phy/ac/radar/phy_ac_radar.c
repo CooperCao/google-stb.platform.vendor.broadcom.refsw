@@ -129,7 +129,7 @@ BCMATTACHFN(phy_ac_radar_unregister_impl)(phy_ac_radar_info_t *info)
 
 static const wl_radar_thr_t BCMATTACHDATA(wlc_phy_radar_thresh_acphy_2cores) = {
 	WL_RADAR_THR_VERSION,
-	0x698, 0x30, 0x698, 0x30, 0x698, 0x30, 0x698, 0x30, 0x698, 0x30, 0x698, 0x30,
+	0x698, 0x30, 0x6a8, 0x30, 0x6b0, 0x20, 0x698, 0x30, 0x6a8, 0x20, 0x6b0, 0x30,
 	0x6b8, 0x30, 0x6c0, 0x30
 };
 
@@ -213,7 +213,6 @@ BCMATTACHFN(phy_radar_init_st)(phy_info_t *pi, phy_radar_st_t *st)
 	st->rparams.radar_args.min_burst_intv_lp = 12000000;
 	st->rparams.radar_args.max_burst_intv_lp = 50000000;
 	st->rparams.radar_args.quant = 16;
-	st->rparams.radar_args.npulses = 7;
 	st->rparams.radar_args.ncontig = 54832; /* 0xd630; */
 
 	/* [100 100 1000 100011]=[1001 0010 0010 0011]=0x9223 = 37411
@@ -234,7 +233,14 @@ BCMATTACHFN(phy_radar_init_st)(phy_info_t *pi, phy_radar_st_t *st)
 	st->rparams.radar_args.st_level_time = 0x8258;
 	st->rparams.radar_args.min_pw = 0;
 	st->rparams.radar_args.max_pw_tol = 12;
-	st->rparams.radar_args.npulses_lp = 10;
+	if ((ACMAJORREV_32(pi->pubpi.phy_rev) || ACMAJORREV_33(pi->pubpi.phy_rev) ||
+		ACMAJORREV_37(pi->pubpi.phy_rev)) && (phy_ac_rxgcrs_get_lesi(pi->u.pi_acphy->rxgcrsi)== 1)) {
+		st->rparams.radar_args.npulses = 6; /* 6; */
+		st->rparams.radar_args.npulses_lp = 9; /* 8; */
+	} else {
+		st->rparams.radar_args.npulses = 7; /* 6; */
+		st->rparams.radar_args.npulses_lp = 10; /* 8; */
+	}
 	st->rparams.radar_args.t2_min = 30528;	/* 0x7740 */
 #ifdef BIN5_RADAR_DETECT_WAR
 	st->rparams.radar_args.npulses_lp = 6;
@@ -297,6 +303,13 @@ BCMATTACHFN(phy_radar_init_st)(phy_info_t *pi, phy_radar_st_t *st)
 	/* bits 7:4 = 4 for EU type 2, bits 3:0= 4 for EU type 1 */
 	/* 10 00 1100 1100 1100 */
 	st->rparams.radar_args.npulses_fra = 34406;  /* 0x8666, bits 15:14 low_intv_eu_t2 */
+	st->rparams.radar_args.npulses_stg2 = 7; /* 5; */
+	if ((ACMAJORREV_32(pi->pubpi.phy_rev) || ACMAJORREV_33(pi->pubpi.phy_rev) ||
+		ACMAJORREV_37(pi->pubpi.phy_rev)) && (phy_ac_rxgcrs_get_lesi(pi->u.pi_acphy->rxgcrsi) == 1)) {
+		st->rparams.radar_args.npulses_stg3 = 5; /* 5; */
+	} else {
+		st->rparams.radar_args.npulses_stg3 = 6; /* 5; */
+	}
 	st->rparams.radar_args.percal_mask = 0x31;
 	st->rparams.radar_args.feature_mask = RADAR_FEATURE_USE_MAX_PW | RADAR_FEATURE_FCC_DETECT;
 

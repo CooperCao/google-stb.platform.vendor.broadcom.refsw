@@ -2042,7 +2042,7 @@ wlc_rrm_stat_get_group_data(wlc_rrm_info_t *rrm_info, int delta)
 					wlc_bss_assocscb_getcnt(wlc, bsscfg);
 #ifdef WLCHANIM
 				stat_req->sta_data.group10.chanutil =
-					100 - wlc->chanim_info->cur_stats.chanim_stats.chan_idle;
+					100 - wlc_lq_get_chanim_stats(wlc)->chan_idle;
 #else
 				stat_req->sta_data.group10.chanutil = 0;
 #endif /* WLCHANIM */
@@ -5099,6 +5099,7 @@ wlc_rrm_recv_nrrep(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
 	chanspec_t ch;
 	chanspec_t chanspec_list[MAXCHANNEL];
 	int channel_num = 0;
+	int i;
 
 	ASSERT(rrm_cfg != NULL);
 	if (!isset(rrm_cfg->rrm_cap, DOT11_RRM_CAP_NEIGHBOR_REPORT)) {
@@ -5111,6 +5112,10 @@ wlc_rrm_recv_nrrep(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
 			wlc->pub->unit, __FUNCTION__, body_len));
 		return;
 	}
+
+	/* Initialize chanspec list */
+	for (i = 0; i < MAXCHANNEL; i++)
+		chanspec_list[i] = CH20MHZ_CHSPEC(0);
 
 	rm_rep = (dot11_rm_action_t *)body;
 	WL_SRSCAN(("received neighbor report (token = %d)",

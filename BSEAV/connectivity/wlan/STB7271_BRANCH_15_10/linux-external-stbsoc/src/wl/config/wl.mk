@@ -31,6 +31,11 @@ ifeq ($(UCODE_IN_ROM),1)
 UCODE_ROM_DIR = components/ucode/dot11_releases/trunk/$(UCODE_ROM)/rom
 endif
 
+#Add if you wan additonal internal debug. Want to limit debug builds module size
+ifeq ($(BCMINTDBG),1)
+	WLFLAGS += -DBCMINTDBG
+endif
+
 
 ifeq ($(NO_BCMDBG_ASSERT), 1)
 	WLFLAGS += -DNO_BCMDBG_ASSERT
@@ -839,26 +844,28 @@ ifeq ($(ADV_PS_POLL),1)
 endif
 
 ifeq ($(GTKOE),1)
-	WLFLAGS += -DGTKOE
-	WLFILES_SRC += src/wl/sys/wl_gtkrefresh.c
-	 ifeq ($(BCMULP),1)
-                WLFILES_SRC += src/wl/sys/wl_gtkrefresh_ulp.c
-        endif
-	WLFILES_SRC += src/bcmcrypto/aes.c
-        WLFILES_SRC += src/bcmcrypto/aeskeywrap.c
-        WLFILES_SRC += src/bcmcrypto/hmac.c
-        WLFILES_SRC += src/bcmcrypto/prf.c
-        WLFILES_SRC += src/bcmcrypto/sha1.c
-        ifeq ($(WLFBT),1)
-                WLFILES_SRC += src/bcmcrypto/hmac_sha256.c
-                WLFILES_SRC += src/bcmcrypto/sha256.c
-        endif
-        # NetBSD 2.0 has MD5 and AES built in
-        ifneq ($(OSLBSD),1)
-                WLFILES_SRC += src/bcmcrypto/md5.c
-                WLFILES_SRC += src/bcmcrypto/rijndael-alg-fst.c
-        endif
-        WLFILES_SRC += src/bcmcrypto/passhash.c
+	ifeq ($(WOWL),1)
+		WLFLAGS += -DGTKOE
+		WLFILES_SRC += src/wl/sys/wl_gtkrefresh.c
+		ifeq ($(BCMULP),1)
+			WLFILES_SRC += src/wl/sys/wl_gtkrefresh_ulp.c
+		endif
+		WLFILES_SRC += src/bcmcrypto/aes.c
+		WLFILES_SRC += src/bcmcrypto/aeskeywrap.c
+		WLFILES_SRC += src/bcmcrypto/hmac.c
+		WLFILES_SRC += src/bcmcrypto/prf.c
+		WLFILES_SRC += src/bcmcrypto/sha1.c
+		ifeq ($(WLFBT),1)
+			WLFILES_SRC += src/bcmcrypto/hmac_sha256.c
+			WLFILES_SRC += src/bcmcrypto/sha256.c
+		endif
+		# NetBSD 2.0 has MD5 and AES built in
+		ifneq ($(OSLBSD),1)
+			WLFILES_SRC += src/bcmcrypto/md5.c
+			WLFILES_SRC += src/bcmcrypto/rijndael-alg-fst.c
+		endif
+		WLFILES_SRC += src/bcmcrypto/passhash.c
+	endif
 endif
 
 
@@ -1544,6 +1551,7 @@ endif
 #ifdef WOWL
 ifeq ($(WOWL),1)
 	WLFLAGS += -DWOWL
+	WLFLAGS += -DWOWL_DRV_NORELOAD
 	ifeq ($(BCMULP),1)
 		WLFILES_SRC += $(UCODE_RAM_DIR)/d11ucode_ulp.c
 	else
@@ -2846,7 +2854,9 @@ ifeq ($(ARMV7L),1)
 	ifeq ($(STBLINUX),1)
 		WLFLAGS += -DSTBLINUX
 		WLFLAGS += -DSTB
-		WLFLAGS += -UWLC_DUMP_MAC_EXT
+		ifeq ($(STBMACDUMP),1)
+			WLFLAGS += -DWLC_DUMP_MAC_EXT
+		endif
 		ifneq ($(BCM_SECURE_DMA),1)
 			WLFLAGS += -DBCM47XX
 		endif
@@ -2866,8 +2876,45 @@ ifeq ($(ARMV8),1)
 	ifeq ($(STBLINUX),1)
 		WLFLAGS += -DSTBLINUX
 		WLFLAGS += -DSTB
-		WLFLAGS += -UWLC_DUMP_MAC_EXT
+		ifeq ($(STBMACDUMP),1)
+			WLFLAGS += -DWLC_DUMP_MAC_EXT
+		endif
 	endif
+endif
+
+# undef RADIO_ID will turn on supporting all kinds of RADIO
+ifeq ($(RADIO_ID),1)
+	WLFLAGS += -DRADIO_ID
+endif
+
+# support RADIO BCM2069
+ifeq ($(RADIO_BCM2069),1)
+	WLFLAGS += -DRADIO_BCM2069
+endif
+
+# support RADIO BCM20691
+ifeq ($(RADIO_BCM20691),1)
+	WLFLAGS += -DRADIO_BCM20691
+endif
+
+# support RADIO BCM20693
+ifeq ($(RADIO_BCM20693),1)
+	WLFLAGS += -DRADIO_BCM20693
+endif
+
+# support RADIO BCM20694
+ifeq ($(RADIO_BCM20694),1)
+	WLFLAGS += -DRADIO_BCM20694
+endif
+
+# support RADIO BCM20695
+ifeq ($(RADIO_BCM20695),1)
+	WLFLAGS += -DRADIO_BCM20695
+endif
+
+# support RADIO BCM20696
+ifeq ($(RADIO_BCM20696),1)
+	WLFLAGS += -DRADIO_BCM20696
 endif
 
 # STB integrated wlan

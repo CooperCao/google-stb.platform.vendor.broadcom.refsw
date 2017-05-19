@@ -73,4 +73,7 @@ uint8 phy_chanmgr_vsdb_sr_attach_module(wlc_phy_t *ppi, chanspec_t chan0, chansp
 int phy_chanmgr_vsdb_sr_detach_module(wlc_phy_t *pi);
 uint8 phy_chanmgr_vsdb_sr_set_chanspec(wlc_phy_t *pi, chanspec_t chanspec, uint8 * last_chan_saved);
 int phy_chanmgr_vsdb_force_chans(wlc_phy_t *pi, uint16 * chans, uint8 set);
+
+bool phy_ac_chanmgr_get_pay_decode_war(phy_info_t *pi);
+void phy_ac_chanmgr_set_pay_decode_war(phy_info_t *pi, bool ovr);
 #endif /* _phy_chanmgr_api_h_ */

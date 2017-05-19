@@ -290,6 +290,15 @@ static const bcm_iovar_t amsdu_iovars[] = {
 	{"amsdu_counters", IOV_AMSDU_COUNTERS, (0), 0, IOVT_BUFFER, sizeof(wlc_amsdu_cnt_t)},
 #endif /* WLCNT */
 #endif /* BCMDBG */
+#ifdef BCMINTDBG
+	{"amsdu_sim", IOV_AMSDU_SIM, (0), 0, IOVT_UINT16, 0},
+#ifndef TXQ_MUX
+	{"amsdu_hiwm", IOV_AMSDU_HIWM, (0), 0, IOVT_UINT16, 0},
+	{"amsdu_lowm", IOV_AMSDU_LOWM, (0), 0, IOVT_UINT16, 0},
+	{"amsdu_aggflush", IOV_AMSDU_FLUSH, (0), 0, IOVT_BOOL, 0},
+#endif /* TXQ_MUX */
+	{"amsdu_deaggdump", IOV_AMSDU_DEAGGDUMP, (0), 0, IOVT_BOOL, 0},
+#endif /* BCMINTDBG */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -326,6 +335,9 @@ struct amsdu_info {
 	amsdu_ami_policy_t txpolicy; /**< Default ami release policy per prio */
 
 	uint8   cubby_name_id;       /**< cubby ID (used by WL_DATAPATH_LOG_DUMP) */
+#ifdef BCMINTDBG
+	bool amsdu_deagg_pkt;        /**< dump deagg pkt */
+#endif
 #ifdef WLCNT
 	wlc_amsdu_cnt_t *cnt;        /**< counters/stats */
 #endif /* WLCNT */
@@ -1131,6 +1143,64 @@ wlc_amsdu_doiovar(void *hdl, uint32 actionid,
 #endif /* WLCNT */
 #endif /* BCMDBG */
 
+#ifdef BCMINTDBG
+	case IOV_SVAL(IOV_AMSDU_SIM):
+#ifdef NEEDED
+	{
+		struct scb *scb;
+		struct scb_iter scbiter;
+
+		FOREACHSCB(wlc->scbstate, &scbiter, scb) {
+			if (SCB_A4_DATA(scb))
+				scb->flags |= SCB_AMSDUCAP;
+		}
+	}
+#endif /* NEEDED */
+	break;
+
+#ifndef TXQ_MUX
+#if defined(WLAMSDU_TX)
+	case IOV_GVAL(IOV_AMSDU_HIWM):
+		*pval = (int32)ami->txpolicy.fifo_hiwm;
+		break;
+
+	case IOV_SVAL(IOV_AMSDU_HIWM):
+		ami->txpolicy.fifo_hiwm = (uint16)int_val;
+
+		/* Update the scbs */
+		wlc_amsdu_set_scb_default_txpolicy_all(ami);
+		break;
+
+	case IOV_GVAL(IOV_AMSDU_LOWM):
+		*pval = (int32)ami->txpolicy.fifo_lowm;
+		break;
+
+	case IOV_SVAL(IOV_AMSDU_LOWM):
+		ami->txpolicy.fifo_lowm = (uint16)int_val;
+		/* Update the scbs */
+		wlc_amsdu_set_scb_default_txpolicy_all(ami);
+		break;
+
+/* TXQ_MUX aggregates inline , it does not buffer and then release, so no need for manual flush */
+
+	case IOV_SVAL(IOV_AMSDU_FLUSH):
+		if (AMSDU_TX_SUPPORT(wlc->pub))
+			wlc_amsdu_agg_flush(ami);
+		else
+			err = BCME_UNSUPPORTED;
+		break;
+#endif /* WLAMSDU_TX */
+#endif /* !TXQ_MUX */
+
+	case IOV_GVAL(IOV_AMSDU_DEAGGDUMP):
+		*pval = (int32)ami->amsdu_deagg_pkt;
+		break;
+
+	case IOV_SVAL(IOV_AMSDU_DEAGGDUMP):
+		ami->amsdu_deagg_pkt = bool_val;
+		break;
+
+#endif	/* BCMINTDBG */
 #ifdef WLAMSDU_TX
 	case IOV_GVAL(IOV_AMSDU_AGGBYTES):
 		if (AMSDU_TX_SUPPORT(wlc->pub)) {
@@ -3165,6 +3235,12 @@ wlc_recvamsdu(amsdu_info_t *ami, wlc_d11rxhdr_t *wrxh, void *p, uint16 *padp, bo
 
 	WLCNTINCR(ami->cnt->deagg_msdu);
 
+#ifdef BCMINTDBG
+	if (ami->amsdu_deagg_pkt) {
+		prhex("\nrxpkt with PLCP hdr\n",
+		      PKTDATA(osh, p) + ami->wlc->hwrxoff + pad, pktlen_w_plcp);
+	}
+#endif /* BCMINTDBG */
 
 	WL_AMSDU(("wlc_recvamsdu: aggtype %d, msdu count %d\n", aggtype, msdu_cnt));
 

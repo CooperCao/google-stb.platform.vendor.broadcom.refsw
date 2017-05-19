@@ -376,6 +376,11 @@ static const bcm_iovar_t ht_iovars[] = {
 	{"ldpc_cap", IOV_LDPC_CAP,
 	(0), 0, IOVT_INT32, 0
 	},
+#ifdef BCMINTDBG
+	{"txburst_limit_override", IOV_TXBURST_LIM_OVERRIDE,
+	(IOVF_RSDB_SET), 0, IOVT_INT32, 0
+	},
+#endif
 	{"ldpc_tx", IOV_LDPC_TX,
 	(0), 0, IOVT_INT32, 0
 	},
@@ -1969,6 +1974,31 @@ wlc_ht_doiovar(void *context, uint32 actionid,
 				hti->ht_wsec_restriction = (uint8)int_val;
 
 			break;
+#ifdef BCMINTDBG
+		case IOV_GVAL(IOV_TXBURST_LIM_OVERRIDE):
+			*ret_int_ptr = (int32)pub->txburst_limit_override;
+			break;
+
+		case IOV_SVAL(IOV_TXBURST_LIM_OVERRIDE):
+			if (int_val < AUTO || int_val > ON) {
+				err = BCME_RANGE;
+				break;
+			}
+
+			if (!AP_ENAB(wlc->pub)) {
+				err = BCME_NOTAP;
+				break;
+			}
+
+			pub->txburst_limit_override = (int8)int_val;
+			if (N_ENAB(wlc->pub) && wlc->clk) {
+				wlc_update_beacon(wlc);
+				wlc_update_probe_resp(wlc, TRUE);
+			}
+			wlc_ht_update_txburst_limit(pub, NULL);
+
+			break;
+#endif /* BCMINTDBG */
 #ifdef BCMDBG
 			case IOV_GVAL(IOV_TXMCSSET):
 				wlc_get_mcsset(pub, arg, TRUE);

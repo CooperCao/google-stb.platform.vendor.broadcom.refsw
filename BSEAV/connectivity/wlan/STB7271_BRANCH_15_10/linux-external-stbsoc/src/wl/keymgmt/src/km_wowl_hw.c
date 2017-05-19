@@ -162,6 +162,9 @@ wowl_hw_enable(km_hw_t *hw, scb_t *scb)
 	wlc_bsscfg_t *bsscfg;
 	uint16 secsuite = 0;
 	KM_HW_LOG_DECL(char eabuf[ETHER_ADDR_STR_LEN]);
+	/* wowl currently only supports 16 RX (replay) counters and not for MFP.
+	 * Set num_rxivs to WLC_KEY_BASE_RX_SEQ for wowl
+	 */
 	KM_HW_PUB(hw)->tunables->num_rxivs = WLC_KEY_BASE_RX_SEQ;
 
 	KM_ASSERT(scb != NULL);
@@ -222,6 +225,9 @@ wowl_hw_enable(km_hw_t *hw, scb_t *scb)
 	hw->flags |= KM_HW_DEFKEYS;
 
 done:
+	/* Reset num_rxivs back to WLC_KEY_NUM_RX_SEQ */
+	KM_HW_PUB(hw)->tunables->num_rxivs = WLC_KEY_NUM_RX_SEQ;
+
 	if (err == BCME_OK) {
 		hw->flags |= KM_HW_WOWL_ENABLED;
 	}

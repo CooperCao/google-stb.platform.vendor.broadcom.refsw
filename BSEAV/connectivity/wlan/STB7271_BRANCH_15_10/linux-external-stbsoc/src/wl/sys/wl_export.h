@@ -135,6 +135,9 @@ extern int wl_tkip_micadd(struct wl_info *wl, void *p, int hdr_len);
 extern int wl_tkip_encrypt(struct wl_info *wl, void *p, int hdr_len);
 extern int wl_tkip_decrypt(struct wl_info *wl, void *p, int hdr_len, bool group_key);
 extern void wl_tkip_printstats(struct wl_info *wl, bool group_key);
+#ifdef BCMINTDBG
+extern int wl_tkip_keydump(struct wl_info *wl, bool group);
+#endif /*  BCMINTDBG */
 extern int wl_tkip_keyset(struct wl_info *wl, const struct wlc_key_info *key_info,
 	const uint8 *key_data, size_t key_len, const uint8 *rx_seq, size_t rx_seq_len);
 #endif /* LINUX_CRYPTO */

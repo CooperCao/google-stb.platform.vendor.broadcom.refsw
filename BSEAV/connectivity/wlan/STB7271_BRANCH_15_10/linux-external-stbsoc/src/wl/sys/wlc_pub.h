@@ -1150,7 +1150,9 @@ typedef struct {
 #define WLF2_PCB1_STA_PRB	1	/**< wlc_ap_sta|wds_probe_complete */
 #define WLF2_PCB1_PSP		2	/**< wlc_sendpspoll_complete */
 #define WLF2_PCB1_AF		3	/**< wlc_actionframetx_complete */
-								/**< pcb1 = 4 is unused */
+#if defined(MBSS)
+#define WLF2_PCB1_MBSS_BCMC	4	/* wlc_mbss_bcmc_free_cb */
+#endif
 #define WLF2_PCB1_TKIP_CM	5	/**< wlc_tkip_countermeasure */
 #define WLF2_PCB1_RATE_PRB	6	/**< wlc_rateprobe_complete */
 #define WLF2_PCB1_HE_AF		7	/**< wlc_he_aftx_complete */
@@ -3330,11 +3332,7 @@ extern void wlc_wlcif_stats_get(wlc_info_t *wlc, wlc_if_t *wlcif, wl_if_stats_t 
 extern wlc_if_t *wlc_wlcif_get_by_index(wlc_info_t *wlc, uint idx);
 
 /* value for # replay counters currently supported */
-#ifdef WOWL
-#define WLC_REPLAY_CNTRS_VALUE	WPA_CAP_4_REPLAY_CNTRS
-#else
 #define WLC_REPLAY_CNTRS_VALUE	WPA_CAP_16_REPLAY_CNTRS
-#endif /* WOWL */
 
 
 /* priority to replay counter (Rx IV) entry index mapping. */

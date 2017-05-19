@@ -7760,6 +7760,8 @@ wlc_clear_hw_association(wlc_bsscfg_t *cfg, bool mute_mode)
 	d11regs_t *regs = wlc->regs;
 	wlc_rateset_t rs;
 
+	bzero(&rs, sizeof(wlc_rateset_t));
+
 	wlc_set_pmoverride(cfg, FALSE);
 
 	/* zero the BSSID so the core will not process TSF updates */
@@ -9430,6 +9432,19 @@ wlc_roamscan_start(wlc_bsscfg_t *cfg, uint roam_reason)
 	bool roamscan_full = FALSE, roamscan_new;
 	bool roamscan_stop;
 	int err = BCME_OK;
+#ifdef BCMINTDBG
+	if (roam_reason != WLC_E_REASON_LOW_RSSI && roam_reason != WLC_E_REASON_BCNS_LOST &&
+	    roam_reason != WLC_E_REASON_TXFAIL && roam_reason != WLC_E_REASON_MINTXRATE &&
+#ifdef OPPORTUNISTIC_ROAM
+	    roam_reason != WLC_E_REASON_BETTER_AP &&
+#endif /* OPPORTUNISTIC_ROAM */
+	    roam_reason != WLC_E_REASON_DEAUTH && roam_reason != WLC_E_REASON_DISASSOC &&
+	    roam_reason != WLC_E_REASON_RADAR_DETECTED) {
+		WL_ASSOC_ERROR(("wl%d: %s: Unsupported roaming reason %u\n",
+				wlc->pub->unit, __FUNCTION__, roam_reason));
+		ASSERT(!"Invalid Roam Reason in wlc_roamscan_start()");
+	}
+#endif /* BCMINTDBG */
 #ifdef WLABT
 	if (WLABT_ENAB(wlc->pub) && roam_reason == WLC_E_REASON_LOW_RSSI) {
 		wlc_check_adaptive_bcn_timeout(cfg);

@@ -384,9 +384,9 @@ tkip_write(km_hw_t *hw, void *ctx, hw_idx_t hw_idx, wlc_key_data_type_t data_typ
 		 */
 		if (wlc_wowl_enable(hw->wlc->wowl)) {
 			if (WLC_KEY_IS_AP(key_info) || WLC_KEY_IS_IBSS(key_info))
-				addr = KM_HW_TKIP_TX_MIC_KEY_ADDR(hw, hw_idx << 1);
+				addr = KM_HW_TKIP_TX_MIC_KEY_ADDR(hw, hw_idx);
 			else
-				addr = KM_HW_TKIP_RX_MIC_KEY_ADDR(hw, hw_idx << 1);
+				addr = KM_HW_TKIP_RX_MIC_KEY_ADDR(hw, hw_idx);
 			KM_HW_COPYTO_SHM(KM_HW_WLC(hw), addr, data, (int)data_len);
 		}
 		break;
@@ -406,9 +406,9 @@ tkip_write(km_hw_t *hw, void *ctx, hw_idx_t hw_idx, wlc_key_data_type_t data_typ
 
 		if (wlc_wowl_enable(hw->wlc->wowl)) {
 			if (WLC_KEY_IS_AP(key_info) || WLC_KEY_IS_IBSS(key_info))
-				addr = KM_HW_TKIP_RX_MIC_KEY_ADDR(hw, hw_idx << 1);
+				addr = KM_HW_TKIP_RX_MIC_KEY_ADDR(hw, hw_idx);
 			else
-				addr = KM_HW_TKIP_TX_MIC_KEY_ADDR(hw, hw_idx << 1);
+				addr = KM_HW_TKIP_TX_MIC_KEY_ADDR(hw, hw_idx);
 			KM_HW_COPYTO_SHM(KM_HW_WLC(hw), addr, data, (int)data_len);
 		}
 		break;

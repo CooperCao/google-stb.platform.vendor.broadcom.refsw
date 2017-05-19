@@ -24,6 +24,7 @@
 #include "phy_ac_rxgcrs.h"
 
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 /* 20694 register dumping and initialization tables */
 #if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
 	defined(BCMDBG_PHYDUMP)
@@ -4407,6 +4408,8 @@ const chan_info_radio20694_rffe_t chan_tune_20694_rev9_AUX[] = {
 	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0}
 };
 
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
+
 /* 2G LNA1 and LNA2 Gain dB table for maj40 */
 int8 BCMATTACHDATA(lna12_gain_tbl_2g_maj40)[2][N_LNA12_GAINS] = {
 	{-13, -7, -1, 6, 11, 17}, /* LNA1 Table */
@@ -4456,11 +4459,14 @@ uint8 BCMATTACHDATA(lna1_gain_map_2g_maj37)[N_LNA12_GAINS] = {  2,  3,  4,  5, 5
 uint8 BCMATTACHDATA(lna1_rout_map_5g_maj37)[N_LNA12_GAINS] = { 11, 11, 11, 11, 7, 0};
 uint8 BCMATTACHDATA(lna1_gain_map_5g_maj37)[N_LNA12_GAINS] = {  4,  5,  6,  7, 7, 7};
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 /* LNA1 gm and rout mapping table for maj40 */
 uint8 BCMATTACHDATA(lna1_rout_map_2g_maj40)[N_LNA12_GAINS] = { 12, 12, 13, 10, 7, 0};
 uint8 BCMATTACHDATA(lna1_gain_map_2g_maj40)[N_LNA12_GAINS] = {  3,  4,  5,  5, 5, 5};
 uint8 BCMATTACHDATA(lna1_rout_map_5g_maj40)[N_LNA12_GAINS] = {  9,  9,  9, 10, 7, 0};
 uint8 BCMATTACHDATA(lna1_gain_map_5g_maj40)[N_LNA12_GAINS] = {  3,  4,  6,  7, 7, 7};
+
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */
 
 /* Gain limit table for maj40 */
 int8 BCMATTACHDATA(gainlimit_tbl_maj40)[RXGAIN_CONF_ELEMENTS][MAX_RX_GAINS_PER_ELEM] = {
@@ -4470,6 +4476,9 @@ int8 BCMATTACHDATA(gainlimit_tbl_maj40)[RXGAIN_CONF_ELEMENTS][MAX_RX_GAINS_PER_E
 {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* BIQ0 Table */
 {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* BIQ1 Table */
 };
+
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
+
 
 /* 2G LNA1 and LNA2 Gain dB table for 4347B0 */
 int8 BCMATTACHDATA(lna12_gain_tbl_2g_maj40_min1)[2][N_LNA12_GAINS] = {
@@ -4492,3 +4501,4 @@ uint8 BCMATTACHDATA(lna1_gain_map_5g_maj40_min1)[N_LNA12_GAINS] = {  3,  4,  6, 
 /* Napping related tables */
 uint16 BCMATTACHDATA(nap_lo_th_adj_maj40)[5] = {10, 10, 10, 10, 10};
 uint16 BCMATTACHDATA(nap_hi_th_adj_maj40)[5] = {50, 50, 50, 50, 50};
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694)) */

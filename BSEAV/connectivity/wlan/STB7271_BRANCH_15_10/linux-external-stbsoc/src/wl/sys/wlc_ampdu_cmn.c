@@ -99,6 +99,9 @@ static const bcm_iovar_t ampdu_iovars[] = {
 #ifdef BCMDBG
 	{"ampdu_dbg", IOV_AMPDU_DBG, (0), 0, IOVT_UINT32, 0},
 #endif
+#ifdef BCMINTDBG
+	{"ampdu_activate_test", IOV_ACTIVATE_TEST, (0), 0, IOVT_BUFFER, 0},
+#endif /* BCMINTDBG */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -274,10 +277,12 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 			break;
 		}
 
+#if defined(BCMINTDBG)
 		if (int_val < AMPDU_DEF_MPDU_DENSITY) {
 			err = BCME_RANGE;
 			break;
 		}
+#endif
 		wlc_ampdu_rx_set_mpdu_density(wlc->ampdu_rx, (uint8)int_val);
 		wlc_ampdu_tx_set_mpdu_density(wlc->ampdu_tx, (uint8)int_val);
 		wlc_ampdu_update_ie_param(wlc->ampdu_rx);
@@ -292,6 +297,23 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 	        wl_ampdu_dbg = (uint32)int_val;
 		break;
 #endif /* BCMDBG */
+#ifdef BCMINTDBG
+	case IOV_SVAL(IOV_ACTIVATE_TEST):
+	{
+		struct agg {
+			bool val1;
+			bool val2;
+		} x = *((struct agg*)a);
+
+		wlc_bsscfg_t *bsscfg = wlc_bsscfg_find_by_wlcif(wlc, wlcif);
+
+		ASSERT(bsscfg != NULL);
+
+		wlc_ampdu_tx_set_bsscfg_aggr(wlc->ampdu_tx, bsscfg, x.val1, AMPDU_ALL_TID_BITMAP);
+		wlc_ampdu_rx_set_bsscfg_aggr(wlc->ampdu_rx, bsscfg, x.val2, AMPDU_ALL_TID_BITMAP);
+		break;
+	}
+#endif /* BCMINTDBG */
 
 	default:
 		err = BCME_UNSUPPORTED;

@@ -872,9 +872,13 @@ phy_noise_abort_shmem_read(phy_noise_info_t *noisei)
 
 int
 phy_noise_interf_chan_stats_update(wlc_phy_t *ppi, chanspec_t chanspec, uint32 crsglitch,
-        uint32 bphy_crsglitch, uint32 badplcp, uint32 bphy_badplcp, uint32 mbsstime)
+		uint32 bphy_crsglitch, uint32 badplcp, uint32 bphy_badplcp,
+		uint8 txop, uint32 mbsstime)
 {
 	phy_info_t *pi = (phy_info_t*)ppi;
+
+	wlc_phy_desense_aci_upd_txop_acphy(pi, chanspec, txop);
+
 	/* Doing interference update of chan stats here  */
 
 	if (pi->interf->curr_home_channel == (CHSPEC_CHANNEL(chanspec))) {

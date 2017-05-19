@@ -3740,7 +3740,7 @@ wlc_phy_read_txgain_acphy(phy_info_t *pi)
 {
 	uint8 core;
 	uint8 stall_val;
-	txgain_setting_t txcal_txgain[4];
+	txgain_setting_t txcal_txgain[4] = {{0}};  /* Pacify SWSTB-4750: Coverity Defect ID:118425 UNINIT Function */
 	uint16 lpfgain;
 	uint8 phyrxchain;
 
@@ -6742,13 +6742,16 @@ uint16
 wlc_phy_set_txpwr_by_index_acphy(phy_info_t *pi, uint8 core_mask, int8 txpwrindex)
 {
 	uint8 core;
+	uint8 core_mask_all;
 	uint16 lpfgain;
-	txgain_setting_t txgain_settings;
+	txgain_setting_t txgain_settings = {0};		/* CID118426: Uninitialized scalar variable */
 	uint8 stall_val = READ_PHYREGFLD(pi, RxFeCtrl1, disable_stalls);
 
 	PHY_TRACE(("wl%d: %s\n", pi->sh->unit, __FUNCTION__));
 
+	core_mask_all = (1 << PHYCORENUM((pi)->pubpi->phy_corenum)) - 1;
 	ASSERT(core_mask);
+	ASSERT(core_mask_all & core_mask); /* CID118426: make sure core_mask is within the supported cores */
 	ASSERT(txpwrindex >= 0);	/* negative index not supported */
 
 	ACPHY_DISABLE_STALL(pi);

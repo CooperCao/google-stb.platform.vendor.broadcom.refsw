@@ -107,7 +107,11 @@ u32 wl_dbg_level = WL_DBG_ERR;
 
 #ifdef VSDB
 /* sleep time to keep STA's connecting or connection for continuous af tx or finding a peer */
+#ifdef STB_SOC_WIFI
+#define DEFAULT_SLEEP_TIME_VSDB		200
+#else
 #define DEFAULT_SLEEP_TIME_VSDB		120
+#endif
 #define OFF_CHAN_TIME_THRESHOLD_MS	200
 #define AF_RETRY_DELAY_TIME			40
 
@@ -867,6 +871,10 @@ struct chan_info {
 extern int wl_net_attach(struct net_device *dev, int ifidx);
 extern struct net_device *wl_net_find(void *wl, const char* ifname);
 #endif
+
+#if defined(WOWL_DRV_NORELOAD)
+extern int wl_resume_normalmode(void);
+#endif  /*WOWL_DRV_NORELOAD*/
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
 #define CFG80211_PUT_BSS(wiphy, bss) cfg80211_put_bss(wiphy, bss);
@@ -2924,6 +2932,13 @@ wl_run_escan(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 #endif /* P2P_SKIP_DFS */
 				list = (wl_uint32_list_t *) chan_buf;
 				n_valid_chan = dtoh32(list->count);
+				if (n_valid_chan > WL_NUMCHANNELS) {
+					WL_ERR(("wrong n_valid_chan:%d\n", n_valid_chan));
+					kfree(default_chan_list);
+					err = -EINVAL;
+					goto exit;
+				}
+
 				for (i = 0; i < num_chans; i++)
 				{
 #ifdef WL_HOST_BAND_MGMT
@@ -6184,6 +6199,12 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 				MAC2STRDBG(mac), MAC2STRDBG(curmacp)));
 		}
 
+		if (!capable(CAP_NET_ADMIN)) {
+			WL_DBG(("No permission\n"));
+			err = -EPERM;
+			return err;
+		}
+
 		/* Report the current tx rate */
 		err = wldev_ioctl(dev, WLC_GET_RATE, &rate, sizeof(rate), false);
 		if (err) {
@@ -6262,6 +6283,12 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 get_station_err:
 		if (err && (err != -ENODATA)) {
 			/* Disconnect due to zero BSSID or error to get RSSI */
+			scb_val_t scbval;
+			scbval.val = htod32(DOT11_RC_DISASSOC_LEAVING);
+			err = wldev_ioctl(dev, WLC_DISASSOC, &scbval, sizeof(scb_val_t), true);
+			if (unlikely(err))
+				WL_ERR(("disassoc error (%d)\n", err));
+
 			WL_ERR(("force cfg80211_disconnected: %d\n", err));
 			wl_clr_drv_status(cfg, CONNECTED, dev);
 			CFG80211_DISCONNECTED(dev, 0, NULL, 0, false, GFP_KERNEL);
@@ -6408,6 +6435,13 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	}
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
 #endif /* BCMDONGLEHOST */
+
+#if defined(WOWL_DRV_NORELOAD)
+#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS)) && \
+	!defined(OEM_ANDROID)
+		wl_resume_normalmode();
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
+#endif  /*WOWL_DRV_NORELOAD*/
 	return err;
 }
 
@@ -6430,13 +6464,14 @@ static s32 wl_wowlan_config(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 	wl_pkt_filter_enable_t	pkt_filter_enable;
 	u8 mask_bytes_len = 0, mask_byte_idx = 0, mask_bit_idx = 0;
 #else
-	uint32_t  wowl_flags = 0, PM_mode;
+	uint32_t  wowl_flags = 0;
 	char *arg = NULL;
 	char *smbuf = NULL;
 	const char *str;
 	char *dst;
 	uint tot = 0;
 	wl_wowl_pattern_t *wl_pattern;
+	s32 wsec;
 
 #endif /* BCMDONGLEHOST */
 
@@ -6561,6 +6596,16 @@ exit:
 		goto exit;
 	}
 
+	err = wldev_iovar_getint(ndev, "wsec", &wsec);
+	if (unlikely(err)) {
+		WL_ERR(("WLC_GET_WSEC error (%d)\n", err));
+		err = BCME_ERROR;
+		goto exit;
+	}
+
+	if (WSEC_TKIP_ENABLED(wsec) || WSEC_AES_ENABLED(wsec))
+		wowl_flags = wowl_flags | WL_WOWL_KEYROT;
+
 	wowl_flags = wowl_flags | *(uint32_t*)cfg->ioctl_buf;
 
 	if (wowl_flags > 0) {
@@ -6572,14 +6617,6 @@ exit:
 			err = -ENOMEM;
 			goto exit;
 		}
-#ifdef STB_SOC_WIFI
-		PM_mode = 0;
-		if ((err = wldev_ioctl(ndev, WLC_SET_PM, &PM_mode,
-			sizeof(PM_mode), true)) != 0) {
-			WL_ERR(("Setting PM to 0 returned error:%d\n", err));
-			goto exit;
-		}
-#endif  /* STB_SOC_WIFI */
 		/* configure wowlan pattern filters */
 
 		if (0 < wow->n_patterns) {
@@ -7408,6 +7445,8 @@ wl_cfg80211_send_action_frame(struct wiphy *wiphy, struct net_device *dev,
 #ifdef BCMDONGLEHOST
 	dhd_pub_t *dhd = (dhd_pub_t *)(cfg->pub);
 #endif /* BCMDONGLEHOST */
+	bool miss_gon_cfm = false;
+	wifi_p2p_pub_act_frame_t *pact_frm;
 
 	int32 requested_dwell = af_params->dwell_time;
 
@@ -7592,6 +7631,16 @@ wl_cfg80211_send_action_frame(struct wiphy *wiphy, struct net_device *dev,
 			 * peer is sending GO-neg resp. So instead of giving up here, just
 			 * proceed and attempt sending out the action frame.
 			 */
+#ifdef WL_CFG80211_GON_COLLISION
+			if (config_af_params.drop_tx_req) {
+				if (cfg->block_gon_req_tx_count) {
+					WL_ERR(("couldn't find peer's channel and GON collision, drop gon req tx action frame: count %d\n",
+						cfg->block_gon_req_tx_count));
+					goto exit;
+				}
+			}
+#endif /* WL_CFG80211_GON_COLLISION */
+
 		}
 
 		wl_clr_drv_status(cfg, SCANNING, cfg->afx_hdl->dev);
@@ -7633,8 +7682,17 @@ wl_cfg80211_send_action_frame(struct wiphy *wiphy, struct net_device *dev,
 	ack = wl_cfgp2p_tx_action_frame(cfg, dev, af_params, bssidx) ? false : true;
 	dwell_overflow = wl_cfg80211_check_dwell_overflow(requested_dwell, dwell_jiffies);
 
+	if (ack && (wl_get_drv_status_all(cfg, WAITING_NEXT_ACT_FRM)) && cfg->need_wait_afrx) {
+			pact_frm = (wifi_p2p_pub_act_frame_t *)(action_frame->data);
+			if (pact_frm->subtype == P2P_PAF_GON_RSP) {
+				WL_ERR(("Miss GO Nego cfm after P2P_PAF_GON_RSP, retry it\n"));
+				miss_gon_cfm = true;
+			}
+	}
+
+
 	/* if failed, retry it. tx_retry_max value is configure by .... */
-	while ((ack == false) && (tx_retry++ < config_af_params.max_tx_retry) &&
+	while ((ack == false || miss_gon_cfm) && (tx_retry++ < config_af_params.max_tx_retry) &&
 			!dwell_overflow) {
 #ifdef VSDB
 		if (af_params->channel) {
@@ -7649,6 +7707,11 @@ wl_cfg80211_send_action_frame(struct wiphy *wiphy, struct net_device *dev,
 		ack = wl_cfgp2p_tx_action_frame(cfg, dev, af_params, bssidx) ?
 			false : true;
 		dwell_overflow = wl_cfg80211_check_dwell_overflow(requested_dwell, dwell_jiffies);
+		if (miss_gon_cfm && !wl_get_drv_status_all(cfg, WAITING_NEXT_ACT_FRM)) {
+			WL_ERR(("Received GO Nego cfm after P2P_PAF_GON_RSP\n"));
+			miss_gon_cfm = false;
+		}
+
 	}
 
 	if (ack == false) {
@@ -10817,7 +10880,15 @@ wl_cfg80211_reg_notifier(
 #ifdef CONFIG_PM
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
 static const struct wiphy_wowlan_support brcm_wowlan_support = {
+#ifdef BCMDONGLEHOST
 	.flags = WIPHY_WOWLAN_ANY,
+#else
+	.flags = WIPHY_WOWLAN_MAGIC_PKT |
+		WIPHY_WOWLAN_DISCONNECT |
+		WIPHY_WOWLAN_SUPPORTS_GTK_REKEY |
+		WIPHY_WOWLAN_GTK_REKEY_FAILURE |
+		WIPHY_WOWLAN_NET_DETECT,
+#endif /* BCMDONGLEHOST */
 	.n_patterns = WL_WOWLAN_MAX_PATTERNS,
 	.pattern_min_len = WL_WOWLAN_MIN_PATTERN_LEN,
 	.pattern_max_len = WL_WOWLAN_MAX_PATTERN_LEN,
@@ -18847,7 +18918,7 @@ wl_cfg80211_add_iw_ie(struct bcm_cfg80211 *cfg, struct net_device *ndev, s32 bss
 	}
 
 	/* access network options (1 octet)  is the mandatory field */
-	if (!data || data_len == 0) {
+	if (!data || data_len == 0 || data_len > IW_IES_MAX_BUF_LEN) {
 		WL_ERR(("wrong interworking IE (len=%d)\n", data_len));
 		return BCME_BADARG;
 	}
@@ -20018,6 +20089,7 @@ wl_cfg80211_set_rekey_data(struct wiphy *wiphy, struct net_device *dev,
 		WL_ERR(("data is NULL or wrong net device\n"));
 		return -EINVAL;
 	}
+#ifdef BCMDBG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 	prhex("kck", data->kck, RSN_KCK_LENGTH);
 	prhex("kek", data->kek, RSN_KEK_LENGTH);
@@ -20027,6 +20099,8 @@ wl_cfg80211_set_rekey_data(struct wiphy *wiphy, struct net_device *dev,
 	prhex("kek", (uchar *)data->kek, RSN_KEK_LENGTH);
 	prhex("replay_ctr", (uchar *)data->replay_ctr, RSN_REPLAY_LEN);
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0) */
+#endif /* BCMDBG */
+
 	bcopy(data->kck, keyinfo.KCK, RSN_KCK_LENGTH);
 	bcopy(data->kek, keyinfo.KEK, RSN_KEK_LENGTH);
 	bcopy(data->replay_ctr, keyinfo.ReplayCounter, RSN_REPLAY_LEN);
@@ -20038,6 +20112,24 @@ wl_cfg80211_set_rekey_data(struct wiphy *wiphy, struct net_device *dev,
 	}
 	WL_DBG(("Exit\n"));
 	return err;
+}
+
+void
+wl_cfg80211_gtk_rekey_notify(struct bcm_cfg80211 *cfg, const u8 *bssid,
+	const uint8 *replay_ctr)
+{
+	struct net_device *dev = bcmcfg_to_prmry_ndev(cfg);
+	gfp_t aflags;
+
+	aflags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
+
+	/* GTK rekeying is only for STA */
+	if (dev->ieee80211_ptr->iftype != NL80211_IFTYPE_STATION) {
+		WL_ERR(("GTK rekeying is only for STA\n"));
+		return;
+	}
+
+	cfg80211_gtk_rekey_notify(dev, bssid, replay_ctr, aflags);
 }
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0) */
 

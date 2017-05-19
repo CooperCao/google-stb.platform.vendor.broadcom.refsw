@@ -216,15 +216,19 @@ wlc_phy_radio_tiny_vcocal(phy_info_t *pi)
 		if ((phy_get_phymode(pi) == PHYMODE_MIMO) && (core != 0)) {
 			break;
 		}
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691))
 		if (RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) {
 			MOD_RADIO_REG_20691(pi, PLL_HVLDO3, core, ldo_2p5_ldo_VCO_vout_sel, 0xf);
 			MOD_RADIO_REG_20691(pi, PLL_HVLDO3, core, ldo_2p5_ldo_CP_vout_sel, 0xf);
 		}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
 
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 		if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 			wlc_phy_radio20693_vco_opt(pi, (pi_ac->vcocali->vcotune &&
 				CHSPEC_IS5G(pi->radio_chanspec)));
 		}
+#endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693)) */
 
 		/* VCO-Cal startup seq */
 		/* VCO cal mode selection */

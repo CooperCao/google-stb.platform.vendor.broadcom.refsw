@@ -544,7 +544,11 @@
 
 /* debug/trace */
 uint wl_msg_level =
+#if defined(BCMINTDBG)
+	WL_ERROR_VAL;
+#else
 	0;
+#endif /* BCMINTDBG */
 
 uint wl_msg_level2 =
 #if defined(BCMDBG)
@@ -704,6 +708,7 @@ enum wlc_iov {
 	IOV_HC = 115,
 	IOV_BEACON_INFO = 116,
 	IOV_WLC_VER = 117,
+	IOV_PAY_DECODE_WAR = 118,
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -805,6 +810,16 @@ static const bcm_iovar_t wlc_iovars[] = {
 	{"subcounters", IOV_SUBCOUNTERS,
 	(IOVF_OPEN_ALLOW), IOVF2_RSDB_CORE_OVERRIDE, IOVT_BUFFER, OFFSETOF(wl_subcnt_info_t, data)
 	},
+#ifdef BCMINTDBG
+	{"txmaxpkts", IOV_TXMAXPKTS,
+	(IOVF_RSDB_SET), 0, IOVT_UINT32, sizeof(uint32)
+	},
+#endif /* BCMINTDBG */
+#if defined(BCMINTDBG)
+	{"txfifo_sz", IOV_TXFIFO_SZ,
+	(IOVF_SET_DOWN|IOVF_RSDB_SET), 0, IOVT_BUFFER, sizeof(wl_txfifo_sz_t)
+	},
+#endif /* BCMINTDBG */
 	{"antsel_type", IOV_ANTSEL_TYPE,
 	0, 0, IOVT_UINT8, 0
 	},
@@ -902,6 +917,11 @@ static const bcm_iovar_t wlc_iovars[] = {
 	0, 0, IOVT_UINT16, 0
 	},
 #endif /* PHYCAL_CACHING */
+#ifdef BCMINTDBG
+	{"sendprb", IOV_SENDPRB,
+	(IOVF_SET_UP), 0, IOVT_BUFFER, sizeof(wl_probe_params_t)
+	},
+#endif
 #ifdef STA
 	{"wake_event", IOV_WAKE_EVENT,
 	(0), 0, IOVT_UINT16, 0
@@ -1040,7 +1060,7 @@ static const bcm_iovar_t wlc_iovars[] = {
 	(0), 0, IOVT_BUFFER,
 	(BSS_PEER_LIST_INFO_FIXED_LEN + sizeof(bss_peer_info_t))
 	},
-#if defined(WLRSDB)
+#if defined(BCINTMDBG) || defined(WLRSDB)
 	{"ioc", IOV_IOC, 0, IOVF2_RSDB_CORE_OVERRIDE, IOVT_BUFFER, sizeof(int),
 	},
 #endif /* WLRSDB */
@@ -1053,6 +1073,11 @@ static const bcm_iovar_t wlc_iovars[] = {
 	{"wd_on_bcn", IOV_WD_ON_BCN,
 	(0), 0, IOVT_BOOL, 0
 	},
+#ifdef BCMINTDBG
+	{"dynamic_bw", IOV_DYNBW,
+	(IOVF_SET_UP | IOVF_GET_UP), 0, IOVT_BOOL, 0
+	},
+#endif
 	/* Olympic alias for "passive_on_restricted_mode" */
 	{"passive_on_restricted", IOV_PASSIVE_ON_RESTRICTED,
 	(0), 0, IOVT_UINT32, 0
@@ -1077,6 +1102,9 @@ static const bcm_iovar_t wlc_iovars[] = {
 	},
 	{ "wlc_ver", IOV_WLC_VER,
 	(0), 0, IOVT_BUFFER, sizeof(wl_wlc_version_t)
+	},
+	{"pay_decode_war", IOV_PAY_DECODE_WAR,
+	0, 0, IOVT_BOOL, 0
 	},
 	{NULL, 0, 0, 0, 0, 0}
 };
@@ -1139,6 +1167,9 @@ static void wlc_monitor_down(wlc_info_t *wlc);
 static void wlc_bss_default_init(wlc_info_t *wlc);
 static void wlc_ucode_mac_upd(wlc_info_t *wlc);
 static int  wlc_xmtfifo_sz_get(wlc_info_t *wlc, uint fifo, uint *blocks);
+#if defined(BCMINTDBG)
+static int  wlc_xmtfifo_sz_set(wlc_info_t *wlc, uint fifo, uint16 blocks);
+#endif
 static void wlc_xmtfifo_sz_upd_high(wlc_info_t *wlc, uint fifo, uint16 blocks);
 
 static void wlc_tx_prec_map_init(wlc_info_t *wlc);
@@ -5573,7 +5604,7 @@ BCMATTACHFN(wlc_attach_module)(wlc_info_t *wlc)
 	MODULE_ATTACH(vieli, wlc_bsscfg_viel_attach, 150);
 
 #if defined(GTKOE) && !defined(GTKOE_DISABLED)
-	MODULE_ATTACH(idsup, wlc_gtk_attach, 151);
+	MODULE_ATTACH(gtkref, wlc_gtk_attach, 151);
 	wlc->pub->_gtkoe = TRUE;
 #endif /* defined(GTKOE) && !defined(GTKOE_DISABLED) */
 
@@ -7340,7 +7371,7 @@ BCMATTACHFN(wlc_detach_module)(wlc_info_t *wlc)
 #endif /* WLVASIP */
 
 #if defined(GTKOE) && !defined(GTKOE_DISABLED)
-	MODULE_DETACH(wlc->idsup, wlc_gtk_detach);
+	MODULE_DETACH(wlc->gtkref, wlc_gtk_detach);
 #endif /* defined(GTKOE) && !defined(GTKOE_DISABLED) */
 	MODULE_DETACH(wlc->scan, wlc_scan_detach);
 
@@ -9385,6 +9416,11 @@ wlc_set_gmode(wlc_info_t *wlc, uint8 gmode, bool config)
 		preamble = WLC_PLCP_SHORT;
 		break;
 
+#ifdef BCMINTDBG
+	case GMODE_B_DEFERRED:
+		shortslot = WLC_SHORTSLOT_ON;
+		break;
+#endif /* BCMINTDBG */
 
 	case GMODE_PERFORMANCE:
 		if (AP_ENAB(wlc->pub))	/* Put all rates into the Supported Rates element */
@@ -9718,6 +9754,14 @@ wlc_set_pm_mode(wlc_info_t *wlc, int val, wlc_bsscfg_t *bsscfg)
 		return BCME_UNSUPPORTED;
 	}
 
+	/* Block changing PM mode in wowl mode */
+#ifdef WOWL
+	if (WOWL_ACTIVE(wlc->pub)) {
+		WL_WOWL(("wl%d: PM mode changing is not allowed in wowl mode\n", WLCWLUNIT(wlc)));
+		return BCME_UNSUPPORTED;
+	}
+#endif
+
 	if ((val < PM_OFF) || (val > PM_FAST)) {
 		return BCME_ERROR;
 	}
@@ -9944,6 +9988,11 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 	bcmerror = 0;
 	regs = wlc->regs;
 	osh = wlc->osh;
+
+	/* Do not print get magic or version */
+	if ((cmd != WLC_GET_MAGIC) && (cmd != WLC_GET_VERSION)) {
+		WL_CMDS(("%s ID:%d\n", __FUNCTION__, cmd));
+	}
 
 	switch (cmd) {
 
@@ -10651,6 +10700,40 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		*pval = WLC_PHYTYPE(wlc->band->phytype);
 		break;
 
+#ifdef BCMINTDBG
+	case WLC_GET_FIXRATE:
+		if (!(scb = wlc_scbfind(wlc, bsscfg, (struct ether_addr *)arg))) {
+			bcmerror = BCME_NOTFOUND;
+		} else {
+			struct bcmstrbuf b;
+			bcm_binit(&b, (char*)arg, len);
+			wlc_scb_ratesel_get_fixrate(wlc->wrsi, scb, &b);
+		}
+		break;
+
+	case WLC_SET_FIXRATE: {
+		link_val_t *link_val = (link_val_t*)arg;
+		if (!(scb = wlc_scbfind(wlc, bsscfg, (struct ether_addr *)(&link_val->ea)))) {
+			bcmerror = BCME_NOTFOUND;
+		} else {
+			if (wlc_scb_ratesel_set_fixrate(wlc->wrsi, scb, link_val->ac,
+				link_val->val) < 0)
+				bcmerror = BCME_BADARG;
+		}
+	}
+		break;
+
+	case WLC_DUMP_RATE:
+		if (!(scb = wlc_scbfind(wlc, bsscfg, (struct ether_addr *)arg))) {
+			bcmerror = BCME_NOTFOUND;
+		} else {
+			struct bcmstrbuf b;
+
+			bcm_binit(&b, (char*)arg, len);
+			wlc_scb_ratesel_scbdump(wlc->wrsi, scb, &b);
+		}
+		break;
+#endif /* BCMINTDBG*/
 
 #ifdef BCMDBG
 	/* deprecated, use wl ratesel_xxx iovar */
@@ -11300,6 +11383,59 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		bcopy(wlc_channel_country_abbrev(wlc->cmi), (char*)arg, WLC_CNTRY_BUF_SZ);
 		break;
 
+#ifdef BCMINTDBG
+	case WLC_GET_PIOMODE:
+		ASSERT(wlc->pub->_piomode == wlc_hw_get_piomode(wlc->hw));
+		*pval = wlc->pub->_piomode;
+		break;
+
+	case WLC_SET_PIOMODE:
+		{
+		uint j;
+
+		ASSERT(wlc->pub->_piomode == wlc_hw_get_piomode(wlc->hw));
+
+		/* anything to do ? */
+		if (wlc->pub->_piomode == bool_val)
+			break;
+
+		if (!val) {
+			bcmerror = BCME_BADARG;
+			break;
+		}
+
+		if (AMPDU_ENAB(wlc->pub)) {
+			WL_ERROR(("wl%d: not supported with ampdu\n", wlc->pub->unit));
+			bcmerror = BCME_UNSUPPORTED;
+			break;
+		}
+
+		/* Require down for detaching DMA */
+		if (wlc->pub->up) {
+			bcmerror = BCME_NOTDOWN;
+			break;
+		}
+
+		/* transition to piomode */
+		wlc->pub->_piomode = TRUE;
+		wlc_hw_set_piomode(wlc->hw, TRUE);
+
+		for (j = 0; j < NFIFO; j++) {
+			if (WLC_HW_DI(wlc, j) != NULL) {
+				dma_detach(WLC_HW_DI(wlc, j));
+				wlc_hw_set_di(wlc->hw, j, NULL);
+			}
+			wlc_hw_set_pio(wlc->hw, j, wlc_pio_attach(wlc->pub, wlc, j));
+			if (WLC_HW_PIO(wlc, j) == NULL) {
+				bcmerror = BCME_NOTREADY;
+				break;
+			}
+			wlc_pio_init(WLC_HW_PIO(wlc, j));
+		}
+
+		break;
+		}
+#endif /* BCMINTDBG */
 
 	/* NOTE that this only returns valid 20MHZ channels */
 	case WLC_GET_VALID_CHANNELS: {
@@ -11670,6 +11806,8 @@ wlc_doiovar(void *hdl, uint32 actionid,
 
 	bool_val = (int_val != 0) ? TRUE : FALSE;
 
+	WL_CMDS(("%s, ID:%d %s\n", __FUNCTION__, actionid/2, (actionid%2 ? "SET" : "GET")));
+
 	/* Do the actual parameter implementation */
 	switch (actionid) {
 
@@ -12037,7 +12175,62 @@ wlc_doiovar(void *hdl, uint32 actionid,
 		break;
 #endif /* DELTASTATS */
 
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_TXMAXPKTS):
+		*ret_int_ptr = wlc_get_txmaxpkts(wlc);
+		break;
+	case IOV_SVAL(IOV_TXMAXPKTS): {
+		int maxt = MAXTXPKTS;
+#ifdef WLAMPDU_MAC
+		if (AMPDU_AQM_ENAB(wlc->pub))
+			maxt = MAXTXPKTS_AMPDUAQM;
+		else if (AMPDU_MAC_ENAB(wlc->pub))
+			maxt = MAXTXPKTS_AMPDUMAC;
+#endif
 
+		if ((int_val < 1) || (int_val > maxt)) {
+			err = BCME_RANGE;
+			break;
+		}
+		wlc_set_txmaxpkts(wlc, (uint16)int_val);
+	}
+		break;
+#endif /* BCMINTDBG */
+
+#if defined(BCMINTDBG)
+	case IOV_GVAL(IOV_TXFIFO_SZ): {
+		wl_txfifo_sz_t *ts = (wl_txfifo_sz_t *)params;
+		uint block_size = 0;
+
+		if ((uint16)int_val != WL_TXFIFO_SZ_MAGIC) {
+			WL_ERROR(("txfifo_sz: wl version don't match the driver\n"));
+			err = BCME_VERSION;
+			break;
+		}
+
+		err = wlc_bmac_xmtfifo_sz_get(wlc->hw, ts->fifo, &block_size);
+		if (err)
+			break;
+
+		ts->size = (uint16)block_size;
+
+		bcopy(ts, arg, sizeof(*ts));
+		break;
+	}
+
+	case IOV_SVAL(IOV_TXFIFO_SZ): {
+		wl_txfifo_sz_t *ts = (wl_txfifo_sz_t *)params;
+
+		if ((uint16)int_val != WL_TXFIFO_SZ_MAGIC) {
+			WL_ERROR(("txfifo_sz: wl version don't match the driver\n"));
+			err = BCME_VERSION;
+			break;
+		}
+
+		err = wlc_xmtfifo_sz_set(wlc, ts->fifo, ts->size);
+		break;
+	}
+#endif 
 	case IOV_SVAL(IOV_COUNTRY_LIST_EXTENDED):
 		wlc->country_list_extended = bool_val;
 		break;
@@ -12765,6 +12958,27 @@ wlc_doiovar(void *hdl, uint32 actionid,
 #endif /* PHYCAL_CACHING */
 #endif /* STA */
 
+#ifdef BCMINTDBG
+	case IOV_SVAL(IOV_SENDPRB): {
+		wl_probe_params_t pparams;
+
+		if (p_len < sizeof(wl_probe_params_t)) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+
+		bcopy(arg, &pparams, sizeof(wl_probe_params_t));
+		wlc_sendprobe(wlc, bsscfg,
+		              pparams.ssid.SSID, pparams.ssid.SSID_len,
+		              &bsscfg->cur_etheraddr,
+		              &pparams.mac,
+		              &pparams.bssid,
+		              wlc_lowest_basic_rspec(wlc, &wlc->band->hw_rateset),
+		              NULL,
+		              FALSE);
+		break;
+	}
+#endif /* BCMINTDBG */
 
 #ifdef BCMPKTPOOL
 	case IOV_GVAL(IOV_POOL):
@@ -13048,6 +13262,8 @@ wlc_doiovar(void *hdl, uint32 actionid,
 	case IOV_GVAL(IOV_SSID): {
 		wlc_ssid_t ssid;
 		int ssid_copy_len;
+
+		bzero(&ssid, sizeof(wlc_ssid_t));
 
 		/* copy the bsscfg's SSID to the on-stack return structure */
 		ssid.SSID_len = bsscfg->SSID_len;
@@ -13504,6 +13720,24 @@ wlc_doiovar(void *hdl, uint32 actionid,
 			 mboolclr(wlc->wd_state, WATCHDOG_ON_BCN);
 		break;
 
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_DYNBW):
+		*ret_int_ptr = (int32)wlc->pub->_dynbw;
+		break;
+
+	case IOV_SVAL(IOV_DYNBW):
+		if (D11REV_LT(wlc->pub->corerev, 40)) {
+			err = BCME_UNSUPPORTED;
+			break;
+		}
+		if (wlc->pub->_dynbw != bool_val) {
+			wlc_bmac_mhf(wlc->hw, MHF1, MHF1_D11AC_DYNBW,
+				bool_val ? MHF1_D11AC_DYNBW : 0, WLC_BAND_ALL);
+			wlc_bmac_ifsctl_vht_set(wlc->hw, AUTO);
+			wlc->pub->_dynbw = bool_val;
+		}
+		break;
+#endif /* BCMINTDBG */
 
 #if (!defined(WLC_HOSTOID) || defined(HOSTOIDS_DISABLED))
 	case IOV_GVAL(IOV_IF_COUNTERS):
@@ -13580,6 +13814,14 @@ wlc_doiovar(void *hdl, uint32 actionid,
 
 	case IOV_GVAL(IOV_WLC_VER):
 		wlc_iov_get_wlc_ver((wl_wlc_version_t *)arg);
+		break;
+
+	case IOV_SVAL(IOV_PAY_DECODE_WAR):
+		wlc_bmac_pay_decode_war_set(wlc->hw, bool_val);
+		break;
+
+	case IOV_GVAL(IOV_PAY_DECODE_WAR):
+		*ret_int_ptr = (int)wlc_bmac_pay_decode_war_get(wlc->hw);
 		break;
 
 	default:
@@ -15053,6 +15295,33 @@ wlc_pkt_abs_supr_enq(wlc_info_t *wlc, struct scb *scb, void *pkt)
 	return free_pkt;
 } /* wlc_pkt_abs_supr_enq */
 
+#if defined(BCMINTDBG)
+/** Debug function to verify that the SA and BSS of the packet are consistent */
+static void
+check_bss_addrs(const char *prefix, wlc_info_t *wlc, struct dot11_header *hdr)
+{
+	wlc_bsscfg_t *s_cfg, *b_cfg; /* src and BSS configs */
+
+	if (!(hdr->fc & FC_FROMDS) || (hdr->fc & FC_TODS)) {
+		/* Ignore frames that are not from-ds or are WDS frames */
+		return;
+	}
+
+	/* Look up source addr and BSSID */
+	s_cfg = wlc_bsscfg_find_by_hwaddr(wlc, &hdr->a3);
+	if (s_cfg == NULL) { /* Probably relaying external frame */
+		return;
+	}
+	b_cfg = wlc_bsscfg_find_by_bssid(wlc, &hdr->a2);
+	ASSERT(b_cfg != NULL);
+
+	if (s_cfg != b_cfg) {
+		WL_ERROR(("%s BSSID 0x%x (%d), SA 0x%x (%d) mismatch on PKT TX\n", prefix,
+		          hdr->a2.octet[5], WLC_BSSCFG_IDX(b_cfg), hdr->a3.octet[5],
+		          WLC_BSSCFG_IDX(s_cfg)));
+	}
+}
+#endif /* BCMINTDBG */
 
 /** get original etype for converted ether frame or 8023 frame */
 uint16
@@ -16570,17 +16839,17 @@ wlc_pkt_set_ack(wlc_info_t* wlc, void* p, bool want_ack)
 	if (D11REV_LT(wlc->pub->corerev, 40)) {
 		d11txh_t* nonVHTHdr = (d11txh_t *)PKTDATA(wlc->osh, p);
 		if (!want_ack) {
-			nonVHTHdr->MacTxControlLow &= ~TXC_IMMEDACK;
+			nonVHTHdr->MacTxControlLow &= htol16(~TXC_IMMEDACK);
 		} else {
-			nonVHTHdr->MacTxControlLow |= TXC_IMMEDACK;
+			nonVHTHdr->MacTxControlLow |= htol16(TXC_IMMEDACK);
 		}
 	} else {
 		d11actxh_t* vhtHdr = NULL;
 		wlc_pkt_get_vht_hdr(wlc, p, &vhtHdr);
 		if (!want_ack) {
-			vhtHdr->PktInfo.MacTxControlLow &= ~D11AC_TXC_IACK;
+			vhtHdr->PktInfo.MacTxControlLow &= htol16(~D11AC_TXC_IACK);
 		} else {
-			vhtHdr->PktInfo.MacTxControlLow |= D11AC_TXC_IACK;
+			vhtHdr->PktInfo.MacTxControlLow |= htol16(D11AC_TXC_IACK);
 		}
 	}
 }
@@ -16599,9 +16868,9 @@ wlc_pkt_set_core(wlc_info_t* wlc, void* p, uint8 core)
 		local_rate_info = WLC_TXD_RATE_INFO_GET(vhtHdr, wlc->pub->corerev);
 
 		/* send on core #ant antenna #ant */
-		local_rate_info[0].PhyTxControlWord_0 &= ~D11AC_PHY_TXC_CORE_MASK;
+		local_rate_info[0].PhyTxControlWord_0 &= htol16(~D11AC_PHY_TXC_CORE_MASK);
 		local_rate_info[0].PhyTxControlWord_0 |=
-			(1 << (core + D11AC_PHY_TXC_CORE_SHIFT));
+			htol16((1 << (core + D11AC_PHY_TXC_CORE_SHIFT)));
 	}
 }
 
@@ -16617,13 +16886,13 @@ wlc_pkt_set_txpwr_offset(wlc_info_t* wlc, void* p, uint16 pwr_offset)
 		wlc_pkt_get_vht_hdr(wlc, p, &vhtHdr);
 		local_rate_info = WLC_TXD_RATE_INFO_GET(vhtHdr, wlc->pub->corerev);
 		if (D11REV_LT(wlc->pub->corerev, 64)) {
-			local_rate_info[0].PhyTxControlWord_1 &= ~D11AC_PHY_TXC_TXPWR_OFFSET_MASK;
+			local_rate_info[0].PhyTxControlWord_1 &= htol16(~D11AC_PHY_TXC_TXPWR_OFFSET_MASK);
 			local_rate_info[0].PhyTxControlWord_1 |=
-				(pwr_offset << D11AC_PHY_TXC_TXPWR_OFFSET_SHIFT);
+				htol16((pwr_offset << D11AC_PHY_TXC_TXPWR_OFFSET_SHIFT));
 		} else {
-			local_rate_info[0].PhyTxControlWord_1 &= ~D11AC2_PHY_TXC_TXPWR_OFFSET_MASK;
+			local_rate_info[0].PhyTxControlWord_1 &= htol16(~D11AC2_PHY_TXC_TXPWR_OFFSET_MASK);
 			local_rate_info[0].PhyTxControlWord_1 |=
-				(pwr_offset << D11AC2_PHY_TXC_TXPWR_OFFSET_SHIFT);
+				htol16((pwr_offset << D11AC2_PHY_TXC_TXPWR_OFFSET_SHIFT));
 		}
 	}
 }
@@ -19797,6 +20066,12 @@ wlc_queue_80211_frag(wlc_info_t *wlc, void *p, wlc_txq_info_t *qi, struct scb *s
 
 	ASSERT(wlc->pub->up);
 
+#if defined(BCMINTDBG)
+	if (MBSS_ENAB(wlc->pub)) { /* Validate that BSS id and src addr match */
+		check_bss_addrs("wlc_sendmgmt:", wlc,
+			(struct dot11_header *)(PKTDATA(wlc->osh, p)));
+	}
+#endif /* BCMINTDBG */
 
 	/* use hw rateset scb if the one passed in is NULL */
 	if (scb == NULL) {
@@ -19980,6 +20255,12 @@ wlc_sendctl(wlc_info_t *wlc, void *p, wlc_txq_info_t *qi, struct scb *scb, uint 
 		goto toss;
 	}
 
+#if defined(BCMINTDBG)
+	if (MBSS_ENAB(wlc->pub)) { /* Validate that BSS id and src addr match */
+		check_bss_addrs("wlc_sendctl:", wlc,
+			(struct dot11_header *)(PKTDATA(wlc->osh, p)));
+	}
+#endif /* BCMINTDBG */
 
 	prio = PKTPRIO(p);
 	ASSERT(prio <= MAXPRIO);
@@ -22662,6 +22943,20 @@ wlc_xmtfifo_sz_get(wlc_info_t *wlc, uint fifo, uint *blocks)
 	return wlc_bmac_xmtfifo_sz_get(wlc->hw, fifo, blocks);
 }
 
+#if defined(BCMINTDBG)
+static int
+wlc_xmtfifo_sz_set(wlc_info_t *wlc, uint fifo, uint16 blocks)
+{
+	if (fifo >= NFIFO || blocks > 299)
+		return BCME_RANGE;
+
+	wlc_xmtfifo_sz_upd_high(wlc, fifo, blocks);
+
+	wlc_bmac_xmtfifo_sz_set(wlc->hw, fifo, blocks);
+
+	return BCME_OK;
+}
+#endif 
 
 static void
 wlc_xmtfifo_sz_upd_high(wlc_info_t *wlc, uint fifo, uint16 blocks)
@@ -22966,15 +23261,6 @@ _wlc_get_accum_pmdur(wlc_info_t *wlc)
 
 	ct = pt = OSL_SYSUPTIME();
 
-#ifdef STB_SOC_WIFI
-	/* return the previos value if the following holds true */
-
-	if (((M_MAC_SLPDUR_L_OFFSET(wlc) & 1) == 1) ||
-		((M_MAC_SLPDUR_H_OFFSET(wlc) & 1) == 1))
-		return wlc->wlc_pm_dur_cntr;
-
-#endif  /* STB_SOC_WIFI */
-
 	/* Read the PM dur related values in a stable PSM state */
 	do {
 		prev_st = wlc_read_shm(wlc, M_UCODE_DBGST(wlc));
@@ -23014,7 +23300,8 @@ _wlc_get_accum_pmdur(wlc_info_t *wlc)
 uint32
 wlc_get_accum_pmdur(wlc_info_t *wlc)
 {
-	if (wlc->pub->hw_up)
+
+	if ( (wlc->pub->hw_up) && (!WOWL_ACTIVE(wlc->pub)) )
 		return _wlc_get_accum_pmdur(wlc);
 	else
 		return wlc->wlc_pm_dur_cntr;
@@ -23232,7 +23519,7 @@ wlc_weakest_link_rssi_chan_stats_upd(wlc_info_t *wlc)
 			phy_noise_interf_chan_stats_update(pi, chanArray[j],
 			   result->secs[0].crsglitch, result->secs[0].bphy_crsglitch,
 			   result->secs[0].badplcp, result->secs[0].bphy_badplcp,
-			   result->secs[0].duration);
+			   0, result->secs[0].duration);
 #else /* CCA_STATS  ISID_STATS */
 		chanspec = chanArray[j];  /* center chan based */
 		memset(&stats, 0, sizeof(stats));
@@ -23247,7 +23534,7 @@ wlc_weakest_link_rssi_chan_stats_upd(wlc_info_t *wlc)
 			phy_noise_interf_chan_stats_update(pi, chanArray[j],
 				stats.glitchcnt, stats.bphy_glitchcnt,
 				stats.badplcp, stats.bphy_badplcp,
-				1000);
+				stats.chan_idle, 1000);
 		}
 		BCM_REFERENCE(chanspec);
 #endif /* CCA_STATS  ISID_STATS */
