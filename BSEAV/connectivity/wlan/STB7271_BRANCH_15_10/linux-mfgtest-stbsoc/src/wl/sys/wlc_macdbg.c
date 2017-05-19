@@ -450,6 +450,20 @@ wlc_macdbg_doiovar(void *hdl, uint32 actionid,
 	}
 #endif	/* BCMDBG && MBSS */
 
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_DBGSEL):
+		*ret_int_ptr = (int32)wlc_bmac_ucode_dbgsel_get(wlc->hw);
+		break;
+
+	case IOV_SVAL(IOV_DBGSEL):
+		/* Starting from rev14 MAC has extra 2 bits for GPIOSel in MACControl1 register */
+		if (int_val > 0xF) {
+			err = BCME_RANGE;
+		} else {
+			wlc_bmac_ucode_dbgsel_set(wlc->hw, (uint16)int_val);
+		}
+		break;
+#endif /* BCMINTDBG */
 
 	default:
 		err = BCME_UNSUPPORTED;
@@ -2427,6 +2441,10 @@ wlc_macdbg_smpl_capture_set(wlc_info_t *wlc, wl_maccapture_params_t *params)
 		}
 		/* Enable GPIO based on mask */
 		W_REG(wlc->osh, &regs->psm_gpio_oe, params->s_mask);
+#ifdef BCMINTDBG
+		/* Signal wlc_bmac about GPIO_SEL */
+		wlc_bmac_ucode_dbgsel_set(wlc->hw, gpio_sel);
+#endif /* BCMINTDBG */
 	}
 
 	/* GPIO Output Selection */

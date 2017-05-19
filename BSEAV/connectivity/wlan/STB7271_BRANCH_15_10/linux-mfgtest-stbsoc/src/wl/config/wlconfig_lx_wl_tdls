@@ -24,3 +24,4 @@
 include $(WLCFGDIR)/wlconfig_lx_wl_p2p
 
 WLTDLS=1
+BE_TDLS=1

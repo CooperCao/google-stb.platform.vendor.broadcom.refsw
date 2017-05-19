@@ -175,6 +175,7 @@ extern int osl_wificc_logDebugIf(uint64_t flags, const char *fmt, ...);
 #define	WL_COEX(args)		do {if (wl_msg_level2 & WL_COEX_VAL) WL_PRINT(args);} while (0)
 #define WL_RTDC(w,s,i,j)	do {if (wl_msg_level2 & WL_RTDC_VAL) wlc_log(w,s,i,j);} while (0)
 #define	WL_PROTO(args)		do {if (wl_msg_level2 & WL_PROTO_VAL) WL_PRINT(args);} while (0)
+#define	WL_CMDS(args)		do {if (wl_msg_level2 & WL_CMDS_VAL) WL_PRINT(args);} while (0)
 #define	WL_SPARE6(args)		do {if (wl_msg_level2 & WL_ACI_VAL) WL_PRINT(args);} while (0)
 #define WL_RTDC2(w,s,i,j)	do {if (wl_msg_level2 & 0) wlc_log(w,s,i,j);} while (0)
 #define WL_CHANINT(args)	do {if (wl_msg_level2 & WL_CHANINT_VAL) WL_PRINT(args);} while (0)
@@ -361,6 +362,7 @@ extern uint32 wl_mesh_dbg;
 #define WL_MBSS(args)
 #define WL_MODE_SWITCH(args)
 #define WL_PROTO(args)
+#define	WL_CMDS(args)
 
 #define	WL_CAC(args)		do {if (wl_msg_level & WL_CAC_VAL) WL_PRINT(args);} while (0)
 #define WL_AMSDU(args)
@@ -712,6 +714,7 @@ extern uint32 wl_mesh_dbg;
 #define WL_MBSS(args)
 #define WL_MODE_SWITCH(args)
 #define	WL_PROTO(args)
+#define	WL_CMDS(args)
 
 #define	WL_CAC(args)
 #define WL_AMSDU(args)

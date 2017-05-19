@@ -49,6 +49,9 @@
 #define ADPS_TX			1
 
 static cmd_func_t wl_adps;
+#ifdef BCMINTDBG
+static cmd_func_t wl_adps_params;
+#endif	/* BCMINTDBG */
 static cmd_func_t wl_adps_rssi;
 
 static cmd_t wl_adps_cmds[] = {
@@ -58,6 +61,23 @@ static cmd_t wl_adps_cmds[] = {
 	"\t<mode> 0: Disable, 1: PM2 step 1 is a default operation\n"
 	"\t       2: PM1 is a default operation, 3: PM2 steps only working\n"
 	},
+#ifdef BCMINTDBG
+	{ "adps_params", wl_adps_params, WLC_GET_VAR, WLC_SET_VAR,
+	"Get/Set ADaptive Power Save parameters\n"
+	"\tUsage: wl adps_params [band] <mode> <pspoll_prd> <number of step> "
+	"<adps step #1> ... <adps step #n>\n"
+	"\t[band] a|b|2g|5g\n"
+	"\t<mode> 0: Disable\n"
+	"\t       1: PM2 step 1 is a default operation\n"
+	"\t       2: PM1 is a default operation\n"
+	"\t       3: PM2 steps only working\n"
+	"\t<pspoll_prd> pspoll frame sending period\n"
+	"\t<number of step> Total number of adps pm step (max = 3)\n"
+	"\t<adps step> Consist of 3 values\n"
+	"\t\t<pm2_sleep_ret time> <Threshold in # of rx packet> <Threshold in # of tx packet\n"
+	"\t\n\nex) wl adps_params a|b|2g|5g 1 20 3 10 25 25 60 80 80 200 200 200\n"
+	},
+#endif	/* BCMINTDBG */
 	{ "adps_rssi", wl_adps_rssi, WLC_GET_VAR, WLC_SET_VAR,
 	"Get/Set adps operation pause rssi threshold\n"
 	"\tUsage: wl adps_rssi [band] <high rssi threshold> <low rssi threshold>\n"
@@ -133,6 +153,141 @@ exit:
 	return ret;
 }
 
+#ifdef BCMINTDBG
+static int
+wl_adps_params(void *wl, cmd_t *cmd, char **argv)
+{
+	int i;
+	int argc;
+	int ret = BCME_OK;
+
+	uint8 band;
+	uint8 param_cnt = 0;
+
+	uint len;
+	wl_adps_step_params_v1_t *params = NULL;
+
+	char *endptr = NULL;
+	void *ptr = NULL;
+
+	++argv;
+	argc = ARGCNT(argv);
+
+	len = ADPS_STEP_PARAMS_V1_FIXED_LEN + ADPS_STEP_LEN * ADPS_MAX_STEP_ENTRY;
+	if ((params = malloc(len)) == NULL) {
+		fprintf(stderr, "Error allocating %u bytes for adps params\n", len);
+		return BCME_NOMEM;
+	}
+	memset(params, 0, len);
+
+	if (*argv && (!stricmp(*argv, "b") || !stricmp(*argv, "2g"))) {
+		band = WLC_BAND_2G;
+	}
+	else if (*argv && (!stricmp(*argv, "a") || !stricmp(*argv, "5g"))) {
+		band = WLC_BAND_5G;
+	}
+	else {
+		ret = BCME_BADARG;
+		goto exit;
+	}
+
+	params->band = band;
+	param_cnt++;
+	if (!*++argv) {
+		if ((ret = wlu_var_getbuf(wl, cmd->name, params, len, &ptr)) != BCME_OK) {
+			printf("Fail to get adps params\n");
+			goto exit;
+		}
+
+		memcpy(params, ptr, len);
+
+		if (params->ver != ADPS_VERSION) {
+			printf("Wrong Version\n");
+			ret = BCME_VERSION;
+			goto exit;
+		}
+
+		if (params->num_step == 0) {
+			printf("DISABLED\n");
+		}
+		else {
+			printf("Mode: %d\n", params->mode);
+			printf("PS Poll: %d\n", params->pspoll_prd);
+			for (i = 0; i < params->num_step; i++) {
+				printf("Step #%d:\n", i + 1);
+				printf("\tpm2_sleep_ret - %d\n",
+					params->step[i].pm2_sleep_ret_time);
+				printf("\trx_pkts_threshold - %d\n",
+					params->step[i].pkt_cnt_threshold[ADPS_RX]);
+				printf("\ttx_pkts_threshold - %d\n",
+					params->step[i].pkt_cnt_threshold[ADPS_TX]);
+			}
+		}
+	}
+	else {
+		params->mode = strtoul(*argv++, &endptr, 0);
+		if (*endptr != '\0') {
+			ret = BCME_BADARG;
+			goto exit;
+		}
+		param_cnt++;
+
+		if (*argv == '\0') {
+			ret = BCME_BADARG;
+			goto exit;
+		}
+
+		params->pspoll_prd = strtoul(*argv++, &endptr, 0);
+		if (*endptr != '\0') {
+			ret = BCME_BADARG;
+			goto exit;
+		}
+		param_cnt++;
+
+		if (*argv == '\0') {
+			ret = BCME_BADARG;
+			goto exit;
+		}
+
+		params->num_step = strtoul(*argv++, &endptr, 0);
+		if (*endptr != '\0') {
+			ret = BCME_BADARG;
+			goto exit;
+		}
+		if (params->num_step == 0 || params->num_step > ADPS_MAX_STEP_ENTRY) {
+			ret = BCME_BADARG;
+			goto exit;
+		}
+		param_cnt++;
+
+		if ((uint32)argc != (uint32)(params->num_step *
+			ADPS_STEP_ELEMENT_NUM + param_cnt)) {
+			ret = BCME_BADARG;
+			goto exit;
+		}
+
+		for (i = 0; i < params->num_step; i++) {
+			params->step[i].pm2_sleep_ret_time =
+				strtoul(argv[i * ADPS_STEP_ELEMENT_NUM], &endptr, 0);
+			params->step[i].pkt_cnt_threshold[ADPS_RX] =
+				strtoul(argv[i * ADPS_STEP_ELEMENT_NUM + 1], &endptr, 0);
+			params->step[i].pkt_cnt_threshold[ADPS_TX] =
+				strtoul(argv[i * ADPS_STEP_ELEMENT_NUM + 2], &endptr, 0);
+		}
+
+		len = ADPS_STEP_PARAMS_V1_FIXED_LEN + params->num_step * ADPS_STEP_LEN;
+		params->ver = ADPS_VERSION;
+		params->len = len;
+		ret = wlu_var_setbuf(wl, cmd->name, params, len);
+	}
+exit:
+	if (params) {
+		free(params);
+	}
+
+	return ret;
+}
+#endif	/* BCMINTDBG */
 
 static int
 wl_adps_rssi(void *wl, cmd_t *cmd, char **argv)

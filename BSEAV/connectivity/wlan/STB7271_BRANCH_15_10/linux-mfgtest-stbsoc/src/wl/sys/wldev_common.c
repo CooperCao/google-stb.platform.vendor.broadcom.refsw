@@ -478,9 +478,6 @@ int wldev_set_country(
 	}
 
 	if ((error < 0) ||
-#if defined(OEN_ANDROID) && !defined(STB_SOC_WIFI)
-		dhd_force_country_change(dev) ||
-#endif 
 	    (strncmp(country_code, cspec.ccode, WLC_CNTRY_BUF_SZ) != 0)) {
 
 #ifdef WL_CFG80211

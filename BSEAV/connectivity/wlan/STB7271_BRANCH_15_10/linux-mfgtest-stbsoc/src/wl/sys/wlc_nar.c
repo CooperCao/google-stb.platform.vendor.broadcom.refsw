@@ -336,6 +336,13 @@ static const bcm_iovar_t nar_iovars[] = {
 	{"nar", IOV_NAR, IOVF_SET_DOWN, 0, IOVT_BOOL, 0},
 	{"nar_handle_ampdu", IOV_NAR_HANDLE_AMPDU, IOVF_SET_DOWN, 0, IOVT_BOOL, 0},
 	{"nar_transit_limit", IOV_NAR_TRANSIT_LIMIT, 0, 0, IOVT_UINT32, 0},
+#if defined(BCMINTDBG)
+	{"nar_queue_length", IOV_NAR_QUEUE_LEN, IOVF_SET_DOWN, 0, IOVT_UINT16, 0},
+	{"nar_release", IOV_NAR_RELEASE, 0, 0, IOVT_UINT16, 0},
+#ifdef WLATF
+	{"nar_atf_us", IOV_NAR_ATF_US, IOVF_NTRL, 0, IOVT_UINT32, 0},
+#endif /* WLATF */
+#endif /* BCMINTDBG */
 #if defined(NAR_STATS)
 	{"nar_clear_dump", IOV_NAR_CLEAR_DUMP, 0, 0, IOVT_VOID, 0},
 #endif
@@ -382,6 +389,43 @@ wlc_nar_doiovar(void *handle, uint32 actionid,
 			nit->transit_packet_limit = MAX(1, int_val);
 			break;
 
+#if defined(BCMINTDBG)
+		case IOV_GVAL(IOV_NAR_QUEUE_LEN):
+			*ret_int_ptr = nit->queue_length;
+			break;
+
+		case IOV_SVAL(IOV_NAR_QUEUE_LEN):	/* can only be set when down */
+			nit->queue_length = MAX(NAR_MIN_QUEUE_LEN, int_val);
+			break;
+
+		case IOV_GVAL(IOV_NAR_RELEASE):
+			*ret_int_ptr = nit->release_at_once;
+			break;
+
+		case IOV_SVAL(IOV_NAR_RELEASE):
+			nit->release_at_once = MAX(1, int_val);
+			break;
+
+#ifdef WLATF
+		case IOV_GVAL(IOV_NAR_ATF_US):
+			*ret_int_ptr = nit->txq_time_allowance_us;
+			break;
+
+		case IOV_SVAL(IOV_NAR_ATF_US): {
+			struct scb_iter scbiter;
+			struct scb *scb = NULL;
+
+			nit->txq_time_allowance_us = int_val;
+			FOREACHSCB(nit->wlc->scbstate, &scbiter, scb)
+			{
+				nar_scb_cubby_t *cubby = SCB_NAR_CUBBY(nit, scb);
+				cubby->txq_time_allowance_us = nit->txq_time_allowance_us;
+			}
+			break;
+		}
+#endif /* WLATF */
+
+#endif /* BCMINTDBG */
 
 #if defined(NAR_STATS)
 		case IOV_SVAL(IOV_NAR_CLEAR_DUMP):

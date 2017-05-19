@@ -10839,6 +10839,7 @@ wlc_tdls_prepare_retry_ctxt(tdls_info_t *tdls, scb_tdls_t *scb_tdls, struct ethe
 	link_id_ie_t *link_id, uint8 token, uint type)
 {
 	tdls_retry_ctx_t *trc = BETDLS_RETRY_CTXT_GET(tdls);
+	wlc_info_t *wlc = tdls->wlc;
 	if (trc) {
 		/* timer arg in use by some other peer on this tdls instance
 		* Only one BETDLS arg per TDLS allowed, exit betdls loop.
@@ -10859,13 +10860,29 @@ wlc_tdls_prepare_retry_ctxt(tdls_info_t *tdls, scb_tdls_t *scb_tdls, struct ethe
 	trc->shared = (void *)scb_tdls->parent;
 	trc->f = NULL;
 	memcpy(&trc->dst, dst, sizeof(struct ether_addr));
-	memcpy(&trc->link_id, link_id, sizeof(link_id_ie_t));
+
+	if(link_id)
+		memcpy(&trc->link_id, link_id, sizeof(link_id_ie_t));
+	else
+		memset(&trc->link_id, 0, sizeof(link_id_ie_t));
+
 	trc->status_code = 0;
 	trc->token = token;
 	trc->retry_cnt = TDLS_RETRY_MAX_CNT;
 	BETDLS_RETRY_CTXT_SET(tdls, trc);
 	tdls->tdls_retry_timer_arg->idx =
 		scb_tdls->peer_addr->timer_arg->idx;
+
+	if (tdls->tdls_retry_timer) {
+		wl_free_timer(tdls->wlc->wl, tdls->tdls_retry_timer);
+		tdls->tdls_retry_timer = NULL;
+	}
+
+	if ((tdls->tdls_retry_timer = wl_init_timer(wlc->wl, wlc_tdls_retry_cb,
+			(void *)tdls->tdls_retry_timer_arg->hdl, "tdls_retry")) == NULL) {
+			WL_ERROR(("wl%d: %s: wl_init_timer for TDLS retry timer failed\n", wlc->pub->unit, __FUNCTION__));
+	}
+
 }
 #endif /* BE_TDLS */
 

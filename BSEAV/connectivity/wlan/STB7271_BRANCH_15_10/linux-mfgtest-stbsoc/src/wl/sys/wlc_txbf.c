@@ -190,6 +190,11 @@ static const bcm_iovar_t txbf_iovars[] = {
 	{"txbf_bfe_cap", IOV_TXBF_BFE_CAP,
 	(IOVF_SET_DOWN), 0, IOVT_UINT8, 0
 	},
+#ifdef BCMINTDBG
+	{"txbf_trigger", IOV_TXBF_TRIGGER,
+	(IOVF_SET_UP), 0, IOVT_INT32, 0
+	},
+#endif /*  BCMINTDBG */
 	{"txbf_timer", IOV_TXBF_TIMER,
 	(IOVF_SET_UP), 0, IOVT_INT32, 0
 	},
@@ -227,6 +232,14 @@ static const bcm_iovar_t txbf_iovars[] = {
 	(0), 0, IOVT_UINT32, 0
 	},
 #endif	/* TXBF_MORE_LINKS */
+#ifdef BCMINTDBG
+	{"txbf_bfmspexp", IOV_TXBF_BFM_SPEXP,
+	(0), 0, IOVT_UINT8, 0
+	},
+	{"txbf_bfrspexp", IOV_TXBF_BFR_SPEXP,
+	(0), 0, IOVT_UINT8, 0
+	},
+#endif
 	{"txbf_mutimer", IOV_TXBF_MUTIMER,
 	(IOVF_SET_UP), 0, IOVT_INT32, 0
 	},
@@ -3543,6 +3556,14 @@ wlc_txbf_doiovar(void *hdl, uint32 actionid,
 		}
 		break;
 
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_TXBF_TRIGGER):
+		if ((txbf->mode) && (wlc->pub->up))
+			wlc_txbf_sounding_clean_cache(txbf);
+		else
+			err = BCME_UNSUPPORTED;
+		break;
+#endif /*  BCMINTDBG */
 
 	case IOV_GVAL(IOV_TXBF_TIMER):
 		if (txbf->sounding_period == 0)
@@ -3716,6 +3737,42 @@ wlc_txbf_doiovar(void *hdl, uint32 actionid,
 		txbf->pkt_thre_sched = txbf->pkt_thre_sec * txbf->sched_timer_interval / 1000;
 		break;
 #endif /* TXBF_MORE_LINKS */
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_TXBF_BFM_SPEXP):
+		if (txbf->bfm_spexp)
+			*ret_uint_ptr = txbf->bfm_spexp;
+		else
+			*ret_uint_ptr = 0;
+		break;
+
+	case IOV_SVAL(IOV_TXBF_BFM_SPEXP):
+		if (txbf->bfm_spexp != int_val) {
+			txbf->bfm_spexp = (uint8) int_val;
+
+			/* invalidate txcache since rates are changing */
+			if (WLC_TXC_ENAB(wlc))
+				wlc_txc_inv_all(wlc->txc);
+		}
+		break;
+
+	case IOV_GVAL(IOV_TXBF_BFR_SPEXP):
+		if (txbf->bfr_spexp)
+			*ret_uint_ptr = txbf->bfr_spexp;
+		else
+			*ret_uint_ptr = 0;
+		break;
+
+	case IOV_SVAL(IOV_TXBF_BFR_SPEXP):
+		if (txbf->bfr_spexp != int_val) {
+			txbf->bfr_spexp = (uint8) int_val;
+			wlc_txbf_txchain_upd(txbf);
+
+			/* invalidate txcache since rates are changing */
+			if (WLC_TXC_ENAB(wlc))
+				wlc_txc_inv_all(wlc->txc);
+		}
+		break;
+#endif /* BCMINTDBG */
 
 #if defined(WL_PSMX)
 	case IOV_GVAL(IOV_TXBF_MUTIMER):

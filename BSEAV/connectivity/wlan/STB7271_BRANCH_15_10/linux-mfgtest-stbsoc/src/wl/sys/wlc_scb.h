@@ -120,6 +120,7 @@ struct scb {
 	void *scb_rrm_stats;
 	void *scb_rrm_tscm;
 #endif /* WL11K */
+	uint16	 vhtcap_orig_mcsmap;	/* Actual VHT cap mcs map of STA */
 };
 
 /** Iterator for scb list */

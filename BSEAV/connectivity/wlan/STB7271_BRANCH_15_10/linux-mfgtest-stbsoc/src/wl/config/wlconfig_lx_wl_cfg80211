@@ -18,6 +18,8 @@
 #
 # src/wl/linux driver config file
 
+GTKOE=1
+
 # XXX Not sure why WL11U requires WLP2P in cfg80211 builds.
 ifeq ($(WL11U),1)
 WLP2P=1

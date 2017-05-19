@@ -71,6 +71,9 @@ static cmd_func_t wl_test_tssi, wl_test_tssi_offs, wl_phy_rssiant, wl_rxiq;
 static cmd_func_t wl_rxiq_sweep;
 static cmd_func_t wl_test_idletssi;
 static cmd_func_t wlu_afeoverride;
+#ifdef BCMINTDBG
+static cmd_func_t wl_aci_args;
+#endif /* BCMINTDBG */
 static cmd_func_t wl_phy_papdepstbl;
 static cmd_func_t wl_phy_txiqcc, wl_phy_txlocc;
 static cmd_func_t wl_rssi_cal_freq_grp_2g;
@@ -91,6 +94,9 @@ static cmd_func_t wl_patrim;
 #endif 
 static cmd_func_t wl_phy_tpc_av, wl_phy_tpc_vmid;
 
+#ifdef BCMINTDBG
+static cmd_func_t wl_txbf_expgain;
+#endif /* BCMINTDBG */
 
 /* txcal iovars */
 static cmd_func_t wl_txcal_gainsweep;
@@ -135,6 +141,24 @@ static cmd_t wl_phy_cmds[] = {
 	"\tGet a radio register: wl radioreg [ offset ] [ cr0/cr1/cr2/pll/pll0/pll1 ]\n"
 	"\tSet a radio register: wl radioreg [ offset ] [ value ]"
 	" [ cr0/cr1/cr2/pll/pll0/pll1/all ]"},
+#ifdef BCMINTDBG
+	{ "aciargs", wl_aci_args, WLC_GET_ACI_ARGS, WLC_SET_ACI_ARGS,
+	"Get/Set various aci tuning parameters.  Choices are:\n"
+	"\tenter:\tCRS glitch trigger level to start detecting ACI\n"
+	"\texit:\tCRS glitch trigger level to exit ACI mode\n"
+	"\tglitch\tSeconds interval between ACI scans when glitchcount is continuously high\n"
+	"\tspin:\tNum microsecs to delay between rssi samples\n\n"
+	  "\tenter:\t\t(NPHY) CRS glitch trigger level to start detecting ACI\n"
+	  "\tadcpwr_enter:\t(NPHY) ADC power to enter ACI Mitigation mode\t\n"
+	  "\tadcpwr_exit:\t(NPHY) ADC power to exit ACI Mitigation mode\t\n"
+	  "\trepeat:\t\t(NPHY) Number of tries per channel to compute power\t\n"
+	  "\tsamples:\t(NPHY) Number of samples to use to compute power on a channel\t\n"
+	  "\tundetect_sz:\t(NPHY) # Undetects to wait before coming out of ACI Mitigation mode\t\n"
+	  "\tloaci:\t\t(NPHY) bphy energy threshold for low aci pwr \t\n"
+	  "\tmdaci:\t\t(NPHY) bphy energy threshold for medium aci pwr \t\n"
+	  "\thiaci:\t\t(NPHY) bphy energy threshold for hi aci pwr \t\n\n"
+	"\tUsage: wl aciargs [enter x][exit x][spin x][glitch x]"},
+#endif /* BCMINTDBG */
 	{ "phy_afeoverride", wlu_afeoverride, WLC_GET_VAR, WLC_SET_VAR, "g/set AFE override"},
 	{ "pcieserdesreg", wlu_reg3args, WLC_GET_VAR, WLC_SET_VAR,
 	"g/set SERDES registers: dev offset [val]"},
@@ -343,6 +367,13 @@ static cmd_t wl_phy_cmds[] = {
 	{ "lcnphy_papdepstbl", wl_phy_papdepstbl, -1, WLC_GET_VAR,
 	"print papd eps table; Usage: wl lcnphy_papdepstbl"
 	},
+#ifdef BCMINTDBG
+	{ "phy_debug_cmd", wl_phy_debug_cmd, WLC_GET_VAR, WLC_SET_VAR,
+	"general purpose command for phy debugging\n"
+	"\t phy function call can be added to wlc_phy_cmn.c\n"
+	"\t usage: wl phy_debug_cmd <int32 var>"
+	},
+#endif
 	{ "rifs", wl_rifs, WLC_GET_VAR, WLC_SET_VAR,
 	"set/get the rifs status; usage: wl rifs <1/0> (On/Off)"
 	},
@@ -360,7 +391,11 @@ static cmd_t wl_phy_cmds[] = {
 	  "\t-g gain-correction select, 0 (disable), 1(enable full correction) \n"
 	  "\t	2 (enable temperature correction) or 3(verify rssi_gain_delta)\n"
 	  "\t-e extra INITgain in dB on top of default. Valid values = {0, 3, 6, .., 21, 24}\n"
+#ifdef BCMINTDBG
+	  "\t-i gain mode select, 0 (default gain), 1 (init gain) or 4 (clip LO gain)."
+#else
 	  "\t-i gain mode select, 0 (default gain), 1 (fixed high gain) or 4 (fixed low gain)."
+#endif
 	  "\t-n number of averaging iterations.\n"
 	  "\t-d delay in usecs between iterations - default 10usecs.\n"
 	},
@@ -378,7 +413,11 @@ static cmd_t wl_phy_cmds[] = {
 	"\t-g gain-correction select, 0 (disable), 1(enable full correction) \n"
 	"\t     2 (enable temperature correction) or 3(verify rssi_gain_delta)\n"
 	"\t-e extra INITgain in dB on top of default. Valid values = {0, 3, 6, .., 21, 24}\n"
+#ifdef BCMINTDBG
+	"\t-i gain mode select, 0 (default gain), 1 (init gain) or 4 (clip LO gain). \n"
+#else
 	"\t-i gain mode select, 0 (default gain), 1 (fixed high gain) or 4 (fixed low gain). \n"
+#endif
 	"\t-n number of averaging iterations. Max 5 iterations for a sweep of 10 channels or more\n"
 	"\t-d delay in usecs between iterations - default 10usecs.\n"
 	},
@@ -600,6 +639,16 @@ static cmd_t wl_phy_cmds[] = {
 	"\n\tsub-band, 4 for 5G-uu"
 	"\n\tvmid-value, 0 to 255"
 	},
+#ifdef BCMINTDBG
+	{"txbf_expgain", wl_txbf_expgain, WLC_GET_VAR, WLC_SET_VAR,
+	"Returns expected txbf gain of a given phy.\n"
+	"\tYou can insert following Args\n"
+	"\t\tArg 1. ntx: number of active TX antennas on beamformer side."
+	"\t\tArg 2. nrx: number of rx antennas on beamformee side.\n"
+	"\t\tArg 3. expected TXBF gains: start with explicit TXBF gain for 1ss, 2ss, ...,"
+	"[nss = nrx], followed by implicit TXBF gain for 1ss.\n"
+	},
+#endif /* BCMINTDBG */
 	/* TXCAL IOVARS */
 	{"phy_read_estpwrlut", wl_read_estpwrlut, WLC_GET_VAR, -1,
 	"Read EstPwr LUT: wl phy_read_estpwrlut core"},
@@ -765,6 +814,7 @@ static phy_msg_t wl_phy_msgs[] = {
 	{PHYHAL_RXIQ,    "rxiq"},
 	{PHYHAL_WD,      "wd"},
 	{PHYHAL_CHANLOG, "chanlog"},
+	{PHYHAL_CMDS,	 "phycmds"},
 	{0,              NULL}
 };
 
@@ -1306,6 +1356,274 @@ wl_interfere_override(void *wl, cmd_t *cmd, char **argv)
 #define NPHY_ACI_NOISE_NOASSOC_CRSIDX_INCR "nphy_noise_noassoc_crsidx_incr"
 #define NPHY_ACI_NOISE_CRSIDX_DECR "nphy_noise_crsidx_decr"
 
+#ifdef BCMINTDBG
+static int
+wl_aci_args(void *wl, cmd_t *cmd, char **argv)
+{
+	wl_aci_args_t aci_args;
+	int val;
+	char *endptr;
+	int *data;
+	uint16 *data2;
+	int ret = 0;
+
+	memset(&aci_args, 0, sizeof(wl_aci_args_t));
+	if (!*++argv) {
+		if ((ret = wlu_get(wl, cmd->get, &aci_args, sizeof(wl_aci_args_t))) < 0) {
+			printf("Cannot get ACI args\n");
+			printf("aci_args.enter_aci_thresh = %d\n",
+			       dtoh32(aci_args.enter_aci_thresh));
+			return ret;
+		}
+		aci_args.enter_aci_thresh = dtoh32(aci_args.enter_aci_thresh);
+		aci_args.exit_aci_thresh = dtoh32(aci_args.exit_aci_thresh);
+		aci_args.usec_spin = dtoh32(aci_args.usec_spin);
+		aci_args.glitch_delay = dtoh32(aci_args.glitch_delay);
+		aci_args.nphy_adcpwr_enter_thresh = dtoh16(aci_args.nphy_adcpwr_enter_thresh);
+		aci_args.nphy_adcpwr_exit_thresh = dtoh16(aci_args.nphy_adcpwr_exit_thresh);
+		aci_args.nphy_repeat_ctr = dtoh16(aci_args.nphy_repeat_ctr);
+		aci_args.nphy_num_samples = dtoh16(aci_args.nphy_num_samples);
+		aci_args.nphy_undetect_window_sz = dtoh16(aci_args.nphy_undetect_window_sz);
+		aci_args.nphy_b_energy_lo_aci = dtoh16(aci_args.nphy_b_energy_lo_aci);
+		aci_args.nphy_b_energy_md_aci = dtoh16(aci_args.nphy_b_energy_md_aci);
+		aci_args.nphy_b_energy_hi_aci = dtoh16(aci_args.nphy_b_energy_hi_aci);
+		aci_args.nphy_noise_noassoc_glitch_th_up =
+			dtoh16(aci_args.nphy_noise_noassoc_glitch_th_up);
+		aci_args.nphy_noise_noassoc_glitch_th_dn =
+			dtoh16(aci_args.nphy_noise_noassoc_glitch_th_dn);
+		aci_args.nphy_noise_assoc_glitch_th_up =
+			dtoh16(aci_args.nphy_noise_assoc_glitch_th_up);
+		aci_args.nphy_noise_assoc_glitch_th_dn =
+			dtoh16(aci_args.nphy_noise_assoc_glitch_th_dn);
+		aci_args.nphy_noise_assoc_aci_glitch_th_up =
+			dtoh16(aci_args.nphy_noise_assoc_aci_glitch_th_up);
+		aci_args.nphy_noise_assoc_aci_glitch_th_dn =
+			dtoh16(aci_args.nphy_noise_assoc_aci_glitch_th_dn);
+		aci_args.nphy_noise_assoc_enter_th =
+			dtoh16(aci_args.nphy_noise_assoc_enter_th);
+		aci_args.nphy_noise_noassoc_enter_th =
+			dtoh16(aci_args.nphy_noise_noassoc_enter_th);
+		aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th  =
+			dtoh16(aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th);
+		aci_args.nphy_noise_noassoc_crsidx_incr =
+			dtoh16(aci_args.nphy_noise_noassoc_crsidx_incr);
+		aci_args.nphy_noise_assoc_crsidx_incr =
+			dtoh16(aci_args.nphy_noise_assoc_crsidx_incr);
+
+		printf("Glitch count to enter ACI scan mode: %d\n", aci_args.enter_aci_thresh);
+		printf("Glitch count to exit ACI mode: %d\n", aci_args.exit_aci_thresh);
+		printf("Usecs to spin between rssi samples : %d\n", aci_args.usec_spin);
+		printf("Interval (in seconds) for ACI scanning "
+			"in presence of high glitch count: %d\n\n",
+			aci_args.glitch_delay);
+
+		printf("(NPHY) Glitch count to enter ACI scan mode: %d\n",
+		       aci_args.enter_aci_thresh);
+		printf("(NPHY) ADC power to enter ACI Mitigation mode: %d\n",
+		       aci_args.nphy_adcpwr_enter_thresh);
+		printf("(NPHY) ADC power to exit ACI Mitigation mode: %d\n",
+		       aci_args.nphy_adcpwr_exit_thresh);
+		printf("(NPHY) Number of tries per channel to compute power: %d\n",
+		       aci_args.nphy_repeat_ctr);
+		printf("(NPHY) Number of samples to use to compute power on a channel: %d\n",
+		       aci_args.nphy_num_samples);
+		printf("(NPHY) # Undetects to wait before coming out of ACI Mitigation mode: %d\n",
+		       aci_args.nphy_undetect_window_sz);
+
+		printf("(NPHY) bphy energy threshold for low aci pwr: %d\n",
+		       aci_args.nphy_b_energy_lo_aci);
+		printf("(NPHY) bphy energy threshold for medium aci pwr: %d\n",
+		       aci_args.nphy_b_energy_md_aci);
+		printf("(NPHY) bphy energy threshold for high aci pwr: %d\n",
+		       aci_args.nphy_b_energy_hi_aci);
+		printf("(NPHY) nphy_noise_noassoc_glitch_th_up: %d\n",
+		       aci_args.nphy_noise_noassoc_glitch_th_up);
+		printf("(NPHY) nphy_noise_noassoc_glitch_th_dn: %d\n",
+		       aci_args.nphy_noise_noassoc_glitch_th_dn);
+		printf("(NPHY) nphy_noise_assoc_glitch_th_up: %d\n",
+		       aci_args.nphy_noise_assoc_glitch_th_up);
+		printf("(NPHY) nphy_noise_assoc_glitch_th_dn: %d\n",
+		       aci_args.nphy_noise_assoc_glitch_th_dn);
+		printf("(NPHY) nphy_noise_assoc_aci_glitch_th_up: %d\n",
+		       aci_args.nphy_noise_assoc_aci_glitch_th_up);
+		printf("(NPHY) nphy_noise_assoc_aci_glitch_th_dn: %d\n",
+		       aci_args.nphy_noise_assoc_aci_glitch_th_dn);
+		printf("(NPHY) nphy_noise_assoc_enter_th: %d\n",
+		       aci_args.nphy_noise_assoc_enter_th);
+		printf("(NPHY) nphy_noise_noassoc_enter_th: %d\n",
+		       aci_args.nphy_noise_noassoc_enter_th);
+		printf("(NPHY) nphy_noise_assoc_rx_glitch_badplcp_enter_th: %d\n",
+		       aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th);
+		printf("(NPHY) nphy_noise_noassoc_crsidx_incr: %d\n",
+		       aci_args.nphy_noise_noassoc_crsidx_incr);
+		printf("(NPHY) nphy_noise_assoc_crsidx_incr: %d\n",
+		       aci_args.nphy_noise_assoc_crsidx_incr);
+		printf("(NPHY) nphy_noise_crsidx_decr: %d\n",
+		       aci_args.nphy_noise_crsidx_decr);
+
+	} else {
+		if ((ret = wlu_get(wl, cmd->get, &aci_args, sizeof(wl_aci_args_t))) < 0) {
+			printf("Cannot get ACI args for setting\n");
+			return ret;
+		}
+		aci_args.enter_aci_thresh = dtoh32(aci_args.enter_aci_thresh);
+		aci_args.exit_aci_thresh = dtoh32(aci_args.exit_aci_thresh);
+		aci_args.usec_spin = dtoh32(aci_args.usec_spin);
+		aci_args.glitch_delay = dtoh32(aci_args.glitch_delay);
+		aci_args.nphy_adcpwr_enter_thresh = dtoh16(aci_args.nphy_adcpwr_enter_thresh);
+		aci_args.nphy_adcpwr_exit_thresh = dtoh16(aci_args.nphy_adcpwr_exit_thresh);
+		aci_args.nphy_repeat_ctr = dtoh16(aci_args.nphy_repeat_ctr);
+		aci_args.nphy_num_samples = dtoh16(aci_args.nphy_num_samples);
+		aci_args.nphy_undetect_window_sz = dtoh16(aci_args.nphy_undetect_window_sz);
+		aci_args.nphy_b_energy_lo_aci = dtoh16(aci_args.nphy_b_energy_lo_aci);
+		aci_args.nphy_b_energy_md_aci = dtoh16(aci_args.nphy_b_energy_md_aci);
+		aci_args.nphy_b_energy_hi_aci = dtoh16(aci_args.nphy_b_energy_hi_aci);
+		aci_args.nphy_noise_noassoc_glitch_th_up =
+			dtoh16(aci_args.nphy_noise_noassoc_glitch_th_up);
+		aci_args.nphy_noise_noassoc_glitch_th_dn =
+			dtoh16(aci_args.nphy_noise_noassoc_glitch_th_dn);
+		aci_args.nphy_noise_assoc_glitch_th_up =
+			dtoh16(aci_args.nphy_noise_assoc_glitch_th_up);
+		aci_args.nphy_noise_assoc_glitch_th_dn =
+			dtoh16(aci_args.nphy_noise_assoc_glitch_th_dn);
+		aci_args.nphy_noise_assoc_aci_glitch_th_up =
+			dtoh16(aci_args.nphy_noise_assoc_aci_glitch_th_up);
+		aci_args.nphy_noise_assoc_aci_glitch_th_dn =
+			dtoh16(aci_args.nphy_noise_assoc_aci_glitch_th_dn);
+		aci_args.nphy_noise_noassoc_enter_th =
+			dtoh16(aci_args.nphy_noise_noassoc_enter_th);
+		aci_args.nphy_noise_assoc_enter_th =
+			dtoh16(aci_args.nphy_noise_assoc_enter_th);
+		aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th =
+			dtoh16(aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th);
+		aci_args.nphy_noise_noassoc_crsidx_incr =
+			dtoh16(aci_args.nphy_noise_noassoc_crsidx_incr);
+		aci_args.nphy_noise_assoc_crsidx_incr =
+			dtoh16(aci_args.nphy_noise_assoc_crsidx_incr);
+
+		while (*argv) {
+			/* Parse keyword */
+			data = (void *)NULL;
+			data2 = (void *)NULL;
+			if (!strncmp(*argv, ACI_ENTER, strlen("en")))
+				data = &aci_args.enter_aci_thresh;
+			if (!strncmp(*argv, ACI_EXIT, strlen("ex")))
+				data = &aci_args.exit_aci_thresh;
+			if (!strncmp(*argv, ACI_SPIN, strlen(*argv)))
+				data = &aci_args.usec_spin;
+			if (!strncmp(*argv, ACI_GLITCH, strlen(*argv)))
+				data = &aci_args.glitch_delay;
+
+			if (!strncmp(*argv, NPHY_ACI_ADCPWR_ENTER, strlen(*argv)))
+				data2 = &aci_args.nphy_adcpwr_enter_thresh;
+			if (!strncmp(*argv, NPHY_ACI_ADCPWR_EXIT, strlen(*argv)))
+				data2 = &aci_args.nphy_adcpwr_exit_thresh;
+			if (!strncmp(*argv, NPHY_ACI_REPEAT_CTR, strlen(*argv)))
+				data2 = &aci_args.nphy_repeat_ctr;
+			if (!strncmp(*argv, NPHY_ACI_NUM_SAMPLES, strlen(*argv)))
+				data2 = &aci_args.nphy_num_samples;
+			if (!strncmp(*argv, NPHY_ACI_UNDETECT, strlen(*argv)))
+				data2 = &aci_args.nphy_undetect_window_sz;
+			if (!strncmp(*argv, NPHY_ACI_LOPWR, strlen(*argv)))
+				data2 = &aci_args.nphy_b_energy_lo_aci;
+			if (!strncmp(*argv, NPHY_ACI_MDPWR, strlen(*argv)))
+				data2 = &aci_args.nphy_b_energy_md_aci;
+			if (!strncmp(*argv, NPHY_ACI_HIPWR, strlen(*argv)))
+				data2 = &aci_args.nphy_b_energy_hi_aci;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_NOASSOC_GLITCH_TH_UP, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_noassoc_glitch_th_up;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_NOASSOC_GLITCH_TH_DN, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_noassoc_glitch_th_dn;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_ASSOC_GLITCH_TH_UP, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_assoc_glitch_th_up;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_ASSOC_GLITCH_TH_DN, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_assoc_glitch_th_dn;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_ASSOC_ACI_GLITCH_TH_UP, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_assoc_aci_glitch_th_up;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_ASSOC_ACI_GLITCH_TH_DN, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_assoc_aci_glitch_th_dn;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_NOASSOC_ENTER_TH, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_noassoc_enter_th;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_ASSOC_ENTER_TH, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_assoc_enter_th;
+			if (!strncmp(*argv,
+				NPHY_ACI_NOISE_ASSOC_RX_GLITCH_BADPLCP_ENTER_TH, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_ASSOC_CRSIDX_INCR, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_assoc_crsidx_incr;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_NOASSOC_CRSIDX_INCR, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_noassoc_crsidx_incr;
+			if (!strncmp(*argv, NPHY_ACI_NOISE_CRSIDX_DECR, strlen(*argv)))
+				data2 = &aci_args.nphy_noise_crsidx_decr;
+
+			if (!data && !data2) {
+				printf("Bad parameter specification\n");
+				return BCME_BADARG;
+			}
+			/* Parse value */
+			if (*(argv+1)) {
+				val = strtol(*(argv+1), &endptr, 0);
+				if (*endptr != '\0') {
+					/* not all the value string was parsed by strtol */
+					return BCME_USAGE_ERROR;
+				}
+				if (val < 0) {
+					printf("Invalid value for %s\n", *argv);
+					return BCME_BADARG;
+				}
+				if (data)	*data = val;
+				if (data2)	*data2 = (uint16)val;
+
+			} else {
+				printf("Need to specify a value\n");
+				return BCME_USAGE_ERROR;
+			}
+			argv += 2;
+		}
+
+		aci_args.enter_aci_thresh = htod32(aci_args.enter_aci_thresh);
+		aci_args.exit_aci_thresh = htod32(aci_args.exit_aci_thresh);
+		aci_args.usec_spin = htod32(aci_args.usec_spin);
+		aci_args.glitch_delay = htod32(aci_args.glitch_delay);
+		aci_args.nphy_adcpwr_enter_thresh = htod16(aci_args.nphy_adcpwr_enter_thresh);
+		aci_args.nphy_adcpwr_exit_thresh = htod16(aci_args.nphy_adcpwr_exit_thresh);
+		aci_args.nphy_repeat_ctr = htod16(aci_args.nphy_repeat_ctr);
+		aci_args.nphy_num_samples = htod16(aci_args.nphy_num_samples);
+		aci_args.nphy_undetect_window_sz = htod16(aci_args.nphy_undetect_window_sz);
+		aci_args.nphy_b_energy_lo_aci = htod16(aci_args.nphy_b_energy_lo_aci);
+		aci_args.nphy_b_energy_md_aci = htod16(aci_args.nphy_b_energy_md_aci);
+		aci_args.nphy_b_energy_hi_aci = htod16(aci_args.nphy_b_energy_hi_aci);
+		aci_args.nphy_noise_noassoc_glitch_th_up =
+			htod16(aci_args.nphy_noise_noassoc_glitch_th_up);
+		aci_args.nphy_noise_noassoc_glitch_th_dn =
+			htod16(aci_args.nphy_noise_noassoc_glitch_th_dn);
+		aci_args.nphy_noise_assoc_glitch_th_up =
+			htod16(aci_args.nphy_noise_assoc_glitch_th_up);
+		aci_args.nphy_noise_assoc_glitch_th_dn =
+			htod16(aci_args.nphy_noise_assoc_glitch_th_dn);
+		aci_args.nphy_noise_assoc_aci_glitch_th_up =
+			htod16(aci_args.nphy_noise_assoc_aci_glitch_th_up);
+		aci_args.nphy_noise_assoc_aci_glitch_th_dn =
+			htod16(aci_args.nphy_noise_assoc_aci_glitch_th_dn);
+		aci_args.nphy_noise_assoc_enter_th =
+			htod16(aci_args.nphy_noise_assoc_enter_th);
+		aci_args.nphy_noise_noassoc_enter_th =
+			htod16(aci_args.nphy_noise_noassoc_enter_th);
+		aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th =
+			htod16(aci_args.nphy_noise_assoc_rx_glitch_badplcp_enter_th);
+		aci_args.nphy_noise_noassoc_crsidx_incr =
+			htod16(aci_args.nphy_noise_noassoc_crsidx_incr);
+		aci_args.nphy_noise_assoc_crsidx_incr =
+			htod16(aci_args.nphy_noise_assoc_crsidx_incr);
+
+		if ((ret = wlu_set(wl, cmd->set, &aci_args, sizeof(wl_aci_args_t))) < 0) {
+			printf("Cannot set ACI args\n");
+			return ret;
+		}
+	}
+	return (0);
+}
+#endif /* BCMINTDBG */
 
 #if defined(BWL_FILESYSTEM_SUPPORT)
 #if !defined(_CFE_) && !defined(DONGLEBUILD)
@@ -3888,8 +4206,13 @@ wl_rxiq_prepare(char **argv, wl_iqest_params_t *params, uint8 *resolution)
 			if ((to.val != 0) && (to.val != 1) &&
 					(to.val != 2) && (to.val != 3) && (to.val != 4)) {
 				fprintf(stderr,
+#ifdef BCMINTDBG
+					"%s: Valid options - 0(default gain), 1(init gain)"
+					"or 4(clip LO gain). \n",
+#else
 					"%s: Valid options - 0(default gain), 1(fixed high gain)"
 					"or 4(fixed low gain). \n",
+#endif
 						fn_name);
 				err = BCME_BADARG;
 				goto exit;
@@ -4797,6 +5120,124 @@ wl_patrim(void *wl, cmd_t *cmd, char **argv)
 }
 #endif 
 
+#ifdef BCMINTDBG
+void dump_unit_txbfgain(uint32 *bfgain, uint8 count, uint8 nrx)
+{
+	uint8 i;
+
+	printf("  %d-BfeRxchain: [exp ", nrx);
+	for (i = 0; i < count-1; i++) {
+		printf("0x%x(%dss) ", bfgain[i], i+1);
+	}
+	printf("|imp 0x%x(1ss)]\n", bfgain[count-1]);
+}
+
+void dump_txbfgain(wl_txbf_expgainset_t *bfg, uint8 ntx)
+{
+	printf("%d-Txchain:\n", ntx);
+
+	if (ntx == 2) {
+		dump_unit_txbfgain(bfg->bfgain_2x1, NUM_BFGAIN_ARRAY_1RX, 1);
+		dump_unit_txbfgain(bfg->bfgain_2x2, NUM_BFGAIN_ARRAY_2RX, 2);
+	} else if (ntx == 3) {
+		dump_unit_txbfgain(bfg->bfgain_3x1, NUM_BFGAIN_ARRAY_1RX, 1);
+		dump_unit_txbfgain(bfg->bfgain_3x2, NUM_BFGAIN_ARRAY_2RX, 2);
+		dump_unit_txbfgain(bfg->bfgain_3x3, NUM_BFGAIN_ARRAY_3RX, 3);
+	} else if (ntx == 4) {
+		dump_unit_txbfgain(bfg->bfgain_4x1, NUM_BFGAIN_ARRAY_1RX, 1);
+		dump_unit_txbfgain(bfg->bfgain_4x2, NUM_BFGAIN_ARRAY_2RX, 2);
+		dump_unit_txbfgain(bfg->bfgain_4x3, NUM_BFGAIN_ARRAY_3RX, 3);
+		dump_unit_txbfgain(bfg->bfgain_4x4, NUM_BFGAIN_ARRAY_4RX, 4);
+	}
+}
+
+static int
+wl_txbf_expgain(void *wl, cmd_t *cmd, char **argv)
+{
+	wl_txbf_expgainset_t bfg;
+	char* endp = NULL;
+	char* arg;
+	int error = 0;
+	uint32 txchain_bitmap = 0;
+	uint8 i = 0, ntx = 0, nrx = 0, num_words = 0, bfg_cnt = 0;
+	uint32 bfgain_word, *bfg_array = NULL;
+
+	argv++;
+
+	if ((error = wlu_iovar_get(wl, cmd->name, &bfg, sizeof(bfg))) < 0)
+		return (error);
+
+	if ((error = wlu_iovar_get(wl, "txchain", &txchain_bitmap, sizeof(txchain_bitmap))) < 0)
+		return (error);
+
+	/* iterate over max 4 chains */
+	for (i = 0; i < 4; i ++) {
+		ntx +=  (txchain_bitmap >> i) & 1;
+	}
+
+	while ((arg = *argv++) != NULL) {
+		if (!stricmp(arg, "-ntx")) {
+			arg = *argv++;
+			ntx = (uint8)strtoul(arg, &endp, 0);
+			if (ntx > 4 || ntx < 2) {
+				fprintf(stderr, "ERR: ntx %d out of range; parsing %s.\n",
+				        ntx, arg);
+				return (BCME_BADARG);
+			}
+			continue;
+		}
+		if (!stricmp(arg, "-nrx")) {
+			arg = *argv++;
+			nrx = (uint8)strtoul(arg, &endp, 0);
+			if (nrx > ntx) {
+				fprintf(stderr, "ERR: nrx %d exceed ntx %d; parsing %s.\n",
+				        nrx, ntx, arg);
+				return (BCME_BADARG);
+			}
+			if (ntx == 2 && nrx == 1) {
+				bfg_array = bfg.bfgain_2x1;
+			} else if (ntx == 2 && nrx == 2) {
+				bfg_array = bfg.bfgain_2x2;
+			} else if (ntx == 3 && nrx == 1) {
+				bfg_array = bfg.bfgain_3x1;
+			} else if (ntx == 3 && nrx == 2) {
+				bfg_array = bfg.bfgain_3x2;
+			} else if (ntx == 3 && nrx == 3) {
+				bfg_array = bfg.bfgain_3x3;
+			} else if (ntx == 4 && nrx == 1) {
+				bfg_array = bfg.bfgain_4x1;
+			} else if (ntx == 4 && nrx == 2) {
+				bfg_array = bfg.bfgain_4x2;
+			} else if (ntx == 4 && nrx == 3) {
+				bfg_array = bfg.bfgain_4x3;
+			} else if (ntx == 4 && nrx == 4) {
+				bfg_array = bfg.bfgain_4x4;
+			} else {
+				fprintf(stderr, "ERR: wrong (ntx %d, nrx %d)", ntx, nrx);
+				fprintf(stderr, "combination; parsing %s.\n", arg);
+			}
+			bfg_cnt   = 0;
+			num_words = nrx + 1;
+			continue;
+		}
+		if (bfg_cnt >= num_words) {
+			fprintf(stderr, "ERR: exceed max. %d bfgain words; parsing %s\n",
+			        num_words, arg);
+			return (BCME_BADARG);
+		}
+		bfgain_word = (uint32)strtoul(arg, &endp, 16);
+		if (endp == arg) {
+			fprintf(stderr, "ERR: failed to convert %s\n", arg);
+			return (BCME_USAGE_ERROR);
+		}
+		bfg_array[bfg_cnt++] = bfgain_word;
+	}
+	error = wlu_iovar_set(wl, cmd->name, &bfg, sizeof(bfg));
+
+	dump_txbfgain(&bfg, ntx);
+	return (error);
+}
+#endif /* BCMINTDBG */
 
 /* TXCAL IOVARS */
 static int

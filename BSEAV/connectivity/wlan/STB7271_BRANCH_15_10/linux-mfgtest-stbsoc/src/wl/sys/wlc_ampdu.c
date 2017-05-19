@@ -287,6 +287,22 @@ static const bcm_iovar_t ampdu_iovars[] = {
 	sizeof(struct ampdu_ea_tid)},
 	{"ampdu_manual_mode", IOV_AMPDU_MANUAL_MODE, (IOVF_SET_DOWN), 0, IOVT_BOOL, 0},
 	{"ampdu_mpdu", IOV_AMPDU_MPDU, (0), 0, IOVT_INT8, 0}, /* need to mark IOVF2_RSDB */
+#ifdef BCMINTDBG
+	{"ampdu_no_bar", IOV_AMPDU_NO_BAR, (0), 0, IOVT_BOOL, 0},
+#ifdef AMPDU_NON_AQM
+	{"ampdu_max_txunfl", IOV_AMPDU_MAX_TXFUNFL, (0), 0, IOVT_UINT32, 0},
+	{"ampdu_ffpld_rsvd", IOV_AMPDU_FFPLD_RSVD, (0), 0, IOVT_UINT32, 0},
+#endif
+	{"ampdu_dur", IOV_AMPDU_DUR, (0), 0, IOVT_UINT16, 0},
+	{"ampdu_retry_limit", IOV_AMPDU_RETRY_LIMIT, (0), 0, IOVT_UINT8, 0},
+	{"ampdu_rr_retry_limit", IOV_AMPDU_RR_RETRY_LIMIT, (0), 0, IOVT_UINT8, 0},
+	{"ampdu_tx_lowat", IOV_AMPDU_TX_LOWAT, (0), 0, IOVT_UINT8, 0},
+	{"ampdu_hiagg_mode", IOV_AMPDU_HIAGG_MODE, (0), 0, IOVT_UINT8, 0},
+	{"ampdu_probe_mpdu", IOV_AMPDU_PROBE_MPDU, (0), 0, IOVT_UINT8, 0},
+	{"ampdu_txpkt_weight", IOV_AMPDU_TXPKT_WEIGHT, (0), 0, IOVT_UINT8, 0},
+	{"ampdu_mfbr", IOV_AMPDU_MFBR, (0), 0, IOVT_BOOL, 0},
+	{"ampdu_tx_ba_wsize", IOV_AMPDU_TX_BA_WSIZE, (0), 0, IOVT_UINT8, 0},
+#endif /* BCMINTDBG */
 #ifdef WLOVERTHRUSTER
 	{"ack_ratio", IOV_AMPDU_TCP_ACK_RATIO, (0), 0, IOVT_UINT8, 0},
 	{"ack_ratio_depth", IOV_AMPDU_TCP_ACK_RATIO_DEPTH, (0), 0, IOVT_UINT8, 0},
@@ -297,12 +313,12 @@ static const bcm_iovar_t ampdu_iovars[] = {
 #endif
 
 	{"ampdumac", IOV_AMPDUMAC, (0), 0, IOVT_UINT8, 0},
-#if defined(WL_EXPORT_AMPDU_RETRY)
+#if defined(BCMINTDBG) || defined(WL_EXPORT_AMPDU_RETRY)
 	{"ampdu_retry_limit_tid", IOV_AMPDU_RETRY_LIMIT_TID, (0), 0, IOVT_BUFFER,
 	sizeof(struct ampdu_retry_tid)},
 	{"ampdu_rr_retry_limit_tid", IOV_AMPDU_RR_RETRY_LIMIT_TID, (0), 0, IOVT_BUFFER,
 	sizeof(struct ampdu_retry_tid)},
-#endif 
+#endif /* defined(BCMINTDBG) || defined (WL_EXPORT_AMPDU_RETRY) */
 #ifdef WLMEDIA_TXFAILEVENT
 	{"ampdu_txfail_event", IOV_AMPDU_TXFAIL_EVENT, (0), 0, IOVT_BOOL, 0},
 #endif /* WLMEDIA_TXFAILEVENT */
@@ -315,6 +331,9 @@ static const bcm_iovar_t ampdu_iovars[] = {
 #ifdef WLATF
 	{"ampdu_atf_us", IOV_AMPDU_ATF_US, (IOVF_NTRL), 0, IOVT_UINT32, 0},
 	{"ampdu_atf_min_us", IOV_AMPDU_ATF_MIN_US, (IOVF_NTRL), 0, IOVT_UINT32, 0},
+#endif
+#if defined(WL_CS_PKTRETRY) && defined(BCMINTDBG)
+	{"ampdu_cs_pktretry", IOV_AMPDU_CS_PKTRETRY, (0), 0, IOVT_BOOL, 0},
 #endif
 	{"ampdu_txaggr", IOV_AMPDU_TXAGGR, IOVF_BSS_SET_DOWN, 0, IOVT_BUFFER,
 	sizeof(struct ampdu_aggr)},
@@ -354,8 +373,13 @@ static const bcm_iovar_t ampdu_iovars[] = {
 #endif /* AMPDU_SCB_MAX_RELEASE_AQM */
 #define AMPDU_ADDBA_REQ_RETRY_TIMEOUT	200	/* ADDBA retry timeout msecs */
 
+#ifdef BCMINTDBG
+#define AMPDU_INI_DEAD_TIMEOUT		10	/**< # of sec without ini progress */
+#define AMPDU_INI_CLEANUP_TIMEOUT	5	/**< # of sec in pending off state */
+#else
 #define AMPDU_INI_DEAD_TIMEOUT		2	/**< # of sec without ini progress */
 #define AMPDU_INI_CLEANUP_TIMEOUT	2	/**< # of sec in pending off state */
+#endif
 #define AMPDU_TXNOPROG_LIMIT		10	/**< max # of sec with any ini in pending off state
 						 **< while ucode is consuming no pkts before
 						 **< we dump more debugging messages
@@ -692,6 +716,9 @@ struct ampdu_tx_info {
 	uint8   cubby_name_id;          /**< cubby ID */
 	uint16  aqm_max_release[AMPDU_MAX_SCB_TID];
 	struct ampdu_tx_config *config;
+#if defined(WL_CS_PKTRETRY) && defined(BCMINTDBG)
+	bool    cs_pktretry;            /**< retry retired during channel switch packets */
+#endif
 	int     bsscfg_handle;          /**< BSSCFG cubby offset */
 	uint8 txnoprog_cnt;		/**< # of sec having no pkt consumed while PENDING_OFF */
 };
@@ -1405,6 +1432,9 @@ BCMATTACHFN(wlc_ampdu_tx_attach)(wlc_info_t *wlc)
 		}
 	}
 
+#if defined(WL_CS_PKTRETRY) && defined(BCMINTDBG)
+	ampdu_tx->cs_pktretry = FALSE;
+#endif
 
 #ifdef WLOVERTHRUSTER
 	if ((WLCISHTPHY(wlc->band) || WLCISACPHY(wlc->band) || WLCISLCN20PHY(wlc->band)) &&
@@ -2625,10 +2655,12 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 			break;
 		}
 
+#if defined(BCMINTDBG)
 		if (int_val < AMPDU_DEF_MPDU_DENSITY) {
 			err = BCME_RANGE;
 			break;
 		}
+#endif
 		ampdu_tx_cfg->mpdu_density = (uint8)int_val;
 		break;
 
@@ -2732,8 +2764,154 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 		scb_ampdu_update_config_all(ampdu_tx);
 		break;
 
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_AMPDU_TX_BA_WSIZE):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->ba_tx_wsize;
+		break;
 
-#if defined(WL_EXPORT_AMPDU_RETRY)
+	case IOV_SVAL(IOV_AMPDU_TX_BA_WSIZE):
+		if ((int_val == 0) || (int_val > ampdu_tx_cfg->ba_max_tx_wsize)) {
+			err = BCME_BADARG;
+			break;
+		}
+		ampdu_tx_cfg->ba_tx_wsize = (uint8)int_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_NO_BAR):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->no_bar;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_NO_BAR):
+		ampdu_tx_cfg->no_bar = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_DUR):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->dur;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_DUR):
+		if (int_val == 0) {
+			err = BCME_RANGE;
+			break;
+		}
+		ampdu_tx_cfg->dur = (uint16)int_val;
+#ifdef AMPDU_NON_AQM
+		ampdu_update_max_txlen(ampdu_tx_cfg, ampdu_tx_cfg->dur);
+#endif
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_HIAGG_MODE):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->hiagg_mode;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_HIAGG_MODE):
+		ampdu_tx_cfg->hiagg_mode = (uint8)int_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_PROBE_MPDU):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->probe_mpdu;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_PROBE_MPDU):
+		if (int_val > AMPDU_MAX_MPDU) {
+			err = BCME_RANGE;
+			break;
+		}
+		ampdu_tx_cfg->probe_mpdu = (uint8)int_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_TXPKT_WEIGHT):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->txpkt_weight;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_TXPKT_WEIGHT):
+		if (int_val > wlc_get_txmaxpkts(wlc)) {
+			err = BCME_RANGE;
+			break;
+		}
+		ampdu_tx_cfg->txpkt_weight = (uint8)int_val;
+		break;
+#ifdef AMPDU_NON_AQM
+	case IOV_GVAL(IOV_AMPDU_FFPLD_RSVD):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->ffpld_rsvd;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_FFPLD_RSVD):
+		if (int_val < AMPDU_MIN_FFPLD_RSVD) {
+			err = BCME_RANGE;
+			break;
+		}
+		ampdu_tx_cfg->ffpld_rsvd = int_val;
+		break;
+#endif /* AMPDU_NON_AQM */
+	case IOV_GVAL(IOV_AMPDU_RETRY_LIMIT):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->retry_limit;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_RETRY_LIMIT):
+	{
+		int i;
+
+		if (int_val > AMPDU_MAX_RETRY_LIMIT) {
+			err = BCME_RANGE;
+			break;
+		}
+		ampdu_tx_cfg->retry_limit = (uint8)int_val;
+
+		/* update to all per-tid */
+		for (i = 0; i < AMPDU_MAX_SCB_TID; i++)
+			ampdu_tx_cfg->retry_limit_tid[i] = (uint8)int_val;
+		break;
+	}
+
+	case IOV_GVAL(IOV_AMPDU_RR_RETRY_LIMIT):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->rr_retry_limit;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_RR_RETRY_LIMIT):
+	{
+		int i;
+
+		if (int_val > AMPDU_MAX_RETRY_LIMIT) {
+			err = BCME_RANGE;
+			break;
+		}
+		ampdu_tx_cfg->rr_retry_limit = (uint8)int_val;
+
+		/* update to all per-tid */
+		for (i = 0; i < AMPDU_MAX_SCB_TID; i++)
+			ampdu_tx_cfg->rr_retry_limit_tid[i] = (uint8)int_val;
+		break;
+	}
+
+	case IOV_GVAL(IOV_AMPDU_MFBR):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->mfbr;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_MFBR):
+		ampdu_tx_cfg->mfbr = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_TX_LOWAT):
+		*ret_int_ptr = (int32)ampdu_tx_cfg->tx_rel_lowat;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_TX_LOWAT):
+		ampdu_tx_cfg->tx_rel_lowat = (uint8)int_val;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_MAX_TXFUNFL):
+		ampdu_tx_cfg->tx_max_funl = (uint32)int_val;
+		wlc_ffpld_init(ampdu_tx_cfg);
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_MAX_TXFUNFL):
+		*ret_int_ptr = (uint32)ampdu_tx_cfg->tx_max_funl;
+		break;
+
+#endif /* BCMINTDBG*/
+
+#if defined(BCMINTDBG) || defined(WL_EXPORT_AMPDU_RETRY)
 	case IOV_GVAL(IOV_AMPDU_RETRY_LIMIT_TID):
 	{
 		struct ampdu_retry_tid *retry_tid = (struct ampdu_retry_tid *)p;
@@ -2789,7 +2967,7 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 		ampdu_tx_cfg->rr_retry_limit_tid[retry_tid->tid] = retry_tid->retry;
 		break;
 	}
-#endif 
+#endif /* defined(BCMINTDBG) || defined (WL_EXPORT_AMPDU_RETRY) */
 
 #ifdef AMPDU_NON_AQM
 #ifdef BCMDBG
@@ -2900,6 +3078,15 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 		ampdu_tx_cfg->release = (int8)int_val;
 		break;
 
+#if defined(WL_CS_PKTRETRY) && defined(BCMINTDBG)
+	case IOV_SVAL(IOV_AMPDU_CS_PKTRETRY):
+		ampdu_tx->cs_pktretry = (bool)int_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_CS_PKTRETRY):
+		*ret_int_ptr = ampdu_tx->cs_pktretry;
+		break;
+#endif /* defined(WL_CS_PKTRETRY) && defined(BCMINTDBG) */
 	case IOV_GVAL(IOV_AMPDU_TXAGGR):
 	{
 		struct ampdu_aggr *txaggr = p;
@@ -3153,6 +3340,7 @@ wlc_ffpld_calc_mcs2ampdu_table(ampdu_tx_info_t *ampdu_tx, int f, wlc_bsscfg_t *b
 	int i;
 	uint32 phy_rate, dma_rate, tmp, max_rspec;
 	uint8 max_mpdu;
+	uint8 mcsidx;
 	wlc_fifo_info_t *fifo = (ampdu_tx->config->fifo_tb + f);
 
 	/* recompute the dma rate */
@@ -3179,10 +3367,16 @@ wlc_ffpld_calc_mcs2ampdu_table(ampdu_tx_info_t *ampdu_tx, int f, wlc_bsscfg_t *b
 		/* shifting to keep it within integer range */
 		phy_rate = MCS_RATE(i, TRUE, FALSE) >> 7;
 		if (phy_rate > dma_rate) {
+			mcsidx = MCS2IDX(i);
+			if (mcsidx >= (sizeof(fifo->mcs2ampdu_table) / /* C118408 */
+				sizeof(fifo->mcs2ampdu_table[0]))) {
+					ASSERT(0);
+					break;
+			}
 			tmp = ((fifo->ampdu_pld_size * phy_rate) /
 				((phy_rate - dma_rate) * FFPLD_MPDU_SIZE)) + 1;
 			tmp = MIN(tmp, 255);
-			fifo->mcs2ampdu_table[MCS2IDX(i)] = (uint8)tmp;
+			fifo->mcs2ampdu_table[mcsidx] = (uint8)tmp;
 		}
 	}
 
@@ -3502,6 +3696,12 @@ wlc_ampdu_agg_pktc(void *ctx, struct scb *scb, void *p, uint prec)
 	lifetime = wlc->lifetime[WME_PRIO2AC(tid)];
 
 	ASSERT(SCB_AMPDU(scb));
+	if (scb->flags & SCB_DEL_IN_PROG) {
+		WL_AMPDU(("%s: scb->flags(%x) SCB_DEL_IN_PROG bit set-- returning\n",
+			__FUNCTION__, scb->flags));
+		goto txmod_ampdu;
+	}
+
 	scb_ampdu = SCB_AMPDU_TX_CUBBY(ampdu_tx, scb);
 	ASSERT(scb_ampdu);
 
@@ -6942,6 +7142,11 @@ wlc_ampdu_chanspec_update(wlc_info_t *wlc, void *p)
 {
 	wlc_txh_info_t txh_info;
 
+#ifdef BCMINTDBG
+	if (!wlc->ampdu_tx->cs_pktretry) {
+		return;
+	}
+#endif /* BCMINTDBG */
 
 	wlc_get_txh_info(wlc, p, &txh_info);
 
@@ -6977,6 +7182,11 @@ wlc_ampdu_cs_retry(wlc_info_t *wlc, tx_status_t *txs, void *p)
 	}
 #endif /* ifdef PROP_TXSTATUS */
 
+#ifdef BCMINTDBG
+	if (!wlc->ampdu_tx->cs_pktretry) {
+		return FALSE;
+	}
+#endif /* BCMINTDBG */
 
 	if (!(wlc->block_datafifo & DATA_BLOCK_QUIET)) {
 		/* Not during channel transition time */
@@ -11744,6 +11954,7 @@ ampdu_update_max_txlen(ampdu_tx_config_t *ampdu_tx_cfg, uint16 dur)
 	uint32 rate;
 	int mcs = -1;
 #endif /* WLPROPRIETARY_11N_RATES */
+	uint8 mcsidx;
 
 	dur = dur >> 10;
 
@@ -11755,19 +11966,26 @@ ampdu_update_max_txlen(ampdu_tx_config_t *ampdu_tx_cfg, uint16 dur)
 #else
 	for (mcs = 0; mcs < MCS_TABLE_SIZE; mcs++) {
 #endif /* WLPROPRIETARY_11N_RATES */
+
+		mcsidx = MCS2IDX(mcs);
+		if (mcsidx >= AMPDU_HT_MCS_ARRAY_SIZE) {
+			ASSERT(0);
+			break;
+		}
+
 		/* rate is in Kbps; dur is in msec ==> len = (rate * dur) / 8 */
 		/* 20MHz, No SGI */
 		rate = MCS_RATE(mcs, FALSE, FALSE);
-		ampdu_tx_cfg->max_txlen[MCS2IDX(mcs)][0][0] = (rate * dur) >> 3;
+		ampdu_tx_cfg->max_txlen[mcsidx][0][0] = (rate * dur) >> 3;
 		/* 40 MHz, No SGI */
 		rate = MCS_RATE(mcs, TRUE, FALSE);
-		ampdu_tx_cfg->max_txlen[MCS2IDX(mcs)][1][0] = (rate * dur) >> 3;
+		ampdu_tx_cfg->max_txlen[mcsidx][1][0] = (rate * dur) >> 3;
 		/* 20MHz, SGI */
 		rate = MCS_RATE(mcs, FALSE, TRUE);
-		ampdu_tx_cfg->max_txlen[MCS2IDX(mcs)][0][1] = (rate * dur) >> 3;
+		ampdu_tx_cfg->max_txlen[mcsidx][0][1] = (rate * dur) >> 3;
 		/* 40 MHz, SGI */
 		rate = MCS_RATE(mcs, TRUE, TRUE);
-		ampdu_tx_cfg->max_txlen[MCS2IDX(mcs)][1][1] = (rate * dur) >> 3;
+		ampdu_tx_cfg->max_txlen[mcsidx][1][1] = (rate * dur) >> 3;
 	}
 }
 
@@ -11784,6 +12002,7 @@ static void
 wlc_ampdu_init_min_lens(scb_ampdu_tx_t *scb_ampdu)
 {
 	int mcs, tmp;
+	uint8 mcsidx;
 	tmp = 1 << (16 - scb_ampdu->mpdu_density);
 #if defined(WLPROPRIETARY_11N_RATES)
 	mcs = -1;
@@ -11794,20 +12013,26 @@ wlc_ampdu_init_min_lens(scb_ampdu_tx_t *scb_ampdu)
 #else
 	for (mcs = 0; mcs <= AMPDU_MAX_MCS; mcs++) {
 #endif /* WLPROPRIETARY_11N_RATES */
-		scb_ampdu->min_lens[MCS2IDX(mcs)] =  0;
+
+		mcsidx = MCS2IDX(mcs);
+
+		/* Make sure we don't overrun min_lens */
+		ASSERT(mcsidx < AMPDU_HT_MCS_ARRAY_SIZE);
+
+		scb_ampdu->min_lens[mcsidx] =  0;
 		if (scb_ampdu->mpdu_density > AMPDU_DENSITY_4_US)
 			continue;
 		if (mcs >= 12 && mcs <= 15) {
 			/* use rate for mcs21, 40Mhz bandwidth, no sgi */
-			scb_ampdu->min_lens[MCS2IDX(mcs)] = CEIL(MCS_RATE(21, 1, 0), tmp);
+			scb_ampdu->min_lens[mcsidx] = CEIL(MCS_RATE(21, 1, 0), tmp);
 		} else if (mcs == 21 || mcs == 22) {
 			/* use mcs23 */
-			scb_ampdu->min_lens[MCS2IDX(mcs)] = CEIL(MCS_RATE(23, 1, 0), tmp);
+			scb_ampdu->min_lens[mcsidx] = CEIL(MCS_RATE(23, 1, 0), tmp);
 #if !defined(WLPROPRIETARY_11N_RATES)
 		}
 #else
 		} else if (mcs >= WLC_11N_FIRST_PROP_MCS && mcs <= WLC_11N_LAST_PROP_MCS) {
-			scb_ampdu->min_lens[MCS2IDX(mcs)] = CEIL(MCS_RATE(mcs, 1, 0), tmp);
+			scb_ampdu->min_lens[mcsidx] = CEIL(MCS_RATE(mcs, 1, 0), tmp);
 		}
 #endif /* WLPROPRIETARY_11N_RATES */
 	}

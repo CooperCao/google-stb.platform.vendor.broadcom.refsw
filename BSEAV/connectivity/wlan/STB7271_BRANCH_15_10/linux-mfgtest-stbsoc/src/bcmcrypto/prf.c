@@ -75,6 +75,7 @@ hmac_sha1(unsigned char *text, int text_len, unsigned char *key,
 		pko[i] ^= 0x5c5c5c5c;
 	}
 	/* init contexts */
+	bzero(&icontext, sizeof(SHA1Context));
 	SHA1Reset(&icontext);
 	memcpy(&ocontext, &icontext, sizeof(icontext));
 
@@ -182,6 +183,7 @@ fPRF(unsigned char *key, int key_len, const unsigned char *prefix,
 	}
 
 	/* init reference contexts */
+	bzero(&reficontext, sizeof(SHA1Context));
 	SHA1Reset(&reficontext);
 	memcpy(&refocontext, &reficontext, sizeof(reficontext));
 	SHA1Input(&reficontext, pki8, PRF_MAX_KEY_LEN);

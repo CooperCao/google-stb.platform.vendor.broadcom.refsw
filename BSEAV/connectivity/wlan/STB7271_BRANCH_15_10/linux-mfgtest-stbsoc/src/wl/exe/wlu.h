@@ -265,6 +265,10 @@ extern int wl_nan_do_ioctl(void *wl, void *nanioc, uint16 iocsz, uint8 is_set);
 
 #define WL_IOV_BATCH_DELIMITER		"+"
 
+#ifdef BCMINTDBG
+extern int wl_iov_names(void *wl, cmd_t *cmd, char **argv);
+extern int wl_cmd_help(void *wl, cmd_t *cmd_in, char **argv);
+#endif
 
 /* functions for downloading firmware to a device via serial or other transport */
 #ifdef SERDOWNLOAD

@@ -29,6 +29,11 @@
 extern wlc_ratesel_info_t *wlc_scb_ratesel_attach(wlc_info_t *wlc);
 extern void wlc_scb_ratesel_detach(wlc_ratesel_info_t *wrsi);
 
+#ifdef BCMINTDBG
+extern int wlc_scb_ratesel_scbdump(void *ctx, struct scb *scb, struct bcmstrbuf *b);
+extern int wlc_scb_ratesel_get_fixrate(void *ctx, struct scb *scb, struct bcmstrbuf *b);
+extern int wlc_scb_ratesel_set_fixrate(void *ctx, struct scb *scb, int ac, uint8 val);
+#endif
 
 /* get primary rate */
 extern ratespec_t wlc_scb_ratesel_get_primary(wlc_info_t *wlc, struct scb *scb, void *p);

@@ -612,6 +612,8 @@ wlc_custom_scan(wlc_info_t *wlc, char *arg, int arg_len,
 		}
 	} else if (arg_len >= (int)sizeof(uint32)) {
 		/* just an SSID provided */
+		/* coverity[overrun-buffer-arg : FALSE] (CID 44738: MIN macro takes care of the ssid argument 
+		 * being read beyond memory limits) */
 		bcopy(arg, &params.ssid, MIN((int)sizeof(wlc_ssid_t), arg_len));
 		if ((uint)arg_len < params.ssid.SSID_len) {
 			bcmerror = BCME_BUFTOOSHORT;
@@ -1887,6 +1889,8 @@ wlc_BSSignorelookup(wlc_info_t *wlc, uchar *bssid, chanspec_t chanspec, uchar ss
 	iscan_ignore_t match;
 	uint16 band = CHSPEC_BAND(chanspec);
 	wlc_scan_utils_t *sui = wlc->sui;
+
+	bzero(&match, sizeof(iscan_ignore_t));
 
 	/* memory savings: compute the sum of the ssid bytes */
 	for (indx = 0; indx < ssid_len; ++indx)

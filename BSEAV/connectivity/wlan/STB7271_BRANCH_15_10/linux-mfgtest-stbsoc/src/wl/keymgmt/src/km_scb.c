@@ -491,6 +491,11 @@ km_scb_init(void *ctx, scb_t *scb)
 	KM_DBG_ASSERT(KM_VALID(km) && scb != NULL);
 	scb_km = KM_SCB(km, scb);
 	memset(scb_km, 0, sizeof(*scb_km));
+	/* When alloc failure for scb, driver may use un-initialize scb cubby in cubby fn_deinit.
+	 * This will cause some unexpected handling and trap.
+	 * Set flags to indicate that this scb_cubby fn_init is executed.
+	 */
+	scb_km->flags |= KM_SCB_FLAG_INIT;
 	err = km_scb_init_internal(km, scb);
 	if (err == BCME_OK) {
 		wlc_keymgmt_notify(km, WLC_KEYMGMT_NOTIF_SCB_BSSCFG_CHANGED,
@@ -503,9 +508,17 @@ void
 km_scb_deinit(void *ctx,  scb_t *scb)
 {
 	keymgmt_t *km = (keymgmt_t *)ctx;
+	km_scb_t *scb_km;
 
 	KM_DBG_ASSERT(KM_VALID(km) && scb != NULL);
-	km_scb_cleanup(km, scb);
+	/* If the KM_SCB_FLAG_INIT is not set. It means that cubby fn_init is not executed.
+	 * Driver should not do km_scb_cleanup().
+	 */
+	scb_km = KM_SCB(km, scb);
+	if (scb_km->flags & KM_SCB_FLAG_INIT) {
+		scb_km->flags &= ~KM_SCB_FLAG_INIT;
+		km_scb_cleanup(km, scb);
+	}
 }
 
 void

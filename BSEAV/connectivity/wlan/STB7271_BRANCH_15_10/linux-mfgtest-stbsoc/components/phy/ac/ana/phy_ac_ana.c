@@ -1541,6 +1541,7 @@ wlc_phy_write_femctrl_table_swctrlmap4(phy_info_t *pi)
 	                PHY_ERROR(("wl%d: %s: swctrlmap4->misc_usage = %d unsupported \n",
 	                           pi->sh->unit, __FUNCTION__, swctrl->misc_usage));
 	                ASSERT(0);
+			return;
 	        }
 	        FOREACH_CORE(pi, core) {
 	                for (i = 0; i < num_tbl_entries_band; i++) {

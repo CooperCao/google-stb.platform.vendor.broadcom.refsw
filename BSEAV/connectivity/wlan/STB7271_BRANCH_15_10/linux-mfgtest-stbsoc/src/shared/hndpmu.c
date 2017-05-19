@@ -81,7 +81,13 @@
 #define	PMU_ERROR(args)
 #endif	/* defined(BCMDBG_ERR) && defined(ERR_USE_EVENT_LOG) */
 
+#if defined(BCMINTDBG)
+#if !defined(PMU_MSG)  /* over-rideable */
+#define	PMU_MSG(args)	printf args
+#endif /* PMU_MSG */
+#else
 #define	PMU_MSG(args)
+#endif	/* BCMDBG */
 
 /* To check in verbose debugging messages not intended
  * to be on except on private builds.

@@ -1214,6 +1214,279 @@ wlc_ratesel_dump(ratesel_info_t *rsi, struct bcmstrbuf *b)
 
 #endif /* BCMDBG || BCMDBG_DUMP */
 
+#ifdef BCMINTDBG
+static void
+wlc_ratesel_set_primary(rcb_t *state, uint8 rateid)
+{
+	ratespec_t cur_rspec;
+
+	if (rateid == state->rateid)
+		return;
+
+	state->rateid = rateid;
+#ifdef WL11N
+	state->sgi_state = SGI_RESET;
+	state->mcs_short_ampdu = FALSE;
+#endif /* WL11N */
+	wlc_ratesel_clear_ratestat(state, TRUE);
+
+	cur_rspec = CUR_RATESPEC(state);
+	printf("%s: rateid %d %sx%02x %d 500Kbps\n", __FUNCTION__,
+	      state->rateid, IS_MCS(cur_rspec) ? "m" : "",
+	      (RSPEC_RATE_MASK & cur_rspec), RSPEC2RATE500K(cur_rspec));
+}
+
+int
+wlc_ratesel_get_fixrate(rcb_t *state, int ac, struct bcmstrbuf *b)
+{
+	if (state->fixrate == DUMMY_UINT8)
+		bcm_bprintf(b, "AC[%d]: auto  ", ac);
+	else if (state->fixrate & FIXPRI_FLAG) {
+		uint8 rateid = state->fixrate & ~FIXPRI_FLAG;
+		bcm_bprintf(b, "AC[%d]: 0x%x %d (500Kbps) primary", ac,
+			rateid, RSPEC2RATE500K(RATESPEC_OF_I(state, rateid)));
+	} else {
+		bcm_bprintf(b, "AC[%d]: 0x%x %d (500Kbps)  ", ac, state->fixrate,
+			RSPEC2RATE500K(RATESPEC_OF_I(state, state->fixrate)));
+	}
+	bcm_bprintf(b, "\n");
+
+	return 0;
+}
+
+int
+wlc_ratesel_set_fixrate(rcb_t *state, int ac, uint8 val)
+{
+	bool setrate = FALSE;
+	uint8 rateid = val & ~FIXPRI_FLAG;
+
+	printf("%s: ac %d val 0x%x rateid %d\n", __FUNCTION__, ac, val, rateid);
+
+	if (val != DUMMY_UINT8 && rateid >= state->active_rates_num) {
+		printf("rate id %d out of range [0, %d]\n",
+			rateid, state->active_rates_num-1);
+		return BCME_BADARG;
+	} else {
+		state->fixrate = val; /* keep the flag */
+		if (val != DUMMY_UINT8) {
+			state->rateid = rateid;
+#ifdef WL11N
+			if (state->rateid >= state->mcs_baseid)
+				printf("ac %d %srate is fixed to "
+					  "id %d mx%02x %d (500Kbps)\n",
+					  ac, (val & FIXPRI_FLAG) ? "primary " : "",
+					  state->rateid,
+					  RSPEC_RATE_MASK & CUR_RATESPEC(state),
+					  RSPEC2RATE500K(CUR_RATESPEC(state)));
+			else
+#endif
+				printf("ac %d %srate is fixed to "
+					  "id %d rate %d (500Kbps)\n",
+					  ac, (val & FIXPRI_FLAG) ? "primary " : "",
+					  state->rateid,
+					  RSPEC2RATE500K(CUR_RATESPEC(state)));
+		} else {
+			printf("ac %d rate is set to auto\n", ac);
+		}
+		setrate = TRUE;
+	}
+
+	if (setrate) {
+		if (state->fixrate & FIXPRI_FLAG)
+			wlc_ratesel_set_primary(state, rateid);
+
+	BCM_REFERENCE(state);
+
+#ifdef WL11N
+		if (state->mcs_short_ampdu) {
+			state->mcs_short_ampdu = FALSE;
+		}
+#endif
+		INVALIDATE_TXH_CACHE(state);
+	}
+	return 0;
+}
+
+/** dump per-scb state, tunable parameters, upon request, (say by wl ratedump) */
+int
+wlc_ratesel_scbdump(rcb_t *state, struct bcmstrbuf *b)
+{
+	int i, id;
+	uint8 ndisp;
+#ifdef WL11N
+	uint8 shift;
+#else
+	int byte_id, bit_id;
+#endif /* WL11N */
+
+		bcm_bprintf(b, "time %d\n", NOW(state));
+#ifdef WL11N
+		if (state->rsi->measure_mode) {
+			bcm_bprintf(b, "\tref_rateid %d rate %d ",
+				state->rsi->ref_rateid, RSPEC2RATE500K(CUR_RATESPEC(state)));
+			if (IS_MCS(CUR_RATESPEC(state)))
+				bcm_bprintf(b, "mcs 0x%x ",
+					RSPEC_RATE_MASK & state->psri[PSR_CUR_IDX].rspec);
+			bcm_bprintf(b, "psr %d\n", state->psri[PSR_CUR_IDX].psr);
+			return 0;
+		}
+
+		/* summary */
+		if (state->rateid < state->active_rates_num) {
+			if (state->fixrate != DUMMY_UINT8) {
+				if (state->fixrate & FIXPRI_FLAG)
+					bcm_bprintf(b, "Primary fixed: ");
+				else
+					bcm_bprintf(b, "Fixed: ");
+			}
+			bcm_bprintf(b, "rid %d %s 0x%x sgi_sts %d epoch %d ncf %u "
+				"skips %u nupds %u\n",
+				state->rateid, IS_MCS(CUR_RATESPEC(state)) ? "mcs" : "rate",
+				RSPEC_RATE_MASK & CUR_RATESPEC(state), state->sgi_state,
+				state->epoch, state->ncfails, state->nskip, state->nupd);
+		} else {
+			/* if current rateid is not in current select_rate_set */
+			bcm_bprintf(b, "rate NA rid %d sgi %d epoch %d ncf %u skips %u nupds %u\n",
+			    state->rateid, state->sgi_state, state->epoch, state->ncfails,
+			    state->nskip, state->nupd);
+		}
+
+		/* report on vertical rate */
+		bcm_bprintf(b, "\tcur [%sx%02xb%d t %d p %d]\n\tfbr [%sx%02xb%d t %d p %d]"
+			    "\n\tdn  [%sx%02xb%d t %d p %d]\n\tup  [%sx%02xb%d t %d p %d]\n",
+			    /* CUR */
+			    IS_MCS(state->psri[PSR_CUR_IDX].rspec) ? "m" : "",
+			    RSPEC_RATE_MASK & state->psri[PSR_CUR_IDX].rspec,
+			    RSPEC2BW(state->psri[PSR_CUR_IDX].rspec),
+			    state->psri[PSR_CUR_IDX].timestamp, state->psri[PSR_CUR_IDX].psr,
+			    /* FBR */
+			    IS_MCS(state->psri[PSR_FBR_IDX].rspec) ? "m" : "",
+			    RSPEC_RATE_MASK & state->psri[PSR_FBR_IDX].rspec,
+			    RSPEC2BW(state->psri[PSR_FBR_IDX].rspec),
+			    state->psri[PSR_FBR_IDX].timestamp, state->psri[PSR_FBR_IDX].psr,
+			    /* DN */
+			    IS_MCS(state->psri[PSR_DN_IDX].rspec) ? "m" : "",
+			    RSPEC_RATE_MASK & state->psri[PSR_DN_IDX].rspec,
+			    RSPEC2BW(state->psri[PSR_DN_IDX].rspec),
+			    state->psri[PSR_DN_IDX].timestamp, state->psri[PSR_DN_IDX].psr,
+			    /* UP */
+			    IS_MCS(state->psri[PSR_UP_IDX].rspec) ? "m" : "",
+			    RSPEC_RATE_MASK & state->psri[PSR_UP_IDX].rspec,
+			    RSPEC2BW(state->psri[PSR_UP_IDX].rspec),
+			    state->psri[PSR_UP_IDX].timestamp, state->psri[PSR_UP_IDX].psr);
+
+		/* report on the spatial part */
+		bcm_bprintf(b, "Spatial probing mode: %d (%s)\n", state->spmode,
+			(state->spmode == SP_NONE) ? "NONE" :
+			(state->spmode == SP_NORMAL ? "NORMAL" : "EXT"));
+
+		if (state->spmode == SP_NORMAL) {
+			if (state->mcs_sp_id >= state->active_rates_num) {
+				/* if current mcs_id is not in current select_mcs_set */
+				bcm_bprintf(b, "spatial mcs NA\n");
+			} else {
+				bcm_bprintf(b, "\tspatial mcs x%02x bw %u sp_nupd %u\n\t",
+					RSPEC_RATE_MASK & RATESPEC_OF_I(state, state->mcs_sp_id),
+					RSPEC2BW(RATESPEC_OF_I(state, state->mcs_sp_id)),
+					state->sp_nupd);
+
+				if (state->rsi->ratesel_sp_algo) {
+					/* throughput-based spatial probing */
+					bcm_bprintf(b, "sp_thrt 0x%x cur_thrt 0x%x\n",
+					  state->mcs_sp_thrt0, state->mcs_sp_thrt1);
+				} else {
+					/* per-based */
+					ndisp = (uint8) MIN(MAXSPRECS, state->sp_nupd);
+					bcm_bprintf(b, "prev %d mcs_sp_stats: ", ndisp);
+					id = state->mcs_sp_statid - ndisp;
+					if (id < 0) id += MAXSPRECS;
+					for (i = 0; i < ndisp; i++) {
+						shift = (id & 0x7);
+						bcm_bprintf(b, "%d ",
+							((state->mcs_sp_stats[id >> 3] &
+							(0x1 << shift)) >> shift));
+						id = MODINCR(id, MAXSPRECS);
+					}
+					bcm_bprintf(b, "\n\t%d in prev %d mcs_sp_stats.\n",
+						state->mcs_sp_statc, MIN(SPATIAL_M, ndisp));
+				}
+			}
+		} else if (state->spmode == SP_EXT) {
+			/* SP_EXT */
+			bcm_bprintf(b, "\tProbe freq %d offset %d window %d\n",
+				state->extsp_Pmod, state->extsp_Poff, state->extsp_K);
+			bcm_bprintf(b, "\tcurrent %s 0x%x antsel_id %d sp_nupd %d\n\t",
+				IS_MCS(CUR_RATESPEC(state)) ? "mcs" : "rate",
+				RSPEC_RATE_MASK & CUR_RATESPEC(state),
+				state->antselid, state->sp_nupd);
+
+			if (state->extsp_ixtoggle == I_PROBE)
+				bcm_bprintf(b, "I_PROBE: antsel_id %d ",
+					state->antselid_extsp_ipr);
+			else {
+				ratespec_t spr;
+				spr = RATESPEC_OF_I(state, state->extsp_xpr_id);
+				bcm_bprintf(b, "X_PROBE: antsel_id %d sp_%s 0x%x ",
+					state->antselid_extsp_xpr, IS_MCS(spr) ? "mcs" : "rate",
+					RSPEC_RATE_MASK & spr);
+			}
+
+			if (state->rsi->ratesel_sp_algo) /* throughput-based spatial probing */
+				bcm_bprintf(b, "extsp_thrt 0x%x cur_thrt 0x%x\n",
+				  state->extsp_thrt0, state->extsp_thrt1);
+			else {
+				ndisp = (uint8) MIN(MAXSPRECS, state->sp_nupd);
+				bcm_bprintf(b, "prev %d extsp_stats: ", ndisp);
+				id = state->extsp_statid - ndisp;
+				if (id < 0) id += MAXSPRECS;
+				for (i = 0; i < ndisp; i++) {
+					shift = (id & 0x7);
+					bcm_bprintf(b, "%d ", ((state->extsp_stats[id >> 3] &
+						(0x1 << shift)) >> shift));
+					id = MODINCR(id, MAXSPRECS);
+				}
+				bcm_bprintf(b, "\n\t%d in prev %d extsp_stats.\n",
+					state->extsp_statc, MIN(EXTSPATIAL_M, ndisp));
+
+			}
+		}
+		if (state->rsi->alert) {
+			bcm_bprintf(b, "alert: mode %x gotpkts %x lastxs time %u rssi %d\n",
+				state->rsi->alert, state->gotpkts,
+				state->lastxs_time, state->lastxs_rssi);
+		}
+#else /* WL11N */
+		if (state->rateid < state->active_rates_num) {
+			bcm_bprintf(b, "rate %d epoch %d skips %u nupds %u\n",
+			    RSPEC_RATE_MASK & RATESPEC_OF_I(state, state->rateid),
+			    state->epoch, state->nskip, state->nupd);
+		} else {
+			/* if current rateid is not in current select_rate_set */
+			bcm_bprintf(b, "rate NA epoch %d skips %u nupds %u\n",
+			    state->epoch, state->nskip, state->nupd);
+		}
+
+		ndisp = (uint8) MIN(MAXRATERECS, state->nupd);
+		bcm_bprintf(b, "\tIn prev %d updates, nofbs: [", ndisp);
+		id = state->nofbid - ndisp;
+		if (id < 0)
+			id += MAXRATERECS;
+
+		for (i = 0; i < ndisp; i++) {
+			byte_id   = RATEREC_BYTE(id);
+			bit_id    = RATEREC_BITS(id);
+			bcm_bprintf(b, "%d ", (state->nofb[byte_id] & (1 << bit_id)) != 0);
+			id = MODINCR(id, MAXRATERECS);
+		}
+		bcm_bprintf(b, "]\n");
+		bcm_bprintf(b, "\tDn: %d (in prev %d) nofbs\n",
+			state->nofbtotdn, MIN(state->Mdn, ndisp));
+		bcm_bprintf(b, "\tUp: %d (in prev %d) nofbs\n",
+			state->nofbtotup, MIN(state->Mup, ndisp));
+#endif /* WL11N */
+	return 0;
+}
+#endif /* BCMINTDBG */
 
 void
 wlc_ratesel_dump_rateset(rcb_t *state, struct bcmstrbuf *b)
@@ -4549,6 +4822,35 @@ wlc_ratesel_upd_txs_blockack(rcb_t *state, tx_status_t *txs,
 		ASSERT(0);
 		return;
 	}
+#ifdef BCMINTDBG
+	if (state->rsi->measure_mode) {
+		/* update the psr at cur and fbr rate */
+		uint32 *p, cur_succ;
+		ratespec_t cur_rspec = CUR_RATESPEC(state);
+
+		state->gotpkts = GOTPKTS_ALL;
+
+		if (state->psri[PSR_CUR_IDX].rspec != cur_rspec) {
+			state->psri[PSR_CUR_IDX].rspec = cur_rspec;
+			state->psri[PSR_CUR_IDX].psr = PSR_MAX;
+			state->psri[PSR_FBR_IDX].rspec = cur_rspec;
+			state->psri[PSR_FBR_IDX].psr = PSR_UNINIT;
+			state->nupd = 0;
+			WL_RATE(("%s: reset PSR at cur and fbr.\n", __FUNCTION__));
+		}
+
+		LIMINC_UINT32(state->mcs_nupd);
+
+		/* each MPDU is an individual sample */
+		p = &(state->psri[PSR_CUR_IDX].psr);
+		cur_succ = (suc_mpdu << RATESEL_EMA_NF) / tot_mpdu;
+		UPDATE_MOVING_AVG(p, cur_succ, state->rsi->psr_ema_alpha);
+		RL_MORE(("%s: rateid %d rate(500K) %d psr %d suc_mpdu %d tot_mpdu %d nupd %d\n",
+			__FUNCTION__, state->rateid, RSPEC2RATE500K(cur_rspec),
+			state->psri[PSR_CUR_IDX].psr, suc_mpdu, tot_mpdu, state->nupd));
+		return;
+	}
+#endif	/* BCMINTDBG */
 
 #ifdef WL11AC
 	tx_mcs = wlc_rate_ht2vhtmcs(tx_mcs);
@@ -4797,6 +5099,35 @@ wlc_ratesel_upd_txs_ampdu(rcb_t *state,
 		ASSERT(mrt_succ + fbr_succ == 0);
 	}
 
+#ifdef BCMINTDBG
+	if (state->rsi->measure_mode) {
+		/* update the psr at cur and fbr rate */
+		uint32 *p, cur_succ;
+		ratespec_t cur_rspec = CUR_RATESPEC(state);
+
+		state->gotpkts = GOTPKTS_ALL;
+
+		if (state->psri[PSR_CUR_IDX].rspec != cur_rspec) {
+			state->psri[PSR_CUR_IDX].rspec = cur_rspec;
+			state->psri[PSR_CUR_IDX].psr = PSR_MAX;
+			state->psri[PSR_FBR_IDX].rspec = cur_rspec;
+			state->psri[PSR_FBR_IDX].psr = PSR_UNINIT;
+			state->nupd = 0;
+			WL_RATE(("%s: reset PSR at cur and fbr.\n", __FUNCTION__));
+		}
+
+		LIMINC_UINT32(state->mcs_nupd);
+
+		/* each MPDU is an individual sample */
+		p = &(state->psri[PSR_CUR_IDX].psr);
+		cur_succ = ((mrt_succ + fbr_succ) << RATESEL_EMA_NF) / (mrt+fbr);
+		UPDATE_MOVING_AVG(p, cur_succ, state->rsi->psr_ema_alpha);
+		RL_MORE(("%s: rateid %d rate(500K) %d psr %d suc_mpdu %d tot_mpdu %d nupd %d\n",
+			__FUNCTION__, state->rateid, RSPEC2RATE500K(cur_rspec),
+			state->psri[PSR_CUR_IDX].psr, mrt_succ + fbr_succ, mrt + fbr, state->nupd));
+		return;
+	}
+#endif	/* BCMINTDBG */
 
 #ifdef WL11AC
 	tx_mcs = wlc_rate_ht2vhtmcs(tx_mcs);
@@ -5142,6 +5473,19 @@ wlc_ratesel_gettxrate(rcb_t *state, uint16 *frameid,
 
 	rspec_sgi = (state->sgi_state >= SGI_PROBING) ? RSPEC_SHORT_GI : 0;
 
+#ifdef BCMINTDBG
+	if (state->rsi->measure_mode) {
+		if (state->rsi->ref_rateid >= state->active_rates_num)
+			state->rsi->ref_rateid = 0;
+		if (state->rateid != state->rsi->ref_rateid) {
+			state->rateid = state->rsi->ref_rateid;
+			state->psri[PSR_CUR_IDX].rspec = CUR_RATESPEC(state);
+			state->psri[PSR_CUR_IDX].psr = PSR_MAX;
+			state->nupd = 0;
+			WL_RATE(("%s: ref_rateid %d.\n", __FUNCTION__, state->rateid));
+		}
+	}
+#endif	/* BCMINTDBG */
 #endif /* WL11N */
 
 	rateid = state->rateid;

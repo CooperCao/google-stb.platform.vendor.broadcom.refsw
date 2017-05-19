@@ -138,6 +138,7 @@ wlc_rm_doiovar(void *hdl, uint32 actionid,
 		rep.len = rm_info->rm_ioctl_rep_len;
 
 		/* generic table already checked min len */
+		bzero(&rep, sizeof(rep));
 		bcopy(&rep, arg, WL_RM_REP_FIXED_LEN);
 		if ((int)len < WL_RM_REP_FIXED_LEN + (int)rep.len) {
 			err = BCME_BUFTOOSHORT;

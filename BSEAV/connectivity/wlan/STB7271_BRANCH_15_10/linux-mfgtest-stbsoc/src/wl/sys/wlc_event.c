@@ -388,6 +388,9 @@ BCMATTACHFN(wlc_eventq_detach)(wlc_eventq_t *eq)
 #endif
 	wlc = eq->wlc;
 
+	wlc_eventq_flush(eq);
+	flush_scheduled_work();
+
 	if (eq->timer) {
 		if (eq->tpending) {
 			wl_del_timer(eq->wl, eq->timer);

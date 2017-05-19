@@ -43,9 +43,15 @@
 		(ACMAJORREV_GE32((pi)->pubpi->phy_rev) && !ACMAJORREV_36((pi)->pubpi->phy_rev))
 
 #define MIN_PULSES		6	/* the minimum number of required consecutive pulses */
-#define INTERVAL_TOLERANCE	16	/* in 1/20 us */
-#define PULSE_WIDTH_TOLERANCE	30	/* in 1/20 us */
-#define PULSE_WIDTH_DIFFERENCE	12	/* in 1/20 us */
+#define INTERVAL_TOLERANCE	80	/* in 1/20 us */
+#define PULSE_WIDTH_TOLERANCE	80	/* in 1/20 us */
+#define PULSE_WIDTH_DIFFERENCE	40	/* in 1/20 us */
+
+#define MAX_DETECTED_PW_0	30
+#define MAX_DETECTED_PW_1	50
+#define MAX_DETECTED_PW_2	80
+#define MAX_DETECTED_PW_3	200
+#define MAX_DETECTED_PW_4	430
 
 typedef struct {
 	uint8 radar_type;	/* one of RADAR_TYPE_XXX */
@@ -350,7 +356,7 @@ wlc_phy_radar_detect_match(const pulse_data_t *pulse, uint16 feature_mask)
 
 		/* need consistent intervals */
 		if (ABS((int32)(pulse->interval - next_pulse->interval)) <
-		    INTERVAL_TOLERANCE + (int32)pulse->interval / 4000) {
+		    INTERVAL_TOLERANCE + (int32)pulse->interval / 2000) {
 			uint16 max_pw = pRadar->max_pw + pRadar->max_pw/10 + PULSE_WIDTH_TOLERANCE;
 
 			/* check against current radar specifications */
@@ -595,6 +601,8 @@ wlc_phy_radar_detect_run_epoch(phy_info_t *pi,
 	int first_interval;
 	bool pw_blank_condition;
 	const radar_spec_t *pRadar;
+	bool lesi_on = (ACMAJORREV_32(pi->pubpi.phy_rev) || ACMAJORREV_33(pi->pubpi.phy_rev) ||
+			ACMAJORREV_37(pi->pubpi.phy_rev)) && (phy_ac_rxgcrs_get_lesi(pi->u.pi_acphy->rxgcrsi) == 1 ? TRUE : FALSE);
 
 	epoch_length = wlc_phy_radar_filter_list(rt->pulses, epoch_length,
 	                                         MIN_INTERVAL, MAX_INTERVAL);
@@ -624,20 +632,36 @@ wlc_phy_radar_detect_run_epoch(phy_info_t *pi,
 		if (det_type != RADAR_TYPE_NONE) {
 			/* same interval detected as first ? */
 			if (ABS((int32)(curr_interval - first_interval)) <
-			    INTERVAL_TOLERANCE + (int32)curr_interval / 4000) {
+			    INTERVAL_TOLERANCE + (int32)curr_interval / 2000) {
 				if (curr_pw < *min_detected_pw_p) {
 					*min_detected_pw_p = curr_pw;
 				}
 				if (curr_pw > *max_detected_pw_p) {
 					*max_detected_pw_p = curr_pw;
 				}
-				if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-					ACMAJORREV_33(pi->pubpi->phy_rev)) {
-					if ((*max_detected_pw_p >= 30 &&
-						*max_detected_pw_p <= 50) &&
-						((*max_detected_pw_p
-						- *min_detected_pw_p)
-						<= (PULSE_WIDTH_DIFFERENCE + blank_time))) {
+				if (ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev) ||
+					ACMAJORREV_37(pi->pubpi->phy_rev)) {
+					if (((*max_detected_pw_p >= MAX_DETECTED_PW_0 && *max_detected_pw_p <= MAX_DETECTED_PW_1) &&
+						((*max_detected_pw_p - *min_detected_pw_p)
+						<= (PULSE_WIDTH_DIFFERENCE + blank_time))) ||
+						(((((*max_detected_pw_p > MAX_DETECTED_PW_1 && *max_detected_pw_p <= MAX_DETECTED_PW_4) &&
+						((*max_detected_pw_p - *min_detected_pw_p)
+						>= (blank_time - (PULSE_WIDTH_DIFFERENCE/2)))) &&
+						((*max_detected_pw_p > MAX_DETECTED_PW_1 && *max_detected_pw_p <= MAX_DETECTED_PW_4) &&
+						((*max_detected_pw_p - *min_detected_pw_p)
+						<= (blank_time + (PULSE_WIDTH_DIFFERENCE/2))))) ||
+						((((*max_detected_pw_p >= MAX_DETECTED_PW_2 && *max_detected_pw_p <= MAX_DETECTED_PW_4) &&
+						((*max_detected_pw_p - *min_detected_pw_p)
+						>= (2*blank_time - (PULSE_WIDTH_DIFFERENCE/2))))) &&
+						((*max_detected_pw_p >= MAX_DETECTED_PW_2 && *max_detected_pw_p <= MAX_DETECTED_PW_4) &&
+						((*max_detected_pw_p - *min_detected_pw_p)
+						<= (2*blank_time + (PULSE_WIDTH_DIFFERENCE/2))))) ||
+						((((*max_detected_pw_p > MAX_DETECTED_PW_3 && *max_detected_pw_p <= MAX_DETECTED_PW_4) &&
+						((*max_detected_pw_p - *min_detected_pw_p)
+						>= (3*blank_time - (PULSE_WIDTH_DIFFERENCE/2))))) &&
+						((*max_detected_pw_p > MAX_DETECTED_PW_3 && *max_detected_pw_p <= MAX_DETECTED_PW_4) &&
+						((*max_detected_pw_p - *min_detected_pw_p)
+						<= (3*blank_time + (PULSE_WIDTH_DIFFERENCE/2)))))) && lesi_on)) {
 						pw_blank_condition = TRUE;
 					} else {
 						pw_blank_condition = FALSE;

@@ -1827,7 +1827,8 @@ wlc_parse_wpa_ie(wlc_info_t *wlc, wpa_ie_fixed_t *wpaie, wlc_bss_info_t *bi)
 	* and quietly discard the IE if it is not WPA IE.
 	*/
 	if ((len < WPA_IE_OUITYPE_LEN) ||
-	    bcmp((uint8 *)wpaie->oui, WPA_OUI"\01", WPA_IE_OUITYPE_LEN))
+	    (bcmp((uint8 *)wpaie->oui, WPA_OUI, WPA_OUI_LEN) &&
+		wpaie->oui_type == 1))
 		return 0;
 
 	if ((len < WPA_IE_TAG_FIXED_LEN) ||

@@ -152,7 +152,11 @@ typedef const struct si_pub si_t;
 #define SECI_ACCESS_UART_PUTC		7
 #define SECI_ACCESS_STATUSMASK_GET	8
 
+#if defined(STB_SOC_SIM)
+#define	ISSIM_ENAB(sih)	((sih)->issim)
+#else
 #define	ISSIM_ENAB(sih)	FALSE
+#endif
 
 #define INVALID_ADDR (~0)
 
@@ -478,6 +482,12 @@ extern int si_dump_pcieregs(si_t *sih, struct bcmstrbuf *b);
 #endif /* BCMDBG || BCMDBG_DUMP || WLTEST */
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(BCMDBG_PHYDUMP)
+#ifdef BCMINTDBG
+extern void si_dump(si_t *sih, struct bcmstrbuf *b);
+extern void si_ccreg_dump(si_t *sih, struct bcmstrbuf *b);
+extern void si_clkctl_dump(si_t *sih, struct bcmstrbuf *b);
+extern int si_gpiodump(si_t *sih, struct bcmstrbuf *b);
+#endif /* BCMINTDBG */
 extern void si_dumpregs(si_t *sih, struct bcmstrbuf *b);
 #endif /* BCMDBG || BCMDBG_DUMP || BCMDBG_PHYDUMP */
 
@@ -492,6 +502,9 @@ extern uint32 si_pmu_keep_on_get(si_t *sih);
 extern uint32 si_power_island_set(si_t *sih, uint32 int_val);
 extern uint32 si_power_island_get(si_t *sih);
 #endif /* SR_DEBUG */
+#ifdef BCMINTDBG
+extern uint32 si_pciesbreg(si_t *sih, uint32 offset, uint32 mask, uint32 val);
+#endif
 extern uint32 si_pcieserdesreg(si_t *sih, uint32 mdioslave, uint32 offset, uint32 mask, uint32 val);
 extern void si_pcie_set_request_size(si_t *sih, uint16 size);
 extern uint16 si_pcie_get_request_size(si_t *sih);

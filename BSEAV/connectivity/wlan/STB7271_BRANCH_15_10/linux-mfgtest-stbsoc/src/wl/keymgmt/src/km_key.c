@@ -542,6 +542,10 @@ wlc_key_rx_mpdu(wlc_key_t *key, void *pkt, d11rxhdr_t *rxh)
 		}
 	} else if (*RxStatus1 &	RXS_DECERR) {
 		err = BCME_DECERR;
+		if (key->info.algo == CRYPTO_ALGO_TKIP &&
+			body_len <= (DOT11_IV_TKIP_LEN + TKIP_MIC_SIZE + DOT11_ICV_LEN)) {
+			hwdec = FALSE;
+		}
 	}
 
 	if (err == BCME_OK || err == BCME_DECERR) {
@@ -767,7 +771,7 @@ wlc_key_get_seq(wlc_key_t *key, uint8 *buf, size_t buf_len,
 	if (err == BCME_OK)
 		return (int)data_len;
 	else
-		return -((int)data_len);
+		return err;
 }
 
 int
@@ -1064,6 +1068,10 @@ wlc_key_seq_less(wlc_key_t *key, const uint8 *seq, size_t seq_len,
 	uint8 key_seq[KM_KEY_MAX_DATA_LEN];
 	int key_seq_len;
 	key_seq_len = wlc_key_get_seq(key, key_seq, sizeof(key_seq), seq_id, tx);
+	if (key_seq_len < 0) {
+		KEY_ERR(("wlc_key_get_seq returns err of %d\n", key_seq_len));
+		return FALSE;
+	}
 	KM_DBG_ASSERT(key_seq_len >= 0 && (uint)key_seq_len <= sizeof(key_seq));
 	return km_key_seq_less(key_seq, seq, (size_t)MIN(key_seq_len, (int)seq_len));
 }
@@ -1072,7 +1080,7 @@ int
 wlc_key_advance_seq(wlc_key_t *key, const uint8 *seq, size_t seq_len,
 	wlc_key_seq_id_t seq_id, bool tx)
 {
-	int err = BCME_OK;
+	int err = BCME_UNSUPPORTED;
 	if (wlc_key_seq_less(key, seq, seq_len, seq_id, tx))
 		err = wlc_key_set_seq(key, seq, seq_len, seq_id, tx);
 	return err;

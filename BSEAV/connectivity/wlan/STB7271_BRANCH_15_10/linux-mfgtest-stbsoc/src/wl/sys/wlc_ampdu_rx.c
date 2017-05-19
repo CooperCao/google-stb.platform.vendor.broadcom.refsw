@@ -114,6 +114,11 @@ static const bcm_iovar_t ampdu_iovars[] = {
 	{"ampdu_rx_tid", IOV_AMPDU_RX_TID, (0), 0, IOVT_BUFFER, sizeof(struct ampdu_tid_control)},
 	{"ampdu_rx_density", IOV_AMPDU_RX_DENSITY, (IOVF_RSDB_SET), 0, IOVT_UINT8, 0},
 	{"ampdu_rx_factor", IOV_AMPDU_RX_FACTOR, (IOVF_SET_DOWN), 0, IOVT_UINT32, 0},
+#ifdef BCMINTDBG
+	{"ampdu_resp_timeout", IOV_AMPDU_RESP_TIMEOUT_B, (0), 0, IOVT_UINT16, 0},
+	{"ampdu_resp_timeout_nb", IOV_AMPDU_RESP_TIMEOUT_NB, (0), 0, IOVT_UINT16, 0},
+	{"ampdu_rx_ba_wsize", IOV_AMPDU_RX_BA_WSIZE, (0), 0, IOVT_UINT8, 0},
+#endif /* BCMINTDBG */
 #ifdef  WLAMPDU_HOSTREORDER
 	{"ampdu_hostreorder", IOV_AMPDU_HOSTREORDER, (IOVF_RSDB_SET), 0, IOVT_BOOL, 0},
 #endif /* WLAMPDU_HOSTREORDER */
@@ -1395,6 +1400,44 @@ wlc_ampdu_rx_doiovar(void *hdl, uint32 actionid,
 		wlc_ampdu_update_ie_param(ampdu_rx);
 		break;
 
+#ifdef BCMINTDBG
+	case IOV_GVAL(IOV_AMPDU_RX_BA_WSIZE):
+		*ret_int_ptr = (int32)ampdu_rx_cfg->ba_rx_wsize;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_RX_BA_WSIZE):
+		if ((int_val == 0) || (int_val > ampdu_rx_cfg->ba_max_rx_wsize)) {
+			err = BCME_BADARG;
+			break;
+		}
+		ampdu_rx_cfg->ba_rx_wsize = (uint8)int_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_RESP_TIMEOUT_B):
+		*ret_int_ptr = (int32)ampdu_rx_cfg->resp_timeout_b;
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_RESP_TIMEOUT_B):
+		if ((int_val < AMPDU_RESP_TIMEOUT) || (int_val > 32000)) {
+			err = BCME_BADARG;
+			break;
+		}
+		ampdu_rx_cfg->resp_timeout_b = (uint16)int_val;
+		break;
+
+	case IOV_GVAL(IOV_AMPDU_RESP_TIMEOUT_NB):
+		int_val = (int32)ampdu_rx_cfg->resp_timeout_nb;
+		bcopy(&int_val, a, vsize);
+		break;
+
+	case IOV_SVAL(IOV_AMPDU_RESP_TIMEOUT_NB):
+		if ((int_val < AMPDU_RESP_TIMEOUT) || (int_val > 32000)) {
+			err = BCME_BADARG;
+			break;
+		}
+		ampdu_rx_cfg->resp_timeout_nb = (uint16)int_val;
+		break;
+#endif /* BCMINTDBG */
 
 #ifdef  WLAMPDU_HOSTREORDER
 	case IOV_GVAL(IOV_AMPDU_HOSTREORDER):
@@ -1427,6 +1470,24 @@ wlc_ampdu_rx_doiovar(void *hdl, uint32 actionid,
 		bcopy(rxaggr, a, sizeof(*rxaggr));
 		break;
 	}
+#ifdef BCMINTDBG
+	case IOV_SVAL(IOV_AMPDU_RXAGGR):
+	{
+		struct ampdu_aggr *rxaggr = a;
+		uint16	enable_TID_bmap =
+			(rxaggr->enab_TID_bmap & rxaggr->conf_TID_bmap) & AMPDU_ALL_TID_BITMAP;
+		uint16	disable_TID_bmap =
+			((~rxaggr->enab_TID_bmap) & rxaggr->conf_TID_bmap) & AMPDU_ALL_TID_BITMAP;
+
+		if (enable_TID_bmap) {
+			wlc_ampdu_rx_set_bsscfg_aggr(ampdu_rx, bsscfg, ON, enable_TID_bmap);
+		}
+		if (disable_TID_bmap) {
+			wlc_ampdu_rx_set_bsscfg_aggr(ampdu_rx, bsscfg, OFF, disable_TID_bmap);
+		}
+		break;
+	}
+#endif /* BCMINTDBG */
 	default:
 		err = BCME_UNSUPPORTED;
 	}

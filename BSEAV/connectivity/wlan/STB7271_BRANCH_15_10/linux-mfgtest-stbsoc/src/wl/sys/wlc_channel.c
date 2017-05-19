@@ -611,6 +611,9 @@ static const bcm_iovar_t cm_iovars[] = {
 	{"rclass", IOV_RCLASS, 0, 0, IOVT_UINT16, 0},
 	{"clmload", IOV_CLMLOAD, IOVF_SET_DOWN, 0, IOVT_BUFFER, 0},
 	{"clmload_status", IOV_CLMLOAD_STATUS, 0, 0, IOVT_UINT32, 0},
+#if defined(WLTEST)
+	{"quiet_chan_override", IOV_QUIETCHAN, 0, 0, IOVT_UINT32, 0},
+#endif
 	{"txcapload", IOV_TXCAPLOAD, 0, 0, IOVT_BUFFER, 0},
 	{"txcapload_status", IOV_TXCAPLOAD_STATUS, 0, 0, IOVT_UINT32, 0},
 	{"txcapver", IOV_TXCAPVER, 0, 0, IOVT_BUFFER, 0},
@@ -1240,6 +1243,19 @@ wlc_cm_doiovar(void *hdl, uint32 actionid,
 		break;
 	}
 #endif /* WLC_TXPWRCAP */
+#if defined(WLTEST)
+	case IOV_GVAL(IOV_QUIETCHAN): {
+	    *ret_int_ptr = wlc_quiet_chanspec(wlc_cmi, wlc_cmi->wlc->chanspec);
+	  break;
+	}
+	case IOV_SVAL(IOV_QUIETCHAN): {
+	    if (int_val)
+	      wlc_set_quiet_chanspec(wlc_cmi, wlc_cmi->wlc->chanspec);
+	    else
+	      wlc_clr_quiet_chanspec(wlc_cmi, wlc_cmi->wlc->chanspec);
+	  break;
+	}
+#endif /* BCMWLTEST */
 #ifdef WL_EXPORT_CURPOWER
 	case IOV_GVAL(IOV_CLM_POWER_LIMITS):
 		err = wlc_get_clm_power_limits(wlc_cmi, (wlc_clm_power_limits_req_t *)arg, len);
