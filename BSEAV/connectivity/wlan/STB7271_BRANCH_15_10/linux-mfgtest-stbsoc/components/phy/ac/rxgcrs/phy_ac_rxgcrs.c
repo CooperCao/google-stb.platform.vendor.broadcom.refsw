@@ -244,9 +244,10 @@ static void* BCMRAMFN(phy_ac_get_rxg_param_tbl)(phy_info_t *pi, phy_ac_rxg_param
 static void wlc_phy_adjust_ed_thres_acphy(phy_type_rxgcrs_ctx_t * ctx, int32 *assert_thresh_dbm,
 	bool set_threshold);
 #ifndef ATE_BUILD
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 static int wlc_phy_noisecal_run_acphy(phy_type_rxgcrs_ctx_t *ctx, void *a, bool set);
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
 #endif /* !ATE_BUILD */
 static rxgain_ovrd_t rxgainindx_cmd_ovrd[PHY_CORE_MAX];
 
@@ -365,9 +366,10 @@ BCMATTACHFN(phy_ac_rxgcrs_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 	fns.get_rxgainindex = acphy_get_rxgain_index;
 	fns.set_rxgainindex = acphy_set_rxgain_index;
 #ifndef ATE_BUILD
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 	fns.forcecal_noise = wlc_phy_noisecal_run_acphy;
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
 #endif /* !ATE_BUILD */
 	fns.sel_classifier = phy_ac_rxgcrs_sel_classifier;
 	fns.stay_in_carriersearch = phy_ac_rxgcrs_stay_in_carriersearch;
@@ -8843,7 +8845,8 @@ static void wlc_phy_adjust_ed_thres_acphy(phy_type_rxgcrs_ctx_t *ctx, int32 *ass
 }
 
 #ifndef ATE_BUILD
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 /*
  * This function has been implemented to get over a problem seen in the multi-DUT test scenario.
  * In this scenarios because of the Tx Cal going on in the other neighbor DUT the Noise
@@ -8912,7 +8915,7 @@ wlc_phy_noisecal_run_acphy(phy_type_rxgcrs_ctx_t *ctx, void *a, bool set)
 
 	return BCME_OK;
 }
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
 #endif /* !ATE_BUILD */
 
 #ifdef WL11ULB

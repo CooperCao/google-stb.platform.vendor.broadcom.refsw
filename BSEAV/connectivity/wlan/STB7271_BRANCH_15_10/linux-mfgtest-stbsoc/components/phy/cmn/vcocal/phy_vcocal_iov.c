@@ -20,9 +20,9 @@
 #include <wlc_iocv_reg.h>
 
 static const bcm_iovar_t phy_vcocal_iovars[] = {
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"phy_vcocal", IOV_PHY_VCOCAL, (IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -42,14 +42,14 @@ phy_vcocal_doiovar(void *ctx, uint32 aid,
 	BCM_REFERENCE(pi);
 
 	switch (aid) {
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_PHY_VCOCAL):
 	case IOV_SVAL(IOV_PHY_VCOCAL):
 		phy_vcocal_force(pi);
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	default:
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 		err = BCME_UNSUPPORTED;
 #else
 		err = BCME_OK;

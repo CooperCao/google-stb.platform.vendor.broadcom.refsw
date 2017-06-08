@@ -60,7 +60,9 @@ wlc_iem_calc_get_assocreq_target(wlc_iem_calc_data_t *calc)
 		ASSERT(cbparm != NULL);
 		ASSERT(cbparm->ft != NULL);
 
-		if (cbparm != NULL && (ftcbparm = cbparm->ft) != NULL)
+		if (cbparm == NULL)
+			break;
+		if ((ftcbparm = cbparm->ft) != NULL)
 			return ftcbparm->assocreq.target;
 		break;
 	}
@@ -87,7 +89,9 @@ wlc_iem_build_get_assocreq_target(wlc_iem_build_data_t *build)
 		ASSERT(cbparm != NULL);
 		ASSERT(cbparm->ft != NULL);
 
-		if (cbparm != NULL && (ftcbparm = cbparm->ft) != NULL)
+		if (cbparm == NULL)
+			break;
+		if ((ftcbparm = cbparm->ft) != NULL)
 			return ftcbparm->assocreq.target;
 		break;
 	}

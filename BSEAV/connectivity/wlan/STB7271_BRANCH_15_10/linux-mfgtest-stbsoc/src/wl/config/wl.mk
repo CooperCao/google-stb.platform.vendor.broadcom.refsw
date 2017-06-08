@@ -31,6 +31,11 @@ ifeq ($(UCODE_IN_ROM),1)
 UCODE_ROM_DIR = components/ucode/dot11_releases/trunk/$(UCODE_ROM)/rom
 endif
 
+#To build from ucode_3wire. By default build from ucode_seci
+ifeq ($(BTCX_3WIRE),1)
+	WLFLAGS += -DBTCX_3WIRE
+endif
+
 #Add if you wan additonal internal debug. Want to limit debug builds module size
 ifeq ($(BCMINTDBG),1)
 	WLFLAGS += -DBCMINTDBG

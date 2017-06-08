@@ -145,7 +145,8 @@ enum {
 	IOV_WOWL_DPKT,			/**< not used */
 	IOV_WOWL_GPIO,	 /**< configure gpio pin to be used to indicate wakeup towards host */
 	IOV_WOWL_GPIOPOL,/**< configure polarity of wakeup gpio pin */
-	IOV_WOWL_RLS_WAKE_MDNS          /** release the mDNS payload of a packet that triggerred a wake up event */
+	IOV_WOWL_RLS_WAKE_MDNS,         /** release the mDNS payload of a packet that triggerred a wake up event */
+	IOV_WOWL_SENDUP_MDNS		/* release a pkt to the upper layer */
 };
 
 static const bcm_iovar_t wowl_iovars[] = {
@@ -167,6 +168,7 @@ static const bcm_iovar_t wowl_iovars[] = {
 	{"wowl_pm_mode", IOV_WOWL_PM_MODE, (0), 0, IOVT_INT32, 0},
 	{"wowl_activate", IOV_WOWL_ACTIVATE, (0), 0, IOVT_BOOL, 0},
 	{"wowl_rls_wake_mdns", IOV_WOWL_RLS_WAKE_MDNS, (0), 0, IOVT_BUFFER, 0},
+	{"wowl_sendup_wake_mdns", IOV_WOWL_SENDUP_MDNS, (0), 0, IOVT_BUFFER, 0},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -381,6 +383,8 @@ static int wlc_wowl_wake_reason_process_by_cfgid(wowl_info_t *wowl,
 #if defined(WOWL_DRV_NORELOAD)
 int wl_wowl_resume_normalmode(wlc_info_t* wlc);
 #endif /* WOWL_DRV_NORELOAD  */
+static int wlc_wowl_get_wake_mdns_pkt(wlc_info_t *wlc, void *buf,uint len);
+static int wlc_wowl_sendup_wake_mdns_pkt(wlc_info_t *wlc);
 
 /* antenna swap threshold */
 #define	ANTCNT			10	/**< vanilla M_MAX_ANTCNT value */
@@ -573,7 +577,15 @@ int wl_wowl_resume_normalmode(wlc_info_t* wlc)
 	WL_WOWL(("wl_wowl_resume_normalmode\n\n"));
 
 	bsscfg = wlc_bsscfg_find_by_wlcif(wlc, wlc->wlcif_list);
+	if (bsscfg == NULL) {
+		WL_ERROR(("%s could not find bsscfg by wlcif\n", __FUNCTION__));
+		return FALSE;
+	}
 	if (WOWL_ACTIVE(wlc->pub)) {
+		WL_WOWL(("Extract mdns packet and send to the network stack\n"));
+		if (wlc_wowl_sendup_wake_mdns_pkt(wlc))
+			WL_WOWL(("mdns packet not available -- resume normal mode\n"));
+
 		wlc_bmac_set_noreset(wlc->hw, TRUE);
 		wl_intrsoff(wlc->wl);
 		wlc_wowl_clear_by_cfgid(wowl, bsscfg->ID);
@@ -591,11 +603,14 @@ int wl_wowl_resume_normalmode(wlc_info_t* wlc)
 			wlc_bsscfg_t *cfg;
 			uint32 psmode = 0;
 			cfg = wlc_bsscfg_find_by_ID(wlc, bsscfg->ID);
-			if (cfg) {
-				/* Sync PS state */
-				wlc_set_ps_ctrl(cfg);
-				cfg->up=1;
+			if (cfg == NULL) {
+				WL_ERROR(("%s could not find bsscfg\n", __FUNCTION__));
+				return FALSE;
 			}
+			/* Sync PS state */
+			wlc_set_ps_ctrl(cfg);
+			cfg->up=1;
+
 			wlc_get(wlc, WLC_GET_PM, (int *)&psmode);
 			ASSERT(psmode <= PM_FAST);
 			if (wowl->pmstate_prev != psmode) {
@@ -609,6 +624,98 @@ int wl_wowl_resume_normalmode(wlc_info_t* wlc)
 	return 0;
 }
 #endif /* WOWL_DRV_NORELOAD */
+
+static int
+wlc_wowl_get_wake_mdns_pkt(wlc_info_t *wlc, void *buf,uint len) {
+	uint16 *payload_len;
+	uint8  *payload_mdns;
+	uint32 shm_offset;
+	uint16 len_temp;
+	int err = BCME_OK;
+
+	if ((D11REV_GT(wlc->pub->corerev, 65)) && (M_WAKEEVENT_IND(wlc) != ID16_INVALID)) {
+		if  ((wlc_read_shm(wlc, M_WAKEEVENT_IND(wlc)) & WL_WOWL_NET) &&
+				((wlc_read_shm(wlc, M_MDNS_FLAG(wlc)) & MDNS_WAKEIND) == MDNS_WAKEIND)) {
+			shm_offset = wlc_read_shm(wlc, M_NETPAT_BLK_PTR(wlc)) * 2;
+			len_temp = wlc_read_shm(wlc, shm_offset);
+			payload_len = (uint16*)buf;
+			*payload_len = len_temp;
+
+			if (len_temp & 1)
+				len_temp = len_temp + 1;
+
+			if (len < len_temp) {
+				err = BCME_BUFTOOSHORT;
+				return err;
+			}
+
+			payload_mdns = (uint8*)buf;
+			payload_mdns = payload_mdns + 2;
+			shm_offset = shm_offset + 2;
+			wlc_copyfrom_shm(wlc, shm_offset, payload_mdns, len_temp);
+		}
+		else {
+			err = BCME_EPERM;
+		}
+	}
+	else {
+		err = BCME_UNSUPPORTED;
+	}
+	return err;
+}
+static int
+wlc_wowl_sendup_wake_mdns_pkt(wlc_info_t *wlc){
+	uint16	len_temp;
+	uint16	pkt_len;
+	uint32	shm_offset;
+	uint8*	buf;
+	void	*wpkt;
+	int err = BCME_OK;
+
+	if ((D11REV_GT(wlc->pub->corerev, 65)) && (M_WAKEEVENT_IND(wlc) != ID16_INVALID)) {
+		if	((wlc_read_shm(wlc, M_WAKEEVENT_IND(wlc)) & WL_WOWL_NET) &&
+				((wlc_read_shm(wlc, M_MDNS_FLAG(wlc)) & MDNS_WAKEIND) == MDNS_WAKEIND)) {
+			shm_offset = wlc_read_shm(wlc, M_NETPAT_BLK_PTR(wlc)) * 2;
+			pkt_len = wlc_read_shm(wlc, shm_offset);
+
+			if ((wpkt = PKTGET(wlc->osh, pkt_len, FALSE)) == NULL) {
+				err = BCME_NOMEM;
+				return err;
+			}
+
+			if (pkt_len & 1)
+				len_temp = pkt_len + 1;
+			else
+				len_temp = pkt_len;
+
+			shm_offset = shm_offset + 2;
+			buf  = (uint8*) MALLOC(wlc->pub->osh, AMPDU_PKTQ_FAVORED_LEN);
+			if (buf == NULL) {
+				WL_WOWL(("%s: Failed to allocate memory ", __FUNCTION__));
+				PKTFREE(wlc->osh, wpkt, FALSE);
+				err = BCME_ERROR;
+				return err;
+			}
+
+			wlc_copyfrom_shm(wlc, shm_offset, buf, len_temp);
+
+			memcpy(PKTDATA(wlc->osh, wpkt), buf, pkt_len);
+			wl_sendup(wlc->wl, NULL, wpkt, 1);
+
+			if (buf != NULL)
+				MFREE(wlc->pub->osh, buf, AMPDU_PKTQ_FAVORED_LEN);
+		}
+		else {
+			WL_WOWL(("%s: Wake indication is not mDNS\n", __FUNCTION__));
+			err = BCME_EPERM;
+		}
+	}
+	else {
+		WL_WOWL(("%s: Wake indication is not valid\n", __FUNCTION__));
+		err = BCME_UNSUPPORTED;
+	}
+	return err;
+}
 
 /** handle WOWL related iovars */
 static int
@@ -747,8 +854,15 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 
 	case IOV_SVAL(IOV_WOWL_WAKEIND): {
 		if (strncmp(arg, "clear", sizeof("clear") - 1) == 0) {
-			wowl->pci_wakeind = FALSE;
-			wowl->wakeind = 0;
+
+			if (WOWL_ACTIVE(wlc->pub)) {
+				wowl->pci_wakeind = FALSE;
+				wowl->wakeind = 0;
+				wlc_write_shm(wlc,  M_WAKEEVENT_IND(wlc), (uint16)0x0);
+			}
+			else
+				err = BCME_UNSUPPORTED;
+
 		}
 		else {
 			wowl->wakeind = int_val;
@@ -756,45 +870,13 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 		break;
 	}
 
+	case IOV_GVAL(IOV_WOWL_SENDUP_MDNS): {
+		err = wlc_wowl_sendup_wake_mdns_pkt(wlc);
+		break;
+	}
+
 	case IOV_GVAL(IOV_WOWL_RLS_WAKE_MDNS): {
-
-		uint16 *payload_len;
-		uint8  *payload_mdns;
-		uint32 shm_offset;
-		uint16 len_temp;
-
-		if ((D11REV_GT(wlc->pub->corerev, 65)) && (M_WAKEEVENT_IND(wlc) != ID16_INVALID)) {
-			if  ((wlc_read_shm(wlc, M_WAKEEVENT_IND(wlc)) & WL_WOWL_NET) &&
-				((wlc_read_shm(wlc, M_MDNS_FLAG(wlc)) & MDNS_WAKEIND) == MDNS_WAKEIND)) {
-
-				shm_offset = wlc_read_shm(wlc, M_NETPAT_BLK_PTR(wlc)) * 2;
-				len_temp = wlc_read_shm(wlc, shm_offset);
-				payload_len = (uint16*)arg;
-				*payload_len = len_temp;
-
-				/*payload + mac_addr (6 bytes) and length (2 bytes) */
-				if (len_temp & 1)
-					len_temp = len_temp + ETHER_ADDR_LEN + 1 ;
-				else
-					len_temp = len_temp + ETHER_ADDR_LEN;
-
-				if (alen <(len_temp + 2)) {
-					err = BCME_BUFTOOSHORT;
-					break;
-				}
-
-				payload_mdns = (uint8*)arg;
-				payload_mdns = payload_mdns + 2;
-				shm_offset = shm_offset + 2;
-				wlc_copyfrom_shm(wlc, shm_offset, payload_mdns, len_temp);
-			}
-			else {
-				err = BCME_EPERM;
-			}
-		}
-		else {
-			err = BCME_UNSUPPORTED;
-		}
+		err = wlc_wowl_get_wake_mdns_pkt(wlc, arg, alen);
 		break;
 	}
 
@@ -916,6 +998,10 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 			wowl->wowl_force = 1;
 		} else if (WOWL_ACTIVE(wlc->pub)) {
 #if defined(WOWL_DRV_NORELOAD)
+			WL_WOWL(("Extract mdns packet and send to the network stack\n"));
+			if (wlc_wowl_sendup_wake_mdns_pkt(wlc))
+				WL_WOWL(("No mDNS packet available -- resume normal mode\n"));
+
 			wlc_bmac_set_noreset(wlc->hw, TRUE);
 			wl_intrsoff(wlc->wl);
 

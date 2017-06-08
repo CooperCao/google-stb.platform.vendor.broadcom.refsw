@@ -171,7 +171,7 @@ phy_btcx_is_btactive(phy_btcx_info_t *cmn_info)
 	return cmn_info->data->bt_active;
 }
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 int
 phy_btcx_get_preemptstatus(phy_info_t *pi, int32* ret_ptr)
 {
@@ -185,8 +185,23 @@ phy_btcx_get_preemptstatus(phy_info_t *pi, int32* ret_ptr)
 		return BCME_UNSUPPORTED;
 	}
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
+#if (!defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX) && defined(BCMINTPHYDBG))
+int
+phy_btcx_desense_ltecx(phy_info_t *pi, int32 mode)
+{
+	phy_type_btcx_fns_t *fns = pi->btcxi->priv->fns;
+
+	PHY_TRACE(("%s\n", __FUNCTION__));
+
+	if (fns->desense_ltecx != NULL) {
+		return (fns->desense_ltecx)(fns->ctx, mode);
+	} else {
+		return BCME_UNSUPPORTED;
+	}
+}
+#endif /* !defined (WLC_DISABLE_ACI) && defined (BCMLTECOEX) && defined (BCMINTPHYDBG) */
 
 #if !defined(WLC_DISABLE_ACI)
 int

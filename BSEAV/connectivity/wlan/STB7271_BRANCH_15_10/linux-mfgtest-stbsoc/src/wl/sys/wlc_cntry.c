@@ -228,12 +228,12 @@ wlc_cntry_external_to_internal(char *buf, int buflen)
 		strncpy(buf, "#r", buflen);
 	}
 #ifndef DONGLEBUILD
-#if !defined(BCMDBG) && (!defined(WLTEST) || defined(WLTEST_DISABLED))
+#if !defined(BCMINTDBG) && (!defined(WLTEST) || defined(WLTEST_DISABLED))
 	/* Don't allow ALL or RDR in production. */
 	if ((!strncmp(buf, "#a", sizeof("#a") - 1)) || (!strncmp(buf, "#r", sizeof("#r") - 1))) {
 		err = BCME_BADARG;
 	}
-#endif /* !defined(BCMDBG) && !defined(WLTEST) */
+#endif /* !defined(BCMINTDBG) && !defined(WLTEST) */
 #endif /* !DONGLEBUILD */
 	return err;
 }

@@ -46,8 +46,13 @@ else
 	endif
 endif
 
-D11SHMDEFS ?= $(D11SHM_SRCBASE)/wl/sys
-D11SHMDEFS_WOWL ?= $(D11SHM_SRCBASE)/wl/sys
+ifeq ($(BTCX_3WIRE),1)
+D11SHMDEFS ?= $(D11SHM_SRCBASE)/wl/sys/ucode_3wire
+D11SHMDEFS_WOWL ?= $(D11SHM_SRCBASE)/wl/sys/ucode_3wire
+else
+D11SHMDEFS ?= $(D11SHM_SRCBASE)/wl/sys/ucode_seci
+D11SHMDEFS_WOWL ?= $(D11SHM_SRCBASE)/wl/sys/ucode_seci
+endif
 
 D11SHM_TOOLS = $(D11SHM_SRCBASE)/../components/shared/d11shm
 D11SHM_TPL = $(D11SHM_SRCBASE)/wl/sys/d11shm.tpl

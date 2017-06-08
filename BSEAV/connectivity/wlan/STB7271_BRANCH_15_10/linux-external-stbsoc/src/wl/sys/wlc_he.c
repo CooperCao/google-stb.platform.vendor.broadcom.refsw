@@ -773,6 +773,13 @@ wlc_he_cmd_bsscolor(void *ctx, uint8 *params, uint16 plen, uint8 *result,
 	bcm_xtlv_t *xtlv = (bcm_xtlv_t *)params;
 	wlc_bsscfg_t *cfg = wlc_bsscfg_find_by_wlcif(wlc, wlcif);
 
+	if (cfg == NULL)
+	{
+		WL_ERROR(("wl%d: %s: wlc_bsscfg_find_by_wlcif returned NULL\n",
+				wlc->pub->unit, __FUNCTION__));
+		return BCME_ERROR;
+	}
+
 	if (set) {
 		if (!wlc_he_hw_cap(wlc)) {
 			return BCME_UNSUPPORTED;

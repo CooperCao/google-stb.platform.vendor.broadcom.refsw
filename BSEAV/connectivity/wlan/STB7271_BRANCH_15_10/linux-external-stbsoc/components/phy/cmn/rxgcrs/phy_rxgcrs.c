@@ -333,7 +333,7 @@ phy_rxgcrs_dump_phycal_rx_min(void *ctx, struct bcmstrbuf *b)
 #endif /* DBG_BCN_LOSS */
 
 
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 int
 wlc_phy_iovar_forcecal_noise(phy_info_t *pi, void *a, bool set)
 {

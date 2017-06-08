@@ -3566,6 +3566,13 @@ wlc_bsscfg_get_wlc_from_wlcif(wlc_info_t *wlc, wlc_if_t *wlcif)
 
 	bsscfg = wlc_bsscfg_find_by_wlcif(wlc, wlcif);
 
+	if (bsscfg == NULL)
+	{
+		WL_ERROR(("wl%d: %s: wlc_bsscfg_find_by_wlcif returned NULL\n",
+				wlc->pub->unit, __FUNCTION__));
+		return NULL;
+	}
+
 	return bsscfg->wlc;
 }
 

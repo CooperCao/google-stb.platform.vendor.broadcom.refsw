@@ -4911,10 +4911,12 @@ wlc_ap_doiovar(void *hdl, uint32 actionid,
 
 			bcopy(((uint8 *)arg + loc), (char *)&ea, ETHER_ADDR_LEN);
 
+#ifdef WOWL
 			if (wlc_iovar_op(wlc, "wowl_ext_magic", NULL, 0,
 				extended_magic_pattern, sizeof(extended_magic_pattern),
 				IOV_GET, NULL) == BCME_OK)
 				extended_magic = TRUE;
+#endif
 
 			if ((pkt = PKTGET(wlc->osh, tlea.pktlen +
 				(extended_magic ? sizeof(extended_magic_pattern) : 0) +

@@ -43,6 +43,10 @@ static cmd_func_t wl_wds_wpa_role_old, wl_wds_wpa_role;
 static cmd_func_t wl_dwds_config;
 #endif
 
+#ifndef IFNAMSIZ
+#define IFNAMSIZ	16
+#endif /* IFNAMSIZ */
+
 #define WDS_TYPE_USAGE	\
 "\tUsage: wl wds_type -i <ifname>\n" \
 "\tifname is the name of the interface to query the type.\n" \
@@ -200,3 +204,44 @@ wl_dwds_config(void *wl, cmd_t *cmd, char **argv)
 
 }
 #endif /* DWDS */
+
+int
+wl_get_wdslist(void *wl, cmd_t *cmd, void *bufp, uint32 *magic)
+{
+	int ret;
+	char *ifname;
+	struct wds_maclist *wds_maclist = (struct wds_maclist *) bufp;
+	struct ether_addr *ea;
+	uint i, max = (WLC_IOCTL_MEDLEN	- (sizeof(wds_maclist_t) - sizeof(wds_client_info_t)))
+			/ sizeof(wds_client_info_t);
+
+	memset(wds_maclist, 0, WLC_IOCTL_MEDLEN);
+
+	if (cmd->get != WLC_GET_WDSLIST) {
+		return BCME_BADARG;
+	}
+
+	wds_maclist->count = htod32(max);
+	if ((ret = wlu_get(wl, cmd->get, wds_maclist, WLC_IOCTL_MEDLEN)) < 0) {
+		return ret;
+	}
+
+	*magic = wds_maclist->magic;
+	if (*magic != WDS_MACLIST_MAGIC) {
+		return ret;
+	}
+
+	if (wds_maclist->version != WDS_MACLIST_VERSION) {
+		ret = BCME_UNSUPPORTED;
+		printf("ret = %d version = %d\n", ret, wds_maclist->version);
+		return ret;
+	}
+	wds_maclist->count = dtoh32(wds_maclist->count);
+
+	for (i = 0; i < wds_maclist->count && i < max; i++, ea++) {
+		ea = &(wds_maclist->client_list[i].ea);
+		ifname = wds_maclist->client_list[i].ifname;
+		printf("%s: %s\n", ifname, wl_ether_etoa(ea));
+	}
+	return BCME_OK;
+}

@@ -75,11 +75,11 @@ static int phy_ac_rssi_dump(phy_type_rssi_ctx_t *ctx, struct bcmstrbuf *b);
 #else
 #define phy_ac_rssi_dump NULL
 #endif
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static void phy_ac_rssi_update_pkteng_rxstats(phy_type_rssi_ctx_t *ctx, uint8 statidx);
 static int phy_ac_rssi_get_pkteng_stats(phy_type_rssi_ctx_t *ctx, void *a, int alen,
 	wl_pkteng_stats_t stats);
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 static int phy_ac_rssi_set_gain_delta_2g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues);
 static int phy_ac_rssi_get_gain_delta_2g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues);
 static int phy_ac_rssi_set_gain_delta_5g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues);
@@ -123,10 +123,10 @@ BCMATTACHFN(phy_ac_rssi_register_impl)(phy_info_t *pi, phy_ac_info_t *aci, phy_r
 	fns.compute = phy_ac_rssi_compute;
 	fns.init_gain_err = _phy_ac_rssi_init_gain_err;
 	fns.dump = phy_ac_rssi_dump;
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	fns.update_pkteng_rxstats = phy_ac_rssi_update_pkteng_rxstats;
 	fns.get_pkteng_stats = phy_ac_rssi_get_pkteng_stats;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	fns.set_gain_delta_2g = phy_ac_rssi_set_gain_delta_2g;
 	fns.get_gain_delta_2g = phy_ac_rssi_get_gain_delta_2g;
 	fns.set_gain_delta_5g = phy_ac_rssi_set_gain_delta_5g;
@@ -1077,7 +1077,7 @@ phy_ac_rssi_dump(phy_type_rssi_ctx_t *ctx, struct bcmstrbuf *b)
 }
 #endif /* BCMDBG || BCMDBG_DUMP */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static void
 phy_ac_rssi_update_pkteng_rxstats(phy_type_rssi_ctx_t *ctx, uint8 statidx)
 {
@@ -1201,7 +1201,7 @@ phy_ac_rssi_get_pkteng_stats(phy_type_rssi_ctx_t *ctx, void *a, int alen, wl_pkt
 
 	return BCME_OK;
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 static int
 phy_ac_rssi_set_gain_delta_2g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues)

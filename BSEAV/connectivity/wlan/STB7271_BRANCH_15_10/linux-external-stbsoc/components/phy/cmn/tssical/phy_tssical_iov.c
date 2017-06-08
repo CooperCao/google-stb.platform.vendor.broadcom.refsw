@@ -25,11 +25,24 @@
 #include <phy_type_tssical.h>
 
 static const bcm_iovar_t phy_tssical_iovars[] = {
+#if defined(BCMINTPHYDBG)
+	{"tssivisi_thresh", IOV_TSSIVISI_THRESH, 0, 0, IOVT_UINT32, 0},
+#endif 
 
 #ifdef WLC_TXCAL
 	{"phy_adj_tssi", IOV_PHY_ADJUSTED_TSSI,
 	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
 	},
+#if defined(BCMINTPHYDBG)
+	{"txcal_gainsweep", IOV_PHY_TXCAL_GAINSWEEP,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, sizeof(wl_txcal_params_t)
+	},
+	{"txcal_gainsweep_meas", IOV_PHY_TXCAL_GAINSWEEP_MEAS,
+	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER,
+	OFFSETOF(wl_txcal_meas_ncore_t, txcal_percore) +
+	PHY_CORE_MAX * sizeof(wl_txcal_meas_percore_t)
+	},
+#endif	
 	{"txcal_ver", IOV_PHY_TXCALVER,
 	(IOVF_MFG), 0, IOVT_INT32,	0
 	},
@@ -93,6 +106,12 @@ phy_tssical_doiovar(void *ctx, uint32 aid,
 	(void)ret_int_ptr;
 
 	switch (aid) {
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_TSSIVISI_THRESH):
+		int_val = wlc_phy_tssivisible_thresh((wlc_phy_t *)pi);
+		bcopy(&int_val, a, sizeof(int_val));
+		break;
+#endif 
 
 #ifdef WLC_TXCAL
 	case IOV_GVAL(IOV_OLPC_ANCHOR_2G):
@@ -141,6 +160,50 @@ phy_tssical_doiovar(void *ctx, uint32 aid,
 				(uint8) int_val);
 		break;
 
+#if defined(BCMINTPHYDBG)
+	case IOV_SVAL(IOV_PHY_TXCAL_GAINSWEEP):
+	{
+		wl_txcal_params_t txcal_params;
+		bcopy(p, &txcal_params, sizeof(wl_txcal_params_t));
+		phy_tssical_gainsweep(pi->tssicali, &txcal_params);
+		break;
+	}
+	case IOV_GVAL(IOV_PHY_TXCAL_GAINSWEEP_MEAS):
+	{
+		wl_txcal_meas_ncore_t * txcal_meas;
+		uint16 size = OFFSETOF(wl_txcal_meas_ncore_t, txcal_percore) +
+			PHY_CORE_MAX * sizeof(wl_txcal_meas_percore_t);
+		txcal_meas = (wl_txcal_meas_ncore_t *)p;
+		/* check for txcal version */
+		if (txcal_meas->version != TXCAL_IOVAR_VERSION) {
+			PHY_ERROR(("wl%d: %s: Version mismatch \n",
+				pi->sh->unit, __FUNCTION__));
+			err = BCME_VERSION;
+			break;
+		}
+		if (alen < size)
+		    return BCME_BADLEN;
+		/* start filling up return buffer */
+		txcal_meas = (wl_txcal_meas_ncore_t *)a;
+		phy_tssical_copy_get_gainsweep_meas(pi->tssicali, txcal_meas);
+		break;
+	}
+	case IOV_SVAL(IOV_PHY_TXCAL_GAINSWEEP_MEAS):
+	{
+		wl_txcal_meas_ncore_t * txcal_meas;
+		wl_txcal_meas_percore_t * per_core;
+		txcal_meas = (wl_txcal_meas_ncore_t *)p;
+		/* check for txcal version */
+		if (txcal_meas->version != TXCAL_IOVAR_VERSION) {
+			err = BCME_VERSION;
+			break;
+		}
+		/* set per core info */
+		per_core = txcal_meas->txcal_percore;
+		phy_tssical_set_measured_pwr(pi->tssicali, per_core);
+		break;
+	}
+#endif	
 	case IOV_GVAL(IOV_PHY_TXCALVER):
 	{
 		*ret_int_ptr = TXCAL_IOVAR_VERSION;
@@ -210,7 +273,7 @@ phy_tssical_doiovar(void *ctx, uint32 aid,
 #endif /* WLC_TXCAL */
 
 	default:
-#if defined(WLC_TXCAL)
+#if defined(BCMINTPHYDBG) || defined(WLC_TXCAL)
 		err = BCME_UNSUPPORTED;
 #else
 		err = BCME_OK;

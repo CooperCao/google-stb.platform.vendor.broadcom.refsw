@@ -124,7 +124,7 @@ BCMATTACHFN(phy_vcocal_unregister_impl)(phy_vcocal_info_t *cmn_info)
 	cmn_info->fns = NULL;
 }
 
-#if defined(WLTEST) || defined(RADIO_HEALTH_CHECK)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(RADIO_HEALTH_CHECK)
 void
 phy_vcocal_force(phy_info_t *pi)
 {
@@ -141,7 +141,7 @@ phy_vcocal_force(phy_info_t *pi)
 		PHY_INFORM(("%s: No phy specific function\n", __FUNCTION__));
 	}
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(RADIO_HEALTH_CHECK) */
 int phy_vcocal_status(phy_vcocal_info_t *vcocali)
 {
 	phy_type_vcocal_fns_t *fns = vcocali->fns;

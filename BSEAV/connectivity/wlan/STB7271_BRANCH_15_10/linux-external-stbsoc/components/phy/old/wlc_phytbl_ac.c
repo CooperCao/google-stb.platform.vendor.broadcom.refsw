@@ -17277,8 +17277,8 @@ CONST chan_info_radio2069_t chan_tuning_2069rev64[] = {
 };
 
 /* 2069 rev0 register dumping and initialization tables */
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 CONST radio_20xx_dumpregs_t dumpregs_2069_rev0[] = {
 	{ 0x0000 | JTAG_2069_REV0_ALL},
 	{ 0x0001 | JTAG_2069_REV0_ALL},
@@ -19854,7 +19854,7 @@ CONST radio_20xx_dumpregs_t dumpregs_2069_rev64[] = {
 	{ 0xFFFF,               }
 };
 
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 CONST radio_20xx_prefregs_t prefregs_2069_rev3[] = {
 	{ 0x003A | JTAG_2069_REV0_ALL,           0},

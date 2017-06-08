@@ -9391,11 +9391,11 @@ static bool wlc_tdls_rcv_on_target_ch(tdls_info_t *tdls, d11rxhdr_t *rxhdr,
 	wlc_info_t *wlc = tdls->wlc;
 	uint16 chan_bw, chan_band, chan_num;
 
-	chan_bw = CHSPEC_BW(rxhdr->lt80.RxChan);
+	chan_bw = CHSPEC_BW(D11RXHDR_ACCESS_VAL(rxhdr, wlc->pub->corerev, RxChan));
 	if (CHSPEC_BW(target_chanspec) != chan_bw)
 		return FALSE;
 
-	chan_band = CHSPEC_BAND(rxhdr->lt80.RxChan);
+	chan_band = CHSPEC_BAND(D11RXHDR_ACCESS_VAL(rxhdr, wlc->pub->corerev, RxChan));
 	if (CHSPEC_BAND(target_chanspec) != chan_band)
 		return FALSE;
 
@@ -9436,8 +9436,8 @@ wlc_tdls_rcv_data_frame(tdls_info_t *tdls, struct scb *scb, d11rxhdr_t *rxhdr)
 		         WLC_RX_CHANNEL(wlc->pub->corerev, rxhdr)));
 		return;
 	}
-
-	if (wf_chspec_ctlchan(scb_tdls->cur_chanspec) != wf_chspec_ctlchan(rxhdr->lt80.RxChan)) {
+	if (wf_chspec_ctlchan(scb_tdls->cur_chanspec) !=
+		wf_chspec_ctlchan(D11RXHDR_ACCESS_VAL(rxhdr, wlc->pub->corerev, RxChan))) {
 		WL_ERROR(("wl%d:%s():rcv pkt on chanspec %s, not in the current control"
 			" chanspec %s\n", tdls->pub->unit, __FUNCTION__,
 			wf_chspec_ntoa_ex(WLC_RX_CHANNEL(wlc->pub->corerev, rxhdr), chanbuf1),

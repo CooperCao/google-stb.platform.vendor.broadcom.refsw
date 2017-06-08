@@ -16017,14 +16017,30 @@ wl_maclist(void *wl, cmd_t *cmd, char **argv)
 	uint i, max = (WLC_IOCTL_MEDLEN - sizeof(int)) / ETHER_ADDR_LEN;
 	uint len;
 	struct ether_addr tmp_ea;
+	uint32 magic = 0;
 	bool found;
+
+	memset(maclist, 0, WLC_IOCTL_MEDLEN);
 
 	if (!*++argv) {
 		if (cmd->get < 0)
 			return -1;
-		maclist->count = htod32(max);
-		if ((ret = wlu_get(wl, cmd->get, maclist, WLC_IOCTL_MEDLEN)) < 0)
-			return ret;
+
+		if (cmd->get == WLC_GET_WDSLIST) {
+			if ((ret = wl_get_wdslist(wl, cmd, (void *)maclist, &magic)) < BCME_OK) {
+				return ret;
+			}
+
+			if (magic == WDS_MACLIST_MAGIC) {
+				return ret;
+			}
+		} else {
+			maclist->count = htod32(max);
+			if ((ret = wlu_get(wl, cmd->get, maclist, WLC_IOCTL_MEDLEN)) < 0) {
+				return ret;
+			}
+		}
+
 		maclist->count = dtoh32(maclist->count);
 		for (i = 0, ea = maclist->ea; i < maclist->count && i < max; i++, ea++)
 			printf("%s %s\n", cmd->name, wl_ether_etoa(ea));
@@ -17976,7 +17992,7 @@ wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 	       (sta->flags & WL_STA_ASSOC) ? " ASSOCIATED" : "",
 	       (sta->flags & WL_STA_AUTHO) ? " AUTHORIZED" : "");
 
-	printf("\t flags 0x%x:%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	printf("\t flags 0x%x:%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 	       sta->flags,
 	       (sta->flags & WL_STA_BRCM) ? " BRCM" : "",
 	       (sta->flags & WL_STA_WME) ? " WME" : "",
@@ -17992,7 +18008,11 @@ wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 	       (sta->flags & WL_STA_AMSDU_CAP) ? " AMSDU" : "",
 	       (sta->flags & WL_STA_MIMO_PS) ? " MIMO-PS" : "",
 	       (sta->flags & WL_STA_MIMO_RTS) ? " MIMO-PS-RTS" : "",
-	       (sta->flags & WL_STA_RIFS_CAP) ? " RIFS" : "");
+	       (sta->flags & WL_STA_RIFS_CAP) ? " RIFS" : "",
+	       (sta->flags & WL_STA_DWDS_CAP) ? " DWDS_CAP": "",
+	       (sta->flags & WL_STA_DWDS) ? " DWDS_ACTIVE" : "",
+	       (sta->flags & WL_STA_WDS) ? " WDS" : "",
+	       (sta->flags & WL_STA_WDS_LINKUP) ? " WDS_LINKUP" : "");
 
 	printf("\t HT caps 0x%x:%s%s%s%s%s%s%s%s%s\n",
 		sta->ht_capabilities,
@@ -22831,7 +22851,7 @@ wl_cca_get_stats(void *wl, cmd_t *cmd, char **argv)
 	void *ptr = NULL;
 	char *param, *val_p;
 	int base, limit, i, channel, err = 0;
-	int ibss_per, obss_per, inter_per, val;
+	int ibss_per, obss_per, inter_per, tx_per, rx_per, val;
 	const char *ibss_lvl = NULL;
 	const char *obss_lvl = NULL;
 	const char *inter_lvl = NULL;
@@ -22964,7 +22984,7 @@ wl_cca_get_stats(void *wl, cmd_t *cmd, char **argv)
 		if (do_individ) {
 			if (channel == base)
 				printf("chan dur      ibss           obss"
-					"           interf       time\n");
+					"           interf       RX       TX        time\n");
 			for (i = 0; i < results->num_secs; i++) {
 				chptr = &results->secs[i];
 				if (chptr->duration) {
@@ -22972,17 +22992,21 @@ wl_cca_get_stats(void *wl, cmd_t *cmd, char **argv)
 					ibss_per = chptr->congest_ibss * 100 /chptr->duration;
 					obss_per = chptr->congest_obss * 100 /chptr->duration;
 					inter_per = chptr->interference * 100 /chptr->duration;
+					tx_per = chptr->congest_tx * 100 /chptr->duration;
+					rx_per = chptr->congest_rx * 100 /chptr->duration;
 					/* Levels */
 					ibss_lvl = cca_level(ibss_per, IBSS_MED, IBSS_HI);
 					obss_lvl = cca_level(obss_per, OBSS_MED, OBSS_HI);
 					inter_lvl = cca_level(inter_per, INTERFER_MED, INTERFER_HI);
 
-				printf("%-3u %4d %4u %2d%% %-6s %4u %2d%% %-6s %4u %2d%% %-6s %d\n",
+				printf("%-3u %4d %4u %2d%% %-6s %4u %2d%% %-6s %4u %2d%% %-6s %4u %2d%% %4u %2d%%   %d\n",
 					CHSPEC_CHANNEL(results->chanspec),
 					chptr->duration,
 					chptr->congest_ibss, ibss_per, ibss_lvl,
 					chptr->congest_obss, obss_per, obss_lvl,
 					chptr->interference, inter_per, inter_lvl,
+					chptr->congest_rx, rx_per,
+					chptr->congest_tx, tx_per,
 					chptr->timestamp);
 				}
 			}
@@ -22991,7 +23015,7 @@ wl_cca_get_stats(void *wl, cmd_t *cmd, char **argv)
 
 	/* Print summary stats of each channel */
 	printf("Summaries:\n");
-	printf("chan dur      ibss           obss             interf     num seconds\n");
+	printf("chan dur      ibss           obss             interf     RX       TX        num seconds\n");
 	for (j = 0; j < avg_chan_idx; j++) {
 		/* Percentages */
 		ibss_per = avg[j]->secs[0].congest_ibss;
@@ -23003,12 +23027,14 @@ wl_cca_get_stats(void *wl, cmd_t *cmd, char **argv)
 		inter_lvl = cca_level(inter_per, INTERFER_MED, INTERFER_HI);
 
 		if (avg[j]->num_secs) {
-			printf("%-3u %4d %4s %2d%% %-6s %4s %2d%% %-6s %4s %2d%% %-6s %d\n",
+			printf("%-3u %4d %4s %2d%% %-6s %4s %2d%% %-6s %4s %2d%% %-6s      %2d%%      %2d%%     %d\n",
 				CHSPEC_CHANNEL(avg[j]->chanspec),
 				avg[j]->secs[0].duration,
 				"", avg[j]->secs[0].congest_ibss, ibss_lvl,
 				"", avg[j]->secs[0].congest_obss, obss_lvl,
 				"", avg[j]->secs[0].interference, inter_lvl,
+				avg[j]->secs[0].congest_rx,
+				avg[j]->secs[0].congest_tx,
 				avg[j]->num_secs);
 		}
 	}

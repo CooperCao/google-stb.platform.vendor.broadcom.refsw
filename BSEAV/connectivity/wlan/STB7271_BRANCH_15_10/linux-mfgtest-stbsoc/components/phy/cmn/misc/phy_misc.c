@@ -291,7 +291,7 @@ wlc_phy_clear_deaf(wlc_phy_t  *ppi, bool user_flag)
 	}
 }
 
-#if defined(WLTEST) || defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 void
 wlc_phy_iovar_tx_tone(phy_info_t *pi, int32 int_val)
 {
@@ -319,7 +319,7 @@ wlc_phy_iovar_txlo_tone(phy_info_t *pi)
 	if (fns->phy_type_misc_iovar_txlo_tone != NULL)
 		fns->phy_type_misc_iovar_txlo_tone(fns->ctx);
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD) */
 
 int wlc_phy_iovar_get_rx_iq_est(phy_info_t *pi, int32 *ret_int_ptr, int32 int_val, int err)
 {
@@ -363,7 +363,7 @@ int wlc_phy_iovar_set_rx_iq_est(phy_info_t *pi, void *p, int32 plen, int err)
 		return err;
 }
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 #define IFERR(x) do { err = (x); if (err) goto Exit; } while (0)
 int wlc_phy_iovar_get_rx_iq_est_sweep(phy_info_t *pi, void *p, int plen, void *a, int alen,
 	struct wlc_if *wlcif, int err)
@@ -412,7 +412,7 @@ Exit:
 	return err;
 }
 #undef IFERR
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 #ifdef PHY_DUMP_BINARY
 int

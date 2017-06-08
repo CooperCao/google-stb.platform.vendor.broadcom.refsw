@@ -227,7 +227,7 @@ wlc_cntry_external_to_internal(char *buf, int buflen)
 	} else if (!strncmp(buf, "RDR", sizeof("RDR") - 1)) {
 		strncpy(buf, "#r", buflen);
 	}
-#if !defined(BCMDBG)
+#if !defined(BCMINTDBG)
 	/* Don't allow ALL or RDR in production. */
 	if ((!strncmp(buf, "#a", sizeof("#a") - 1)) || (!strncmp(buf, "#r", sizeof("#r") - 1))) {
 		err = BCME_BADARG;

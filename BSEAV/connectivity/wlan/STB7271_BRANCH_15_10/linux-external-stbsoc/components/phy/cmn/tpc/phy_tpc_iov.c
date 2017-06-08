@@ -43,6 +43,12 @@ static const bcm_iovar_t phy_tpc_iovars[] = {
 #ifdef WL_SARLIMIT
 	{"phy_sarlimit", IOV_PHY_SAR_LIMIT, 0, 0, IOVT_UINT32, 0},
 #endif /* WL_SARLIMIT */
+#if defined(BCMINTPHYDBG)
+	{"initbaseidx2g", IOV_INITBASEIDX2G, (IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_UINT8, 0},
+	{"initbaseidx5g", IOV_INITBASEIDX5G, (IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_UINT8, 0},
+	{"pavars", IOV_PAVARS,
+	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, WL_PHY_PAVARS_LEN * sizeof(uint16)},
+#endif 
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -90,6 +96,35 @@ phy_tpc_doiovar(void *ctx, uint32 aid,
 		break;
 	}
 #endif /* WL_SARLIMIT */
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_INITBASEIDX2G):
+	{
+		*ret_int_ptr = pi->tpci->data->cfg->initbaseidx2govrval;
+		break;
+	}
+	case IOV_SVAL(IOV_INITBASEIDX2G):
+	{
+		pi->tpci->data->cfg->initbaseidx2govrval = (uint8)int_val;
+		break;
+	}
+	case IOV_GVAL(IOV_INITBASEIDX5G):
+	{
+		*ret_int_ptr = pi->tpci->data->cfg->initbaseidx5govrval;
+		break;
+	}
+	case IOV_SVAL(IOV_INITBASEIDX5G):
+	{
+		pi->tpci->data->cfg->initbaseidx5govrval = (uint8)int_val;
+		break;
+	}
+	case IOV_GVAL(IOV_PAVARS):
+		phy_tpc_get_pavars(pi->tpci, a, p);
+		break;
+
+	case IOV_SVAL(IOV_PAVARS):
+		phy_tpc_set_pavars(pi->tpci, a, p);
+		break;
+#endif 
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

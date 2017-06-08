@@ -838,6 +838,7 @@ typedef struct wlc_pub_cmn {
 	/* WLAWDL */
 	bool		_awdl;                  /* awdl enabled or not */
 	bool		_awdl_support;          /* awdl supported or not */
+	bool		_slvradar;		/* Slave radar is enabled or not */
 	bool            _radar;         /* Radar is supported or not */
 	bool            _wldfs;         /* DFS for AP is supported or not */
 	bool            _rsdb_dfs;      /* DFS support for RSDB is supported or not */
@@ -2994,6 +2995,10 @@ extern const uint8 fifo2prio[];
 #else
 #define WL11H_STA_ENAB(wlc)	0
 #endif /* BAND5G && SLAVE_RADAR */
+
+#if defined(SLAVE_RADAR)
+#define SLVRADAR_ENAB(pub) ((pub)->cmn->_slvradar)
+#endif /* SLAVE_RADAR */
 
 /* Interworking -- 11u Support */
 #ifdef WL11U

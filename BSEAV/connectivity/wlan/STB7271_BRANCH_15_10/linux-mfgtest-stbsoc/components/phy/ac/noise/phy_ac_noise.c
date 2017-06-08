@@ -415,6 +415,8 @@ BCMATTACHFN(phy_ac_noise_attach_modes)(phy_info_t *pi)
 			| ACPHY_HWACI_MITIGATION;
 		pi->sh->interference_mode_5G = ACPHY_ACI_GLITCHBASED_DESENSE
 			| ACPHY_HWACI_MITIGATION;
+		pi->sh->interference_mode_2G |= ACPHY_ACI_PREEMPTION;
+		pi->sh->interference_mode_5G |= ACPHY_ACI_PREEMPTION;
 	}  else if (ACMAJORREV_40(pi->pubpi->phy_rev)) {
 		if (ACMINORREV_1(pi)) {
 			pi->sh->interference_mode_2G |= ACPHY_ACI_GLITCHBASED_DESENSE
@@ -630,11 +632,20 @@ phy_ac_noise_set_mode(phy_type_noise_ctx_t *ctx, int wanted_mode, bool init)
 		if (!ACMAJORREV_32(pi->pubpi->phy_rev) && !ACMAJORREV_33(pi->pubpi->phy_rev) &&
 			!ACMAJORREV_37(pi->pubpi->phy_rev) && !ACPHY_ENABLE_FCBS_HWACI(pi))
 			wlc_phy_hwaci_setup_acphy(pi, TRUE, TRUE);
-		else
+		else {
 #ifdef WL_ACI_FCBS
 			wlc_phy_hwaci_mitigation_enable_acphy(pi, HWACI_AUTO_FCBS, TRUE);
 #else
 			wlc_phy_hwaci_mitigation_enable_acphy(pi, HWACI_AUTO_SW, TRUE);
+
+			/* To initialize the pi->noise->aci->desense structure with lna1_idx_max, etc */
+			if (pi->sh->interference_mode_override == TRUE && ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				if (ACPHY_HWACI_HWTBL_MITIGATION(pi)) {
+					phy_ac_noise_hwaci_mitigation(pi->u.pi_acphy->noisei, 1);
+					phy_ac_noise_hwaci_mitigation(pi->u.pi_acphy->noisei, 0);
+				}
+			}
+		}
 #endif /* WL_ACI_FCBS */
 	}
 #endif /* WLC_DISABLE_ACI */
@@ -2452,6 +2463,22 @@ wlc_phy_hwaci_mitigation_enable_acphy(phy_info_t *pi, uint8 hwaci_mode, bool ini
 		hwaci_states[1].mix_idx_max = 7;
 	}
 	else if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		/* Initialize hwaci_states for both bands since this gets called only once at init */
+		hwaci_states = pi_ac->noisei->hwaci_states_2g;
+		hwaci_states[0].lna1_idx_min = 0;
+		hwaci_states[0].lna1_idx_max = 5;
+		hwaci_states[0].lna2_idx_min = 3;
+		hwaci_states[0].lna2_idx_max = 3;
+		hwaci_states[0].mix_idx_min = 0;
+		hwaci_states[0].mix_idx_max = 15;
+		hwaci_states[1].lna1_idx_min = 0;
+		hwaci_states[1].lna1_idx_max = 5;	/* Do not desense here, is done using the LNARout table */
+		hwaci_states[1].lna2_idx_min = 3;
+		hwaci_states[1].lna2_idx_max = 3;
+		hwaci_states[1].mix_idx_min = 0;
+		hwaci_states[1].mix_idx_max = 15;
+
+		hwaci_states = pi_ac->noisei->hwaci_states_5g;
 		hwaci_states[0].lna1_idx_min = 0;
 		hwaci_states[0].lna1_idx_max = 5;
 		hwaci_states[0].lna2_idx_min = 3;
@@ -4873,6 +4900,7 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 	} else if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
 		/* 7271 PREEMPTion SETTINGs */
 		if (enable_preempt) {
+			ni->data->pktabortctl = 0xf041;
 			FOREACH_CORE(pi, core) {
 				MOD_PHYREGC(pi, _BPHY_TargetVar_log2_pt8us,
 				core, bphy_targetVar_log2_pt8us, 479);
@@ -4905,8 +4933,9 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 			ACPHY_REG_LIST_EXECUTE(pi);
 		} else {
 			/* Disable Preempt */
+			ni->data->pktabortctl = 0xf040;
 			MOD_PHYREG(pi, RxMacifMode, AbortStatusEn, 0);
-			MOD_PHYREG(pi, PktAbortCtrl, PktAbortEn, 0);
+			WRITE_PHYREG(pi, PktAbortCtrl, ni->data->pktabortctl);
 			ACPHYREG_BCAST(pi, PREMPT_per_pkt_en0, 0);
 		}
 	} else if (ACMAJORREV_40(pi->pubpi->phy_rev)) {

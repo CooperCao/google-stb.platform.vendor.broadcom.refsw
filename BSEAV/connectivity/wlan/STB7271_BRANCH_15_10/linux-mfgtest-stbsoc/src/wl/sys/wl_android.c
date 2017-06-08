@@ -5125,8 +5125,14 @@ static int wl_android_set_wowl_patterns(struct net_device *dev,
 	/* both offset and mask are uint, so 20 chars is sufficient */
 	char offset [20];
 	char mask [20];
+	char *pattern = NULL;
 
-	char *pattern = kzalloc(sizeof(command), GFP_KERNEL);
+	if (command == NULL || *command == 0) {
+		error = -1;
+		goto exit;
+	}
+
+	pattern = kzalloc(strlen(command)+1, GFP_KERNEL);
 	if (pattern == NULL) {
 		WL_ERR(("%s: Memory allocation error \n", __FUNCTION__));
 		error = -1;

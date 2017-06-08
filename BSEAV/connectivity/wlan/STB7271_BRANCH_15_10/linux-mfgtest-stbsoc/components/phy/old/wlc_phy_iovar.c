@@ -76,7 +76,7 @@ static const bcm_iovar_t phy_iovars[] = {
 	},
 #endif /* defined(BCMDBG) */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"nphy_cckpwr_offset", IOV_NPHY_CCK_PWR_OFFSET,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_INT8, 0
 	},
@@ -134,7 +134,7 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"nphy_phyreg_skipcount", IOV_NPHY_PHYREG_SKIPCNT,
 	(IOVF_MFG), 0, IOVT_INT8, 0
 	},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 #endif /* NCONF */
 #if defined(BCMDBG) || defined(WLTEST)
 	{"fast_timer", IOV_FAST_TIMER,
@@ -158,7 +158,7 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"cal_period", IOV_CAL_PERIOD,
 	0, 0, IOVT_UINT32, 0
 	},
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"phymsglevel", IOV_PHYHAL_MSG,
 	(0), 0, IOVT_UINT32, 0
 	},
@@ -232,36 +232,37 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"phy_lowpower_beacon_mode", IOV_PHY_LOWPOWER_BEACON_MODE,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
 	},
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 	{"phy_rx_gainindex", IOV_PHY_RXGAININDEX,
 	IOVF_GET_UP | IOVF_SET_UP, 0, IOVT_UINT16, 0
 	},
 	{"phy_forcecal", IOV_PHY_FORCECAL,
 	IOVF_SET_UP, 0, IOVT_UINT8, 0
 	},
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 #ifndef ATE_BUILD
 	{"phy_forcecal_obt", IOV_PHY_FORCECAL_OBT,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
 	},
 #endif /* !ATE_BUILD */
-#endif 
-#if defined(WLTEST) || defined(MACOSX)
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX)
 	{"phy_deaf", IOV_PHY_DEAF,
 	(IOVF_GET_UP | IOVF_SET_UP), 0, IOVT_UINT8, 0
 	},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX) */
 	{"num_stream", IOV_NUM_STREAM,
 	(0), 0, IOVT_INT32, 0
 	},
 	{"min_txpower", IOV_MIN_TXPOWER,
 	0, 0, IOVT_UINT32, 0
 	},
-#if defined(MACOSX)
+#if defined(BCMINTPHYDBG) || defined(MACOSX)
 	{"phywreg_limit", IOV_PHYWREG_LIMIT,
 	0, 0, IOVT_UINT32, IOVT_UINT32
 	},
-#endif 
+#endif /* BCMINTPHYDBG */
 	{"phy_muted", IOV_PHY_MUTED,
 	0, 0, IOVT_UINT8, 0
 	},
@@ -307,12 +308,12 @@ static const bcm_iovar_t phy_iovars[] = {
 	IOVF_GET_UP, 0, IOVT_INT16, 0
 	},
 #endif /* BCMDBG || WLTEST || ATE_BUILD || BCMDBG_TEMPSENSE */
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"phy_cal_disable", IOV_PHY_CAL_DISABLE,
 	(IOVF_MFG), 0, IOVT_UINT8, 0
 	},
-#endif  
-#if defined(WLTEST)
+#endif  /* BCMINTPHYDBG || WLTEST */
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"phy_vbatsense", IOV_PHY_VBATSENSE,
 	IOVF_GET_UP, 0, IOVT_INT32, 0
 	},
@@ -328,7 +329,7 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"phy_iqlocalidx", IOV_PHY_IQLOCALIDX,
 	(IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
 	},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	{"phy_sromtempsense", IOV_PHY_SROM_TEMPSENSE,
 	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_INT16, 0
 	},
@@ -340,11 +341,11 @@ static const bcm_iovar_t phy_iovars[] = {
 	IOVF_GET_UP, 0, IOVT_UINT32, 0,
 	},
 #endif /* PHYMON */
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"aci_exit_check_period", IOV_ACI_EXIT_CHECK_PERIOD,
 	(IOVF_MFG), 0, IOVT_UINT32, 0
 	},
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 #if defined(WLTEST)
 	{"phy_glitchthrsh", IOV_PHY_GLITCHK,
 	(IOVF_MFG), 0, IOVT_UINT8, 0
@@ -356,19 +357,19 @@ static const bcm_iovar_t phy_iovars[] = {
 	(IOVF_MFG), 0, IOVT_UINT8, 0
 	},
 #endif /* #if defined(WLTEST) */
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"rpcalvars", IOV_RPCALVARS,
 	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, 2*WL_NUM_RPCALVARS * sizeof(wl_rpcal_t)
 	},
-#endif 
-#if defined(WLTEST)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
+#if (defined(BCMINTPHYDBG) || defined(WLTEST))
 	{"phy_tpc_av", IOV_TPC_AV,
 	(IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_BUFFER, 0
 	},
 	{"phy_tpc_vmid", IOV_TPC_VMID,
 	(IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_BUFFER, 0
 	},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 #if defined(BCMDBG)
 	{"phy_force_fdiqi", IOV_PHY_FORCE_FDIQI,
 	IOVF_SET_UP, 0, IOVT_UINT32, 0
@@ -391,19 +392,19 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"lnldo2", IOV_LNLDO2,
 	(IOVF_MFG), 0, IOVT_UINT8, 0
 	},
-#if defined(WLTEST) || defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV)
 	{"phy_dynamic_ml", IOV_PHY_DYN_ML,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
 	},
 	{"aci_nams", IOV_PHY_ACI_NAMS,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
 	},
-#endif 
-#if defined(WLTEST)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) */
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"phy_auxpga", IOV_PHY_AUXPGA,
 	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, 6*sizeof(uint8)
 	},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 #if defined(WLTEST)
 #if (defined(LCN20CONF) && (LCN20CONF != 0))
 	{"lcnphy_txclampdis", IOV_LCNPHY_TXPWRCLAMP_DIS,
@@ -420,15 +421,15 @@ static const bcm_iovar_t phy_iovars[] = {
 	},
 #endif
 
-#if defined(WLTEST) || defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 	{"phy_txpwrctrl", IOV_PHY_TXPWRCTRL,
 	(IOVF_MFG), 0, IOVT_UINT8, 0
 	},
 	{"phy_txpwrindex", IOV_PHY_TXPWRINDEX,
 	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, 0
 	},
-#endif 
-#if defined(WLTEST)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD) */
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"patrim", IOV_PATRIM,
 	(IOVF_MFG), 0, IOVT_INT32, 0
 	},
@@ -438,7 +439,7 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"povars", IOV_POVARS,
 	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, sizeof(wl_po_t)
 	},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	{"sromrev", IOV_SROM_REV,
 	(IOVF_SET_DOWN), 0, IOVT_UINT8, 0
 	},
@@ -528,7 +529,7 @@ static const bcm_iovar_t phy_iovars[] = {
 #include <phy_ac_calmgr.h>
 #include <phy_noise.h>
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 #define BFECONFIGREF_FORCEVAL    0x9
 #define BFMCON_FORCEVAL          0x8c03
 #define BFMCON_RELEASEVAL        0x8c1d
@@ -536,7 +537,7 @@ static const bcm_iovar_t phy_iovars[] = {
 #define REFRESH_THR_RELEASEVAL   0x186a
 #define BFRIDX_POS_FORCEVAL      0x100
 #define BFRIDX_POS_RELEASEVAL    0x0
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
@@ -571,23 +572,23 @@ static int wlc_phy_iovar_get_bphymrc(phy_info_t *pi, int32 *get_val);
 static int
 wlc_phy_iovar_tempsense_paldosense(phy_info_t *pi, int32 *ret_int_ptr, uint8 tempsense_paldosense);
 #endif
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static int
 wlc_phy_iovar_bbmult_get(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr);
 static int wlc_phy_iovar_bbmult_set(phy_info_t *pi, void *p);
 static int wlc_phy_iovar_vbatsense(phy_info_t *pi, int32 *ret_int_ptr);
-#endif 
-#if defined(WLTEST)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
+#if (defined(BCMINTPHYDBG) || defined(WLTEST))
 static int
 wlc_phy_iovar_avvmid_get(phy_info_t *pi, void *p,
 	bool bool_val, int32 *ret_int_ptr, wlc_avvmid_t avvmid_type);
 static int wlc_phy_iovar_avvmid_set(phy_info_t *pi, void *p,  wlc_avvmid_t avvmid_type);
-#endif 
-#if defined(WLTEST)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static int wlc_phy_iovar_idletssi_reg(phy_info_t *pi, int32 *ret_int_ptr, int32 int_val, bool set);
 static int wlc_phy_iovar_avgtssi_reg(phy_info_t *pi, int32 *ret_int_ptr);
-#endif 
-#if defined(WLTEST)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static int wlc_phy_iovar_txrx_chain(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, bool set);
 static void wlc_phy_iovar_bphy_testpattern(phy_info_t *pi, uint8 testpattern, bool enable);
 static void wlc_phy_iovar_scraminit(phy_info_t *pi, int8 scraminit);
@@ -601,38 +602,38 @@ static int16 wlc_phy_iovar_forcesteer(phy_info_t *pi, uint8 enable);
 static void
 wlc_phy_iovar_rxcore_enable(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr,
 	bool set);
-#endif 
-#if defined(WLTEST) || defined(MACOSX)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX)
 static void wlc_phy_iovar_set_deaf(phy_info_t *pi, int32 int_val);
 static int wlc_phy_iovar_get_deaf(phy_info_t *pi, int32 *ret_int_ptr);
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX) */
 static int
 wlc_phy_iovar_forcecal(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set);
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG) || \
-	defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG) || defined(ATE_BUILD)
 #ifndef ATE_BUILD
 static int
 wlc_phy_iovar_forcecal_obt(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set);
 #endif /* !ATE_BUILD */
-#endif 
-#if defined(WLTEST) || defined(ATE_BUILD)
+#endif /* BCMINTPHYDBG || WLTEST || WLMEDIA_N2DBG || WLMEDIA_N2DEV || ATE_BUILD */
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 static int
 wlc_phy_iovar_txpwrctrl(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr,
 	bool set);
 static int
 wlc_phy_iovar_txpwrindex_get(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr);
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD) */
 
-#if defined(WLTEST) || defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV)
 static int
 wlc_phy_aci_nams(phy_info_t *pi, int32 int_val,	int32 *ret_int_ptr, int vsize, bool set);
 static int
 wlc_phy_dynamic_ml(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set);
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) */
 int phy_iovars_wrapper_sample_collect(phy_info_t *pi, uint32 actionid, uint16 type,
 		void *p, uint plen, void *a, int alen, int vsize);
 
-#if defined(WLTEST) || defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV)
 static int
 wlc_phy_dynamic_ml(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set)
 {
@@ -686,7 +687,7 @@ wlc_phy_aci_nams(phy_info_t *pi, int32 int_val,	int32 *ret_int_ptr, int vsize, b
 	}
 	return err;
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) */
 
 static void
 wlc_phy_cal_perical_mphase_schedule(phy_info_t *pi, uint delay_val)
@@ -1187,7 +1188,7 @@ wlc_phy_trigger_cals_for_btc_adjust(phy_info_t *pi)
 	wlc_phy_cal_perical_mphase_schedule(pi, PHY_PERICAL_NODELAY);
 }
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 
 static int
 wlc_phy_iovar_bbmult_get(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr)
@@ -1221,7 +1222,7 @@ wlc_phy_iovar_bbmult_set(phy_info_t *pi, void *p)
 	return err;
 }
 
-#if defined(WLTEST)
+#if (defined(BCMINTPHYDBG) || defined(WLTEST))
 static int
 wlc_phy_iovar_avvmid_get(phy_info_t *pi, void *p, bool bool_val,
 	int32 *ret_int_ptr, wlc_avvmid_t avvmid_type)
@@ -1249,7 +1250,7 @@ wlc_phy_iovar_avvmid_set(phy_info_t *pi, void *p, wlc_avvmid_t avvmid_type)
 		err = BCME_UNSUPPORTED;
 	return err;
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 static int
 wlc_phy_iovar_vbatsense(phy_info_t *pi, int32 *ret_int_ptr)
@@ -1265,7 +1266,7 @@ wlc_phy_iovar_vbatsense(phy_info_t *pi, int32 *ret_int_ptr)
 
 	return err;
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 #if defined(BCMDBG) || defined(WLTEST) || defined(ATE_BUILD) || \
 	defined(BCMDBG_TEMPSENSE)
@@ -1310,7 +1311,7 @@ wlc_phy_iovar_tempsense_paldosense(phy_info_t *pi, int32 *ret_int_ptr, uint8 tem
 		* defined(BCMDBG_TEMPSENSE)
 		*/
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static int
 wlc_phy_iovar_idletssi_reg(phy_info_t *pi, int32 *ret_int_ptr, int32 int_val, bool set)
 {
@@ -1358,7 +1359,7 @@ wlc_phy_iovar_avgtssi_reg(phy_info_t *pi, int32 *ret_int_ptr)
 	}
 	return err;
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 static int
 wlc_phy_iovar_forcecal(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set)
@@ -1462,8 +1463,8 @@ wlc_phy_iovar_forcecal(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vs
 	return err;
 }
 
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG) || \
-	defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG) || defined(ATE_BUILD)
 #ifndef ATE_BUILD
 static int
 wlc_phy_iovar_forcecal_obt(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set)
@@ -1498,9 +1499,9 @@ wlc_phy_iovar_forcecal_obt(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, in
 	return err;
 }
 #endif /* !ATE_BUILD */
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || ATE_BUILD */
 
-#if defined(WLTEST) || defined(MACOSX)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX)
 static void
 wlc_phy_iovar_set_deaf(phy_info_t *pi, int32 int_val)
 {
@@ -1527,8 +1528,8 @@ wlc_phy_iovar_get_deaf(phy_info_t *pi, int32 *ret_int_ptr)
 		return BCME_UNSUPPORTED;
 	}
 }
-#endif 
-#if defined(WLTEST) || defined(ATE_BUILD)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX) */
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 static int
 wlc_phy_iovar_txpwrctrl(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr,
 	bool set)
@@ -1600,7 +1601,7 @@ wlc_phy_iovar_txpwrindex_get(phy_info_t *pi, int32 int_val, bool bool_val, int32
 	}
 	return err;
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD) */
 
 int
 wlc_phy_iovar_txpwrindex_set(phy_info_t *pi, void *p)
@@ -1650,7 +1651,7 @@ wlc_phy_iovar_txpwrindex_set(phy_info_t *pi, void *p)
 	return err;
 }
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static int
 wlc_phy_iovar_txrx_chain(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, bool set)
 {
@@ -1975,7 +1976,7 @@ wlc_phy_iovar_rxcore_enable(phy_info_t *pi, int32 int_val, bool bool_val, int32 
 	wlapi_enable_mac(pi->sh->physhim);
 }
 
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 static int
 wlc_phy_iovar_set_dssf(phy_info_t *pi, int32 set_val)
@@ -2284,7 +2285,7 @@ wlc_phy_iovar_dispatch_old(phy_info_t *pi, uint32 actionid, void *p, void *a, in
 		break;
 #endif /* defined(BCMDBG) */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_NPHY_CCK_PWR_OFFSET):
 		if (ISNPHY(pi)) {
 			int_val =  pi_nphy->nphy_cck_pwr_err_adjust;
@@ -2634,7 +2635,7 @@ wlc_phy_iovar_dispatch_old(phy_info_t *pi, uint32 actionid, void *p, void *a, in
 	case IOV_GVAL(IOV_NPHY_PHYREG_SKIPCNT):
 		*ret_int_ptr = (int32)pi->nphy_phyreg_skipcnt;
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 #endif /* NCONF */
 
 	default:
@@ -2725,7 +2726,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 	case IOV_SVAL(IOV_CAL_PERIOD):
 	        pi->cal_period = (uint32)int_val;
 	        break;
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_PHYHAL_MSG):
 		*ret_int_ptr = (int32)phyhal_msg_level;
 		break;
@@ -2927,7 +2928,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		wlc_phy_lowpower_beacon_mode(pih, int_val);
 		break;
 #endif /* WLC_LOWPOWER_BEACON_MODE */
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 	case IOV_GVAL(IOV_PHY_RXGAININDEX):
 		if (!pi->sh->clk) {
 			err = BCME_NOCLK;
@@ -2951,7 +2952,8 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 	case IOV_SVAL(IOV_PHY_FORCECAL):
 		err = wlc_phy_iovar_forcecal(pi, int_val, ret_int_ptr, vsize, TRUE);
 		break;
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 #ifndef ATE_BUILD
 	case IOV_GVAL(IOV_PHY_FORCECAL_OBT):
 		err = wlc_phy_iovar_forcecal_obt(pi, int_val, ret_int_ptr, vsize, FALSE);
@@ -2961,15 +2963,15 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		err = wlc_phy_iovar_forcecal_obt(pi, int_val, ret_int_ptr, vsize, FALSE);
 		break;
 #endif /* !ATE_BUILD */
-#endif 
-#if defined(WLTEST) || defined(MACOSX)
+#endif /* BCMINTPHYDBG || WLTEST || WFD_PHY_LL_DEBUG || ATE_BUILD */
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX)
 	case IOV_SVAL(IOV_PHY_DEAF):
 		wlc_phy_iovar_set_deaf(pi, int_val);
 		break;
 	case IOV_GVAL(IOV_PHY_DEAF):
 		err = wlc_phy_iovar_get_deaf(pi, ret_int_ptr);
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(MACOSX) */
 	case IOV_GVAL(IOV_NUM_STREAM):
 		if (ISNPHY(pi)) {
 			int_val = 2;
@@ -2997,7 +2999,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		bcopy(&int_val, a, sizeof(int_val));
 		break;
 
-#if defined(MACOSX)
+#if defined(BCMINTPHYDBG) || defined(MACOSX)
 	case IOV_GVAL(IOV_PHYWREG_LIMIT):
 		int_val = pi->phy_wreg_limit;
 		bcopy(&int_val, a, vsize);
@@ -3006,7 +3008,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 	case IOV_SVAL(IOV_PHYWREG_LIMIT):
 		pi->phy_wreg_limit = (uint8)int_val;
 		break;
-#endif 
+#endif /* BCMINTPHYDBG  || MACOSX */
 	case IOV_GVAL(IOV_PHY_MUTED):
 		*ret_int_ptr = PHY_MUTED(pi) ? 1 : 0;
 		break;
@@ -3123,7 +3125,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 			*ret_int_ptr = pi->pdpi->entry = (uint16)int_val;
 			break;
 		}
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_SVAL(IOV_ACI_EXIT_CHECK_PERIOD):
 		if (int_val == 0)
 			err = BCME_RANGE;
@@ -3136,7 +3138,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		bcopy(&int_val, a, vsize);
 		break;
 
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 #if defined(WLTEST)
 	case IOV_SVAL(IOV_PHY_GLITCHK):
 		pi->tunings[0] = (uint16)int_val;
@@ -3178,7 +3180,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		err = wlc_phy_iovar_tempsense_paldosense(pi, ret_int_ptr, 0);
 		break;
 #endif /* BCMDBG || WLTEST || ATE_BUILD || BCMDBG_TEMPSENSE */
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_PHY_CAL_DISABLE):
 		*ret_int_ptr = (int32)pi->disable_percal;
 		break;
@@ -3231,7 +3233,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 
 	case IOV_SVAL(IOV_PHY_IQLOCALIDX):
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	case IOV_SVAL(IOV_PHY_SROM_TEMPSENSE):
 	{
 		pi->srom_rawtempsense = (int16)int_val;
@@ -3275,7 +3277,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		bcopy(&int_val, a, sizeof(int_val));
 		break;
 
-#if defined(WLTEST) || defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 	case IOV_GVAL(IOV_PHY_TXPWRCTRL):
 		wlc_phy_iovar_txpwrctrl(pi, int_val, bool_val, ret_int_ptr, FALSE);
 		break;
@@ -3299,8 +3301,8 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		}
 		wlc_phy_iovar_txpwrindex_get(pi, int_val, bool_val, ret_int_ptr);
 		break;
-#endif 
-#if defined(WLTEST)
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD) */
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_PATRIM):
 		if (ISACPHY(pi))
 			wlc_phy_iovar_patrim_acphy(pi, ret_int_ptr);
@@ -3569,7 +3571,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		}
 	}
 	break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 	case IOV_GVAL(IOV_SROM_REV): {
 			*ret_int_ptr = pi->sh->sromrev;
@@ -3620,7 +3622,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		break;
 	}
 #endif /* WLTEST */
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_SVAL(IOV_RPCALVARS): {
 		const wl_rpcal_t *rpcal = p;
 		if (ACMAJORREV_1(pi->pubpi->phy_rev)) {
@@ -3698,7 +3700,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		}
 		break;
 	}
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 #if defined(BCMDBG)
 	case IOV_SVAL(IOV_PHY_FORCE_FDIQI):
 	{
@@ -3748,13 +3750,13 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 			PHY_ERROR(("PHY_AFE_OVERRIDE is not supported for this chip \n"));
 		}
 		break;
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_SVAL(IOV_PHY_AUXPGA):
 		break;
 
 	case IOV_GVAL(IOV_PHY_AUXPGA):
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 #if defined(WLTEST)
 #if (defined(LCN20CONF) && (LCN20CONF != 0))
 	case IOV_GVAL(IOV_LCNPHY_TXPWRCLAMP_DIS):
@@ -3796,7 +3798,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		err = wlc_phy_iovar_prog_lnldo2(pi, int_val, bool_val, ret_int_ptr, TRUE);
 		break;
 #endif /* NCONF */
-#if defined(WLTEST) || defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV)
 	case IOV_GVAL(IOV_PHY_DYN_ML):
 		err =  wlc_phy_dynamic_ml(pi, int_val, ret_int_ptr, vsize, FALSE);
 		break;
@@ -3812,7 +3814,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 	case IOV_SVAL(IOV_PHY_ACI_NAMS):
 		err =  wlc_phy_aci_nams(pi, int_val, ret_int_ptr, vsize, TRUE);
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) */
 
 #if defined(BCMDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_PHY_MASTER_OVERRIDE): {

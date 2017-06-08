@@ -30,7 +30,12 @@ static const bcm_iovar_t phy_papdcal_iovars[] = {
 	{"phy_epacal2gmask", IOV_PHY_EPACAL2GMASK, 0, 0, IOVT_INT16, 0},
 #endif 
 
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG)
+	{"phy_pacalidx0", IOV_PHY_PACALIDX0, (IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT32, 0},
+	{"phy_pacalidx1", IOV_PHY_PACALIDX1, (IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT32, 0},
+	{"phy_pacalidx", IOV_PHY_PACALIDX, (IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT32, 0},
+#endif 
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 	{"phy_papd_en_war", IOV_PAPD_EN_WAR, (IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0},
 	{"phy_skippapd", IOV_PHY_SKIPPAPD, (IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_UINT8, 0},
 #endif 
@@ -80,7 +85,20 @@ phy_papdcal_doiovar(void *ctx, uint32 aid,
 		}
 #endif 
 
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG)
+		case IOV_GVAL(IOV_PHY_PACALIDX0):
+			err = phy_papdcal_get_lut_idx0(pi, ret_int_ptr);
+			break;
+
+		case IOV_GVAL(IOV_PHY_PACALIDX1):
+			err = phy_papdcal_get_lut_idx1(pi, ret_int_ptr);
+			break;
+
+		case IOV_SVAL(IOV_PHY_PACALIDX):
+			err = phy_papdcal_set_idx(pi, (int8)int_val);
+			break;
+#endif 
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 		case IOV_SVAL(IOV_PAPD_EN_WAR):
 			wlapi_bmac_write_shm(pi->sh->physhim, M_PAPDOFF_MCS(pi), (uint16)int_val);
 			break;

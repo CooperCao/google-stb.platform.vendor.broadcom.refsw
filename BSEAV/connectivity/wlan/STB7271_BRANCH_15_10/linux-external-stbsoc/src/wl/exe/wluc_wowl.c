@@ -235,19 +235,27 @@ wl_wowl_rls_mdns(void *wl, cmd_t *cmd, char **argv)
 	uint8 buf[WLC_IOCTL_MEDLEN];
 	argv++;
 
-	if ((err = wlu_iovar_get(wl,"wowl_rls_wake_mdns",buf, WLC_IOCTL_MEDLEN)))
+	if ((err = wlu_iovar_get(wl,"wowl_rls_wake_mdns", buf, WLC_IOCTL_MEDLEN)))
 		return err;
 
 	len = (uint16)buf[0];
 
 	if (len > 0) {
+
+		printf ("\n Packet length (bytes): %d \n", len);
+
+		printf ("\n Dest MAC Addr (hex): ");
+		for (i = 0; i < ETHER_ADDR_LEN; i++)
+			printf ("%02x ",buf[i + 2 + ETHER_ADDR_LEN]);
+
 		printf ("\n Source MAC Addr (hex): ");
 		for (i = 0; i < ETHER_ADDR_LEN; i++)
-			printf ("%02x ",buf[i+2]);
+			printf ("%02x ",buf[i + 2]);
+
 		printf("\n\n Payload of the mDNS pkt (hex) \n");
 
 		for (i = 0; i < len; i++) {
-			printf (" %02x ",buf[i+ 2 + ETHER_ADDR_LEN]);
+			printf (" %02x ",buf[i + 2]);
 			if (((i + 1) % 8) == 0)
 				printf ("\n");
 
@@ -256,8 +264,8 @@ wl_wowl_rls_mdns(void *wl, cmd_t *cmd, char **argv)
 		printf("\n\n Payload of the mDNS pkt (char) \n");
 
 		for (i = 0; i < len; i++) {
-			if ((uint8)buf[i+ 2 + ETHER_ADDR_LEN]>=32)
-				printf (" %c ",(uint8)buf[i+ 2 + ETHER_ADDR_LEN]);
+			if ((uint8)buf[i + 2]>=32)
+				printf (" %c ",(uint8)buf[i + 2]);
 			else
 				printf (" . ");
 			if (((i + 1) % 8) == 0)

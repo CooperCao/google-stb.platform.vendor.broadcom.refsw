@@ -187,6 +187,10 @@ void BCMATTACHFN(wlc_phy_tx_target_pwr_per_channel_limit_acphy)(phy_info_t *pi);
 uint8 wlc_phy_ac_set_tssi_params_maj36(phy_info_t *pi);
 uint8 wlc_phy_ac_set_tssi_params_majrev40(phy_info_t *pi);
 static void phy_ac_tpc_ipa_upd(phy_type_tpc_ctx_t *ctx);
+#if defined(BCMINTPHYDBG)
+static int phy_ac_tpc_set_pavars(phy_type_tpc_ctx_t *ctx, void* a, void* p);
+static int phy_ac_tpc_get_pavars(phy_type_tpc_ctx_t *ctx, void* a, void* p);
+#endif 
 static int8 phy_ac_tpc_get_maxtxpwr_lowlimit(phy_type_tpc_ctx_t *ctx);
 #ifdef RADIO_HEALTH_CHECK
 static phy_crash_reason_t phy_ac_tpc_healthcheck_baseindex(phy_type_tpc_ctx_t *ctx);
@@ -264,6 +268,10 @@ BCMATTACHFN(phy_ac_tpc_register_impl)(phy_info_t *pi, phy_ac_info_t *aci, phy_tp
 	fns.txcorepwroffsetset = phy_ac_tpc_txpower_core_offset_set;
 	fns.txcorepwroffsetget = phy_ac_tpc_txpower_core_offset_get;
 	fns.ipa_upd = phy_ac_tpc_ipa_upd;
+#if defined(BCMINTPHYDBG)
+	fns.set_pavars = phy_ac_tpc_set_pavars;
+	fns.get_pavars = phy_ac_tpc_get_pavars;
+#endif 
 	fns.get_maxtxpwr_lowlimit = phy_ac_tpc_get_maxtxpwr_lowlimit;
 #ifdef RADIO_HEALTH_CHECK
 	fns.baseindex = phy_ac_tpc_healthcheck_baseindex;
@@ -342,6 +350,10 @@ BCMATTACHFN(phy_ac_tpc_std_params_attach)(phy_ac_tpc_info_t *tpci)
 #endif /* FCC_PWR_LIMIT_2G */
 FOREACH_CORE(tpci->pi, core)
 	tpci->txpwrindex_hw_save[core] = 128;
+#if defined(BCMINTPHYDBG)
+	/* Initialize baseindex override to FALSE */
+	tpci->ti->data->ovrinitbaseidx = FALSE;
+#endif 
 }
 
 static int
@@ -367,6 +379,13 @@ chanspec_setup_tpc(phy_info_t *pi)
 {
 	uint8 core;
 
+#if defined(BCMINTPHYDBG)
+	/* Override init base index */
+	if ((pi->tpci->data->ovrinitbaseidx) && !ACMAJORREV_32(pi->pubpi->phy_rev) &&
+		!ACMAJORREV_33(pi->pubpi->phy_rev) && !ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		wlc_phy_txpwr_ovrinitbaseidx(pi);
+	}
+#endif 
 
 	if (!ACMAJORREV_32(pi->pubpi->phy_rev) &&
 	    !ACMAJORREV_33(pi->pubpi->phy_rev) &&
@@ -434,7 +453,7 @@ wlc_phy_txpower_recalc_target_ac_big(phy_type_tpc_ctx_t *ctx, ppr_t *tx_pwr_targ
 	int8 floor_pwr = 127;
 	ppr_vht_mcs_rateset_t srom_bl_pwr;
 #endif /* WL_MU_TX */
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 	int16 openloop_pwrctrl_delta;
 	bool mac_enabled = FALSE;
 #ifdef WLC_TXCAL
@@ -453,7 +472,7 @@ wlc_phy_txpower_recalc_target_ac_big(phy_type_tpc_ctx_t *ctx, ppr_t *tx_pwr_targ
 		 */
 		ppr_set_cmn_val(tx_pwr_target, info->ti->data->tx_user_target);
 
-#if defined(WL_EXPORT_TXPOWER)
+#if defined(BCMINTPHYDBG) || defined(WL_EXPORT_TXPOWER)
 		/* Only allow tx power override for internal or test builds. */
 		if (!info->ti->data->txpwroverride)
 #endif
@@ -635,7 +654,7 @@ wlc_phy_txpower_recalc_target_ac_big(phy_type_tpc_ctx_t *ctx, ppr_t *tx_pwr_targ
 	 */
 	/* Common Code End */
 
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 	/* for 4360A/B0, when targetPwr is out of the tssi visibility range,
 	 * force the power offset to be the delta between the lower bound of visibility
 	 * range and the targetPwr
@@ -2874,12 +2893,13 @@ wlc_phy_txpwrctrl_pwr_setup_srom12_acphy(phy_info_t *pi)
 				pi->sh->unit, __FUNCTION__, pa_fittype));
 		}
 
-		if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		if (ACMAJORREV_37(pi->pubpi->phy_rev) && CCT_INIT(pi_ac)) {
 			/* 7271 WAR: meas the idle tssi added the call here.
 			 * Removing it breaks Receive and Tx power control.
 			 */
 			wlc_phy_txpwrctrl_idle_tssi_meas_acphy(pi);
 		}
+
 #ifdef WLC_TXCAL
 	if (phy_tssical_get_pwr_tssi_tbl_in_use(pi->tssicali) == 1) {
 		wlc_phy_apply_pwr_tssi_tble_chan_acphy(pi);
@@ -3169,6 +3189,121 @@ void wlc_phy_get_tssi_floor_acphy(phy_info_t *pi, int16 *floor)
 
 }
 
+#if defined(BCMINTPHYDBG)
+void
+wlc_phy_tone_pwrctrl_loop(phy_info_t *pi, int8 targetpwr_dBm)
+{
+	uint8 core = 0; /* presently this functionality only required in RSDB mode */
+	int8 pwr;
+	int8 targetpwr, tgt_pwr_qdbm;
+	int16  idle_tssi[PHY_CORE_MAX], tone_tssi[PHY_CORE_MAX];
+	uint16 adjusted_tssi[PHY_CORE_MAX];
+	int16 a1[PHY_CORE_MAX];
+	int16 b1[PHY_CORE_MAX];
+	int16 b0[PHY_CORE_MAX];
+	int8 postive_slope = 1;
+	int8 targetidx;
+	int8 tx_idx;
+	int8 deltapwr;
+	txgain_setting_t txgain_settings;
+	int8 orig_rxfarrow_shift = 0;
+	uint16 orig_RxSdFeConfig6 = 0;
+	bool bbmult_interpolation;
+
+	targetpwr = targetpwr_dBm;
+	tgt_pwr_qdbm = targetpwr * 4;
+
+	if (targetpwr == -99) {
+		targetidx = -1;
+	} else {
+		wlc_phy_get_paparams_for_band_acphy(pi, a1, b0, b1);
+
+		/* meas the idle tssi */
+		wlc_phy_txpwrctrl_idle_tssi_meas_acphy(pi);
+	    idle_tssi[core] = READ_PHYREGCE(pi, TxPwrCtrlIdleTssi_path, core) & 0x3ff;
+		idle_tssi[core] = idle_tssi[core] - 1023;
+
+		/* prevent crs trigger */
+		phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, TRUE);
+
+		if (!(ACMAJORREV_2(pi->pubpi->phy_rev) || ACMAJORREV_5(pi->pubpi->phy_rev)||
+			ACMAJORREV_4(pi->pubpi->phy_rev))) {
+			orig_rxfarrow_shift = READ_PHYREGFLD(pi, RxSdFeConfig6, rx_farrow_rshift_0);
+			MOD_PHYREG(pi, RxSdFeConfig6, rx_farrow_rshift_0, 2);
+		}
+
+		if (RADIOID_IS(pi->pubpi->radioid, BCM20694_ID)) {
+			/* TBD for 20694 radio */
+			targetidx = -1;
+			return;
+		}
+		if (RADIOID_IS(pi->pubpi->radioid, BCM20696_ID)) {
+			/* TBD for 20696 radio */
+			targetidx = -1;
+			return;
+		}
+		if ((RADIOID_IS(pi->pubpi->radioid, BCM20691_ID)) ||
+				(RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) ||
+				(RADIOID_IS(pi->pubpi->radioid, BCM20695_ID))) {
+			phy_ac_tssi_loopback_path_setup(pi, 0);
+			if (TINY_RADIO(pi)) {
+				MOD_PHYREG(pi, RxSdFeConfig1, farrow_rshift_force, 1);
+				orig_RxSdFeConfig6 = READ_PHYREG(pi, RxSdFeConfig6);
+				MOD_PHYREG(pi, RxSdFeConfig6, rx_farrow_rshift_0,
+					READ_PHYREGFLD(pi, RxSdFeConfig1, farrow_rshift_tx));
+			}
+		} else
+			wlc_phy_tssi_radio_setup_acphy(pi,
+					phy_stf_get_data(pi->stfi)->hw_phyrxchain, 0);
+
+		tx_idx = 30;
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+		wlc_phy_txpwrctrl_enable_acphy(pi, PHY_TPC_HW_OFF);
+		wlc_phy_txpwr_by_index_acphy(pi, (1 << core), tx_idx);
+		wlc_phy_get_txgain_settings_by_index_acphy(
+			pi, &txgain_settings, tx_idx);
+		wlc_phy_poll_samps_WAR_acphy(pi, tone_tssi,
+			TRUE, FALSE, &txgain_settings, FALSE, TRUE, 0, 0);
+		adjusted_tssi[core] = 1023 - postive_slope * (tone_tssi[core] - idle_tssi[core]);
+		adjusted_tssi[core] = adjusted_tssi[core] >> 3;
+
+		if (TINY_RADIO(pi)) {
+			 MOD_PHYREG(pi, RxSdFeConfig1, farrow_rshift_force, 0);
+			 WRITE_PHYREG(pi, RxSdFeConfig6, orig_RxSdFeConfig6);
+		}
+		/* prevent crs trigger */
+		phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, TRUE);
+		if (!(ACMAJORREV_2(pi->pubpi->phy_rev) || ACMAJORREV_5(pi->pubpi->phy_rev)||
+			ACMAJORREV_4(pi->pubpi->phy_rev))) {
+			 MOD_PHYREG(pi, RxSdFeConfig6, rx_farrow_rshift_0, orig_rxfarrow_shift);
+		}
+		pwr = wlc_phy_tssi2dbm_acphy(pi, adjusted_tssi[core], a1[core], b0[core], b1[core]);
+
+		/* delta pwr in qdb */
+		deltapwr = tgt_pwr_qdbm - pwr;
+		if (ACMAJORREV_2(pi->pubpi->phy_rev) || ACMAJORREV_5(pi->pubpi->phy_rev)) {
+			/* for 4350 with 0.5dB step size gaintable */
+			targetidx = tx_idx - (deltapwr >> 1);
+		} else {
+		    bbmult_interpolation = READ_PHYREGFLD(pi, TxPwrCtrlCmd, bbMultInt_en);
+			if (ACMAJORREV_4(pi->pubpi->phy_rev) &&
+				CHSPEC_IS5G(pi->radio_chanspec)	&& bbmult_interpolation) {
+				targetidx = tx_idx - (deltapwr >> 1);
+			} else {
+				targetidx = tx_idx - deltapwr;
+			}
+		}
+
+		wlc_phy_txpwr_by_index_acphy(pi, (1 << core), targetidx);
+		phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, TRUE);
+		wlc_phy_tx_tone_acphy(pi, 2000, 181, 0, 0, FALSE);
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, FALSE);
+	}
+}
+#endif 
 
 static uint32
 wlc_phy_pdoffset_cal_acphy(uint32 pdoffs, uint16 pdoffset, uint8 band, uint8 core)
@@ -6414,6 +6549,54 @@ static bool BCMATTACHFN(wlc_phy_txpwr_srom12_read)(phy_type_tpc_ctx_t *ctx)
 	return TRUE;
 }
 
+#if defined(BCMINTPHYDBG)
+void
+wlc_phy_iovar_patrim_acphy(phy_info_t *pi, int32 *ret_int_ptr)
+{
+	if ((ACMAJORREV_2(pi->pubpi->phy_rev) || (ACMAJORREV_4(pi->pubpi->phy_rev))) &&
+		BF3_TSSI_DIV_WAR(pi->u.pi_acphy)) {
+		if (CHSPEC_IS5G(pi->radio_chanspec)) {
+			if (CHSPEC_IS20(pi->radio_chanspec)) {
+				*ret_int_ptr = 0x0;
+			}
+			else {
+				*ret_int_ptr = 0x3;
+			}
+		}
+		else {
+			if (ACMAJORREV_4(pi->pubpi->phy_rev))
+				*ret_int_ptr = 0x14;
+			else
+				*ret_int_ptr = 0x0;
+		}
+	} else if (ACMAJORREV_1(pi->pubpi->phy_rev) && BF3_TSSI_DIV_WAR(pi->u.pi_acphy)) {
+		if (CHSPEC_IS5G(pi->radio_chanspec)) {
+			*ret_int_ptr = 0x21;
+		}
+		else
+			*ret_int_ptr = 0x14;
+	}
+	else
+		*ret_int_ptr = 0x0;
+
+}
+
+void
+wlc_phy_txpwr_ovrinitbaseidx(phy_info_t *pi)
+{
+	uint8 core, ovrval;
+	phy_tpc_data_t *data = pi->tpci->data;
+	ovrval = CHSPEC_IS2G(pi->radio_chanspec) ?
+		data->cfg->initbaseidx2govrval : data->cfg->initbaseidx5govrval;
+	if (ovrval != 255) {
+		FOREACH_CORE(pi, core) {
+			data->base_index_init[core] = ovrval;
+			wlc_phy_txpwrctrl_set_baseindex(pi, core,
+			    data->base_index_init[core], 1);
+		}
+	}
+}
+#endif 
 
 void
 wlc_phy_get_paparams_for_band_acphy(phy_info_t *pi, int16 *a1, int16 *b0, int16 *b1)
@@ -6806,6 +6989,359 @@ wlc_phy_set_txpwr_by_index_acphy(phy_info_t *pi, uint8 core_mask, int8 txpwrinde
 	return txgain_settings.bbmult;
 }
 
+#if defined(BCMINTPHYDBG)
+static int
+phy_ac_tpc_set_pavars(phy_type_tpc_ctx_t *ctx, void *a, void *p)
+{
+	phy_ac_tpc_info_t *tpci = (phy_ac_tpc_info_t *)ctx;
+	phy_info_t *pi = tpci->pi;
+	uint16 inpa[WL_PHY_PAVARS_LEN];
+	uint j = 3; /* PA parameters start from offset 3 */
+	int chain, freq_range, num_paparams = PHY_CORE_MAX;
+#ifdef WL_CHAN_FREQ_RANGE_5G_4BAND
+	int n;
+#endif
+
+	bcopy(p, inpa, sizeof(inpa));
+
+	chain = inpa[2];
+	freq_range = inpa[1];
+
+	if ((BF3_TSSI_DIV_WAR(pi->u.pi_acphy)) &&
+		(ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		num_paparams = 3;
+	} else if ((ACMAJORREV_2(pi->pubpi->phy_rev) ||
+		ACMAJORREV_4(pi->pubpi->phy_rev)) &&
+		BF3_TSSI_DIV_WAR(pi->u.pi_acphy)) {
+		num_paparams = 4;
+	} else if (tpci->ti->data->cfg->srom_tworangetssi2g &&
+	 (inpa[1] == WL_CHAN_FREQ_RANGE_2G) && pi->ipa2g_on &&
+		(ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		num_paparams = 2;
+	} else if (tpci->ti->data->cfg->srom_tworangetssi5g &&
+	 (inpa[1] != WL_CHAN_FREQ_RANGE_2G) && pi->ipa5g_on &&
+		(ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		num_paparams = 2;
+	}
+
+	if (inpa[0] != PHY_TYPE_AC) {
+		PHY_ERROR(("Wrong phy type %d\n", inpa[0]));
+		return BCME_BADARG;
+	}
+
+	if (chain > (num_paparams - 1)) {
+		PHY_ERROR(("Wrong chain number %d\n", chain));
+		return BCME_BADARG;
+	}
+
+	if (SROMREV(pi->sh->sromrev) >= 12) {
+		srom12_pwrdet_t *pwrdet = pi->pwrdet_ac;
+		switch (freq_range) {
+		case WL_CHAN_FREQ_RANGE_2G:
+		pwrdet->pwrdet_a[chain][freq_range] = inpa[j++];
+		pwrdet->pwrdet_b[chain][freq_range] = inpa[j++];
+		pwrdet->pwrdet_c[chain][freq_range] = inpa[j++];
+		pwrdet->pwrdet_d[chain][freq_range] = inpa[j++];
+		break;
+		case WL_CHAN_FREQ_RANGE_2G_40:
+		pwrdet->pwrdet_a_40[chain][freq_range-6] = inpa[j++];
+		pwrdet->pwrdet_b_40[chain][freq_range-6] = inpa[j++];
+		pwrdet->pwrdet_c_40[chain][freq_range-6] = inpa[j++];
+		pwrdet->pwrdet_d_40[chain][freq_range-6] = inpa[j++];
+		break;
+		/* allow compile in branches without 4BAND definition */
+#ifdef WL_CHAN_FREQ_RANGE_5G_4BAND
+		case WL_CHAN_FREQ_RANGE_5G_BAND4:
+		pwrdet->pwrdet_a[chain][freq_range] = inpa[j++];
+		pwrdet->pwrdet_b[chain][freq_range] = inpa[j++];
+		pwrdet->pwrdet_c[chain][freq_range] = inpa[j++];
+		pwrdet->pwrdet_d[chain][freq_range] = inpa[j++];
+		break;
+
+		case WL_CHAN_FREQ_RANGE_5G_BAND0:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3:
+		if (ACMAJORREV_2(pi->pubpi->phy_rev) ||
+			ACMAJORREV_5(pi->pubpi->phy_rev)) {
+			pwrdet->pwrdet_a[chain][freq_range] = inpa[j++];
+			pwrdet->pwrdet_b[chain][freq_range] = inpa[j++];
+			pwrdet->pwrdet_c[chain][freq_range] = inpa[j++];
+			pwrdet->pwrdet_d[chain][freq_range] = inpa[j++];
+		} else {
+			PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+			return BCME_OUTOFRANGECHAN;
+		}
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_BAND0_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND4_40:
+		pwrdet->pwrdet_a_40[chain][freq_range-6] = inpa[j++];
+		pwrdet->pwrdet_b_40[chain][freq_range-6] = inpa[j++];
+		pwrdet->pwrdet_c_40[chain][freq_range-6] = inpa[j++];
+		pwrdet->pwrdet_d_40[chain][freq_range-6] = inpa[j++];
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_BAND0_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND4_80:
+		pwrdet->pwrdet_a_80[chain][freq_range-12] = inpa[j++];
+		pwrdet->pwrdet_b_80[chain][freq_range-12] = inpa[j++];
+		pwrdet->pwrdet_c_80[chain][freq_range-12] = inpa[j++];
+		pwrdet->pwrdet_d_80[chain][freq_range-12] = inpa[j++];
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_5BAND:
+		for (n = 1; n <= 5; n++) {
+			pwrdet->pwrdet_a[chain][n] = inpa[j++];
+			pwrdet->pwrdet_b[chain][n] = inpa[j++];
+			pwrdet->pwrdet_c[chain][n] = inpa[j++];
+			pwrdet->pwrdet_d[chain][n] = inpa[j++];
+		}
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_5BAND_40:
+		for (n = 1; n <= 5; n++) {
+			pwrdet->pwrdet_a_40[chain][n] = inpa[j++];
+			pwrdet->pwrdet_b_40[chain][n] = inpa[j++];
+			pwrdet->pwrdet_c_40[chain][n] = inpa[j++];
+			pwrdet->pwrdet_d_40[chain][n] = inpa[j++];
+		}
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_5BAND_80:
+		for (n = 0; n <= 4; n++) {
+			pwrdet->pwrdet_a_80[chain][n] = inpa[j++];
+			pwrdet->pwrdet_b_80[chain][n] = inpa[j++];
+			pwrdet->pwrdet_c_80[chain][n] = inpa[j++];
+			pwrdet->pwrdet_d_80[chain][n] = inpa[j++];
+		}
+		break;
+#endif /* WL_CHAN_FREQ_RANGE_5G_4BAND */
+		default:
+		PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+		return BCME_OUTOFRANGECHAN;
+		}
+	} else {
+		srom11_pwrdet_t *pwrdet11 = pi->pwrdet_ac;
+		switch (freq_range) {
+		case WL_CHAN_FREQ_RANGE_2G:
+		pwrdet11->pwrdet_a1[chain][freq_range] = inpa[j++];
+		pwrdet11->pwrdet_b0[chain][freq_range] = inpa[j++];
+		pwrdet11->pwrdet_b1[chain][freq_range] = inpa[j++];
+		break;
+		/* allow compile in branches without 4BAND definition */
+#ifdef WL_CHAN_FREQ_RANGE_5G_4BAND
+		case WL_CHAN_FREQ_RANGE_5G_4BAND:
+		for (n = 1; n <= 4; n ++) {
+			pwrdet11->pwrdet_a1[chain][n] = inpa[j++];
+			pwrdet11->pwrdet_b0[chain][n] = inpa[j++];
+			pwrdet11->pwrdet_b1[chain][n] = inpa[j++];
+		}
+		break;
+
+		case WL_CHAN_FREQ_RANGE_5G_BAND0:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3:
+		if (ACMAJORREV_2(pi->pubpi->phy_rev) ||
+			ACMAJORREV_5(pi->pubpi->phy_rev)) {
+			pwrdet11->pwrdet_a1[chain][freq_range] = inpa[j++];
+			pwrdet11->pwrdet_b0[chain][freq_range] = inpa[j++];
+			pwrdet11->pwrdet_b1[chain][freq_range] = inpa[j++];
+		} else {
+			PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+			return BCME_OUTOFRANGECHAN;
+		}
+		break;
+#endif /* WL_CHAN_FREQ_RANGE_5G_4BAND */
+		default:
+		PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+		return BCME_OUTOFRANGECHAN;
+		}
+	}
+
+	return BCME_OK;
+}
+
+static int
+phy_ac_tpc_get_pavars(phy_type_tpc_ctx_t *ctx, void *a, void *p)
+{
+	phy_ac_tpc_info_t *tpci = (phy_ac_tpc_info_t *)ctx;
+	phy_info_t *pi = tpci->pi;
+	uint16 *outpa = a;
+	uint16 inpa[WL_PHY_PAVARS_LEN];
+	uint j = 3; /* PA parameters start from offset 3 */
+	int chain, freq_range, num_paparams = PHY_CORE_MAX;
+#ifdef WL_CHAN_FREQ_RANGE_5G_4BAND
+	int n;
+#endif
+
+	bcopy(p, inpa, sizeof(inpa));
+
+	outpa[0] = inpa[0]; /* Phy type */
+	outpa[1] = inpa[1]; /* Band range */
+	outpa[2] = inpa[2]; /* Chain */
+
+	chain = inpa[2];
+	freq_range = inpa[1];
+
+	if ((BF3_TSSI_DIV_WAR(pi->u.pi_acphy)) &&
+		(ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		num_paparams = 3;
+	} else if ((ACMAJORREV_2(pi->pubpi->phy_rev) ||
+		(ACMAJORREV_4(pi->pubpi->phy_rev))) &&
+		BF3_TSSI_DIV_WAR(pi->u.pi_acphy)) {
+		num_paparams = 4;
+	} else if (tpci->ti->data->cfg->srom_tworangetssi2g &&
+	 (inpa[1] == WL_CHAN_FREQ_RANGE_2G) && pi->ipa2g_on &&
+		(ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		num_paparams = 2;
+	} else if (tpci->ti->data->cfg->srom_tworangetssi5g &&
+	 (inpa[1] != WL_CHAN_FREQ_RANGE_2G) && pi->ipa5g_on &&
+		(ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		num_paparams = 2;
+	}
+	if (inpa[0] != PHY_TYPE_AC) {
+		PHY_ERROR(("Wrong phy type %d\n", inpa[0]));
+		outpa[0] = PHY_TYPE_NULL;
+		return BCME_BADARG;
+	}
+	if (chain > (num_paparams - 1)) {
+		PHY_ERROR(("Wrong chain number %d\n", chain));
+		outpa[0] = PHY_TYPE_NULL;
+		return BCME_BADARG;
+	}
+
+	if (SROMREV(pi->sh->sromrev) >= 12) {
+		srom12_pwrdet_t *pwrdet = pi->pwrdet_ac;
+		switch (freq_range) {
+		case WL_CHAN_FREQ_RANGE_2G:
+		outpa[j++] = pwrdet->pwrdet_a[chain][freq_range];
+		outpa[j++] = pwrdet->pwrdet_b[chain][freq_range];
+		outpa[j++] = pwrdet->pwrdet_c[chain][freq_range];
+		outpa[j++] = pwrdet->pwrdet_d[chain][freq_range];
+		break;
+		case WL_CHAN_FREQ_RANGE_2G_40:
+		outpa[j++] = pwrdet->pwrdet_a_40[chain][freq_range-6];
+		outpa[j++] = pwrdet->pwrdet_b_40[chain][freq_range-6];
+		outpa[j++] = pwrdet->pwrdet_c_40[chain][freq_range-6];
+		outpa[j++] = pwrdet->pwrdet_d_40[chain][freq_range-6];
+		break;
+		/* allow compile in branches without 4BAND definition */
+#ifdef WL_CHAN_FREQ_RANGE_5G_4BAND
+		case WL_CHAN_FREQ_RANGE_5G_BAND4:
+		outpa[j++] = pwrdet->pwrdet_a[chain][freq_range];
+		outpa[j++] = pwrdet->pwrdet_b[chain][freq_range];
+		outpa[j++] = pwrdet->pwrdet_c[chain][freq_range];
+		outpa[j++] = pwrdet->pwrdet_d[chain][freq_range];
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_BAND0:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3:
+		if (ACMAJORREV_2(pi->pubpi->phy_rev) ||
+			ACMAJORREV_5(pi->pubpi->phy_rev)) {
+			outpa[j++] = pwrdet->pwrdet_a[chain][freq_range];
+			outpa[j++] = pwrdet->pwrdet_b[chain][freq_range];
+			outpa[j++] = pwrdet->pwrdet_c[chain][freq_range];
+			outpa[j++] = pwrdet->pwrdet_d[chain][freq_range];
+		} else {
+			PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+			return BCME_OUTOFRANGECHAN;
+		}
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_BAND0_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3_40:
+		case WL_CHAN_FREQ_RANGE_5G_BAND4_40:
+		outpa[j++] = pwrdet->pwrdet_a_40[chain][freq_range-6];
+		outpa[j++] = pwrdet->pwrdet_b_40[chain][freq_range-6];
+		outpa[j++] = pwrdet->pwrdet_c_40[chain][freq_range-6];
+		outpa[j++] = pwrdet->pwrdet_d_40[chain][freq_range-6];
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_BAND0_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3_80:
+		case WL_CHAN_FREQ_RANGE_5G_BAND4_80:
+		outpa[j++] = pwrdet->pwrdet_a_80[chain][freq_range-12];
+		outpa[j++] = pwrdet->pwrdet_b_80[chain][freq_range-12];
+		outpa[j++] = pwrdet->pwrdet_c_80[chain][freq_range-12];
+		outpa[j++] = pwrdet->pwrdet_d_80[chain][freq_range-12];
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_5BAND:
+		for (n = 1; n <= 5; n++) {
+			outpa[j++] = pwrdet->pwrdet_a[chain][n];
+			outpa[j++] = pwrdet->pwrdet_b[chain][n];
+			outpa[j++] = pwrdet->pwrdet_c[chain][n];
+			outpa[j++] = pwrdet->pwrdet_d[chain][n];
+		}
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_5BAND_40:
+		for (n = 1; n <= 5; n++) {
+			outpa[j++] = pwrdet->pwrdet_a_40[chain][n];
+			outpa[j++] = pwrdet->pwrdet_b_40[chain][n];
+			outpa[j++] = pwrdet->pwrdet_c_40[chain][n];
+			outpa[j++] = pwrdet->pwrdet_d_40[chain][n];
+		}
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_5BAND_80:
+		for (n = 0; n <= 4; n++) {
+			outpa[j++] = pwrdet->pwrdet_a_80[chain][n];
+			outpa[j++] = pwrdet->pwrdet_b_80[chain][n];
+			outpa[j++] = pwrdet->pwrdet_c_80[chain][n];
+			outpa[j++] = pwrdet->pwrdet_d_80[chain][n];
+		}
+		break;
+#endif /* WL_CHAN_FREQ_RANGE_5G_4BAND */
+		default:
+		PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+		return BCME_OUTOFRANGECHAN;
+		}
+	} else {
+		srom11_pwrdet_t *pwrdet11 = pi->pwrdet_ac;
+		switch (freq_range) {
+		case WL_CHAN_FREQ_RANGE_2G:
+		outpa[j++] = pwrdet11->pwrdet_a1[chain][freq_range];
+		outpa[j++] = pwrdet11->pwrdet_b0[chain][freq_range];
+		outpa[j++] = pwrdet11->pwrdet_b1[chain][freq_range];
+		break;
+		/* allow compile in branches without 4BAND definition */
+#ifdef WL_CHAN_FREQ_RANGE_5G_4BAND
+		case WL_CHAN_FREQ_RANGE_5G_4BAND:
+		for (n = 1; n <= 4; n ++) {
+			outpa[j++] = pwrdet11->pwrdet_a1[chain][n];
+			outpa[j++] = pwrdet11->pwrdet_b0[chain][n];
+			outpa[j++] = pwrdet11->pwrdet_b1[chain][n];
+		}
+		break;
+		case WL_CHAN_FREQ_RANGE_5G_BAND0:
+		case WL_CHAN_FREQ_RANGE_5G_BAND1:
+		case WL_CHAN_FREQ_RANGE_5G_BAND2:
+		case WL_CHAN_FREQ_RANGE_5G_BAND3:
+		if (ACMAJORREV_2(pi->pubpi->phy_rev) ||
+			ACMAJORREV_5(pi->pubpi->phy_rev)) {
+			outpa[j++] = pwrdet11->pwrdet_a1[chain][freq_range];
+			outpa[j++] = pwrdet11->pwrdet_b0[chain][freq_range];
+			outpa[j++] = pwrdet11->pwrdet_b1[chain][freq_range];
+		} else {
+			PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+			return BCME_OUTOFRANGECHAN;
+		}
+		break;
+		default:
+		PHY_ERROR(("bandrange %d is out of scope\n", inpa[1]));
+		return BCME_OUTOFRANGECHAN;
+		break;
+		}
+#endif /* WL_CHAN_FREQ_RANGE_5G_4BAND */
+	}
+
+	return BCME_OK;
+}
+#endif 
 
 static int8
 phy_ac_tpc_get_maxtxpwr_lowlimit(phy_type_tpc_ctx_t *ctx)
@@ -6880,7 +7416,7 @@ phy_ac_tpc_healthcheck_baseindex(phy_type_tpc_ctx_t *ctx)
 }
 int phy_ac_tpc_force_fail_baseindex(phy_ac_tpc_info_t *tpci)
 {
-#if defined(WLC_TXCAL)
+#if (defined(WLC_TXCAL) || defined(BCMINTPHYDBG))
 	uint8 core;
 	phy_info_t *pi = tpci->pi;
 	uint8 phyrxchain;

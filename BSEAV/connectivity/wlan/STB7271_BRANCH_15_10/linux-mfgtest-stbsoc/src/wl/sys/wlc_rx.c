@@ -459,7 +459,7 @@ static int BCMFASTPATH
 wlc_bss_sendup_pre_filter(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct scb *scb,
 	void *pkt, bool multi);
 
-#if defined(WLTEST)
+#if (defined(WLTEST) || defined(BCMINTPHYDBG))
 static uint8 wlc_rxpkt_rate_count(wlc_info_t *wlc, ratespec_t rspec);
 #endif
 
@@ -868,10 +868,10 @@ wlc_recvdata(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 	/* Save the rspec in pkttag */
 	WLPKTTAG(p)->rspec = rspec;
 
-#if defined(WLTEST)
+#if (defined(WLTEST) || defined(BCMINTPHYDBG))
 	wlc_phy_pkteng_rxstats_update(WLC_PI(wlc),
 		wlc_rxpkt_rate_count(wlc, rspec));
-#endif 
+#endif /* (defined(WLTEST) || defined (BCMINTPHYDBG)) */
 
 
 	f.h = (struct dot11_header *)(plcp + D11_PHY_HDR_LEN);
@@ -7379,7 +7379,7 @@ wlc_scan_pre_parse_frame(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint16 ft,
 	                            NULL, NULL, ies, ies_len);
 }
 
-#if defined(WLTEST)
+#if (defined(WLTEST) || defined(BCMINTPHYDBG))
 static uint8 wlc_rxpkt_rate_count(wlc_info_t *wlc, ratespec_t rspec)
 {
 	uint8 index = NUM_80211_RATES;
@@ -7445,7 +7445,7 @@ static uint8 wlc_rxpkt_rate_count(wlc_info_t *wlc, ratespec_t rspec)
 
 	return index;
 }
-#endif 
+#endif /* (defined(WLTEST) || defined (BCMINTPHYDBG)) */
 
 #ifdef BCMSPLITRX
 /* Look up scb from frminfo, required for Rx pktfetch cases.

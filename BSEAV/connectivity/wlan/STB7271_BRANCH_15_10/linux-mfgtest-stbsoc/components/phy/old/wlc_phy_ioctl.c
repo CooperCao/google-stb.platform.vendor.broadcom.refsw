@@ -374,7 +374,7 @@ wlc_phy_ioctl_dispatch(phy_info_t *pi, int cmd, int len, void *arg, bool *ta_ok)
 #endif /* BCMDBG || WLTEST  */
 
 #ifndef WLC_DISABLE_ACI
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case WLC_GET_ACI_ARGS:
 		ASSERT(arg != NULL);
 		bcmerror = phy_noise_aci_args(pi, arg, TRUE, len);

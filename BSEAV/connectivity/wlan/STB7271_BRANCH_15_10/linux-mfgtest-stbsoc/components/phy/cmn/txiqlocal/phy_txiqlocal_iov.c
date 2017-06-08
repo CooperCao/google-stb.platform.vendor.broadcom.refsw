@@ -28,14 +28,14 @@
 /* iovar table */
 
 static const bcm_iovar_t phy_txiqlocal_iovars[] = {
-#if defined(WLTEST) || defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 	{"phy_txiqcc", IOV_PHY_TXIQCC,
 	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER,  2*sizeof(int32)
 	},
 	{"phy_txlocc", IOV_PHY_TXLOCC,
 	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, 6
 	},
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || ATE_BUILD */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -49,15 +49,15 @@ phy_txiqlocal_doiovar(void *ctx, uint32 aid,
 {
 	int err = BCME_OK;
 	int int_val = 0;
-#if defined(WLTEST) || defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 	phy_info_t *pi = (phy_info_t *)ctx;
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || ATE_BUILD */
 
 	if (plen >= (uint)sizeof(int_val))
 		bcopy(p, &int_val, sizeof(int_val));
 
 	switch (aid) {
-#if defined(WLTEST) || defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(ATE_BUILD)
 	case IOV_GVAL(IOV_PHY_TXIQCC):
 	{
 		phy_txiqlocal_txiqccget(pi, a);
@@ -78,7 +78,7 @@ phy_txiqlocal_doiovar(void *ctx, uint32 aid,
 		phy_txiqlocal_txloccset(pi, p);
 		break;
 	}
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || ATE_BUILD */
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

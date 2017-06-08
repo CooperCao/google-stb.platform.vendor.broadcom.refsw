@@ -25,15 +25,15 @@
 #include <phy_type_tssical.h>
 
 static const bcm_iovar_t phy_tssical_iovars[] = {
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"tssivisi_thresh", IOV_TSSIVISI_THRESH, 0, 0, IOVT_UINT32, 0},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 #ifdef WLC_TXCAL
 	{"phy_adj_tssi", IOV_PHY_ADJUSTED_TSSI,
 	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
 	},
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"txcal_gainsweep", IOV_PHY_TXCAL_GAINSWEEP,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, sizeof(wl_txcal_params_t)
 	},
@@ -42,7 +42,7 @@ static const bcm_iovar_t phy_tssical_iovars[] = {
 	OFFSETOF(wl_txcal_meas_ncore_t, txcal_percore) +
 	PHY_CORE_MAX * sizeof(wl_txcal_meas_percore_t)
 	},
-#endif	
+#endif	/* BCMINTPHYDBG || WLTEST */
 	{"txcal_ver", IOV_PHY_TXCALVER,
 	(IOVF_MFG), 0, IOVT_INT32,	0
 	},
@@ -106,12 +106,12 @@ phy_tssical_doiovar(void *ctx, uint32 aid,
 	(void)ret_int_ptr;
 
 	switch (aid) {
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_TSSIVISI_THRESH):
 		int_val = wlc_phy_tssivisible_thresh((wlc_phy_t *)pi);
 		bcopy(&int_val, a, sizeof(int_val));
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 #ifdef WLC_TXCAL
 	case IOV_GVAL(IOV_OLPC_ANCHOR_2G):
@@ -160,7 +160,7 @@ phy_tssical_doiovar(void *ctx, uint32 aid,
 				(uint8) int_val);
 		break;
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_SVAL(IOV_PHY_TXCAL_GAINSWEEP):
 	{
 		wl_txcal_params_t txcal_params;
@@ -203,7 +203,7 @@ phy_tssical_doiovar(void *ctx, uint32 aid,
 		phy_tssical_set_measured_pwr(pi->tssicali, per_core);
 		break;
 	}
-#endif	
+#endif	/* BCMINTPHYDBG || WLTEST */
 	case IOV_GVAL(IOV_PHY_TXCALVER):
 	{
 		*ret_int_ptr = TXCAL_IOVAR_VERSION;
@@ -273,7 +273,7 @@ phy_tssical_doiovar(void *ctx, uint32 aid,
 #endif /* WLC_TXCAL */
 
 	default:
-#if defined(WLTEST) || defined(WLC_TXCAL)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(WLC_TXCAL)
 		err = BCME_UNSUPPORTED;
 #else
 		err = BCME_OK;

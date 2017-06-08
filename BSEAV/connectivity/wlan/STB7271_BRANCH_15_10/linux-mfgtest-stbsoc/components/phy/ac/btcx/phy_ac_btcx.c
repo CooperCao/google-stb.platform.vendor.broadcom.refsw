@@ -94,9 +94,9 @@ static void phy_ac_btcx_override_disable(phy_type_btcx_ctx_t *ctx);
 static void phy_ac_btcx_femctrl_mask(phy_type_btcx_ctx_t *ctx);
 #endif
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static int phy_ac_btcx_get_preemptstatus(phy_type_btcx_ctx_t *ctx, int32* ret_ptr);
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 #if !defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX)
 static int wlc_phy_desense_ltecx_acphy(phy_type_btcx_ctx_t *ctx, int32 mode);
@@ -159,9 +159,9 @@ BCMATTACHFN(phy_ac_btcx_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 #if (!defined(WL_SISOCHIP) && defined(SWCTRL_TO_BT_IN_COEX))
 	fns.femctrl_mask = phy_ac_btcx_femctrl_mask;
 #endif
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	fns.get_preemptstatus = phy_ac_btcx_get_preemptstatus;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 #if !defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX)
 	fns.desense_ltecx = wlc_phy_desense_ltecx_acphy;
 #endif /* !defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX) */
@@ -423,7 +423,7 @@ wlc_phy_desense_btcoex_acphy(phy_type_btcx_ctx_t *ctx, int32 mode)
 }
 #endif /* !defined(WLC_DISABLE_ACI) */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 static int
 phy_ac_btcx_get_preemptstatus(phy_type_btcx_ctx_t *ctx, int32* ret_ptr)
 {
@@ -434,7 +434,7 @@ phy_ac_btcx_get_preemptstatus(phy_type_btcx_ctx_t *ctx, int32* ret_ptr)
 		(phy_ac_noise_get_data(btcxi->aci->noisei)->current_preemption_status);
 	return BCME_OK;
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 static void
 wlc_phy_btc_adjust_acphy(phy_type_btcx_ctx_t *ctx, bool btactive)

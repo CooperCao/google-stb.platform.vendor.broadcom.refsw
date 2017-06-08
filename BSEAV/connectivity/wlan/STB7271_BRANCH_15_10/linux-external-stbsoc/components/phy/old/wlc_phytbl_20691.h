@@ -57,15 +57,15 @@ typedef struct _chan_info_radio20691 {
 	uint16 RF_pa5g_cfg4;
 } chan_info_radio20691_t;
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 extern const radio_20xx_dumpregs_t dumpregs_20691_rev68[];
 extern const radio_20xx_dumpregs_t dumpregs_20691_rev75[];
 extern const radio_20xx_dumpregs_t dumpregs_20691_rev79[];
 extern const radio_20xx_dumpregs_t dumpregs_20691_rev82[];
 extern const radio_20xx_dumpregs_t dumpregs_20691_rev88[];
 extern const radio_20xx_dumpregs_t dumpregs_20691_rev129[];
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 /* Radio referred values tables */
 extern const radio_20xx_prefregs_t prefregs_20691_rev68[];

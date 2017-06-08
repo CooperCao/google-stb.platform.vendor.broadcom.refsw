@@ -141,7 +141,7 @@ wlc_gtk_doiovar(void *handle, uint32 actionid,
 {
 	wlc_sup_info_t *sup_info = (wlc_sup_info_t *)handle;
 	supplicant_t *sup_bss;
-	wlc_info_t *wlc = sup_info->wlc;
+	wlc_info_t *wlc;
 	wlc_bsscfg_t *bsscfg;
 	int err = 0;
 	int32 int_val = 0;
@@ -149,6 +149,12 @@ wlc_gtk_doiovar(void *handle, uint32 actionid,
 	bool bool_val;
 	gtk_keyinfo_t keyinfo;
 	supplicant_t **psup_bss;
+
+	if(sup_info == NULL) {
+		err = BCME_ERROR;
+		goto exit;
+	}
+	wlc = sup_info->wlc;
 
 	/* update bsscfg w/provided interface context */
 	bsscfg = wlc_bsscfg_find_by_wlcif(wlc, wlcif);
@@ -168,6 +174,10 @@ wlc_gtk_doiovar(void *handle, uint32 actionid,
 	BCM_REFERENCE(bool_val);
 	BCM_REFERENCE(ret_int_ptr);
 	psup_bss = SUP_BSSCFG_CUBBY_LOC(sup_info, bsscfg);
+	if(psup_bss == NULL) {
+		err = BCME_ERROR;
+		goto exit;
+	}
 
 	switch (actionid) {
 		case IOV_SVAL(IOV_GTK_KEYINFO):
