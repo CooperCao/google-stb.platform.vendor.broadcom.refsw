@@ -373,6 +373,18 @@ wlc_phy_ioctl_dispatch(phy_info_t *pi, int cmd, int len, void *arg, bool *ta_ok)
 #endif 
 
 #ifndef WLC_DISABLE_ACI
+#if defined(BCMINTPHYDBG)
+	case WLC_GET_ACI_ARGS:
+		ASSERT(arg != NULL);
+		bcmerror = phy_noise_aci_args(pi, arg, TRUE, len);
+		break;
+
+	case WLC_SET_ACI_ARGS:
+		ASSERT(arg != NULL);
+		bcmerror = phy_noise_aci_args(pi, arg, FALSE, len);
+		break;
+
+#endif 
 #endif /* Compiling out ACI code for 4324 */
 
 	case WLC_GET_INTERFERENCE_MODE:

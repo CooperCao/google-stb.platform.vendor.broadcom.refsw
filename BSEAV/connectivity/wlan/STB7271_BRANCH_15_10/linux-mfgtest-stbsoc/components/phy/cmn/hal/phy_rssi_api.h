@@ -28,8 +28,8 @@
  */
 int8 phy_rssi_compute_rssi(phy_info_t *pi, wlc_d11rxhdr_t *wrxh);
 
-#if defined(WLTEST)
+#if (defined(WLTEST) || defined(BCMINTPHYDBG))
 void wlc_phy_pkteng_rxstats_update(wlc_phy_t *ppi, uint8 statidx);
-#endif  
+#endif  /* (defined(WLTEST) || defined (BCMINTPHYDBG)) */
 
 #endif /* _phy_rssi_api_h_ */

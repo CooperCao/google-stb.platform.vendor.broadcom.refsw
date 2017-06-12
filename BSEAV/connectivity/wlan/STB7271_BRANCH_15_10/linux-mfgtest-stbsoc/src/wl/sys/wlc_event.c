@@ -379,7 +379,7 @@ BCMATTACHFN(wlc_eventq_detach)(wlc_eventq_t *eq)
 {
 	uint eventqcmnsize;
 	wlc_info_t *wlc;
-	wlc_eventq_cmn_t *cmn = eq->cmn;
+	wlc_eventq_cmn_t *cmn;
 
 	if (eq == NULL)
 		return;
@@ -387,6 +387,7 @@ BCMATTACHFN(wlc_eventq_detach)(wlc_eventq_t *eq)
 	wlc_eventq_print(eq);
 #endif
 	wlc = eq->wlc;
+	cmn = eq->cmn;
 
 	wlc_eventq_flush(eq);
 	flush_scheduled_work();

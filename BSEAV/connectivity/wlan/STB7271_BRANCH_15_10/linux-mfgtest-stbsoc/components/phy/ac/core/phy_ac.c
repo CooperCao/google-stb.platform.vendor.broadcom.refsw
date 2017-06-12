@@ -84,14 +84,14 @@ static void phy_ac_unregister_impl(phy_info_t *pi, phy_type_info_t *ti);
 static void phy_ac_nvram_attach(phy_ac_info_t *aci);
 static void phy_ac_std_params_attach(phy_ac_info_t *aci);
 static void phy_ac_reset_impl(phy_info_t *pi, phy_type_info_t *ti);
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 static uint16 phy_ac_read_phyreg(phy_info_t *pi, phy_type_info_t *ti, uint addr);
 static int phy_ac_dump_phyregs(phy_info_t *pi, phy_type_info_t *ti, struct bcmstrbuf *b);
 #else
 #define	phy_ac_read_phyreg	NULL
 #define	phy_ac_dump_phyregs	NULL
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 static void phy_ac_info_init(phy_info_t *pi);
 
 /* ============= Function Definitions ============= */
@@ -963,8 +963,8 @@ phy_ac_reset_impl(phy_info_t *pi, phy_type_info_t *ti)
 	}
 }
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 /* These tables are generated using the phydefs2drv.pl tool */
 
 /* 43012 specific reg list */
@@ -2724,7 +2724,7 @@ phy_ac_dump_phyregs(phy_info_t *pi, phy_type_info_t *ti, struct bcmstrbuf *b)
 
 	return BCME_OK;
 }
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 void
 phy_ac_update_phycorestate(phy_info_t *pi)

@@ -90,8 +90,8 @@ static int _phy_init(phy_init_ctx_t *ctx);
 static void phy_register_dumps(phy_info_t *pi);
 static void phy_init_done(phy_info_t *pi);
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 /* phydump page infra */
 static void phyreg_page_parser(phy_info_t *pi, phy_regs_t *reglist, struct bcmstrbuf *b);
 #endif /* BCMDBG_PHYDUMP */
@@ -907,7 +907,7 @@ BCMATTACHFN(wlc_phy_std_params_attach)(phy_info_t *pi)
 	}
 #endif /* N2WOWL */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	/* Initialize to invalid index values */
 	pi->nphy_tbldump_minidx = -1;
 	pi->nphy_tbldump_maxidx = -1;
@@ -1501,8 +1501,8 @@ phy_bss_init(wlc_phy_t *pih, bool bonlyap, int noise)
 	return phy_noise_bss_init(pi->noisei, noise);
 }
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 static int
 _phy_dump_phyregs(void *ctx, struct bcmstrbuf *b)
 {
@@ -1584,7 +1584,7 @@ phy_dump_phyregs(phy_info_t *pi, const char *str,
 	uint16 addr, val = 0, num;
 	phy_regs_t *reglist = rl, *rl_end = NULL;
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	uint16 i = 0;
 	bool skip;
 #endif
@@ -1612,7 +1612,7 @@ phy_dump_phyregs(phy_info_t *pi, const char *str,
 	bcm_bprintf(b, "Add Value\n");
 
 	while (((num = reglist->num) > 0) && (reglist != rl_end)) {
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 		skip = FALSE;
 
 		for (i = 0; i < pi->nphy_phyreg_skipcnt; i++) {
@@ -1626,7 +1626,7 @@ phy_dump_phyregs(phy_info_t *pi, const char *str,
 			reglist++;
 			continue;
 		}
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 		for (addr = reglist->base + off; num && b->size > 0; addr++, num--) {
 			val = phy_type_read_phyreg(pi->typei, addr);
@@ -1641,14 +1641,15 @@ phy_dump_phyregs(phy_info_t *pi, const char *str,
 		reglist++;
 	}
 }
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && (BCMINTPHYDBG || DBG_PHY_IOV)) || BCMDBG_PHYDUMP */
 
 static void
 BCMATTACHFN(phy_register_dumps)(phy_info_t *pi)
 {
-#if defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(BCMINTPHYDBG)) || \
+	defined(BCMDBG_PHYDUMP)
 	phy_dbg_add_dump_fn(pi, "phyreg", _phy_dump_phyregs, pi);
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && BCMINTPHYDBG) || BCMDBG_PHYDUMP */
 	/*  default page */
 	pi->pdpi->page = 0;
 }

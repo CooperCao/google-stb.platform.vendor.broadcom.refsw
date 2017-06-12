@@ -32,9 +32,9 @@ typedef struct phy_vcocal_info phy_vcocal_info_t;
 /* attach/detach */
 phy_vcocal_info_t *phy_vcocal_attach(phy_info_t *pi);
 void phy_vcocal_detach(phy_vcocal_info_t *cmn_info);
-#if defined(WLTEST) || defined(RADIO_HEALTH_CHECK)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(RADIO_HEALTH_CHECK)
 void phy_vcocal_force(phy_info_t *pi);
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) ||defined(RADIO_HEALTH_CHECK) */
 int phy_vcocal_status(phy_vcocal_info_t *vcocali);
 
 /* init */

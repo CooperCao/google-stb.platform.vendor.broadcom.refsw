@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -155,7 +155,6 @@ endif
 NEXUS_CFLAGS += -Os
 # Don't warn on unreferenced static functions
 NEXUS_CFLAGS += -Wno-unused-function
-NEXUS_LDFLAGS += $(BCM_KBUILD_LDFLAGS)
 
 
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})

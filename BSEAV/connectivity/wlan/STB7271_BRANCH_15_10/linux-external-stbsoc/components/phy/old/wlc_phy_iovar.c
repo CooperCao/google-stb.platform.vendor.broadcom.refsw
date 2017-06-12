@@ -76,6 +76,65 @@ static const bcm_iovar_t phy_iovars[] = {
 	},
 #endif /* defined(BCMDBG) */
 
+#if defined(BCMINTPHYDBG)
+	{"nphy_cckpwr_offset", IOV_NPHY_CCK_PWR_OFFSET,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"nphy_cal_sanity", IOV_NPHY_CAL_SANITY,
+	IOVF_SET_UP, 0, IOVT_UINT32, 0
+	},
+	{"nphy_txiqlocal", IOV_NPHY_TXIQLOCAL,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"nphy_rxiqcal", IOV_NPHY_RXIQCAL,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"nphy_rxcalparams", IOV_NPHY_RXCALPARAMS,
+	(0), 0, IOVT_UINT32, 0
+	},
+	{"nphy_rssisel", IOV_NPHY_RSSISEL,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"nphy_rssical", IOV_NPHY_RSSICAL,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phy_gpiosel", IOV_PHY_GPIOSEL,
+	(IOVF_MFG), 0, IOVT_UINT16, 0
+	},
+	{"nphy_elna_gain_config", IOV_NPHY_ELNA_GAIN_CONFIG,
+	(IOVF_SET_DOWN), 0, IOVT_UINT8, 0
+	},
+	{"nphy_aci_scan", IOV_NPHY_ACI_SCAN,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"nphy_pacaltype", IOV_NPHY_PAPDCALTYPE,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"nphy_papdcal", IOV_NPHY_PAPDCAL,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"nphy_skippapd", IOV_NPHY_SKIPPAPD,
+	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"nphy_pacalindex", IOV_NPHY_PAPDCALINDEX,
+	(IOVF_MFG), 0, IOVT_UINT16, 0
+	},
+	{"nphy_caltxgain", IOV_NPHY_CALTXGAIN,
+	(IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"nphy_tbldump_minidx", IOV_NPHY_TBLDUMP_MINIDX,
+	(IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"nphy_tbldump_maxidx", IOV_NPHY_TBLDUMP_MAXIDX,
+	(IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"nphy_phyreg_skipdump", IOV_NPHY_PHYREG_SKIPDUMP,
+	(IOVF_MFG), 0, IOVT_UINT16, 0
+	},
+	{"nphy_phyreg_skipcount", IOV_NPHY_PHYREG_SKIPCNT,
+	(IOVF_MFG), 0, IOVT_INT8, 0
+	},
+#endif 
 #endif /* NCONF */
 #if defined(BCMDBG)
 	{"fast_timer", IOV_FAST_TIMER,
@@ -98,15 +157,95 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"cal_period", IOV_CAL_PERIOD,
 	0, 0, IOVT_UINT32, 0
 	},
+#if defined(BCMINTPHYDBG)
+	{"phymsglevel", IOV_PHYHAL_MSG,
+	(0), 0, IOVT_UINT32, 0
+	},
+	{"phy_fixed_noise", IOV_PHY_FIXED_NOISE,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phynoise_polling", IOV_PHYNOISE_POLL,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"carrier_suppress", IOV_CARRIER_SUPPRESS,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+#ifdef BAND5G
+	{"subband5gver", IOV_PHY_SUBBAND5GVER,
+	0, 0, IOVT_INT8, 0
+	},
+#endif /* BAND5G */
+	{"phy_txrx_chain", IOV_PHY_TXRX_CHAIN,
+	(0), 0, IOVT_INT8, 0
+	},
+	{"phy_bphy_evm", IOV_PHY_BPHY_EVM,
+	(IOVF_SET_DOWN | IOVF_SET_BAND | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phy_bphy_rfcs", IOV_PHY_BPHY_RFCS,
+	(IOVF_SET_DOWN | IOVF_SET_BAND | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phy_scraminit", IOV_PHY_SCRAMINIT,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"phy_rfseq", IOV_PHY_RFSEQ,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phy_tx_tone_hz", IOV_PHY_TX_TONE_HZ,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
+	},
+	{"phy_tx_tone_symm", IOV_PHY_TX_TONE_SYMM,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
+	},
+	{"phy_test_tssi", IOV_PHY_TEST_TSSI,
+	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"phy_test_tssi_offs", IOV_PHY_TEST_TSSI_OFFS,
+	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"phy_test_idletssi", IOV_PHY_TEST_IDLETSSI,
+	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_INT8, 0
+	},
+	{"phy_setrptbl", IOV_PHY_SETRPTBL,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_VOID, 0
+	},
+	{"phy_forceimpbf", IOV_PHY_FORCEIMPBF,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_VOID, 0
+	},
+	{"phy_forcesteer", IOV_PHY_FORCESTEER,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+#ifdef BAND5G
+	{"phy_5g_pwrgain", IOV_PHY_5G_PWRGAIN,
+	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+#endif /* BAND5G */
+	{"phy_enrxcore", IOV_PHY_ENABLERXCORE,
+	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phy_activecal", IOV_PHY_ACTIVECAL,
+	IOVF_GET_UP, 0, IOVT_UINT8, 0
+	},
+	{"phy_bbmult", IOV_PHY_BBMULT,
+	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, 0
+	},
+	{"phy_lowpower_beacon_mode", IOV_PHY_LOWPOWER_BEACON_MODE,
+	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
+	},
+#endif 
 	{"phy_rx_gainindex", IOV_PHY_RXGAININDEX,
 	IOVF_GET_UP | IOVF_SET_UP, 0, IOVT_UINT16, 0
 	},
 	{"phy_forcecal", IOV_PHY_FORCECAL,
 	IOVF_SET_UP, 0, IOVT_UINT8, 0
 	},
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 	{"phy_forcecal_obt", IOV_PHY_FORCECAL_OBT,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+#endif 
+#if defined(BCMINTPHYDBG)
+	{"phy_deaf", IOV_PHY_DEAF,
+	(IOVF_GET_UP | IOVF_SET_UP), 0, IOVT_UINT8, 0
 	},
 #endif 
 	{"num_stream", IOV_NUM_STREAM,
@@ -115,6 +254,11 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"min_txpower", IOV_MIN_TXPOWER,
 	0, 0, IOVT_UINT32, 0
 	},
+#if defined(BCMINTPHYDBG)
+	{"phywreg_limit", IOV_PHYWREG_LIMIT,
+	0, 0, IOVT_UINT32, IOVT_UINT32
+	},
+#endif /* BCMINTPHYDBG */
 	{"phy_muted", IOV_PHY_MUTED,
 	0, 0, IOVT_UINT8, 0
 	},
@@ -159,6 +303,28 @@ static const bcm_iovar_t phy_iovars[] = {
 	IOVF_GET_UP, 0, IOVT_INT16, 0
 	},
 #endif 
+#if defined(BCMINTPHYDBG)
+	{"phy_cal_disable", IOV_PHY_CAL_DISABLE,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+#endif  
+#if defined(BCMINTPHYDBG)
+	{"phy_vbatsense", IOV_PHY_VBATSENSE,
+	IOVF_GET_UP, 0, IOVT_INT32, 0
+	},
+	{"phy_idletssi", IOV_PHY_IDLETSSI_REG,
+	(IOVF_GET_UP | IOVF_SET_UP), 0, IOVT_BUFFER, 0
+	},
+	{"phy_tssi", IOV_PHY_AVGTSSI_REG,
+	(IOVF_GET_UP), 0, IOVT_BUFFER, 0
+	},
+	{"phy_resetcca", IOV_PHY_RESETCCA,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phy_iqlocalidx", IOV_PHY_IQLOCALIDX,
+	(IOVF_GET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
+	},
+#endif 
 	{"phy_sromtempsense", IOV_PHY_SROM_TEMPSENSE,
 	(IOVF_SET_UP | IOVF_GET_UP | IOVF_MFG), 0, IOVT_INT16, 0
 	},
@@ -170,6 +336,24 @@ static const bcm_iovar_t phy_iovars[] = {
 	IOVF_GET_UP, 0, IOVT_UINT32, 0,
 	},
 #endif /* PHYMON */
+#if defined(BCMINTPHYDBG)
+	{"aci_exit_check_period", IOV_ACI_EXIT_CHECK_PERIOD,
+	(IOVF_MFG), 0, IOVT_UINT32, 0
+	},
+#endif 
+#if defined(BCMINTPHYDBG)
+	{"rpcalvars", IOV_RPCALVARS,
+	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, 2*WL_NUM_RPCALVARS * sizeof(wl_rpcal_t)
+	},
+#endif 
+#if defined(BCMINTPHYDBG)
+	{"phy_tpc_av", IOV_TPC_AV,
+	(IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_BUFFER, 0
+	},
+	{"phy_tpc_vmid", IOV_TPC_VMID,
+	(IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_BUFFER, 0
+	},
+#endif 
 #if defined(BCMDBG)
 	{"phy_force_fdiqi", IOV_PHY_FORCE_FDIQI,
 	IOVF_SET_UP, 0, IOVT_UINT32, 0
@@ -187,12 +371,17 @@ static const bcm_iovar_t phy_iovars[] = {
 	{"lnldo2", IOV_LNLDO2,
 	(IOVF_MFG), 0, IOVT_UINT8, 0
 	},
-#if defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV)
 	{"phy_dynamic_ml", IOV_PHY_DYN_ML,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
 	},
 	{"aci_nams", IOV_PHY_ACI_NAMS,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+#endif 
+#if defined(BCMINTPHYDBG)
+	{"phy_auxpga", IOV_PHY_AUXPGA,
+	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, 6*sizeof(uint8)
 	},
 #endif 
 #if defined(BCMDBG)
@@ -201,6 +390,25 @@ static const bcm_iovar_t phy_iovars[] = {
 	},
 #endif
 
+#if defined(BCMINTPHYDBG)
+	{"phy_txpwrctrl", IOV_PHY_TXPWRCTRL,
+	(IOVF_MFG), 0, IOVT_UINT8, 0
+	},
+	{"phy_txpwrindex", IOV_PHY_TXPWRINDEX,
+	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, 0
+	},
+#endif 
+#if defined(BCMINTPHYDBG)
+	{"patrim", IOV_PATRIM,
+	(IOVF_MFG), 0, IOVT_INT32, 0
+	},
+	{"pavars2", IOV_PAVARS2,
+	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, sizeof(wl_pavars2_t)
+	},
+	{"povars", IOV_POVARS,
+	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, sizeof(wl_po_t)
+	},
+#endif 
 	{"sromrev", IOV_SROM_REV,
 	(IOVF_SET_DOWN), 0, IOVT_UINT8, 0
 	},
@@ -285,6 +493,15 @@ static const bcm_iovar_t phy_iovars[] = {
 #include <phy_ac_calmgr.h>
 #include <phy_noise.h>
 
+#if defined(BCMINTPHYDBG)
+#define BFECONFIGREF_FORCEVAL    0x9
+#define BFMCON_FORCEVAL          0x8c03
+#define BFMCON_RELEASEVAL        0x8c1d
+#define REFRESH_THR_FORCEVAL     0xffff
+#define REFRESH_THR_RELEASEVAL   0x186a
+#define BFRIDX_POS_FORCEVAL      0x100
+#define BFRIDX_POS_RELEASEVAL    0x0
+#endif 
 
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
@@ -319,14 +536,56 @@ static int wlc_phy_iovar_get_bphymrc(phy_info_t *pi, int32 *get_val);
 static int
 wlc_phy_iovar_tempsense_paldosense(phy_info_t *pi, int32 *ret_int_ptr, uint8 tempsense_paldosense);
 #endif
+#if defined(BCMINTPHYDBG)
+static int
+wlc_phy_iovar_bbmult_get(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr);
+static int wlc_phy_iovar_bbmult_set(phy_info_t *pi, void *p);
+static int wlc_phy_iovar_vbatsense(phy_info_t *pi, int32 *ret_int_ptr);
+#endif 
+#if defined(BCMINTPHYDBG)
+static int
+wlc_phy_iovar_avvmid_get(phy_info_t *pi, void *p,
+	bool bool_val, int32 *ret_int_ptr, wlc_avvmid_t avvmid_type);
+static int wlc_phy_iovar_avvmid_set(phy_info_t *pi, void *p,  wlc_avvmid_t avvmid_type);
+#endif 
+#if defined(BCMINTPHYDBG)
+static int wlc_phy_iovar_idletssi_reg(phy_info_t *pi, int32 *ret_int_ptr, int32 int_val, bool set);
+static int wlc_phy_iovar_avgtssi_reg(phy_info_t *pi, int32 *ret_int_ptr);
+#endif 
+#if defined(BCMINTPHYDBG)
+static int wlc_phy_iovar_txrx_chain(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, bool set);
+static void wlc_phy_iovar_bphy_testpattern(phy_info_t *pi, uint8 testpattern, bool enable);
+static void wlc_phy_iovar_scraminit(phy_info_t *pi, int8 scraminit);
+static int wlc_phy_iovar_force_rfseq(phy_info_t *pi, uint8 int_val);
+static void wlc_phy_iovar_tx_tone_hz(phy_info_t *pi, int32 int_val);
+static int16 wlc_phy_iovar_test_tssi(phy_info_t *pi, uint8 val, uint8 pwroffset);
+static int16 wlc_phy_iovar_test_idletssi(phy_info_t *pi, uint8 val);
+static int16 wlc_phy_iovar_setrptbl(phy_info_t *pi);
+static int16 wlc_phy_iovar_forceimpbf(phy_info_t *pi);
+static int16 wlc_phy_iovar_forcesteer(phy_info_t *pi, uint8 enable);
+static void
+wlc_phy_iovar_rxcore_enable(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr,
+	bool set);
+#endif 
+#if defined(BCMINTPHYDBG)
+static void wlc_phy_iovar_set_deaf(phy_info_t *pi, int32 int_val);
+static int wlc_phy_iovar_get_deaf(phy_info_t *pi, int32 *ret_int_ptr);
+#endif 
 static int
 wlc_phy_iovar_forcecal(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set);
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 static int
 wlc_phy_iovar_forcecal_obt(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set);
 #endif 
+#if defined(BCMINTPHYDBG)
+static int
+wlc_phy_iovar_txpwrctrl(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr,
+	bool set);
+static int
+wlc_phy_iovar_txpwrindex_get(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr);
+#endif 
 
-#if defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV)
 static int
 wlc_phy_aci_nams(phy_info_t *pi, int32 int_val,	int32 *ret_int_ptr, int vsize, bool set);
 static int
@@ -335,7 +594,7 @@ wlc_phy_dynamic_ml(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize,
 int phy_iovars_wrapper_sample_collect(phy_info_t *pi, uint32 actionid, uint16 type,
 		void *p, uint plen, void *a, int alen, int vsize);
 
-#if defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV)
 static int
 wlc_phy_dynamic_ml(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set)
 {
@@ -879,6 +1138,85 @@ wlc_phy_trigger_cals_for_btc_adjust(phy_info_t *pi)
 	wlc_phy_cal_perical_mphase_schedule(pi, PHY_PERICAL_NODELAY);
 }
 
+#if defined(BCMINTPHYDBG)
+
+static int
+wlc_phy_iovar_bbmult_get(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr)
+{
+	int err = BCME_OK;
+
+	if (ISNPHY(pi))
+		wlc_phy_get_bbmult_nphy(pi, ret_int_ptr);
+	else
+		err = BCME_UNSUPPORTED;
+
+	return err;
+}
+
+static int
+wlc_phy_iovar_bbmult_set(phy_info_t *pi, void *p)
+{
+	int err = BCME_OK;
+	uint16 bbmult[PHY_CORE_NUM_2] = { 0 };
+	uint8 m0, m1;
+
+	bcopy(p, bbmult, PHY_CORE_NUM_2 * sizeof(uint16));
+
+	if (ISNPHY(pi)) {
+		m0 = (uint8)(bbmult[0] & 0xff);
+		m1 = (uint8)(bbmult[1] & 0xff);
+		wlc_phy_set_bbmult_nphy(pi, m0, m1);
+	} else
+		err = BCME_UNSUPPORTED;
+
+	return err;
+}
+
+#if defined(BCMINTPHYDBG)
+static int
+wlc_phy_iovar_avvmid_get(phy_info_t *pi, void *p, bool bool_val,
+	int32 *ret_int_ptr, wlc_avvmid_t avvmid_type)
+{
+	int err = BCME_OK;
+	uint8 core_sub_band[2];
+	bcopy(p, core_sub_band, 2*sizeof(uint8));
+	BCM_REFERENCE(bool_val);
+	if (ISACPHY(pi))
+		wlc_phy_get_avvmid_acphy(pi, ret_int_ptr, avvmid_type, core_sub_band);
+	else
+		err = BCME_UNSUPPORTED;
+	return err;
+}
+
+static int
+wlc_phy_iovar_avvmid_set(phy_info_t *pi, void *p, wlc_avvmid_t avvmid_type)
+{
+	int err = BCME_OK;
+	uint8 avvmid[3];
+	bcopy(p, avvmid, 3*sizeof(uint8));
+	if (ISACPHY(pi)) {
+		wlc_phy_set_avvmid_acphy(pi, avvmid, avvmid_type);
+	} else
+		err = BCME_UNSUPPORTED;
+	return err;
+}
+#endif 
+
+static int
+wlc_phy_iovar_vbatsense(phy_info_t *pi, int32 *ret_int_ptr)
+{
+	int err = BCME_OK;
+	int32 int_val;
+
+	if (ISNPHY(pi)) {
+		int_val = (int32)(wlc_phy_vbat_from_statusbyte_nphy_rev19(pi));
+		bcopy(&int_val, ret_int_ptr, sizeof(int_val));
+	} else
+		err = BCME_UNSUPPORTED;
+
+	return err;
+}
+#endif 
 
 #if defined(BCMDBG) || defined(BCMDBG_TEMPSENSE)
 static int
@@ -922,6 +1260,55 @@ wlc_phy_iovar_tempsense_paldosense(phy_info_t *pi, int32 *ret_int_ptr, uint8 tem
 		* defined(BCMDBG_TEMPSENSE)
 		*/
 
+#if defined(BCMINTPHYDBG)
+static int
+wlc_phy_iovar_idletssi_reg(phy_info_t *pi, int32 *ret_int_ptr, int32 int_val, bool set)
+{
+	int err = BCME_OK;
+	uint32 tmp;
+	uint16 idle_tssi[NPHY_CORE_NUM];
+	phy_info_nphy_t *pi_nphy = pi->u.pi_nphy;
+
+	if (ISHTPHY(pi))
+		*ret_int_ptr = wlc_phy_idletssi_get_htphy(pi);
+#if (defined(LCN20CONF) && (LCN20CONF != 0))
+	else if (ISLCN20PHY(pi))
+		*ret_int_ptr = wlc_lcn20phy_idle_tssi_reg_iovar(pi, int_val, set, &err);
+#endif /* #if (defined(LCN20CONF) && (LCN20CONF != 0)) */
+	else if (ISNPHY(pi)) {
+		if (!(CHIP_4324_B0(pi) || CHIP_4324_B4(pi))) {
+			wlc_phy_lcnxn_rx2tx_stallwindow_nphy(pi, 1);
+			wlc_phy_txpwrctrl_idle_tssi_nphy(pi);
+			wlc_phy_lcnxn_rx2tx_stallwindow_nphy(pi, 0);
+		}
+		if (CHSPEC_IS2G(pi->radio_chanspec)) {
+			idle_tssi[0] = (uint16)pi_nphy->nphy_pwrctrl_info[0].idle_tssi_2g;
+			idle_tssi[1] = (uint16)pi_nphy->nphy_pwrctrl_info[1].idle_tssi_2g;
+		} else {
+			idle_tssi[0] = (uint16)pi_nphy->nphy_pwrctrl_info[0].idle_tssi_5g;
+			idle_tssi[1] = (uint16)pi_nphy->nphy_pwrctrl_info[1].idle_tssi_5g;
+		}
+		tmp = (idle_tssi[1] << 16) | idle_tssi[0];
+		*ret_int_ptr = tmp;
+	}
+
+	return err;
+}
+
+static int
+wlc_phy_iovar_avgtssi_reg(phy_info_t *pi, int32 *ret_int_ptr)
+{
+	int err = BCME_OK;
+	if (ISNPHY(pi)) {
+		*ret_int_ptr = wlc_nphy_tssi_read_iovar(pi);
+#if (defined(LCN20CONF) && (LCN20CONF != 0))
+	} else if (ISLCN20PHY(pi)) {
+		*ret_int_ptr = wlc_lcn20phy_avg_tssi_reg_iovar(pi);
+#endif /* #if (defined(LCN20CONF) && (LCN20CONF != 0)) */
+	}
+	return err;
+}
+#endif 
 
 static int
 wlc_phy_iovar_forcecal(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set)
@@ -1025,7 +1412,7 @@ wlc_phy_iovar_forcecal(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vs
 	return err;
 }
 
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 static int
 wlc_phy_iovar_forcecal_obt(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, int vsize, bool set)
 {
@@ -1060,6 +1447,107 @@ wlc_phy_iovar_forcecal_obt(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, in
 }
 #endif 
 
+#if defined(BCMINTPHYDBG)
+static void
+wlc_phy_iovar_set_deaf(phy_info_t *pi, int32 int_val)
+{
+	if (int_val) {
+		wlc_phy_set_deaf((wlc_phy_t *) pi, TRUE);
+	} else {
+		wlc_phy_clear_deaf((wlc_phy_t *) pi, TRUE);
+	}
+}
+
+static int
+wlc_phy_iovar_get_deaf(phy_info_t *pi, int32 *ret_int_ptr)
+{
+	if (ISHTPHY(pi)) {
+		*ret_int_ptr = (int32)wlc_phy_get_deaf_htphy(pi);
+		return BCME_OK;
+	} else if (ISNPHY(pi)) {
+		*ret_int_ptr = (int32)wlc_phy_get_deaf_nphy(pi);
+		return BCME_OK;
+	} else if (ISACPHY(pi)) {
+	        *ret_int_ptr = (int32)wlc_phy_get_deaf_acphy(pi);
+		return BCME_OK;
+	} else {
+		return BCME_UNSUPPORTED;
+	}
+}
+#endif 
+#if defined(BCMINTPHYDBG)
+static int
+wlc_phy_iovar_txpwrctrl(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr,
+	bool set)
+{
+	int err = BCME_OK;
+
+	if (!set) {
+		if (ISACPHY(pi) || ISHTPHY(pi)) {
+			*ret_int_ptr = pi->txpwrctrl;
+		} else if (ISNPHY(pi)) {
+			*ret_int_ptr = pi->nphy_txpwrctrl;
+#if (defined(LCN20CONF) && (LCN20CONF != 0))
+		} else if (ISLCN20PHY(pi)) {
+				err = wlc_lcn20phy_iovar_isenabled_tpc(pi, ret_int_ptr);
+#endif /* #if (defined(LCN20CONF) && (LCN20CONF != 0)) */
+		}
+
+	} else {
+		if (ISNPHY(pi) || ISHTPHY(pi) || ISACPHY(pi)) {
+			if ((int_val != PHY_TPC_HW_OFF) && (int_val != PHY_TPC_HW_ON)) {
+				err = BCME_RANGE;
+				goto end;
+			}
+
+			pi->nphy_txpwrctrl = (uint8)int_val;
+			pi->txpwrctrl = (uint8)int_val;
+
+			/* if not up, we are done */
+			if (!pi->sh->up)
+				goto end;
+
+			wlapi_suspend_mac_and_wait(pi->sh->physhim);
+			phy_utils_phyreg_enter(pi);
+			if (ISNPHY(pi))
+				wlc_phy_txpwrctrl_enable_nphy(pi, (uint8) int_val);
+			else if (ISHTPHY(pi))
+				wlc_phy_txpwrctrl_enable_htphy(pi, (uint8) int_val);
+			else if (ISACPHY(pi))
+				wlc_phy_txpwrctrl_enable_acphy(pi, (uint8) int_val);
+			phy_utils_phyreg_exit(pi);
+			wlapi_enable_mac(pi->sh->physhim);
+
+#if (defined(LCN20CONF) && (LCN20CONF != 0))
+		} else if (ISLCN20PHY(pi)) {
+			err = wlc_lcn20phy_iovar_txpwrctrl(pi, int_val, ret_int_ptr);
+#endif /* #if (defined(LCN20CONF) && (LCN20CONF != 0)) */
+		}
+	}
+
+end:
+	return err;
+}
+
+static int
+wlc_phy_iovar_txpwrindex_get(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr)
+{
+	int err = BCME_OK;
+
+	if (ISNPHY(pi)) {
+		*ret_int_ptr = wlc_phy_txpwr_idx_get_nphy(pi);
+	} else if (ISHTPHY(pi)) {
+		*ret_int_ptr = wlc_phy_txpwr_idx_get_htphy(pi);
+	} else if (ISACPHY(pi)) {
+		*ret_int_ptr = wlc_phy_txpwr_idx_get_acphy(pi);
+#if (defined(LCN20CONF) && (LCN20CONF != 0))
+	} else if (ISLCN20PHY(pi)) {
+		*ret_int_ptr = wlc_lcn20phy_get_current_tx_pwr_idx(pi);
+#endif /* #if (defined(LCN20CONF) && (LCN20CONF != 0)) */
+	}
+	return err;
+}
+#endif 
 
 int
 wlc_phy_iovar_txpwrindex_set(phy_info_t *pi, void *p)
@@ -1109,6 +1597,332 @@ wlc_phy_iovar_txpwrindex_set(phy_info_t *pi, void *p)
 	return err;
 }
 
+#if defined(BCMINTPHYDBG)
+static int
+wlc_phy_iovar_txrx_chain(phy_info_t *pi, int32 int_val, int32 *ret_int_ptr, bool set)
+{
+	int err = BCME_OK;
+
+	if (ISHTPHY(pi))
+		return BCME_UNSUPPORTED;
+
+	if (!set) {
+		if (ISNPHY(pi)) {
+			*ret_int_ptr = (int)pi->nphy_txrx_chain;
+		}
+	} else {
+		if (ISNPHY(pi)) {
+			if ((int_val != AUTO) && (int_val != WLC_N_TXRX_CHAIN0) &&
+				(int_val != WLC_N_TXRX_CHAIN1)) {
+				err = BCME_RANGE;
+				goto end;
+			}
+
+			if (pi->nphy_txrx_chain != (int8)int_val) {
+				pi->nphy_txrx_chain = (int8)int_val;
+				if (pi->sh->up) {
+					wlapi_suspend_mac_and_wait(pi->sh->physhim);
+					phy_utils_phyreg_enter(pi);
+					wlc_phy_stf_chain_upd_nphy(pi);
+					wlc_phy_force_rfseq_nphy(pi, NPHY_RFSEQ_RESET2RX);
+					phy_utils_phyreg_exit(pi);
+					wlapi_enable_mac(pi->sh->physhim);
+				}
+			}
+		}
+	}
+end:
+	return err;
+}
+
+static void
+wlc_phy_iovar_bphy_testpattern(phy_info_t *pi, uint8 testpattern, bool enable)
+{
+	bool existing_enable = FALSE;
+
+	/* WL out check */
+	if (pi->sh->up) {
+		PHY_ERROR(("wl%d: %s: This function needs to be called after 'wl out'\n",
+		          pi->sh->unit, __FUNCTION__));
+		return;
+	}
+
+	/* confirm band is locked to 2G */
+	if (!CHSPEC_IS2G(pi->radio_chanspec)) {
+		PHY_ERROR(("wl%d: %s: Band needs to be locked to 2G (b)\n",
+		          pi->sh->unit, __FUNCTION__));
+		return;
+	}
+
+	if (ISHTPHY(pi)) {
+		PHY_ERROR(("wl%d: %s: This function is supported only for NPHY\n",
+		          pi->sh->unit, __FUNCTION__));
+		return;
+	}
+
+	if (testpattern == NPHY_TESTPATTERN_BPHY_EVM) {    /* CW CCK for EVM testing */
+		existing_enable = (bool) pi->phy_bphy_evm;
+	} else if (testpattern == NPHY_TESTPATTERN_BPHY_RFCS) { /* RFCS testpattern */
+		existing_enable = (bool) pi->phy_bphy_rfcs;
+	} else {
+		PHY_ERROR(("Testpattern needs to be between [0 (BPHY_EVM), 1 (BPHY_RFCS)]\n"));
+		ASSERT(0);
+	}
+
+	if (ISNPHY(pi)) {
+		wlc_phy_bphy_testpattern_nphy(pi, testpattern, enable, existing_enable);
+	} else {
+		PHY_ERROR(("support yet to be added\n"));
+		ASSERT(0);
+	}
+
+	/* Return state of testpattern enables */
+	if (testpattern == NPHY_TESTPATTERN_BPHY_EVM) {    /* CW CCK for EVM testing */
+		pi->phy_bphy_evm = enable;
+	} else if (testpattern == NPHY_TESTPATTERN_BPHY_RFCS) { /* RFCS testpattern */
+		pi->phy_bphy_rfcs = enable;
+	}
+}
+
+static void
+wlc_phy_iovar_scraminit(phy_info_t *pi, int8 scraminit)
+{
+	pi->phy_scraminit = (int8)scraminit;
+	wlapi_suspend_mac_and_wait(pi->sh->physhim);
+	phy_utils_phyreg_enter(pi);
+
+	if (ISNPHY(pi)) {
+		wlc_phy_test_scraminit_nphy(pi, scraminit);
+	} else if (ISHTPHY(pi)) {
+		wlc_phy_test_scraminit_htphy(pi, scraminit);
+	} else if (ISACPHY(pi)) {
+		wlc_phy_test_scraminit_acphy(pi, scraminit);
+	} else {
+		PHY_ERROR(("support yet to be added\n"));
+		ASSERT(0);
+	}
+
+	phy_utils_phyreg_exit(pi);
+	wlapi_enable_mac(pi->sh->physhim);
+}
+
+static int
+wlc_phy_iovar_force_rfseq(phy_info_t *pi, uint8 int_val)
+{
+	int err = BCME_OK;
+
+	phy_utils_phyreg_enter(pi);
+	if (ISNPHY(pi)) {
+		wlc_phy_force_rfseq_nphy(pi, int_val);
+	} else if (ISHTPHY(pi)) {
+		wlc_phy_force_rfseq_htphy(pi, int_val);
+	} else if (ISACPHY(pi)) {
+		wlc_phy_force_rfseq_acphy(pi, int_val);
+	} else {
+		err = BCME_UNSUPPORTED;
+	}
+	phy_utils_phyreg_exit(pi);
+
+	return err;
+}
+
+static void
+wlc_phy_iovar_tx_tone_hz(phy_info_t *pi, int32 int_val)
+{
+	pi->phy_tx_tone_freq = (int32) int_val;
+}
+
+static int
+wlc_phy_iovar_tx_tone_symm(phy_info_t *pi, int32 int_val)
+{
+	int err = BCME_OK;
+	pi->phy_tx_tone_freq = (int32) int_val;
+
+	pi->phytxtone_symm = TRUE;
+
+	if (ISACPHY(pi)) {
+	        if (pi->phy_tx_tone_freq == 0) {
+	                wlc_phy_stopplayback_acphy(pi);
+	                phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, FALSE);
+	                wlapi_enable_mac(pi->sh->physhim);
+	        } else {
+	                pi->phy_tx_tone_freq = pi->phy_tx_tone_freq * 1000; /* Covert to Hz */
+	                wlapi_suspend_mac_and_wait(pi->sh->physhim);
+	                phy_rxgcrs_stay_in_carriersearch(pi->rxgcrsi, TRUE);
+	                wlc_phy_tx_tone_acphy(pi, (int32)int_val, 151, 0, 0, TRUE);
+	        }
+	} else {
+	        err = BCME_UNSUPPORTED;
+	}
+
+	/* Disable symmetrical tone, falling back to default setting */
+	pi->phytxtone_symm = FALSE;
+
+	return err;
+}
+
+static int16
+wlc_phy_iovar_test_tssi(phy_info_t *pi, uint8 val, uint8 pwroffset)
+{
+	int16 tssi = 0;
+	if (ISNPHY(pi)) {
+		tssi = (int16) wlc_phy_test_tssi_nphy(pi, val, pwroffset);
+	} else if (ISHTPHY(pi)) {
+		tssi = (int16) wlc_phy_test_tssi_htphy(pi, val, pwroffset);
+	} else if (ISACPHY(pi)) {
+		tssi = (int16) wlc_phy_test_tssi_acphy(pi, val, pwroffset);
+	} else if (ISLCN20PHY(pi)) {
+		tssi = (int16) wlc_phy_test_tssi_lcn20phy(pi, val, pwroffset);
+	}
+	return tssi;
+}
+
+static int16
+wlc_phy_iovar_test_idletssi(phy_info_t *pi, uint8 val)
+{
+	int16 idletssi = INVALID_IDLETSSI_VAL;
+	if (ISACPHY(pi)) {
+		idletssi = (int16) wlc_phy_test_idletssi_acphy(pi, val);
+	} else if (ISLCN20PHY(pi)) {
+		idletssi = (int16) wlc_phy_test_idletssi_lcn20phy(pi, val);
+	}
+	return idletssi;
+}
+
+static int16
+wlc_phy_iovar_setrptbl(phy_info_t *pi)
+{
+	if (ISACPHY(pi) && (!ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+		wlc_phy_populate_recipcoeffs_acphy(pi);
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		return 0;
+	}
+
+	return BCME_UNSUPPORTED;
+}
+
+static int16
+wlc_phy_iovar_forceimpbf(phy_info_t *pi)
+{
+	if (ISACPHY(pi) && (!ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+		phy_utils_write_phyreg(pi, ACPHY_BfeConfigReg0(pi->pubpi->phy_rev),
+		                       BFECONFIGREF_FORCEVAL);
+
+		if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
+		    ACMAJORREV_33(pi->pubpi->phy_rev) ||
+		    ACMAJORREV_37(pi->pubpi->phy_rev)) {
+			WRITE_PHYREG(pi, BfeMuConfigReg1, 0x1000);
+			WRITE_PHYREG(pi, BfeMuConfigReg2, 0x2000);
+			WRITE_PHYREG(pi, BfeMuConfigReg3, 0x1000);
+		}
+
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		return 0;
+	}
+
+	return BCME_UNSUPPORTED;
+}
+
+static int16
+wlc_phy_iovar_forcesteer(phy_info_t *pi, uint8 enable)
+{
+#if (ACCONF || ACCONF2) && defined(WL_BEAMFORMING)
+	uint16 bfmcon_val      = 0;
+	uint16 bfridx_pos_val  = 0;
+	uint16 refresh_thr_val = 0;
+	uint16 shm_base, addr1, addr2, bfrctl = 0;
+
+	if (ISACPHY(pi) && (!ACMAJORREV_1(pi->pubpi->phy_rev))) {
+		phy_stf_data_t *stf_shdata = phy_stf_get_data(pi->stfi);
+
+		BCM_REFERENCE(stf_shdata);
+
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+
+		bfmcon_val      = enable ? BFMCON_FORCEVAL      : BFMCON_RELEASEVAL;
+		bfridx_pos_val  = enable ? BFRIDX_POS_FORCEVAL  : BFRIDX_POS_RELEASEVAL;
+		refresh_thr_val = enable ? REFRESH_THR_FORCEVAL : REFRESH_THR_RELEASEVAL;
+
+		shm_base = wlapi_bmac_read_shm(pi->sh->physhim, M_BFCFG_PTR(pi));
+		shm_base = wlapi_bmac_read_shm(pi->sh->physhim, shm_base * 2);
+
+		/* NDP streams */
+		if (PHY_BITSCNT(stf_shdata->phytxchain) == 4) {
+			/* 4 streams */
+			bfrctl = (2 << C_BFI_BFRCTL_POS_NSTS_SHIFT);
+		} else if (PHY_BITSCNT(stf_shdata->phytxchain) == 3) {
+			/* 3 streams */
+			bfrctl = (1 << C_BFI_BFRCTL_POS_NSTS_SHIFT);
+		} else if (PHY_BITSCNT(stf_shdata->phytxchain) == 2) {
+			/* 2 streams */
+			bfrctl = 0;
+		}
+		bfrctl |= (stf_shdata->phytxchain << C_BFI_BFRCTL_POS_BFM_SHIFT);
+		wlapi_bmac_write_shm(pi->sh->physhim, (shm_base + C_BFI_BFRCTL_POS) * 2, bfrctl);
+
+		addr1 = (shm_base + M_BFI_REFRESH_THR_OFFSET(pi))*2;
+		addr2 = (shm_base + C_BFI_BFRIDX_POS)* 2;
+		phy_utils_write_phyreg(pi, ACPHY_BfmCon(pi->pubpi->phy_rev), bfmcon_val);
+
+		if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
+		    ACMAJORREV_33(pi->pubpi->phy_rev) ||
+		    ACMAJORREV_37(pi->pubpi->phy_rev)) {
+			uint32 tmpaddr = 0x1000;
+			wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_BFMUSERINDEX,
+			1, 0x1000, 32, &tmpaddr);
+			MOD_PHYREG(pi, BfeMuConfigReg0, useTxbfIndexAddr, 1);
+		}
+
+		wlapi_bmac_write_shm(pi->sh->physhim, addr1, refresh_thr_val);
+		wlapi_bmac_write_shm(pi->sh->physhim, addr2, bfridx_pos_val);
+
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		return 0;
+	}
+#endif /* (ACCONF || ACCONF2) && WL_BEAMFORMING */
+
+	return BCME_UNSUPPORTED;
+}
+
+static void
+wlc_phy_iovar_rxcore_enable(phy_info_t *pi, int32 int_val, bool bool_val, int32 *ret_int_ptr,
+	bool set)
+{
+	wlapi_suspend_mac_and_wait(pi->sh->physhim);
+	phy_utils_phyreg_enter(pi);
+
+	if (set) {
+		if (ISNPHY(pi)) {
+			wlc_phy_rxcore_setstate_nphy((wlc_phy_t *)pi, (uint8) int_val, 0);
+		} else if (ISHTPHY(pi)) {
+			wlc_phy_rxcore_setstate_htphy((wlc_phy_t *)pi, (uint8) int_val);
+		} else if (ISACPHY(pi)) {
+			wlc_phy_rxcore_setstate_acphy((wlc_phy_t *)pi,
+			    (uint8) int_val, phy_stf_get_data(pi->stfi)->phytxchain);
+		}
+	} else {
+		if (ISNPHY(pi)) {
+			*ret_int_ptr =  (uint32)wlc_phy_rxcore_getstate_nphy((wlc_phy_t *)pi);
+		} else if (ISHTPHY(pi)) {
+			*ret_int_ptr =  (uint32)wlc_phy_rxcore_getstate_htphy((wlc_phy_t *)pi);
+		} else if (ISACPHY(pi)) {
+			*ret_int_ptr =  (uint32)wlc_phy_rxcore_getstate_acphy((wlc_phy_t *)pi);
+		}
+	}
+
+	phy_utils_phyreg_exit(pi);
+	wlapi_enable_mac(pi->sh->physhim);
+}
+
+#endif 
 
 static int
 wlc_phy_iovar_set_dssf(phy_info_t *pi, int32 set_val)
@@ -1417,6 +2231,357 @@ wlc_phy_iovar_dispatch_old(phy_info_t *pi, uint32 actionid, void *p, void *a, in
 		break;
 #endif /* defined(BCMDBG) */
 
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_NPHY_CCK_PWR_OFFSET):
+		if (ISNPHY(pi)) {
+			int_val =  pi_nphy->nphy_cck_pwr_err_adjust;
+			bcopy(&int_val, a, vsize);
+		}
+		break;
+	case IOV_GVAL(IOV_NPHY_CAL_SANITY):
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+		*ret_int_ptr = (uint32)wlc_phy_cal_sanity_nphy(pi);
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_BPHY_EVM):
+		*ret_int_ptr = pi->phy_bphy_evm;
+		break;
+
+
+	case IOV_SVAL(IOV_NPHY_BPHY_EVM):
+		wlc_phy_iovar_bphy_testpattern(pi, NPHY_TESTPATTERN_BPHY_EVM, (bool) int_val);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_BPHY_RFCS):
+		*ret_int_ptr = pi->phy_bphy_rfcs;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_BPHY_RFCS):
+		wlc_phy_iovar_bphy_testpattern(pi, NPHY_TESTPATTERN_BPHY_RFCS, (bool) int_val);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_SCRAMINIT):
+		*ret_int_ptr = pi->phy_scraminit;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_SCRAMINIT):
+		wlc_phy_iovar_scraminit(pi, pi->phy_scraminit);
+		break;
+
+	case IOV_SVAL(IOV_NPHY_RFSEQ):
+		err = wlc_phy_iovar_force_rfseq(pi, (uint8)int_val);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_TXIQLOCAL): {
+		nphy_txgains_t target_gain;
+		uint8 tx_pwr_ctrl_state;
+		if (ISNPHY(pi)) {
+
+			wlapi_suspend_mac_and_wait(pi->sh->physhim);
+			phy_utils_phyreg_enter(pi);
+
+			/* read current tx gain and use as target_gain */
+			wlc_phy_get_tx_gain_nphy(pi, &target_gain);
+			tx_pwr_ctrl_state = pi->nphy_txpwrctrl;
+			wlc_phy_txpwrctrl_enable_nphy(pi, PHY_TPC_HW_OFF);
+
+			err = wlc_phy_cal_txiqlo_nphy(pi, target_gain, TRUE, FALSE);
+			if (err)
+				break;
+			wlc_phy_txpwrctrl_enable_nphy(pi, tx_pwr_ctrl_state);
+			phy_utils_phyreg_exit(pi);
+			wlapi_enable_mac(pi->sh->physhim);
+		}
+		*ret_int_ptr = 0;
+		break;
+	}
+	case IOV_SVAL(IOV_NPHY_RXIQCAL): {
+		nphy_txgains_t target_gain;
+		uint8 tx_pwr_ctrl_state;
+
+
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+
+		/* read current tx gain and use as target_gain */
+		wlc_phy_get_tx_gain_nphy(pi, &target_gain);
+		tx_pwr_ctrl_state = pi->nphy_txpwrctrl;
+		wlc_phy_txpwrctrl_enable_nphy(pi, PHY_TPC_HW_OFF);
+#ifdef RXIQCAL_FW_WAR
+		if (wlc_phy_cal_rxiq_nphy_fw_war(pi, target_gain, 0, (bool)int_val, 0x3) != BCME_OK)
+#else
+		if (wlc_phy_cal_rxiq_nphy(pi, target_gain, 0, (bool)int_val, 0x3) != BCME_OK)
+#endif
+		{
+			break;
+		}
+		wlc_phy_txpwrctrl_enable_nphy(pi, tx_pwr_ctrl_state);
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		int_val = 0;
+		bcopy(&int_val, a, vsize);
+		break;
+	}
+	case IOV_GVAL(IOV_NPHY_RXCALPARAMS):
+		if (ISNPHY(pi)) {
+			*ret_int_ptr = pi_nphy->nphy_rxcalparams;
+		}
+		break;
+
+	case IOV_SVAL(IOV_NPHY_RXCALPARAMS):
+		if (ISNPHY(pi)) {
+			pi_nphy->nphy_rxcalparams = (uint32)int_val;
+		}
+		break;
+
+	case IOV_GVAL(IOV_NPHY_TXPWRCTRL):
+		wlc_phy_iovar_txpwrctrl(pi, int_val, bool_val, ret_int_ptr, FALSE);
+		break;
+
+	case IOV_SVAL(IOV_NPHY_TXPWRCTRL):
+		err = wlc_phy_iovar_txpwrctrl(pi, int_val, bool_val, ret_int_ptr, TRUE);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_RSSISEL):
+		*ret_int_ptr = pi->nphy_rssisel;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_RSSISEL):
+		pi->nphy_rssisel = (uint8)int_val;
+
+		if (!pi->sh->up)
+			break;
+
+		if (pi->nphy_rssisel < 0) {
+			phy_utils_phyreg_enter(pi);
+			wlc_phy_rssisel_nphy(pi, RADIO_MIMO_CORESEL_OFF, 0);
+			phy_utils_phyreg_exit(pi);
+		} else {
+			int32 rssi_buf[4];
+			phy_utils_phyreg_enter(pi);
+			wlc_phy_poll_rssi_nphy(pi, (uint8)int_val, rssi_buf, 1);
+			phy_utils_phyreg_exit(pi);
+		}
+		break;
+
+	case IOV_GVAL(IOV_NPHY_RSSICAL): {
+		/* if down, return the value, if up, run the cal */
+		if (!pi->sh->up) {
+			int_val = pi->nphy_rssical;
+			bcopy(&int_val, a, vsize);
+			break;
+		}
+
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+		/* run rssi cal */
+		wlc_phy_rssi_cal_nphy(pi);
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		int_val = pi->nphy_rssical;
+		bcopy(&int_val, a, vsize);
+		break;
+	}
+
+	case IOV_SVAL(IOV_NPHY_RSSICAL): {
+		pi->nphy_rssical = bool_val;
+		break;
+	}
+
+	case IOV_GVAL(IOV_NPHY_GPIOSEL):
+	case IOV_GVAL(IOV_PHY_GPIOSEL):
+		*ret_int_ptr = pi->phy_gpiosel;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_GPIOSEL):
+	case IOV_SVAL(IOV_PHY_GPIOSEL):
+		pi->phy_gpiosel = (uint16) int_val;
+
+		if (!pi->sh->up)
+			break;
+
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+		if (ISNPHY(pi))
+			wlc_phy_gpiosel_nphy(pi, (uint16)int_val);
+		else if (ISHTPHY(pi))
+			wlc_phy_gpiosel_htphy(pi, (uint16)int_val);
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_TX_TONE):
+		*ret_int_ptr = pi->phy_tx_tone_freq;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_TX_TONE):
+		wlc_phy_iovar_tx_tone(pi, (uint32)int_val);
+		break;
+
+	case IOV_SVAL(IOV_NPHY_ELNA_GAIN_CONFIG):
+		pi->nphy_elna_gain_config = (int_val != 0) ? TRUE : FALSE;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_ELNA_GAIN_CONFIG):
+		*ret_int_ptr = (int32)pi->nphy_elna_gain_config;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_TEST_TSSI):
+		*((uint*)a) = wlc_phy_iovar_test_tssi(pi, (uint8)int_val, 0);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_TEST_TSSI_OFFS):
+		*((uint*)a) = wlc_phy_iovar_test_tssi(pi, (uint8)int_val, 12);
+		break;
+
+#ifdef BAND5G
+	case IOV_SVAL(IOV_NPHY_5G_PWRGAIN):
+		pi->phy_5g_pwrgain = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_5G_PWRGAIN):
+		*ret_int_ptr = (int32)pi->phy_5g_pwrgain;
+		break;
+#endif /* BAND5G */
+
+	case IOV_GVAL(IOV_NPHY_PERICAL):
+		*ret_int_ptr = phy_calmgr_get_calmode(pi);
+		break;
+
+	case IOV_SVAL(IOV_NPHY_PERICAL):
+		err = phy_calmgr_set_calmode(pi, int_val);
+		break;
+
+	case IOV_SVAL(IOV_NPHY_FORCECAL):
+		err = wlc_phy_iovar_forcecal(pi, int_val, ret_int_ptr, vsize, TRUE);
+		break;
+
+#ifndef WLC_DISABLE_ACI
+	case IOV_GVAL(IOV_NPHY_ACI_SCAN):
+		if (SCAN_INPROG_PHY(pi)) {
+			PHY_ERROR(("Scan in Progress, can execute %s\n", __FUNCTION__));
+			*ret_int_ptr = -1;
+		} else {
+			if (pi->cur_interference_mode == INTERFERE_NONE) {
+				PHY_ERROR(("interference mode is off\n"));
+				*ret_int_ptr = -1;
+				break;
+			}
+
+			wlapi_suspend_mac_and_wait(pi->sh->physhim);
+			*ret_int_ptr = wlc_phy_aci_scan_nphy(pi);
+			wlapi_enable_mac(pi->sh->physhim);
+		}
+		break;
+#endif /* Compiling out ACI code for 4324 */
+	case IOV_SVAL(IOV_NPHY_ENABLERXCORE):
+		wlc_phy_iovar_rxcore_enable(pi, int_val, bool_val, ret_int_ptr, TRUE);
+		break;
+
+	case IOV_GVAL(IOV_NPHY_ENABLERXCORE):
+		wlc_phy_iovar_rxcore_enable(pi, int_val, bool_val, ret_int_ptr, FALSE);
+		break;
+
+	case IOV_SVAL(IOV_NPHY_PAPDCALTYPE):
+		if (ISNPHY(pi))
+			pi_nphy->nphy_papd_cal_type = (int8) int_val;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_PAPDCAL):
+		if (ISNPHY(pi))
+			pi_nphy->nphy_force_papd_cal = TRUE;
+		int_val = 0;
+		bcopy(&int_val, a, vsize);
+		break;
+
+	case IOV_SVAL(IOV_NPHY_SKIPPAPD):
+		if ((int_val != 0) && (int_val != 1)) {
+			err = BCME_RANGE;
+			break;
+		}
+		if (ISNPHY(pi))
+			pi_nphy->nphy_papd_skip = (uint8)int_val;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_PAPDCALINDEX):
+		if (ISNPHY(pi)) {
+			*ret_int_ptr = (pi_nphy->nphy_papd_cal_gain_index[0] << 8) |
+				pi_nphy->nphy_papd_cal_gain_index[1];
+		}
+		break;
+
+	case IOV_SVAL(IOV_NPHY_CALTXGAIN): {
+		uint8 tx_pwr_ctrl_state;
+
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		phy_utils_phyreg_enter(pi);
+
+		if (ISNPHY(pi)) {
+			pi_nphy->nphy_cal_orig_pwr_idx[0] =
+			        (uint8) ((phy_utils_read_phyreg(pi,
+			                  NPHY_Core0TxPwrCtrlStatus) >> 8) & 0x7f);
+			pi_nphy->nphy_cal_orig_pwr_idx[1] =
+				(uint8) ((phy_utils_read_phyreg(pi,
+			                  NPHY_Core1TxPwrCtrlStatus) >> 8) & 0x7f);
+		}
+
+		tx_pwr_ctrl_state = pi->nphy_txpwrctrl;
+		wlc_phy_txpwrctrl_enable_nphy(pi, PHY_TPC_HW_OFF);
+
+		wlc_phy_cal_txgainctrl_nphy(pi, int_val, TRUE);
+
+		wlc_phy_txpwrctrl_enable_nphy(pi, tx_pwr_ctrl_state);
+		phy_utils_phyreg_exit(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+
+		break;
+	}
+
+	case IOV_GVAL(IOV_NPHY_VCOCAL):
+		wlapi_suspend_mac_and_wait(pi->sh->physhim);
+		wlc_phy_radio205x_vcocal_nphy(pi);
+		wlapi_enable_mac(pi->sh->physhim);
+		*ret_int_ptr = 0;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_TBLDUMP_MINIDX):
+		*ret_int_ptr = (int32)pi->nphy_tbldump_minidx;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_TBLDUMP_MINIDX):
+		pi->nphy_tbldump_minidx = (int8) int_val;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_TBLDUMP_MAXIDX):
+		*ret_int_ptr = (int32)pi->nphy_tbldump_maxidx;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_TBLDUMP_MAXIDX):
+		pi->nphy_tbldump_maxidx = (int8) int_val;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_PHYREG_SKIPDUMP):
+		if (pi->nphy_phyreg_skipcnt < 127) {
+			pi->nphy_phyreg_skipaddr[pi->nphy_phyreg_skipcnt++] = (uint) int_val;
+		}
+		break;
+
+	case IOV_GVAL(IOV_NPHY_PHYREG_SKIPDUMP):
+		*ret_int_ptr = (pi->nphy_phyreg_skipcnt > 0) ?
+			(int32) pi->nphy_phyreg_skipaddr[pi->nphy_phyreg_skipcnt-1] : 0;
+		break;
+
+	case IOV_SVAL(IOV_NPHY_PHYREG_SKIPCNT):
+		pi->nphy_phyreg_skipcnt = (int8) int_val;
+		break;
+
+	case IOV_GVAL(IOV_NPHY_PHYREG_SKIPCNT):
+		*ret_int_ptr = (int32)pi->nphy_phyreg_skipcnt;
+		break;
+#endif 
 #endif /* NCONF */
 
 	default:
@@ -1506,6 +2671,209 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 	case IOV_SVAL(IOV_CAL_PERIOD):
 	        pi->cal_period = (uint32)int_val;
 	        break;
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHYHAL_MSG):
+		*ret_int_ptr = (int32)phyhal_msg_level;
+		break;
+
+	case IOV_SVAL(IOV_PHYHAL_MSG):
+		phyhal_msg_level = (uint32)int_val;
+		break;
+
+	case IOV_SVAL(IOV_PHY_FIXED_NOISE):
+		pi->phy_fixed_noise = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_PHY_FIXED_NOISE):
+		int_val = (int32)pi->phy_fixed_noise;
+		bcopy(&int_val, a, vsize);
+		break;
+
+	case IOV_GVAL(IOV_PHYNOISE_POLL):
+		*ret_int_ptr = (int32)pi->phynoise_polling;
+		break;
+
+	case IOV_SVAL(IOV_PHYNOISE_POLL):
+		pi->phynoise_polling = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_CARRIER_SUPPRESS):
+		err = BCME_UNSUPPORTED;
+		*ret_int_ptr = (pi->carrier_suppr_disable == 0);
+		break;
+
+	case IOV_SVAL(IOV_CARRIER_SUPPRESS):
+	{
+		initfn_t carr_suppr_fn = pi->pi_fptr->carrsuppr;
+		if (carr_suppr_fn) {
+			pi->carrier_suppr_disable = bool_val;
+			if (pi->carrier_suppr_disable) {
+				(*carr_suppr_fn)(pi);
+			}
+			PHY_INFORM(("Carrier Suppress Called\n"));
+		} else
+			err = BCME_UNSUPPORTED;
+		break;
+	}
+
+#ifdef BAND5G
+	case IOV_GVAL(IOV_PHY_SUBBAND5GVER):
+		/* Retrieve 5G subband version */
+		int_val = (uint8)(pi->sromi->subband5Gver);
+		bcopy(&int_val, a, vsize);
+		break;
+#endif /* BAND5G */
+	case IOV_GVAL(IOV_PHY_TXRX_CHAIN):
+		wlc_phy_iovar_txrx_chain(pi, int_val, ret_int_ptr, FALSE);
+		break;
+
+	case IOV_SVAL(IOV_PHY_TXRX_CHAIN):
+		err = wlc_phy_iovar_txrx_chain(pi, int_val, ret_int_ptr, TRUE);
+		break;
+
+	case IOV_GVAL(IOV_PHY_BPHY_EVM):
+		*ret_int_ptr = pi->phy_bphy_evm;
+		break;
+
+	case IOV_SVAL(IOV_PHY_BPHY_EVM):
+		wlc_phy_iovar_bphy_testpattern(pi, NPHY_TESTPATTERN_BPHY_EVM, (bool) int_val);
+		break;
+
+	case IOV_GVAL(IOV_PHY_BPHY_RFCS):
+		*ret_int_ptr = pi->phy_bphy_rfcs;
+		break;
+
+	case IOV_SVAL(IOV_PHY_BPHY_RFCS):
+		wlc_phy_iovar_bphy_testpattern(pi, NPHY_TESTPATTERN_BPHY_RFCS, (bool) int_val);
+		break;
+
+	case IOV_GVAL(IOV_PHY_SCRAMINIT):
+		*ret_int_ptr = pi->phy_scraminit;
+		break;
+
+	case IOV_SVAL(IOV_PHY_SCRAMINIT):
+		wlc_phy_iovar_scraminit(pi, (uint8)int_val);
+		break;
+
+	case IOV_SVAL(IOV_PHY_RFSEQ):
+		err = wlc_phy_iovar_force_rfseq(pi, (uint8)int_val);
+		break;
+
+	case IOV_GVAL(IOV_PHY_TX_TONE_HZ):
+	case IOV_GVAL(IOV_PHY_TX_TONE_SYMM):
+		*ret_int_ptr = pi->phy_tx_tone_freq;
+		break;
+
+	case IOV_SVAL(IOV_PHY_TX_TONE_HZ):
+		wlc_phy_iovar_tx_tone_hz(pi, (int32)int_val);
+		break;
+
+	case IOV_SVAL(IOV_PHY_TX_TONE_SYMM):
+		err = wlc_phy_iovar_tx_tone_symm(pi, (int32)int_val);
+		break;
+
+	case IOV_GVAL(IOV_PHY_TEST_TSSI):
+		*((uint*)a) = wlc_phy_iovar_test_tssi(pi, (uint8)int_val, 0);
+		break;
+
+	case IOV_GVAL(IOV_PHY_TEST_TSSI_OFFS):
+		*((uint*)a) = wlc_phy_iovar_test_tssi(pi, (uint8)int_val, 12);
+		break;
+
+	case IOV_GVAL(IOV_PHY_TEST_IDLETSSI):
+		*((uint*)a) = wlc_phy_iovar_test_idletssi(pi, (uint8)int_val);
+		break;
+
+	case IOV_SVAL(IOV_PHY_SETRPTBL):
+		wlc_phy_iovar_setrptbl(pi);
+		break;
+
+	case IOV_SVAL(IOV_PHY_FORCEIMPBF):
+		wlc_phy_iovar_forceimpbf(pi);
+		break;
+
+	case IOV_SVAL(IOV_PHY_FORCESTEER):
+		wlc_phy_iovar_forcesteer(pi, (uint8)int_val);
+		break;
+#ifdef BAND5G
+	case IOV_SVAL(IOV_PHY_5G_PWRGAIN):
+		pi->phy_5g_pwrgain = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_PHY_5G_PWRGAIN):
+		*ret_int_ptr = (int32)pi->phy_5g_pwrgain;
+		break;
+#endif /* BAND5G */
+
+	case IOV_SVAL(IOV_PHY_ENABLERXCORE):
+		wlc_phy_iovar_rxcore_enable(pi, int_val, bool_val, ret_int_ptr, TRUE);
+		break;
+
+	case IOV_GVAL(IOV_PHY_ENABLERXCORE):
+		wlc_phy_iovar_rxcore_enable(pi, int_val, bool_val, ret_int_ptr, FALSE);
+		break;
+
+	case IOV_GVAL(IOV_PHY_ACTIVECAL):
+		*ret_int_ptr = (int32)((pi->cal_info->cal_phase_id !=
+			MPHASE_CAL_STATE_IDLE)? 1 : 0);
+		break;
+
+	case IOV_SVAL(IOV_PHY_BBMULT):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		err = wlc_phy_iovar_bbmult_set(pi, p);
+		break;
+
+	case IOV_GVAL(IOV_PHY_BBMULT):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		wlc_phy_iovar_bbmult_get(pi, int_val, bool_val, ret_int_ptr);
+		break;
+	case IOV_SVAL(IOV_TPC_AV):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		err = wlc_phy_iovar_avvmid_set(pi, p, AV);
+		break;
+
+	case IOV_GVAL(IOV_TPC_AV):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		wlc_phy_iovar_avvmid_get(pi, p, bool_val, ret_int_ptr, AV);
+		break;
+
+	case IOV_SVAL(IOV_TPC_VMID):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		err = wlc_phy_iovar_avvmid_set(pi, p, VMID);
+		break;
+
+	case IOV_GVAL(IOV_TPC_VMID):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		wlc_phy_iovar_avvmid_get(pi, p, bool_val, ret_int_ptr, VMID);
+		break;
+
+#if defined(WLC_LOWPOWER_BEACON_MODE)
+	case IOV_GVAL(IOV_PHY_LOWPOWER_BEACON_MODE):
+		break;
+
+	case IOV_SVAL(IOV_PHY_LOWPOWER_BEACON_MODE):
+		wlc_phy_lowpower_beacon_mode(pih, int_val);
+		break;
+#endif /* WLC_LOWPOWER_BEACON_MODE */
+#endif 
 	case IOV_GVAL(IOV_PHY_RXGAININDEX):
 		if (!pi->sh->clk) {
 			err = BCME_NOCLK;
@@ -1529,13 +2897,21 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 	case IOV_SVAL(IOV_PHY_FORCECAL):
 		err = wlc_phy_iovar_forcecal(pi, int_val, ret_int_ptr, vsize, TRUE);
 		break;
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 	case IOV_GVAL(IOV_PHY_FORCECAL_OBT):
 		err = wlc_phy_iovar_forcecal_obt(pi, int_val, ret_int_ptr, vsize, FALSE);
 		break;
 
 	case IOV_SVAL(IOV_PHY_FORCECAL_OBT):
 		err = wlc_phy_iovar_forcecal_obt(pi, int_val, ret_int_ptr, vsize, FALSE);
+		break;
+#endif 
+#if defined(BCMINTPHYDBG)
+	case IOV_SVAL(IOV_PHY_DEAF):
+		wlc_phy_iovar_set_deaf(pi, int_val);
+		break;
+	case IOV_GVAL(IOV_PHY_DEAF):
+		err = wlc_phy_iovar_get_deaf(pi, ret_int_ptr);
 		break;
 #endif 
 	case IOV_GVAL(IOV_NUM_STREAM):
@@ -1565,6 +2941,16 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		bcopy(&int_val, a, sizeof(int_val));
 		break;
 
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHYWREG_LIMIT):
+		int_val = pi->phy_wreg_limit;
+		bcopy(&int_val, a, vsize);
+		break;
+
+	case IOV_SVAL(IOV_PHYWREG_LIMIT):
+		pi->phy_wreg_limit = (uint8)int_val;
+		break;
+#endif 
 	case IOV_GVAL(IOV_PHY_MUTED):
 		*ret_int_ptr = PHY_MUTED(pi) ? 1 : 0;
 		break;
@@ -1681,10 +3067,78 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 			*ret_int_ptr = pi->pdpi->entry = (uint16)int_val;
 			break;
 		}
+#if defined(BCMINTPHYDBG)
+	case IOV_SVAL(IOV_ACI_EXIT_CHECK_PERIOD):
+		if (int_val == 0)
+			err = BCME_RANGE;
+		else
+			pi->aci_exit_check_period = int_val;
+		break;
+
+	case IOV_GVAL(IOV_ACI_EXIT_CHECK_PERIOD):
+		int_val = pi->aci_exit_check_period;
+		bcopy(&int_val, a, vsize);
+		break;
+
+#endif 
 
 #if defined(BCMDBG) || defined(BCMDBG_TEMPSENSE)
 	case IOV_GVAL(IOV_PHY_TEMPSENSE):
 		err = wlc_phy_iovar_tempsense_paldosense(pi, ret_int_ptr, 0);
+		break;
+#endif 
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHY_CAL_DISABLE):
+		*ret_int_ptr = (int32)pi->disable_percal;
+		break;
+
+	case IOV_SVAL(IOV_PHY_CAL_DISABLE):
+		pi->disable_percal = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_PHY_VBATSENSE):
+		wlc_phy_iovar_vbatsense(pi, ret_int_ptr);
+		break;
+
+	case IOV_GVAL(IOV_PHY_IDLETSSI_REG):
+		if (!pi->sh->clk)
+			err = BCME_NOCLK;
+		else
+			err = wlc_phy_iovar_idletssi_reg(pi, ret_int_ptr, int_val, FALSE);
+		break;
+
+	case IOV_SVAL(IOV_PHY_IDLETSSI_REG):
+		if (!pi->sh->clk)
+			err = BCME_NOCLK;
+		else
+			err = wlc_phy_iovar_idletssi_reg(pi, ret_int_ptr, int_val, TRUE);
+		break;
+
+	case IOV_GVAL(IOV_PHY_AVGTSSI_REG):
+		if (!pi->sh->clk)
+			err = BCME_NOCLK;
+		else
+			wlc_phy_iovar_avgtssi_reg(pi, ret_int_ptr);
+		break;
+
+	case IOV_SVAL(IOV_PHY_RESETCCA):
+		if (ISNPHY(pi)) {
+			wlc_phy_resetcca_nphy(pi);
+		}
+		else if (ISACPHY(pi)) {
+			bool macSuspended;
+			/* check if MAC already suspended */
+			macSuspended = !(R_REG(pi->sh->osh, &pi->regs->maccontrol) & MCTL_EN_MAC);
+			if (!macSuspended) {
+				wlapi_suspend_mac_and_wait(pi->sh->physhim);
+			}
+			wlc_phy_resetcca_acphy(pi);
+			if (!macSuspended)
+				wlapi_enable_mac(pi->sh->physhim);
+		}
+		break;
+
+	case IOV_SVAL(IOV_PHY_IQLOCALIDX):
 		break;
 #endif 
 	case IOV_SVAL(IOV_PHY_SROM_TEMPSENSE):
@@ -1730,12 +3184,386 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		bcopy(&int_val, a, sizeof(int_val));
 		break;
 
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHY_TXPWRCTRL):
+		wlc_phy_iovar_txpwrctrl(pi, int_val, bool_val, ret_int_ptr, FALSE);
+		break;
+
+	case IOV_SVAL(IOV_PHY_TXPWRCTRL):
+		err = wlc_phy_iovar_txpwrctrl(pi, int_val, bool_val, ret_int_ptr, TRUE);
+		break;
+
+	case IOV_SVAL(IOV_PHY_TXPWRINDEX):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		err = wlc_phy_iovar_txpwrindex_set(pi, p);
+		break;
+
+	case IOV_GVAL(IOV_PHY_TXPWRINDEX):
+		if (!pi->sh->clk) {
+			err = BCME_NOCLK;
+			break;
+		}
+		wlc_phy_iovar_txpwrindex_get(pi, int_val, bool_val, ret_int_ptr);
+		break;
+#endif 
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PATRIM):
+		if (ISACPHY(pi))
+			wlc_phy_iovar_patrim_acphy(pi, ret_int_ptr);
+		else
+			*ret_int_ptr = 0;
+	break;
+
+	case IOV_GVAL(IOV_PAVARS2): {
+			wl_pavars2_t *invar = (wl_pavars2_t *)p;
+			wl_pavars2_t *outvar = (wl_pavars2_t *)a;
+			uint16 *outpa = outvar->inpa;
+			uint j = 0; /* PA parameters start from offset */
+
+			if (invar->ver	!= WL_PHY_PAVAR_VER) {
+				PHY_ERROR(("Incompatible version; use %d expected version %d\n",
+					invar->ver, WL_PHY_PAVAR_VER));
+				return BCME_BADARG;
+			}
+
+			outvar->ver = WL_PHY_PAVAR_VER;
+			outvar->len = sizeof(wl_pavars2_t);
+			if (wlc_phy_chanspec_bandrange_get(pi, pi->radio_chanspec)
+				== invar->bandrange)
+				outvar->inuse = 1;
+			else
+				outvar->inuse = 0;
+
+#ifdef BAND5G
+			if (pi->sromi->subband5Gver == PHY_SUBBAND_5BAND) {
+				if ((invar->bandrange == WL_CHAN_FREQ_RANGE_5GL) ||
+					(invar->bandrange == WL_CHAN_FREQ_RANGE_5GM) ||
+					(invar->bandrange == WL_CHAN_FREQ_RANGE_5GH)) {
+					outvar->phy_type = PHY_TYPE_NULL;
+					break;
+				}
+			}
+
+			if (pi->sromi->subband5Gver == PHY_SUBBAND_3BAND_JAPAN) {
+				if ((invar->bandrange == WL_CHAN_FREQ_RANGE_5GLL_5BAND) ||
+					(invar->bandrange == WL_CHAN_FREQ_RANGE_5GLH_5BAND) ||
+					(invar->bandrange == WL_CHAN_FREQ_RANGE_5GML_5BAND) ||
+					(invar->bandrange == WL_CHAN_FREQ_RANGE_5GMH_5BAND) ||
+					(invar->bandrange == WL_CHAN_FREQ_RANGE_5GH_5BAND)) {
+					outvar->phy_type = PHY_TYPE_NULL;
+					break;
+				}
+			}
+#endif /* BAND5G */
+
+			if (ISHTPHY(pi)) {
+				if (invar->phy_type != PHY_TYPE_HT) {
+					outvar->phy_type = PHY_TYPE_NULL;
+					break;
+				}
+
+				if (invar->chain >= PHYCORENUM(pi->pubpi->phy_corenum))
+					return BCME_BADARG;
+
+				switch (invar->bandrange) {
+				case WL_CHAN_FREQ_RANGE_2G:
+				case WL_CHAN_FREQ_RANGE_5GL:
+				case WL_CHAN_FREQ_RANGE_5GM:
+				case WL_CHAN_FREQ_RANGE_5GH:
+					wlc_phy_pavars_get_htphy(pi, &outpa[j], invar->bandrange,
+						invar->chain);
+					break;
+				default:
+					PHY_ERROR(("bandrange %d is out of scope\n",
+						invar->bandrange));
+					break;
+				}
+			} else {
+				PHY_ERROR(("Unsupported PHY type!\n"));
+				err = BCME_UNSUPPORTED;
+			}
+		}
+		break;
+
+		case IOV_SVAL(IOV_PAVARS2): {
+			wl_pavars2_t *invar = (wl_pavars2_t *)p;
+			uint16 *inpa = invar->inpa;
+			uint j = 0; /* PA parameters start from offset */
+
+			if (invar->ver	!= WL_PHY_PAVAR_VER) {
+				PHY_ERROR(("Incompatible version; use %d expected version %d\n",
+					invar->ver, WL_PHY_PAVAR_VER));
+				return BCME_BADARG;
+			}
+
+			if (ISHTPHY(pi)) {
+				if (invar->phy_type != PHY_TYPE_HT) {
+					break;
+				}
+
+				if (invar->chain >= PHYCORENUM(pi->pubpi->phy_corenum))
+					return BCME_BADARG;
+
+				switch (invar->bandrange) {
+				case WL_CHAN_FREQ_RANGE_2G:
+				case WL_CHAN_FREQ_RANGE_5GL:
+				case WL_CHAN_FREQ_RANGE_5GM:
+				case WL_CHAN_FREQ_RANGE_5GH:
+				case WL_CHAN_FREQ_RANGE_5GLL_5BAND:
+				case WL_CHAN_FREQ_RANGE_5GLH_5BAND:
+				case WL_CHAN_FREQ_RANGE_5GML_5BAND:
+				case WL_CHAN_FREQ_RANGE_5GMH_5BAND:
+				case WL_CHAN_FREQ_RANGE_5GH_5BAND:
+					if (invar->bandrange < (CH_2G_GROUP + CH_5G_4BAND)) {
+						wlc_phy_pavars_set_htphy(pi, &inpa[j],
+							invar->bandrange, invar->chain);
+					} else {
+						err = BCME_RANGE;
+						PHY_ERROR(("bandrange %d is out of scope\n",
+							invar->bandrange));
+					}
+					break;
+				default:
+					err = BCME_RANGE;
+					PHY_ERROR(("bandrange %d is out of scope\n",
+						invar->bandrange));
+					break;
+				}
+			} else {
+				PHY_ERROR(("Unsupported PHY type!\n"));
+				err = BCME_UNSUPPORTED;
+			}
+		}
+		break;
+
+	case IOV_GVAL(IOV_POVARS): {
+		wl_po_t tmppo;
+
+		/* tmppo has the input phy_type and band */
+		bcopy(p, &tmppo, sizeof(wl_po_t));
+		if (ISHTPHY(pi)) {
+			if ((tmppo.phy_type != PHY_TYPE_HT) && (tmppo.phy_type != PHY_TYPE_N))  {
+				tmppo.phy_type = PHY_TYPE_NULL;
+				break;
+			}
+
+			err = wlc_phy_get_po_htphy(pi, &tmppo);
+			if (!err)
+				bcopy(&tmppo, a, sizeof(wl_po_t));
+			break;
+		} else if (ISNPHY(pi)) {
+			if (tmppo.phy_type != PHY_TYPE_N)  {
+				tmppo.phy_type = PHY_TYPE_NULL;
+				break;
+			}
+
+			/* Power offsets variables depend on the SROM revision */
+			if (NREV_GE(pi->pubpi->phy_rev, 8) && (pi->sh->sromrev >= 9)) {
+				err = wlc_phy_get_po_htphy(pi, &tmppo);
+
+			} else {
+				switch (tmppo.band) {
+				case WL_CHAN_FREQ_RANGE_2G:
+					tmppo.cckpo = pi->ppr->u.sr8.cck2gpo;
+					tmppo.ofdmpo = pi->ppr->u.sr8.ofdm[tmppo.band];
+					bcopy(&pi->ppr->u.sr8.mcs[tmppo.band][0], &tmppo.mcspo,
+						8*sizeof(uint16));
+					break;
+#ifdef BAND5G
+				case WL_CHAN_FREQ_RANGE_5G_BAND0:
+					tmppo.ofdmpo = pi->ppr->u.sr8.ofdm[tmppo.band];
+					bcopy(&pi->ppr->u.sr8.mcs[tmppo.band], &tmppo.mcspo,
+						8*sizeof(uint16));
+					break;
+
+				case WL_CHAN_FREQ_RANGE_5G_BAND1:
+					tmppo.ofdmpo = pi->ppr->u.sr8.ofdm[tmppo.band];
+					bcopy(&pi->ppr->u.sr8.mcs[tmppo.band], &tmppo.mcspo,
+						8*sizeof(uint16));
+					break;
+
+				case WL_CHAN_FREQ_RANGE_5G_BAND2:
+					tmppo.ofdmpo = pi->ppr->u.sr8.ofdm[tmppo.band];
+					bcopy(&pi->ppr->u.sr8.mcs[tmppo.band], &tmppo.mcspo,
+						8*sizeof(uint16));
+					break;
+
+				case WL_CHAN_FREQ_RANGE_5G_BAND3:
+					tmppo.ofdmpo = pi->ppr->u.sr8.ofdm[tmppo.band];
+					bcopy(&pi->ppr->u.sr8.mcs[tmppo.band], &tmppo.mcspo,
+						8*sizeof(uint16));
+					break;
+#endif /* BAND5G */
+				default:
+					PHY_ERROR(("bandrange %d is out of scope\n", tmppo.band));
+					err = BCME_BADARG;
+					break;
+				}
+			}
+
+			if (!err)
+				bcopy(&tmppo, a, sizeof(wl_po_t));
+		} else {
+			PHY_ERROR(("Unsupported PHY type!\n"));
+			err = BCME_UNSUPPORTED;
+		}
+	}
+	break;
+
+	case IOV_SVAL(IOV_POVARS): {
+		wl_po_t inpo;
+
+		bcopy(p, &inpo, sizeof(wl_po_t));
+
+		if (ISHTPHY(pi)) {
+			if ((inpo.phy_type == PHY_TYPE_HT) || (inpo.phy_type == PHY_TYPE_N))
+				err = wlc_phy_set_po_htphy(pi, &inpo);
+			break;
+		} else if (ISNPHY(pi)) {
+			if (inpo.phy_type != PHY_TYPE_N)
+				break;
+
+			/* Power offsets variables depend on the SROM revision */
+			if (NREV_GE(pi->pubpi->phy_rev, 8) && (pi->sh->sromrev >= 9)) {
+				err = wlc_phy_set_po_htphy(pi, &inpo);
+
+			} else {
+
+				switch (inpo.band) {
+				case WL_CHAN_FREQ_RANGE_2G:
+					pi->ppr->u.sr8.cck2gpo = inpo.cckpo;
+					pi->ppr->u.sr8.ofdm[inpo.band]  = inpo.ofdmpo;
+					bcopy(inpo.mcspo, &(pi->ppr->u.sr8.mcs[inpo.band][0]),
+						8*sizeof(uint16));
+					break;
+#ifdef BAND5G
+				case WL_CHAN_FREQ_RANGE_5G_BAND0:
+					pi->ppr->u.sr8.ofdm[inpo.band] = inpo.ofdmpo;
+					bcopy(inpo.mcspo, &(pi->ppr->u.sr8.mcs[inpo.band][0]),
+						8*sizeof(uint16));
+					break;
+
+				case WL_CHAN_FREQ_RANGE_5G_BAND1:
+					pi->ppr->u.sr8.ofdm[inpo.band] = inpo.ofdmpo;
+					bcopy(inpo.mcspo, &(pi->ppr->u.sr8.mcs[inpo.band][0]),
+						8*sizeof(uint16));
+					break;
+
+				case WL_CHAN_FREQ_RANGE_5G_BAND2:
+					pi->ppr->u.sr8.ofdm[inpo.band] = inpo.ofdmpo;
+					bcopy(inpo.mcspo, &(pi->ppr->u.sr8.mcs[inpo.band][0]),
+						8*sizeof(uint16));
+					break;
+
+				case WL_CHAN_FREQ_RANGE_5G_BAND3:
+					pi->ppr->u.sr8.ofdm[inpo.band] = inpo.ofdmpo;
+					bcopy(inpo.mcspo, &(pi->ppr->u.sr8.mcs[inpo.band][0]),
+						8*sizeof(uint16));
+					break;
+#endif /* BAND5G */
+				default:
+					PHY_ERROR(("bandrange %d is out of scope\n", inpo.band));
+					err = BCME_BADARG;
+					break;
+				}
+
+			}
+
+		} else {
+			PHY_ERROR(("Unsupported PHY type!\n"));
+			err = BCME_UNSUPPORTED;
+		}
+	}
+	break;
+#endif 
 
 	case IOV_GVAL(IOV_SROM_REV): {
 			*ret_int_ptr = pi->sh->sromrev;
 	}
 	break;
 
+#if defined(BCMINTPHYDBG)
+	case IOV_SVAL(IOV_RPCALVARS): {
+		const wl_rpcal_t *rpcal = p;
+		if (ACMAJORREV_1(pi->pubpi->phy_rev)) {
+			PHY_ERROR(("Number of TX Chain has to be > 1!\n"));
+			err = BCME_UNSUPPORTED;
+		} else {
+			pi->u.pi_acphy->sromi->rpcal2g = rpcal[WL_CHAN_FREQ_RANGE_2G].update ?
+			rpcal[WL_CHAN_FREQ_RANGE_2G].value : pi->u.pi_acphy->sromi->rpcal2g;
+			pi->u.pi_acphy->sromi->rpcal5gb0 =
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND0].update ?
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND0].value : pi->u.pi_acphy->sromi->rpcal5gb0;
+			pi->u.pi_acphy->sromi->rpcal5gb1 =
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND1].update ?
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND1].value : pi->u.pi_acphy->sromi->rpcal5gb1;
+			pi->u.pi_acphy->sromi->rpcal5gb2 =
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND2].update ?
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND2].value : pi->u.pi_acphy->sromi->rpcal5gb2;
+			pi->u.pi_acphy->sromi->rpcal5gb3 =
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND3].update ?
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND3].value : pi->u.pi_acphy->sromi->rpcal5gb3;
+
+			if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
+				ACMAJORREV_33(pi->pubpi->phy_rev) ||
+				ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				pi->sromi->rpcal2gcore3 =
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_2G].update ?
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_2G].value :
+				pi->sromi->rpcal2gcore3;
+				pi->sromi->rpcal5gb0core3 =
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND0].update ?
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND0].value :
+				pi->sromi->rpcal5gb0core3;
+				pi->sromi->rpcal5gb1core3 =
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND1].update ?
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND1].value :
+				pi->sromi->rpcal5gb1core3;
+				pi->sromi->rpcal5gb2core3 =
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND2].update ?
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND2].value :
+				pi->sromi->rpcal5gb2core3;
+				pi->sromi->rpcal5gb3core3 =
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND3].update ?
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND3].value :
+				pi->sromi->rpcal5gb3core3;
+			}
+		}
+		break;
+	}
+
+	case IOV_GVAL(IOV_RPCALVARS): {
+		wl_rpcal_t *rpcal = a;
+		if (ACMAJORREV_1(pi->pubpi->phy_rev)) {
+			PHY_ERROR(("Number of TX Chain has to be > 1!\n"));
+			err = BCME_UNSUPPORTED;
+		} else {
+			rpcal[WL_CHAN_FREQ_RANGE_2G].value = pi->u.pi_acphy->sromi->rpcal2g;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND0].value = pi->u.pi_acphy->sromi->rpcal5gb0;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND1].value = pi->u.pi_acphy->sromi->rpcal5gb1;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND2].value = pi->u.pi_acphy->sromi->rpcal5gb2;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND3].value = pi->u.pi_acphy->sromi->rpcal5gb3;
+			if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
+				ACMAJORREV_33(pi->pubpi->phy_rev) ||
+				ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_2G].value =
+				pi->sromi->rpcal2gcore3;
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND0].value =
+				pi->sromi->rpcal5gb0core3;
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND1].value =
+				pi->sromi->rpcal5gb1core3;
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND2].value =
+				pi->sromi->rpcal5gb2core3;
+				rpcal[WL_NUM_RPCALVARS+WL_CHAN_FREQ_RANGE_5G_BAND3].value =
+				pi->sromi->rpcal5gb3core3;
+			}
+		}
+		break;
+	}
+#endif 
 #if defined(BCMDBG)
 	case IOV_SVAL(IOV_PHY_FORCE_FDIQI):
 	{
@@ -1785,6 +3613,13 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 			PHY_ERROR(("PHY_AFE_OVERRIDE is not supported for this chip \n"));
 		}
 		break;
+#if defined(BCMINTPHYDBG)
+	case IOV_SVAL(IOV_PHY_AUXPGA):
+		break;
+
+	case IOV_GVAL(IOV_PHY_AUXPGA):
+		break;
+#endif 
 #if NCONF
 	case IOV_GVAL(IOV_PHY_OCLSCDENABLE):
 		err = wlc_phy_iovar_oclscd(pi, int_val, bool_val, ret_int_ptr, FALSE);
@@ -1802,7 +3637,7 @@ phy_doiovar(void *ctx, uint32 actionid, void *p, uint plen, void *a, uint alen, 
 		err = wlc_phy_iovar_prog_lnldo2(pi, int_val, bool_val, ret_int_ptr, TRUE);
 		break;
 #endif /* NCONF */
-#if defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV)
 	case IOV_GVAL(IOV_PHY_DYN_ML):
 		err =  wlc_phy_dynamic_ml(pi, int_val, ret_int_ptr, vsize, FALSE);
 		break;

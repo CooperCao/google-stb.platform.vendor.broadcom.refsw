@@ -291,6 +291,8 @@ extern void raw_puts(const char *buf, void *dll_fd_out);
 #define	fputs(buf, stdout) raw_puts(buf, dll_fd_out)
 #endif /* BCMDLL */
 
+extern int wl_get_wdslist(void *wl, cmd_t *cmd, void *bufp, uint32 *magic);
+
 #define	PRNL()		pbuf += sprintf(pbuf, "\n")
 
 #define RAM_SIZE_4325  0x60000

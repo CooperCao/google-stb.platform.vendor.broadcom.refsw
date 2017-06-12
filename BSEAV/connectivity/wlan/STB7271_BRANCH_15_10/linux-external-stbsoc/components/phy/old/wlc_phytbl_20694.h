@@ -73,13 +73,13 @@ uint16 RF0_logen5g_reg6_logen5g_buf_ctune_c0_5G_AUX;
 uint16 RF0_logen5g_reg6_logen5g_buf_ctune_c1_5G_AUX;
 } chan_info_radio20694_rffe_t;
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 extern const radio_20xx_dumpregs_t dumpregs_20694_rev36[];
 extern const radio_20xx_dumpregs_t dumpregs_20694_rev5[];
 extern const radio_20xx_dumpregs_t dumpregs_20694_rev8[];
 extern const radio_20xx_dumpregs_t dumpregs_20694_rev9[];
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 extern const chan_info_radio20694_rffe_t
     chan_tune_20694_rev5_fcbu_e_MAIN[NUM_ROWS_CHAN_TUNING_20694];

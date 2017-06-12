@@ -1252,6 +1252,65 @@ wlc_phy_tssivisible_thresh_acphy(phy_info_t *pi)
 	return visi_thresh_qdbm;
 }
 
+#if defined(BCMINTPHYDBG)
+int16
+wlc_phy_test_tssi_acphy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs)
+{
+	int16 tssi = 0;
+	int16 temp = 0;
+	int Npt, Npt_log2, i;
+	bool suspend = FALSE;
+	wlc_phy_conditional_suspend(pi, &suspend);
+	Npt_log2 = READ_PHYREGFLD(pi, TxPwrCtrlNnum, Npt_intg_log2);
+	Npt = 1 << Npt_log2;
+
+	switch (ctrl_type & 0x7) {
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+		for (i = 0; i < Npt; i++) {
+			OSL_DELAY(10);
+			temp = READ_PHYREGCE(pi, TssiVal_path, ctrl_type) & 0x3ff;
+			temp -= (temp >= 512) ? 1024 : 0;
+			tssi += temp;
+		}
+		tssi = tssi >> Npt_log2;
+		break;
+	default:
+		tssi = -1024;
+	}
+	wlc_phy_conditional_resume(pi, &suspend);
+	return (tssi);
+}
+
+int16
+wlc_phy_test_idletssi_acphy(phy_info_t *pi, int8 ctrl_type)
+{
+	int16 idletssi = INVALID_IDLETSSI_VAL;
+	bool suspend = FALSE;
+
+	/* Suspend MAC if haven't done so */
+	wlc_phy_conditional_suspend(pi, &suspend);
+
+	switch (ctrl_type & 0x7) {
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+		idletssi = READ_PHYREGCE(pi, TxPwrCtrlIdleTssi_path, ctrl_type) & 0x3ff;
+		idletssi -= (idletssi >= 512) ? 1024 : 0;
+		break;
+	default:
+		idletssi = INVALID_IDLETSSI_VAL;
+	}
+
+	/* Resume MAC */
+	wlc_phy_conditional_resume(pi, &suspend);
+
+	return (idletssi);
+}
+#endif 
 
 static void
 wlc_phy_get_tssisens_min_acphy(phy_type_tssical_ctx_t *ctx, int8 *tssiSensMinPwr)

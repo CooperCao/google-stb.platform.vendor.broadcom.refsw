@@ -514,6 +514,10 @@ cca_query_stats(wlc_info_t *wlc, chanspec_t chanspec, int nsecs,
 			(congest->congest_ibss + 500)/1000;
 		stats_results->secs[secs_done].congest_obss =
 			(congest->congest_obss + 500)/1000;
+		stats_results->secs[secs_done].congest_rx =
+			(congest->congest_rx + 500)/1000;
+		stats_results->secs[secs_done].congest_tx =
+			(congest->congest_tx + 500)/1000;
 		stats_results->secs[secs_done].interference =
 			(congest->interference + 500)/1000;
 		stats_results->secs[secs_done].timestamp =
@@ -574,6 +578,8 @@ cca_get_stats(cca_info_t *cca, void *input, int buf_len, void *output)
 			cca_congest[i].congest_ibss = wlc_congest[i].congest_ibss;
 			cca_congest[i].congest_obss = wlc_congest[i].congest_obss;
 			cca_congest[i].interference = wlc_congest[i].interference;
+			cca_congest[i].congest_rx  = wlc_congest[i].congest_rx;
+			cca_congest[i].congest_tx  = wlc_congest[i].congest_tx;
 			cca_congest[i].timestamp = wlc_congest[i].timestamp;
 		}
 	}
@@ -648,6 +654,8 @@ cca_stats_upd(wlc_info_t *wlc, int calculate)
 				stats->congest_ibss += delta.ibss + delta.txdur;
 				stats->congest_obss += delta.obss + delta.noctg;
 				stats->interference += delta.nopkt;
+				stats->congest_tx += delta.txdur;
+				stats->congest_rx += delta.ibss + delta.obss + delta.noctg;
 #ifdef ISID_STATS
 				stats->crsglitch += delta.crsglitch;
 				stats->badplcp += delta.badplcp;

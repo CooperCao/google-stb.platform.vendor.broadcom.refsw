@@ -62,6 +62,8 @@ cca_per_chan_summary(cca_congest_channel_req_t *input, cca_congest_channel_req_t
 	totals.duration  = 0;
 	totals.congest_ibss  = 0;
 	totals.congest_obss  = 0;
+	totals.congest_rx = 0;
+	totals.congest_tx = 0;
 	totals.interference  = 0;
 	avg->num_secs = 0;
 
@@ -70,6 +72,8 @@ cca_per_chan_summary(cca_congest_channel_req_t *input, cca_congest_channel_req_t
 			totals.duration += input->secs[sec].duration;
 			totals.congest_ibss += input->secs[sec].congest_ibss;
 			totals.congest_obss += input->secs[sec].congest_obss;
+			totals.congest_rx += input->secs[sec].congest_rx;
+			totals.congest_tx += input->secs[sec].congest_tx;
 			totals.interference += input->secs[sec].interference;
 			avg->num_secs++;
 		}
@@ -83,11 +87,15 @@ cca_per_chan_summary(cca_congest_channel_req_t *input, cca_congest_channel_req_t
 		avg->secs[0].duration = totals.duration / avg->num_secs;
 		avg->secs[0].congest_ibss = totals.congest_ibss * 100/totals.duration;
 		avg->secs[0].congest_obss = totals.congest_obss * 100/totals.duration;
+		avg->secs[0].congest_rx = totals.congest_rx * 100/totals.duration;
+		avg->secs[0].congest_tx = totals.congest_tx * 100/totals.duration;
 		avg->secs[0].interference = totals.interference * 100/totals.duration;
 	} else {
 		avg->secs[0].duration = totals.duration / avg->num_secs;
 		avg->secs[0].congest_ibss = totals.congest_ibss / avg->num_secs;
 		avg->secs[0].congest_obss = totals.congest_obss / avg->num_secs;
+		avg->secs[0].congest_rx = totals.congest_rx / avg->num_secs;
+		avg->secs[0].congest_tx = totals.congest_tx / avg->num_secs;
 		avg->secs[0].interference = totals.interference / avg->num_secs;
 	}
 

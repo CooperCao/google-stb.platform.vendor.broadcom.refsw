@@ -34,6 +34,9 @@ enum {
 
 /* iovar table */
 static const bcm_iovar_t phy_txpwrcap_iovars[] = {
+#if defined(BCMINTPHYDBG)
+	{"phy_txpwrcap_tbl", IOV_PHY_TXPWRCAP_TBL, 0, 0, IOVT_BUFFER, sizeof(wl_txpwrcap_tbl_t)},
+#endif
 	{"phy_cellstatus", IOV_PHY_CELLSTATUS, IOVF_SET_UP | IOVF_GET_UP, 0, IOVT_INT8, 0},
 	{"phy_txpwrcap", IOV_PHY_TXPWRCAP, IOVF_GET_UP, 0, IOVT_UINT32, 0},
 	{NULL, 0, 0, 0, 0, 0}
@@ -91,6 +94,26 @@ phy_txpwrcap_doiovar(void *ctx, uint32 aid,
 			err = BCME_UNSUPPORTED;
 		break;
 
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHY_TXPWRCAP_TBL):
+		if (PHYTXPWRCAP_ENAB(pi->txpwrcapi)) {
+			wl_txpwrcap_tbl_t txpwrcap_tbl;
+			err = wlc_phy_txpwrcap_tbl_get((wlc_phy_t*)pi, &txpwrcap_tbl);
+			if (err == BCME_OK)
+				bcopy(&txpwrcap_tbl, a, sizeof(wl_txpwrcap_tbl_t));
+		} else
+			err = BCME_UNSUPPORTED;
+		break;
+
+	case IOV_SVAL(IOV_PHY_TXPWRCAP_TBL):
+		if (PHYTXPWRCAP_ENAB(pi->txpwrcapi)) {
+			wl_txpwrcap_tbl_t txpwrcap_tbl;
+			bcopy(p, &txpwrcap_tbl, sizeof(wl_txpwrcap_tbl_t));
+			err = wlc_phy_txpwrcap_tbl_set((wlc_phy_t*)pi, &txpwrcap_tbl);
+		} else
+			err = BCME_UNSUPPORTED;
+		break;
+#endif 
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

@@ -232,11 +232,16 @@ static int phy_ac_papdcal_set_wfd_ll_enable(phy_type_papdcal_ctx_t *ctx, uint8 i
 static int phy_ac_papdcal_get_wfd_ll_enable(phy_type_papdcal_ctx_t *ctx, int32 *ret_int_ptr);
 #endif /* WFD_PHY_LL */
 
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 static bool wlc_phy_isperratedpden_acphy(phy_type_papdcal_ctx_t *ctx);
 static void wlc_phy_perratedpdset_acphy(phy_type_papdcal_ctx_t *ctx, bool enable);
 #endif
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG)
+static int phy_ac_papdcal_get_lut_idx0(phy_type_papdcal_ctx_t *ctx, int32* idx);
+static int phy_ac_papdcal_get_lut_idx1(phy_type_papdcal_ctx_t *ctx, int32* idx);
+static int phy_ac_papdcal_set_idx(phy_type_papdcal_ctx_t *ctx, int8 idx);
+#endif 
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 static int phy_ac_papdcal_set_skip(phy_type_papdcal_ctx_t *ctx, uint8 skip);
 static int phy_ac_papdcal_get_skip(phy_type_papdcal_ctx_t *ctx, int32 *skip);
 #endif 
@@ -354,11 +359,16 @@ BCMATTACHFN(phy_ac_papdcal_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 	fns.epa_dpd_set = wlc_phy_epa_dpd_set_acphy;
 #endif 
 	fns.ctx = ac_info;
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 	fns.isperratedpden = wlc_phy_isperratedpden_acphy;
 	fns.perratedpdset = wlc_phy_perratedpdset_acphy;
 #endif
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG)
+	fns.get_idx0 = phy_ac_papdcal_get_lut_idx0;
+	fns.get_idx1 = phy_ac_papdcal_get_lut_idx1;
+	fns.set_idx = phy_ac_papdcal_set_idx;
+#endif 
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 	fns.set_skip = phy_ac_papdcal_set_skip;
 	fns.get_skip = phy_ac_papdcal_get_skip;
 #endif 
@@ -609,7 +619,7 @@ fail:
 
 }
 
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 static bool
 wlc_phy_isperratedpden_acphy(phy_type_papdcal_ctx_t *ctx)
 {
@@ -633,8 +643,32 @@ wlc_phy_perratedpdset_acphy(phy_type_papdcal_ctx_t *ctx, bool enable)
 }
 #endif 
 
+#if defined(BCMINTPHYDBG)
+static int
+phy_ac_papdcal_get_lut_idx0(phy_type_papdcal_ctx_t *ctx, int32* idx)
+{
+	phy_ac_papdcal_info_t *info = (phy_ac_papdcal_info_t *)ctx;
+	*idx = (int32)info->papd_lut0_cal_idx;
+	return BCME_OK;
+}
 
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+static int
+phy_ac_papdcal_get_lut_idx1(phy_type_papdcal_ctx_t *ctx, int32* idx)
+{
+	phy_ac_papdcal_info_t *info = (phy_ac_papdcal_info_t *)ctx;
+	*idx = (int32)info->papd_lut1_cal_idx;
+	return BCME_OK;
+}
+
+static int phy_ac_papdcal_set_idx(phy_type_papdcal_ctx_t *ctx, int8 idx)
+{
+	phy_ac_papdcal_info_t *info = (phy_ac_papdcal_info_t *)ctx;
+	info->pacalidx_iovar = idx;
+	return BCME_OK;
+}
+#endif 
+
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 static int
 phy_ac_papdcal_set_skip(phy_type_papdcal_ctx_t *ctx, uint8 skip)
 {
@@ -2432,7 +2466,7 @@ BCMATTACHFN(phy_ac_papdcal_nvram_attach_old)(phy_ac_papdcal_info_t *papdcal_info
 		papdcal_info->srom_pagc5g_ovr = 0x0;
 	}
 
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 	/* Read the per rate dpd enable param */
 	papdcal_info->perratedpd2g = (bool)PHY_GETINTVAR_DEFAULT_SLICE(pi, rstr_perratedpd2g, 0);
 	papdcal_info->perratedpd5g = (bool)PHY_GETINTVAR_DEFAULT_SLICE(pi, rstr_perratedpd5g, 0);

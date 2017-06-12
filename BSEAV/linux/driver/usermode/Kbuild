@@ -24,5 +24,4 @@ obj-m += bcmdriver.o
 bcmdriver-y += bcmdriver.o_shipped
 else
 $(shell echo BCM_KBUILD_CFLAGS:=$(KBUILD_CFLAGS) $(KBUILD_CFLAGS_MODULE) >&2 )
-$(shell echo BCM_KBUILD_LDFLAGS:=$(LDFLAGS) $(LDFLAGS_MODULE) $(KBUILD_LDFLAGS_MODULE) >&2)
 endif

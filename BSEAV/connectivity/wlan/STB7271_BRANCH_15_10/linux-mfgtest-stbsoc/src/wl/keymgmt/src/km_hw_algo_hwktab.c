@@ -432,7 +432,7 @@ tkip_write(km_hw_t *hw, void *ctx, hw_idx_t hw_idx, wlc_key_data_type_t data_typ
 		 * Key entry calculation: use the same index that is used to index the row
 		 * number in hwkey to compute the offset to M_TKMICKEYS_BLK.
 		 */
-		if (wlc_wowl_enable(hw->wlc->wowl)) {
+		if (WOWL_ACTIVE(hw->wlc->pub)) {
 			if (WLC_KEY_IS_AP(key_info) || WLC_KEY_IS_IBSS(key_info))
 				addr = KM_HW_TKIP_TX_MIC_KEY_ADDR(hw, hw_idx);
 			else
@@ -454,7 +454,7 @@ tkip_write(km_hw_t *hw, void *ctx, hw_idx_t hw_idx, wlc_key_data_type_t data_typ
 		KM_ASSERT(data_len <= TKIP_MIC_KEY_SIZE);
 		KM_HW_COPYTO_HWKTAB(KM_HW_WLC(hw), addr, data, (int)data_len);
 
-		if (wlc_wowl_enable(hw->wlc->wowl)) {
+		if (WOWL_ACTIVE(hw->wlc->pub)) {
 			if (WLC_KEY_IS_AP(key_info) || WLC_KEY_IS_IBSS(key_info))
 				addr = KM_HW_TKIP_RX_MIC_KEY_ADDR(hw, hw_idx);
 			else

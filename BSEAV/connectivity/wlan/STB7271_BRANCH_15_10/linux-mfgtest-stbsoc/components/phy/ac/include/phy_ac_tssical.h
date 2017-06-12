@@ -45,10 +45,10 @@ extern void phy_ac_tssi_loopback_path_setup(phy_info_t *pi, uint8 for_iqcal);
 extern uint8 wlc_phy_ac_set_tssi_params_maj36(phy_info_t *pi);
 
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 extern int16 wlc_phy_test_tssi_acphy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs);
 extern int16 wlc_phy_test_idletssi_acphy(phy_info_t *pi, int8 ctrl_type);
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 
 #ifdef WLC_TXCAL
 uint16 wlc_phy_adjusted_tssi_acphy(phy_info_t *pi, uint8 core_num);

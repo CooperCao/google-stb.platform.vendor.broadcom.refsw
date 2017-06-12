@@ -789,7 +789,7 @@ wlc_phy_txpower_set(wlc_phy_t *ppi, int8 qdbm, bool override, ppr_t *reg_pwr)
 	ti->data->tx_user_target = qdbm;
 
 	/* Restrict external builds to 100% Tx Power */
-#if defined(WL_EXPORT_TXPOWER)
+#if defined(BCMINTPHYDBG) || defined(WL_EXPORT_TXPOWER)
 	ti->data->txpwroverride = override;
 	ti->data->txpwroverrideset = override;
 #else
@@ -1483,6 +1483,33 @@ wlc_phy_neg_txpower_set(wlc_phy_t *ppi, uint qdbm)
 	return (0);
 }
 
+#if defined(BCMINTPHYDBG)
+int
+phy_tpc_set_pavars(phy_tpc_info_t *tpci, void* a, void* p)
+{
+	phy_type_tpc_fns_t *fns = tpci->priv->fns;
+	PHY_TRACE(("%s\n", __FUNCTION__));
+	if (fns->set_pavars != NULL) {
+		return (fns->set_pavars)(fns->ctx, a, p);
+	} else {
+		PHY_ERROR(("Unsupported PHY type!\n"));
+		return BCME_UNSUPPORTED;
+	}
+}
+
+int
+phy_tpc_get_pavars(phy_tpc_info_t *tpci, void* a, void* p)
+{
+	phy_type_tpc_fns_t *fns = tpci->priv->fns;
+	PHY_TRACE(("%s\n", __FUNCTION__));
+	if (fns->get_pavars != NULL) {
+		return (fns->get_pavars)(fns->ctx, a, p);
+	} else {
+		PHY_ERROR(("Unsupported PHY type!\n"));
+		return BCME_UNSUPPORTED;
+	}
+}
+#endif 
 
 
 void

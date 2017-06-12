@@ -75,6 +75,11 @@ static int phy_ac_rssi_dump(phy_type_rssi_ctx_t *ctx, struct bcmstrbuf *b);
 #else
 #define phy_ac_rssi_dump NULL
 #endif
+#if defined(BCMINTPHYDBG)
+static void phy_ac_rssi_update_pkteng_rxstats(phy_type_rssi_ctx_t *ctx, uint8 statidx);
+static int phy_ac_rssi_get_pkteng_stats(phy_type_rssi_ctx_t *ctx, void *a, int alen,
+	wl_pkteng_stats_t stats);
+#endif 
 static int phy_ac_rssi_set_gain_delta_2g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues);
 static int phy_ac_rssi_get_gain_delta_2g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues);
 static int phy_ac_rssi_set_gain_delta_5g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues);
@@ -112,6 +117,10 @@ BCMATTACHFN(phy_ac_rssi_register_impl)(phy_info_t *pi, phy_ac_info_t *aci, phy_r
 	fns.compute = phy_ac_rssi_compute;
 	fns.init_gain_err = _phy_ac_rssi_init_gain_err;
 	fns.dump = phy_ac_rssi_dump;
+#if defined(BCMINTPHYDBG)
+	fns.update_pkteng_rxstats = phy_ac_rssi_update_pkteng_rxstats;
+	fns.get_pkteng_stats = phy_ac_rssi_get_pkteng_stats;
+#endif 
 	fns.set_gain_delta_2g = phy_ac_rssi_set_gain_delta_2g;
 	fns.get_gain_delta_2g = phy_ac_rssi_get_gain_delta_2g;
 	fns.set_gain_delta_5g = phy_ac_rssi_set_gain_delta_5g;
@@ -1056,6 +1065,131 @@ phy_ac_rssi_dump(phy_type_rssi_ctx_t *ctx, struct bcmstrbuf *b)
 }
 #endif /* BCMDBG || BCMDBG_DUMP */
 
+#if defined(BCMINTPHYDBG)
+static void
+phy_ac_rssi_update_pkteng_rxstats(phy_type_rssi_ctx_t *ctx, uint8 statidx)
+{
+	phy_ac_rssi_info_t *rssii = (phy_ac_rssi_info_t *)ctx;
+	if (rssii->pi->measure_hold & PHY_HOLD_FOR_PKT_ENG) {
+		rssii->rxstats[statidx] += 1;
+	}
+}
+
+static int
+phy_ac_rssi_get_pkteng_stats(phy_type_rssi_ctx_t *ctx, void *a, int alen, wl_pkteng_stats_t stats)
+{
+	phy_ac_rssi_info_t *rssii = (phy_ac_rssi_info_t *)ctx;
+	phy_info_t *pi = rssii->pi;
+	int i;
+
+	if (((rssii->data->rssi_cal_rev == FALSE) &&
+		!D11REV_IS(pi->sh->corerev, 49))) {
+#ifdef WL11AC
+		int8 core;
+		int16 temp_rssi = -128;
+		int16 gain_err_temp_adj;
+		uint8 phyrxchain;
+
+		BCM_REFERENCE(phyrxchain);
+
+		stats.rssi = -128;
+
+		/* Read and (implicitly) store current temperature */
+		wlc_phy_tempsense_acphy(pi);
+		wlc_phy_upd_gain_wrt_temp_phy(pi, &gain_err_temp_adj);
+
+		phyrxchain = phy_stf_get_data(pi->stfi)->phyrxchain;
+		FOREACH_ACTV_CORE(pi, phyrxchain, core) {
+			int16 tmp;
+			tmp = pi->phy_rssi_gain_error[core] * 2 -
+				gain_err_temp_adj;
+			tmp = ((tmp >= 0) ? ((tmp + 2) >> 2) : -1 *
+				((-1 * tmp + 2) >> 2));
+
+			if (core == 0) {
+				temp_rssi = (R_REG(pi->sh->osh,
+					&pi->regs->u_rcv.d11regs.rxe_phyrs_2)
+					>> 8) & 0xff;
+			} else if (core == 1) {
+				temp_rssi = R_REG(pi->sh->osh,
+					&pi->regs->u_rcv.d11regs.rxe_phyrs_3)
+					& 0xff;
+			} else if (core == 2) {
+				temp_rssi = (R_REG(pi->sh->osh,
+					&pi->regs->u_rcv.d11regs.rxe_phyrs_3)
+					>> 8) & 0xff;
+			}
+		    if (temp_rssi > 127)
+				temp_rssi -= 256;
+		    /* convert to 0.25dB since rssi delta and
+		     * temp delta is in 0.25dB steps
+		    */
+		    /* Apply RSSI delta */
+		    temp_rssi -= tmp;
+			stats.rssi = MAX(stats.rssi, temp_rssi);
+		}
+
+#endif /* WL11AC */
+	} else if (D11REV_IS(pi->sh->corerev, 47) ||
+		D11REV_IS(pi->sh->corerev, 48) ||
+		D11REV_IS(pi->sh->corerev, 49) ||
+		D11REV_IS(pi->sh->corerev, 51) ||
+		D11REV_IS(pi->sh->corerev, 58) ||
+		D11REV_IS(pi->sh->corerev, 60) ||
+		PHY_MAC_REV_CHECK(pi, 36) ||
+		D11REV_IS(pi->sh->corerev, 54)) {
+		int core;
+		int16 rxpwr_core[PHY_CORE_MAX], rssi_comp;
+		uint16 p2pblk_strt = wlapi_bmac_read_shm(pi->sh->physhim,
+			M_P2P_BLK_PTR(pi)) << 1;
+
+		FOREACH_CORE(pi, core) {
+			/* Supports only two cores */
+			if (core < 3) {
+				if (!PHY_MAC_REV_CHECK(pi, 36) ||
+					(!D11REV_IS(pi->sh->corerev, 60))) {
+					rxpwr_core[core] =
+					wlapi_bmac_read_shm(pi->sh->physhim,
+					p2pblk_strt +
+					(M_PKTENG_RXAVGPWR_ANT(pi, core)));
+				} else {
+					rxpwr_core[core] =
+					wlapi_bmac_read_shm(pi->sh->physhim,
+					(M_PKTENG_RXAVGPWR_ANT(pi, core)));
+				}
+			}
+		}
+		/* Sign extend */
+		FOREACH_CORE(pi, core) {
+			if (rxpwr_core[core] > (127 * 4))
+				rxpwr_core[core] -= (256 * 4);
+		}
+		rssi_comp = phy_ac_rssi_compute_compensation(pi->u.pi_acphy->rssii,
+			rxpwr_core, 1);
+
+		if (rssii->data->rssi_qdB_en == TRUE) {
+			stats.rssi = rssi_comp >> 2;
+			stats.rssi_qdb = rssi_comp & 0x3;
+		} else {
+			stats.rssi =
+			((rssi_comp >= 0) ?
+			((rssi_comp + 2) >> 2) : -1 * ((-1 * rssi_comp + 2) >> 2));
+			stats.rssi_qdb = 0;
+		}
+	}
+	stats.snr = stats.rssi - PHY_NOISE_FIXED_VAL_NPHY;
+
+	/* rx pkt stats */
+	for (i = 0; i <= NUM_80211_RATES; i++) {
+		stats.rxpktcnt[i] = rssii->rxstats[i];
+	}
+
+	bcopy(&stats, a,
+		(sizeof(wl_pkteng_stats_t) < (uint)alen) ? sizeof(wl_pkteng_stats_t) : (uint)alen);
+
+	return BCME_OK;
+}
+#endif 
 
 static int
 phy_ac_rssi_set_gain_delta_2g(phy_type_rssi_ctx_t *ctx, uint32 aid, int8 *deltaValues)

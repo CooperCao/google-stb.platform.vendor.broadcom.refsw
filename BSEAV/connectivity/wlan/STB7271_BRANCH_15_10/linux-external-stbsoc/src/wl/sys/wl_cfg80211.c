@@ -6437,16 +6437,14 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 #endif /* BCMDONGLEHOST */
 
 #if defined(WOWL_DRV_NORELOAD)
-#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS)) && \
-	!defined(OEM_ANDROID)
+#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS))
 		wl_resume_normalmode();
-#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 #endif  /*WOWL_DRV_NORELOAD*/
 	return err;
 }
 
-#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS)) && \
-	!defined(OEM_ANDROID)
+#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS))
 static s32 wl_wowlan_config(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 {
 	s32 err = BCME_OK;
@@ -6572,6 +6570,10 @@ exit:
 #else /*  NIC driver  to enable ucode based WOWL */
 
 	/* set the triggers */
+#if defined(OEM_ANDROID_TV)
+	wowl_flags = wowl_flags | WL_WOWL_MDNS_SERVICE;
+#endif
+
 	if (wow->magic_pkt == true)
 		wowl_flags = wowl_flags | WL_WOWL_MAGIC;
 
@@ -6760,8 +6762,7 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 	}
 #endif /* DHD_CLEAR_ON_SUSPEND */
 
-#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS)) && \
-	!defined(OEM_ANDROID)
+#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS))
 	err = wl_wowlan_config(wiphy, wow);
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
 
@@ -7820,6 +7821,10 @@ wl_cfg80211_mgmt_tx(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 
 	WL_DBG(("Enter \n"));
 
+	if (len > ACTION_FRAME_SIZE) {
+		WL_ERR(("bad length:%zu\n", len));
+		return BCME_BADLEN;
+	}
 #ifdef DHD_IFDEBUG
 	PRINT_WDEV_INFO(cfgdev);
 #endif /* DHD_IFDEBUG */
@@ -11264,8 +11269,8 @@ static s32 wl_inform_single_bss(struct bcm_cfg80211 *cfg, struct wl_bss_info *bi
 				+ ts.tv_nsec / 1000;
 #else
 		struct timeval tv;
-		jiffies_to_timeval(jiffies, &tv);
-		mgmt->u.probe_resp.timestamp = (((u64)tv.tv_sec + 300)*1000000)
+		jiffies_to_timeval(jiffies - INITIAL_JIFFIES, &tv);
+		mgmt->u.probe_resp.timestamp = ((u64)tv.tv_sec*1000000)
 				+ tv.tv_usec;
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39) &&
 	* (BCMDONGLEHOST || PLATFORM_INTEGRATED_WIFI)
@@ -14149,8 +14154,14 @@ static void wl_scan_timeout(unsigned long data)
 		dhdp->memdump_enabled = prev_memdump_mode;
 	}
 #endif /* DHD_DEBUG && BCMPCIE && DHD_FW_COREDUMP */
+
+#ifdef BCMDONGLEHOST
 	msg.event_type = hton32(WLC_E_ESCAN_RESULT);
 	msg.status = hton32(WLC_E_STATUS_TIMEOUT);
+#else
+	msg.event_type = WLC_E_ESCAN_RESULT;
+	msg.status = WLC_E_STATUS_TIMEOUT;
+#endif
 	msg.reason = 0xFFFFFFFF;
 	wl_cfg80211_event(ndev, &msg, NULL);
 #ifdef CUSTOMER_HW4_DEBUG
@@ -15511,6 +15522,8 @@ static int wl_is_p2p_event(struct bcm_cfg80211 *cfg, struct wl_event_q *e)
 				 * to the ifidx.
 				 */
 				ret = FALSE;
+			} else if (e->emsg.bsscfgidx == P2PAPI_BSSCFG_CONNECTION) {
+				ret = FALSE;
 			} else {
 				WL_DBG(("P2P event(%d) on interface(ifidx:%d)\n",
 					e->etype, e->emsg.ifidx));
@@ -15618,6 +15631,7 @@ static s32 wl_event_handler(void *data)
 					cfgdev = wl_to_p2p_bss_ndev(cfg, P2PAPI_BSSCFG_CONNECTION);
 				}
 			}
+
 #endif /* WL_CFG80211_P2P_DEV_IF */
 			if (!cfgdev) {
 #if defined(WL_CFG80211_P2P_DEV_IF)

@@ -5348,13 +5348,11 @@ wlc_mchan_proc_time_us_7271(wlc_info_t *wlc, wlc_mchan_vsdb_case_t type)
 
 	switch (type) {
 	case WLC_MCHAN_NON_BAND_SWITCH:
-		proc_time = 11000;
+		proc_time = 6500;
 		break;
 	case WLC_MCHAN_BAND_SWITCH:
-		proc_time = 12500;
-		break;
 	case WLC_MCHAN_BAND_SWITCH_STA_GO:
-		proc_time = 20000;
+		proc_time = 8200;
 		break;
 	default:
 		/* Default value */

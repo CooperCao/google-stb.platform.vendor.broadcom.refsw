@@ -124,7 +124,7 @@ BCMATTACHFN(phy_vcocal_unregister_impl)(phy_vcocal_info_t *cmn_info)
 	cmn_info->fns = NULL;
 }
 
-#if defined(RADIO_HEALTH_CHECK)
+#if defined(BCMINTPHYDBG) || defined(RADIO_HEALTH_CHECK)
 void
 phy_vcocal_force(phy_info_t *pi)
 {

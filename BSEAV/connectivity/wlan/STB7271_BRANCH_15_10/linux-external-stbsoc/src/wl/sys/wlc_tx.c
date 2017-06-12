@@ -3569,6 +3569,12 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 	/* per-port code must keep track of WDS cookies */
 	ASSERT(!wds || SCB_WDS(scb));
 
+	/* Discard frame if wds link is down */
+	if (SCB_LEGACY_WDS(scb) && !(scb->flags & SCB_WDS_LINKUP)) {
+		WLCNTINCR(wlc->pub->_cnt->txnoassoc);
+		goto toss;
+	}
+
 #if defined(WLTDLS)
 	if (TDLS_ENAB(wlc->pub))
 		ASSERT(!tdls_scb || BSSCFG_IS_TDLS(bsscfg));
@@ -10491,15 +10497,6 @@ wlc_tx_fifo_sync_bcmc_reset(wlc_info_t *wlc)
 			}
 			/* Let's reset the FIDs since we have completed flush */
 			wlc_mbss_bcmc_reset(wlc, cfg);
-		}
-	} else if (wlc->cfg != NULL) {
-		struct scb *bcmc_scb = WLC_BCMCSCB_GET(wlc, wlc->cfg);
-		if (bcmc_scb != NULL) {
-			BCMCFID(wlc, INVALIDFID);
-			if ((SCB_PS(bcmc_scb) == TRUE) &&
-				(!BSSCFG_IBSS(wlc->cfg) || !AIBSS_ENAB(wlc->pub))) {
-				bcmc_scb->PS = FALSE;
-			}
 		}
 	}
 }

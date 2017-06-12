@@ -2845,6 +2845,7 @@ wl_free_if(wl_info_t *wl, wl_if_t *wlif)
 		wl_cfg80211_notify_ifdel(wlif->dev);
 #endif /* USE_CFG80211 */
 	}
+	WL_LOCK(wl);
 	/* remove the interface from the interface linked list */
 	p = wl->if_list;
 	if (p == wlif)
@@ -2855,6 +2856,7 @@ wl_free_if(wl_info_t *wl, wl_if_t *wlif)
 		if (p != NULL)
 			p->next = p->next->next;
 	}
+	WL_UNLOCK(wl);
 
 	if (wlif->dev) {
 #if defined(USE_CFG80211)
@@ -3552,6 +3554,11 @@ wl_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		buf = ioc.buf;
 
 	else if (ioc.buf) {
+		if (ioc.len <= 0 || ioc.len > 32*WLC_IOCTL_MAXLEN) {
+			bcmerror = BCME_BADLEN;
+			goto done2;
+		}
+
 		if (!(buf = (void *) MALLOC(wl->osh, MAX(ioc.len, WLC_IOCTL_MAXLEN)))) {
 			bcmerror = BCME_NORESOURCE;
 			goto done2;
@@ -4609,7 +4616,13 @@ _wl_timer(wl_timer_t *t)
 	WL_LOCK(wl);
 
 	if (t->set && (!timer_pending(&t->timer))) {
-		if (t->periodic) {
+
+		ASSERT(t->timer.function);
+		if (t->timer.function == NULL) {
+			WL_ERROR(("wl%d: %s: Timer function not set.\n", wl->unit, __FUNCTION__));
+		}
+
+		if (t->periodic && t->timer.function) {
 			/* Periodic timer can't be a zero delay */
 			ASSERT(t->ms != 0);
 

@@ -94,6 +94,9 @@ static void phy_ac_btcx_override_disable(phy_type_btcx_ctx_t *ctx);
 static void phy_ac_btcx_femctrl_mask(phy_type_btcx_ctx_t *ctx);
 #endif
 
+#if defined(BCMINTPHYDBG)
+static int phy_ac_btcx_get_preemptstatus(phy_type_btcx_ctx_t *ctx, int32* ret_ptr);
+#endif 
 
 #if !defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX)
 static int wlc_phy_desense_ltecx_acphy(phy_type_btcx_ctx_t *ctx, int32 mode);
@@ -156,6 +159,9 @@ BCMATTACHFN(phy_ac_btcx_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 #if (!defined(WL_SISOCHIP) && defined(SWCTRL_TO_BT_IN_COEX))
 	fns.femctrl_mask = phy_ac_btcx_femctrl_mask;
 #endif
+#if defined(BCMINTPHYDBG)
+	fns.get_preemptstatus = phy_ac_btcx_get_preemptstatus;
+#endif 
 #if !defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX)
 	fns.desense_ltecx = wlc_phy_desense_ltecx_acphy;
 #endif /* !defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX) */
@@ -417,6 +423,18 @@ wlc_phy_desense_btcoex_acphy(phy_type_btcx_ctx_t *ctx, int32 mode)
 }
 #endif /* !defined(WLC_DISABLE_ACI) */
 
+#if defined(BCMINTPHYDBG)
+static int
+phy_ac_btcx_get_preemptstatus(phy_type_btcx_ctx_t *ctx, int32* ret_ptr)
+{
+	phy_ac_btcx_info_t *btcxi = (phy_ac_btcx_info_t *)ctx;
+	bool curr_channel_in_2G = CHSPEC_IS2G(btcxi->pi->radio_chanspec);
+	int bt_active_in_curr_band = (btcxi->cmn_info->data->bt_active) & curr_channel_in_2G;
+	*ret_ptr = (int32) (bt_active_in_curr_band << 1) |
+		(phy_ac_noise_get_data(btcxi->aci->noisei)->current_preemption_status);
+	return BCME_OK;
+}
+#endif 
 
 static void
 wlc_phy_btc_adjust_acphy(phy_type_btcx_ctx_t *ctx, bool btactive)

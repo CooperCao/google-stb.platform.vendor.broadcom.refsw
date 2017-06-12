@@ -34,6 +34,9 @@ void phy_ac_tpc_unregister_impl(phy_ac_tpc_info_t *info);
 
 void chanspec_setup_tpc(phy_info_t *pi);
 extern uint8 wlc_phy_tssi2dbm_acphy(phy_info_t *pi, int32 tssi, int32 a1, int32 b0, int32 b1);
+#if defined(BCMINTPHYDBG)
+extern void wlc_phy_tone_pwrctrl_loop(phy_info_t *pi, int8 targetpwr_dBm);
+#endif
 extern void wlc_phy_get_paparams_for_band_acphy(phy_info_t *pi, int16 *a1, int16 *b0, int16 *b1);
 extern void wlc_phy_read_txgain_acphy(phy_info_t *pi);
 extern void wlc_phy_txpwr_by_index_acphy(phy_info_t *pi, uint8 core_mask, int8 txpwrindex);
@@ -50,6 +53,10 @@ extern int8 wlc_phy_tone_pwrctrl(phy_info_t *pi, int8 tx_idx, uint8 core);
 extern void wlc_phy_txpwrctrl_set_target_acphy(phy_info_t *pi, uint8 pwr_qtrdbm, uint8 core);
 extern void wlc_phy_txpwrctrl_config_acphy(phy_info_t *pi);
 
+#if defined(BCMINTPHYDBG)
+void wlc_phy_iovar_patrim_acphy(phy_info_t *pi, int32 *ret_int_ptr);
+void wlc_phy_txpwr_ovrinitbaseidx(phy_info_t *pi);
+#endif
 int8 wlc_phy_txpwrctrl_update_minpwr_acphy(phy_info_t *pi);
 void wlc_phy_txpwrctrl_set_baseindex(phy_info_t *pi, uint8 core, uint8 baseindex, bool frame_type);
 #if (defined(WLOLPC) && !defined(WLOLPC_DISABLED)) || defined(BCMDBG)

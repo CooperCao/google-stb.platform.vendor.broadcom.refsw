@@ -61,7 +61,7 @@ phy_calmgr_doiovar(void *ctx, uint32 aid,
 
 	switch (aid) {
 	case IOV_GVAL(IOV_PHY_PERICAL):
-#if defined(WLTEST) || defined(AP) || defined(BCMDBG_PHYCAL)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(AP) || defined(BCMDBG_PHYCAL)
 		int_val = phy_calmgr_get_calmode(pi);
 		bcopy(&int_val, a, vsize);
 #else
@@ -69,7 +69,7 @@ phy_calmgr_doiovar(void *ctx, uint32 aid,
 #endif
 		break;
 	case IOV_SVAL(IOV_PHY_PERICAL):
-#if defined(WLTEST) || defined(AP) || defined(BCMDBG_PHYCAL)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(AP) || defined(BCMDBG_PHYCAL)
 		err = phy_calmgr_set_calmode(pi, int_val);
 #else
 		err = BCME_UNSUPPORTED;

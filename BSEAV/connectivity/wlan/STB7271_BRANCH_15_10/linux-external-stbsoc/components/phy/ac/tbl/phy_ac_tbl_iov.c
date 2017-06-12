@@ -26,7 +26,7 @@
 #include <phy_ac_info.h>
 
 static const bcm_iovar_t phy_ac_tbl_iovars[] = {
-#if defined(DBG_PHY_IOV)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV)
 	{"phytable", IOV_PHYTABLE, IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG, 0, IOVT_BUFFER, 4*4},
 #endif
 	{NULL, 0, 0, 0, 0, 0}
@@ -48,9 +48,26 @@ phy_ac_tbl_doiovar(void *ctx, uint32 aid,
 	BCM_REFERENCE(pi);
 
 	switch (aid) {
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHYTABLE):
+		wlc_phy_table_read_acphy(pi, *(uint32 *)p, 1,
+		                         *((uint32 *)p + 1), *((uint32 *)p + 2),
+		                         (uint32 *)a);
+		break;
+
+	case IOV_SVAL(IOV_PHYTABLE):
+		wlc_phy_table_write_acphy(pi, *(uint32 *)p, 1,
+		                          *((uint32 *)p + 1), *((uint32 *)p + 2),
+		                          (uint32 *)p + 3);
+		break;
+#endif 
 
 	default:
+#if defined(BCMINTPHYDBG)
+		err = BCME_UNSUPPORTED;
+#else
 		err = BCME_OK;
+#endif 
 
 		break;
 	}

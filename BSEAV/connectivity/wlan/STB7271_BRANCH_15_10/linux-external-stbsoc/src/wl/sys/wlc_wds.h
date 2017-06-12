@@ -33,6 +33,7 @@ extern void wlc_ap_wds_probe_complete(wlc_info_t *wlc, uint txstatus, struct scb
 extern int wlc_wds_create(wlc_info_t *wlc, struct scb *scb, uint flags);
 extern void wlc_scb_wds_free(struct wlc_info *wlc);
 extern bool wlc_wds_lazywds_is_enable(wlc_wds_info_t *mwds);
+extern int wlc_wds_peers_connected(wlc_info_t *wlc);
 extern int wlc_wds_create_link_event(wlc_info_t *wlc, struct scb *scb, bool isup);
 #if defined(DWDS)
 #ifdef DPSTA

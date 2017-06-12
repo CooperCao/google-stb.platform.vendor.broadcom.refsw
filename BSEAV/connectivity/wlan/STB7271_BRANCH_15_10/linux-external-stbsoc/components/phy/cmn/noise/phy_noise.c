@@ -864,6 +864,113 @@ phy_noise_abort_shmem_read(phy_noise_info_t *noisei)
 }
 
 #ifndef WLC_DISABLE_ACI
+#if defined(BCMINTPHYDBG)
+/* For NPHY and HTPHY only */
+int
+phy_noise_aci_args(phy_info_t *pi, wl_aci_args_t *params, bool get, int len)
+{
+	if (len != WL_ACI_ARGS_LEGACY_LENGTH && len != sizeof(wl_aci_args_t))
+		return BCME_BUFTOOSHORT;
+
+	if (get) {
+		params->enter_aci_thresh = pi->interf->aci.enter_thresh;
+		params->exit_aci_thresh = pi->interf->aci.exit_thresh;
+		params->usec_spin = pi->interf->aci.usec_spintime;
+		params->glitch_delay = pi->interf->aci.glitch_delay;
+	} else {
+		if (params->enter_aci_thresh > 0)
+			pi->interf->aci.enter_thresh = params->enter_aci_thresh;
+		if (params->exit_aci_thresh > 0)
+			pi->interf->aci.exit_thresh = params->exit_aci_thresh;
+		if (params->usec_spin > 0)
+			pi->interf->aci.usec_spintime = params->usec_spin;
+		if (params->glitch_delay > 0)
+			pi->interf->aci.glitch_delay = params->glitch_delay;
+	}
+
+	if (len == sizeof(wl_aci_args_t)) {
+		if (pi->interf->aci.nphy == NULL)
+			return BCME_UNSUPPORTED;
+
+		if (get) {
+			params->nphy_adcpwr_enter_thresh =
+				pi->interf->aci.nphy->adcpwr_enter_thresh;
+			params->nphy_adcpwr_exit_thresh = pi->interf->aci.nphy->adcpwr_exit_thresh;
+			params->nphy_repeat_ctr = pi->interf->aci.nphy->detect_repeat_ctr;
+			params->nphy_num_samples = pi->interf->aci.nphy->detect_num_samples;
+			params->nphy_undetect_window_sz = pi->interf->aci.nphy->undetect_window_sz;
+			params->nphy_b_energy_lo_aci = pi->interf->aci.nphy->b_energy_lo_aci;
+			params->nphy_b_energy_md_aci = pi->interf->aci.nphy->b_energy_md_aci;
+			params->nphy_b_energy_hi_aci = pi->interf->aci.nphy->b_energy_hi_aci;
+
+			params->nphy_noise_noassoc_glitch_th_up =
+				pi->interf->noise.nphy_noise_noassoc_glitch_th_up;
+			params->nphy_noise_noassoc_glitch_th_dn =
+				pi->interf->noise.nphy_noise_noassoc_glitch_th_dn;
+			params->nphy_noise_assoc_glitch_th_up =
+				pi->interf->noise.nphy_noise_assoc_glitch_th_up;
+			params->nphy_noise_assoc_glitch_th_dn =
+				pi->interf->noise.nphy_noise_assoc_glitch_th_dn;
+			params->nphy_noise_assoc_aci_glitch_th_up =
+				pi->interf->noise.nphy_noise_assoc_aci_glitch_th_up;
+			params->nphy_noise_assoc_aci_glitch_th_dn =
+				pi->interf->noise.nphy_noise_assoc_aci_glitch_th_dn;
+			params->nphy_noise_assoc_enter_th =
+				pi->interf->noise.nphy_noise_assoc_enter_th;
+			params->nphy_noise_noassoc_enter_th =
+				pi->interf->noise.nphy_noise_noassoc_enter_th;
+			params->nphy_noise_assoc_rx_glitch_badplcp_enter_th=
+				pi->interf->noise.nphy_noise_assoc_rx_glitch_badplcp_enter_th;
+			params->nphy_noise_noassoc_crsidx_incr=
+				pi->interf->noise.nphy_noise_noassoc_crsidx_incr;
+			params->nphy_noise_assoc_crsidx_incr=
+				pi->interf->noise.nphy_noise_assoc_crsidx_incr;
+			params->nphy_noise_crsidx_decr=
+				pi->interf->noise.nphy_noise_crsidx_decr;
+
+		} else {
+			pi->interf->aci.nphy->adcpwr_enter_thresh =
+				params->nphy_adcpwr_enter_thresh;
+			pi->interf->aci.nphy->adcpwr_exit_thresh = params->nphy_adcpwr_exit_thresh;
+			pi->interf->aci.nphy->detect_repeat_ctr = params->nphy_repeat_ctr;
+			pi->interf->aci.nphy->detect_num_samples = params->nphy_num_samples;
+			pi->interf->aci.nphy->undetect_window_sz =
+				MIN(params->nphy_undetect_window_sz,
+				ACI_MAX_UNDETECT_WINDOW_SZ);
+			pi->interf->aci.nphy->b_energy_lo_aci = params->nphy_b_energy_lo_aci;
+			pi->interf->aci.nphy->b_energy_md_aci = params->nphy_b_energy_md_aci;
+			pi->interf->aci.nphy->b_energy_hi_aci = params->nphy_b_energy_hi_aci;
+
+			pi->interf->noise.nphy_noise_noassoc_glitch_th_up =
+				params->nphy_noise_noassoc_glitch_th_up;
+			pi->interf->noise.nphy_noise_noassoc_glitch_th_dn =
+				params->nphy_noise_noassoc_glitch_th_dn;
+			pi->interf->noise.nphy_noise_assoc_glitch_th_up =
+				params->nphy_noise_assoc_glitch_th_up;
+			pi->interf->noise.nphy_noise_assoc_glitch_th_dn =
+				params->nphy_noise_assoc_glitch_th_dn;
+			pi->interf->noise.nphy_noise_assoc_aci_glitch_th_up =
+				params->nphy_noise_assoc_aci_glitch_th_up;
+			pi->interf->noise.nphy_noise_assoc_aci_glitch_th_dn =
+				params->nphy_noise_assoc_aci_glitch_th_dn;
+			pi->interf->noise.nphy_noise_assoc_enter_th =
+				params->nphy_noise_assoc_enter_th;
+			pi->interf->noise.nphy_noise_noassoc_enter_th =
+				params->nphy_noise_noassoc_enter_th;
+			pi->interf->noise.nphy_noise_assoc_rx_glitch_badplcp_enter_th =
+				params->nphy_noise_assoc_rx_glitch_badplcp_enter_th;
+			pi->interf->noise.nphy_noise_noassoc_crsidx_incr =
+				params->nphy_noise_noassoc_crsidx_incr;
+			pi->interf->noise.nphy_noise_assoc_crsidx_incr =
+				params->nphy_noise_assoc_crsidx_incr;
+			pi->interf->noise.nphy_noise_crsidx_decr =
+				params->nphy_noise_crsidx_decr;
+		}
+	}
+
+	return BCME_OK;
+}
+#endif 
 #endif /* Compiling out ACI code for 4324 */
 
 #ifndef WLC_DISABLE_ACI

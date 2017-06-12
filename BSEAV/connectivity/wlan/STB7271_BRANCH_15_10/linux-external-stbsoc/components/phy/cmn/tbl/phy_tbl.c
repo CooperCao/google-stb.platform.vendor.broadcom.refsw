@@ -43,12 +43,13 @@ static int phy_tbl_init(phy_init_ctx_t *ctx);
 #ifndef BCMNODOWN
 static int phy_tbl_down(phy_init_ctx_t *ctx);
 #endif
-#if defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(BCMINTPHYDBG)) || \
+	defined(BCMDBG_PHYDUMP)
 static int phy_tbl_dumptbl(void *ctx, struct bcmstrbuf *b);
 static uint16 phytbl_page_parser(phy_table_info_t *ti);
 static void phy_tbl_process_dumptbl(phy_tbl_info_t *info,
 		phy_table_info_t *ti, struct bcmstrbuf *b);
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && BCMINTPHYDBG) || BCMDBG_PHYDUMP */
 
 /* attach/detach */
 phy_tbl_info_t *
@@ -85,9 +86,10 @@ BCMATTACHFN(phy_tbl_attach)(phy_info_t *pi)
 #endif
 
 	/* register dump callback */
-#if defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(BCMINTPHYDBG)) || \
+	defined(BCMDBG_PHYDUMP)
 	phy_dbg_add_dump_fn(pi, "phytbl", phy_tbl_dumptbl, info);
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && BCMINTPHYDBG) || BCMDBG_PHYDUMP */
 #if defined(BCMDBG) || defined(BCMDBG_DUMP)
 	phy_dbg_add_dump_fn(pi, "phytxv0", phy_tbl_dump_txv0, info);
 #endif /* BCMDBG || BCMDBG_DUMP */
@@ -164,7 +166,8 @@ BCMUNINITFN(phy_tbl_down)(phy_init_ctx_t *ctx)
 }
 #endif
 
-#if defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(BCMINTPHYDBG)) || \
+	defined(BCMDBG_PHYDUMP)
 static int
 phy_tbl_dumptbl(void *ctx, struct bcmstrbuf *b)
 {
@@ -275,6 +278,12 @@ phy_tbl_do_dumptbl(phy_tbl_info_t *info, phy_table_info_t *ti, struct bcmstrbuf 
 		phy_tbl_process_dumptbl(info, ti, b);
 
 	} else if (TRUE &&
+#if defined(BCMINTPHYDBG)
+			!((pi->nphy_tbldump_minidx >= 0) &&
+			(ti->table < (uint)pi->nphy_tbldump_minidx)) &&
+			!((pi->nphy_tbldump_maxidx >= 0) &&
+			(ti->table > (uint)pi->nphy_tbldump_maxidx)) &&
+#endif 
 			!(fns->tblfltr && !(fns->tblfltr)(pi, ti))) {
 		phy_tbl_process_dumptbl(info, ti, b);
 	}
@@ -283,7 +292,7 @@ phy_tbl_do_dumptbl(phy_tbl_info_t *info, phy_table_info_t *ti, struct bcmstrbuf 
 	if ((pi->pdpi->entry == 0) && (++pi->pdpi->page >= np))
 		pi->pdpi->page = 0;
 }
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && BCMINTPHYDBG) || BCMDBG_PHYDUMP */
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP)
 int

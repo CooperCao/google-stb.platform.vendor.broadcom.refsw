@@ -31,10 +31,10 @@ typedef struct _chan_info_radio20695_rffe {
 	uint8 tx_pad;
 } chan_info_radio20695_rffe_t;
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 extern const radio_20xx_dumpregs_t dumpregs_20695_rev39[];
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 extern radio_20xx_prefregs_t prefregs_20695_rev32[];
 extern radio_20xx_prefregs_t prefregs_20695_rev33[];

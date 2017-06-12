@@ -46,10 +46,10 @@ typedef struct {
 
 /* local function declaration */
 static int phy_radio_on(phy_init_ctx_t *ctx);
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 static int phy_radio_dump(void *ctx, struct bcmstrbuf *b);
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && (BCMINTPHYDBG || DBG_PHY_IOV)) || BCMDBG_PHYDUMP */
 
 /* attach/detach */
 phy_radio_info_t *
@@ -90,11 +90,11 @@ BCMATTACHFN(phy_radio_attach)(phy_info_t *pi)
 		goto fail;
 	}
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 	/* register dump callback */
 	phy_dbg_add_dump_fn(pi, "radioreg", phy_radio_dump, info);
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && (BCMINTPHYDBG || DBG_PHY_IOV)) || BCMDBG_PHYDUMP */
 
 	return info;
 
@@ -259,8 +259,8 @@ BCMATTACHFN(phy_radio_unregister_impl)(phy_radio_info_t *ri)
 	PHY_TRACE(("%s\n", __FUNCTION__));
 }
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 static int
 phy_radio_dump(void *ctx, struct bcmstrbuf *b)
 {
@@ -284,7 +284,7 @@ phy_radio_dump(void *ctx, struct bcmstrbuf *b)
 
 	return ret;
 }
-#endif 
+#endif /* ((BCMDBG || BCMDBG_DUMP) && (BCMINTPHYDBG || DBG_PHY_IOV)) || BCMDBG_PHYDUMP */
 
 #ifdef PHY_DUMP_BINARY
 int

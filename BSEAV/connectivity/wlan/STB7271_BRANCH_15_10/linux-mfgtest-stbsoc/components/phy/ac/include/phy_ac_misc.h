@@ -35,9 +35,9 @@ extern void wlc_phy_force_rfseq_acphy(phy_info_t *pi, uint8 cmd);
 extern void wlc_phy_deaf_acphy(phy_info_t *pi, bool mode);
 extern bool wlc_phy_get_deaf_acphy(phy_info_t *pi);
 extern void wlc_phy_gpiosel_acphy(phy_info_t *pi, uint16 sel, uint8 word_swap);
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 extern void wlc_phy_test_scraminit_acphy(phy_info_t *pi, int8 init);
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 
 void wlc_phy_susp2tx_cts2self(phy_info_t *pi, uint16 duration);
 void wlc_phy_cals_mac_susp_en_other_cr(phy_info_t *pi, bool suspend);
