@@ -572,8 +572,8 @@ _DRM_SHORT_WCHAR_ pr3x_hds_file[] = L"datastore3x.hds";
 **
 ******************************************************************************/
 #ifdef ANDROID
-char ta_pr3x_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_30.bin";
-char ta_pr3x_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_30_dev.bin";
+char ta_pr3x_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_playready_30.bin";
+char ta_pr3x_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_playready_30_dev.bin";
 #else
 char ta_pr3x_bin_file_rootfs_path[] ="./sage_ta_playready_30.bin";
 char ta_pr3x_dev_bin_file_rootfs_path[] ="./sage_ta_playready_30_dev.bin";

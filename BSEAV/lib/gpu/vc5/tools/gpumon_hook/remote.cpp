@@ -67,7 +67,7 @@ Remote::Remote(uint16_t port) :
 #ifdef ANDROID
       else
       {
-         FILE *fp = fopen("/system/bin/GPUMonitorIP", "r");
+         FILE *fp = fopen("/vendor/bin/GPUMonitorIP", "r");
          if (fp != NULL)
          {
             char buf[1024];

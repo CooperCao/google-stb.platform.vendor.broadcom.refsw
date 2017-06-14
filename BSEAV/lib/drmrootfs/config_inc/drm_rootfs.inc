@@ -98,22 +98,22 @@ char drm_bin_file_rootfs_path[] ="./drm.bin";
 **
 ******************************************************************************/
 #ifdef ANDROID
-char ta_bin_file_rootfs_path[] ="/system/bin/sage_ta_common_drm.bin";
-char ta_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_common_drm_dev.bin";
-char ta_edrm_bin_file_rootfs_path[] ="/system/bin/sage_ta_edrm.bin";
-char ta_edrm_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_edrm_dev.bin";
-char ta_nflx_bin_file_rootfs_path[] ="/system/bin/sage_ta_netflix.bin";
-char ta_nflx_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_netflix_dev.bin";
-char ta_pr25_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_25.bin";
-char ta_pr25_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_25_dev.bin";
-char ta_wv_bin_file_rootfs_path[] ="/system/bin/sage_ta_widevine.bin";
-char ta_wv_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_widevine_dev.bin";
-char ta_dtcp_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcpip.bin";
-char ta_dtcp_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcpip_dev.bin";
-char ta_adobe_bin_file_rootfs_path[] ="/system/bin/sage_ta_adobe.bin";
-char ta_adobe_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_adobe_dev.bin";
-char ta_mediaroom_bin_file_rootfs_path[] ="/system/bin/sage_ta_mediaroom.bin";
-char ta_mediaroom_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_mediaroom_dev.bin";
+char ta_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_common_drm.bin";
+char ta_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_common_drm_dev.bin";
+char ta_edrm_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_edrm.bin";
+char ta_edrm_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_edrm_dev.bin";
+char ta_nflx_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_netflix.bin";
+char ta_nflx_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_netflix_dev.bin";
+char ta_pr25_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_playready_25.bin";
+char ta_pr25_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_playready_25_dev.bin";
+char ta_wv_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_widevine.bin";
+char ta_wv_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_widevine_dev.bin";
+char ta_dtcp_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_dtcpip.bin";
+char ta_dtcp_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_dtcpip_dev.bin";
+char ta_adobe_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_adobe.bin";
+char ta_adobe_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_adobe_dev.bin";
+char ta_mediaroom_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_mediaroom.bin";
+char ta_mediaroom_dev_bin_file_rootfs_path[] ="/vendor/bin/sage_ta_mediaroom_dev.bin";
 #else
 char ta_bin_file_rootfs_path[] ="./sage_ta_common_drm.bin";
 char ta_dev_bin_file_rootfs_path[] ="./sage_ta_common_drm_dev.bin";
