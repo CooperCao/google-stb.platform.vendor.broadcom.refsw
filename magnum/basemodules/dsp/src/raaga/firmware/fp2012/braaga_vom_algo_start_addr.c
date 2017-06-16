@@ -477,7 +477,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x1031d000,
 
 		/* BDSP_AF_P_AlgoId_eDpcmrPostProc */
-		0x1032fae0,
+		0x1032faec,
 
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */
 		0x10295000,

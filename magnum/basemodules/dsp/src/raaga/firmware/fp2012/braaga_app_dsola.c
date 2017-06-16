@@ -1215,7 +1215,7 @@ const uint32_t BDSP_IMG_dsola_code_array1[] = {
 	0xf83d21f8,
 	0x53fbb1ff,
 	0x50fbf69f,
-	0x6e959009,
+	0x6ea59009,
 	0xdf7f8747,
 	0xab02e1f8,
 	0xe7a1fe27,

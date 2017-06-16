@@ -431,7 +431,7 @@ const uint32_t BDSP_IMG_vocals_code_array1[] = {
 	0x60000004,
 	0x52006188,
 	0x70000004,
-	0x7368ac0c,
+	0x7348ac0c,
 	0x20805807,
 	0x9e016377,
 	0x20d1ffff,

@@ -235,7 +235,7 @@ const uint32_t BDSP_IMG_flac_ids_array1[] = {
 	0x71e0a0c0,
 	0x72609040,
 	0xf83d31ff,
-	0x62b43100,
+	0x62c43100,
 	0x90203007,
 	0x0801b00f,
 	0x3801000f,
