@@ -71,6 +71,7 @@ typedef enum PlatformDynamicRange
     PlatformDynamicRange_eHlg,
     PlatformDynamicRange_eHdr10,
     PlatformDynamicRange_eDolbyVision,
+    PlatformDynamicRange_eTechnicolorPrime,
     PlatformDynamicRange_eInvalid,
     PlatformDynamicRange_eUnknown,
     PlatformDynamicRange_eMax

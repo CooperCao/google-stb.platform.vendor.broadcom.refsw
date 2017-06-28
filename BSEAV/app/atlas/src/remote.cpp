@@ -252,8 +252,7 @@ void CRemote::remoteCallback()
     eRet         ret = eRet_Ok;
     CRemoteEvent event;
 
-    ret = removeEvent(&event);
-    if (eRet_Ok == ret)
+    while (eRet_Ok == (ret = removeEvent(&event)))
     {
         submitCode(&event);
     }
@@ -297,12 +296,15 @@ eRet CRemote::removeEvent(CRemoteEvent * pEvent)
     CRemoteEvent * pEventSaved = NULL;
     eRet           ret         = eRet_NotAvailable;
 
-    pEventSaved = _eventList.remove();
-    if (NULL != pEventSaved)
+    if (0 < _eventList.total())
     {
-        *pEvent = *pEventSaved;
-        delete(pEventSaved);
-        ret = eRet_Ok;
+        pEventSaved = _eventList.remove();
+        if (NULL != pEventSaved)
+        {
+            *pEvent = *pEventSaved;
+            delete(pEventSaved);
+            ret = eRet_Ok;
+        }
     }
 
     return(ret);
@@ -546,6 +548,11 @@ eKey CIrRemote::convertRemoteCode(
     return(key);
 } /* convertRemoteCode */
 
+void CIrRemote::flushEvents()
+{
+    NEXUS_IrInput_FlushEvents(getIrRemote());
+}
+
 eRet CIrRemote::getEvent(CRemoteEvent * pEvent)
 {
     eRet               ret    = eRet_NotAvailable;
@@ -557,8 +564,9 @@ eRet CIrRemote::getEvent(CRemoteEvent * pEvent)
     BDBG_ASSERT(NULL != pEvent);
 
     nerror = NEXUS_IrInput_GetEvents(getIrRemote(), &irEvent, 1, &num, &overflow);
+
     /* do not buffer any remote events */
-    NEXUS_IrInput_FlushEvents(getIrRemote());
+    flushEvents();
 
     if (!nerror && num)
     {

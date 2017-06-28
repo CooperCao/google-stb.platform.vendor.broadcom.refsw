@@ -380,6 +380,7 @@ void NEXUS_Platform_UninitFrontend(void)
     BKNI_Memset(deviceHandles, 0, sizeof(deviceHandles));
     for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
     {
+        handleFound = false;
         if (pConfig->frontend[i])
         {
             tempHandle = NEXUS_Frontend_GetDevice(pConfig->frontend[i]);

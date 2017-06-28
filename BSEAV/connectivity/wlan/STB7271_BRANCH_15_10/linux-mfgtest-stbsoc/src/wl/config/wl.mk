@@ -31,6 +31,11 @@ ifeq ($(UCODE_IN_ROM),1)
 UCODE_ROM_DIR = components/ucode/dot11_releases/trunk/$(UCODE_ROM)/rom
 endif
 
+#To build from ucode_3wire. By default build from ucode_seci
+ifeq ($(BTCX_3WIRE),1)
+	WLFLAGS += -DBTCX_3WIRE
+endif
+
 #Add if you wan additonal internal debug. Want to limit debug builds module size
 ifeq ($(BCMINTDBG),1)
 	WLFLAGS += -DBCMINTDBG
@@ -1766,6 +1771,10 @@ ifeq ($(WOWL),1)
 endif
 #endif
 
+ifeq ($(WL_BIDIRECTIONAL_TPUT),1)
+       WLFLAGS += -DWL_BIDIRECTIONAL_TPUT
+endif
+
 # ucode in rom
 ifeq ($(UCODE_IN_ROM),1)
 		WLFLAGS += -DUCODE_IN_ROM_SUPPORT
@@ -3116,6 +3125,10 @@ endif
 # support RADIO BCM20696
 ifeq ($(RADIO_BCM20696),1)
 	WLFLAGS += -DRADIO_BCM20696
+endif
+
+ifeq ($(TEMPSENSE),1)
+	WLFLAGS += -DBCMDBG_TEMPSENSE
 endif
 
 # STB integrated wlan

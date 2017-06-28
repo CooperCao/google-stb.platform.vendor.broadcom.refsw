@@ -136,7 +136,7 @@ Broadcom 7250 B0 Set-Top Unified Software Release 17.2
   <td width="52%" valign=top style='width:52.74%;padding:0pt 5.4pt 0pt 5.4pt'>
   <p class=MsoTocHeading>Release Date:</p>
   <p style='margin-top:0pt;margin-right:0pt;margin-bottom:0pt;margin-left:1.75pt;
-  margin-bottom:.0001pt'>May 21, 2017</p>
+  margin-bottom:.0001pt'>June 28, 2017</p>
   <p style='margin-top:0cm;margin-right:0cm;margin-bottom:0cm;margin-left:1.75pt;
   margin-bottom:.0001pt'>Phase 17.2 Release</p>
   <p class=MsoTocHeading>Platforms Supported:</p>
@@ -230,7 +230,7 @@ Build and Usage Instructions for Atlas
 <li>
 Extract reference software tar ball:
 <ul type=none><li><pre>
-tar -xf refsw_release_unified_20170521.src.tgz
+tar -xf refsw_release_unified_20170628.src.tgz
 </pre></li></ul>
 </li>
 </ul>
@@ -667,232 +667,22 @@ Use a standard USB AB cable to connect the debug adaptor board to the PC. Two vi
 </table>
 
 <br>
+
 <h2><a name="_Toc428791530">
-7250 Production Box Modes
-</a></h2>
+    7250 Production Box Modes
+    </a></h2>
 <p class=MsoNormal><a href="#_top">(Top)</a></p>
-<br>
 
-<table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0 width="80%"
- style='width:80.0%;border-collapse:collapse;border:none'>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'><b>Box Mode</b></p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border:solid windowtext 1.0pt;
-  border-left:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p><b>Description</b></p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>1</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-2133 or 16-bit DDR4-2133<br>
-  1080p30/60i 8-bit AVC / 10-bit HEVC main decode<br>
-  1080p30/60i 8-bit AVC / 10-bit HEVC PIP decode<br>
-  MAIN + PIP supported to UHD display only (through up-scaling)<br>
-  No SD display<br>
-  No HDMI input<br>
-  No transcode
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>2</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-1866 (Allows high-temperature refresh)<br>
-  1080p30/60i 8-bit HEVC or 1080p30/60i 8-bit AVC decode<br>
-  MAIN window only (no PIP)<br>
-  UHD + SD display<br>
-  No HDMI input<br>
-  No transcode
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>3</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-1600 or DDR4-1600<br>
-  1080p60 8-bit HEVC / AVC main decode<br>
-  MAIN to UHD display (through up-scaling)<br>
-  No PIP<br>
-  No SD display<br>
-  No HDMI input<br>
-  No transcode
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>4</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-2133 (Allows high-temperature refresh)<br>
-  Dual 1080p30/60i 8-bit HEVC or 1080p30/60i 8-bit AVC decode<br>
-  MAIN window only (no PIP)<br>
-  UHD display (through up-scaling)<br>
-  No SD display<br>
-  No HDMI input<br>
-  Video encoding (Raaga) up to 480p30 or 576p25
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>5</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-2133 (Allows high-temperature refresh)<br>
-  Single 1080p60 10-bit HEVC or 1080p30/60i 8-bit AVC decode<br>
-  Headless (no display)<br>
-  No HDMI input<br>
-  Video encoding (Raaga) up to 720p30
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>6</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-2133 or 1x 16-bit DDR4-2133 (Allows high-temperature refresh)<br>
-  1080p60 10-bit HEVC or 1080p30/60i 8-bit AVC decode<br>
-  MAIN window only (no PIP)<br>
-  UHD + SD display<br>
-  HDMI input supported<br>
-  No transcode
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>7</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 32-bit DDR3-1866 (No high-temperature refresh)<br>
-  1080p30/60i 8-bit HEVC / AVC decode<br>
-  480p30/60i 8-bit HEVC / AVC decode<br>
-  MAIN + PIP supported<br>
-  UHD display only (through up-scaling)<br>
-  No HDMI input<br>
-  No transcode
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>8</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-2133 (No high-temperature refresh)<br>
-  Multi-PIP decode (2x), 1080p30/60i 8-bit HEVC / AVC / MPEG<br>
-  UHD + SD display<br>
-  No HDMI input<br>
-  No transcode<br>
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>9</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <p>
-  Requires: 1x 16-bit DDR3-1866 (Allows high-temperature refresh)<br>
-  1080p30/60i 8-bit HEVC or 1080p30/60i 8-bit AVC decode<br>
-  MAIN window only (no PIP)<br>
-  UHD + SD display<br>
-  No HDMI input<br>
-  No transcode<br>
-  This is the same as box #2 except that PCIe has been upgraded to 170 mbps and ENET has been disabled.
-  </p>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>10</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <dl>
-  <dt>Requires: 1x 16-bit DDR3-1866 (Allows high-temperature refresh)</dt>
-  <dt>1080p30/60i 8-bit HEVC or 1080p30/60i 8-bit AVC decode</dt>
-  <dd>Additional graphics only 720p30 decoder</dd>
-  <dt>MAIN window only (no PIP)</dt>
-  <dt>UHD only</dt>
-  <dt>HDMI input supported</dt>
-  <dt>No transcode</dt>
-  </dl>
-  </td>
- </tr>
- <tr>
-  <td width=85 valign=top style='width:63.4pt;border:solid windowtext 1.0pt;
-  border-top:none;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p align=center style='text-align:center'>11</p>
-  </td>
-  <td width=756 valign=top style='width:20.0cm;border-top:none;border-left:
-  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-  padding:0cm 5.4pt 0cm 5.4pt'>
-  <dl>
-    <dt>Requires: 1x 16-bit DDR3-2133</dt>
-    <dt>Two 1080p30/60i 8-bit decodes</dt>
-    <dd>One can be fed into the video network</dd>
-    <dd>One cannot be routed to the video network and can be used by the graphics path</dd>
-    <dt>MAIN window only (no PIP)</dt>
-    <dt>UHD + SD display</dt>
-    <dt>No HDMI input</dt>
-    <dt>No transcode</dt>
-  </dl>
-</td>
- </tr>
-</table>
 
-<p>More details about each box mode may be found under
-nexus/platform/97250/docs.</p>
+<p>
+  <strong>
+    There are multiple box modes available which contain the RTS to support the different variants and features of this chip.<br>
+    Information on the available box modes has been moved to a <span style='color:#0070C0'><a href="7250B0_box_mode_comparison.html"><span style='color:#0070C0'>new HTML table</a></span>.</p>
+  </strong>
+</p>
+<p>
+  Additonally more details about each box mode may be found under nexus/platform/97250/docs.
+</p>
 
 <p>Box Mode selection may be made
 during run-time by setting the environment variable B_REFSW_BOXMODE to the

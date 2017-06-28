@@ -52,6 +52,8 @@ typedef struct {
 	uint32 bphy_crsglitch;	/* bphy  crs glitchs */
 	uint32 bphy_badplcp;		/* num bphy bad plcp */
 #endif /* ISID_STATS */
+	uint32 congest_rx;
+	uint32 congest_tx;
 } wlc_congest_t;
 
 typedef struct {

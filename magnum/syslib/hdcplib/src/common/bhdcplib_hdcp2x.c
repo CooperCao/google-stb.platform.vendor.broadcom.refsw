@@ -1469,6 +1469,16 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
 	BKNI_Memset(&hHDCPlib->stReceiverIdListData,0, sizeof(BHDCPlib_ReceiverIdListData));
 
+	/* Disable HDCP2.x encryption bit */
+	rc = BHDM_HDCP_EnableHdcp2xEncryption(hHDCPlib->stDependencies.hHdm, false);
+	if (rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error [0x%x] disabling Hdcp2.2 encryption", rc));
+		rc = BERR_TRACE(rc);
+		goto done;
+	}
+	hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
+
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
 					BHDCPlib_P_Hdcp2xRequest_eHost_StartAuthentication);
 	if (rc != BERR_SUCCESS)
@@ -2142,6 +2152,10 @@ void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool
 	{
 		BDBG_ERR(("Error %s HDCP 2.x encryption", enable?"enable":"disable"));
 		rc = BERR_TRACE(rc);
+		/* Error enable encryption - most likely because HDCP cipher is not authenticated.
+			Set encryption state to unencrypted*/
+		hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
+		goto done;
 	}
 
 	if (enable) {

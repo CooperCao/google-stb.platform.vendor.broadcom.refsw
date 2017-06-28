@@ -194,6 +194,8 @@ public:
     virtual void dump(void)                          = 0;
     virtual eRet getEvent(CRemoteEvent * pEvent)     = 0;
 
+    virtual void flushEvents(void) { return; }
+
     CWidgetEngine * getWidgetEngine(void) { return(_pWidgetEngine); }
     void            remoteCallback(void);
     void            submitCode(CRemoteEvent * pEvent);
@@ -221,6 +223,7 @@ public:
     virtual eRet              open(CWidgetEngine * pWidgetEngine);
     virtual void              close(void);
     virtual eRet              getEvent(CRemoteEvent * pEvent);
+    virtual void              flushEvents(void);
     virtual eRet              setMode(NEXUS_IrInputMode mode);
     virtual NEXUS_IrInputMode getMode(void);
     virtual void              dump();

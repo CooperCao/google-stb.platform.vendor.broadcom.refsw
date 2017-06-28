@@ -173,7 +173,7 @@ char BCMATTACHDATA(mfgsromvars)[VARS_MAX];
 int BCMATTACHDATA(defvarslen) = 0;
 #endif 
 
-#if !defined(BCMDONGLEHOST)
+#if !defined(BCMDONGLEHOST) && !defined(STB_SOC_WIFI)
 /* BCMHOSTVARS is enabled only if WLTEST is enabled or BCMEXTNVM is enabled */
 #if defined(BCMHOSTVARS)
 static char BCMATTACHDATA(defaultsromvars_4331)[] =
@@ -515,7 +515,7 @@ static char BCMATTACHDATA(defaultsromvars_4335)[] =
 	"END\0";
 
 #endif 
-#endif /* !defined(BCMDONGLEHOST) */
+#endif /* !defined(BCMDONGLEHOST)  && !defined(STB_SOC_WIFI) */
 
 #if !defined(BCMDONGLEHOST)
 /* BCMHOSTVARS is enabled only if WLTEST is enabled or BCMEXTNVM is enabled */
@@ -585,6 +585,7 @@ static char BCMATTACHDATA(defaultsromvars_wltest)[] =
 	"bwduppo=0\0"
 	"END\0";
 
+#if  !defined(STB_SOC_WIFI)
 static char BCMATTACHDATA(defaultsromvars_4345)[] =
 	"sromrev=11\0"
 	"vendid=0x14e4\0"
@@ -2233,6 +2234,7 @@ static char BCMATTACHDATA(defaultsromvars_4347)[] =
 	"powoffs2gtna0=1,3,3,1,0,0,1,2,2,2,1,1,0,0\0"
 	"powoffs2gtna1=-1,1,1,1,0,0,1,2,3,2,2,0,0,0\0"
 	"END\0";
+#endif /*  !defined(STB_SOC_WIFI)  */
 #endif 
 #endif /* !defined(BCMDONGLEHOST) */
 
@@ -6538,6 +6540,7 @@ BCMATTACHFN(initvars_srom_pci)(si_t *sih, void *curmap, char **vars, uint *count
 				BS_ERROR(("No nvm file, use generic default (for programming"
 					" SPROM/OTP only)\n"));
 
+#if !defined(STB_SOC_WIFI)
 				if (((CHIPID(sih->chip) == BCM4331_CHIP_ID) ||
 					(CHIPID(sih->chip) == BCM43431_CHIP_ID)) &&
 					(CHIPREV(sih->chiprev) < 3)) {
@@ -6581,7 +6584,9 @@ BCMATTACHFN(initvars_srom_pci)(si_t *sih, void *curmap, char **vars, uint *count
 				} else if (BCM4347_CHIP(sih->chip)) {
 					defvarslen = srom_vars_len(defaultsromvars_4347);
 					bcopy(defaultsromvars_4347, vp, defvarslen);
-				} else {
+				} else
+#endif // !defined(STB_SOC_WIFI)
+				{
 					defvarslen = srom_vars_len(defaultsromvars_wltest);
 					bcopy(defaultsromvars_wltest, vp, defvarslen);
 				}
@@ -6596,7 +6601,9 @@ BCMATTACHFN(initvars_srom_pci)(si_t *sih, void *curmap, char **vars, uint *count
 			BS_ERROR(("Used %d bytes of defaultsromvars\n", defvarslen));
 			goto varsdone;
 
-		} else if ((((CHIPID(sih->chip) == BCM4331_CHIP_ID) ||
+		} else
+#if	!defined(STB_SOC_WIFI)
+		if ((((CHIPID(sih->chip) == BCM4331_CHIP_ID) ||
 			(CHIPID(sih->chip) == BCM43431_CHIP_ID)) &&
 			(CHIPREV(sih->chiprev) < 3)) || (CHIPID(sih->chip) == BCM4360_CHIP_ID) ||
 			(CHIPID(sih->chip) == BCM43460_CHIP_ID) ||
@@ -6695,6 +6702,7 @@ BCMATTACHFN(initvars_srom_pci)(si_t *sih, void *curmap, char **vars, uint *count
 			*vp++ = '\0';
 			goto varsdone;
 		} else
+#endif /* !defined(STB_SOC_WIFI) */
 #endif 
 		{
 			err = -1;

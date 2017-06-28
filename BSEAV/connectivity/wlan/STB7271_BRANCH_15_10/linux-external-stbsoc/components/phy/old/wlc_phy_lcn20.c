@@ -11244,6 +11244,40 @@ wlc_lcn20phy_rssi_tempcorr(phy_info_t *pi, bool mode)
 	return ret;
 }
 
+#if defined(BCMINTPHYDBG)
+int16
+wlc_phy_test_tssi_lcn20phy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs)
+{
+	int16 tssi_OB = 0;
+	int16 tssi_reg;
+	BCM_REFERENCE(pwr_offs);
+
+	tssi_reg = PHY_REG_READ(pi, LCN20PHY, TxPwrCtrlStatusNew4, avgTssi) & 0x1ff;
+	/* Convert avgtssi value from 2's complement 9bits to OB 7bits */
+	if (tssi_reg >= 256)
+		tssi_OB = (tssi_reg - 256)/4;
+	else
+		tssi_OB = (tssi_reg + 256)/4;
+
+	return tssi_OB;
+}
+
+int16
+wlc_phy_test_idletssi_lcn20phy(phy_info_t *pi, int8 ctrl_type)
+{
+	int16 idletssi_OB = INVALID_IDLETSSI_VAL;
+	int16 idletssi_reg;
+
+	idletssi_reg = PHY_REG_READ(pi, LCN20PHY, TxPwrCtrlIdleTssi, idleTssi0) & 0x1ff;
+	/* Convert idletssi value from 2's complement 9bits to OB 7bits */
+	if (idletssi_reg >= 256)
+		idletssi_OB = (idletssi_reg - 256)/4;
+	else
+		idletssi_OB = (idletssi_reg + 256)/4;
+
+	return idletssi_OB;
+}
+#endif 
 #ifdef WL11ULB
 bool
 wlc_phy_lcn20_ulb_10_capable(phy_info_t *pi)

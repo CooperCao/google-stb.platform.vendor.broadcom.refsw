@@ -436,10 +436,10 @@ sub GenerateSignatures {
     my $SignCommandFile;
     open($SignCommandFile, ">",$OutputDir."/".$ChipId.".in");
 
-    my $Line = 'File for BCM'.$ChipId."\n";
-    print $SignCommandFile $Line;
+#    my $Line = 'File for BCM'.$ChipId."\n";
+#    print $SignCommandFile $Line;
 
-    $Line='load_prv_key -in='.$PrivateKey."\n";
+    my $Line='load_prv_key -in='.$PrivateKey."\n";
     print $SignCommandFile $Line;
 
     $Line='load_pub_key -in='.$PublicKey."\n";

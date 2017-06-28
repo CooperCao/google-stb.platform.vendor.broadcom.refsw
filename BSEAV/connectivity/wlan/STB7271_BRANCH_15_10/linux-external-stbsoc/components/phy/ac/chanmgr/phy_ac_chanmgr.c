@@ -6270,7 +6270,7 @@ wlc_phy_set_regtbl_on_bw_change_acphy(phy_info_t *pi)
 		if (CHSPEC_IS20(pi->radio_chanspec))
 			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 7);
 		else
-			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 3);
+			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 5);
 	}
 
 	if (pi->phy_pay_decode_war) {
@@ -14026,6 +14026,32 @@ BCMATTACHFN(wlc_phy_nvram_avvmid_read)(phy_info_t *pi)
 	}
 }
 
+#if defined(BCMINTPHYDBG)
+void wlc_phy_get_avvmid_acphy(phy_info_t *pi, int32 *ret_int_ptr, wlc_avvmid_t avvmid_type,
+		uint8 *core_sub_band)
+{
+	phy_info_acphy_t *pi_ac = pi->u.pi_acphy;
+	uint8 avvmid_idx = 0;
+	uint8 band_idx = core_sub_band[1];
+	uint8 core = core_sub_band[0];
+	avvmid_idx = (avvmid_type == AV) ? 0 : 1;
+	*ret_int_ptr = (int32)(pi_ac->sromi->avvmid_set_from_nvram[core][band_idx][avvmid_idx]);
+	return;
+}
+
+void wlc_phy_set_avvmid_acphy(phy_info_t *pi, uint8 *avvmid, wlc_avvmid_t avvmid_type)
+{
+	phy_info_acphy_t *pi_ac = pi->u.pi_acphy;
+	uint8 core, sub_band_idx;
+	uint8 avvmid_idx = 0;
+	avvmid_idx = (avvmid_type == AV) ? 0 : 1;
+	core = avvmid[0];
+	sub_band_idx = avvmid[1];
+	pi_ac->sromi->avvmid_set_from_nvram[core][sub_band_idx][avvmid_idx] = avvmid[2];
+	/* Load Pdet related settings */
+	wlc_phy_set_pdet_on_reset_acphy(pi);
+}
+#endif 
 
 void BCMATTACHFN(wlc_phy_nvram_vlin_params_read)(phy_info_t *pi)
 {

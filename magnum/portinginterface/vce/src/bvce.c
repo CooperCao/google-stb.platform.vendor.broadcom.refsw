@@ -2032,7 +2032,7 @@ BVCE_S_SendCommand_OpenChannel(
    hVce->fw.stCommand.type.stOpenChannel.uiChannel_id = hVceCh->stOpenSettings.uiInstance;
    BVCE_P_SET_32BIT_HI_LO_FROM_64( hVce->fw.stCommand.type.stOpenChannel.pNonSecureBufferBase, BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_ePicture].hBuffer) );
    hVce->fw.stCommand.type.stOpenChannel.uiNonSecureBufferSize = BVCE_P_Buffer_GetSize(hVceCh->memory[BVCE_P_HeapId_ePicture].hBuffer);
-   BVCE_P_SET_32BIT_HI_LO_FROM_64_OLD( hVce->fw.stCommand.type.stOpenChannel.pSecureBufferBase, BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer) );
+   BVCE_P_SET_32BIT_HI_LO_FROM_64( hVce->fw.stCommand.type.stOpenChannel.pSecureBufferBase, BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer) );
    hVce->fw.stCommand.type.stOpenChannel.uiSecureBufferSize = BVCE_P_Buffer_GetSize(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer);
    if (  BVCE_MultiChannelMode_eCustom == hVceCh->stOpenSettings.eMultiChannelMode )
    {
@@ -2129,8 +2129,8 @@ static const uint32_t BVCE_P_ProfileHEVCLUT[BAVC_VideoCompressionProfile_eMax] =
 {
  BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eUnknown */
  BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSimple */
- ENCODING_HEVC_PROFILE_MAIN, /* BAVC_VideoCompressionProfile_eMain */
- ENCODING_HEVC_PROFILE_HIGH, /* BAVC_VideoCompressionProfile_eHigh */
+ ENCODING_HEVC_PROFILE_TIER_MAIN, /* BAVC_VideoCompressionProfile_eMain */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eHigh */
  BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvance */
  BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eJizhun */
  BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSnrScalable */
@@ -3180,8 +3180,9 @@ BVCE_S_SendCommand_ConfigChannel(
       hVce->fw.stCommand.type.stConfigChannel.Flags |= (1 << CONFIG_FLAG_ITFP_DISABLED_POS);
    }
 
-   /* SWSTB-4896: Disable ITFP for Core v2 when running on DDR4 boards to workaround FWVICE2-921 */
+   /* SWSTB-4896: Disable ITFP for Core v2 when doing interlaced encoding on DDR4 boards to workaround FWVICE2-921 */
 #if ( BVCE_P_CORE_MAJOR == 2 )
+   if ( BAVC_ScanType_eInterlaced == hVceCh->stStartEncodeSettings.eInputType )
    {
       BCHP_MemoryInfo stMemoryInfo;
 

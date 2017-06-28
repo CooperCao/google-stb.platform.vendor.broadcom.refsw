@@ -7068,14 +7068,14 @@ wlc_p2p_process_presence_req(wlc_p2p_info_t *pm, wlc_bsscfg_t *cfg,
 
 	(void)wlc;
 	ASSERT(cfg != NULL);
-	ASSERT(P2P_CLIENT(wlc, cfg));
+	ASSERT(!P2P_CLIENT(wlc, cfg));
 	p2p = BSS_P2P_INFO(pm, cfg);
 	if (p2p == NULL)
 		return BCME_NOTUP;
 
 	se = (wifi_p2p_noa_se_t *)
 		    wlc_p2p_find_se(wlc, (wifi_p2p_ie_t *)af->elts, len - P2P_AF_FIXED_LEN,
-		                    P2P_SEID_VNDR, 0, &se_combined);
+		                    P2P_SEID_ABSENCE, 0, &se_combined);
 	if (se == NULL) {
 		WL_P2P(("wl%d: %s: no NoA attribute in Absence Request from %s\n",
 		          wlc->pub->unit, __FUNCTION__, bcm_ether_ntoa(&hdr->sa, eabuf)));

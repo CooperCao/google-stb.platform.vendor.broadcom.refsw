@@ -1263,7 +1263,7 @@ wlc_phy_tssivisible_thresh_acphy(phy_info_t *pi)
 	return visi_thresh_qdbm;
 }
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 int16
 wlc_phy_test_tssi_acphy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs)
 {
@@ -1321,7 +1321,7 @@ wlc_phy_test_idletssi_acphy(phy_info_t *pi, int8 ctrl_type)
 
 	return (idletssi);
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 static void
 wlc_phy_get_tssisens_min_acphy(phy_type_tssical_ctx_t *ctx, int8 *tssiSensMinPwr)

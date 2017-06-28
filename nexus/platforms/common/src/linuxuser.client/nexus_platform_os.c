@@ -93,24 +93,7 @@ static struct {
 };
 #define NEXUS_PLATFORM_P_NUM_DRIVERS  (sizeof(g_nexus_client_handlers)/sizeof(*g_nexus_client_handlers))
 
-static struct NEXUS_Platform_P_State
-{
-    NEXUS_ModuleHandle module;
-    int mem_fd;
-    int uncached_mem_fd;
-    int fake_mem_fd;
-    struct {
-        NEXUS_HeapHandle heap;
-        void *addr;
-        void *uncached_addr;
-        unsigned long length;
-        bool dynamic;
-        NEXUS_AddrType memoryMapType;
-    } mmaps[NEXUS_MAX_HEAPS];
-    bool init;
-} NEXUS_Platform_P_State;
-
-#define NEXUS_MODULE_SELF NEXUS_Platform_P_State.module
+struct NEXUS_Platform_P_State NEXUS_Platform_P_State;
 
 void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
 {
@@ -353,7 +336,7 @@ NEXUS_Platform_Uninit(void)
     state->init = false;
 }
 
-NEXUS_P_ClientHandle g_client;
+static NEXUS_P_ClientHandle g_client;
 
 static NEXUS_Error NEXUS_Platform_P_StartIpcClient(const NEXUS_ClientAuthenticationSettings *pSettings)
 {

@@ -1363,6 +1363,12 @@ static void BCHP_PWR_P_HW_XPT_WAKEUP_Control(BCHP_Handle handle, bool activate)
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PM_CLOCK_Async_ALIVE_SEL, reg);
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PM_PLL_ALIVE_SEL);
+    mask = ( BCHP_CLKGEN_PM_PLL_ALIVE_SEL_PLL_SYS0_MASK );
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_PM_PLL_ALIVE_SEL, reg);
 }
 
 static void BCHP_PWR_P_HW_XPT_XPT_REMUX_Control(BCHP_Handle handle, bool activate)

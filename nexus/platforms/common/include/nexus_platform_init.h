@@ -242,7 +242,7 @@ typedef struct NEXUS_PlatformSettings
     NEXUS_VideoEncoderModuleSettings videoEncoderSettings;
     NEXUS_SecurityModuleSettings securitySettings;
     NEXUS_Graphics2DModuleSettings graphics2DModuleSettings;
-    NEXUS_PlatformStandbySettings standbySettings;
+    NEXUS_StandbySettings standbySettings;
 
     NEXUS_FileModulePlatformSettings fileModuleSettings;
     NEXUS_SageModuleSettings sageModuleSettings;

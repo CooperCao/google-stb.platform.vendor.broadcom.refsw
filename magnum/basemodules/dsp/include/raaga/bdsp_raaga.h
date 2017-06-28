@@ -370,4 +370,23 @@ Get the codec copability status
 ***************************************************************************/
 void BDSP_Raaga_GetCodecCapabilities(BDSP_CodecCapabilities *pSetting);
 
+#if !B_REFSW_MINIMAL
+/***************************************************************************
+Summary:
+Get default Datasync settings.
+***************************************************************************/
+BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+    );
+#endif /*!B_REFSW_MINIMAL*/
+
+/***************************************************************************
+Summary:
+Get default Tsm settings.
+***************************************************************************/
+BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+    );
 #endif

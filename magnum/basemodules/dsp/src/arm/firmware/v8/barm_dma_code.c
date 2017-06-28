@@ -2051,7 +2051,7 @@ const uint32_t BDSP_ARM_IMG_libdma_code_array1[] = {
 	0x97fffef5,
 	0x2a1503e3,
 	0x52800002,
-	0x52820501,
+	0x52820201,
 	0xaa1403e0,
 	0x97ffff34,
 	0x2a1803e5,

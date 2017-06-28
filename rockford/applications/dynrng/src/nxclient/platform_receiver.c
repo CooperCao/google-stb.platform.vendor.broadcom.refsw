@@ -126,7 +126,7 @@ PlatformCapability platform_receiver_supports_dynamic_range(PlatformReceiverHand
     {
         NEXUS_VideoEotf eotf;
         NEXUS_HdmiOutputDolbyVisionMode dolbyVision;
-        platform_p_dynamic_range_to_nexus(dynrng, &eotf, &dolbyVision);
+        platform_p_output_dynamic_range_to_nexus(dynrng, &eotf, &dolbyVision);
         if ((dynrng == PlatformDynamicRange_eDolbyVision && platform_display_p_is_dolby_vision_supported(rx->platform->display))
             || (rx->edid.hdrdb.valid && rx->edid.hdrdb.eotfSupported[eotf]))
         {

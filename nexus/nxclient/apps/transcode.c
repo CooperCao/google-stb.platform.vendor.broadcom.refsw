@@ -728,8 +728,10 @@ static int start_encode(EncodeContext *pContext)
     NEXUS_SimpleEncoder_GetStatus(pContext->hEncoder, &encStatus);
     rc = NEXUS_MemoryBlock_Lock(encStatus.video.bufferBlock, &pContext->pVideoBase);
     BDBG_ASSERT(!rc);
-    rc = NEXUS_MemoryBlock_Lock(encStatus.audio.bufferBlock, &pContext->pAudioBase);
-    BDBG_ASSERT(!rc);
+    if (encStatus.audio.bufferBlock) {
+        rc = NEXUS_MemoryBlock_Lock(encStatus.audio.bufferBlock, &pContext->pAudioBase);
+        BDBG_ASSERT(!rc);
+    }
 
     return 0;
 }

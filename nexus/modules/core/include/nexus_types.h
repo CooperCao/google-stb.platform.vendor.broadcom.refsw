@@ -766,6 +766,57 @@ typedef struct NEXUS_MasteringDisplayColorVolume
     } luminance; /* luminance range of the mastering display */
 } NEXUS_MasteringDisplayColorVolume;
 
+/***************************************************************************
+Summary:
+Standby mode used in NEXUS_PlatformStandbySettings
+
+Description:
+See "Power Management" section of nexus/docs/Nexus_Usage.pdf.
+
+When nexus is implementing ePassive and eActive standby modes, our goal is to leave
+as much code resident as possible. This allows applications to leave handles open and minimizes
+change in SW state.
+
+However, this is not possible in all cases. If a module must be shut down, the application
+is responsible for closing handles before calling NEXUS_Platform_SetStandbySettings.
+If you do not, an error will be issued to the console and NEXUS_Platform_SetStandbySettings will fail.
+***************************************************************************/
+typedef enum NEXUS_StandbyMode
+{
+    NEXUS_StandbyMode_eOn,          /* Normal mode of operation. Also known as S0 mode. */
+    NEXUS_StandbyMode_eActive,      /* Frontend and transport modules are running. All other modules are put to sleep.
+                       The same wakeup devices as ePassive are available.
+                       The application cannot put the CPU to sleep in this mode. Also known as S1 mode*/
+    NEXUS_StandbyMode_ePassive,     /* Lowest power setting while code remains resident.
+                       IrInput, UhfInput, HdmiOutput (CEC), Gpio and Keypad are available to be configured as wakeup devices.
+                       Application must call OS to put the CPU to sleep. Also known as S2 mode. */
+    NEXUS_StandbyMode_eDeepSleep,   /* All cores are power gated except for AON block. Achieves minimum power state.
+                       Gpio and Keypad are available to be configured as wakeup devices.
+                       Application must call OS to put the CPU to sleep. Also known as S3 mode. */
+    NEXUS_StandbyMode_eMax
+} NEXUS_StandbyMode;
+
+/***************************************************************************
+Summary:
+Settings used for module standby api
+***************************************************************************/
+typedef struct NEXUS_StandbySettings
+{
+    NEXUS_StandbyMode mode;
+    struct {
+        bool ir;
+        bool uhf;
+        bool keypad;
+        bool gpio;
+        bool nmi;
+        bool cec;
+        bool transport;
+        unsigned timeout; /* in seconds */
+    } wakeupSettings;
+    bool openFrontend; /* If true, NEXUS_Platform_SetStandbySettings will initialize the frontend. */
+    unsigned timeout; /* time (in milliseconds) for nexus to wait its internal activity to wind down */
+} NEXUS_StandbySettings;
+
 #ifdef __cplusplus
 }
 #endif

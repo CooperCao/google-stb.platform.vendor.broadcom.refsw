@@ -1,3 +1,2 @@
 stream=waterfalls.dm1_U25000.ts
-dynrng=dvs
 osd=off

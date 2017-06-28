@@ -515,13 +515,14 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
     if (drmChanged)
     {
         rc = NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(output);
-        if (rc) { BERR_TRACE(rc); goto error; }
+        if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
 
 #if NEXUS_DBV_SUPPORT
     if (dbvChanged)
     {
-        NEXUS_HdmiOutput_P_SetDbvMode(output);
+        rc = NEXUS_HdmiOutput_P_SetDbvMode(output);
+        if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
     /* need to update all other info, like eotf if not dolby */
     NEXUS_TaskCallback_Fire(output->notifyDisplay);

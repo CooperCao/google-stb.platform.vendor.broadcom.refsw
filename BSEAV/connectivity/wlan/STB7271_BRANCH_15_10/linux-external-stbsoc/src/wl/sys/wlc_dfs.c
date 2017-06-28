@@ -497,6 +497,10 @@ BCMATTACHFN(wlc_dfs_attach)(wlc_info_t *wlc)
 		          wlc->pub->unit, __FUNCTION__));
 		goto fail;
 	};
+
+	/* Default slave radar to OFF. Use IOVAR "wl slave_radar 1" to turn it on */
+	wlc->pub->cmn->_slvradar = FALSE;
+
 	wlc->pub->cmn->_radar = TRUE;
 	wlc->pub->cmn->_wldfs = TRUE;
 
@@ -1965,9 +1969,8 @@ wlc_get_ap_bsscfg(wlc_dfs_info_t *dfs)
 				break;
 			}
 		}
+		ASSERT(bsscfg);
 	}
-
-	ASSERT(bsscfg);
 	return bsscfg;
 }
 #endif 
@@ -2770,7 +2773,8 @@ wlc_dfs_cacstate_ism_set(wlc_dfs_info_t *dfs)
 	dfs->dfs_cac.duration = wlc_dfs_ism_cactime(wlc, dfs->dfs_cac.cactime_post_ism);
 #ifdef SLAVE_RADAR
 	/* ISM started, lets prepare for join */
-	wlc_join_bss_prep(wlc->cfg);
+	if(SLVRADAR_ENAB(wlc->pub))
+		wlc_join_bss_prep(wlc->cfg);
 #endif /* SLAVE_RADAR */
 
 #if defined(CLIENT_CSA)
@@ -2904,7 +2908,7 @@ wlc_dfs_to_backup_channel(wlc_dfs_info_t *dfs, bool radar_detected)
 		wlc_dfs_cacstate_ooc_set(dfs, target_state);
 		return;
 	}
-
+	wlc_dfs_send_event(dfs, dfs->dfs_cac.chanspec_next);
 	wlc_do_chanswitch(cfg, dfs->dfs_cac.chanspec_next);
 }
 
@@ -2936,7 +2940,8 @@ wlc_dfs_cacstate_cac(wlc_dfs_info_t *dfs)
 	 */
 #ifdef SLAVE_RADAR
 	if (WL11H_STA_ENAB(wlc) && wlc_radar_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC) &&
-		(wlc_cac_is_clr_chanspec(wlc->dfs, WLC_BAND_PI_RADIO_CHANSPEC)))
+		(wlc_cac_is_clr_chanspec(wlc->dfs, WLC_BAND_PI_RADIO_CHANSPEC)) &&
+		SLVRADAR_ENAB(wlc->pub))
 	{
 		dfs->dfs_cac.cactime = 0;
 		dfs->dfs_cac.duration = 0;
@@ -2947,7 +2952,7 @@ wlc_dfs_cacstate_cac(wlc_dfs_info_t *dfs)
 
 #ifdef SLAVE_RADAR
 		FOREACH_BSS(wlc, i, bsscfg) {
-			if (BSSCFG_STA(bsscfg)) {
+			if (BSSCFG_STA(bsscfg) && SLVRADAR_ENAB(wlc->pub)) {
 				/* radar detected. mark the channel back to QUIET channel */
 				wlc_set_quiet_chanspec(wlc->cmi,
 					dfs->dfs_cac.status.chanspec_cleared);
@@ -3003,7 +3008,8 @@ wlc_dfs_cacstate_cac(wlc_dfs_info_t *dfs)
 		WL_DFS((" CAC duration 0\n"));
 #ifdef SLAVE_RADAR
 		if (WL11H_STA_ENAB(wlc) &&
-			!wlc_cac_is_clr_chanspec(dfs, WLC_BAND_PI_RADIO_CHANSPEC)) {
+			!wlc_cac_is_clr_chanspec(dfs, WLC_BAND_PI_RADIO_CHANSPEC) &&
+			SLVRADAR_ENAB(wlc->pub)) {
 			wlc_cac_do_clr_chanspec(dfs, WLC_BAND_PI_RADIO_CHANSPEC);
 			/* No radar during CAC */
 			wlc_assoc_change_state(wlc->cfg, AS_DFS_ISM_INIT);
@@ -3072,15 +3078,17 @@ wlc_dfs_cacstate_ism(wlc_dfs_info_t *dfs)
 	wlc_dfs_chanspec_oos(dfs, WLC_BAND_PI_RADIO_CHANSPEC);
 #ifdef SLAVE_RADAR
 	/* Slave detected radar */
-	wlc_11h_send_basic_report_radar(wlc, cfg, wlc_dfs_send_action_frame_complete);
-	if (dfs->radar_report_timer_running == FALSE) {
-		dfs->radar_report_timer_running = TRUE;
-		wl_add_timer(wlc->wl, dfs->radar_report_timer,
-		WLC_RADAR_NOTIFICATION_TIMEOUT, FALSE);
+	if (SLVRADAR_ENAB(wlc->pub)) {
+		wlc_11h_send_basic_report_radar(wlc, cfg, wlc_dfs_send_action_frame_complete);
+		if (dfs->radar_report_timer_running == FALSE) {
+			dfs->radar_report_timer_running = TRUE;
+			wl_add_timer(wlc->wl, dfs->radar_report_timer,
+			WLC_RADAR_NOTIFICATION_TIMEOUT, FALSE);
+		}
+		dfs->dfs_cac.duration = dfs->dfs_cac.cactime =
+			wlc_dfs_ism_cactime(wlc, dfs->dfs_cac.cactime_post_ism);
+		return;
 	}
-	dfs->dfs_cac.duration = dfs->dfs_cac.cactime =
-		wlc_dfs_ism_cactime(wlc, dfs->dfs_cac.cactime_post_ism);
-	return;
 #endif /* SLAVE_RADAR */
 	if (AP_ENAB(wlc->pub) ||
 #ifdef CLIENT_CSA

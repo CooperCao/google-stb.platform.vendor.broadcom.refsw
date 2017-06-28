@@ -797,9 +797,13 @@ NEXUS_CancelTimer
 #if NEXUS_P_DEBUG_CALLBACKS 
 #define NEXUS_ScheduleTimer(delayMs, callback, context) \
     NEXUS_Module_ScheduleTimer(NEXUS_MODULE_SELF, delayMs, callback, context, BSTD_FILE, BSTD_LINE)
+#define NEXUS_ScheduleTimerByPriority(priority, delayMs, callback, context) \
+    NEXUS_Module_ScheduleTimerByPriority(NEXUS_ModulePriority_e##priority, NEXUS_MODULE_SELF, delayMs, callback, context, BSTD_FILE, BSTD_LINE)
 #else
 #define NEXUS_ScheduleTimer(delayMs, callback, context) \
     NEXUS_Module_ScheduleTimer(NEXUS_MODULE_SELF, delayMs, callback, context, NULL, 0)
+#define NEXUS_ScheduleTimerByPriority(priority, delayMs, callback, context) \
+    NEXUS_Module_ScheduleTimerByPriority(NEXUS_ModulePriority_e##priority, NEXUS_MODULE_SELF, delayMs, callback, context, NULL, 0)
 #endif
 
 /**
@@ -835,6 +839,26 @@ NEXUS_TimerHandle NEXUS_Module_ScheduleTimer(
     const char *pFileName,
     unsigned lineNumber
     );
+
+/**
+Summary:
+Actual function called by NEXUS_ScheduleTimerByPriority macro.
+
+Description:
+
+See Also:
+NEXUS_ScheduleTimer
+**/
+NEXUS_TimerHandle NEXUS_Module_ScheduleTimerByPriority(
+    NEXUS_ModulePriority priority,
+    NEXUS_ModuleHandle module,     /* Module Handle */
+    unsigned delayMs,              /* Delay in Milliseconds */
+    void (*pCallback)(void *),     /* Callback function */
+    void *pContext,                /* Context provided to callback */
+    const char *pFileName,
+    unsigned lineNumber
+    );
+
 
 /**
 Summary:
@@ -1109,7 +1133,6 @@ See nexus/platform/PLATFORM/src/linuxkernel/nexus_driver_callbacks.c for linux k
 See nexus/platform/PLATFORM/src/linuxuser.proxy/nexus_platform_os.c for linux proxy usage.
 **/
 #define NEXUS_BASE_EXTERNAL_SCHEDULER 1
-#endif
 
 NEXUS_Error NEXUS_P_Base_ExternalScheduler_Step(
     NEXUS_ModulePriority priority,
@@ -1118,6 +1141,7 @@ NEXUS_Error NEXUS_P_Base_ExternalScheduler_Step(
     bool (*complete)(void *context),
     void *context
     );
+#endif
 
 typedef struct NEXUS_Base_Scheduler_Config  {
     const char *name;
@@ -1163,8 +1187,40 @@ void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *func
 #define NEXUS_P_NATIVE_ABI  (sizeof(void *)*8)
 void NEXUS_P_PrintEnv(const char *mode);
 void NEXUS_P_CheckEnv(const char *name);
+void NEXUS_P_BaseCallback_Monitor(NEXUS_ModulePriority priority, unsigned timeout);
 
 void NEXUS_Module_RegisterProc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void));
 void NEXUS_Module_UnregisterProc(NEXUS_ModuleHandle module, const char *filename);
+
+/*
+ * State transitions:
+ *                    +-------------+
+ *                    V             V
+ *  [Starting] -> [[Running]] -> [Stopping] -> [[Idle]]
+ *     ^                                          ^
+ *     +------------------------------------------+
+ */
+typedef enum NEXUS_Scheduler_State {
+    NEXUS_Scheduler_State_eStarting,
+    NEXUS_Scheduler_State_eRunning,
+    NEXUS_Scheduler_State_eStopping,
+    NEXUS_Scheduler_State_eIdle,
+    NEXUS_Scheduler_State_eMax
+} NEXUS_Scheduler_State;
+
+typedef struct NEXUS_Scheduler_Status {
+    NEXUS_Scheduler_State state;
+} NEXUS_Scheduler_Status;
+
+typedef struct NEXUS_Scheduler_Settings {
+    NEXUS_Scheduler_State state;
+} NEXUS_Scheduler_Settings;
+
+void NEXUS_Scheduler_GetStatus(NEXUS_ModulePriority priority, NEXUS_Scheduler_Status *status);
+
+NEXUS_Error NEXUS_Scheduler_SetState(
+        NEXUS_ModulePriority priority,
+        NEXUS_Scheduler_State state /* state could only be NEXUS_Scheduler_State_eStopping (to stop scheduler) or  NEXUS_Scheduler_State_eStarting (to start scheduler) */
+);
 
 #endif /* !defined NEXUS_BASE_H */

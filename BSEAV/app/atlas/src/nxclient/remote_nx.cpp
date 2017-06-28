@@ -181,6 +181,19 @@ void CIrRemoteNx::dump()
               _number));
 }
 
+void CIrRemoteNx::flushEvents()
+{
+    NEXUS_Error           nerror = NEXUS_SUCCESS;
+    NEXUS_InputRouterCode code;
+    unsigned              num;
+
+    do
+    {
+        nerror = NEXUS_InputClient_GetCodes(getIrRemote(), &code, 1, &num);
+    }
+    while (0 < num);
+}
+
 eRet CIrRemoteNx::getEvent(CRemoteEvent * pEvent)
 {
     eRet                  ret    = eRet_NotAvailable;
@@ -191,6 +204,9 @@ eRet CIrRemoteNx::getEvent(CRemoteEvent * pEvent)
     BDBG_ASSERT(NULL != pEvent);
 
     nerror = NEXUS_InputClient_GetCodes(getIrRemote(), &code, 1, &num);
+
+    flushEvents();
+
     if (!nerror && num)
     {
         eKey key = eKey_Invalid;

@@ -22,7 +22,7 @@ then
 	}
 	else
 	{
-		cd /projects/cable_refsw/unified_releases/phase16.3_take1
+		cd /projects/cable_refsw/unified_releases/phase17.2_take1
 		find . -type d | cpio -pdvm ../$destination
 		cd ../$destination
 		destination=$(pwd)
@@ -32,7 +32,7 @@ then
 }
 else
 {
-	cd /projects/cable_refsw/unified_releases/phase16.3_take1
+	cd /projects/cable_refsw/unified_releases/phase17.2_take1
 	find . -type d | cpio -pdvm ../build_script
 	cd build_script
 	destination=$(pwd)
@@ -331,6 +331,17 @@ cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97241-$B_REFS
 cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97241-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97241/refsw-$reldate.97241b0_3349a0-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_PLATFORM_7241_DCSFBTSFF=y  NEXUS_REVERSE_RMAGNUM_SUPPORT=y  VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y LIVE_STREAMING_SUPPORT=y NETACCEL_SUPPORT=n PLAYBACK_IP_SUPPORT=y AUTO_PSI_SUPPORT=y NEXUS_POWER_MANAGEMENT=y clean
+
+# 97250cd2
+
+source ../../../tools/build/plat 97250 b0 cd2 le
+make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
+make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y install
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97250cd2-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97250/refsw-$reldate.97250cd2-linux-atlas-cable.bin.tgz
+cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
+make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
+
 
 #3325
 

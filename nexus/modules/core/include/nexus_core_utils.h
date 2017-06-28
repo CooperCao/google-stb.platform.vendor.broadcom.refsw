@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,9 +118,16 @@ Summary:
 Stop all callbacks associated with this interface handle.
 
 Description:
-This waits for any running callbacks to finish and ensures that no other callbacks for this handle are fired.
-If the handle is closed, the StopCallbacks request is cleared; there is no need to call StartCallbacks.
-The Nexus proxy will automatically call StopCallbacks before an interface is closed.
+This waits for any running callbacks to finish and ensures that no other callbacks for this handle arrive.
+
+The Nexus proxy will automatically call StopCallbacks before an interface is closed or released, then call
+StartCallbacks after the interface is closed or released.
+
+If you manually call NEXUS_StopCallbacks, you should always pair it with a call to NEXUS_StartCallbacks.
+If you don't, a callback blocker will remain in effect and could prevent callbacks for another interface
+from arriving. One exception is if you manually call NEXUS_StopCallbacks, then call Close or Release.
+The automatic StopCallback/StartCallbacks performed by Close or Release makes a manual StartCallbacks
+unnecessary.
 **/
 void NEXUS_StopCallbacks_tagged( /* attr{local=true} */
     void *interfaceHandle,

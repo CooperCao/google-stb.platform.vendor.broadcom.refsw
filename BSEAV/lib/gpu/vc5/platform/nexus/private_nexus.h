@@ -50,7 +50,7 @@ typedef struct
 {
    uint32_t                   magic;
    NEXUS_SurfaceHandle        surface;
-   uint32_t                   physicalOffset;
+   uint64_t                   physicalOffset;
    void                      *cachedPtr;
    int                        fence;
    bool                       poisoned;

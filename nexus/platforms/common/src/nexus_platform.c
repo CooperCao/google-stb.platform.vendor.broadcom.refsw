@@ -233,6 +233,23 @@ NEXUS_PlatformHandles g_NEXUS_platformHandles;
 NEXUS_PlatformSettings g_NEXUS_platformSettings;   /* saved platform settings */
 NEXUS_P_PlatformInternalSettings g_NEXUS_platformInternalSettings; /* saved platform internal settings */
 NEXUS_ModuleHandle g_NEXUS_platformModule = NULL;
+static NEXUS_TimerHandle g_NEXUS_CallbackMonitorTimer = NULL;
+
+
+static void NEXUS_P_Platform_CallbackMonitor(void *context)
+{
+    unsigned i;
+    unsigned timeout = 100;
+
+    BSTD_UNUSED(context);
+    g_NEXUS_CallbackMonitorTimer = NULL;
+
+    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        NEXUS_P_BaseCallback_Monitor(i, timeout);
+    }
+
+    g_NEXUS_CallbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, timeout, NEXUS_P_Platform_CallbackMonitor, NULL);
+}
 
 #if defined(NEXUS_BASE_OS_linuxuser) && !B_HAS_BPROFILE
 /* We can speed up init slightly by loading FW from multiple threads. */
@@ -1462,6 +1479,8 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     /* We could be initializing after S3 cold boot, in which case we want to reset the wake up status.*/
     NEXUS_Platform_P_SetStandbySettings(&g_NEXUS_platformSettings.standbySettings, false);
 #endif
+    g_NEXUS_CallbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, 100, NEXUS_P_Platform_CallbackMonitor, NULL);
+    BDBG_ASSERT(g_NEXUS_CallbackMonitorTimer);
 
     if (NEXUS_GetEnv("debug_mem")) {
         NEXUS_Memory_PrintStatus();/* print global memory status */
@@ -1544,9 +1563,13 @@ void NEXUS_Platform_Uninit(void)
     if (g_NEXUS_platformHandles.baseOnlyInit) {
         goto base_only_init;
     }
+    if(g_NEXUS_CallbackMonitorTimer) {
+        NEXUS_CancelTimer(g_NEXUS_CallbackMonitorTimer);
+        g_NEXUS_CallbackMonitorTimer=NULL;
+    }
 
 #if NEXUS_POWER_MANAGEMENT
-    g_NEXUS_platformSettings.standbySettings.mode = NEXUS_PlatformStandbyMode_eOn;
+    g_NEXUS_platformSettings.standbySettings.mode = NEXUS_StandbyMode_eOn;
     NEXUS_Platform_SetStandbySettings_driver(&g_NEXUS_platformSettings.standbySettings);
 #endif
 #if NEXUS_HAS_FRONTEND
@@ -1656,7 +1679,7 @@ NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
 #if NEXUS_HAS_DISPLAY
     if (g_NEXUS_platformHandles.display
 #if NEXUS_POWER_MANAGEMENT
-            && g_standbyState.settings.mode == NEXUS_PlatformStandbyMode_eOn
+            && g_standbyState.settings.mode == NEXUS_StandbyMode_eOn
 #endif
             ) {
         int rc;

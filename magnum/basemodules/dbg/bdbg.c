@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -462,6 +462,7 @@ BDBG_P_Vprintf_Log_isrsafe(BDBG_ModulePrintKind kind, const char *fmt, va_list a
 /* to save tiny bit of stack, merge two parameters, 'bool instance' and 'BDBG_Level level' into single parameter, 'unsigned kind' */
 #define BDBG_P_INSTANCE_BIT (1<<4)
 #define BDBG_P_LEVEL_MASK 0xF
+static void BDBG_P_PrintHeader(unsigned kind, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(3, 4);
 static void
 BDBG_P_PrintHeader(unsigned kind, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
@@ -482,6 +483,7 @@ BDBG_P_VprintBody(bool instance, BDBG_Level level, BDBG_pDebugModuleFile dbg_mod
     return;
 }
 
+static void BDBG_P_PrintTrace(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
 static void
 BDBG_P_PrintTrace(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
@@ -1387,6 +1389,7 @@ typedef struct BDBG_P_StrBuf {
     unsigned len;
 }BDBG_P_StrBuf;
 
+static void BDBG_P_StrBuf_Printf( BDBG_P_StrBuf *buf, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
 
 static void BDBG_P_StrBuf_Printf( BDBG_P_StrBuf *buf, const char *fmt, ...)
 {
@@ -1444,11 +1447,12 @@ static void BDBG_P_Dequeue_Flush(BDBG_P_StrBuf *buf)
 {
     unsigned i;
 
-    BDBG_P_StrBuf_Printf(buf, "___  OVERFLOW ___");
+    BDBG_P_StrBuf_Printf(buf, "___ OVERFLOW ___");
     for(i=0;i<gDbgState.dequeueState.last_used;i++) {
         BDBG_P_Dequeue_Context *context = gDbgState.dequeueState.contexts+i;
         if(context->used) {
-            BDBG_P_StrBuf_Printf(buf, "\n___ %s ### OVERFLOW ###");
+            BDBG_P_StrBuf_Printf(buf, "\n___ %s ### OVERFLOW ###", context->header_buf);
+            context->used = false;
         }
     }
     return;

@@ -381,7 +381,7 @@ Internal standby functions
 **/
 #if NEXUS_POWER_MANAGEMENT
 typedef struct NEXUS_PlatformStandbyState {
-    NEXUS_PlatformStandbySettings settings;
+    NEXUS_StandbySettings settings;
     bool locked;
 } NEXUS_PlatformStandbyState;
 
@@ -406,7 +406,7 @@ Summary:
 Private function to set standby settings, with option ot reset wakeup status.
  ***************************************************************************/
 NEXUS_Error NEXUS_Platform_P_SetStandbySettings(
-    const NEXUS_PlatformStandbySettings *pSettings,
+    const NEXUS_StandbySettings *pSettings,
     bool resetWakeupStatus
     );
 

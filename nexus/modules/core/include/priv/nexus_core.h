@@ -148,46 +148,6 @@ extern const NEXUS_Core_MagnumHandles *g_NEXUS_pCoreHandles;
 
 #define g_pCoreHandles g_NEXUS_pCoreHandles
 
-
-/***************************************************************************
-Summary:
-Standby mode used in NEXUS_StandbySettings
-***************************************************************************/
-typedef enum NEXUS_StandbyMode
-{
-    NEXUS_StandbyMode_eOn,          /* Normal mode of operation. Also known as S0 mode. */
-    NEXUS_StandbyMode_eActive,      /* Frontend and transport modules are running. All other modules are put to sleep.
-                       The same wakeup devices as ePassive are available.
-                       The application cannot put the MIPS to sleep in this mode. Also known as S1 mode*/
-    NEXUS_StandbyMode_ePassive,     /* Low power mode where the AV cores are clock gated. Code remains resident.
-                       IrInput, UhfInput, HdmiOutput (CEC), Gpio and Keypad are available to be configured as wakeup devices.
-                       Application must call OS to put the MIPS to sleep. Also known as S2 mode. */
-    NEXUS_StandbyMode_eDeepSleep,   /* Lowest power setting. Entire chip is power gated except for AON block. Code remains resident.
-                       IrInput, UhfInput, HdmiOutput (CEC), Gpio and Keypad are available to be configured as wakeup devices.
-                       Application must call OS to put the MIPS to sleep. Also known as S3 mode. */
-    NEXUS_StandbyMode_eMax
-} NEXUS_StandbyMode;
-
-/***************************************************************************
-Summary:
-Settings used for module standby api
-***************************************************************************/
-typedef struct NEXUS_StandbySettings
-{
-    NEXUS_StandbyMode mode;
-    struct {
-        bool ir;
-        bool uhf;
-        bool keypad;
-        bool gpio;
-        bool nmi;
-        bool cec;
-        bool transport;
-        unsigned timeout; /* in seconds */
-    } wakeupSettings;
-    bool openFrontend; /* If true, NEXUS_Platform_SetStandbySettings will initialize the frontend. */
-} NEXUS_StandbySettings;
-
 /***************************************************************************
 Summary:
 Enable an L1 interrupt.

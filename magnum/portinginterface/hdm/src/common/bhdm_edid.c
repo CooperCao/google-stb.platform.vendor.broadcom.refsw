@@ -4029,6 +4029,7 @@ BERR_Code BHDM_EDID_Initialize(
 
 	BHDM_EDID_DetailTiming DetailTiming ;
 	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor ;
+	bool bScramblingSupport ;
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 	BDBG_ENTER(BHDM_EDID_Initialize) ;
@@ -4335,6 +4336,29 @@ BERR_Code BHDM_EDID_Initialize(
 		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
 		goto done ;
 	}
+
+	/* consistency checks for incorrectly specified EDIDs */
+
+	/* 4Kp50/60 in Video DB implies 444 support which requires scrambling,
+	    make sure SCDC/scrambling support is specified */
+	bScramblingSupport =
+		   hHDMI->AttachedEDID.RxHdmiForumVsdb.exists
+		&& hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport ;
+
+	if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_50Hz]
+	&&  !bScramblingSupport)
+	{
+		BDBG_WRN(("4Kp50 supported in the VideoDB, but scrambling support is missing")) ;
+		hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_50Hz] = false ;
+	}
+
+	if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_60Hz]
+	&&  !bScramblingSupport)
+	{
+		BDBG_WRN(("4Kp60 supported in the VideoDB, but scrambling support is missing")) ;
+		hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_60Hz] = false ;
+	}
+
 
 	hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
 

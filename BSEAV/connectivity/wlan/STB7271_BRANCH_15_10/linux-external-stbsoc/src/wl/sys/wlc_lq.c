@@ -3175,6 +3175,7 @@ wlc_lq_chanim_update(wlc_info_t *wlc, chanspec_t chanspec, uint32 flags)
 {
 	chanim_info_t* c_info = wlc->chanim_info;
 	chanim_interface_info_t *if_info, *ifaces = c_info->ifaces;
+	bool detect_mode, scan_in_prog;
 
 	if (!WLC_CHANIM_ENAB(wlc->pub)) {
 		WL_ERROR(("wl%d: %s: WLC_CHANIM not enabled \n", wlc->pub->unit, __FUNCTION__));
@@ -3183,9 +3184,13 @@ wlc_lq_chanim_update(wlc_info_t *wlc, chanspec_t chanspec, uint32 flags)
 
 	/* on watchdog trigger */
 	if (flags & CHANIM_WD) {
-		if (!WLC_CHANIM_MODE_DETECT(c_info) || SCAN_IN_PROGRESS(wlc->scan)) {
-			WL_SCAN(("wl%d: %s: WLC_CHANIM upd blocked scan/detect\n", wlc->pub->unit,
-				__FUNCTION__));
+		detect_mode = WLC_CHANIM_MODE_DETECT(c_info);
+		scan_in_prog = SCAN_IN_PROGRESS(wlc->scan);
+		if (!detect_mode || scan_in_prog) {
+			WL_SCAN(("wl%d: %s: WLC_CHANIM upd blocked scan(%s)/detect_mode(%s)\n", wlc->pub->unit,
+				__FUNCTION__,
+				(scan_in_prog) ? "true" : "false",
+				(detect_mode) ? "true" : "false"));
 			return BCME_NOTREADY;
 		}
 

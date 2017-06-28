@@ -1,5 +1,4 @@
 stream=BBC_UHD_HLG_HEVC.mp4
-dynrng=hdr10
 plm.vid=1
 plm.gfx=2
 image=Avatar.bmp

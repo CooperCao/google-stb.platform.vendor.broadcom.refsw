@@ -114,9 +114,16 @@ static NEXUS_Error
 NEXUS_Display_P_SetSdrGfxToHdrApproximationAdjust(const struct NEXUS_DisplayGraphics *graphics, const NEXUS_GraphicsSettings *cfg)
 {
     BERR_Code rc;
+    BVDC_Window_Capabilities caps;
 
-    rc = BVDC_Source_SetSdrGfxToHdrApproximationAdjust(graphics->source, (BVDC_Source_SdrGfxToHdrApproximationAdjust *)&cfg->sdrToHdr);
+    /* only apply gfx sdr2hdr appx if chip doesn't have convhdr10 caps */
+    rc = BVDC_Window_GetCapabilities(graphics->windowVdc, &caps);
     if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+    if (!caps.bConvHdr10)
+    {
+        rc = BVDC_Source_SetSdrGfxToHdrApproximationAdjust(graphics->source, (BVDC_Source_SdrGfxToHdrApproximationAdjust *)&cfg->sdrToHdr);
+        if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+    }
     return NEXUS_SUCCESS;
 }
 

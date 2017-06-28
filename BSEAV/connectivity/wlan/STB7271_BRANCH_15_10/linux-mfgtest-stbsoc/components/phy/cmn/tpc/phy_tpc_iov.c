@@ -49,12 +49,12 @@ static const bcm_iovar_t phy_tpc_iovars[] = {
 	{"fem5g", IOV_PHY_FEM5G, (IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, 0},
 #endif /* BAND5G */
 #endif /* WLTEST */
-#if defined(WLTEST)
+#if (defined(BCMINTPHYDBG) || defined(WLTEST))
 	{"initbaseidx2g", IOV_INITBASEIDX2G, (IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_UINT8, 0},
 	{"initbaseidx5g", IOV_INITBASEIDX5G, (IOVF_SET_UP|IOVF_GET_UP), 0, IOVT_UINT8, 0},
 	{"pavars", IOV_PAVARS,
 	(IOVF_SET_DOWN | IOVF_MFG), 0, IOVT_BUFFER, WL_PHY_PAVARS_LEN * sizeof(uint16)},
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -128,7 +128,7 @@ phy_tpc_doiovar(void *ctx, uint32 aid,
 	}
 #endif /* BAND5G */
 #endif /* WLTEST */
-#if defined(WLTEST)
+#if (defined(BCMINTPHYDBG) || defined(WLTEST))
 	case IOV_GVAL(IOV_INITBASEIDX2G):
 	{
 		*ret_int_ptr = pi->tpci->data->cfg->initbaseidx2govrval;
@@ -156,7 +156,7 @@ phy_tpc_doiovar(void *ctx, uint32 aid,
 	case IOV_SVAL(IOV_PAVARS):
 		phy_tpc_set_pavars(pi->tpci, a, p);
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

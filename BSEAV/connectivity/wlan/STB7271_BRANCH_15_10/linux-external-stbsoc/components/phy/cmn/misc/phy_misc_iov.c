@@ -34,7 +34,7 @@ enum {
 
 /* iovar table */
 static const bcm_iovar_t phy_misc_iovars[] = {
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 	{"phy_tx_tone", IOV_PHY_TX_TONE,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
 	},
@@ -45,6 +45,11 @@ static const bcm_iovar_t phy_misc_iovars[] = {
 	{"phy_rxiqest", IOV_PHY_RXIQ_EST,
 	IOVF_SET_UP, 0, IOVT_UINT32, IOVT_UINT32
 	},
+#if defined(BCMINTPHYDBG)
+	{"phy_rxiqest_sweep", IOV_PHY_RXIQ_EST_SWEEP,
+	IOVF_GET_UP, 0, IOVT_BUFFER, 2 * sizeof(uint32)
+	},
+#endif 
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -86,8 +91,13 @@ phy_misc_doiovar(void *ctx, uint32 aid,
 		break;
 	}
 
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHY_RXIQ_EST_SWEEP):
+		err = wlc_phy_iovar_get_rx_iq_est_sweep(pi, p, plen, a, alen, wlcif, err);
+		break;
+#endif 
 
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 	case IOV_GVAL(IOV_PHY_TX_TONE):
 	case IOV_GVAL(IOV_PHY_TXLO_TONE):
 		*ret_int_ptr = pi->phy_tx_tone_freq;

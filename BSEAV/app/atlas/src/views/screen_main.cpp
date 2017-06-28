@@ -155,6 +155,10 @@ CScreenMain::CScreenMain(
 {
     /* set default z order */
     setZOrder(1);
+    for (int i = 0; i < eWindowType_Max; i++)
+    {
+        _pCurrentPlmLabel[i] = NULL;
+    }
 }
 
 #define SET_TRANSPARENCY(color, trans)  ((color & 0x00FFFFFF) | trans)
@@ -1880,9 +1884,10 @@ void CScreenMain::adjustChannelLabelBorder(MRect * pRect, MRect rectMax, int nBo
     }
 }
 
-eRet CScreenMain::createChannelLabel(CLabelData * pLabelData, CChannel * pChannel)
+eRet CScreenMain::createChannelLabel(CLabelData * pLabelData, CChannel * pChannel, CWidgetLabel ** pChannelLabel)
 {
     CGraphics *    pGraphics = _pModel->getGraphics();
+    CChannelLabel * pChannelLabelFound = NULL;
     eRet           ret       = eRet_Ok;
 
     if (NULL == pGraphics)
@@ -1890,11 +1895,11 @@ eRet CScreenMain::createChannelLabel(CLabelData * pLabelData, CChannel * pChanne
         return(ret);
     }
 
-    if (NULL == findChannelLabel(pChannel, pLabelData))
+    if (NULL == (pChannelLabelFound = findChannelLabel(pChannel, pLabelData)))
     {
         MRect          rectGeomGraphics(0, 0, pGraphics->getWidth(), pGraphics->getHeight());
         unsigned       nBorder                  = 15;
-        CWidgetLabel * pChannelLabel            = NULL;
+        CWidgetLabel * pWidgetChannelLabel      = NULL;
         MRect          rectGeomVideoWinPercent  = pChannel->getVideoWindowGeometryPercent();
         MRect          rectGeomLabelPercent     = pLabelData->_rectGeometryPercent;
         MRect          rectGeomVideoWinAbsolute = SCALE_RECT_PERCENT(rectGeomGraphics, rectGeomVideoWinPercent);
@@ -1905,12 +1910,12 @@ eRet CScreenMain::createChannelLabel(CLabelData * pLabelData, CChannel * pChanne
         BDBG_ASSERT(NULL != font12);
 
         /* create image label */
-        pChannelLabel = new CWidgetLabel("CScreenMain::pChannelLabel", getEngine(), this, rectGeomLabelAbsolute, font12);
-        CHECK_PTR_ERROR_GOTO("unable to allocate label widget", pChannelLabel, ret, eRet_OutOfMemory, error);
+        pWidgetChannelLabel = new CWidgetLabel("CScreenMain::pWidgetChannelLabel", getEngine(), this, rectGeomLabelAbsolute, font12);
+        CHECK_PTR_ERROR_GOTO("unable to allocate label widget", pWidgetChannelLabel, ret, eRet_OutOfMemory, error);
 
         if (false == pLabelData->_strImagePath.isEmpty())
         {
-            MRect rectImageGeometry = pChannelLabel->getImageGeometry(pLabelData->_strImagePath);
+            MRect rectImageGeometry = pWidgetChannelLabel->getImageGeometry(pLabelData->_strImagePath);
 
             if ((0 == rectGeomLabelPercent.width()) && (0 == rectGeomLabelPercent.height()))
             {
@@ -1938,34 +1943,46 @@ eRet CScreenMain::createChannelLabel(CLabelData * pLabelData, CChannel * pChanne
             }
 
             BDBG_MSG(("LOAD Channel Label Image %s - w:%d h:%d", pLabelData->_strImagePath.s(), rectGeomLabelAbsolute.width(), rectGeomLabelAbsolute.height()));
-            pChannelLabel->setGeometry(rectGeomLabelAbsolute);
+            pWidgetChannelLabel->setGeometry(rectGeomLabelAbsolute);
 
             /* adjust label geometry if it overlaps minimum nBorder. this can happen because
                you specify x and y in percentage, and may leave width and height to actual size. */
             adjustChannelLabelBorder(&rectGeomLabelAbsolute, rectGeomVideoWinAbsolute, nBorder);
 
-            ret = pChannelLabel->loadImage(pLabelData->_strImagePath, bwin_image_render_mode_maximize_down);
-            //ret = pChannelLabel->loadImage(pLabelData->_strImagePath, bwin_image_render_mode_single);
+            ret = pWidgetChannelLabel->loadImage(pLabelData->_strImagePath, bwin_image_render_mode_maximize_down);
+            //ret = pWidgetChannelLabel->loadImage(pLabelData->_strImagePath, bwin_image_render_mode_single);
             CHECK_ERROR("unable to load channel image", ret);
 
             BDBG_MSG(("create new image:%s x:%d y:%d w:%d h:%d", pLabelData->_strImagePath.s(), rectGeomLabelAbsolute.x(), rectGeomLabelAbsolute.y(), rectGeomLabelAbsolute.width(), rectGeomLabelAbsolute.height()));
         }
 
         BDBG_MSG(("rectGeomLabelAbsolute x:%d y:%d w:%d h:%d", rectGeomLabelAbsolute.x(), rectGeomLabelAbsolute.y(), rectGeomLabelAbsolute.width(), rectGeomLabelAbsolute.height()));
-        pChannelLabel->setBevel(0);
-        pChannelLabel->setZOrder(pLabelData->_zorder);
-        pChannelLabel->setText(pLabelData->_strText);
-        pChannelLabel->setGeometry(rectGeomLabelAbsolute);
-        pChannelLabel->setBackgroundColor(0x0);
-        pChannelLabel->show(true);
+        pWidgetChannelLabel->setBevel(0);
+        pWidgetChannelLabel->setZOrder(pLabelData->_zorder);
+        pWidgetChannelLabel->setText(pLabelData->_strText);
+        pWidgetChannelLabel->setGeometry(rectGeomLabelAbsolute);
+        pWidgetChannelLabel->setBackgroundColor(0x0);
+        pWidgetChannelLabel->show(true);
 
         BDBG_MSG(("add channellabel:%s", pLabelData->_strImagePath.s()));
-        _channelLabelList.add(new CChannelLabel(pChannel, pLabelData, pChannelLabel));
+        _channelLabelList.add(new CChannelLabel(pChannel, pLabelData, pWidgetChannelLabel));
         BDBG_MSG(("_channelLabelList.total():%d", _channelLabelList.total()));
+
+        if (NULL != pChannelLabel)
+        {
+            /* save return param */
+            *pChannelLabel = pWidgetChannelLabel;
+        }
     }
     else
     {
         BDBG_MSG(("createChannelLabel() - skip creating duplicate label:%s", pLabelData->_strImagePath.s()));
+
+        if (NULL != pChannelLabel)
+        {
+            /* save return param */
+            *pChannelLabel = pChannelLabelFound->_pLabel;
+        }
     }
 
 error:
@@ -2024,6 +2041,14 @@ eRet CScreenMain::removeChannelLabels(CChannel * pChannel)
         {
             /* only increment if no match found */
             index++;
+        }
+    }
+
+    {
+        CSimpleVideoDecode * pVideoDecode = pChannel->getVideoDecode();
+        if (NULL != pVideoDecode)
+        {
+            _pCurrentPlmLabel[pVideoDecode->getWindowType()] = NULL;
         }
     }
 
@@ -2734,6 +2759,7 @@ void CScreenMain::addPlmIndicator(CSimpleVideoDecode * pVideoDecode)
 {
     CDisplay * pDisplay = _pModel->getDisplay();
     eDynamicRange dynamicRangeOutput = pDisplay->getOutputDynamicRange();
+    eWindowType winType = pVideoDecode->getWindowType();
 
     /* show Programmable Luminance Mapping (PLM) indicator */
     if ((NULL == pVideoDecode) || (NULL == pDisplay))
@@ -2741,7 +2767,9 @@ void CScreenMain::addPlmIndicator(CSimpleVideoDecode * pVideoDecode)
         return;
     }
 
-    if ((eDynamicRange_SDR == dynamicRangeOutput) || (eDynamicRange_Unknown == dynamicRangeOutput))
+    if ((eDynamicRange_SDR == dynamicRangeOutput) ||
+        (eDynamicRange_Unknown == dynamicRangeOutput) ||
+        (eDynamicRange_Max == dynamicRangeOutput))
     {
         /* no need to show PLM inidicator if output is SDR */
         return;
@@ -2800,7 +2828,22 @@ void CScreenMain::addPlmIndicator(CSimpleVideoDecode * pVideoDecode)
 
         if (labelData._strImagePath != "images/")
         {
-            createChannelLabel(&labelData, pChannel);
+            CWidgetLabel * pLabelPlm = NULL;
+            createChannelLabel(&labelData, pChannel, &pLabelPlm);
+
+            if (NULL != pLabelPlm)
+            {
+                if (NULL != _pCurrentPlmLabel[winType])
+                {
+                    /* hide last plm label */
+                    _pCurrentPlmLabel[winType]->show(false);
+                    _pCurrentPlmLabel[winType] = NULL;
+                }
+
+                /* show/save plm label so we can hide it later if addPlmIndicator() is called again */
+                pLabelPlm->show(true);
+                _pCurrentPlmLabel[winType] = pLabelPlm;
+            }
         }
     }
 

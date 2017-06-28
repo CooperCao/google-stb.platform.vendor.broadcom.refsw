@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,6 +102,12 @@ struct dolby_digital_plus_command_args
     bool targetSyncDisabled;
     bool completeFirstFrame;
     int mixerBalance;
+    struct {
+        NEXUS_AudioOutputHandle spdif;
+        NEXUS_AudioOutputHandle hdmi;
+        NEXUS_AudioOutputHandle dac;
+        NEXUS_AudioOutputHandle dummy;
+    } connectors;
 };
 
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -926,6 +932,23 @@ int main(int argc, const char *argv[])
 #endif
     }
 
+    if ( platformConfig.outputs.spdif[0] )
+    {
+        dolby_args.connectors.spdif = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+    if ( platformConfig.outputs.hdmi[0] )
+    {
+        dolby_args.connectors.hdmi = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    if ( platformConfig.outputs.audioDacs[0] )
+    {
+        dolby_args.connectors.dac = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+    if ( platformConfig.outputs.audioDummy[0] )
+    {
+        dolby_args.connectors.dummy = NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]);
+    }
+
     NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(audioDecoder[0], NEXUS_AudioDecoderConnectorType_eMultichannel));
     NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(audioDecoder[1], NEXUS_AudioDecoderConnectorType_eMultichannel));
 
@@ -986,34 +1009,41 @@ int main(int argc, const char *argv[])
 /*----------------------------------------------------Adding the audio to the respective audio output ports--------------------------------------------------------------------------------------------------------------------------------*/
     if ( dolby_args.ddc_enabled==false )
     {
-        #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-        rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                        NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eStereo));
-        BDBG_ASSERT(NEXUS_SUCCESS == rc);
-        #endif
-        #if NEXUS_NUM_AUDIO_DACS > 0
-        rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                                        NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eStereo));
-        BDBG_ASSERT(NEXUS_SUCCESS == rc);
-        #endif
+        if ( dolby_args.connectors.spdif ) {
+            rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
+                                            NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eStereo));
+            BDBG_ASSERT(NEXUS_SUCCESS == rc);
+        }
+        if ( dolby_args.connectors.dac ) {
+            rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dac,
+                                            NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eStereo));
+            BDBG_ASSERT(NEXUS_SUCCESS == rc);
+        }
+
     }
     else if ( dolby_args.ddc_enabled==true )
     {
-        #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-        printf("\n\n You should expect AC3 audio at the SPDIF output\n\n");
-        rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                        NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eCompressed));
-        BDBG_ASSERT(NEXUS_SUCCESS == rc);
-        #endif
-        #if NEXUS_NUM_AUDIO_DACS > 0
-        rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                                        NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eStereo));
-        BDBG_ASSERT(NEXUS_SUCCESS == rc);
-        #endif
+        if ( dolby_args.connectors.spdif ) {
+            printf("\n\n You should expect AC3 audio at the SPDIF output\n\n");
+            rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.spdif,
+                                            NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eCompressed));
+            BDBG_ASSERT(NEXUS_SUCCESS == rc);
+        }
+        if ( dolby_args.connectors.dac ) {
+            rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dac,
+                                            NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eStereo));
+            BDBG_ASSERT(NEXUS_SUCCESS == rc);
+        } else {
+            rc = NEXUS_AudioOutput_AddInput(dolby_args.connectors.dummy,
+                                            NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eStereo));
+            BDBG_ASSERT(NEXUS_SUCCESS == rc);
+        }
     }
 #if NEXUS_NUM_HDMI_OUTPUTS > 0
-    NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                               NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eMultichannel));
+    if ( dolby_args.connectors.hdmi ) {
+        NEXUS_AudioOutput_AddInput(dolby_args.connectors.hdmi,
+                                   NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_DolbyDigitalReencodeConnectorType_eMultichannel));
+    }
 #endif
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -1232,15 +1262,18 @@ int main(int argc, const char *argv[])
     NEXUS_Playpump_Close(playpump[1]);
 
 
-    #if NEXUS_NUM_HDMI_OUTPUTS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
-    #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    #endif
-    #if NEXUS_NUM_AUDIO_DACS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
+    if ( dolby_args.connectors.hdmi ) {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.hdmi);
+    }
+    if ( dolby_args.connectors.spdif ) {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.spdif);
+    }
+    if ( dolby_args.connectors.dac ) {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.dac);
+    }
+    if ( dolby_args.connectors.dummy ) {
+        NEXUS_AudioOutput_RemoveAllInputs(dolby_args.connectors.dummy);
+    }
     NEXUS_DolbyDigitalReencode_Close(ddre);
     if ( dv258 )
     {

@@ -1035,7 +1035,7 @@ NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
     /* may need to throw SetMasterFrameRate to other window */
     (void)NEXUS_VideoWindow_P_ConfigMasterFrameRate(window, &window->display->cfg, &window->cfg);
 
-    if(g_NEXUS_DisplayModule_State.updateMode != NEXUS_DisplayUpdateMode_eAuto) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);}
+    /* Ignore g_NEXUS_DisplayModule_State.updateMode. The ApplyChanges must be immediate. */
     rc = BVDC_ApplyChanges(pVideo->vdc);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
 

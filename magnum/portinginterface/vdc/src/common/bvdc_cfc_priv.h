@@ -518,8 +518,6 @@ typedef struct BVDC_P_NL_PwlSegments
        BVDC_P_MAKE_CFC_CX(m22) }  \
 }}
 
-extern const BVDC_P_Csc3x3 s_BT709_RGB_to_XYZ;
-
 /*
  * LRange Adjust
  *
@@ -785,11 +783,6 @@ void BVDC_P_Dbv_UpdateVideoInputColorSpace_isr(
 void BVDC_P_Dbv_UpdateGfxInputColorSpace_isr(
     BVDC_Compositor_Handle        hCompositor,
     const BAVC_P_ColorSpace      *pColorSpace );
-uint32_t BVDC_P_Compositor_DbvBackground_isrsafe
-    ( BVDC_Compositor_Handle           hCompositor,
-      uint8_t                          ucRed,
-      uint8_t                          ucGreen,
-      uint8_t                          ucBlue);
 #endif
 #if BVDC_P_TCH_SUPPORT
 void BVDC_P_Tch_UpdateVideoInputColorSpace_isr(

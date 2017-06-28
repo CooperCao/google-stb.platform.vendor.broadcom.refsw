@@ -794,6 +794,9 @@ ifeq ($(BCM_STA_CFG80211),1)
 	ifeq ($(BCM_ANDROID),1)
 		DFLAGS += -DOEM_ANDROID
 	endif
+	ifeq ($(BCM_ANDROID_TV),1)
+		DFLAGS += -DOEM_ANDROID_TV
+	endif
 	#	DFLAGS += -DP2PONEINT
 endif
 
@@ -977,16 +980,23 @@ endif
 
 # Update the CLM database C code from XML inputs if present.
 ifeq ($(STB_SOC_WIFI),1)
-CLM_TYPE := 7xxx_stb
+CLM_TYPE := 7271
 else
 CLM_TYPE := 43xx_pcoem
 endif
 
 $(call WLAN_GenClmCompilerRule,$(CURDIR),$(WLAN_SrcBaseR))
 
+ifeq ($(BTCX_3WIRE),1)
+UCODE_PATH = src/wl/sys/ucode_3wire
+else
+UCODE_PATH = src/wl/sys/ucode_seci
+endif
+UCODE_PATHR         = $(addprefix $(WLAN_TreeBaseR)/,$(UCODE_PATH))
+
 vpath %.c $(addprefix $(WLAN_SrcBaseR)/,wl/linux \
 	   shared/nvram bcmsdio/sys $(if $(WL_FW_DECOMP),shared/zlib)) \
-	   $(WLAN_StdSrcDirsR) $(WLAN_ComponentSrcDirsR)
+	   $(UCODE_PATHR) $(WLAN_StdSrcDirsR) $(WLAN_ComponentSrcDirsR)
 
 ifeq ($(call wlan_version_ge,$(BCM_KVERSIONSTRING),2.6),TRUE)
 # When make is used from 2.6, vpath doesn't help so we need to link the files

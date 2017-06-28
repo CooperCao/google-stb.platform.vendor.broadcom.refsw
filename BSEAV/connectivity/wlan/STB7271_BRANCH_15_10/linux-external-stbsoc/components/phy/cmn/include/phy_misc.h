@@ -45,6 +45,10 @@ int wlc_phy_test_freq_accuracy(phy_info_t *pi, int channel);
 uint32 wlc_phy_rx_iq_est(phy_info_t *pi, uint8 samples, uint8 antsel, uint8 resolution,
 	uint8 lpf_hpc, uint8 dig_lpf, uint8 gain_correct,
                                 uint8 extra_gain_3dB, uint8 wait_for_crs, uint8 force_gain_type);
+#if defined(BCMINTPHYDBG)
+void wlc_phy_iovar_tx_tone(phy_info_t *pi, int32 int_val);
+void wlc_phy_iovar_txlo_tone(phy_info_t *pi);
+#endif 
 int wlc_phy_iovar_get_rx_iq_est(phy_info_t *pi, int32 *ret_int_ptr, int32 int_val, int err);
 int wlc_phy_iovar_set_rx_iq_est(phy_info_t *pi, void *p, int32 plen, int err);
 int wlc_phy_iovar_get_rx_iq_est_sweep(phy_info_t *pi, void *p, int32 plen, void *a, int32 alen,

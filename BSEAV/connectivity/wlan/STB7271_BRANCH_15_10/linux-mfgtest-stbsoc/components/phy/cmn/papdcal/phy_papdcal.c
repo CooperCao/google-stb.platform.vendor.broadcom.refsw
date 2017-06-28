@@ -215,7 +215,7 @@ phy_papdcal_dump(void *ctx, struct bcmstrbuf *b)
 }
 #endif
 
-#if (defined(WLTEST) || defined(WLPKTENG))
+#if (defined(WLTEST) || defined(BCMINTPHYDBG) || defined(WLPKTENG))
 bool
 wlc_phy_isperratedpden(wlc_phy_t *ppi)
 {
@@ -251,9 +251,9 @@ wlc_phy_perratedpdset(wlc_phy_t *ppi, bool enable)
 	if (fns->perratedpdset != NULL)
 		(fns->perratedpdset)(fns->ctx, enable);
 }
-#endif 
+#endif /* WLTEST || BCMINTPHYDBG || WLPKTENG */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 int phy_papdcal_get_lut_idx0(phy_info_t *pi, int32* idx)
 {
 	phy_type_papdcal_fns_t *fns = pi->papdcali->priv->fns;
@@ -285,9 +285,10 @@ phy_papdcal_set_idx(phy_info_t *pi, int8 idx)
 		return BCME_UNSUPPORTED;
 	}
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 #ifndef ATE_BUILD
 int
 phy_papdcal_set_skip(phy_info_t *pi, uint8 skip)
@@ -311,7 +312,7 @@ phy_papdcal_get_skip(phy_info_t *pi, int32* skip)
 	}
 }
 #endif /* !ATE_BUILD */
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
 
 #if defined(WFD_PHY_LL)
 int

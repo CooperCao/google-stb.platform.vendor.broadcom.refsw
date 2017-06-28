@@ -79,7 +79,6 @@ APPS = \
     audio_loudness \
     audio_decode_low_latency \
     audio_multidecode_loopback \
-    dolby_ms11 \
     audio_mixer_input \
     audio_mixer_samplerate_test
 
@@ -88,6 +87,9 @@ APPS += ms11_dual
 endif
 ifeq ($(shell test -f ms12_dual.c && echo y),y)
 APPS += ms12_dual
+endif
+ifeq ($(shell test -f dolby_ms11.c && echo y),y)
+APPS += dolby_ms11
 endif
 
 include ../Makefile.inc

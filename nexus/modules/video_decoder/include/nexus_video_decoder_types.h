@@ -739,6 +739,24 @@ typedef struct NEXUS_VideoDecoderExtendedSettings
 
 /**
 Summary:
+Dynamic Range Dynamic Metadata type in input stream
+Description:
+This enum describes which type of dynamic metadata is present for dynamic
+range and mastering purposes.  To determine static dynamic range type, please
+look at NEXUS_VideoEotf.
+**/
+typedef enum NEXUS_VideoDecoderDynamicRangeMetadataType
+{
+    NEXUS_VideoDecoderDynamicRangeMetadataType_eNone,             /* No dynamic metadata present.
+                                                                     For static metadata, see MDCV and CLL in
+                                                                     NEXUS_VideoDecoderStreamInformation. */
+    NEXUS_VideoDecoderDynamicRangeMetadataType_eDolbyVision,      /* Dolby Vision dynamic metadata present */
+    NEXUS_VideoDecoderDynamicRangeMetadataType_eTechnicolorPrime, /* Technicolor Prime dynamic metadata present */
+    NEXUS_VideoDecoderDynamicRangeMetadataType_eMax
+} NEXUS_VideoDecoderDynamicRangeMetadataType;
+
+/**
+Summary:
 Picture information for the currently displayed picture or the first decoded picture for a new decode.
 
 Description:
@@ -789,7 +807,7 @@ typedef struct NEXUS_VideoDecoderStreamInformation
     uint32_t lowDelayFlag;       /* delay flag from the sequence extension */
     uint32_t fixedFrameRateFlag; /* fixed_frame_rate_flag from AVC VUI (video usability info) */
 
-    bool dolbyVision;
+    NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType;
     NEXUS_VideoEotf eotf; /* the source's color grading / expected electro-optical transfer function; indicates the highest level of transfer function the source supports */
     NEXUS_ContentLightLevel contentLightLevel;
     NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume;

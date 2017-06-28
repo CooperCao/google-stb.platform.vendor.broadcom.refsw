@@ -4143,7 +4143,7 @@ const uint32_t BDSP_IMG_g723_1_decode_array1[] = {
 	0xab01a1f8,
 	0x23d631ff,
 	0x51f84107,
-	0x7119c475,
+	0x7129c475,
 	0x3bf8f1ff,
 	0x58ca0a2f,
 	0x0a1d11cf,

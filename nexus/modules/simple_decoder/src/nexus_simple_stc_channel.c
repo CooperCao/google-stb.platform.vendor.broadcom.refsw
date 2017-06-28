@@ -873,7 +873,7 @@ static void init_decoder_stc_status(NEXUS_SimpleStcChannelDecoderStatus * pStatu
 
 static int resolve_stc_index(const NEXUS_SimpleStcChannelDecoderStatus * videoStatus, const NEXUS_SimpleStcChannelDecoderStatus * audioStatus)
 {
-    int stcIndex = -1;
+    int stcIndex;
 
     if (videoStatus->connected && videoStatus->stc.index != -1)
     {
@@ -893,7 +893,8 @@ static int resolve_stc_index(const NEXUS_SimpleStcChannelDecoderStatus * videoSt
     }
     else
     {
-        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        /* no STC */
+        stcIndex = -1;
     }
 
     return stcIndex;
@@ -962,8 +963,10 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
     {
         /* get what we think the new stc index would be */
         int stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
-
-        if (stcIndex == -1) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto end; }
+        if (stcIndex == -1) { /* no STC is valid condition, especially while tearing down */
+            rc = NEXUS_SUCCESS;
+            goto end;
+        }
 
         if (handle->stcChannel)
         {

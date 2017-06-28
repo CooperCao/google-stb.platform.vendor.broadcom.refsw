@@ -311,7 +311,7 @@ phy_rssi_dump(void *ctx, struct bcmstrbuf *b)
 }
 #endif /* BCMDBG || BCMDBG_DUMP */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 void
 wlc_phy_pkteng_rxstats_update(wlc_phy_t *ppi, uint8 statidx)
 {
@@ -358,7 +358,7 @@ wlc_phy_pkteng_stats_get(phy_rssi_info_t *rssii, void *a, int alen)
 		return BCME_UNSUPPORTED;
 	}
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 int
 phy_rssi_set_gain_delta_2g(phy_rssi_info_t *rssii, uint32 aid, int8 *deltaValues)

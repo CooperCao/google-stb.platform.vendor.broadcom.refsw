@@ -450,7 +450,7 @@ extern const char BCMATTACHDATA(rstr_fccpwrch13)[];
 extern const char BCMATTACHDATA(rstr_fccpwroverride)[];
 #endif /* FCC_PWR_LIMIT_2G */
 
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 extern const char BCMATTACHDATA(rstr_perratedpd2g)[];
 extern const char BCMATTACHDATA(rstr_perratedpd5g)[];
 #endif
@@ -461,7 +461,11 @@ extern const char BCMATTACHDATA(rstr_txfdiqcalenable)[];
 
 extern const char BCMATTACHDATA(rstr_w1clipmod)[];
 
+#if defined(BCMINTPHYDBG)
 extern const char BCMATTACHDATA(rstr_cbuck_out)[];
+#else
+extern const char BCMATTACHDATA(rstr_cbuck_out)[];
+#endif
 extern const char BCMATTACHDATA(rstr_ldo3p3_2g)[];
 extern const char BCMATTACHDATA(rstr_ldo3p3_5g)[];
 extern const char BCMATTACHDATA(rstr_ccktpc_loop_en)[];

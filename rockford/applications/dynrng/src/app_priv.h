@@ -53,6 +53,7 @@
 #include "osd.h"
 #include "shell.h"
 #include <stdbool.h>
+#include <signal.h>
 
 typedef struct App
 {
@@ -88,6 +89,7 @@ typedef struct App
     char * prevStreamPaths[MAX_MOSAICS];
     unsigned streamCount;
     unsigned layout;
+    struct sigaction term;
 } App;
 
 void app_p_hotplug_occurred(void * context, int param);

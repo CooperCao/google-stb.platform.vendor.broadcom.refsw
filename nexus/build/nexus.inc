@@ -177,9 +177,6 @@ MAGNUM_OS_ABSTRACTION := $(filter $(addprefix MAGNUM/,$(notdir $(MAGNUM_SOURCES)
 # Add the magnum source dirs to the search path for .c files.
 vpath %.c $(MAGNUM_SOURCE_DIRS)
 
-# Add all magnum CFLAGS to NEXUS_CFLAGS
-NEXUS_CFLAGS += $(MAGNUM_CFLAGS)
-
 # Include os-dependencies and expand nexus rules
 # Sanity Check that we have included an OS-dependent set of defines
 ifndef NEXUS_OBJ_SUFFIX
@@ -231,6 +228,9 @@ EXTRA_CLEAN += clean_dbv
 clean_dbv:
 	$(MAKE) -f $(MAGNUM)/portinginterface/vdc/src/dbv/Makefile BDBV_OBJ_DIR=$(BDBV_OBJ_DIR) BDBV_OBJ_SUFFIX=$(NEXUS_OBJ_SUFFIX) clean
 endif
+
+# Add all magnum CFLAGS to NEXUS_CFLAGS
+NEXUS_CFLAGS += $(MAGNUM_CFLAGS)
 
 # Create single list of all nexus objects for convenience
 NEXUS_OBJECTS := $(foreach module,$(NEXUS_MODULES),$(NEXUS_$(module)_OBJECTS) $(NEXUS_$(module)_OS_OBJECTS))

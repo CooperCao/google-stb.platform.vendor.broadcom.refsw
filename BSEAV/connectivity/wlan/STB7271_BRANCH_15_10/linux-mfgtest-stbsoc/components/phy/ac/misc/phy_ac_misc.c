@@ -425,7 +425,7 @@ static uint32 phy_ac_rx_iq_est(phy_type_misc_ctx_t *ctx, uint8 samples, uint8 an
 	uint8 enRx = 0, enTx = 0;
 
 	if (sampling_in_progress) {
-		PHY_ERROR(("%s: sampling_in_progress\n", __FUNCTION__));
+		PHY_INFORM(("%s: sampling_in_progress\n", __FUNCTION__));
 
 		return 0;
 	}
@@ -1288,7 +1288,7 @@ wlc_phy_freq_accuracy_acphy(phy_type_misc_ctx_t *ctx, int channel)
 }
 #endif /* defined(BCMDBG) || defined(WLTEST) */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 void
 wlc_phy_test_scraminit_acphy(phy_info_t *pi, int8 init)
 {
@@ -1310,7 +1310,7 @@ wlc_phy_test_scraminit_acphy(phy_info_t *pi, int8 init)
 		MOD_PHYREG(pi, ScramSigCtrl, scramCtrlMode, 1);
 	}
 }
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 
 void wlc_acphy_set_scramb_dyn_bw_en(wlc_phy_t *pih, bool enable)
 {

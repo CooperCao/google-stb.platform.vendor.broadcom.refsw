@@ -351,6 +351,9 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     pOutput->audioFormat = BAVC_AudioFormat_ePCM;
     pOutput->audioNumChannels = 2;
 
+    /* default extra settings */
+    pOutput->extraSettings.dolbyVision.blendInIpt = true;
+
     /* default NEXUS_HdmiOutputSettings */
     pOutput->settings.preFormatChangeAvMuteDelay = 100;
     pOutput->settings.postFormatChangeAvMuteDelay = 100;
@@ -1735,6 +1738,7 @@ static void NEXUS_HdmiOutput_P_HotplugTimerExpiration(void *pContext)
      */
     if (output->rxState == NEXUS_HdmiOutputState_eRxSenseCheck)
     {
+
         BERR_Code errCode ;
         uint8_t rxSense ;
 
@@ -1751,6 +1755,7 @@ static void NEXUS_HdmiOutput_P_HotplugTimerExpiration(void *pContext)
 
         if (rxSense)
         {
+
             output->rxState = NEXUS_HdmiOutputState_ePoweredOn ;
             output->lastHotplugState_isr = NEXUS_HdmiOutputState_eNone ;
         }
@@ -1823,6 +1828,7 @@ static void NEXUS_HdmiOutput_P_HotplugTimerExpiration(void *pContext)
     }
     else if ( output->rxState == NEXUS_HdmiOutputState_ePoweredDown )
     {
+
         /* Disconnected -> powered down - treat as no event */
         BDBG_MSG(("Receiver powered down... at line %d", __LINE__));
 
@@ -2082,7 +2088,7 @@ static void NEXUS_HdmiOutput_P_HotplugCallback(void *pContext)
     errCode = BHDM_RxDeviceAttached(output->hdmHandle, &deviceAttached);
     if (errCode) { BERR_TRACE(errCode) ; return ;}
 
-    if ((local_forceDisconnect) && (!deviceAttached))
+    if (local_forceDisconnect)
     {
         BDBG_MSG(("Hot Plug request to disable TMDS lines %d", local_lastHotplugState)) ;
 
@@ -2134,6 +2140,7 @@ static void NEXUS_HdmiOutput_P_HotplugCallback(void *pContext)
         {
             NEXUS_HdmiOutput_P_StopRxSenseDetection(output) ;
         }
+
 
         /* notify HDR module that we have a connection change event */
         NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(output);
@@ -2906,7 +2913,8 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
     hdmiOutput->formatChangeMute = false;
 
 #if NEXUS_DBV_SUPPORT
-    NEXUS_HdmiOutput_P_SetDbvMode(hdmiOutput);
+    rc = NEXUS_HdmiOutput_P_SetDbvMode(hdmiOutput);
+    if (rc) { rc = BERR_TRACE(rc); goto done; }
 #endif
 
     /* Now unmute */
@@ -2969,6 +2977,10 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
     BERR_Code rc ;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+
+#if NEXUS_DBV_SUPPORT
+    NEXUS_HdmiOutput_P_DbvUpdateDisplaySettings(handle, pstDisplaySettings);
+#endif
 
     BDBG_MSG(("SetDisplaySettings ")) ;
     BDBG_MSG(("  Color Space: %d  Range: %d Override (%s) Depth: %d Colorimetry: %d Override (%s)",

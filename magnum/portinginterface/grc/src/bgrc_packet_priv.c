@@ -2128,6 +2128,7 @@ static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext,
 #define BGRC_PACKET_P_SCALER_STEP_FRAC_ONE        (1 << BGRC_PACKET_P_SCALER_STEP_FRAC_BITS)
 #define BGRC_PACKET_P_SCALER_STEP_FRAC_MASK       (BGRC_PACKET_P_SCALER_STEP_FRAC_ONE - 1)
 #define BGRC_PACKET_P_SCALER_STRIPE_MAX           128
+#define BGRC_PACKET_P_HW_STRIPE_MAX               256
 #define BGRC_PACKET_P_SCALER_COMPRESS_STRIPE_MAX  384
 #define BGRC_PACKET_P_SCALER_STEP_TO_WIDTH_SHIFT  (BGRC_PACKET_P_SCALER_STEP_FRAC_BITS - 16)
 #define BGRC_PACKET_P_SCALER_WIDTH_TO_INT_SHIFT   (BGRC_PACKET_P_SCALER_STEP_FRAC_BITS - BGRC_PACKET_P_SCALER_STEP_TO_WIDTH_SHIFT)
@@ -2256,6 +2257,7 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
     }
     else
     {
+      /* no hw scaling needed in this case*/
         scaler->stripe_overlap = 0;
         scaler->output_stripe_width = 0;
         scaler->input_stripe_width = 0;
@@ -2579,6 +2581,97 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlit( BGRC_PacketContext_Handle hContext
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 }
 
+/***************************************************************************/
+/*   HW stripe */
+static void BGRC_PACKET_P_ProcHwPktStripeBlit( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
+{
+    BM2MC_PACKET_PacketScaleBlendBlit *packet = (BM2MC_PACKET_PacketScaleBlendBlit *) header;
+    BGRC_PACKET_P_Scaler *scaler = &hContext->scaler;
+    uint32_t out_pos = packet->out_rect.x | ((uint32_t) packet->out_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
+    uint32_t out_size = packet->out_rect.height | ((uint32_t) packet->out_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+    uint32_t dst_pos = packet->dst_point.x | ((uint32_t) packet->dst_point.y << BGRC_M2MC(BLIT_DEST_TOP_LEFT_TOP_SHIFT));
+    uint32_t src_pos, src_size, src_pos1, src_size1,  ulSrcHeightWidth;
+
+    hContext->scaler_header = header;
+
+
+    /*M2MC_BLIT_SRC_TOP_LEFT_0*/
+    src_pos = packet->src_rect.x | ((uint32_t) packet->src_rect.y << BGRC_M2MC(BLIT_SRC_TOP_LEFT_0_TOP_SHIFT));
+    out_pos = packet->out_rect.x | ((uint32_t) packet->out_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
+    dst_pos = packet->out_rect.x | ((uint32_t) packet->out_rect.y << BGRC_M2MC(BLIT_DEST_TOP_LEFT_TOP_SHIFT));
+    /* M2MC_BLIT_SRC_SIZE_0 */
+     src_size = packet->src_rect.height | ((uint32_t) packet->out_rect.width << BGRC_M2MC(BLIT_SRC_SIZE_0_SURFACE_WIDTH_SHIFT));
+    /* M2MC_BLIT_OUTPUT_SIZE */
+     out_size = packet->out_rect.height | ((uint32_t) packet->out_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+    /* BLIT_SRC_STRIPE_HEIGHT_WIDTH_0 height 29:16 width 1:0*/
+    ulSrcHeightWidth = packet->src_rect.height << BGRC_M2MC(BLIT_SRC_STRIPE_HEIGHT_WIDTH_0_STRIPE_HEIGHT_SHIFT);
+    /* Unfortunately, there is no macro */
+    ulSrcHeightWidth |= (scaler->input_stripe_width ==BGRC_PACKET_P_HW_STRIPE_MAX)?2:1
+
+    BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- HwScaleBlit          " );
+    BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, ENABLE);
+
+#ifdef BCHP_M2MC_BLIT_CTRL_READ_420_AS_FIELDS_MASK
+    if(BGRC_PACKET_P_GET_REG_FIELD(BLIT_CTRL, READ_420_AS_FIELDS))
+    {
+        src_pos = packet->src_rect.x | ((uint32_t) (packet->src_rect.y/2) << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
+        src_size = (packet->src_rect.height/2) | ((uint32_t) packet->src_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+        src_pos1 = (packet->src_rect.x/2)| ((uint32_t) (packet->src_rect.y/4) << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
+        src_size1 = (packet->src_rect.height/4) | ((uint32_t) (packet->src_rect.width/2) << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+    }
+    else
+#endif
+    {
+        src_pos = packet->src_rect.x | ((uint32_t) packet->src_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
+        src_size = packet->src_rect.height | ((uint32_t) packet->src_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+        if (hContext->b420Src)
+        {
+            src_pos1 = (packet->src_rect.x/2)| ((uint32_t) (packet->src_rect.y/2) << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
+            src_size1 = (packet->src_rect.height/2) | ((uint32_t) (packet->src_rect.width/2) << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+        }
+        else
+        {
+            src_pos1 = src_pos;
+            src_size1 = src_size;
+        }
+    }
+
+    BGRC_PACKET_P_STORE_RECT_REGS( src_pos, src_size, src_pos1, src_size1, dst_pos, out_size, out_pos, out_size );
+    /*M2MC_BLIT_INPUT_STRIPE_WIDTH_0  27:16 integer, 15:0 fractional */
+    BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, scaler->input_stripe_width);
+    /* M2MC_BLIT_OUTPUT_STRIPE_WIDTH in pixel unit 11:0*/
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH, scaler->output_stripe_width);
+    BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP, scaler->stripe_overlap);
+    BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, ENABLE );
+    BGRC_PACKET_P_DEBUG_PRINT( "\n                      " );
+    BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, HORIZ_SCALER_ENABLE, ENABLE );
+    BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, VERT_SCALER_ENABLE, ENABLE );
+    BGRC_PACKET_P_STORE_REG_FIELD_COMP( SCALER_CTRL, SCALER_ORDER, VERT_THEN_HORIZ, HORIZ_THEN_VERT, packet->src_rect.width >= packet->out_rect.width );
+    BGRC_PACKET_P_STORE_SCALE_REGS( HORIZ, 0, hContext->scaler.hor_phase, hContext->scaler.hor_step );
+    BGRC_PACKET_P_STORE_SCALE_REGS( VERT, 0, hContext->scaler.ver_phase, hContext->scaler.ver_step );
+
+
+    if (hContext->b420Src)
+    {
+        BGRC_PACKET_P_SetScaleFor420Src(hContext);
+    }
+    else
+    {
+        /* likely for W1R5G6B5 */
+        BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_1, scaler->input_stripe_width);
+        BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_1, scaler->stripe_overlap);
+        BGRC_PACKET_P_STORE_SCALE_REGS( HORIZ, 1, hContext->scaler.hor_phase, hContext->scaler.hor_step );
+        BGRC_PACKET_P_STORE_SCALE_REGS( VERT, 1, hContext->scaler.ver_phase, hContext->scaler.ver_step );
+    }
+
+#ifdef BCHP_M2MC_DCEG_CFG
+    BGRC_PACKET_P_SetDcegCompression(hContext);
+#endif
+
+    BGRC_PACKET_P_CheckAndForceDestDisable( hContext );
+    BGRC_PACKET_P_DEBUG_PRINT( "\n" );
+}
+
 /**************************************************************************
  * software mimic hw stripe
  */
@@ -2622,7 +2715,19 @@ static void BGRC_PACKET_P_ProcSwPktStripeBlit( BGRC_PacketContext_Handle hContex
 static void BGRC_PACKET_P_ProcSwPktScaleBlendBlit( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
     BM2MC_PACKET_PacketScaleBlendBlit *packet = (BM2MC_PACKET_PacketScaleBlendBlit *) header;
+    bool bSoftStripeBlit = false;
 
+    bSoftStripeBlit =
+#if (BGRC_P_VER_1 == BGRC_P_VER)
+     ((!hContext->b420Src) &&
+        ((BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE) == M2MC_FT_YCbCr422) ||
+         (hContext->scaler.ver_step > (4 << BGRC_PACKET_P_SCALER_STEP_FRAC_BITS)) ||
+         (BGRC_PACKET_P_GET_REG(BLIT_CTRL) & BGRC_M2MC(BLIT_CTRL_OUTPUT_H_DIRECTION_MASK))));
+#else
+        ((BGRC_PACKET_P_GET_REG(BLIT_CTRL) & BGRC_M2MC(BLIT_CTRL_OUTPUT_H_DIRECTION_MASK)) ||
+       (BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE) == M2MC_FT_YCbCr422));
+#endif
+    hContext->bSwStripeBlit = bSoftStripeBlit;
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- ScaleBlendBlit       " );
     if( hContext->scaler.stripe_num == 0 )
     {
@@ -2630,8 +2735,14 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlendBlit( BGRC_PacketContext_Handle hCo
         hContext->scaler_header = header;
     }
 
-    /* syang: why we can not use BGRC_PACKET_P_ProcSwPktScaleBlit( hContext, header ); */
-    BGRC_PACKET_P_ProcSwPktStripeBlit( hContext, &packet->src_rect, &packet->out_rect, &packet->dst_point );
+    if(bSoftStripeBlit || (hContext->scaler.input_stripe_width ==0))
+    {
+        BGRC_PACKET_P_ProcSwPktStripeBlit( hContext, &packet->src_rect, &packet->out_rect, &packet->dst_point );
+    }
+    else
+    {
+        BGRC_PACKET_P_ProcHwPktStripeBlit(hContext, header );
+    }
 
 #ifdef BCHP_M2MC_DCEG_CFG
     BGRC_PACKET_P_SetDcegCompression(hContext);
@@ -2951,11 +3062,10 @@ static void BGRC_PACKET_P_ProcSwPktRestoreState( BGRC_PacketContext_Handle hCont
 /***************************************************************************/
 static uint32_t *BGRC_PACKET_P_ProcessSwPaket(
     BGRC_PacketContext_Handle hContext,
-    BM2MC_PACKET_Header *pHeader,
-    bool *bSoftwareStriping )
+    BM2MC_PACKET_Header *pHeader)
 {
     uint32_t *pPacket = (uint32_t *) pHeader;
-    *bSoftwareStriping = false;
+    hContext->bSwStripeBlit = false;
 
     switch( pHeader->type )
     {
@@ -3101,15 +3211,20 @@ static uint32_t *BGRC_PACKET_P_ProcessSwPaket(
             if ((!hContext->bBlitInvalid) && (0==hContext->stSurInvalid.ulInts)) {
                 BGRC_PACKET_P_SetScaler( hContext, &pPacket->src_rect, &pPacket->out_rect );
                 /* use sw striping if scale down max exceeded */
+#if (BGRC_P_VER_1 == BGRC_P_VER)
                 if ((!hContext->b420Src) &&
                     ((BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE) == M2MC_FT_YCbCr422) ||
-                     (BGRC_PACKET_P_GET_REG(BLIT_CTRL) & BGRC_M2MC(BLIT_CTRL_OUTPUT_H_DIRECTION_MASK)) ||
-                     (hContext->scaler.ver_step > (4 << BGRC_PACKET_P_SCALER_STEP_FRAC_BITS))))
+                     (hContext->scaler.ver_step > (4 << BGRC_PACKET_P_SCALER_STEP_FRAC_BITS)) ||
+                     (BGRC_PACKET_P_GET_REG(BLIT_CTRL) & BGRC_M2MC(BLIT_CTRL_OUTPUT_H_DIRECTION_MASK))))
+#else
+                if((BGRC_PACKET_P_GET_REG(BLIT_CTRL) & BGRC_M2MC(BLIT_CTRL_OUTPUT_H_DIRECTION_MASK)) ||
+                   (BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE) == M2MC_FT_YCbCr422))
+#endif
                 {
                     BGRC_PACKET_P_ProcSwPktStripeBlit( hContext, &pPacket->src_rect, &pPacket->out_rect,
                         (BM2MC_PACKET_Point *) (void *) &pPacket->out_rect );
                     hContext->scaler_header = pHeader;
-                    *bSoftwareStriping = true;
+                    hContext->bSwStripeBlit = true;
                 }
                 else {
                     BGRC_PACKET_P_ProcSwPktScaleBlit( hContext, pHeader );
@@ -3768,7 +3883,7 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
         }
 
         /* process sw packet and write the setting into shadow registers */
-        pNextSwPkt = BGRC_PACKET_P_ProcessSwPaket( hContext, pHeader, &bSoftwareStriping );
+        pNextSwPkt = BGRC_PACKET_P_ProcessSwPaket( hContext, pHeader);
         ulSwPktSize = pHeader->size * sizeof (uint32_t);
         hContext->ulSwPktSizeToProc -= ulSwPktSize;
 
@@ -3809,8 +3924,7 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
 
 #if 1 /* syang: according to Maulshree, no need to do sw stripe */
                 /* write scaler stripe blits */
-                if( bSoftwareStriping ||
-                    (hContext->last_blit_type == BM2MC_PACKET_PacketType_eScaleBlendBlit) )
+                if( hContext ->bSwStripeBlit)
                 {
                     for( ii = 1; ii < hContext->scaler.stripe_count; ++ii )
                     {

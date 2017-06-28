@@ -496,6 +496,7 @@ struct NEXUS_VideoDecoder {
 
     NEXUS_Timebase timebase; /* Required for storing the timebase at start time so that it can be retrieved later at isr time */
     bool crcMode;
+    NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType; /* Required for storing dynamic metadata type from BAVC_MFD_Picture, but reporting in NEXUS_VideoDecoderStreamInformation. */
 };
 
 /* The NEXUS_VideoDecoderDevice corresponds to an AVD HW block. */

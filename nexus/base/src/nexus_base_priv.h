@@ -60,6 +60,7 @@ void NEXUS_P_Base_Scheduler_Uninit(void);
 
 
 typedef struct NEXUS_P_Scheduler NEXUS_P_Scheduler;
+typedef struct NEXUS_P_SchedulerThread NEXUS_P_SchedulerThread;
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_Module);
 
@@ -80,8 +81,7 @@ struct NEXUS_Module {
     } pendingCaller;
 };
 
-NEXUS_P_Scheduler *NEXUS_P_Scheduler_Create(NEXUS_ModulePriority priority, const char *name, const NEXUS_ThreadSettings *pSettings);
-NEXUS_P_Scheduler *NEXUS_P_Scheduler_Init(NEXUS_ModulePriority priority, const char *name, const NEXUS_ThreadSettings *pSettings); /* initialiase scheduller for use with external thread */
+NEXUS_P_Scheduler *NEXUS_P_Scheduler_Create(NEXUS_ModulePriority priority);
 
 void NEXUS_P_Scheduler_Stop(NEXUS_P_Scheduler *scheduler);
 void NEXUS_P_Scheduler_Destroy(NEXUS_P_Scheduler *scheduler);
@@ -90,11 +90,12 @@ void NEXUS_P_MapInit(void);
 typedef struct NEXUS_P_SchedulerInfo {
     BKNI_MutexHandle callback_lock; /* callback that is acquired when callback active */
 } NEXUS_P_SchedulerInfo;
-void NEXUS_P_SchedulerGetInfo(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerInfo *info);
 
-NEXUS_Error NEXUS_P_Scheduler_Step(NEXUS_P_Scheduler *scheduler, unsigned timeout, NEXUS_P_Base_Scheduler_Status *status, bool (*complete)(void *context), void *context);
 const char *NEXUS_P_PrepareFileName(const char *pFileName);
 NEXUS_TimerHandle NEXUS_Module_P_ScheduleTimer(NEXUS_ModuleHandle module, unsigned delayMs, void (*pCallback)(void *),  void *pContext, const char *pFileName, unsigned lineNumber);
+#if NEXUS_BASE_EXTERNAL_SCHEDULER
+NEXUS_Error NEXUS_P_Base_ExternalSchedulerInit(void);
+#endif
 
 /**
 Summary:
@@ -141,11 +142,9 @@ struct NEXUS_P_Base_State {
         NEXUS_ThreadHandle thread;
         BKNI_EventHandle event;
     } monitor;
+    unsigned moduleOrder;
 };
 extern struct NEXUS_P_Base_State NEXUS_P_Base_State;
-
-void NEXUS_P_Base_CheckForStuckCallback(const NEXUS_P_Scheduler *scheduler);
-
 #ifdef __cplusplus
 }
 #endif

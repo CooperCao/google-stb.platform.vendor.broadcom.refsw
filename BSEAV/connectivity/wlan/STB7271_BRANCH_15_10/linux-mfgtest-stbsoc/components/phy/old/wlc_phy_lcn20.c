@@ -11637,7 +11637,7 @@ wlc_lcn20phy_rssi_tempcorr(phy_info_t *pi, bool mode)
 	return ret;
 }
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 int16
 wlc_phy_test_tssi_lcn20phy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs)
 {
@@ -11670,7 +11670,7 @@ wlc_phy_test_idletssi_lcn20phy(phy_info_t *pi, int8 ctrl_type)
 
 	return idletssi_OB;
 }
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 #ifdef WL11ULB
 bool
 wlc_phy_lcn20_ulb_10_capable(phy_info_t *pi)

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,11 +73,6 @@ sub generate_ipc_code
                 push @server_post_success, "#endif";
             }
         }
-    }
-    
-    my $stopcallbacks_handle = bapi_classes::get_stopcallbacks_handle $func, $classes;
-    if (defined $stopcallbacks_handle) {
-        push @server_pre_lock, "NEXUS_StopCallbacks((void*)$stopcallbacks_handle);";
     }
     
     my %result;
@@ -193,6 +188,10 @@ sub build_thunks
             my $file = \*FILE;
             bapi_util::print_code $file, $generated_code->{'server_pre_lock'}, "  ";
         }
+        my $stopcallbacks_handle = bapi_classes::get_stopcallbacks_handle $func, $classes;
+        if (defined $stopcallbacks_handle) {
+            print FILE "NEXUS_StopCallbacks((void*)$stopcallbacks_handle);\n";
+        }
 
         # make call
         print FILE "  module_lock(__FUNCTION__);\n";
@@ -217,6 +216,9 @@ sub build_thunks
         # leave MSG and return value
         if ($func->{RETTYPE} eq "void") {
             print FILE "  module_unlock();\n";
+            if (defined $stopcallbacks_handle) {
+                print FILE "NEXUS_StartCallbacks((void*)$stopcallbacks_handle);\n";
+            }
             print FILE "  NEXUS_P_TRACE_MSG((\"<%s\", \"$func->{FUNCNAME}\"));\n";
             print FILE "  NEXUS_P_API_STATS_STOP(\"$func->{FUNCNAME}\",NEXUS_MODULE_SELF); /* this statistics count all API call overhead */\n";
             print FILE "  return;\n";
@@ -234,6 +236,9 @@ sub build_thunks
                 print FILE "  }\n";
             }
             print FILE "  module_unlock();\n";
+            if (defined $stopcallbacks_handle) {
+                print FILE "NEXUS_StartCallbacks((void*)$stopcallbacks_handle);\n";
+            }
             print FILE "  NEXUS_P_TRACE_MSG((\"<%s\=%#lx\", \"$func->{FUNCNAME}\", (unsigned long)result));\n";
             print FILE "  NEXUS_P_API_STATS_STOP(\"$func->{FUNCNAME}\", NEXUS_MODULE_SELF); /* this statistics count all API call overhead */\n";
             print FILE "  return result;\n";

@@ -942,7 +942,7 @@ typedef void (*gpaioconfig_t) (phy_info_t *pi, wl_gpaio_option_t option, int cor
 #define	NULL_TSSI		0x7f	/* Default value for TSSI - byte */
 #define	NULL_TSSI_W		0x7f7f	/* Default value for word TSSI */
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 #define INVALID_IDLETSSI_VAL 999 /* invalid idletssi, used as default value */
 #endif
 
@@ -1317,7 +1317,7 @@ typedef struct {
 #endif
 
 
-#if defined(EXT_CBALL)
+#if defined(BCMINTPHYDBG) || defined(EXT_CBALL)
 #define NORADIO_ENAB(pub) ((pub)->radioid == NORADIO_ID)
 #else
 #define NORADIO_ENAB(pub) 0
@@ -2153,7 +2153,7 @@ typedef int8 (*txswctrlmapget_t) (phy_info_t *pi);
 typedef void (*epadpdset_t) (phy_info_t *pi, uint8 enab_epa_dpd, bool in_2g_band);
 /* #endif */
 
-/* #if (defined(WLTEST) || defined (BCMINTERNAL) || defined (WLPKTENG)) */
+/* #if (defined(WLTEST) || defined (BCMINTPHYDBG) || defined (WLPKTENG)) */
 typedef bool (*isperratedpden_t) (phy_info_t *pi);
 typedef void (*perratedpdset_t) (phy_info_t *pi, bool enable);
 /* #endif */
@@ -2195,7 +2195,7 @@ struct phy_func_ptr {
 	txswctrlmapset_t txswctrlmapsetptr;
 	txswctrlmapget_t txswctrlmapgetptr;
 
-	/* #if (defined(WLTEST) || defined (BCMINTERNAL) || defined (WLPKTENG)) */
+	/* #if (defined(WLTEST) || defined (BCMINTPHYDBG) || defined (WLPKTENG)) */
 	isperratedpden_t        isperratedpdenptr;
 	perratedpdset_t         perratedpdsetptr;
 	/* #endif */
@@ -2746,13 +2746,13 @@ struct phy_info
 	bool	capture_periodic_noisestats; /* capture noise stats for 4324x at the expiry
 									* of watchdog glacial timer
 									*/
-	/* #if defined(BCMINTERNAL) || defined(WLTEST) */
+	/* #if defined(BCMINTPHYDBG) || defined(WLTEST) */
 	uint	nphy_phyreg_skipaddr[128];
 	int8	nphy_phyreg_skipcnt;
 	int8	nphy_tbldump_minidx;
 	int8	nphy_tbldump_maxidx;
 	/* #endif */
-	/* #if defined(WLTEST) || defined(BCMINTERNAL) || defined(DBG_PHY_IOV) */
+	/* #if defined(WLTEST) || defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) */
 	uint8	nphy_ml_type;
 	uint8	aci_nams;				/* read as... ACI Non Assoc Mode Sanity */
 	/* #endif */
@@ -3258,13 +3258,13 @@ extern void wlc_phy_sethpf1gaintbl_nphy(phy_info_t *pi, int8 maxindex);
 extern void wlc_phy_cal_reset_nphy(phy_info_t *pi, uint32 reset_type);
 #endif
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 extern void wlc_phy_bphy_testpattern_nphy(phy_info_t *pi, uint8 testpattern, bool enable, bool);
 extern uint32 wlc_phy_cal_sanity_nphy(phy_info_t *pi);
 extern void wlc_phy_test_scraminit_nphy(phy_info_t *pi, int8 init);
 extern void wlc_phy_gpiosel_nphy(phy_info_t *pi, uint16 sel);
 extern int8 wlc_phy_test_tssi_nphy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs);
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 
 /* %%%%%% HTCONF function */
 extern void wlc_phy_cals_htphy(phy_info_t *pi, uint8 caltype);
@@ -3347,7 +3347,7 @@ extern void wlc_phy_force_fdiqi_acphy(phy_info_t *pi, uint16 int_val);
 extern int wlc_phy_freq_accuracy_htphy(phy_info_t *pi, int channel);
 #endif
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 extern void wlc_phy_bphy_testpattern_htphy(phy_info_t *pi, uint8 testpattern,
             uint16 rate_reg, bool enable);
 #else
@@ -3355,7 +3355,7 @@ extern void wlc_phy_bphy_testpattern_htphy(phy_info_t *pi, uint8 testpattern,
 #endif
 
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 extern void wlc_phy_test_scraminit_htphy(phy_info_t *pi, int8 init);
 extern int8 wlc_phy_test_tssi_htphy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs);
 extern void wlc_phy_gpiosel_htphy(phy_info_t *pi, uint16 sel);
@@ -3363,7 +3363,7 @@ extern void wlc_phy_pavars_get_htphy(phy_info_t *pi, uint16 *buf, uint16 band, u
 extern void wlc_phy_pavars_set_htphy(phy_info_t *pi, uint16 *buf, uint16 band, uint16 core);
 extern int wlc_phy_set_po_htphy(phy_info_t *pi, wl_po_t *inpo);
 extern int wlc_phy_get_po_htphy(phy_info_t *pi, wl_po_t *outpo);
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 
 extern void wlc_phy_update_rxldpc_htphy(phy_info_t *pi, bool ldpc);
 
@@ -3384,7 +3384,7 @@ extern void wlc_phy_txpwr_apply_srom13_5g_bw160(phy_info_t *pi, uint8 band, chan
 extern void wlc_phy_txpwr_apply_srom13(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 	uint8 tmp_max_pwr, ppr_t *tx_srom_max_pwr);
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 typedef enum {
 	AV,
 	VMID
@@ -3392,7 +3392,7 @@ typedef enum {
 extern void wlc_phy_set_avvmid_acphy(phy_info_t *pi, uint8 *avvmid, wlc_avvmid_t avvmid_type);
 extern void wlc_phy_get_avvmid_acphy(phy_info_t *pi, int32 *ret_int_ptr, wlc_avvmid_t avvmid_type,
 		uint8 *core_sub_band);
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 
 #if defined(PHYCAL_CACHING)
 /* Get the calcache entry given the chanspec */
@@ -3408,10 +3408,10 @@ extern ch_calcache_t *wlc_phy_get_chanctx(phy_info_t *phi, chanspec_t chanspec);
 
 extern void wlc_phy_ocl_enable_disable_nphy(phy_info_t *pi, bool enable);
 
-#if defined(WLTEST) || defined(DBG_PHY_IOV)
+#if defined(WLTEST) || defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV)
 extern void wlc_phy_dynamic_ml_set(phy_info_t *pi, int32 ml_type);
 extern void wlc_phy_dynamic_ml_get(phy_info_t *pi);
-#endif 
+#endif /* #if defined(BCMDBG) || defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) */
 
 #ifdef NOISE_CAL_LCNXNPHY
 extern void wlc_phy_noise_cal_measure_nphy(phy_info_t *pi);
@@ -3682,7 +3682,7 @@ extern int32 wlc_nphy_tssi_read_iovar(phy_info_t *pi);
 extern void wlc_phy_txpwrctrl_idle_tssi_nphy(phy_info_t *pi);
 extern void wlc_phy_lcnxn_rx2tx_stallwindow_nphy(phy_info_t *pi, uint8 STALLON);
 
-#if defined(ACI_DBG_PRINTS_EN)
+#if (defined(BCMDBG) && defined(BCMINTPHYDBG)) || defined(ACI_DBG_PRINTS_EN)
 extern void wlc_phy_aci_noise_print_values_nphy(phy_info_t *pi);
 #endif
 

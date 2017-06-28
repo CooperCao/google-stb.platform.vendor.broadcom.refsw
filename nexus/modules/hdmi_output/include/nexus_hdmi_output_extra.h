@@ -87,7 +87,7 @@ typedef struct NEXUS_HdmiOutputExtraSettings
     struct
     {
         NEXUS_HdmiOutputDolbyVisionMode outputMode; /* whether to enable Dolby Vision output or not */
-        bool blendInIpt; /* If true, gfx will be blended in IPT color space; Default false; Please set true for conformance test */
+        bool blendInIpt; /* If true, gfx will be blended in IPT color space; Default true to conform with Dolby Vision */
         NEXUS_HdmiOutputDolbyVisionPriorityMode priorityMode;
     } dolbyVision; /* API is provisional, subject to change */
 } NEXUS_HdmiOutputExtraSettings;

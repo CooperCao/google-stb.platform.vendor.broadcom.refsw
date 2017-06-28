@@ -321,9 +321,9 @@ struct b_session {
             struct b_hdmi_drm_selector selector;
             bool inputValid;
             NEXUS_HdmiDynamicRangeMasteringInfoFrame input;
+            NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType;
             struct
             {
-                bool dbvInput;
                 NEXUS_HdmiOutputDolbyVisionMode outputMode;
                 NEXUS_HdmiOutputDolbyVisionPriorityMode priorityMode;
             } dolbyVision;

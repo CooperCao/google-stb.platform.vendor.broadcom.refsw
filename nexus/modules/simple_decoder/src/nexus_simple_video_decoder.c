@@ -234,15 +234,26 @@ void NEXUS_SimpleVideoDecoderModule_LoadDefaultSettings( NEXUS_VideoDecoderHandl
 
 static void nexus_simplevideodecoder_p_set_default_decoder_settings(NEXUS_SimpleVideoDecoderHandle handle)
 {
-    NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(&handle->settings);
-    handle->settings.colorDepth = 10; /* will be lowered to 8 bit if decoder doesn't support 10 */
-    NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(&handle->extendedSettings);
-    NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(&handle->playbackSettings);
+    /* restore the regular decoder's initial settings */
+    union {
+        NEXUS_VideoDecoderSettings settings;
+        NEXUS_VideoDecoderExtendedSettings extendedSettings;
+        NEXUS_VideoDecoderPlaybackSettings playbackSettings;
+    } data;
+    NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(&data.settings);
+    NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, &data.settings);
+    NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(&data.extendedSettings);
+    NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &data.extendedSettings);
+    NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(&data.playbackSettings);
+    NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &data.playbackSettings);
 }
 
 static void nexus_simplevideodecoder_p_set_default_settings(NEXUS_SimpleVideoDecoderHandle handle)
 {
-    nexus_simplevideodecoder_p_set_default_decoder_settings(handle);
+    NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(&handle->settings);
+    handle->settings.colorDepth = 10; /* will be lowered to 8 bit if decoder doesn't support 10 */
+    NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(&handle->extendedSettings);
+    NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(&handle->playbackSettings);
     NEXUS_VideoDecoder_GetNormalPlay(&handle->trickSettings);
     BKNI_Memset(&handle->pictureQualitySettings, 0, sizeof(handle->pictureQualitySettings));
     NEXUS_VideoWindow_GetDefaultDnrSettings(&handle->pictureQualitySettings.dnr);

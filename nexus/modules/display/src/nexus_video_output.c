@@ -1378,8 +1378,6 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             || (requested.colorDepth != preferred.colorDepth) ;
 
             colorDepth = NEXUS_P_HdmiColorDepth_ToMagnum_isrsafe(preferred.colorDepth);
-            rc = BVDC_Display_SetHdmiColorDepth(display->displayVdc, colorDepth);
-            if (rc) return BERR_TRACE(rc);
 
             BVDC_Display_GetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
             displayHdmiSettings.ulPortId      = display->hdmi.vdcIndex;
@@ -1389,11 +1387,15 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             displayHdmiSettings.eEotf = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
             NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
 #if NEXUS_DBV_SUPPORT
-            NEXUS_Display_P_DbvUpdateOutputInfo(display, hdmiOutput, &displayHdmiSettings);
+            NEXUS_Display_P_DbvUpdateDisplayHdmiSettings(display, hdmiOutput, &displayHdmiSettings, &colorDepth);
 #endif
+            rc = BVDC_Display_SetHdmiColorDepth(display->displayVdc, colorDepth);
+            if (rc) return BERR_TRACE(rc);
+
             rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
             if (rc) return BERR_TRACE(rc);
-            doneHdmiSettings = true;
+
+           doneHdmiSettings = true;
         }
     }
 
@@ -1415,7 +1417,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         displayHdmiSettings.eEotf         = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
         NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
 #if NEXUS_DBV_SUPPORT
-        NEXUS_Display_P_DbvUpdateOutputInfo(display, hdmiOutput, &displayHdmiSettings);
+        NEXUS_Display_P_DbvUpdateDisplayHdmiSettings(display, hdmiOutput, &displayHdmiSettings, NULL);
 #endif
         rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
         if (rc) return BERR_TRACE(rc);
@@ -1436,7 +1438,6 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         stHdmiOutputDisplaySettings.eColorimetry = nexusMatrixCoefficients ;
         stHdmiOutputDisplaySettings.overrideColorRange = settings.overrideColorRange ;
         stHdmiOutputDisplaySettings.colorRange = nexusColorRange ;
-
         NEXUS_HdmiOutput_SetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;
     }
     NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);

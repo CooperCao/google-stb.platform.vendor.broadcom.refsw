@@ -129,6 +129,8 @@ void plm_p_compute_switcher(PlmHandle plm, PlatformDynamicRange input, PlatformD
     {
         switch (input)
         {
+            case PlatformDynamicRange_eDolbyVision:
+            case PlatformDynamicRange_eTechnicolorPrime:
             case PlatformDynamicRange_eHdr10:
                 plm->currentSwitcher = plm->hdr2sdrSwitcher;
                 break;
@@ -140,6 +142,8 @@ void plm_p_compute_switcher(PlmHandle plm, PlatformDynamicRange input, PlatformD
     {
         switch (input)
         {
+            case PlatformDynamicRange_eDolbyVision:
+            case PlatformDynamicRange_eTechnicolorPrime:
             case PlatformDynamicRange_eSdr:
                 plm->currentSwitcher = plm->sdr2hdrSwitcher;
                 break;
@@ -150,7 +154,15 @@ void plm_p_compute_switcher(PlmHandle plm, PlatformDynamicRange input, PlatformD
                 break;
         }
     }
-    /* DVS means no switcher */
+    else if (output == PlatformDynamicRange_eDolbyVision)
+    {
+        /* just needs to be non-NULL */
+        if (input != PlatformDynamicRange_eDolbyVision)
+        {
+            plm->currentSwitcher = plm->hdr2sdrSwitcher;
+        }
+    }
+    /* HLG needs no switcher */
 }
 
 PlmHandle plm_create(

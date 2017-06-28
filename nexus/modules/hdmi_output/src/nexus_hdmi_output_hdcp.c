@@ -1503,16 +1503,15 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
     BDBG_MSG(("Starting HDCP %s Authentication",
         handle->eHdcpVersion == BHDM_HDCP_Version_e2_2 ? "2.2" : "1.x"));
 
-    handle->hdcpStarted = true;
-
     /* Reset Auth State */
     errCode = BHDCPlib_StartAuthentication(handle->hdcpHandle);
-
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode) ;
         goto done;
     }
+
+    handle->hdcpStarted = true;
 
     /* NEXUS have to drive the state machine in HDCP 1.x authentication process */
     if (handle->eHdcpVersion != BHDM_HDCP_Version_e2_2)

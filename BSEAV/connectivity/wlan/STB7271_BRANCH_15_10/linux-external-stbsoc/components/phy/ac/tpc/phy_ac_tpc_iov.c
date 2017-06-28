@@ -29,6 +29,13 @@ enum {
 };
 
 static const bcm_iovar_t phy_ac_tpc_iovars[] = {
+#if defined(BCMINTPHYDBG)
+#if defined(BCMINTPHYDBG)
+	{"phy_txpwr_ovrinitbaseidx", IOV_OVRINITBASEIDX, (IOVF_SET_UP|IOVF_GET_UP), 0,
+	IOVT_UINT8, 0},
+#endif 
+	{"phy_tone_txpwr", IOV_PHY_TONE_TXPWR, (IOVF_SET_UP), 0, IOVT_INT8, 0},
+#endif 
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -50,8 +57,21 @@ phy_ac_tpc_doiovar(void *ctx, uint32 aid,
 		bcopy(p, &int_val, sizeof(int_val));
 
 	switch (aid) {
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_OVRINITBASEIDX):
+		*ret_int_ptr = pi->tpci->data->ovrinitbaseidx;
+		break;
+	case IOV_SVAL(IOV_OVRINITBASEIDX):
+		pi->tpci->data->ovrinitbaseidx = (bool)int_val;
+		wlc_phy_txpwr_ovrinitbaseidx(pi);
+		break;
+#endif 
 	default:
+#if defined(BCMINTPHYDBG)
+		err = BCME_UNSUPPORTED;
+#else
 		err = BCME_OK;
+#endif 
 		break;
 	}
 	return err;

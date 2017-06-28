@@ -1,4 +1,2 @@
 stream=ZombieClip1mn_2020_hdr.ts
 dynrng=sdr
-plm.vid=1
-plm.gfx=1

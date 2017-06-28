@@ -220,6 +220,72 @@ void NEXUS_HdmiOutput_PrintRxEdid(void)
 }
 
 
+static void NEXUS_HdmiOutput_PrintEotfSupport(void)
+{
+#if !BDBG_NO_LOG
+    NEXUS_Error errCode ;
+    NEXUS_HdmiOutputHandle hdmiOutput ;
+
+    /* Max EOTF Descrptior Size
+    ** largest EOTF descriptor can be 10 bytes
+    ** add 2 bytes for delimiters e.g. <eotf>
+    */
+    #define MAX_EOTF_DESC_SIZE 12
+    static const char *g_eotfDescriptors[BAVC_HDMI_DRM_EOTF_eMax][MAX_EOTF_DESC_SIZE]
+        = {{"SDR"}, {"HDR Gamma"}, {"HDR10"}, {"HLG"}} ;
+
+    static const char pchEotfPrefix[] = "   EDID Supported Eotf: " ;
+    #define MAX_EOTF_STRING_BUFFER \
+        (sizeof(pchEotfPrefix) + (NEXUS_VideoEotf_eMax * MAX_EOTF_DESC_SIZE))
+
+    char pchEotfSupport[MAX_EOTF_STRING_BUFFER];
+    unsigned strOffset ;
+
+    uint8_t i, j ;
+
+
+    for (i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
+    {
+        hdmiOutput = NEXUS_HdmiOutput_P_GetHandle(i) ;
+        if (!hdmiOutput)
+        {
+            BDBG_ERR(("Inavid HdmiOutput handle")) ;
+            errCode = BERR_TRACE(NEXUS_NOT_INITIALIZED) ;
+            continue ;
+        }
+
+        /* reset eotf string length for new string */
+        strOffset = 0 ;
+        strOffset += BKNI_Snprintf(pchEotfSupport+strOffset,
+            sizeof (pchEotfSupport) - strOffset, pchEotfPrefix) ;
+
+        for (j = 0; j < BAVC_HDMI_DRM_EOTF_eMax; j++)
+        {
+            if (hdmiOutput->drm.hdrdb.bEotfSupport[j] && (j == BAVC_HDMI_DRM_EOTF_eHDR))
+                continue ;  /* leave HDR(gamma) out */
+
+            strOffset += BKNI_Snprintf(pchEotfSupport+strOffset,
+                sizeof (pchEotfSupport) - strOffset, "<%s> ", *g_eotfDescriptors[j]) ;
+
+            /* make sure adding the next EOTF type does not exceed MAX_EOTF_STRING_BUFFER size */
+            if ((strOffset + MAX_EOTF_DESC_SIZE) > (unsigned) MAX_EOTF_STRING_BUFFER)
+            {
+                BDBG_WRN(("   %s may not contain all supported Eotfs", pchEotfPrefix)) ;
+                break ;
+            }
+        }
+        BDBG_LOG(("%s", pchEotfSupport));
+
+        BDBG_LOG(("   EDID Supported Luminance:")) ;
+        BDBG_LOG(("      Min=%d, MinValid=%d, Avg=%d, AvgValid=%d, Max=%d, MaxValid=%d",
+            hdmiOutput->drm.hdrdb.MinLuminance, hdmiOutput->drm.hdrdb.MinLuminanceValid,
+            hdmiOutput->drm.hdrdb.AverageLuminance, hdmiOutput->drm.hdrdb.AverageLuminanceValid,
+            hdmiOutput->drm.hdrdb.MaxLuminance, hdmiOutput->drm.hdrdb.MaxLuminanceValid)) ;
+    }
+#endif
+}
+
+
 void NEXUS_HdmiOutputModule_Print(void)
 {
 #if !BDBG_NO_LOG
@@ -229,20 +295,15 @@ void NEXUS_HdmiOutputModule_Print(void)
     NEXUS_HdmiOutputHdcpStatus hdmiOutputHdcpStatus ;
 
     BHDM_Handle hdmHandle ;
-    BHDM_EDID_HDRStaticDB hdrdb ;
 #if BHDM_HAS_HDMI_20_SUPPORT
     BHDM_SCDC_StatusControlData scdcControlData ;
 #endif
     BAVC_HDMI_DRMInfoFrame dynamicRangeMetadataInfoFrame ;
-    unsigned i,j;
+    unsigned i ;
 
 
     for (i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
-        #if !BDBG_NO_LOG
-        static const char *g_eotfStr[NEXUS_VideoEotf_eMax] = {"SDR", "HLG", "HDR10", "Invalid"};
-        #endif
-
         hdmiOutput = NEXUS_HdmiOutput_P_GetHandle(i) ;
         hdmHandle = hdmiOutput->hdmHandle ;
 
@@ -270,8 +331,6 @@ void NEXUS_HdmiOutputModule_Print(void)
         if (hdmiOutputStatus.connected)
         {
             BDBG_LOG(("Attached device: %s", hdmiOutputStatus.monitorName)) ;
-
-
 
 	        /* HARDWARE STATUS */
 	        BDBG_LOG(("  rxAttached: %c   rxPowered: %c",
@@ -362,53 +421,70 @@ void NEXUS_HdmiOutputModule_Print(void)
 
             BDBG_LOG(("HDR Status:")) ;
 
-            if (!hdrdb.valid)
+            /* Display Packet - DRM (displayed if DRM Static Metadata Block exists */
+            /* DRM Packets are transmitted to HDR Capable TVs Only */
+
+            if (!hdmiOutput->drm.hdrdb.valid)
             {
                 BDBG_LOG(("   Attached Rx <%s> does not support HDR",
                     hdmiOutputStatus.monitorName)) ;
             }
             else
             {
-#define MAX_EOTF_STRING (NEXUS_VideoEotf_eMax * 10)
-
-                char pchEotfSupport[MAX_EOTF_STRING];
+                static const char pchOutputPrefix[] = "   Output Dynamic Range: " ;
+                #define MAX_OUTPUT_STRING (sizeof(pchOutputPrefix) + 25 )
+                char pchOutputString[MAX_OUTPUT_STRING] ;
                 uint8_t strOffset = 0;
 
-                /* Display Packet - DRM (displayed if DRM Static Metadata Block exists */
-                /* DRM Packets are transmitted to HDR Capable TVs Only */
-                errCode = BHDM_EDID_GetHdrStaticMetadatadb(hdmHandle, &hdrdb) ;
-                /* if error retrieving HdrDB, trace error and continue on */
-                if (errCode) {BERR_TRACE(errCode) ; }
+                NEXUS_HdmiOutput_PrintEotfSupport() ;
 
-                if (hdrdb.valid)
+
+                errCode = BHDM_GetDRMInfoFramePacket(hdmHandle, &dynamicRangeMetadataInfoFrame) ;
+                if (errCode) {BERR_TRACE(errCode) ; goto done ;}
+
+                strOffset += BKNI_Snprintf(pchOutputString+strOffset,
+                    sizeof (pchOutputString) - strOffset, pchOutputPrefix) ;
+
+ #if NEXUS_DBV_SUPPORT
+                BDBG_LOG(("   Dolby Vision Supported: %c",
+                    hdmiOutput->dbv.supported ? 'Y' : 'N')) ;
+
+                /* Output Dolby Vision */
+                if (hdmiOutput->dbv.enabled)
                 {
-                    errCode = BHDM_GetDRMInfoFramePacket(hdmHandle, &dynamicRangeMetadataInfoFrame) ;
-                    if (errCode) {BERR_TRACE(errCode) ; goto done ;}
+                    strOffset += BKNI_Snprintf(pchOutputString+strOffset,
+                        sizeof (pchOutputString) - strOffset, "Dolby Vision") ;
+					BDBG_LOG(("%s", pchOutputString)) ;
                 }
-
-                /* get information from previous call to BHDM_GetDrmInfoFrame */
-                BDBG_LOG(("   Tx Mode: <%s>",
-                    BAVC_HDMI_DRMInfoFrame_EOTFToStr(dynamicRangeMetadataInfoFrame.eEOTF))) ;
-
-                strOffset += BKNI_Snprintf(pchEotfSupport+strOffset,
-                    sizeof (pchEotfSupport) - strOffset, "   Rx Support: ") ;
-
-                for (j = 0; j < NEXUS_VideoEotf_eMax; j++)
+                /* Output Dynamic Range */
+                else
+ #else
+                BDBG_LOG(("   Dolby Vision Supported: N"));
+ #endif
                 {
-                    if (hdmiOutput->drm.hdrdb.eotfSupported[j])
-                    {
-                        strOffset += BKNI_Snprintf(pchEotfSupport+strOffset,
-                            sizeof (pchEotfSupport) - strOffset, "%s ", g_eotfStr[j]) ;
-                        if (strOffset + 10 > MAX_EOTF_STRING)
-                        {
-                            BDBG_WRN(("   Rx Support may not contain all supported EOFTs")) ;
-                            break ;
-                        }
-                    }
+                    strOffset += BKNI_Snprintf(pchOutputString+strOffset,
+                        sizeof (pchOutputString) - strOffset, "<%s>",
+                        BAVC_HDMI_DRMInfoFrame_EOTFToStr(dynamicRangeMetadataInfoFrame.eEOTF)) ;
+
+                    BDBG_LOG(("%s", pchOutputString)) ;
+
+                    BDBG_LOG(("   Output Cll: Max=%d Average=%d",
+                        dynamicRangeMetadataInfoFrame.Type1.MaxContentLightLevel,
+                        dynamicRangeMetadataInfoFrame.Type1.MaxFrameAverageLightLevel)) ;
+
+                    BDBG_LOG(("   Output Mdvc: Red=%d,%d, Green=%d,%d, Blue=%d,%d, White=%d,%d, Luminance(max)=%d, Luminance(min)=%d",
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[0].X,
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[0].Y,
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[1].X,
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[1].Y,
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[2].X,
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[2].Y,
+                        dynamicRangeMetadataInfoFrame.Type1.WhitePoint.X,
+                        dynamicRangeMetadataInfoFrame.Type1.WhitePoint.Y,
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayMasteringLuminance.Max,
+                        dynamicRangeMetadataInfoFrame.Type1.DisplayMasteringLuminance.Min)) ;
                 }
-                BDBG_LOG(("%s", pchEotfSupport));
             }
-
         }
         else
         {

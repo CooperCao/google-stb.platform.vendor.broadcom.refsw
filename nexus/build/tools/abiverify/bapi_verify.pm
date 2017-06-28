@@ -1121,6 +1121,9 @@ sub generate_client {
             if( (exists  $d->{destructor}{FUNCNAME}) and $d->{destructor}{FUNCNAME} eq $func->{FUNCNAME}) {
                 $is_destructor = 1; last;
             }
+            if( (exists  $d->{release}{FUNCNAME}) and $d->{release}{FUNCNAME} eq $func->{FUNCNAME}) {
+                $is_destructor = 1; last;
+            }
         }
         my %code;
         my $funcname = $func->{FUNCNAME};

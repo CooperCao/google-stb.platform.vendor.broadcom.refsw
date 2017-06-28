@@ -108,7 +108,7 @@ static void NEXUS_Platform_P_MemcEventHandler(void * context)
 #if NEXUS_HAS_SECURITY
     if(g_NEXUS_platformHandles.security /* if NEXUS_Platform_P_MemcEventHandler called when there is no secure module */
 #if NEXUS_POWER_MANAGEMENT
-            && g_standbyState.settings.mode == NEXUS_PlatformStandbyMode_eOn
+            && g_standbyState.settings.mode == NEXUS_StandbyMode_eOn
 #endif
       ) {
         NEXUS_Module_Lock(g_NEXUS_platformHandles.security);

@@ -54,6 +54,13 @@ static const namevalue_t g_pixelFormatStrs[] = {
 static void print_usage(void)
 {
     printf(
+    "### nxserver: invalid command line. run \"nexus nxserver --help\" for documentation.\n"
+    );
+}
+
+static void print_full_usage(void)
+{
+    printf(
     "usage: nexus nxserver [--help|-h]\n"
     );
     printf(
@@ -83,7 +90,7 @@ static void print_usage(void)
     printf(
     "  -ignore_edid   \tdon't consider HDMI EDID for audio/video output\n"
     "  -ignore_video_edid \tdon't consider HDMI EDID for video output\n"
-    "  -dolby_vision_conform force dolby vision gfx blend in IPT for conformance test\n"
+    "  -dolby_vision_blend_in_lms   dolby vision gfx blend in LMS instead of ICtCp color space\n"
     );
     printf(
 #if NEXUS_HAS_IR_INPUT
@@ -107,7 +114,7 @@ static void print_usage(void)
     );
     printf(
     "  -standby_timeout X \tnumber of seconds to wait for clients to acknowledge standby\n"
-    "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure|export}. Use M or K suffix for units.\n"
+    "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure|export|securegfx}. Use M or K suffix for units.\n"
     "  -audio_description \tenable audio description\n"
     "  -persistent_audio \tenable support for persistent simple audio decoders\n"
     "  -loudness [atsc|ebu]\tenable ATSC A/85 or EBU-R128 loudness equivalence.\n"
@@ -539,6 +546,10 @@ static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings,
                 /* TODO: allow securegfx to GFD1. for now, apply "-sd off" */
                 parse_session_settings(&settings->session[0], "hd");
             }
+            else {
+                BDBG_ERR(("securegfx heap requires a secure video decoder"));
+                return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            }
         }
         else {
             return -1;
@@ -623,7 +634,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
     bool session0_set = false;
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
-            print_usage();
+            print_full_usage();
             return -1;
         }
         else if (!strcmp(argv[curarg], "-cfg") && curarg+1<argc) {
@@ -644,9 +655,9 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             /* keep followPreferredFormat true for audio. preventUnsupportedFormat will be ignored. */
             settings->hdmi.ignoreVideoEdid = true;
         }
-        else if (!strcmp(argv[curarg], "-dolby_vision_conform")) {
-            /* gfx blended in IPT color space for dolby vision conformance test. */
-            settings->hdmi.dolbyVision.blendInIpt = true;
+        else if (!strcmp(argv[curarg], "-dolby_vision_blend_in_lms")) {
+            /* gfx blended in LMS color space for dolby vision */
+            settings->hdmi.dolbyVision.blendInIpt = false;
         }
 #endif
         else if (!strcmp(argv[curarg], "-frontend")) {

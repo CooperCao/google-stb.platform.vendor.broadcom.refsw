@@ -75,6 +75,17 @@ public:
     NEXUS_SurfaceHandle _surface;
 };
 
+class CPlmDataGraphics
+{
+public:
+    CPlmDataGraphics(
+        const bool bEnable) :
+    _bEnable(bEnable)
+    {}
+public:
+    bool        _bEnable;
+};
+
 class CSurfaceClient : public CResource
 {
 public:

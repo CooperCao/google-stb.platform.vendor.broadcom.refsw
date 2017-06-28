@@ -908,6 +908,7 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
         BXPT_Rave_FreeIndexer(r->tpitIdx);
     }
     NEXUS_Recpump_P_FreeScdIndexer(r);
+    NEXUS_RaveErrorCounter_Uninit_priv(&r->raveErrors);
     if (r->extra_rave_rec) {
         BXPT_Rave_FreeContext(r->extra_rave_rec);
     }
@@ -950,7 +951,6 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
         NEXUS_IsrCallback_Destroy(r->tsioDmaEndCallback);
     }
 #endif
-    NEXUS_RaveErrorCounter_Uninit_priv(&r->raveErrors);
 
     r->rave_rec = NULL;
     pTransport->recpump[r->tindex] = NULL;

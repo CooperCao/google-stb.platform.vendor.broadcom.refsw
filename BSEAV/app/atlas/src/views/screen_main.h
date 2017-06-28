@@ -165,7 +165,7 @@ public:
     void    setChannelNum(CChannel * pChannel);
     CChannelLabel * findChannelLabel(CChannel * pChannel, CLabelData * pLabelData);
     void    adjustChannelLabelBorder(MRect * pRect, MRect rectMax, int nBorder);
-    eRet    createChannelLabel(CLabelData * pLabelData, CChannel * pChannel);
+    eRet    createChannelLabel(CLabelData * pLabelData, CChannel * pChannel, CWidgetLabel ** pChannelLabel = NULL);
     eRet    updateChannelLabels(CChannel * pChannel);
     eRet    removeChannelLabels(CChannel * pChannel);
     void    setChannelStatus(eMode mode, const char * str1 = NULL, const char * str2 = NULL, const char * strPlaybackTitle = NULL, CChannel * pChannel = NULL);
@@ -290,6 +290,7 @@ protected:
     CWidgetButton *   _CableCard;
     CPanelCableCard * _pCableCardMenu;
 #endif
+    CWidgetLabel * _pCurrentPlmLabel[eWindowType_Max];
 };
 
 #ifdef __cplusplus

@@ -551,11 +551,11 @@
 
 /* debug/trace */
 uint wl_msg_level =
-#if defined(BCMINTDBG)
+#if defined(BCMDBG)
 	WL_ERROR_VAL;
 #else
 	0;
-#endif /* BCMINTDBG */
+#endif /* BCMDBG */
 
 uint wl_msg_level2 =
 #if defined(BCMDBG)
@@ -716,6 +716,7 @@ enum wlc_iov {
 	IOV_BEACON_INFO = 116,
 	IOV_WLC_VER = 117,
 	IOV_PAY_DECODE_WAR = 118,
+	IOV_SLAVE_RADAR = 119,
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -1139,6 +1140,11 @@ static const bcm_iovar_t wlc_iovars[] = {
 	{"pay_decode_war", IOV_PAY_DECODE_WAR,
 	0, 0, IOVT_BOOL, 0
 	},
+#ifdef SLAVE_RADAR
+	{"slave_radar", IOV_SLAVE_RADAR,
+	0, 0, IOVT_BOOL, 0
+	},
+#endif /* SLAVE_RADAR */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -2163,7 +2169,7 @@ void BCMINITFN(wlc_init)(wlc_info_t *wlc)
 	 */
 	if ((WL11H_AP_ENAB(wlc) ||
 #ifdef SLAVE_RADAR
-		WL11H_STA_ENAB(wlc) ||
+		(WL11H_STA_ENAB(wlc) && SLVRADAR_ENAB(wlc->pub)) ||
 #endif  /* SLAVE_RADAR */
 		FALSE) && (wlc_radar_chanspec(wlc->cmi, chanspec))) {
 		mute = TRUE;
@@ -8821,10 +8827,15 @@ wlc_watchdog(void *arg)
 	/* push assoc state to phy. If no associations then set the flag so
 	 * that phy can clear any desense it has done before.
 	 */
-	if (wlc_stas_active(wlc) || wlc_ap_stas_associated(wlc->ap))
+	if (wlc_stas_active(wlc) || wlc_ap_stas_associated(wlc->ap) ||
+#ifdef WDS
+		wlc_wds_peers_connected(wlc) ||
+#endif /* WDS */
+		FALSE) {
 		wlc_phy_hold_upd(WLC_PI(wlc), PHY_HOLD_FOR_NOT_ASSOC, FALSE);
-	else
+	} else {
 		wlc_phy_hold_upd(WLC_PI(wlc), PHY_HOLD_FOR_NOT_ASSOC, TRUE);
+	}
 
 	if (wlc->pm_dur_clear_timeout)
 		wlc->pm_dur_clear_timeout--;
@@ -14101,6 +14112,16 @@ wlc_doiovar(void *hdl, uint32 actionid,
 		*ret_int_ptr = (int)wlc_bmac_pay_decode_war_get(wlc->hw);
 		break;
 
+#ifdef SLAVE_RADAR
+	case IOV_SVAL(IOV_SLAVE_RADAR):
+		wlc->pub->cmn->_slvradar = bool_val;
+		break;
+
+	case IOV_GVAL(IOV_SLAVE_RADAR):
+		*ret_int_ptr = (int)wlc->pub->cmn->_slvradar;
+		break;
+#endif /* SLAVE_RADAR */
+
 	default:
 		err = BCME_UNSUPPORTED;
 		break;
@@ -14782,18 +14803,18 @@ wlc_statsupd(wlc_info_t *wlc)
 	delta = macstat_snapshot[MCSTOFF_RXF0OVFL] - rxf0ovfl;
 	delta1 = macstat_snapshot[MCSTOFF_RXHLOVFL] - rxhlovfl;
 	if (delta && delta1)
-		WL_ERROR(("wl%d: rx fifo 0 and hdfifo overflows: %u %u!\n",
+		WL_INFORM(("wl%d: rx fifo 0 and hdfifo overflows: %u %u!\n",
 			wlc->pub->unit, delta, delta1));
 	else if (delta)
-		WL_ERROR(("wl%d: %u rx fifo 0 overflows!\n", wlc->pub->unit, delta));
+		WL_INFORM(("wl%d: %u rx fifo 0 overflows!\n", wlc->pub->unit, delta));
 	else if (delta1)
-		WL_ERROR(("wl%d: %u rx hlfifo overflows!\n", wlc->pub->unit, delta1));
+		WL_INFORM(("wl%d: %u rx hlfifo overflows!\n", wlc->pub->unit, delta1));
 
 	/* check for tx fifo underflows */
 	for (i = 0; i < NFIFO; i++) {
 		delta = macstat_snapshot[MCSTOFF_TXFUNFL + i] - txfunfl[i];
 		if (delta)
-			WL_ERROR(("wl%d: %u tx fifo %d underflows!\n", wlc->pub->unit, delta, i));
+			WL_INFORM(("wl%d: %u tx fifo %d underflows!\n", wlc->pub->unit, delta, i));
 	}
 #endif /* BCMDBG */
 
@@ -18146,7 +18167,8 @@ wlc_do_chanswitch(wlc_bsscfg_t *cfg, chanspec_t newchspec)
 		 * prior to that.
 		 */
 		if (WL11H_STA_ENAB(wlc) &&
-			!wlc_dfs_valid_ap_chanspec(wlc, newchspec))
+			!wlc_dfs_valid_ap_chanspec(wlc, newchspec) &&
+			SLVRADAR_ENAB(wlc->pub))
 		{
 			WL_DFS(("%s: Invalid DFS chanspec - ignoring\n", __FUNCTION__));
 			return;
@@ -18172,7 +18194,7 @@ wlc_do_chanswitch(wlc_bsscfg_t *cfg, chanspec_t newchspec)
 	 */
 	if (WL11H_ENAB(wlc) && (AP_ACTIVE(wlc) ||
 #ifdef SLAVE_RADAR
-		STA_ACTIVE(wlc) ||
+		(STA_ACTIVE(wlc) && SLVRADAR_ENAB(wlc->pub)) ||
 #endif
 		FALSE)) {
 		from_radar = (wlc_radar_chanspec(wlc->cmi, cfg->current_bss->chanspec) == TRUE);
@@ -18186,7 +18208,7 @@ wlc_do_chanswitch(wlc_bsscfg_t *cfg, chanspec_t newchspec)
 		bw_chg = TRUE;
 
 #if defined(STA) && defined(SLAVE_RADAR)
-	if (WL11H_STA_ENAB(wlc)) {
+	if (WL11H_STA_ENAB(wlc) && SLVRADAR_ENAB(wlc->pub)) {
 		if ((!from_radar) && (to_radar))
 			phy_radar_detect_enable((phy_info_t *)WLC_PI(wlc), TRUE);
 		if ((from_radar) && (!to_radar))
@@ -18272,7 +18294,8 @@ wlc_do_chanswitch(wlc_bsscfg_t *cfg, chanspec_t newchspec)
 
 	if (WLDFS_ENAB(wlc->pub) && (from_radar) && (!to_radar)) {
 #if defined(STA) && defined(SLAVE_RADAR)
-				if (WL11H_STA_ENAB(wlc) && wlc_dfs_get_radar(wlc->dfs)) {
+				if (WL11H_STA_ENAB(wlc) && wlc_dfs_get_radar(wlc->dfs) &&
+					SLVRADAR_ENAB(wlc->pub)) {
 					cfg->pm->PMmodeChangeDisabled = FALSE;
 					wlc_set_pm_mode(wlc, cfg->pm->PM_oldvalue, cfg);
 					wlc->mpc = TRUE;
@@ -18291,7 +18314,7 @@ wlc_do_chanswitch(wlc_bsscfg_t *cfg, chanspec_t newchspec)
 		wlc_scb_ratesel_rfbr_bss(wlc, cfg);
 
 #ifdef SLAVE_RADAR
-		if ((!from_radar) && (to_radar)) {
+		if ((!from_radar) && (to_radar) && SLVRADAR_ENAB(wlc->pub)) {
 			if (WL11H_STA_ENAB(wlc) && wlc_dfs_get_radar(wlc->dfs)) {
 				if (wlc_cac_is_clr_chanspec(wlc->dfs, newchspec)) {
 					if (!(band_chg || bw_chg ||
@@ -18318,7 +18341,8 @@ wlc_do_chanswitch(wlc_bsscfg_t *cfg, chanspec_t newchspec)
 	if (band_chg || bw_chg || ETHER_ISNULLADDR(&cfg->BSSID) ||
 #ifdef SLAVE_RADAR
 		(WL11H_STA_ENAB(wlc) && wlc_radar_chanspec(wlc->cmi, newchspec) &&
-		!(wlc_cac_is_clr_chanspec(wlc->dfs, newchspec))) ||
+		!(wlc_cac_is_clr_chanspec(wlc->dfs, newchspec)) &&
+		SLVRADAR_ENAB(wlc->pub)) ||
 		/* reassoc path will lead to CAC */
 #endif /* SLAVE_RADAR */
 	FALSE) {
@@ -18387,7 +18411,7 @@ wlc_enable_probe_req(wlc_info_t *wlc, uint32 mask, uint32 val)
 
 	if (!wlc->pub->up) {
 #ifndef ATE_BUILD
-		WL_ERROR(("wl%d: %s: state down, deferring setting of host flags\n",
+		WL_TRACE(("wl%d: %s: state down, deferring setting of host flags\n",
 			wlc->pub->unit, __FUNCTION__));
 #endif
 		return;
@@ -22650,6 +22674,14 @@ wlc_sta_info(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, const struct ether_addr *ea,
 		sta.vht_flags = wlc_vht_get_scb_flags(wlc->vhti, scb);
 #endif
 	}
+
+#ifdef DWDS
+	if (SCB_DWDS_CAP(scb))
+		sta.flags |= WL_STA_DWDS_CAP;
+
+	if (SCB_DWDS(scb))
+		sta.flags |= WL_STA_DWDS;
+#endif
 
 	/* update per antenna rssi and noise floor */
 	/* to be done */

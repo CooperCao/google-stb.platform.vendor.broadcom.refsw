@@ -3286,7 +3286,8 @@ wlc_assoc_scan_complete(void *arg, int status, wlc_bsscfg_t *cfg)
 #ifdef SLAVE_RADAR
 			if (WL11H_STA_ENAB(wlc) &&
 				(roam->reason == WLC_E_REASON_RADAR_DETECTED) &&
-				(as->state != AS_DFS_CAC_START))
+				(as->state != AS_DFS_CAC_START) &&
+				SLVRADAR_ENAB(wlc->pub))
 			{
 				wlc_bss_list_free(wlc, wlc->as->cmn->join_targets);
 				WL_ASSOC(("radar detected, so roam untill we find the AP...\n"));
@@ -3362,7 +3363,7 @@ wlc_roam_scan(wlc_bsscfg_t *cfg, uint reason, chanspec_t *list, uint32 channum)
 	if (!cfg->associated) {
 		WL_ASSOC_ERROR(("wl%d: %s: AP not associated \n", WLCWLUNIT(wlc), __FUNCTION__));
 #ifdef SLAVE_RADAR
-		if (reason != WLC_E_REASON_RADAR_DETECTED)
+		if ((reason != WLC_E_REASON_RADAR_DETECTED) && SLVRADAR_ENAB(wlc->pub))
 #endif
 		{
 			ret = BCME_NOTASSOCIATED;
@@ -4375,15 +4376,15 @@ wlc_join_attempt_select(wlc_bsscfg_t *cfg)
 void
 wlc_join_bss_prep(wlc_bsscfg_t *cfg)
 {
+	wlc_info_t *wlc = cfg->wlc;
+
 #ifdef SLAVE_RADAR
 	wlc_assoc_t *as = cfg->assoc;
-	if (as->state != AS_DFS_ISM_INIT)
+	if ((as->state != AS_DFS_ISM_INIT) && SLVRADAR_ENAB(wlc->pub))
 		wlc_join_chkdfs_cac_ism(cfg);
 	else
 #endif	/* SLAVE_RADAR */
 	{
-		wlc_info_t *wlc = cfg->wlc;
-
 		wlc_assoc_timer_del(wlc, cfg);
 		wlc_assoc_change_state(cfg, AS_JOIN_START);
 		wlc_bss_assoc_state_notif(wlc, cfg, cfg->assoc->type, AS_JOIN_START);
@@ -4407,7 +4408,7 @@ wlc_join_bss_start(wlc_bsscfg_t *cfg)
 
 #ifdef SLAVE_RADAR
 	/* Delete the assoc timer, if we are done with CAC */
-	if (as->state == AS_DFS_ISM_INIT) {
+	if ((as->state == AS_DFS_ISM_INIT) && SLVRADAR_ENAB(wlc->pub)) {
 		wlc_assoc_timer_del(wlc, cfg);
 	}
 #endif	/* SLAVE_RADAR */
@@ -5954,7 +5955,7 @@ wlc_assoc_change_state(wlc_bsscfg_t *cfg, uint newstate)
 		return;
 	}
 #ifdef SLAVE_RADAR
-	if (WL11H_STA_ENAB(wlc)) {
+	if (WL11H_STA_ENAB(wlc) && SLVRADAR_ENAB(wlc->pub)) {
 		bool from_radar = FALSE;
 		bool to_radar = FALSE;
 		wlc_bss_info_t *bi = NULL;
@@ -9230,7 +9231,8 @@ wlc_assoc_complete(wlc_bsscfg_t *cfg, uint status, struct ether_addr* addr,
 
 #ifdef SLAVE_RADAR
 		if (WL11H_STA_ENAB(wlc) && wlc_dfs_get_radar(wlc->dfs) &&
-			(cfg->roam->reason == WLC_E_REASON_RADAR_DETECTED)) {
+			(cfg->roam->reason == WLC_E_REASON_RADAR_DETECTED) &&
+			SLVRADAR_ENAB(wlc->pub)) {
 			if (!wlc_radar_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC)) {
 				cfg->pm->PMmodeChangeDisabled = FALSE;
 				wlc_set_pm_mode(wlc, cfg->pm->PM_oldvalue, cfg);
@@ -9668,7 +9670,8 @@ wlc_disassoc_complete(wlc_bsscfg_t *cfg, uint status, struct ether_addr *addr,
 	wlc_info_t *wlc = cfg->wlc;
 
 #ifdef SLAVE_RADAR
-	if (WL11H_STA_ENAB(wlc) && wlc_dfs_get_radar(wlc->dfs)) {
+	if (WL11H_STA_ENAB(wlc) && wlc_dfs_get_radar(wlc->dfs) &&
+		SLVRADAR_ENAB(wlc->pub)) {
 		cfg->pm->PMmodeChangeDisabled = FALSE;
 		wlc_set_pm_mode(wlc, cfg->pm->PM_oldvalue, cfg);
 		wlc->mpc = TRUE;
@@ -10953,7 +10956,7 @@ wlc_mac_request_scan(wlc_info_t *wlc, wlc_bsscfg_t *cfg, int req)
 			((!WLC_APSTA_ON_RADAR_CHANNEL(wlc) && AP_ACTIVE(wlc) &&
 			WL11H_AP_ENAB(wlc) && !p2p_go_flag) ||
 #ifdef SLAVE_RADAR
-			(WL11H_STA_ENAB(wlc) && STA_ACTIVE(wlc)) ||
+			(WL11H_STA_ENAB(wlc) && STA_ACTIVE(wlc) && SLVRADAR_ENAB(wlc->pub)) ||
 #endif
 		FALSE)) {
 			WL_INFORM(("wl%d: %s: On radar channel, WLC_SCAN ignored\n", wlc->pub->unit,

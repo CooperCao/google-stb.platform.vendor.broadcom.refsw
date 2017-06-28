@@ -113,6 +113,10 @@ void wlc_phy_txpwr_srom11_ext_1024qam_convert_mcs_2g(uint16 po,
 		ppr_vht_mcs_rateset_t* vht);
 #endif
 void phy_tpc_ipa_upd(phy_tpc_info_t *tpci);
+#if defined(BCMINTPHYDBG)
+int phy_tpc_set_pavars(phy_tpc_info_t *tpci, void* a, void* p);
+int phy_tpc_get_pavars(phy_tpc_info_t *tpci, void* a, void* p);
+#endif 
 
 #ifdef RADIO_HEALTH_CHECK
 phy_crash_reason_t phy_radio_health_check_baseindex(phy_info_t *pi);

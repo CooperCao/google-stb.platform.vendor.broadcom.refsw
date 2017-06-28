@@ -1150,34 +1150,6 @@ int playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
     else
       BDBG_WRN(("@@@ audioPidChannel OK"));
 
-    NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
-    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
-
-    if ( vc1_stream ) {
-       BDBG_MSG(("@@@ set video audio program for vc1"));
-       videoProgram.settings.codec = NEXUS_VideoCodec_eVc1;
-       audioProgram.primary.codec = NEXUS_AudioCodec_eWmaPro;
-    } else {
-       BDBG_MSG(("@@@ set video audio program for h264"));
-       videoProgram.settings.codec = NEXUS_VideoCodec_eH264;
-       audioProgram.primary.codec = NEXUS_AudioCodec_eAacAdts;
-    }
-
-    videoProgram.settings.pidChannel = videoPidChannel;
-    NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
-
-    audioProgram.primary.pidChannel = audioPidChannel;
-    NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
-
-    if (videoProgram.settings.pidChannel) {
-        BDBG_WRN(("@@@ set stc channel video"));
-        NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
-    }
-
-    if (audioProgram.primary.pidChannel) {
-        BDBG_WRN(("@@@ set stc channel audio"));
-        NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
-    }
 
     /***********************
      * now ready to decrypt
@@ -1300,6 +1272,35 @@ int playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
     }
 #endif
 
+    NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
+    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
+
+    if ( vc1_stream ) {
+       BDBG_MSG(("@@@ set video audio program for vc1"));
+       videoProgram.settings.codec = NEXUS_VideoCodec_eVc1;
+       audioProgram.primary.codec = NEXUS_AudioCodec_eWmaPro;
+    } else {
+       BDBG_MSG(("@@@ set video audio program for h264"));
+       videoProgram.settings.codec = NEXUS_VideoCodec_eH264;
+       audioProgram.primary.codec = NEXUS_AudioCodec_eAacAdts;
+    }
+
+    videoProgram.settings.pidChannel = videoPidChannel;
+    NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
+
+    audioProgram.primary.pidChannel = audioPidChannel;
+    NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
+
+    if (videoProgram.settings.pidChannel) {
+       BDBG_WRN(("@@@ set stc channel video"));
+       NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
+    }
+
+    if (audioProgram.primary.pidChannel) {
+       BDBG_WRN(("@@@ set stc channel audio"));
+       NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
+    }
+
     if( DRM_Prdy_Reader_Commit(drm_context) != DRM_Prdy_ok ) {
         BDBG_ERR(("Failed to Commit the license after Reader_Bind, exiting..."));
         goto clean_exit;
@@ -1337,7 +1338,7 @@ int playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
             }
         }
 
-        BKNI_Sleep(500);
+        BKNI_Sleep(50);
 
         decoder_data = piff_parser_get_dec_data(piff_handle, &decoder_len, frag_info.trackId);
 

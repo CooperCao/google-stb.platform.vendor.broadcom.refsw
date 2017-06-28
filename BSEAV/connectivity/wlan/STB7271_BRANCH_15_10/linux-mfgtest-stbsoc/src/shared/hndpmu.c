@@ -10763,9 +10763,11 @@ si_pmu_set_ulbmode(si_t *sih, osl_t *osh, uint8 pmu_ulb_bw)
 			break;
 		case BCM4365_CHIP_ID:
 		case BCM4366_CHIP_ID:
+#ifdef WL11ULB
 		case BCM7271_CHIP_ID:
+#endif /* WL11ULB */
 		case BCM43664_CHIP_ID:
-	        case BCM43666_CHIP_ID:
+		case BCM43666_CHIP_ID:
 		{
 			uint32 mdiv = 0;
 			uint32 pll_reg0 = si_pmu_pllcontrol(sih, PMU1_PLL0_PLLCTL0, 0, 0);

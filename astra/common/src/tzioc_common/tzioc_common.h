@@ -91,6 +91,10 @@ struct tzioc_shared_mem {
     struct tzioc_ring_buf t2nRing;  /* TZOS to NWOS msg ring */
     struct tzioc_ring_buf n2tRing;  /* NWOS to TZOS msg ring */
 
+    /* cpu time (in usecs) */
+    uint64_t ullTzUsecs;
+    uint64_t ullNwUsecs;
+
     /* data to be shared */
 };
 

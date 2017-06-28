@@ -286,23 +286,45 @@ BERR_Code BDTU_Scrub( BDTU_Handle handle, BSTD_DeviceOffset addr, unsigned size 
 {
     BERR_Code rc;
     unsigned bp, i;
+    uint32_t val;
+    BDTU_PageInfo info;
 
     rc = bdtu_p_convert_physaddr_to_bp(handle, addr, &bp);
     if (rc) return BERR_TRACE(rc);
 
     for (i=0;i<size/_2MB;i++) {
+        val = BREG_Read32(handle->createSettings.reg, BDTU_REG(bp+i));
+
+        info.valid = BCHP_GET_FIELD_DATA(val, MEMC_DTU_MAP_STATE_0_MAP_STATEi, VALID);
+        if(!info.valid)
+        {
+            /* Scrubbing an invalid page is NA */
+            continue;
+        }
+
+        info.owned = BCHP_GET_FIELD_DATA(val, MEMC_DTU_MAP_STATE_0_MAP_STATEi, OWNED);
+        info.ownerID = BCHP_GET_FIELD_DATA(val, MEMC_DTU_MAP_STATE_0_MAP_STATEi, OWNER_ID);
+        if(info.owned && (info.ownerID != handle->createSettings.ownerId))
+        {
+            BDBG_ERR(("Cannot scrub a page owned by someone else"));
+            rc = BERR_TRACE(BERR_NOT_AVAILABLE);
+            goto error;
+        }
+
         BREG_Write32(handle->createSettings.reg, BDTU_REG(bp+i), BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_COMMAND_CMD_SCRUB);
     }
 
     for (i=0;i<size/_2MB;i++) {
         /* because we scrub all then check, we can afford a busy wait. it should be very fast. */
+        /* If a page was skipped due to not being valid, the below check is still ok */
         uint32_t val;
         do {
             val = BREG_Read32(handle->createSettings.reg, BDTU_REG(bp+i));
         } while (BCHP_GET_FIELD_DATA(val, MEMC_DTU_MAP_STATE_0_MAP_STATEi, SCRUBBING));
     }
 
-    return BERR_SUCCESS;
+error:
+    return rc;
 }
 
 BERR_Code BDTU_ReadInfo( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BDTU_PageInfo *info)

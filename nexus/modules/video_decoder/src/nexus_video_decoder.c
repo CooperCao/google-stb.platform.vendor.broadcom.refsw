@@ -3002,6 +3002,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_Generic_Body(NEXUS_VideoDecoderHandle vid
     videoDecoder->lastStreamInfo = videoDecoder->streamInfo;
     BKNI_Memset(&videoDecoder->streamInfo, 0, sizeof(videoDecoder->streamInfo));
     videoDecoder->streamInfo.eotf = NEXUS_VideoEotf_eMax;
+    videoDecoder->dynamicMetadataType = NEXUS_VideoDecoderDynamicRangeMetadataType_eMax;
     BKNI_Memset(&videoDecoder->status, 0, sizeof(videoDecoder->status));
     videoDecoder->dataReadyCount = 0;
     videoDecoder->numPicturesReceivedToFlush = 0;
@@ -3830,6 +3831,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetStreamInformation_Avd(NEXUS_VideoDecoderHand
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     *pStreamInformation = videoDecoder->streamInfo;
+    pStreamInformation->dynamicMetadataType = videoDecoder->dynamicMetadataType;
     return 0;
 }
 

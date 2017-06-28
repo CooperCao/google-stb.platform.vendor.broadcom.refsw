@@ -106,6 +106,12 @@ eRet CPowerNx::setMode(
         return(ret);
     }
 
+    if (ePowerMode_S0 < mode)
+    {
+        /* disable bwidget events if going to standby/sleep */
+        SET(_pCfg, POWER_STATE, MString(mode));
+    }
+
 #if POWERSTANDBY_SUPPORT
     _transition = true;
     nerror = NxClient_GetStandbyStatus(&standbyStatus);
@@ -322,6 +328,13 @@ eRet CPowerNx::setMode(
             /* re-enable graphics after turning on (S0) */
             pGraphics->setActive(true);
         }
+
+        if (ePowerMode_S0 == mode)
+        {
+            /* enable bwidget events if going to ON mode */
+            SET(_pCfg, POWER_STATE, MString(mode));
+        }
+
         /* transition is done. we need to protect this because it is like isr code */
         _transition = false;
     }

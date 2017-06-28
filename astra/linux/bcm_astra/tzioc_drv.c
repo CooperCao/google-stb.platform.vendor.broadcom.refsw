@@ -47,6 +47,7 @@
 #include <linux/smp.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#include <linux/kernel_stat.h>
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include <asm/opcodes-smc.h>
@@ -103,6 +104,10 @@ static int tzioc_module_deinit(void);
 
 static void tzioc_isr(void);
 static void tzioc_proc(struct work_struct *work);
+
+#if CPUTIME_ACCOUNTING
+static void tzioc_cputime_account(void);
+#endif
 
 static int tzioc_sys_msg_proc(struct tzioc_msg_hdr *pHdr);
 #if TZIOC_MSG_ECHO
@@ -498,7 +503,12 @@ static void tzioc_proc(struct work_struct *work)
 {
     LOGD("Received TZIOC system IRQ");
 
-    /* processing incoming msgs */
+#if CPUTIME_ACCOUNTING
+    /* account cputime */
+    tzioc_cputime_account();
+#endif
+
+    /* process incoming msgs */
     while (1) {
         static uint8_t msg[TZIOC_MSG_SIZE_MAX];
         struct tzioc_msg_hdr *pHdr = (struct tzioc_msg_hdr *)msg;
@@ -557,6 +567,39 @@ static void tzioc_proc(struct work_struct *work)
         }
     }
 }
+
+#if CPUTIME_ACCOUNTING
+static void tzioc_cputime_account(void)
+{
+    static uint64_t tzUsecsPrev = 0;
+    uint64_t tzUsecsCurr = tdev->psmem->ullTzUsecs;
+
+    if (tzUsecsPrev) {
+        static uint32_t tzUsecsWin[CPUTIME_WINDOW_SIZE];
+        static uint32_t tzUsecsSum = 0;
+        static int32_t  tzUsecsRem = 0;
+        static int idx = 0;
+        uint32_t tzCputime;
+
+        tzUsecsSum -= tzUsecsWin[idx];
+        tzUsecsWin[idx] = tzUsecsCurr - tzUsecsPrev;
+        tzUsecsSum += tzUsecsWin[idx];
+        if (++idx == CPUTIME_WINDOW_SIZE) idx = 0;
+
+        /* remaining usecs may be negative due to cputime round-up */
+        tzUsecsRem += tzUsecsSum / CPUTIME_WINDOW_SIZE;
+        tzCputime = (tzUsecsRem > 0) ? usecs_to_cputime(tzUsecsRem) : 0;
+        tzUsecsRem -= cputime_to_usecs(tzCputime);
+
+        if (tzCputime) {
+            LOGE("#=%x c=%x", idx, tzCputime);
+            account_steal_time(tzCputime);
+        }
+    }
+
+    tzUsecsPrev = tzUsecsCurr;
+}
+#endif
 
 static int tzioc_sys_msg_proc(struct tzioc_msg_hdr *pHdr)
 {

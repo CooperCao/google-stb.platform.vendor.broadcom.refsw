@@ -395,7 +395,7 @@ CFLAGS +=-marm -march=armv7-a
 endif
 
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-CFLAGS += -march=armv8-a
+CFLAGS += -march=armv8-a -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 endif
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##

@@ -78,7 +78,7 @@ void BBOX_P_Vdc_SetBox4DisplayCapabilities
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, HD,      Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
-    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1, 576p_50Hz, 576p_50Hz,       0,       Disregard, Disregard, Class0);
+    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1, 576p_50Hz, 576p_50Hz,       0,       Disregard, Disregard, Class1);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video0, INVALID, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Gfx0,   INVALID, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 }

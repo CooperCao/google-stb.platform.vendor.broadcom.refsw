@@ -110,7 +110,8 @@ static const char * dynrngStrings[] =
     "SDR",
     "HLG",
     "HDR10",
-    "DOVI",
+    "DBV",
+    "TCH",
     "DISABLED",
     "UNKNOWN",
     "UNSUPPORTED",
@@ -143,7 +144,7 @@ PlatformDynamicRange platform_get_dynamic_range_from_path(const char * path)
     }
 }
 
-void platform_p_dynamic_range_to_nexus(PlatformDynamicRange dynrng, NEXUS_VideoEotf * pEotf, NEXUS_HdmiOutputDolbyVisionMode * pDolbyVision)
+void platform_p_output_dynamic_range_to_nexus(PlatformDynamicRange dynrng, NEXUS_VideoEotf * pEotf, NEXUS_HdmiOutputDolbyVisionMode * pDolbyVision)
 {
     *pDolbyVision = NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
 
@@ -174,7 +175,48 @@ void platform_p_dynamic_range_to_nexus(PlatformDynamicRange dynrng, NEXUS_VideoE
     }
 }
 
-PlatformDynamicRange platform_p_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf, NEXUS_HdmiOutputDolbyVisionMode dolbyVision)
+PlatformDynamicRange platform_p_input_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf, NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType)
+{
+    PlatformDynamicRange dynrng;
+
+    switch (dynamicMetadataType)
+    {
+        case NEXUS_VideoDecoderDynamicRangeMetadataType_eDolbyVision:
+            dynrng = PlatformDynamicRange_eDolbyVision;
+            break;
+        case NEXUS_VideoDecoderDynamicRangeMetadataType_eTechnicolorPrime:
+            dynrng = PlatformDynamicRange_eTechnicolorPrime;
+            break;
+        default:
+        case NEXUS_VideoDecoderDynamicRangeMetadataType_eNone:
+            switch (nxEotf)
+            {
+                case NEXUS_VideoEotf_eSdr:
+                    dynrng = PlatformDynamicRange_eSdr;
+                    break;
+                case NEXUS_VideoEotf_eHlg:
+                    dynrng = PlatformDynamicRange_eHlg;
+                    break;
+                case NEXUS_VideoEotf_eHdr10:
+                    dynrng = PlatformDynamicRange_eHdr10;
+                    break;
+                case NEXUS_VideoEotf_eInvalid:
+                    dynrng = PlatformDynamicRange_eInvalid;
+                    break;
+                case NEXUS_VideoEotf_eMax:
+                    dynrng = PlatformDynamicRange_eAuto;
+                    break;
+                default:
+                    dynrng = PlatformDynamicRange_eUnknown;
+                    break;
+            }
+            break;
+    }
+
+    return dynrng;
+}
+
+PlatformDynamicRange platform_p_output_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf, NEXUS_HdmiOutputDolbyVisionMode dolbyVision)
 {
     PlatformDynamicRange dynrng;
 

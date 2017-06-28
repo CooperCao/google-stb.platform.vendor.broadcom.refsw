@@ -378,6 +378,7 @@ void BVDC_P_Display_Init
     hDisplay->stNewInfo.bEnableHdmi = false;
     hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf = BAVC_HDMI_DRM_EOTF_eSDR;
     hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorComponent = BAVC_Colorspace_eYCbCr444;
+    hDisplay->stNewInfo.stHdmiSettings.stSettings.bBlendInIpt = true;
     BVDC_P_Display_InitDviCfc(hDisplay);
 
     /* Default Dvo CSC */

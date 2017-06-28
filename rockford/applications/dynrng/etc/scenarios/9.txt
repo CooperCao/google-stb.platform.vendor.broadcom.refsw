@@ -2,7 +2,6 @@ stream[0]=World_HDR_HD_VP9.webm
 stream[1]=Geostorm_SDR_AVC.mp4
 stream[2]=Guardians_SDR_HD_AVC.mp4
 stream[3]=Underdog_HDR_HD_VP9.webm
-dynrng=hdr10
 plm.vid=0
 plm.gfx=2
 image=Avatar.bmp

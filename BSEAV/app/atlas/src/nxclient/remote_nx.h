@@ -62,6 +62,7 @@ public:
     virtual eRet              open(CWidgetEngine * pWidgetEngine);
     virtual void              close(void);
     virtual eRet              getEvent(CRemoteEvent * pEvent);
+    virtual void              flushEvents(void);
     virtual eRet              setMode(NEXUS_IrInputMode mode);
     virtual NEXUS_IrInputMode getMode(void);
     virtual void              dump();

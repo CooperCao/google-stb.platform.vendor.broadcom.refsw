@@ -1158,12 +1158,18 @@ eDynamicRange CSimpleVideoDecode::getDynamicRange(void)
     ret = getStreamInfo(&streamInfo);
     CHECK_ERROR_GOTO("unable to get video decoder stream info", ret, error);
 
-    if (true == streamInfo.dolbyVision)
+    switch (streamInfo.dynamicMetadataType)
     {
+    case NEXUS_VideoDecoderDynamicRangeMetadataType_eDolbyVision:
         dynamicRange = eDynamicRange_DolbyVision;
-    }
-    else
-    {
+        break;
+
+    case NEXUS_VideoDecoderDynamicRangeMetadataType_eTechnicolorPrime:
+        dynamicRange = eDynamicRange_TechnicolorPrime;
+        break;
+
+    default:
+    case NEXUS_VideoDecoderDynamicRangeMetadataType_eNone:
         switch(streamInfo.eotf)
         {
         case NEXUS_VideoEotf_eHdr10:
@@ -1181,6 +1187,7 @@ eDynamicRange CSimpleVideoDecode::getDynamicRange(void)
         default:
             break;
         }
+        break;
     }
 
 error:

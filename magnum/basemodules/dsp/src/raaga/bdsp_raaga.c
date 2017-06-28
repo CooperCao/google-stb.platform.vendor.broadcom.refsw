@@ -600,6 +600,7 @@ BERR_Code BDSP_Raaga_ConsumeDebugData(
     }
     else
     {
+    #if 0
 #ifdef FIREPATH_BM
         if (0 != BEMU_Client_AcquireMutex(g_hSocketMutex))
         {
@@ -614,6 +615,7 @@ BERR_Code BDSP_Raaga_ConsumeDebugData(
 #endif /* FIREPATH_BM */
 
         /*BDBG_ERR(("Target Print Data Discarded"));*/
+	#endif
     }
 
     BDBG_LEAVE(BDSP_Raaga_ConsumeDebugData);
@@ -711,6 +713,40 @@ void BDSP_Raaga_GetCodecCapabilities(BDSP_CodecCapabilities *pSetting)
             BDBG_MSG(("pSetting->dolbyMs.ddpEncode51 = %d", pSetting->dolbyMs.ddpEncode51));
             BDBG_MSG(("pSetting->dolbyMs.ddpEncode71 = %d", pSetting->dolbyMs.ddpEncode71));
             BDBG_MSG(("pSetting->dolbyMs.pcm71 = %d", pSetting->dolbyMs.pcm71));
+}
+
+#if !B_REFSW_MINIMAL
+BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+    )
+{
+    if(sizeof(BDSP_AudioTaskDatasyncSettings) != settingsBufferSize)
+    {
+        BDBG_ERR(("settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
+            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskDatasyncSettings)));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&(BDSP_sDefaultFrameSyncTsmSettings.sFrameSyncConfigParams),settingsBufferSize);
+
+    return BERR_SUCCESS;
+}
+#endif /*!B_REFSW_MINIMAL*/
+
+BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+    )
+{
+    if(sizeof(BDSP_AudioTaskTsmSettings) != settingsBufferSize)
+    {
+        BDBG_ERR(("settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
+            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskTsmSettings)));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&(BDSP_sDefaultFrameSyncTsmSettings.sTsmConfigParams),settingsBufferSize);
+
+    return BERR_SUCCESS;
 }
 
 #if (BCHP_CHIP ==7278)

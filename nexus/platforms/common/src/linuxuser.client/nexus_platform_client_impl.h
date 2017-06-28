@@ -52,4 +52,23 @@ void NEXUS_P_Client_Uninit( NEXUS_P_ClientHandle client );
 NEXUS_P_ClientModuleHandle NEXUS_P_Client_InitModule( NEXUS_P_ClientHandle client, unsigned module_id, unsigned data_size );
 void NEXUS_P_Client_UninitModule( NEXUS_P_ClientModuleHandle module );
 
+struct NEXUS_Platform_P_State
+{
+    NEXUS_ModuleHandle module;
+    int mem_fd;
+    int uncached_mem_fd;
+    int fake_mem_fd;
+    struct {
+        NEXUS_HeapHandle heap;
+        void *addr;
+        void *uncached_addr;
+        unsigned long length;
+        bool dynamic;
+        NEXUS_AddrType memoryMapType;
+    } mmaps[NEXUS_MAX_HEAPS];
+    bool init;
+} NEXUS_Platform_P_State;
+
+#define NEXUS_MODULE_SELF NEXUS_Platform_P_State.module
+
 #endif

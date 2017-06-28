@@ -26,8 +26,8 @@
 
 #if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))
 /* 20694 register dumping and initialization tables */
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 const radio_20xx_dumpregs_t dumpregs_20694_rev5[] = {
 	{ RF0_20694_REV_ID(5)},
 	{ RF0_20694_DEV_ID(5)},
@@ -1862,7 +1862,7 @@ const radio_20xx_dumpregs_t dumpregs_20694_rev36[] = {
 	{ RFP1_20694_RCCAL_CFG6(36)},
 	{ 0xFFFF,               }
 };
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 const chan_info_radio20694_t chan_tune_20694_rev361[] = {
 	{183, 0x0, 0x1f, 0x9, 0xf, 0xf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 4915},

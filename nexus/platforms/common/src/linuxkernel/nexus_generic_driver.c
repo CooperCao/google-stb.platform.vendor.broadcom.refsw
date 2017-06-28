@@ -1120,10 +1120,10 @@ nexus_driver_process_cleanup_queue_lock(void)
 {
     struct nexus_driver_client_state *client;
     unsigned i;
-    NEXUS_PlatformStandbySettings nexusStandbySettings;
+    NEXUS_StandbySettings nexusStandbySettings;
 
     NEXUS_Platform_GetStandbySettings(&nexusStandbySettings);
-    if(nexusStandbySettings.mode != NEXUS_PlatformStandbyMode_eOn) {
+    if(nexusStandbySettings.mode != NEXUS_StandbyMode_eOn) {
         BDBG_MSG(("Standby mode %u. Defer cleanup!", nexusStandbySettings.mode));
         return;
     }

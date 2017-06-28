@@ -49,9 +49,24 @@ typedef enum eDynamicRange
     eDynamicRange_HDR10,
     eDynamicRange_HLG,
     eDynamicRange_DolbyVision,
+    eDynamicRange_TechnicolorPrime,
     eDynamicRange_Unknown,
     eDynamicRange_Max
 } eDynamicRange;
+
+class CPlmDataVideo
+{
+public:
+	CPlmDataVideo(
+		const eWindowType videoWin,
+		const bool        bEnable) :
+	_videoWin(videoWin),
+	_bEnable(bEnable)
+	{}
+public:
+	eWindowType _videoWin;
+	bool        _bEnable;
+};
 
 #ifdef __cplusplus
 }

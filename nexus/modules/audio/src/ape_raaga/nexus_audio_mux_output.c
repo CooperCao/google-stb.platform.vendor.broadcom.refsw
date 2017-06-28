@@ -285,6 +285,7 @@ err_itb_alloc:
 err_cdb_alloc:
 #endif
 
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioOutput, &handle->connector, Close);
     NEXUS_OBJECT_DESTROY(NEXUS_AudioMuxOutput, handle);
     BKNI_Free(handle);
 err_malloc:

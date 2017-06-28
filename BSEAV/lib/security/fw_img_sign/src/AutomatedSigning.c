@@ -702,7 +702,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -828,7 +828,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1024,7 +1024,7 @@ unsigned int LittleEndianInput = 1;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1125,7 +1125,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1203,7 +1203,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1320,7 +1320,7 @@ int i;
             }
                 else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1449,7 +1449,7 @@ int i;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1525,7 +1525,7 @@ int i;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1601,7 +1601,7 @@ int i;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1677,7 +1677,7 @@ int i;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1750,7 +1750,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1822,7 +1822,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1908,7 +1908,7 @@ int i;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -1964,7 +1964,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -2028,7 +2028,7 @@ int ParamCount = 0;
             }
             else
             {
-                printf ("WARNING: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
+                printf ("INFO: Unknown Command Parameter: [%s]. Parameter Ignored...\n", SubToken);
             }
 
         }
@@ -2190,7 +2190,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            printf ("WARNING: Unknown Command: [%s]...\n\n", Token);
+            printf ("INFO: Unknown Command: [%s]...\n\n", Token);
         }
         //printf("Parameter[0] = %s\n", parameters[0]);
         //sscanf(scratch,"%s", parameters[0]);

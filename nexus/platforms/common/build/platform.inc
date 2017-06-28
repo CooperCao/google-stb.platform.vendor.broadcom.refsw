@@ -122,6 +122,7 @@ endif
 
 NEXUS_PLATFORM_LOCAL_SOURCES += \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_local.c \
+    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_standby_local.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_version.c
 
 ifeq ($(NEXUS_SYSTEM_CABLE),y)
@@ -292,7 +293,6 @@ endif
 endif
 
 NEXUS_PLATFORM_LOCAL_SOURCES += \
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_standby_local.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_thermal_local.c
 endif
 

@@ -1586,15 +1586,7 @@ static void BVDC_P_Compositor_BuildRul_isr
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_CMP_0_BG_COLOR - BCHP_CMP_0_CANVAS_SIZE) / sizeof(uint32_t)) + 1);
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CMP_0_CANVAS_SIZE + hCompositor->ulRegOffset);
     *pList->pulCurrent++ = BVDC_P_CMP_OFFSET_GET_REG_DATA(CMP_0_CANVAS_SIZE, 0);
-    *pList->pulCurrent++ = ((BVDC_P_NEED_BLEND_MATRIX(hCompositor))
-#if BVDC_P_DBV_SUPPORT /* DBV in or out would NOT make CMP bg_color as RGB either */
-        && !BVDC_P_CMP_OUTPUT_IPT(hCompositor)
-#endif
-        ) ?
-        (BCHP_FIELD_DATA(CMP_0_BG_COLOR, Y,  hCompositor->stCurInfo.ucRed)   |
-         BCHP_FIELD_DATA(CMP_0_BG_COLOR, CB, hCompositor->stCurInfo.ucGreen) |
-         BCHP_FIELD_DATA(CMP_0_BG_COLOR, CR, hCompositor->stCurInfo.ucBlue)) :
-        BVDC_P_CMP_OFFSET_GET_REG_DATA(CMP_0_BG_COLOR, 0);
+    *pList->pulCurrent++ = BVDC_P_CMP_OFFSET_GET_REG_DATA(CMP_0_BG_COLOR, 0);
 
     BVDC_P_CMP_WRITE_TO_RUL(CMP_0_BLEND_0_CTRL, pList->pulCurrent);
 

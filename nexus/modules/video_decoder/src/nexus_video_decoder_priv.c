@@ -293,9 +293,21 @@ NEXUS_VideoDecoder_P_DataReady_Generic_Prologue_isr(NEXUS_VideoDecoderHandle vid
         }
 
         {
-            bool dolbyVision = (pFieldData->stHdrMetadata.eType == BAVC_HdrMetadataType_eDrpu);
-            if (videoDecoder->streamInfo.dolbyVision != dolbyVision) {
-                videoDecoder->streamInfo.dolbyVision = dolbyVision;
+            NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType = NEXUS_VideoDecoderDynamicRangeMetadataType_eNone;
+            switch (pFieldData->stHdrMetadata.eType)
+            {
+                case BAVC_HdrMetadataType_eDrpu:
+                    dynamicMetadataType = NEXUS_VideoDecoderDynamicRangeMetadataType_eDolbyVision;
+                    break;
+                case BAVC_HdrMetadataType_eTch_Cri:
+                case BAVC_HdrMetadataType_eTch_Cvri:
+                    dynamicMetadataType = NEXUS_VideoDecoderDynamicRangeMetadataType_eTechnicolorPrime;
+                    break;
+                default:
+                    break;
+            }
+            if (videoDecoder->dynamicMetadataType != dynamicMetadataType) {
+                videoDecoder->dynamicMetadataType = dynamicMetadataType;
                 NEXUS_IsrCallback_Fire_isr(videoDecoder->streamChangedCallback);
                 NEXUS_IsrCallback_Fire_isr(videoDecoder->private.streamChangedCallback);
             }
@@ -715,7 +727,7 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
     streamInfo->transferCharacteristics = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(info->eTransferCharacteristics);
     streamInfo->matrixCoefficients = NEXUS_P_MatrixCoefficients_FromMagnum_isrsafe(info->eMatrixCoefficients);
 
-    /* HDR stuff */
+    /* dynrng stuff */
     /* grab preferred xfer chars */
     streamInfo->preferredTransferCharacteristics = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(info->ePreferredTransferCharacteristics);
     /* convert xfer chars + preferred xfer chars to EOTF */

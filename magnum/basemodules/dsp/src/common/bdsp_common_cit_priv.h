@@ -52,7 +52,7 @@
 /* STATIC MEMORY ALLOCATION FOR A TASK */
 
 #if (BCHP_CHIP == 7278)
-#define BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES        ((uint32_t)(32000)) /* Task Swap Buffer size in bytes */
+#define BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES        ((uint32_t)(32*1024)) /* Task Swap Buffer size in bytes */
 #else
 #define BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES        ((uint32_t)(2048*4)) /* Task Swap Buffer size in bytes */
 #endif /* (BCHP_CHIP == 7278) */

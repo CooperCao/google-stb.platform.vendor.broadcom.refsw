@@ -631,10 +631,13 @@ bool WidevineDecryptor::ReadDeviceCertificate()
         }
     }
 
+    m_certificate.clear();
     char* buffer = (char*)malloc(buf.st_size);
     size_t len = fread(buffer, sizeof(char), buf.st_size, m_file);
     if (len == 0) {
         LOGW(("%s: fread failed(%d): %s", __FUNCTION__, errno, m_certFilePath.c_str()));
+    } else if (len != buf.st_size) {
+        LOGW(("%s: fread incomplete (%d/%lld): %s", __FUNCTION__, len, buf.st_size, m_certFilePath.c_str()));
     } else {
         m_certificate.assign(buffer, len);
     }
