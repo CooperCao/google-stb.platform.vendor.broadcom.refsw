@@ -306,13 +306,6 @@ static const UNSIZED_INTERNALFORMAT_LFMT_T unsized_internalformat_to_lfmt_map[] 
 #if GL_EXT_texture_format_BGRA8888
    { GL_BGRA_EXT,            GFX_LFMT_B8_G8_R8_A8_UNORM },
 #endif
-
-   /*
-   * OES_packed_depth_stencil:
-   * DEPTH_STENCIL_OES Accepted by the <format> parameter of TexImage2D and TexSubImage2D and by the
-   <internalformat> parameter of TexImage2D:
-   */
-   { GL_DEPTH_STENCIL,       GFX_LFMT_S8D24_UINT_UNORM },
 };
 
 /* return GFX_LFMT_NONE if not a sized internalformat. */
@@ -415,7 +408,6 @@ bool gfx_gl_is_unsized_internalformat(GLenum internalformat)
 #if GL_EXT_texture_format_BGRA8888
    case GL_BGRA_EXT:
 #endif
-   case GL_DEPTH_STENCIL:  /* OES_packed_depth_stencil */
       return true;
    default:
       return false;
@@ -643,13 +635,6 @@ static const FORMAT_TYPE_INTERNALFORMAT_T valid_format_type_internalformat_combi
 #if GL_EXT_texture_format_BGRA8888
    { GL_BGRA_EXT,         GL_UNSIGNED_BYTE,                   GL_BGRA_EXT},
 #endif
-
-   /*
-    * OES_packed_depth_stencil:
-    * DEPTH_STENCIL_OES Accepted by the <format> parameter of TexImage2D and TexSubImage2D and by the
-       <internalformat> parameter of TexImage2D:
-    */
-   { GL_DEPTH_STENCIL,    GL_UNSIGNED_INT_24_8,               GL_DEPTH_STENCIL},
 
    /* OES_texture_stencil8 */
    { GL_STENCIL_INDEX,    GL_UNSIGNED_BYTE,                   GL_STENCIL_INDEX8},
