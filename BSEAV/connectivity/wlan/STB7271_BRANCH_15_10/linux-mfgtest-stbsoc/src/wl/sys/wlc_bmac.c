@@ -10032,7 +10032,7 @@ BCMINITFN(wlc_coreinit)(wlc_hw_info_t *wlc_hw)
 
 	/* Shmem pm_dur is reset by ucode as part of auto-init, hence call wlc_reset_accum_pmdur */
 	wlc_reset_accum_pmdur(wlc);
-	WL_ERROR(("wl%d: CORE INIT : mode %d pktclassify %d rxsplit %d  hdr conversion %d"
+	WL_TRACE(("wl%d: CORE INIT : mode %d pktclassify %d rxsplit %d  hdr conversion %d"
 		" DMA_CT %s\n", wlc_hw->unit, BCMSPLITRX_MODE(), PKT_CLASSIFY(), RXFIFO_SPLIT(),
 		wlc_hw->hdrconv_mode, wlc->_dma_ct ? "Enabled":"Disabled"));
 
@@ -13148,7 +13148,11 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 			morepending = TRUE;
 	}
 
-	if (wlc->active_queue != NULL && WLC_TXQ_OCCUPIED(wlc)) {
+	if (wlc->active_queue != NULL && WLC_TXQ_OCCUPIED(wlc)
+#ifdef WL_BIDIRECTIONAL_TPUT
+		&& (WLC_TXQ_TOT_PKTS(wlc) > 9)
+#endif
+		) {
 		WLDURATION_ENTER(wlc, DUR_DPC_TXSTATUS_SENDQ);
 		wlc_send_q(wlc, wlc->active_queue);
 		WLDURATION_EXIT(wlc, DUR_DPC_TXSTATUS_SENDQ);

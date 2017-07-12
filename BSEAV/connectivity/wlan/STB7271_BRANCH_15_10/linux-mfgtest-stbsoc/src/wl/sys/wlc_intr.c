@@ -447,7 +447,11 @@ wlc_dpc(wlc_info_t *wlc, bool bounded, wlc_dpc_info_t *dpc)
 #endif /* WLC_TXPWRCAP */
 
 	/* send any enq'd tx packets. Just makes sure to jump start tx */
-	if (WLC_TXQ_OCCUPIED(wlc)) {
+	if (WLC_TXQ_OCCUPIED(wlc)
+#ifdef WL_BIDIRECTIONAL_TPUT
+		&& (WLC_TXQ_TOT_PKTS(wlc) > 9)
+#endif
+		) {
 		wlc_send_q(wlc, wlc->active_queue);
 	}
 

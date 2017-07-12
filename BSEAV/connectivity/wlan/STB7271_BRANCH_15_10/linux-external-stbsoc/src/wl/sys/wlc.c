@@ -18114,7 +18114,7 @@ wlc_enable_probe_req(wlc_info_t *wlc, uint32 mask, uint32 val)
 	wlc->prb_req_enable_mask = (wlc->prb_req_enable_mask & ~mask) | (val & mask);
 
 	if (!wlc->pub->up) {
-		WL_ERROR(("wl%d: %s: state down, deferring setting of host flags\n",
+		WL_TRACE(("wl%d: %s: state down, deferring setting of host flags\n",
 			wlc->pub->unit, __FUNCTION__));
 		return;
 	}

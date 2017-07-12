@@ -6270,7 +6270,7 @@ wlc_phy_set_regtbl_on_bw_change_acphy(phy_info_t *pi)
 		if (CHSPEC_IS20(pi->radio_chanspec))
 			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 7);
 		else
-			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 3);
+			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 5);
 	}
 
 	if (pi->phy_pay_decode_war) {

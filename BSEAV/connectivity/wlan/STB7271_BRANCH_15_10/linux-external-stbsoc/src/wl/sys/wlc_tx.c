@@ -817,6 +817,20 @@ wlc_low_txq_empty(txq_t *txq)
 	return TRUE;
 }
 
+#ifdef WL_BIDIRECTIONAL_TPUT
+uint BCMFASTPATH
+wlc_low_txq_pkts(txq_t *txq)
+{
+	uint i;
+	uint count=0;
+	ASSERT(txq);
+
+	for (i = 0; i < txq->nfifo; i++) {
+		count += spktq_n_pkts(&txq->swq[i]);
+	}
+	return count;
+}
+#endif
 int
 wlc_txq_buffered_time(txq_t *txq, uint fifo_idx)
 {

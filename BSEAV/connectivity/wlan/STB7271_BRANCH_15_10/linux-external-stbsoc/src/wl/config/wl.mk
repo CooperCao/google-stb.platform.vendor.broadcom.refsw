@@ -1570,6 +1570,10 @@ ifeq ($(WOWL),1)
 endif
 #endif
 
+ifeq ($(WL_BIDIRECTIONAL_TPUT),1)
+       WLFLAGS += -DWL_BIDIRECTIONAL_TPUT
+endif
+
 # ucode in rom
 ifeq ($(UCODE_IN_ROM),1)
 		WLFLAGS += -DUCODE_IN_ROM_SUPPORT
@@ -2920,6 +2924,10 @@ endif
 # support RADIO BCM20696
 ifeq ($(RADIO_BCM20696),1)
 	WLFLAGS += -DRADIO_BCM20696
+endif
+
+ifeq ($(TEMPSENSE),1)
+	WLFLAGS += -DBCMDBG_TEMPSENSE
 endif
 
 # STB integrated wlan
