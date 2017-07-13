@@ -65,6 +65,18 @@ NEXUS_Sage_WaitSage_priv(void)
     return NEXUS_NOT_AVAILABLE;
 }
 
+void * NEXUS_Sage_Malloc_priv(size_t size)
+{
+    NEXUS_ASSERT_MODULE();
+    return NEXUS_Sage_P_Malloc(size);
+}
+
+void * NEXUS_Sage_MallocRestricted_priv(size_t size)
+{
+    NEXUS_ASSERT_MODULE();
+    return NEXUS_Sage_P_MallocRestricted(size);
+}
+
 #if NEXUS_POWER_MANAGEMENT
 
 /* The following is only used if Power Management is enabled */

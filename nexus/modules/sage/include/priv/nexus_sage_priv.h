@@ -60,6 +60,10 @@ prior the NEXUS_Sage_*_priv() call and NEXUS_Unlock_Module(sageModuleHandle) aft
 void NEXUS_Sage_GetSageLib_priv(BSAGElib_Handle *pSAGElibHandle);
 NEXUS_Error NEXUS_Sage_WaitSage_priv(void);
 
+/* allocate memory with SAGE constrains */
+void * NEXUS_Sage_Malloc_priv(size_t size);
+void * NEXUS_Sage_MallocRestricted_priv(size_t size);
+
 NEXUS_Error NEXUS_Sage_AddWatchdogEvent_priv(BKNI_EventHandle event);
 void NEXUS_Sage_RemoveWatchdogEvent_priv(BKNI_EventHandle event);
 

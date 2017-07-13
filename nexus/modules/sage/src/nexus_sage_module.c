@@ -100,7 +100,7 @@ static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(NEXUS_Addr offset, uint32
 static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void);
 static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void);
 static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int clear);
-static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(NEXUS_SageMemoryBlock *block, size_t size, NEXUS_MemoryAllocationSettings *allocSettings);
+static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(NEXUS_SageMemoryBlock *block, size_t size);
 static void NEXUS_Sage_P_CleanBootVars(void);
 static void NEXUS_Sage_P_MonitorBoot(void);
 
@@ -482,14 +482,14 @@ static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int
 /* Allocate a memory block using alloc settings. */
 static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(
     NEXUS_SageMemoryBlock *block,
-    size_t size,
-    NEXUS_MemoryAllocationSettings *allocSettings)
+    size_t size)
 {
-    NEXUS_Error rc;
+    NEXUS_Error rc = BERR_SUCCESS;
     void *pMem;
 
-    rc = NEXUS_Memory_Allocate(size, allocSettings, &pMem);
-    if (rc != NEXUS_SUCCESS) {
+    pMem = NEXUS_Sage_P_Malloc(size);
+    if (pMem == NULL) {
+        rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
         BDBG_ERR(("%s - Error, allocating (%u bytes)",
                   __FUNCTION__, (unsigned)size));
         goto err;
@@ -1076,7 +1076,7 @@ NEXUS_Error NEXUS_SageModule_P_Load(
 
             BDBG_MSG(("alloc '%s' %u bytes", holder->name, alloc_size));
             /* TODO: use nexus_sage_util functions for alloc */
-            rc = NEXUS_SageModule_P_MemoryBlockAllocate(holder->raw, alloc_size/* PADD CHEAT */, NULL);
+            rc = NEXUS_SageModule_P_MemoryBlockAllocate(holder->raw, alloc_size/* PADD CHEAT */);
             if(rc != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s - Error allocating %u bytes memory for '%s' buffer",
                           __FUNCTION__, *size, holder->name));
