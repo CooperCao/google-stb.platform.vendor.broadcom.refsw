@@ -2968,6 +2968,8 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 
 	max_lesi_desense = phy_ac_rxgcrs_get_lesi(pi_ac->rxgcrsi) ? ACPHY_ACI_MAX_LESI_DESENSE_DB : 0;
 
+	if (wlc_phy_is_scan_chan_acphy(pi)) return;
+
 	if (pi_ac->noisei->aci == NULL) {
 		pi_ac->noisei->aci = wlc_phy_desense_aci_getset_chanidx_acphy(pi,
 			pi->radio_chanspec, TRUE);
@@ -3595,6 +3597,8 @@ phy_ac_noise_hwaci_mitigation(phy_ac_noise_info_t *ni, int8 desense_state)
 	acphy_hwaci_state_t  *hwaci_states = (band == 2) ? ni->hwaci_states_2g :
 	        ni->hwaci_states_5g;
 
+	if (wlc_phy_is_scan_chan_acphy(pi)) return;
+
 	/* Get current channels ACI structure */
 	if (ni->aci == NULL) {
 		ni->aci = wlc_phy_desense_aci_getset_chanidx_acphy(pi, pi->radio_chanspec, TRUE);
@@ -3674,6 +3678,8 @@ wlc_phy_hwaci_engine_acphy(phy_info_t *pi)
 	        (CHSPEC_IS40(pi->radio_chanspec) ? 1 : 2);
 
 	ASSERT(!ACPHY_ENABLE_FCBS_HWACI(pi));
+
+	if (wlc_phy_is_scan_chan_acphy(pi)) return;
 
 	hwaci = (pi->sh->interference_mode & ACPHY_ACI_HWACI_PKTGAINLMT) != 0;
 	w2aci = (pi->sh->interference_mode & ACPHY_ACI_W2NB_PKTGAINLMT) != 0;
@@ -4917,7 +4923,7 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 				/* fill register value for 4 cores	*/
 				if (CHSPEC_IS5G(pi->radio_chanspec)) {
 					/* 5G ofdm_nominal_clip_th & ofdm_low_power_mismatch_th */
-					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th0, 0x2200);
+					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th0, 0x4000);
 					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_low_power_mismatch_th0, 25)
 				} else {
 					/* 2G ofdm_nominal_clip_th & ofdm_low_power_mismatch_th */

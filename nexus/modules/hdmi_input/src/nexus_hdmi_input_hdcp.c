@@ -701,8 +701,12 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
 
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
     BDBG_LOG(("%s: allocate %u bytes for HDCP_TA buffer", __FUNCTION__, (unsigned)length));
-    rc = NEXUS_Memory_Allocate((uint32_t) length, NULL, &g_hdmiInputTABlock.buf);
-    if(rc != NEXUS_SUCCESS) {
+    /* use SAGE allocator */
+    LOCK_SAGE();
+    g_hdmiInputTABlock.buf = NEXUS_Sage_Malloc_priv(length);
+    UNLOCK_SAGE();
+    if (g_hdmiInputTABlock.buf == NULL) {
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
         BDBG_ERR(("%s - Error allocating %u bytes memory for HDCP22_TA buffer",
                   __FUNCTION__, (unsigned)length));
         BERR_TRACE(rc);

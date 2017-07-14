@@ -208,6 +208,7 @@ void NEXUS_HdmiOutputModule_Uninit(void)
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     if (g_hdcpTABlock.buf != NULL)
     {
+        /* memory allocated using NEXUS_Sage_Malloc_priv() can be freed by NEXUS_Memory_Free() */
         NEXUS_Memory_Free(g_hdcpTABlock.buf);
         g_hdcpTABlock.buf = NULL;
         g_hdcpTABlock.len = 0;
@@ -291,11 +292,15 @@ static NEXUS_Error NEXUS_HdmiOutputModule_P_LoadTA(
 
         /* Allocate buffer to save data */
         {
-            uint32_t alloc_size = *size;
+            size_t alloc_size = (size_t)*size;
 
-            BDBG_MSG(("alloc '%s' %u bytes", holder->name, alloc_size));
-            rc = NEXUS_Memory_Allocate(alloc_size, NULL, &holder->raw->buf);
-            if(rc != NEXUS_SUCCESS) {
+            BDBG_MSG(("alloc '%s' %u bytes", holder->name, (uint32_t) alloc_size));
+            /* use SAGE allocator */
+            NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+            holder->raw->buf = NEXUS_Sage_Malloc_priv(alloc_size);
+            NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+            if (holder->raw->buf == NULL) {
+                rc = BERR_OUT_OF_DEVICE_MEMORY;
                 BDBG_ERR(("%s - Error allocating %u bytes memory for '%s' buffer",
                           __FUNCTION__, *size, holder->name));
                 BERR_TRACE(rc);
