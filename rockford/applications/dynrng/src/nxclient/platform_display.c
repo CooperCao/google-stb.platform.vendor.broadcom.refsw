@@ -135,7 +135,7 @@ const PlatformPictureInfo * platform_display_get_picture_info(PlatformDisplayHan
     BDBG_ASSERT(display);
     NxClient_GetDisplaySettings(&display->nxSettings);
     display->info.depth = display->nxSettings.hdmiPreferences.colorDepth;
-    display->info.dynrng = platform_p_dynamic_range_from_nexus(display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
+    display->info.dynrng = platform_p_output_dynamic_range_from_nexus(display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
             display->nxSettings.hdmiPreferences.dolbyVision.outputMode);
     display->info.gamut = platform_p_colorimetry_from_nexus(display->nxSettings.hdmiPreferences.matrixCoefficients);
     display->info.space = platform_p_color_space_from_nexus(display->nxSettings.hdmiPreferences.colorSpace);
@@ -323,7 +323,7 @@ void platform_display_set_hdmi_drm_dynamic_range(PlatformDisplayHandle display, 
     BDBG_ASSERT(display);
 
     NxClient_GetDisplaySettings(&display->nxSettings);
-    platform_p_dynamic_range_to_nexus(dynrng, &display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
+    platform_p_output_dynamic_range_to_nexus(dynrng, &display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
             &display->nxSettings.hdmiPreferences.dolbyVision.outputMode);
     platform_display_p_compute_hdmi_drm_metadata(&display->nxSettings.hdmiPreferences.drmInfoFrame);
     rc = NxClient_SetDisplaySettings(&display->nxSettings);

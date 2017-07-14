@@ -64,12 +64,12 @@ BDBG_MODULE(nexus_platform_standby);
 
 
 #if NEXUS_POWER_MANAGEMENT
-NEXUS_PlatformStandbyState g_standbyState = {{NEXUS_PlatformStandbyMode_eOn,
-                          {false,false,false,false,false,false,false,0}, false},
+NEXUS_PlatformStandbyState g_standbyState = {{NEXUS_StandbyMode_eOn,
+                          {false,false,false,false,false,false,false,0}, false, 100},
                          false};
 #endif
 
-void NEXUS_Platform_GetStandbySettings( NEXUS_PlatformStandbySettings *pSettings )
+void NEXUS_Platform_GetStandbySettings( NEXUS_StandbySettings *pSettings )
 {
 #if NEXUS_POWER_MANAGEMENT
    *pSettings = g_standbyState.settings;
@@ -87,7 +87,7 @@ void NEXUS_Platform_GetStandbySettings( NEXUS_PlatformStandbySettings *pSettings
 #define BCHP(val)   BCHP_PM_L2_CPU_##val
 #endif
 
-static void NEXUS_Platform_P_ResetWakeupDevices(const NEXUS_PlatformStandbySettings *pSettings)
+static void NEXUS_Platform_P_ResetWakeupDevices(const NEXUS_StandbySettings *pSettings)
 {
     BSTD_UNUSED(pSettings);
 
@@ -95,7 +95,7 @@ static void NEXUS_Platform_P_ResetWakeupDevices(const NEXUS_PlatformStandbySetti
     BREG_Write32(g_pCoreHandles->reg, BCHP(CLEAR), 0xFFFFFFFF);
 }
 
-static void NEXUS_Platform_P_SetWakeupDevices(const NEXUS_PlatformStandbySettings *pSettings)
+static void NEXUS_Platform_P_SetWakeupDevices(const NEXUS_StandbySettings *pSettings)
 {
     unsigned val;
 
@@ -217,19 +217,15 @@ static void NEXUS_Platform_P_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStat
 }
 #endif /* NEXUS_CPU_ARM */
 
-static NEXUS_Error NEXUS_Platform_P_Standby(const NEXUS_PlatformStandbySettings *pSettings)
+static NEXUS_Error NEXUS_Platform_P_Standby(const NEXUS_StandbySettings *pSettings)
 {
     NEXUS_Error errCode = NEXUS_SUCCESS;
     NEXUS_Platform_P_ModuleInfo *module_info;
-    NEXUS_StandbySettings standby_settings;
-
-    BDBG_CASSERT(sizeof(standby_settings) == sizeof(*pSettings));
-    BKNI_Memcpy(&standby_settings, pSettings, sizeof(*pSettings));
 
     for (module_info = BLST_Q_FIRST(&g_NEXUS_platformHandles.handles); module_info; module_info = BLST_Q_NEXT(module_info, link)) {
         bool power_down=true, lock=true;
 
-        if (pSettings->mode == NEXUS_PlatformStandbyMode_eActive && module_info->lock_mode == NEXUS_PlatformStandbyLockMode_ePassiveOnly) {
+        if (pSettings->mode == NEXUS_StandbyMode_eActive && module_info->lock_mode == NEXUS_PlatformStandbyLockMode_ePassiveOnly) {
             power_down = lock = false;
         }
         if (module_info->lock_mode == NEXUS_PlatformStandbyLockMode_eNone) {
@@ -247,13 +243,13 @@ static NEXUS_Error NEXUS_Platform_P_Standby(const NEXUS_PlatformStandbySettings 
         if (module_info->standby) {
             if (power_down && !module_info->powerdown) {
                 BDBG_MSG(("Standby module %s", NEXUS_Module_GetName(module_info->module)));
-                errCode = module_info->standby(power_down, &standby_settings);
+                errCode = module_info->standby(power_down, pSettings);
                 if (errCode) { errCode = BERR_TRACE(errCode);goto err; }
                     module_info->powerdown = true;
 	    }
 	    else if (!power_down && module_info->powerdown) {
                     BDBG_MSG(("Resume module %s", NEXUS_Module_GetName(module_info->module)));
-                    errCode = module_info->standby(power_down, &standby_settings);
+                    errCode = module_info->standby(power_down, pSettings);
                     if (errCode) { errCode = BERR_TRACE(errCode);goto err; }
                     module_info->powerdown = false;
 	    }
@@ -269,19 +265,15 @@ err:
     return errCode;
 }
 
-static NEXUS_Error NEXUS_Platform_P_Resume(const NEXUS_PlatformStandbySettings *pSettings)
+static NEXUS_Error NEXUS_Platform_P_Resume(const NEXUS_StandbySettings *pSettings)
 {
     NEXUS_Error errCode = NEXUS_SUCCESS;
     NEXUS_Platform_P_ModuleInfo *module_info;
-    NEXUS_StandbySettings standby_settings;
-
-    BDBG_CASSERT(sizeof(standby_settings) == sizeof(*pSettings));
-    BKNI_Memcpy(&standby_settings, pSettings, sizeof(*pSettings));
 
     for (module_info = BLST_Q_LAST(&g_NEXUS_platformHandles.handles); module_info; module_info = BLST_Q_PREV(module_info, link)) {
         if (module_info->standby && module_info->powerdown) {
             BDBG_MSG(("Resume module %s", NEXUS_Module_GetName(module_info->module)));
-            errCode = module_info->standby(false, &standby_settings);
+            errCode = module_info->standby(false, pSettings);
             if (errCode) { errCode=BERR_TRACE(errCode);goto err; }
             module_info->powerdown = false;
         }
@@ -297,12 +289,23 @@ err:
 }
 #endif /* NEXUS_POWER_MANAGEMENT */
 
-NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySettings *pSettings, bool resetWakeupStatus )
+NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_StandbySettings *pSettings, bool resetWakeupStatus )
 {
 #if NEXUS_POWER_MANAGEMENT
     NEXUS_Error errCode = NEXUS_SUCCESS;
+    NEXUS_Platform_P_SchedulersSet activate;
+    NEXUS_Platform_P_SchedulersSet deactivated;
 
     BDBG_ASSERT(pSettings);
+
+    /* stop schedulers that should not run at this standby level */
+    errCode = NEXUS_Platform_P_DeactivateSchedulers(pSettings->mode, pSettings->timeout, &deactivated);
+    if(errCode!=NEXUS_SUCCESS) { errCode = BERR_TRACE(errCode);  goto err_scheduler;}
+
+    /* start schedulers that should run at this standby level */
+    NEXUS_Platform_P_SchedulersSet_Init(&activate, pSettings->mode);
+    NEXUS_Platform_P_ActivateSchedulers(&activate);
+
 
     if (g_NEXUS_platformModule == NULL ) {
         return NEXUS_NOT_INITIALIZED;
@@ -311,7 +314,7 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
     BSTD_UNUSED(resetWakeupStatus);
 
 #if !NEXUS_CPU_ARM
-    if (pSettings->mode != NEXUS_PlatformStandbyMode_eOn) {
+    if (pSettings->mode != NEXUS_StandbyMode_eOn) {
         NEXUS_Platform_P_ResetWakeupDevices(pSettings);
     }
 #endif
@@ -327,12 +330,7 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
 
     BDBG_MSG(("Entering Standby mode %d", pSettings->mode));
 
-    BDBG_CASSERT(NEXUS_PlatformStandbyMode_eOn == (NEXUS_PlatformStandbyMode)NEXUS_StandbyMode_eOn);
-    BDBG_CASSERT(NEXUS_PlatformStandbyMode_eActive == (NEXUS_PlatformStandbyMode)NEXUS_StandbyMode_eActive);
-    BDBG_CASSERT(NEXUS_PlatformStandbyMode_ePassive == (NEXUS_PlatformStandbyMode)NEXUS_StandbyMode_ePassive);
-    BDBG_CASSERT(NEXUS_PlatformStandbyMode_eDeepSleep == (NEXUS_PlatformStandbyMode)NEXUS_StandbyMode_eDeepSleep);
-
-    if (g_standbyState.settings.mode == NEXUS_PlatformStandbyMode_eDeepSleep && pSettings->mode!= NEXUS_PlatformStandbyMode_eDeepSleep) {
+    if (g_standbyState.settings.mode == NEXUS_StandbyMode_eDeepSleep && pSettings->mode!= NEXUS_StandbyMode_eDeepSleep) {
         NEXUS_Platform_P_InitBoard();
         NEXUS_Platform_P_InitPinmux();
     }
@@ -342,7 +340,7 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
     if (errCode) { errCode = BERR_TRACE(errCode);goto err; }
 
     switch(pSettings->mode) {
-    case NEXUS_PlatformStandbyMode_eDeepSleep:
+    case NEXUS_StandbyMode_eDeepSleep:
 #if NEXUS_VIDEO_SECURE_HEAP
         NEXUS_Platform_P_SetStandbyExclusionRegion(NEXUS_VIDEO_SECURE_HEAP);
 #endif
@@ -351,16 +349,16 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
 #endif
         /* fall through */
 
-    case NEXUS_PlatformStandbyMode_eActive:
-    case NEXUS_PlatformStandbyMode_ePassive:
+    case NEXUS_StandbyMode_eActive:
+    case NEXUS_StandbyMode_ePassive:
         errCode = NEXUS_Platform_P_Standby(pSettings);
         if (errCode) { errCode = BERR_TRACE(errCode);goto err; }
 	break;
 
-    case NEXUS_PlatformStandbyMode_eOn:
+    case NEXUS_StandbyMode_eOn:
         break;
 
-    case NEXUS_PlatformStandbyMode_eMax:
+    case NEXUS_StandbyMode_eMax:
         BDBG_WRN(("Unknown Power State"));
         errCode = NEXUS_UNKNOWN ;
         break;
@@ -370,7 +368,7 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
 set_wakeup:
 #endif
 #if !NEXUS_CPU_ARM
-    if (pSettings->mode == NEXUS_PlatformStandbyMode_ePassive || pSettings->mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
+    if (pSettings->mode == NEXUS_StandbyMode_ePassive || pSettings->mode == NEXUS_StandbyMode_eDeepSleep) {
         NEXUS_Platform_P_SetWakeupDevices(pSettings);
     }
 #endif
@@ -380,7 +378,8 @@ err:
     /* If we fail while transtioning from On -> Standby; try to recover back to On mode
        Standby -> On mode failure is fatal and we cannot recover at this point. */
     if (errCode != NEXUS_SUCCESS) {
-        if (g_standbyState.settings.mode == NEXUS_PlatformStandbyMode_eOn) {
+        NEXUS_Platform_P_ActivateSchedulers(&deactivated); /* on failure restart schedulers that were stopped */
+        if (g_standbyState.settings.mode == NEXUS_StandbyMode_eOn) {
             NEXUS_Platform_P_Resume(&g_standbyState.settings);
         } else {
             BDBG_ERR(("*******************************************************************"));
@@ -388,6 +387,8 @@ err:
             BDBG_ERR(("*******************************************************************"));
         }
     }
+
+err_scheduler:
 
     return errCode;
 
@@ -398,7 +399,7 @@ err:
 #endif
 }
 
-NEXUS_Error NEXUS_Platform_SetStandbySettings_driver( const NEXUS_PlatformStandbySettings *pSettings )
+NEXUS_Error NEXUS_Platform_SetStandbySettings_driver( const NEXUS_StandbySettings *pSettings )
 {
 #if NEXUS_POWER_MANAGEMENT
     return NEXUS_Platform_P_SetStandbySettings(pSettings, true);
@@ -421,12 +422,12 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus_driver(NEXUS_PlatformStandbyStatus *
 
 /* These apis have been deprecated but are maintained only for backward compatibility */
 
-void NEXUS_Platform_GetDefaultStandbySettings( NEXUS_PlatformStandbySettings *pSettings )
+void NEXUS_Platform_GetDefaultStandbySettings( NEXUS_StandbySettings *pSettings )
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
-NEXUS_Error NEXUS_Platform_InitStandby( const NEXUS_PlatformStandbySettings *pSettings )
+NEXUS_Error NEXUS_Platform_InitStandby( const NEXUS_StandbySettings *pSettings )
 {
 #if NEXUS_POWER_MANAGEMENT
     NEXUS_PlatformSettings *pPlatformSettings;

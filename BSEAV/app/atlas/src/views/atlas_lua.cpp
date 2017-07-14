@@ -2968,6 +2968,123 @@ done:
 
 #endif /* ifdef CPUTEST_SUPPORT */
 
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+/* atlas.setPlmVideo(
+ *      --- required ---
+ *      videoWindow,   set 0:main 1:pip 2:mosaic1 3:mosaic2 etc
+ *      bool           enable:true, disable:false
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetPlmVideo(lua_State * pLua)
+{
+    CLua *  pThis        = getCLua(pLua);
+    eRet    err          = eRet_Ok;
+    uint8_t argNum       = 1;
+    uint8_t numArgTotal  = lua_gettop(pLua) - 1;
+    CPlmDataVideo * pPlmData  = NULL;
+    eWindowType videoWin = eWindowType_Max;
+    bool bEnable         = false;
+
+    CDataAction <CPlmDataVideo> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (2 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "Wrong number of arguments: [0:main, 1:pip, 2:mosaic1 3:mosaic2 etc][bool]", error);
+    }
+
+    /* get arguments */
+    videoWin = (eWindowType)luaL_checknumber(pLua, argNum++);
+
+    /* check if selection is valid and available */
+    if (eWindowType_Max <= videoWin)
+    {
+        LUA_ERROR(pLua, "video window must be between 0 and 5", error);
+    }
+
+    bEnable = lua_toboolean(pLua, argNum++);
+
+    pPlmData = new CPlmDataVideo(videoWin, bEnable);
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CPlmDataVideo>(eNotify_SetPlmVideo, pPlmData, eNotify_VideoPlmChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pPlmData);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetPlmVideo */
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
+
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+/* atlas.setPlmGraphics(
+ *      --- required ---
+ *      videoWindow,   set 0:main 1:pip 2:mosaic1 3:mosaic2 etc
+ *      bool           enable:true, disable:false
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetPlmGraphics(lua_State * pLua)
+{
+    CLua *  pThis        = getCLua(pLua);
+    eRet    err          = eRet_Ok;
+    uint8_t argNum       = 1;
+    uint8_t numArgTotal  = lua_gettop(pLua) - 1;
+    CPlmDataGraphics * pPlmData  = NULL;
+    bool bEnable         = false;
+
+    CDataAction <CPlmDataGraphics> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "Wrong number of arguments: [bool]", error);
+    }
+
+    /* get arguments */
+    bEnable = lua_toboolean(pLua, argNum++);
+
+    pPlmData = new CPlmDataGraphics(bEnable);
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CPlmDataGraphics>(eNotify_SetPlmGraphics, pPlmData, eNotify_GraphicsPlmChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pPlmData);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetPlmGraphics */
+#endif /* ifdef HAS_GFX_NL_LUMA_RANGE_ADJ */
+
 /* atlas.showPip(
  *      --- required ---
  *      PIP state,   if true, show PIP window
@@ -4899,6 +5016,12 @@ static const struct luaL_Reg atlasLua[] = {
     { "setAudioProcessing",            atlasLua_SetAudioProcessing                    }, /* set the pcm audio proccessing (see eAudioProcessing) */
 #ifdef CPUTEST_SUPPORT
     { "setCpuTestLevel",               atlasLua_SetCpuTestLevel                       }, /* set the cpu test level */
+#endif
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    { "setPlmVideo",                   atlasLua_SetPlmVideo                           }, /* enable/disable Programmable Luma Mapping for the given video window */
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    { "setPlmGraphics",                atlasLua_SetPlmGraphics                        }, /* enable/disable Programmable Luma Mapping for graphics */
 #endif
     { "showPip",                       atlasLua_ShowPip                               }, /* show/hide the pip window */
     { "swapPip",                       atlasLua_SwapPip                               }, /* swap the main and pip window */

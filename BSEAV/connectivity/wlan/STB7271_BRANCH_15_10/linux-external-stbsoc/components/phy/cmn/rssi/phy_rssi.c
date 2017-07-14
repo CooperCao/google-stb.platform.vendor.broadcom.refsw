@@ -311,6 +311,54 @@ phy_rssi_dump(void *ctx, struct bcmstrbuf *b)
 }
 #endif /* BCMDBG || BCMDBG_DUMP */
 
+#if defined(BCMINTPHYDBG)
+void
+wlc_phy_pkteng_rxstats_update(wlc_phy_t *ppi, uint8 statidx)
+{
+	phy_info_t *pi = (phy_info_t*)ppi;
+	phy_type_rssi_fns_t *fns = pi->rssii->fns;
+
+	PHY_TRACE(("%s\n", __FUNCTION__));
+
+	if (fns->update_pkteng_rxstats != NULL) {
+		(fns->update_pkteng_rxstats)(fns->ctx, statidx);
+	} else {
+		PHY_INFORM(("%s: No phy specific function\n", __FUNCTION__));
+	}
+}
+
+int
+wlc_phy_pkteng_stats_get(phy_rssi_info_t *rssii, void *a, int alen)
+{
+	phy_type_rssi_fns_t *fns = rssii->fns;
+	phy_info_t *pi = rssii->pi;
+	wl_pkteng_stats_t stats;
+	uint16 hi, lo;
+
+	if (!pi->sh->up) {
+		return BCME_NOTUP;
+	}
+
+	PHY_INFORM(("Pkteng Stats Called\n"));
+
+	bzero(&stats, sizeof(stats));
+
+	/* Read with guard against carry */
+	do {
+		hi = wlapi_bmac_read_shm(pi->sh->physhim, M_MFGTEST_FRMCNT_HI(pi));
+		lo = wlapi_bmac_read_shm(pi->sh->physhim, M_MFGTEST_FRMCNT_LO(pi));
+	} while (hi != wlapi_bmac_read_shm(pi->sh->physhim, M_MFGTEST_FRMCNT_HI(pi)));
+
+	stats.lostfrmcnt = (hi << 16) | lo;
+
+	if (fns->get_pkteng_stats != NULL) {
+		return (fns->get_pkteng_stats)(fns->ctx, a, alen, stats);
+	} else {
+		PHY_INFORM(("%s: No phy specific function\n", __FUNCTION__));
+		return BCME_UNSUPPORTED;
+	}
+}
+#endif 
 
 int
 phy_rssi_set_gain_delta_2g(phy_rssi_info_t *rssii, uint32 aid, int8 *deltaValues)

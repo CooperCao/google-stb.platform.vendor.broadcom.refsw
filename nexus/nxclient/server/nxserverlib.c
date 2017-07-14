@@ -2269,14 +2269,20 @@ static void hotplug_callback_locked(void *pParam, int iParam)
             }
         }
 
-        if (session->nxclient.displaySettings.hdmiPreferences.followPreferredFormat && status.connected &&
-            !session->server->settings.hdmi.ignoreVideoEdid &&
-            !session->server->settings.display_init.hd.initialFormat) {
-            NEXUS_VideoFormat bvnFormat = nxserver_p_supported_bvn_format(session, status.preferredVideoFormat);
-            if (bvnFormat && bvnFormat != session->nxclient.displaySettings.format) {
-                NxClient_DisplaySettings settings = session->nxclient.displaySettings;
-                settings.format = status.preferredVideoFormat;
-                NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
+        if (!status.videoFormatSupported[session->nxclient.displaySettings.format])
+        {
+            BDBG_WRN(("Current format (%d) not supported by attached monitor; Use preferred format (%d)",
+                session->nxclient.displaySettings.format, status.preferredVideoFormat)) ;
+
+            if (session->nxclient.displaySettings.hdmiPreferences.followPreferredFormat &&
+                !session->server->settings.hdmi.ignoreVideoEdid &&
+                !session->server->settings.display_init.hd.initialFormat) {
+                NEXUS_VideoFormat bvnFormat = nxserver_p_supported_bvn_format(session, status.preferredVideoFormat);
+                if (bvnFormat && bvnFormat != session->nxclient.displaySettings.format) {
+                    NxClient_DisplaySettings settings = session->nxclient.displaySettings;
+                    settings.format = status.preferredVideoFormat;
+                    NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
+                }
             }
         }
     }
@@ -2663,6 +2669,7 @@ void nxserver_get_default_settings(struct nxserver_settings *settings)
     settings->framebuffers = 0;
     settings->pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
     settings->client_mode = NEXUS_ClientMode_eMax; /* don't change */
+    settings->hdmi.dolbyVision.blendInIpt = true;
     settings->display.display3DSettings.orientation = NEXUS_VideoOrientation_e2D;
     settings->display.format = NEXUS_VideoFormat_e720p;
     settings->display.graphicsSettings.alpha = 0xFF;
@@ -3524,6 +3531,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     const NEXUS_MasteringDisplayColorVolume * pFailsafeMdcv;
     static const NEXUS_HdmiOutputDolbyVisionMode failsafeDolbyVisionOutputMode = NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
     static const NEXUS_HdmiOutputDolbyVisionPriorityMode failsafeDolbyVisionPriorityMode = NEXUS_HdmiOutputDolbyVisionPriorityMode_eAuto;
+    NEXUS_HdmiOutputDolbyVisionMode dolbyVisionInputMode;
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned changed = 0;
 
@@ -3555,6 +3563,15 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     pFailsafeInfoFrame = &failsafeHdmiDrmInfoFrame;
     pFailsafeMdcv = &pFailsafeInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume;
     pFailsafeCll = &pFailsafeInfoFrame->metadata.typeSettings.type1.contentLightLevel;
+    switch (session->hdmi.drm.dynamicMetadataType)
+    {
+        case NEXUS_VideoDecoderDynamicRangeMetadataType_eDolbyVision:
+            dolbyVisionInputMode = NEXUS_HdmiOutputDolbyVisionMode_eAuto;
+            break;
+        default:
+            dolbyVisionInputMode = NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
+            break;
+    }
 
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
@@ -3562,7 +3579,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
             session->hdmi.drm.inputValid,
             sizeof(hdmiOutputSettings.dolbyVision.outputMode),
             &hdmiOutputSettings.dolbyVision.outputMode,
-            &session->hdmi.drm.dolbyVision.dbvInput,
+            &dolbyVisionInputMode,
             pSettings ? &pSettings->hdmiPreferences.dolbyVision.outputMode : &session->nxclient.displaySettings.hdmiPreferences.dolbyVision.outputMode,
             &failsafeDolbyVisionOutputMode);
 
@@ -3784,6 +3801,27 @@ static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_
     BSTD_UNUSED(pSettings);
     BSTD_UNUSED(force);
 #endif
+}
+
+static NEXUS_Error nxserver_p_wait_for_inactive(struct b_session *session)
+{
+    NEXUS_Error rc;
+    unsigned i;
+    for (i=0;i<5;i++) {
+        NEXUS_SurfaceCompositorStatus status;
+        rc = BKNI_WaitForEvent(session->inactiveEvent, 1000);
+        if (!rc) {
+            return NEXUS_SUCCESS;
+        }
+        rc = NEXUS_SurfaceCompositor_GetStatus(session->surfaceCompositor, &status);
+        if (rc) return BERR_TRACE(rc);
+        if (!status.active) {
+            /* this can be caused by calling NxClient_SetDisplaySettings from a callback. */
+            BDBG_WRN(("SurfaceCompositor inactive callback delayed"));
+            return NEXUS_SUCCESS;
+        }
+    }
+    return BERR_TRACE(NEXUS_NOT_AVAILABLE);
 }
 
 static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings)
@@ -4020,7 +4058,7 @@ static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, st
 
 skip_outputs:
     if (waitForInactive) {
-        rc = BKNI_WaitForEvent(session->inactiveEvent, 5000);
+        rc = nxserver_p_wait_for_inactive(session);
         if (rc) {
             BERR_TRACE(rc);
         }
@@ -4394,7 +4432,7 @@ static int ack_state(nxserver_t server, bool check)
 static void standby_thread(void *context)
 {
     nxserver_t server = (nxserver_t) context;
-    NEXUS_PlatformStandbySettings standbySettings;
+    NEXUS_StandbySettings standbySettings;
     unsigned tries = server->settings.standby_timeout*10;
     NEXUS_Error rc;
     unsigned i;
@@ -4466,7 +4504,7 @@ static void standby_thread(void *context)
         for (i=0;i<NXCLIENT_MAX_SESSIONS;i++) {
             struct b_session *session = server->session[i];
             if (session && session->surfaceCompositor) {
-                rc = BKNI_WaitForEvent(session->inactiveEvent, 5000);
+                rc = nxserver_p_wait_for_inactive(session);
                 if (rc) rc = BERR_TRACE(rc);
             }
         }
@@ -4475,7 +4513,18 @@ static void standby_thread(void *context)
     BDBG_WRN(("Entering standby mode: %s", mode_str));
 
     standbySettings = server->standby.standbySettings.settings;
-    rc = NEXUS_Platform_SetStandbySettings(&standbySettings);
+    for(i=0;i<10;i++) { /* try for 1 second (18 x 100 msec) */
+        standbySettings.timeout = 100;
+        rc = NEXUS_Platform_SetStandbySettings(&standbySettings);
+        if(rc==NEXUS_TIMEOUT) {
+            BDBG_WRN(("Timeout on SetStandbySettings, wait and try again"));
+            BKNI_ReleaseMutex(server->settings.lock);
+            BKNI_Sleep(100);
+            BKNI_AcquireMutex(server->settings.lock);
+        } else {
+            break;
+        }
+    }
     if (rc) {
         BDBG_ERR(("Failed to enter standby mode: %s", mode_str));
         goto done;
@@ -4514,7 +4563,7 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
        For all other modes we start a thread to monitor
        the client state and wait for clients to acknowledge */
     if(pSettings->settings.mode == NEXUS_PlatformStandbyMode_eOn) {
-        NEXUS_PlatformStandbySettings standbySettings;
+        NEXUS_StandbySettings standbySettings;
         unsigned i;
 
         if(server->standby.standbySettings.settings.mode == NEXUS_PlatformStandbyMode_eOn)
@@ -4956,7 +5005,7 @@ int nxserver_p_reenable_local_display(nxserver_t server)
     surface_compositor_settings.enabled = false;
     rc = NEXUS_SurfaceCompositor_SetSettings(session->surfaceCompositor, &surface_compositor_settings);
     if (!rc) {
-        rc = BKNI_WaitForEvent(session->inactiveEvent, 5000);
+        rc = nxserver_p_wait_for_inactive(session);
     }
     if (!rc) {
         surface_compositor_settings.display[d].display = session->display[d].display;
@@ -4979,7 +5028,7 @@ static void nxserverlib_graphics_disconnect_display(struct b_session *session, u
     surface_compositor_settings.enabled = false;
     rc = NEXUS_SurfaceCompositor_SetSettings(session->surfaceCompositor, &surface_compositor_settings);
     if (!rc) {
-        rc = BKNI_WaitForEvent(session->inactiveEvent, 5000);
+        rc = nxserver_p_wait_for_inactive(session);
     }
     if (!rc) {
         surface_compositor_settings.display[local_display_index].display = NULL;

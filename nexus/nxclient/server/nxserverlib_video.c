@@ -314,7 +314,7 @@ static void video_decoder_stream_changed(void * context, int param)
         BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel, &streamInfo.contentLightLevel, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel));
         BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume, &streamInfo.masteringDisplayColorVolume, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume));
         session->hdmi.drm.inputValid = true;
-        session->hdmi.drm.dolbyVision.dbvInput = streamInfo.dolbyVision;
+        session->hdmi.drm.dynamicMetadataType = streamInfo.dynamicMetadataType;
         nxserverlib_p_apply_hdmi_drm(session, NULL, false);
     }
 

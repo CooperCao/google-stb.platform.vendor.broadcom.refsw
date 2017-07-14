@@ -467,6 +467,7 @@ bool Playready30Decryptor::Initialize(std::string& pssh)
     dump_hex("Initialize: keyId", m_keyId.data(), m_keyId.size());
 
     if (s_pDrmAppCtx == NULL) {
+        BKNI_Memset(&oemSettings, 0, sizeof(oemSettings));
         oemSettings.binFileName = NULL;
         oemSettings.keyHistoryFileName = NULL;
 

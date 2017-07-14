@@ -405,7 +405,7 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	/* report any detected errors if valid status/checksum read */
 	if (checksum)
 	{
-		BDBG_WRN(("Invalid CED (all 3 channels) checksum: Read: %02X Calculated: %02X ",
+		BDBG_MSG(("Character Error Detection (CED) checksum error: Read: %02X Calculated: %02X ",
 			statusControlData.ErrorDetectionChecksum, checksum)) ;
 	}
 	else if ((statusControlData.ch[0].valid && statusControlData.ch[0].errorCount)

@@ -63,6 +63,9 @@ int8 phy_noise_read_shmem(phy_noise_info_t *noisei, uint8 *lte_on, uint8 *crs_hi
 
 int8 phy_noise_abort_shmem_read(phy_noise_info_t *noisei);
 #ifndef WLC_DISABLE_ACI
+#if defined(BCMINTPHYDBG)
+int  phy_noise_aci_args(phy_info_t *pi, wl_aci_args_t *params, bool get, int len);
+#endif 
 #endif /* Compiling out ACI code for 4324 */
 bool phy_noise_pmstate_get(phy_info_t *pi);
 #endif /* _phy_noise_h_ */

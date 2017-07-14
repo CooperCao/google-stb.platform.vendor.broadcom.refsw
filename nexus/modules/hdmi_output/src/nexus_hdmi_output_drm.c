@@ -222,7 +222,7 @@ error:
 
 static NEXUS_VideoEotf NEXUS_HdmiOutput_P_ComputeEotf(
     NEXUS_VideoEotf preferredEotf,
-    const NEXUS_HdmiOutputEdidRxHdrdb * pHdrDataBlock)
+    const BHDM_EDID_HDRStaticDB * pHdrDataBlock)
 {
     NEXUS_VideoEotf eotf = NEXUS_VideoEotf_eSdr;
 
@@ -232,7 +232,7 @@ static NEXUS_VideoEotf NEXUS_HdmiOutput_P_ComputeEotf(
     }
     else if (preferredEotf == NEXUS_VideoEotf_eHlg)
     {
-        if (pHdrDataBlock->eotfSupported[NEXUS_VideoEotf_eHlg])
+        if (pHdrDataBlock->bEotfSupport[BAVC_HDMI_DRM_EOTF_eHLG])
         {
             eotf = NEXUS_VideoEotf_eHlg;
             BDBG_MSG(("Using HLG eotf"));
@@ -244,7 +244,7 @@ static NEXUS_VideoEotf NEXUS_HdmiOutput_P_ComputeEotf(
     }
     else if (preferredEotf == NEXUS_VideoEotf_eHdr10)
     {
-        if (pHdrDataBlock->eotfSupported[NEXUS_VideoEotf_eHdr10])
+        if (pHdrDataBlock->bEotfSupport[BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084])
         {
             eotf = NEXUS_VideoEotf_eHdr10;
             BDBG_MSG(("Using HDR10 eotf"));
@@ -290,6 +290,10 @@ static NEXUS_Error NEXUS_HdmiOutput_P_ApplyInputDrmInfoFrame(NEXUS_HdmiOutputHan
         /* check compat with EDID -> modify as necessary and print debug */
         NEXUS_HdmiOutput_P_DrmInfoFrame_ApplyEdid(output, &drmInfoFrame);
 
+#if NEXUS_DBV_SUPPORT
+        NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(output, &drmInfoFrame);
+#endif
+
         /* then set */
         rc = NEXUS_HdmiOutput_P_SetDrmInfoFrame(output, &drmInfoFrame);
         if (rc) { BERR_TRACE(rc); goto error; }
@@ -315,6 +319,9 @@ NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle ou
         {
             NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
             NEXUS_HdmiOutput_P_BuildDrmInfoFrame(&drmInfoFrame, &output->extraSettings.dynamicRangeMasteringInfoFrame);
+#if NEXUS_DBV_SUPPORT
+            NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(output, &drmInfoFrame);
+#endif
             rc = NEXUS_HdmiOutput_P_SetDrmInfoFrame(output, &drmInfoFrame);
             if (rc) { BERR_TRACE(rc); goto error; }
         }
@@ -335,29 +342,28 @@ error:
 
 void NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(NEXUS_HdmiOutputHandle output)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputEdidData edid;
+    BERR_Code rc = BERR_SUCCESS;
     bool changed = false;
+    bool connected = false;
 
-    rc = NEXUS_HdmiOutput_GetStatus(output, &status);
-    if (rc) { BERR_TRACE(rc); goto error; }
+    connected = output->rxState >= NEXUS_HdmiOutputState_eRxSenseCheck;
 
-    if (output->drm.connected != status.connected)
+    if (output->drm.connected != connected)
     {
-        output->drm.connected = status.connected;
+        output->drm.connected = connected;
         changed = true;
     }
 
-    BDBG_MSG(("NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged: %s", status.connected ? "connected" : "disconnected"));
+    BDBG_MSG(("NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged: %s", connected ? "connected" : "disconnected"));
 
-    if (status.connected)
+    if (connected)
     {
-        rc = NEXUS_HdmiOutput_GetEdidData(output, &edid);
+        BHDM_EDID_HDRStaticDB hdrdb;
+        rc = BHDM_EDID_GetHdrStaticMetadatadb(output->hdmHandle, &hdrdb);
         if (rc) { BERR_TRACE(rc); goto error; }
-        if (BKNI_Memcmp(&output->drm.hdrdb, &edid.hdrdb, sizeof(output->drm.hdrdb)))
+        if (BKNI_Memcmp(&output->drm.hdrdb, &hdrdb, sizeof(output->drm.hdrdb)))
         {
-            BKNI_Memcpy(&output->drm.hdrdb, &edid.hdrdb, sizeof(output->drm.hdrdb));
+            BKNI_Memcpy(&output->drm.hdrdb, &hdrdb, sizeof(output->drm.hdrdb));
             changed = true;
         }
     }

@@ -456,7 +456,7 @@ const char BCMATTACHDATA(rstr_fccpwrch13)[] = "fccpwrch13";
 const char BCMATTACHDATA(rstr_fccpwroverride)[] = "fccpwroverride";
 #endif /* FCC_PWR_LIMIT_2G */
 
-#if defined(WLPKTENG)
+#if (defined(BCMINTPHYDBG) || defined(WLPKTENG))
 const char BCMATTACHDATA(rstr_perratedpd2g)[] = "perratedpd2g";
 const char BCMATTACHDATA(rstr_perratedpd5g)[] = "perratedpd5g";
 #endif
@@ -467,7 +467,11 @@ const char BCMATTACHDATA(rstr_txfdiqcalenable)[] = "txfdiqcalenable";
 
 const char BCMATTACHDATA(rstr_w1clipmod)[] = "w1clipmod";
 
+#if defined(BCMINTPHYDBG)
+const char BCMATTACHDATA(rstr_cbuck_out)[] = "cbuck_out_mfg";
+#else
 const char BCMATTACHDATA(rstr_cbuck_out)[] = "cbuck_out";
+#endif
 const char BCMATTACHDATA(rstr_ldo3p3_2g)[]	= "ldo3p3_2g";
 const char BCMATTACHDATA(rstr_ldo3p3_5g)[]	= "ldo3p3_5g";
 const char BCMATTACHDATA(rstr_ccktpc_loop_en)[] = "ccktpc_loop_en";

@@ -1170,6 +1170,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoderHandle mainAudioDecoder;
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.type = NEXUS_SimpleAudioDecoderType_eDynamic;
+        settings.capabilities.ms12 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
 
         mainAudioDecoder = b_audio_get_decoder(session->main_audio->connect);
@@ -1215,9 +1217,10 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.primary = r->audioDecoder[nxserver_audio_decoder_primary];
         settings.type = NEXUS_SimpleAudioDecoderType_ePersistent;
+        settings.capabilities.ms12 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
         /* MS12 will not have a persistent mixer, use multichannel mixer */
         if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 ) {
-            settings.capabilities.ms12 = true;
             settings.mixers.persistent = NULL;
             settings.mixers.multichannel = session->main_audio->mixer[nxserver_audio_mixer_multichannel];
         } else if ( session->main_audio->mixer[nxserver_audio_mixer_persistent] ) {
@@ -1258,6 +1261,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         settings.secondary = r->audioDecoder[nxserver_audio_decoder_passthrough];
         settings.type = NEXUS_SimpleAudioDecoderType_eStandalone;
         settings.mixers.stereo = settings.mixers.multichannel = settings.mixers.persistent = NULL;
+        settings.capabilities.ms12 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
         if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
         /* TBD - should this be any different for standalone decoders??? */
@@ -1272,6 +1277,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.primary = r->audioDecoder[nxserver_audio_decoder_primary];
         settings.type = NEXUS_SimpleAudioDecoderType_eDynamic;
+        settings.capabilities.ms12 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
         if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
         rc = audio_acquire_stc_index(connect, audioDecoder);
@@ -1490,6 +1497,8 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     audioSettings.mixers.multichannel = r->mixer[nxserver_audio_mixer_multichannel];
     audioSettings.mixers.persistent = r->mixer[nxserver_audio_mixer_persistent];
 
+    audioSettings.capabilities.ms12 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
+    audioSettings.capabilities.ms11 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
     if (r->localSession) {
         BKNI_Memset(&audioSettings.spdif, 0, sizeof(audioSettings.spdif));
         BKNI_Memset(&audioSettings.hdmi, 0, sizeof(audioSettings.hdmi));

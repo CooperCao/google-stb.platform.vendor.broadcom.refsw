@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -606,6 +606,16 @@ BERR_Code BVDC_P_HdDvi_Create
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    /* Allocate scratch register */
+    pHdDvi->ulFormatUpdateRegAddr = BRDC_AllocScratchReg(pHdDvi->hSource->hVdc->hRdc);
+    if(!pHdDvi->ulFormatUpdateRegAddr)
+    {
+        BDBG_ERR(("Not enough scratch registers for error scratch!"));
+        BDBG_OBJECT_DESTROY(pHdDvi, BVDC_DVI);
+        BKNI_Free((void*)pHdDvi);
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
 #if ((BVDC_P_SUPPORT_HDDVI > 1) && \
      (BVDC_P_SUPPORT_HDDVI_VER >= BVDC_P_HDDVI_NEW_VER_1))  /* 2 new hddvi's */
     /* Regigister offset from HD_DVI_0. */
@@ -640,6 +650,7 @@ void BVDC_P_HdDvi_Destroy
     /* Free scratch register */
     BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulBridgeErrRegAddr);
     BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulPctrErrRegAddr);
+    BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulFormatUpdateRegAddr);
 
     BDBG_OBJECT_DESTROY(hHdDvi, BVDC_DVI);
     /* Release context in system memory */
@@ -815,6 +826,12 @@ static void BVDC_P_HdDvi_ReadHwStatus_isr
 
     BDBG_OBJECT_ASSERT(hHdDvi, BVDC_DVI);
     ulOffset = hHdDvi->ulOffset;
+
+    /* Status flag: HD_DVI_0_VID_FORMAT_UPDATE_STATUS */
+    ulReg = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulFormatUpdateRegAddr);
+    hHdDvi->bFormatUpdate =
+        BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_VID_FORMAT_UPDATE_STATUS, UPDATED_HAP) ||
+        BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_VID_FORMAT_UPDATE_STATUS, UPDATED_VAL1);
 
     /* Error flag: HD_DVI_0_PCTR_ERROR_STATUS */
     ulReg = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulPctrErrRegAddr);
@@ -2604,7 +2621,11 @@ static void BVDC_P_HdDvi_BuildVsyncRul_isr
 
     BSTD_UNUSED(pCurInfo);
 
-    /* Read and store error flags. Need to read before HOST_ENABLE is set */
+    /* Read and store error and status flags. Need to read before HOST_ENABLE is set */
+    *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_VID_FORMAT_UPDATE_STATUS + ulOffset);
+    *pList->pulCurrent++ = BRDC_REGISTER(hHdDvi->ulFormatUpdateRegAddr);
+
     *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_BRIDGE_ERRORS_RDB_CLR + ulOffset);
     *pList->pulCurrent++ = BRDC_REGISTER(hHdDvi->ulBridgeErrRegAddr);
@@ -2612,6 +2633,10 @@ static void BVDC_P_HdDvi_BuildVsyncRul_isr
     *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_PCTR_ERROR_STATUS + ulOffset);
     *pList->pulCurrent++ = BRDC_REGISTER(hHdDvi->ulPctrErrRegAddr);
+
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_VID_FORMAT_UPDATE_CLEAR + ulOffset);
+    *pList->pulCurrent++ = 0xffffffff;
 
     /* clear error flags. Need before HOST_ENABLE is set */
     if(hHdDvi->bPctrErr)
@@ -3101,7 +3126,7 @@ static void BVDC_P_HdDvi_UpdateStatus_isr
     if(hHdDvi->bVideoDetected != bVideoDetected)
     {
         hHdDvi->bVideoDetected      = bVideoDetected;
-        hHdDvi->hSource->bStartFeed = bVideoDetected;
+        hHdDvi->ulStartFeedCnt = 0;
         pCurDirty->stBits.bVideoDetected   = BVDC_P_DIRTY;
 
         /* Reset the ulPixelDecimate on lost of video detection. */
@@ -3120,6 +3145,19 @@ static void BVDC_P_HdDvi_UpdateStatus_isr
             BDBG_MSG(("HdDvi[%d] video detected format %s", hHdDvi->eId,
                 pNewFmtInfo->pchFormatStr));
         }
+    }
+
+    if(bVideoDetected)
+    {
+        if(++hHdDvi->ulStartFeedCnt >= BVDC_P_HDDVI_VIDEO_DETECT_COUNT)
+        {
+            hHdDvi->ulStartFeedCnt = 0;
+            hHdDvi->hSource->bStartFeed = true;
+        }
+    }
+    else
+    {
+        hHdDvi->hSource->bStartFeed = false;
     }
 
     /* If hmdi mode use from aviInfo frame */
@@ -3853,6 +3891,7 @@ void BVDC_P_Source_HdDviDataReady_isr
         {
             BDBG_MSG(("bMute                   [%d->%d]", pCurPic->bMute, pNewPic->bMute));
             pCurPic->bMute = pNewPic->bMute;
+            hSource->bPictureChanged = true;
         }
     }
 
@@ -3875,12 +3914,23 @@ void BVDC_P_Source_HdDviDataReady_isr
              * status toggles to drain VNET switches and reset BVN blocks to clean
              * up BVB error;  Resetting vnet has side effects
              * blank screen with background color mix with source mute color. */
-            if((hSource->bStartFeed != hSource->bPrevStartFeed))
+            if((hSource->bStartFeed != hSource->bPrevStartFeed) ||
+                hSource->hHdDvi->bFormatUpdate || hSource->bPictureChanged)
             {
                 if(hSource->bStartFeed)
+               {
+                    BDBG_MSG(("Source[%d] is now resumed!", hSource->eId));
+                    if(hSource->stCurInfo.eResumeMode == BVDC_ResumeMode_eAuto)
+                    {
+                        hSource->stCurInfo.stDirty.stBits.bResume = BVDC_P_DIRTY;
+                        BVDC_P_Window_SetReconfiguring_isr(hSource->ahWindow[i], false, true, false);
+                    }
+                }
+                else
                 {
-                    BDBG_MSG(("Source[%d] Reconfigs vnet!", hSource->eId));
-                    BVDC_P_Window_SetReconfiguring_isr(hSource->ahWindow[i], false, true, false);
+                    hSource->hHdDvi->ulStartFeedCnt = 0;
+                    BDBG_MSG(("Source[%d] src pending!", hSource->eId));
+                    BVDC_P_Window_SetReconfiguring_isr(hSource->ahWindow[i], true, false, false);
                 }
             }
         }

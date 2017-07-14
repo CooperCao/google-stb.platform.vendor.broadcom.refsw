@@ -231,8 +231,8 @@ typedef struct NEXUS_HdmiOutput
     {
         NEXUS_HdmiDynamicRangeMasteringInfoFrame inputInfoFrame;
         NEXUS_HdmiDynamicRangeMasteringInfoFrame outputInfoFrame;
-        bool connected;
-        NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
+        BHDM_EDID_HDRStaticDB hdrdb ; /* last one, compared to current one */
+        bool connected; /* last one */
     } drm;
 
     NEXUS_HdmiVendorSpecificInfoFrame vsif;
@@ -303,12 +303,18 @@ const char * NEXUS_HdmiOutput_P_ColorSpace_ToText(NEXUS_ColorSpace colorSpace);
 
 NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle output); /* call from SetExtendedSettings */
 void NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(NEXUS_HdmiOutputHandle output); /* call from hotplug */
+NEXUS_Error NEXUS_HdmiOutput_P_SetVideoSettings(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiOutputDisplaySettings *pstDisplaySettings
+);
 
 #if NEXUS_DBV_SUPPORT
 void NEXUS_HdmiOutput_P_DbvConnectionChanged(NEXUS_HdmiOutputHandle output);
-void NEXUS_HdmiOutput_P_SetDbvMode(NEXUS_HdmiOutputHandle output);
+NEXUS_Error NEXUS_HdmiOutput_P_SetDbvMode(NEXUS_HdmiOutputHandle output);
 NEXUS_Error NEXUS_HdmiOutput_P_SetDolbyVisionVendorSpecificInfoFrame(NEXUS_HdmiOutputHandle handle);
 NEXUS_Error NEXUS_HdmiOutput_P_SetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle);
+void NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(NEXUS_HdmiOutputHandle output, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInfoFrame);
+void NEXUS_HdmiOutput_P_DbvUpdateDisplaySettings(NEXUS_HdmiOutputHandle output, NEXUS_HdmiOutputDisplaySettings * pDisplaySettings);
 #endif
 #endif /* #ifndef NEXUS_HDMI_OUTPUT_MODULE_H__ */
 

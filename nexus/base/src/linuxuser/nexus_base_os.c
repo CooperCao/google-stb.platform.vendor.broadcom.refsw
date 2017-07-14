@@ -317,7 +317,7 @@ NEXUS_P_Base_Os_MarkThread(const char *name)
 static int g_bcmdriver = -1;
 #endif
 #if NEXUS_P_USE_PTHREAD_TLS
-void NEXUS_P_Base_Os_FreeThreadInfo(void *info)
+static void NEXUS_P_Base_Os_FreeThreadInfo(void *info)
 {
     NEXUS_P_ThreadInfo *threadInfo = info;
 

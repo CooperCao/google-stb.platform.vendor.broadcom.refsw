@@ -131,11 +131,11 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 16 * 1024 * 1024;
 #else
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].alignment = 1 * 1024 * 1024;
-    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 1 * 1024 * 1024;
+    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 2 * 1024 * 1024;
 #endif
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].placement.sage = true;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
-    pSettings->heap[NEXUS_EXPORT_HEAP].alignment = 1 * 1024 * 1024;
+    pSettings->heap[NEXUS_EXPORT_HEAP].alignment = 2 * 1024 * 1024;
     pSettings->heap[NEXUS_EXPORT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size =  32*1024*1024; /*Sage Secure heap */
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION;
@@ -143,7 +143,7 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 16 * 1024 * 1024;
 #else
-    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 1 * 1024 * 1024;
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 2 * 1024 * 1024;
 #endif
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.first = true;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.sage = true;
@@ -709,7 +709,8 @@ static NEXUS_Error NEXUS_Platform_P_GetFramebufferHeapIndex(unsigned displayInde
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         break;
     default:
-        rc = BERR_TRACE(NEXUS_UNKNOWN);
+        /* may be no heap for headless system */
+        *pHeapIndex = NEXUS_MAX_HEAPS;
         break;
     }
     NEXUS_Platform_P_PreUninit();
@@ -729,8 +730,12 @@ NEXUS_HeapHandle NEXUS_Platform_GetFramebufferHeap(unsigned displayIndex)
     NEXUS_Error rc;
     rc = NEXUS_Platform_P_GetFramebufferHeapIndex(displayIndex, &index);
     if (rc) return NULL;
-    BDBG_ASSERT(index < NEXUS_MAX_HEAPS);
-    return g_pCoreHandles->heap[index].nexus;
+    if (index < NEXUS_MAX_HEAPS) {
+        return g_pCoreHandles->heap[index].nexus;
+    }
+    else {
+        return NULL;
+    }
 #else
     return NEXUS_Platform_P_GetFramebufferHeap(displayIndex);
 #endif

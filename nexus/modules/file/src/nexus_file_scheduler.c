@@ -542,7 +542,7 @@ NEXUS_File_P_Scheduler_Start(const NEXUS_FileModuleSettings *settings)
     BERR_Code rc;
 
     BDBG_ASSERT(settings);
-    if(settings->workerThreads >= NEXUS_FILE_MAX_IOWORKERS || settings->workerThreads<1) { return BERR_TRACE(NEXUS_NOT_SUPPORTED); }
+    if(settings->workerThreads > NEXUS_FILE_MAX_IOWORKERS || settings->workerThreads<1) { return BERR_TRACE(NEXUS_NOT_SUPPORTED); }
 
     pScheduler->workerThreads = settings->workerThreads;
     pScheduler->settings = *settings;

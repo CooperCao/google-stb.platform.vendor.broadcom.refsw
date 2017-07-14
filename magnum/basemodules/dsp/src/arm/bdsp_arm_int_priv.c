@@ -42,6 +42,7 @@
 
  BDBG_MODULE(bdsp_arm_int);   /* Register software module with debug interface */
 
+#if 0  /*SYNCASYNC_MSG CDN TBD*/
 static const    BINT_Id ui32ARMDSPSynInterruptId[] =
 {
 #if defined BCHP_INT_ID_SYNC_MSG
@@ -71,6 +72,7 @@ static const    BINT_Id ui32ARMDSPAsynInterruptId[] =
 #endif
 #endif
 };
+#endif  /*SYNCASYNC_MSG CDN TBD*/
 
 void BDSP_Arm_P_AckEventCallback_isr(BTEE_ClientEvent event, void *pDeviceHandle)
 {

@@ -319,7 +319,7 @@ const uint32_t BDSP_IMG_lpcm_encode_code_array1[] = {
 	0x561e4ec7,
 	0x60013c01,
 	0xab0f61f8,
-	0x71104f75,
+	0x71204f75,
 	0x26f38a27,
 	0xd102e40f,
 	0xd081081f,

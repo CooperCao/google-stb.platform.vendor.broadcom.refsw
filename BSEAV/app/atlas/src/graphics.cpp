@@ -989,7 +989,8 @@ bool CGraphics::isPlmEnabled()
 void CGraphics::setPlm(bool bEnable)
 {
     CPlatform * pPlatform = _pCfg->getPlatformConfig();
-
     pPlatform->setPlmLumaRangeAdjGraphics(bEnable);
+
+    notifyObservers(eNotify_GraphicsPlmChanged, this);
 } /* setPlm */
 #endif

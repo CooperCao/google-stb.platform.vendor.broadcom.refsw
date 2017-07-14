@@ -38,11 +38,12 @@ static const bcm_iovar_t phy_rxgcrs_iovars[] = {
 	{"phy_rxdesens", IOV_PHY_RXDESENS, IOVF_GET_UP, 0, IOVT_INT32, 0},
 #endif /* defined(RXDESENS_EN) */
 #ifndef ATE_BUILD
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 	{"phy_forcecal_noise", IOV_PHY_FORCECAL_NOISE,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, sizeof(uint16)
 	},
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
 #endif /* !ATE_BUILD */
 	{NULL, 0, 0, 0, 0, 0}
 };
@@ -79,7 +80,8 @@ phy_rxgcrs_doiovar(void *ctx, uint32 aid, void *p, uint plen, void *a, uint alen
 		break;
 #endif /* defined(RXDESENS_EN) */
 #ifndef ATE_BUILD
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 	case IOV_GVAL(IOV_PHY_FORCECAL_NOISE): /* Get crsminpwr for core 0 & core 1 */
 		err = wlc_phy_iovar_forcecal_noise(pi, a, FALSE);
 		break;
@@ -87,7 +89,7 @@ phy_rxgcrs_doiovar(void *ctx, uint32 aid, void *p, uint plen, void *a, uint alen
 	case IOV_SVAL(IOV_PHY_FORCECAL_NOISE): /* do only Noise Cal */
 		err = wlc_phy_iovar_forcecal_noise(pi, a, TRUE);
 		break;
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
 #endif /* !ATE_BUILD */
 	default:
 		err = BCME_UNSUPPORTED;

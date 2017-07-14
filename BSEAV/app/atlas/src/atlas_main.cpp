@@ -1905,6 +1905,7 @@ void CAtlas::notificationsInitialize()
     CSimpleAudioDecode * pAudioDecode      = NULL;
     CStillDecode *       pVideoDecodeStill = _model.getStillDecode();
     CPlaybackList *      pPlaybackList     = _model.getPlaybackList();
+    CGraphics *          pGraphics         = _model.getGraphics();
 
 #ifdef PLAYBACK_IP_SUPPORT
     CPlaylistDb *          pPlaylistDb          = _model.getPlaylistDb();
@@ -1942,6 +1943,7 @@ void CAtlas::notificationsInitialize()
     /* register objects _pControl observes */
     if (NULL != _pControl)
     {
+        if (NULL != pPower) { pPower->registerObserver(_pControl); }
 #ifdef WPA_SUPPLICANT_SUPPORT
         if (NULL != pWifi) { pWifi->registerObserver(_pControl); }
 #elif NETAPP_SUPPORT
@@ -2081,6 +2083,7 @@ void CAtlas::notificationsInitialize()
     if (NULL != _pLua)
     {
         if (NULL != pPower) { pPower->registerObserver(_pLua); }
+        if (NULL != pGraphics) { pGraphics->registerObserver(_pLua); }
 #ifdef WPA_SUPPLICANT_SUPPORT
         if (NULL != pWifi) { pWifi->registerObserver(_pLua); }
 #elif NETAPP_SUPPORT
@@ -2153,6 +2156,7 @@ void CAtlas::notificationsUninitialize()
     CSimpleAudioDecode * pAudioDecode      = NULL;
     CStillDecode *       pVideoDecodeStill = _model.getStillDecode();
     CPlaybackList *      pPlaybackList     = _model.getPlaybackList();
+    CGraphics *          pGraphics         = _model.getGraphics();
 
 #ifdef PLAYBACK_IP_SUPPORT
     CPlaylistDb *          pPlaylistDb          = _model.getPlaylistDb();
@@ -2187,6 +2191,7 @@ void CAtlas::notificationsUninitialize()
     /* unregister objects _pControl observes */
     if (NULL != _pControl)
     {
+        if (NULL != pPower) { pPower->unregisterObserver(_pControl); }
 #ifdef WPA_SUPPLICANT_SUPPORT
         if (NULL != pWifi) { pWifi->unregisterObserver(_pControl); }
 #elif NETAPP_SUPPORT
@@ -2321,6 +2326,7 @@ void CAtlas::notificationsUninitialize()
     if (NULL != _pLua)
     {
         if (NULL != pPower) { pPower->unregisterObserver(_pLua); }
+        if (NULL != pGraphics) { pGraphics->unregisterObserver(_pLua); }
 #ifdef WPA_SUPPLICANT_SUPPORT
         if (NULL != pWifi) { pWifi->unregisterObserver(_pLua); }
 #elif NETAPP_SUPPORT

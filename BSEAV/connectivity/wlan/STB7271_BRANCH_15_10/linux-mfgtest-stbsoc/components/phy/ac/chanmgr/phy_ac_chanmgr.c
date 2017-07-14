@@ -6278,7 +6278,7 @@ wlc_phy_set_regtbl_on_bw_change_acphy(phy_info_t *pi)
 		if (CHSPEC_IS20(pi->radio_chanspec))
 			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 7);
 		else
-			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 3);
+			MOD_PHYREG(pi, FSTRCtrl, sgiLtrnAdjMax, 5);
 	}
 
 	if (pi->phy_pay_decode_war) {
@@ -14043,7 +14043,7 @@ BCMATTACHFN(wlc_phy_nvram_avvmid_read)(phy_info_t *pi)
 	}
 }
 
-#if defined(WLTEST)
+#if (defined(BCMINTPHYDBG) || defined(WLTEST))
 void wlc_phy_get_avvmid_acphy(phy_info_t *pi, int32 *ret_int_ptr, wlc_avvmid_t avvmid_type,
 		uint8 *core_sub_band)
 {
@@ -14068,7 +14068,7 @@ void wlc_phy_set_avvmid_acphy(phy_info_t *pi, uint8 *avvmid, wlc_avvmid_t avvmid
 	/* Load Pdet related settings */
 	wlc_phy_set_pdet_on_reset_acphy(pi);
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 void BCMATTACHFN(wlc_phy_nvram_vlin_params_read)(phy_info_t *pi)
 {

@@ -51,6 +51,9 @@ extern void wlc_set_txmaxpkts(wlc_info_t *wlc, uint16 txmaxpkts);
 extern void wlc_set_default_txmaxpkts(wlc_info_t *wlc);
 
 extern bool wlc_low_txq_empty(txq_t *txq);
+#ifdef WL_BIDIRECTIONAL_TPUT
+extern uint wlc_low_txq_pkts(txq_t *txq);
+#endif
 #ifdef TXQ_MUX
 #define WLC_TXQ_OCCUPIED(w) TRUE
 typedef uint (*txq_supply_fn_t)(void *ctx, uint fifo,
@@ -61,6 +64,13 @@ extern uint wlc_pull_q(void *ctx, uint fifo, int requested_time,
 #define WLC_TXQ_OCCUPIED(w) \
 	(!pktq_empty(WLC_GET_TXQ((w)->active_queue)) || \
 	!wlc_low_txq_empty((w)->active_queue->low_txq))
+
+#ifdef WL_BIDIRECTIONAL_TPUT
+#define WLC_TXQ_TOT_PKTS(w) \
+	(pktq_n_pkts_tot(WLC_GET_TXQ((w)->active_queue)) + \
+		wlc_low_txq_pkts((w)->active_queue->low_txq))
+#endif
+
 typedef uint (*txq_supply_fn_t)(void *ctx, uint ac,
 	int requested_time, struct spktq *output_q, uint *fifo_idx);
 extern uint wlc_pull_q(void *ctx, uint ac_fifo, int requested_time,

@@ -280,6 +280,18 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
     DRM_Common_TL_Finalize_TA(Common_Platform_Widevine);
 #endif
 
+    /*free the keyslots*/
+    for(i = 0; i < DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT; i++)
+    {
+        if(gKeySlotCache[i].hSwKeySlot != NULL)
+        {
+            BDBG_MSG(("%s:Freeing Keyslot at index %d...",__FUNCTION__, i));
+            NEXUS_Security_FreeKeySlot(gKeySlotCache[i].hSwKeySlot);
+            gKeySlotCache[i].hSwKeySlot = NULL;
+        }
+    }
+    gKeySlotCacheAllocated = 0;
+
     if(gHostSessionCtx != NULL)
     {
         BKNI_Free(gHostSessionCtx);
@@ -320,18 +332,6 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
         SRAI_Memory_Free(gWVUsageTable);
         gWVUsageTable = NULL;
     }
-
-    /*free the keyslots*/
-    for(i = 0; i < DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT; i++)
-    {
-        if(gKeySlotCache[i].hSwKeySlot != NULL)
-        {
-            BDBG_MSG(("%s:Freeing Keyslot...",__FUNCTION__));
-            NEXUS_Security_FreeKeySlot(gKeySlotCache[i].hSwKeySlot);
-            gKeySlotCache[i].hSwKeySlot = NULL;
-        }
-    }
-    gKeySlotCacheAllocated = 0;
 
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
     return Drm_Success;
@@ -426,7 +426,6 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     container->basicIn[0] = current_time;
     BDBG_MSG(("%s - current EPOCH time ld = '%ld' ", __FUNCTION__, current_time));
 
-    /* Signal a central key cache used to allow a larger session count. */
     container->basicIn[1] = DRM_WVOEMCRYPTO_CENTRAL_KEY_CACHE;
 
 #if DEBUG
@@ -448,6 +447,7 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
 
     /* Obtain supported key slot cache mode */
     gKeySlotCacheMode = container->basicOut[1];
+    gKeySlotCacheAllocated = 0;
 
     if (gPadding == NULL)
     {
@@ -688,7 +688,7 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
     BERR_Code sage_rc = BERR_SUCCESS;
     BSAGElib_InOutContainer *container = NULL;
     *wvRc=SAGE_OEMCrypto_SUCCESS;
-    unsigned int i;
+    uint32_t i;
 
     BDBG_ENTER(DRM_WVOemCrypto_CloseSession);
     BDBG_MSG(("%s closesession with id=%d",__FUNCTION__, session));
@@ -2184,7 +2184,7 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
     uint32_t keySlotSelected;
     uint32_t keySlotID[DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT];
     bool allocate_slot = false;
-    unsigned int i;
+    uint32_t i;
 
     BDBG_ENTER(drm_WVOemCrypto_SelectKey);
 
@@ -2198,7 +2198,7 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s:session =%d, key_id_len=%d",__FUNCTION__,session,key_id_length));
+    BDBG_MSG(("%s:session =%d, key_id_len=%d, key cache mode=%d",__FUNCTION__,session,key_id_length, gKeySlotCacheMode));
 
     gHostSessionCtx[session].session_id=session;
 
@@ -2485,7 +2485,7 @@ static DrmRC drm_WVOemCrypto_P_Transfer_Clear_Buffer(void)
     NEXUS_DmaJobBlockSettings *blockSettings;
     NEXUS_Error nexus_rc;
     DrmRC drm_rc = Drm_Success;
-    unsigned int i;
+    uint32_t i;
 
     if (gWvClrNumDmaBlocks == 0)
     {
@@ -2600,7 +2600,7 @@ static DrmRC drm_WVOemCrypto_P_CopyBuffer_Secure_SG(
     NEXUS_DmaJobSettings dmaJobSettings;
     NEXUS_DmaJobBlockSettings *blockSettings;
     DrmRC rc = Drm_Success;
-    unsigned int i;
+    uint32_t i;
 
     isLastSubsample = subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE;
 

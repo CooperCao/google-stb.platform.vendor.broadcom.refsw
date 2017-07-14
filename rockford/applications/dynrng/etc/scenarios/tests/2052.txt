@@ -1,6 +1,7 @@
 # DynRng Generated Test #2052
 # RX CAPS: LEGACY SDR HDR10 HLG
 # TEST VARS: GFX = N/A; VID0 = SDR; VID1 = HDR10; VID2 = HLG; VID3 = HDR10; OUT = HDR10
+reset
 echo "Please attach a TV with the following capabilities: HDR10
 waituser
 echo "This is a CONVERSION test case."

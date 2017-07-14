@@ -195,6 +195,7 @@ int main(int argc, const char **argv)  {
     unsigned i;
     bool done = false;
     bool audioDescription = false;
+    bool single_pid = false;
     bool requiresDyanmic = false;
     NEXUS_AudioDecoderDolbyDrcMode stereoDrc = NEXUS_AudioDecoderDolbyDrcMode_eMax;
     NEXUS_AudioDecoderDolbyDrcMode multiDrc = NEXUS_AudioDecoderDolbyDrcMode_eMax;
@@ -204,6 +205,7 @@ int main(int argc, const char **argv)  {
     NEXUS_AudioAc4AssociateType ac4associateType = NEXUS_AudioAc4AssociateType_eNotSpecified;
     bool ac4mixing = false;
     dapConfiguration dapConfig;
+    int ac4DE = 0;
 
     /* Prep config file */
     memset(configs, 0, sizeof(configs));
@@ -261,6 +263,9 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-sec_mpeg_type") && argc>curarg+1) {
             configs[decoderIdx_sec].transportType = lookup(g_transportTypeStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-single_pid")) {
+            single_pid = true;
         }
         else if (!strcmp(argv[curarg], "-stereo") && curarg+1 < argc) {
             ++curarg;
@@ -407,7 +412,7 @@ int main(int argc, const char **argv)  {
                     videoPid = probe_results.video[0].pid;
                 }
 
-                if (probe_results.num_audio > 1 && configs[decoderIdx_sec].filename != NULL &&
+                if ((probe_results.num_audio > 1 || single_pid) && configs[decoderIdx_sec].filename != NULL &&
                     strcmp(configs[decoderIdx_pri].filename, configs[decoderIdx_sec].filename) == 0) {
                     audioDescription = true;
                 }
@@ -424,7 +429,10 @@ int main(int argc, const char **argv)  {
             if (configs[i].audioPid == 0x1fff) {
                 configs[i].audioPid = probe_results.audio[0].pid;
 
-                if (i == decoderIdx_sec && audioDescription) {
+                if (i == decoderIdx_sec && single_pid) {
+                    configs[i].audioPid = configs[0].audioPid;
+                }
+                else if (i == decoderIdx_sec && audioDescription) {
                     configs[i].audioPid = probe_results.audio[1].pid;
                 }
             }
@@ -549,6 +557,7 @@ int main(int argc, const char **argv)  {
                 break;
             case 1:
                 configs[i].audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eDescription;
+                configs[i].audioProgram.primary.secondaryDecoder = true;
                 break;
             case 2:
                 configs[i].audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eApplicationAudio;
@@ -562,6 +571,7 @@ int main(int argc, const char **argv)  {
             NEXUS_SimpleAudioDecoder_GetCodecSettings(configs[i].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, configs[i].audioProgram.primary.codec, &codecSettings);
             switch (configs[i].audioCodec) {
             case NEXUS_AudioCodec_eAc4:
+                ac4DE = codecSettings.codecSettings.ac4.dialogEnhancerAmount;
                 if (downmixMode != NEXUS_AudioDecoderStereoDownmixMode_eAuto) {
                     codecSettings.codecSettings.ac4.stereoMode = downmixMode;
                 }
@@ -606,6 +616,9 @@ int main(int argc, const char **argv)  {
                 }
                 if (multiDrc != NEXUS_AudioDecoderDolbyDrcMode_eMax) {
                     codecSettings.codecSettings.ac3Plus.drcMode = multiDrc;
+                }
+                if (single_pid && i == decoderIdx_sec) {
+                    codecSettings.codecSettings.ac3Plus.substreamId = 1;
                 }
                 break;
             case NEXUS_AudioCodec_eAacAdts:
@@ -665,7 +678,9 @@ int main(int argc, const char **argv)  {
         printf(" 7) %s Dialog Enhancer\n", dapConfig.dialogEnhancerEnabled ? "DISABLE" : "ENABLE");
         printf(" 8) Adjust multistream balance\n");
         printf(" 9) Change Dual Mono Mode\n");
-        printf(" 10) %s AutoPilot Profile\n", dapConfig.autoPilotEnabled ? "DISABLE" : "ENABLE");
+        printf(" 10) Increase AC4 Dialogue Enhancement (%d)\n", ac4DE);
+        printf(" 11) Decrease AC4 Dialogue Enhancement (%d)\n", ac4DE);
+        printf(" 12) %s AutoPilot Profile\n", dapConfig.autoPilotEnabled ? "DISABLE" : "ENABLE");
         printf("Enter Selection: \n");
         scanf("%d", &tmp);
         switch (tmp) {
@@ -780,6 +795,22 @@ int main(int argc, const char **argv)  {
             }
             break;
         case 10:
+            if (configs[0].audioCodec == NEXUS_AudioCodec_eAc4){
+                ac4DE = (ac4DE == 12 ? 12 : ac4DE + 1);
+                NEXUS_SimpleAudioDecoder_GetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, configs[0].audioProgram.primary.codec, &codecSettings);
+                codecSettings.codecSettings.ac4.dialogEnhancerAmount = ac4DE;
+                NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+            }
+            break;
+        case 11:
+            if (configs[0].audioCodec == NEXUS_AudioCodec_eAc4){
+                ac4DE = (ac4DE == -12 ? -12 : ac4DE - 1);
+                NEXUS_SimpleAudioDecoder_GetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, configs[0].audioProgram.primary.codec, &codecSettings);
+                codecSettings.codecSettings.ac4.dialogEnhancerAmount = ac4DE;
+                NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+            }
+            break;
+        case 12:
             dapConfig.autoPilotEnabled = !dapConfig.autoPilotEnabled;
             apply_dap_config(&dapConfig);
             break;
@@ -814,6 +845,7 @@ void apply_dap_config(dapConfiguration *dapConfig)
         audioProcessingSettings.dolby.dolbySettings.dialogEnhancer.enableDialogEnhancer = true;
         audioProcessingSettings.dolby.dolbySettings.dialogEnhancer.dialogEnhancerLevel = 5;
         audioProcessingSettings.dolby.dolbySettings.intelligentEqualizer.enabled = true;
+        audioProcessingSettings.dolby.dolbySettings.intelligentEqualizer.numBands = 20;
         BKNI_Memcpy(&audioProcessingSettings.dolby.dolbySettings.intelligentEqualizer.band, &openProfile, sizeof(openProfile));
 
     }
@@ -877,6 +909,7 @@ void print_usage(void) {
     "  -pri_audio_type / -sec_audio_type    override media probe", g_audioCodecStrs);
     print_list_option(
     "  -pri_mpeg_type -sec_mpeg_type    override media probe", g_transportTypeStrs);
+    printf("  -single_pid secondary audio uses the same pid but different substream as primary\n");
     printf("  -stereo [loro|ltrt]   Sets stereo downmix mode [Automatic is default]\n");
     printf("  -autoPilot    Enables AutoPilot Profile\n");
     printf("  -dap  Set DAP to enabled at start time\n");

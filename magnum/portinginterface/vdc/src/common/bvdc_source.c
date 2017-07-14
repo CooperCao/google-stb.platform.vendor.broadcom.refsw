@@ -2170,6 +2170,9 @@ static void BVDC_P_Source_PrintPicture_isr
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBitDepth                            : %u", pPic->eBitDepth));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eChromaBitDepth                      : %u", pPic->eChromaBitDepth));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBufferFormat                        : %d", pPic->eBufferFormat));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulMaxContentLight                    : %d", pPic->ulMaxContentLight));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulAvgContentLight                    : %d", pPic->ulAvgContentLight));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulMaxDispMasteringLuma               : %d", pPic->ulMaxDispMasteringLuma));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.eType                  : %d", pPic->stHdrMetadata.eType));
             if(BAVC_HdrMetadataType_eUnknown != pPic->stHdrMetadata.eType) {
                 BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.pData                  : %p", (void *)pPic->stHdrMetadata.pData));

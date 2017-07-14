@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -87,7 +87,7 @@ sub get_stopcallbacks_handle
     my ($func, $classes) = @_;
     my $class;
     for $class (@$classes) {
-        next if ($class->{DESTRUCTOR} != $func);
+        next if ($class->{DESTRUCTOR} != $func && (!defined $class->{RELEASE} || $class->{RELEASE} != $func));
         if ($class->{HAS_CALLBACKS}) {
             return $func->{PARAMS}->[0]->{NAME};
         }

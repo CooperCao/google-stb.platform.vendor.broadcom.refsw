@@ -470,6 +470,7 @@ static int generate_basic_test(AppContext * pCtx, DynamicRange gfx, DynamicRange
     print_test_vars(description, MAX_DESCRIPTION_LEN, gfx, vid, mp, out);
     fprintf(f, "# TEST VARS: %s\n", description);
     print_summary_entry(pCtx, gfx, vid, out, "");
+    fprintf(f, "reset\n");
     fprintf(f, "echo \"Please attach a TV with the following capabilities: %s\n", dynrngOutputStrings[out]);
     WAITUSER();
 
@@ -480,7 +481,7 @@ static int generate_basic_test(AppContext * pCtx, DynamicRange gfx, DynamicRange
         ECHO();
         if (compatible(out, rxcaps))
         {
-            ECHO("After you hit enter, please look at the server console for messages printing the DRM infoframe contents while running the test");
+            ECHO("After you hit enter, please look at the server console for the most recent messages printing the DRM infoframe contents while running the test.");
             ECHO("You are expecting to see the following:");
             ECHO();
             if (legacy(rxcaps))
@@ -489,7 +490,7 @@ static int generate_basic_test(AppContext * pCtx, DynamicRange gfx, DynamicRange
             }
             else
             {
-                fprintf(f, "echo \"eotf: Unknown -> %s\"\n", dynrngInputStrings[vid[fav]]);
+                fprintf(f, "echo \"eotf: Invalid -> %s\"\n", dynrngInputStrings[vid[fav]]);
                 /* TODO: metadata */
             }
             ECHO();

@@ -136,10 +136,6 @@ BDSP_MS12_SUPPORT = n
 BDSP_DOLBY_DCV_SUPPORT = y
 endif
 
-ifeq ($(BCHP_CHIP),7278)
-BDSP_MS12_SUPPORT = B
-endif
-
 ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
 
 ifeq ($(BCHP_CHIP),7278)
@@ -153,8 +149,7 @@ BDSP_UDC_SUPPORT = n
 endif
 
 BDSP_DOLBY_AACHE_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_dolby_aache.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_aache.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_dolby_aache.c
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
 BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
 else

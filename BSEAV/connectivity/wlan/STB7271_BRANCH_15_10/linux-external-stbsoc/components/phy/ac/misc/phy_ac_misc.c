@@ -417,7 +417,7 @@ static uint32 phy_ac_rx_iq_est(phy_type_misc_ctx_t *ctx, uint8 samples, uint8 an
 	uint8 enRx = 0, enTx = 0;
 
 	if (sampling_in_progress) {
-		PHY_ERROR(("%s: sampling_in_progress\n", __FUNCTION__));
+		PHY_INFORM(("%s: sampling_in_progress\n", __FUNCTION__));
 
 		return 0;
 	}
@@ -1280,6 +1280,29 @@ wlc_phy_freq_accuracy_acphy(phy_type_misc_ctx_t *ctx, int channel)
 }
 #endif 
 
+#if defined(BCMINTPHYDBG)
+void
+wlc_phy_test_scraminit_acphy(phy_info_t *pi, int8 init)
+{
+
+	if (init < 0) {
+		/* auto: clear Mode bit so that scrambler LFSR will be free
+		 * running.  ok to leave scramindexctlEn and initState in
+		 * whatever current condition, since their contents are unused
+		 * when free running.
+		 */
+		MOD_PHYREG(pi, ScramSigCtrl, scramCtrlMode, 0);
+	} else {
+		/* fixed init: set Mode bit, clear scramindexctlEn, and write
+		 * init to initState, so that scrambler LFSR will be
+		 * initialized with specified value for each transmission.
+		 */
+		MOD_PHYREG(pi, ScramSigCtrl, initStateValue, init);
+		MOD_PHYREG(pi, ScramSigCtrl, scramindexctlEn, 0);
+		MOD_PHYREG(pi, ScramSigCtrl, scramCtrlMode, 1);
+	}
+}
+#endif 
 
 void wlc_acphy_set_scramb_dyn_bw_en(wlc_phy_t *pih, bool enable)
 {

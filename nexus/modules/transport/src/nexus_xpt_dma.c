@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,6 +49,11 @@ typedef struct NEXUS_P_DmaPidChannel {
     NEXUS_P_HwPidChannel *pid_channel;
 } NEXUS_P_DmaPidChannel;
 
+struct NEXUS_DmaJobCallback {
+    void (*function)(void*);
+    void *context;
+};
+
 typedef struct NEXUS_DmaJob
 {
     NEXUS_OBJECT(NEXUS_DmaJob);
@@ -70,10 +75,7 @@ typedef struct NEXUS_DmaJob
         NEXUS_DmaJob_P_StateQueued /* job is queued in activeNode */
     } state;
 
-    struct {
-        void (*function)(void*);
-        void *context;
-    } cryptoCallback;
+    struct NEXUS_DmaJobCallback cryptoCallback;
     NEXUS_DmaJobSettings settings;
     unsigned numBlocks;
     bool flushAfter; /* true if ANY NEXUS_DmaJobBlockSettings[].cached is true. i.e. flushAfter is per-job, while .cached is per-jobBlock */
@@ -691,9 +693,12 @@ static void NEXUS_Dma_P_CompleteEvent(void* context)
     }
 
     if (handle->cryptoCallback.function) {
-        handle->cryptoCallback.function(handle->cryptoCallback.context);
+        struct NEXUS_DmaJobCallback cryptoCallback = handle->cryptoCallback;
+        /* clear before calling, because the callback may recursively set it again */
         handle->cryptoCallback.function = NULL;
+        cryptoCallback.function(cryptoCallback.context);
     }
+
     NEXUS_TaskCallback_Fire(handle->completionCallback);
 }
 
@@ -717,6 +722,9 @@ NEXUS_DmaJob_P_ProcessBlocks(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockS
     uint64_t srcOffset, dstOffset;
     unsigned i = 0, dmaLength = 0;
 
+    if (handle->state != NEXUS_DmaJob_P_StateIdle) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
     if (nBlocks > handle->settings.numBlocks) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
@@ -825,6 +833,12 @@ NEXUS_DmaJob_P_ProcessBlocksOffset(NEXUS_DmaJobHandle handle, const NEXUS_DmaJob
     NEXUS_Addr srcOffset, dstOffset;
     unsigned i, dmaLength = 0;
 
+    if (handle->state != NEXUS_DmaJob_P_StateIdle) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+    if (nBlocks > handle->settings.numBlocks) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
     BDBG_MSG(("  started job:%#lx nBlocks:%u", (unsigned long)handle, nBlocks));
 
     for (i=0; i<nBlocks; i++,pSettings++) {

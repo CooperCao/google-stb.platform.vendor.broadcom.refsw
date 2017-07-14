@@ -137,6 +137,10 @@ private:
 
     /* peer state */
     static bool peerUp;
+
+    /* cpu start time (in ticks) */
+    static uint64_t tzStartTicks;
+    static uint64_t nwStartTicks;
 };
 
 #endif /* TZIOC_H */

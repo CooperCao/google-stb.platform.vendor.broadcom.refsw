@@ -250,9 +250,11 @@ public:
     eDynamicRange        getDynamicRange(void) { return(_dynamicRange); }
     void                 setDynamicRange(eDynamicRange dynamicRange) { _dynamicRange = dynamicRange; }
     bool                 isPlmEnabled(void) { return(_bPlm); }
+    void                 setPlm(bool bPlm) { _bPlm = bPlm; }
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
     bool                 isGraphicsPlmEnabled(void) { return(_bPlmGfx); }
+    void                 setGraphicsPlm(bool bPlmGfx) { _bPlmGfx = bPlmGfx; }
 #endif
 
     void addMetadata(

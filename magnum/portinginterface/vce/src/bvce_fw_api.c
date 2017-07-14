@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1218,51 +1218,6 @@ static uint8_t bvceEpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t
 
 #define MULT16(x)       ( (x) << 4 )
 #define MULT8(x)        ( (x) << 3 )
-
-#if 0
-static uint32_t bvceEpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf , uint32_t IsInterlace , uint32_t IsChroma , uint32_t X, uint32_t Y)
-{
-    uint32_t Nmby;
-    uint32_t DcxvPaddingHeight;
-    uint32_t BuffereHeightInPels;
-    uint32_t PictureHeightInPels;
-
-    PictureHeightInPels = MULT16(PictureHeightInMbs);
-    if (IsChroma == 1)
-    PictureHeightInPels = DIV2_ROUNDUP(PictureHeightInPels);
-
-
-    if ( IsInterlace == 1 )
-    {
-            DcxvPaddingHeight = DCXV_PADDED_LINE *2;
-    }
-    else
-    {
-        DcxvPaddingHeight = DCXV_PADDED_LINE;
-    }
-
-    if ( IsDcxvBuf == 1 )
-    {
-      BuffereHeightInPels = PictureHeightInPels + DcxvPaddingHeight;
-    }
-    else
-    {
-      BuffereHeightInPels = PictureHeightInPels;
-    }
-
-    if (
-        (IsInterlace == 1) &&
-        (IsChroma == 1)
-       )
-    {
-        BuffereHeightInPels = PictureHeightInPels;
-    }
-
-    Nmby = bvceEpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels) , X , Y);
-    return(Nmby);
-
-}
-#endif
 
 /************************************************************************
 * Function: EpmCalcStripeBufferSize

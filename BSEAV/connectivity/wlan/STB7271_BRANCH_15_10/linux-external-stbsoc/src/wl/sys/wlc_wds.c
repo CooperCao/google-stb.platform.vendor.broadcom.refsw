@@ -63,6 +63,9 @@
 #include <wlc_event_utils.h>
 #include <wlc_dump.h>
 #include <wlc_iocv.h>
+#ifdef WLAMPDU
+#include <wlc_ampdu_cmn.h>
+#endif
 
 #ifndef IFNAMSIZ
 #define IFNAMSIZ		16
@@ -697,6 +700,8 @@ wlc_wds_scb_deinit(void *ctx, struct scb *scb)
 	if (scb->wds == NULL)
 		return;
 
+	/* process event queue */
+	wlc_eventq_flush(wlc->eventq);
 	if (scb->wds->wlif) {
 		wlc_if_event(wlc, WLC_E_IF_DEL, scb->wds);
 		wl_del_if(wlc->wl, scb->wds->wlif);
@@ -783,6 +788,7 @@ wlc_ap_wds_probe(wlc_wds_info_t *mwds, struct scb *scb)
 void
 wlc_ap_wds_probe_complete(wlc_info_t *wlc, uint txstatus, struct scb *scb)
 {
+	uint scb_activity_time;
 #if defined(BCMDBG) || defined(WLMSG_INFORM)
 	char eabuf[ETHER_ADDR_STR_LEN];
 #endif
@@ -830,6 +836,7 @@ wlc_ap_wds_probe_complete(wlc_info_t *wlc, uint txstatus, struct scb *scb)
 	/* ack indicates the sta is there */
 	if (txstatus & TX_STATUS_MASK) {
 		scb->flags |= SCB_WDS_LINKUP;
+		WL_ERROR(("%s: WDS link up\n", wl_ifname(wlc->wl, scb->wds->wlif)));
 		return;
 	}
 
@@ -837,7 +844,22 @@ wlc_ap_wds_probe_complete(wlc_info_t *wlc, uint txstatus, struct scb *scb)
 	WL_INFORM(("wl%d: %s: no ACK from %s for Null Data\n",
 	           wlc->pub->unit, __FUNCTION__, bcm_ether_ntoa(&scb->ea, eabuf)));
 
+	if ((scb_activity_time = wlc_ap_get_activity_time(wlc->ap)) != 0 &&
+		((wlc->pub->now - scb->used) < scb_activity_time)) {
+		WL_INFORM(("%s: There was recent traffic (%u sec) with %s so don't block link\n",
+			__FUNCTION__, wlc->pub->now - scb->used, bcm_ether_ntoa(&scb->ea, eabuf)));
+		return;
+	}
+
 	scb->flags &= ~SCB_WDS_LINKUP;
+
+#ifdef WLAMPDU
+	/* cleanup ampdu when peer is lost */
+	if (SCB_AMPDU(scb)) {
+		WL_AMPDU(("wl%d: scb ampdu cleanup for %s\n", wlc->pub->unit, eabuf));
+		scb_ampdu_cleanup(wlc, scb);
+	}
+#endif /* WLAMPDU */
 }
 
 /*
@@ -925,6 +947,24 @@ wlc_wds_lazywds_is_enable(wlc_wds_info_t *mwds)
 		return FALSE;
 }
 
+int
+wlc_wds_peers_connected(wlc_info_t *wlc)
+{
+	struct scb_iter scbiter;
+	struct scb *scb;
+	wlc_bsscfg_t *bsscfg;
+	int32 idx, count = 0;
+
+	FOREACH_BSS(wlc, idx, bsscfg) {
+		FOREACH_BSS_SCB(wlc->scbstate, &scbiter, bsscfg, scb) {
+			if (SCB_WDS(scb) != NULL) {
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
 static int
 wlc_wds_bcn_parse_wme_ie(void *ctx, wlc_iem_parse_data_t *data)
 {
@@ -993,6 +1033,8 @@ wlc_dwds_config(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_dwds_config_t *dwds)
 	} else {
 		/* free WDS state */
 		if (scb->wds != NULL) {
+			/* process event queue */
+			wlc_eventq_flush(wlc->eventq);
 			if (scb->wds->wlif) {
 				wlc_if_event(wlc, WLC_E_IF_DEL, scb->wds);
 				wl_del_if(wlc->wl, scb->wds->wlif);

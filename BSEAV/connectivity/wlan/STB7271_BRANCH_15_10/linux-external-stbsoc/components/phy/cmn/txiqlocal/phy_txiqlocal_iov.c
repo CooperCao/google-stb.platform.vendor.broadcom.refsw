@@ -28,6 +28,14 @@
 /* iovar table */
 
 static const bcm_iovar_t phy_txiqlocal_iovars[] = {
+#if defined(BCMINTPHYDBG)
+	{"phy_txiqcc", IOV_PHY_TXIQCC,
+	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER,  2*sizeof(int32)
+	},
+	{"phy_txlocc", IOV_PHY_TXLOCC,
+	(IOVF_GET_UP | IOVF_SET_UP | IOVF_MFG), 0, IOVT_BUFFER, 6
+	},
+#endif 
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -41,11 +49,36 @@ phy_txiqlocal_doiovar(void *ctx, uint32 aid,
 {
 	int err = BCME_OK;
 	int int_val = 0;
+#if defined(BCMINTPHYDBG)
+	phy_info_t *pi = (phy_info_t *)ctx;
+#endif 
 
 	if (plen >= (uint)sizeof(int_val))
 		bcopy(p, &int_val, sizeof(int_val));
 
 	switch (aid) {
+#if defined(BCMINTPHYDBG)
+	case IOV_GVAL(IOV_PHY_TXIQCC):
+	{
+		phy_txiqlocal_txiqccget(pi, a);
+		break;
+	}
+	case IOV_SVAL(IOV_PHY_TXIQCC):
+	{
+		phy_txiqlocal_txiqccset(pi, p);
+		break;
+	}
+	case IOV_GVAL(IOV_PHY_TXLOCC):
+	{
+		phy_txiqlocal_txloccget(pi, a);
+		break;
+	}
+	case IOV_SVAL(IOV_PHY_TXLOCC):
+	{
+		phy_txiqlocal_txloccset(pi, p);
+		break;
+	}
+#endif 
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

@@ -146,36 +146,14 @@ NEXUS_P_Base_SetModuleDebugLevel(const char *modulelist, BDBG_Level level)
 }
 #endif /* BDBG_DEBUG_BUILD */
 
-static const char *NEXUS_P_Scheduler_names[NEXUS_ModulePriority_eMax] = {
-    "nx_sched_idle",
-    "nx_sched_low",
-    "nx_sched",
-    "nx_sched_high",
-    "nx_sched_idle_stndby",
-    "nx_sched_low_stndby",
-    "nx_sched_stndby",
-    "nx_sched_high_stndby"
-};
-
-NEXUS_ModuleHandle
-NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettings)
+static NEXUS_ModuleHandle
+NEXUS_Module_Create_locked(const char *pModuleName, const NEXUS_ModuleSettings *pSettings)
 {
     NEXUS_ModuleHandle module;
     NEXUS_ModuleHandle prev,cur;
     BERR_Code rc;
-    NEXUS_ModuleSettings defaultSettings;
-    static unsigned g_order = 0;
 
     BDBG_ASSERT(pModuleName);
-
-    if(pModuleName!=NEXUS_P_Base_Name) {
-        NEXUS_LockModule();
-    }
-
-    if(pSettings==NULL) {
-        NEXUS_Module_GetDefaultSettings(&defaultSettings);
-        pSettings = &defaultSettings;
-    }
 
     if ((unsigned)pSettings->priority >= sizeof(NEXUS_P_Base_State.schedulers)/sizeof(NEXUS_P_Base_State.schedulers[0])) {
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -190,25 +168,15 @@ NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettin
     BKNI_Memset(module, 0, sizeof(*module));
     BDBG_OBJECT_SET(module, NEXUS_Module);
     module->settings = *pSettings;
-    module->order = g_order++;
+    module->order = NEXUS_P_Base_State.moduleOrder++;
     module->pModuleName = pModuleName;
     rc = BKNI_CreateMutex(&module->lock);
     if(rc!=BERR_SUCCESS) {
         rc = BERR_TRACE(rc);
         goto err_lock;
     }
-    if(pModuleName!=NEXUS_P_Base_Name) {
-        if(NEXUS_P_Base_State.schedulers[pSettings->priority]==NULL) { /* create scheduler on demand */
-           NEXUS_P_Base_State.schedulers[pSettings->priority] = NEXUS_P_Scheduler_Create(pSettings->priority, NEXUS_P_Scheduler_names[pSettings->priority], &NEXUS_P_Base_State.settings.threadSettings[pSettings->priority]);
-           if(NEXUS_P_Base_State.schedulers[pSettings->priority]==NULL) {
-               rc = BERR_TRACE(BERR_OS_ERROR);
-               goto err_scheduler;
-           }
-        }
-        module->scheduler = NEXUS_P_Base_State.schedulers[pSettings->priority];
-    } else {
-        module->scheduler = NULL;
-    }
+    module->scheduler = NULL;
+
     /* insert into the sorted list */
     for(prev=NULL, cur=BLST_S_FIRST(&NEXUS_P_Base_State.modules); cur!=NULL; cur=BLST_S_NEXT(cur, link)) {
         int cmp;
@@ -234,31 +202,22 @@ NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettin
 
     module->enabled = true;
 
-    if(pModuleName!=NEXUS_P_Base_Name) {
-        NEXUS_UnlockModule();
-    }
-
     BDBG_MSG(("Creating module %s, priority %d", pModuleName, pSettings->priority));
     return module;
+
 err_name:
-err_scheduler:
     BKNI_DestroyMutex(module->lock);
 err_lock:
     BKNI_Free(module);
 err_alloc:
 err_paramcheck:
-    if(pModuleName!=NEXUS_P_Base_Name) {
-        NEXUS_UnlockModule();
-    }
     return NULL;
 }
 
-
-void
-NEXUS_Module_Destroy(NEXUS_ModuleHandle module)
+static void
+NEXUS_Module_Destroy_locked(NEXUS_ModuleHandle module)
 {
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
-    NEXUS_LockModule();
 
     if (module->settings.dbgPrint) {
         NEXUS_Module_UnregisterProc(module, module->pModuleName);
@@ -268,10 +227,53 @@ NEXUS_Module_Destroy(NEXUS_ModuleHandle module)
 
     module->enabled = false;
     BLST_S_REMOVE(&NEXUS_P_Base_State.modules, module, NEXUS_Module, link);
-    NEXUS_UnlockModule();
     BKNI_DestroyMutex(module->lock);
     BDBG_OBJECT_DESTROY(module, NEXUS_Module);
     BKNI_Free(module);
+    return;
+}
+
+NEXUS_ModuleHandle
+NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettings)
+{
+    NEXUS_ModuleHandle module;
+    NEXUS_ModuleSettings defaultSettings;
+
+    BDBG_ASSERT(pModuleName);
+    if(pSettings==NULL) {
+        NEXUS_Module_GetDefaultSettings(&defaultSettings);
+        pSettings = &defaultSettings;
+    }
+
+
+    NEXUS_LockModule();
+    module = NEXUS_Module_Create_locked(pModuleName, pSettings);
+    if(module) {
+        if(NEXUS_P_Base_State.schedulers[pSettings->priority]==NULL) { /* create scheduler on demand */
+           NEXUS_P_Base_State.schedulers[pSettings->priority] = NEXUS_P_Scheduler_Create(pSettings->priority);
+           if(NEXUS_P_Base_State.schedulers[pSettings->priority]==NULL) {
+                (void)BERR_TRACE(BERR_OS_ERROR);
+                NEXUS_Module_Destroy_locked(module);
+                module = NULL;
+           }
+        }
+        if(module) {
+            module->scheduler = NEXUS_P_Base_State.schedulers[pSettings->priority];
+        }
+    }
+    NEXUS_UnlockModule();
+
+    BDBG_MSG(("Creating module %s, priority %d", pModuleName, pSettings->priority));
+    return module;
+}
+
+
+void
+NEXUS_Module_Destroy(NEXUS_ModuleHandle module)
+{
+    NEXUS_LockModule();
+    NEXUS_Module_Destroy_locked(module);
+    NEXUS_UnlockModule();
     return;
 }
 
@@ -296,52 +298,6 @@ void NEXUS_Module_GetSettings( NEXUS_ModuleHandle module, NEXUS_ModuleSettings *
 }
 
 /* See nexus/base/src/$(OS)/nexus_base_os.c for NEXUS_Base_GetDefaultSettings */
-
-#if NEXUS_BASE_EXTERNAL_SCHEDULER
-/**
-Allow an external scheduler to drive the scheduler state machine. This allows for thread consolidation
-in complex systems like linux kernel mode. */
-static NEXUS_Error
-NEXUS_P_Base_ExternalSchedulerInit(void)
-{
-    unsigned i;
-    for(i=0;i<sizeof(NEXUS_P_Base_State.schedulers)/sizeof(NEXUS_P_Base_State.schedulers[0]);i++) {
-        NEXUS_P_Base_State.schedulers[i] = NEXUS_P_Scheduler_Init(i, NEXUS_P_Scheduler_names[i], &NEXUS_P_Base_State.settings.threadSettings[i]);
-        if(!NEXUS_P_Base_State.schedulers[i]) {
-            return BERR_TRACE(NEXUS_OS_ERROR);
-        }
-    }
-    return NEXUS_SUCCESS;
-}
-
-/* Drive the scheduler from an external context. */
-NEXUS_Error
-NEXUS_P_Base_ExternalScheduler_Step(NEXUS_ModulePriority priority, unsigned timeout, NEXUS_P_Base_Scheduler_Status *status, bool (*complete)(void *context), void *context)
-{
-    NEXUS_P_Scheduler *scheduler;
-
-    scheduler = NEXUS_P_Base_State.schedulers[priority];
-    return NEXUS_P_Scheduler_Step(scheduler, timeout, status, complete, context);
-}
-#endif
-
-/* All the external context to get the scheduler's mutex. */
-void
-NEXUS_P_Base_GetSchedulerConfig(NEXUS_ModulePriority priority, NEXUS_Base_Scheduler_Config *config)
-{
-    BKNI_Memset(config, 0, sizeof(*config));
-    if (priority < NEXUS_ModulePriority_eMax) {
-        config->name = NEXUS_P_Scheduler_names[priority];
-        config->pSettings = &NEXUS_P_Base_State.settings.threadSettings[priority];
-
-        if (NEXUS_P_Base_State.schedulers[priority]) {
-            NEXUS_P_SchedulerInfo info;
-            NEXUS_P_SchedulerGetInfo(NEXUS_P_Base_State.schedulers[priority], &info);
-            config->callback_lock = info.callback_lock;
-        }
-    }
-    return;
-}
 
 NEXUS_Error
 NEXUS_Base_Core_Init(void)
@@ -430,22 +386,7 @@ NEXUS_Base_Core_Uninit(void)
     return;
 }
 
-#if NEXUS_P_DEBUG_CALLBACKS
-static void NEXUS_P_Base_Monitor(void *context)
-{
-    BSTD_UNUSED(context);
-    while (BKNI_WaitForEvent(NEXUS_P_Base_State.monitor.event, 2000) == BERR_TIMEOUT) {
-        unsigned i;
-        for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
-            if (NEXUS_P_Base_State.schedulers[i]) {
-                NEXUS_P_Base_CheckForStuckCallback(NEXUS_P_Base_State.schedulers[i]);
-            }
-        }
 
-        NEXUS_Base_P_PrintPendingCallers();
-    }
-}
-#endif
 
 NEXUS_Error
 NEXUS_Base_Init(const NEXUS_Base_Settings *pSettings)
@@ -453,6 +394,7 @@ NEXUS_Base_Init(const NEXUS_Base_Settings *pSettings)
     BERR_Code rc;
     unsigned i;
     NEXUS_Base_Settings settings;
+    NEXUS_ModuleSettings defaultSettings;
 
 
     if(!pSettings) {
@@ -468,6 +410,7 @@ NEXUS_Base_Init(const NEXUS_Base_Settings *pSettings)
 
     BLST_S_INIT(&NEXUS_P_Base_State.modules);
     NEXUS_P_Base_State.settings = *pSettings;
+    NEXUS_P_Base_State.moduleOrder = 0;
     NEXUS_P_MapInit();
     NEXUS_P_Base_Stats_Init();
 
@@ -486,7 +429,9 @@ NEXUS_Base_Init(const NEXUS_Base_Settings *pSettings)
     for(i=0;i<sizeof(NEXUS_P_Base_State.schedulers)/sizeof(NEXUS_P_Base_State.schedulers[0]);i++) {
         NEXUS_P_Base_State.schedulers[i] = NULL;
     }
-    NEXUS_Base = NEXUS_Module_Create(NEXUS_P_Base_Name, NULL);
+
+    NEXUS_Module_GetDefaultSettings(&defaultSettings);
+    NEXUS_Base = NEXUS_Module_Create_locked(NEXUS_P_Base_Name, &defaultSettings);
     if(!NEXUS_Base) {
         rc = BERR_TRACE(BERR_OS_ERROR);
         goto err_module;
@@ -497,25 +442,17 @@ NEXUS_Base_Init(const NEXUS_Base_Settings *pSettings)
     rc = NEXUS_P_Base_ExternalSchedulerInit(); /* initialize schedulers, but don't start threads */
     if(rc!=BERR_SUCCESS) {
         NEXUS_UnlockModule();
-        NEXUS_Module_Destroy(NEXUS_Base);
+        NEXUS_Module_Destroy_locked(NEXUS_Base);
         rc = BERR_TRACE(rc);
         goto err_module;
     }
 #endif
     NEXUS_UnlockModule();
     NEXUS_P_Base_Scheduler_Init();
-
-#if NEXUS_P_DEBUG_CALLBACKS
-    rc = BKNI_CreateEvent(&NEXUS_P_Base_State.monitor.event);
-    if (!rc) {
-        NEXUS_P_Base_State.monitor.thread = NEXUS_Thread_Create("base_monitor", NEXUS_P_Base_Monitor, NULL, NULL);
-        if (!NEXUS_P_Base_State.monitor.thread) {
-            BKNI_DestroyEvent(NEXUS_P_Base_State.monitor.event);
-            NEXUS_P_Base_State.monitor.event = NULL;
-            rc = NEXUS_UNKNOWN;
-        }
-    }
-    if (rc) BERR_TRACE(rc); /* keep going */
+#if !NEXUS_BASE_EXTERNAL_SCHEDULER
+    NEXUS_LockModule();
+    NEXUS_P_Base_State.schedulers[NEXUS_ModulePriority_eInternal] = NEXUS_P_Scheduler_Create(NEXUS_ModulePriority_eInternal);
+    NEXUS_UnlockModule();
 #endif
 
     return BERR_SUCCESS;
@@ -574,7 +511,7 @@ NEXUS_Base_Uninit(void)
     BDBG_MSG_TRACE(("NEXUS_Base_Uninit: NEXUS_UnlockModule"));
     NEXUS_UnlockModule();
     BDBG_MSG_TRACE(("NEXUS_Base_Uninit: NEXUS_Module_Destroy"));
-    NEXUS_Module_Destroy(NEXUS_Base);
+    NEXUS_Module_Destroy_locked(NEXUS_Base);
     BDBG_MSG_TRACE(("NEXUS_Base_Uninit: BKNI_DestroyMutex"));
     BKNI_DestroyMutex(NEXUS_P_Base_State.baseObject.lock);
     BKNI_DestroyMutex(NEXUS_P_Base_State.callbackHandlerLock);
@@ -1192,22 +1129,6 @@ void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *func
     NEXUS_UnlockModule();
 }
 
-static void NEXUS_Base_P_PrintPendingCallers(void)
-{
-    NEXUS_ModuleHandle module;
-    NEXUS_Time now;
-    NEXUS_Time_Get(&now);
-    NEXUS_LockModule();
-    for(module=BLST_S_FIRST(&NEXUS_P_Base_State.modules); module; module=BLST_S_NEXT(module, link)) {
-        if (module->pendingCaller.functionName) {
-            unsigned diff = NEXUS_Time_Diff(&now, &module->pendingCaller.time);
-            if (diff >= 5000) { /* 5 seconds */
-                BDBG_WRN(("%s blocked for %u msec", module->pendingCaller.functionName, diff));
-            }
-        }
-    }
-    NEXUS_UnlockModule();
-}
 #else
 void NEXUS_Module_SetPendingCaller(NEXUS_ModuleHandle module, const char *functionName)
 {

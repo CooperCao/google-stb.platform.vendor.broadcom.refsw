@@ -1373,6 +1373,7 @@ static NEXUS_Error nexus_simpleencoder_p_start_psi( NEXUS_SimpleEncoderHandle ha
         case NEXUS_VideoCodec_eMpeg2:         vidStreamType = 0x2; break;
         case NEXUS_VideoCodec_eMpeg4Part2:    vidStreamType = 0x10; break;
         case NEXUS_VideoCodec_eH264:          vidStreamType = 0x1b; break;
+        case NEXUS_VideoCodec_eH265:          vidStreamType = 0x24; break;
         case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
         default:
             BDBG_ERR(("Video encoder codec %d is not supported!", handle->startSettings.output.video.settings.codec));

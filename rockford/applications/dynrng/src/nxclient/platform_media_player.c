@@ -270,7 +270,7 @@ void platform_media_player_get_picture_info(PlatformMediaPlayerHandle player, Pl
     BKNI_Memset(pInfo, 0, sizeof(*pInfo));
     if (player->streamInfo.nx.valid)
     {
-        pInfo->dynrng = platform_p_dynamic_range_from_nexus(player->streamInfo.nx.eotf, player->streamInfo.nx.dolbyVision);
+        pInfo->dynrng = platform_p_input_dynamic_range_from_nexus(player->streamInfo.nx.eotf, player->streamInfo.nx.dynamicMetadataType);
         pInfo->gamut = platform_p_colorimetry_from_nexus(player->streamInfo.nx.matrixCoefficients);
         pInfo->space = PlatformColorSpace_eYCbCr422;
         pInfo->depth = player->streamInfo.nx.colorDepth;

@@ -447,6 +447,9 @@ static int BCMFASTPATH
 wlc_bss_sendup_pre_filter(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct scb *scb,
 	void *pkt, bool multi);
 
+#if defined(BCMINTPHYDBG)
+static uint8 wlc_rxpkt_rate_count(wlc_info_t *wlc, ratespec_t rspec);
+#endif
 
 #define TBTT_ALIGN_LEEWAY_TU    10      /**< min leeway before first TBTT in TU (1024 us) */
 #define TBTT_ALIGN_LEEWAY_TU_QT 2       /**< min leeway before first TBTT in TU (1024 us) */
@@ -847,6 +850,10 @@ wlc_recvdata(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 	/* Save the rspec in pkttag */
 	WLPKTTAG(p)->rspec = rspec;
 
+#if defined(BCMINTPHYDBG)
+	wlc_phy_pkteng_rxstats_update(WLC_PI(wlc),
+		wlc_rxpkt_rate_count(wlc, rspec));
+#endif 
 
 
 	f.h = (struct dot11_header *)(plcp + D11_PHY_HDR_LEN);
@@ -7234,6 +7241,73 @@ wlc_scan_pre_parse_frame(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint16 ft,
 	                            NULL, NULL, ies, ies_len);
 }
 
+#if defined(BCMINTPHYDBG)
+static uint8 wlc_rxpkt_rate_count(wlc_info_t *wlc, ratespec_t rspec)
+{
+	uint8 index = NUM_80211_RATES;
+	BCM_REFERENCE(wlc);
+
+	/* stat counter array:
+	  * first 4 for b rates, 8 for ag, 32 for mcs
+	  */
+
+	/* update per-rate rx count */
+	if (RSPEC_ISVHT(rspec)) {
+		index = NUM_80211b_RATES + NUM_80211ag_RATES
+			+ (rspec & RSPEC_VHT_MCS_MASK);
+	} else if (RSPEC_ISHT(rspec)) {
+		index = NUM_80211b_RATES + NUM_80211ag_RATES
+			+ (rspec & RSPEC_RATE_MASK);
+	} else if (RSPEC_ISLEGACY(rspec)) {
+		switch (RSPEC2RATE(rspec)) {
+		case WLC_RATE_1M:
+			index = 3;
+			break;
+		case WLC_RATE_2M:
+			index = 1;
+			break;
+		case WLC_RATE_5M5:
+			index = 2;
+			break;
+		case WLC_RATE_6M:
+			index = 7;
+			break;
+		case WLC_RATE_9M:
+			index = 11;
+			break;
+		case WLC_RATE_11M:
+			index = 0;
+			break;
+		case WLC_RATE_12M:
+			index = 6;
+			break;
+		case WLC_RATE_18M:
+			index = 10;
+			break;
+		case WLC_RATE_24M:
+			index = 5;
+			break;
+		case WLC_RATE_36M:
+			index = 9;
+			break;
+		case WLC_RATE_48M:
+			index = 4;
+			break;
+		case WLC_RATE_54M:
+			index = 8;
+			break;
+		default:
+			break;
+		}
+	}
+
+	/* If the indexis out of bound for some reason then put it to others */
+	if (index > NUM_80211_RATES)
+		index = NUM_80211_RATES;
+
+	return index;
+}
+#endif 
 
 #ifdef BCMSPLITRX
 /* Look up scb from frminfo, required for Rx pktfetch cases.

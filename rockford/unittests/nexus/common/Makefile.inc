@@ -286,10 +286,15 @@ ifneq ($(PLAYBACK_IP_SUPPORT),y)
 endif
 
 
-
 # Assemble the Nexus flags into our CFLAGS and LDFLAGS
 CFLAGS += $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+ifeq ($(NXCLIENT_SUPPORT),y)
+include $(NEXUS_TOP)/nxclient/include/nxclient.inc
+CFLAGS += $(NXCLIENT_CFLAGS)
+LDFLAGS += $(NXCLIENT_LDFLAGS)
+else
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
+endif
 LDFLAGS += -lm
 
 # Always build with debug

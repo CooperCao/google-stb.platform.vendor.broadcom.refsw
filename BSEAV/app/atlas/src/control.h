@@ -213,6 +213,7 @@ protected:
     MList <CViewListNode> _viewList;
     MList <CChannel>      _recordingChannels;
     MList <CChannel>      _encodingChannels;
+    bool                  _bIgnoreNextKeypress;
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     MList <CSimpleVideoDecode> _plmVideoDecodeList;
     CTimer _timerPlmVerify;

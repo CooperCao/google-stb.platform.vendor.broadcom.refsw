@@ -586,12 +586,12 @@ static void nexus_cleanup_clients_lock(struct NEXUS_Server *server, bool *p_pend
 static void nexus_autoclose_client_lock(struct NEXUS_Client *client)
 {
     unsigned i;
-    NEXUS_PlatformStandbySettings standbySettings;
+    NEXUS_StandbySettings standbySettings;
 
     BDBG_OBJECT_ASSERT(client, NEXUS_Client);
 
     NEXUS_Platform_GetStandbySettings(&standbySettings);
-    if(standbySettings.mode != NEXUS_PlatformStandbyMode_eOn) {
+    if(standbySettings.mode != NEXUS_StandbyMode_eOn) {
         BDBG_MSG(("Defer client cleanup %p:%u", (void *)client, (unsigned)client->pid));
         return;
     }
@@ -604,6 +604,9 @@ static void nexus_autoclose_client_lock(struct NEXUS_Client *client)
     /* disconnect callbacks */
     for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
         struct b_server_callback_cxn *callback_cxn = &client->callback_cxn[i];
+        if(i==NEXUS_ModulePriority_eInternal) {
+            continue;
+        }
         BDBG_OBJECT_ASSERT(callback_cxn, b_server_callback_cxn);
         if (callback_cxn->fd != -1) {
             BDBG_MSG(("disconnect client(%p) from callback(%d)", (void *)client, i));
@@ -752,6 +755,10 @@ static void nexus_server_thread(void *context)
     for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
         struct b_server_callback *callback = &server->callback[i];
 
+        if(i==NEXUS_ModulePriority_eInternal) {
+            continue;
+        }
+
         BDBG_OBJECT_ASSERT(callback, b_server_callback);
 
         callback->listen_fd = b_nexus_socket_listen(nexus_socket_type_scheduler, i);
@@ -780,6 +787,9 @@ static void nexus_server_thread(void *context)
 
             /* add callback listeners */
             for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
+                if(i==NEXUS_ModulePriority_eInternal) {
+                    continue;
+                }
                 fds[num].fd = server->callback[i].listen_fd;
                 fds[num].events = POLLIN;
                 num++;
@@ -797,7 +807,7 @@ static void nexus_server_thread(void *context)
             for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
                 BDBG_OBJECT_ASSERT(client, NEXUS_Client);
                 if (client->fd != -1) {
-                    BDBG_ASSERT(num<1+NEXUS_ModulePriority_eMax+B_MAX_CLIENTS);
+                    BDBG_ASSERT(num<1+(NEXUS_ModulePriority_eMax-1)+B_MAX_CLIENTS);
                     client->pollnum = num;
                     fds[num].fd = client->fd;
                     fds[num].events = POLLIN;
@@ -828,6 +838,9 @@ static void nexus_server_thread(void *context)
             /* try to send all queued callbacks */
             for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
                 struct b_server_callback_cxn *callback_cxn = &client->callback_cxn[i];
+                if(i==NEXUS_ModulePriority_eInternal) {
+                    continue;
+                }
                 BKNI_AcquireMutex(callback_cxn->lock);
                 nexus_server_write_callback_locked(callback_cxn);
                 BKNI_ReleaseMutex(callback_cxn->lock);
@@ -872,6 +885,9 @@ static void nexus_server_thread(void *context)
                                     for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
                                         struct b_server_callback_cxn *callback_cxn = &client->callback_cxn[i];
 
+                                        if(i==NEXUS_ModulePriority_eInternal) {
+                                            continue;
+                                        }
                                         nexus_server_cancel_callback(callback_cxn, interface);
                                         nexus_server_send_callback(callback_cxn, NULL, 0, &callback);
                                     }
@@ -908,8 +924,9 @@ static void nexus_server_thread(void *context)
         }
         NEXUS_UnlockModule();
 
+        BDBG_CASSERT(NEXUS_ModulePriority_eInternal+1==NEXUS_ModulePriority_eMax);
         /* check listener for a new client or client callback connection */
-        for (i=0;i<1+NEXUS_ModulePriority_eMax;i++) {
+        for (i=0;i<1+(NEXUS_ModulePriority_eMax-1);i++) {
             if (fds[i].revents) {
                 int err_no = 0;
                 int fd;
@@ -1387,6 +1404,9 @@ NEXUS_ClientHandle NEXUS_Platform_RegisterClient(const NEXUS_ClientSettings *pSe
     for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
         struct b_server_callback_cxn *callback_cxn = &client->callback_cxn[i];
         BERR_Code rc;
+        if(i==NEXUS_ModulePriority_eInternal) {
+            continue;
+        }
 
         BDBG_OBJECT_SET(callback_cxn, b_server_callback_cxn);
         callback_cxn->fd = -1;
@@ -1477,6 +1497,9 @@ static void NEXUS_Client_P_Finalizer( NEXUS_ClientHandle client )
     for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
         struct b_server_callback_cxn *callback_cxn = &client->callback_cxn[i];
         struct nexus_callback_queue_entry *queue_entry;
+        if(i==NEXUS_ModulePriority_eInternal) {
+            continue;
+        }
         BDBG_OBJECT_ASSERT(callback_cxn, b_server_callback_cxn);
         if (callback_cxn->fd != -1) {
             close(callback_cxn->fd);
@@ -1781,13 +1804,12 @@ void NEXUS_Platform_GetDefaultClientAuthenticationSettings( NEXUS_ClientAuthenti
 
 void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
 {
-    const struct b_objdb_client *client_id = b_objdb_get_client();
-    NEXUS_ClientHandle client;
-
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 #if NEXUS_SERVER_SUPPORT
     {
         const struct NEXUS_Server *server = g_server;
+        NEXUS_ClientHandle client;
+        const struct b_objdb_client *client_id = b_objdb_get_client();
 
         /* find matching client */
         for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
@@ -1814,6 +1836,7 @@ void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings
 
 NEXUS_Error NEXUS_Platform_SetClientMode( NEXUS_ClientHandle client, NEXUS_ClientMode mode )
 {
+#if NEXUS_SERVER_SUPPORT
     if (mode > client->client_state.client.mode) {
         /* we can't raise the mode without re-validating every resource */
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1822,5 +1845,9 @@ NEXUS_Error NEXUS_Platform_SetClientMode( NEXUS_ClientHandle client, NEXUS_Clien
         NEXUS_Error rc = nexus_p_set_client_mode(client, mode);
         if (rc) return BERR_TRACE(rc);
     }
+#else
+    BSTD_UNUSED(client);
+    BSTD_UNUSED(mode);
+#endif
     return NEXUS_SUCCESS;
 }

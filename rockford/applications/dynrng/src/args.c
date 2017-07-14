@@ -107,7 +107,7 @@ static const struct
 static const Args defaultArgs =
 {
     PlatformInputMethod_eRemote,
-    "nxdynrng",
+    "dynrng",
     "../etc/dynrng/gfx/sdr2hdr",
     "../etc/dynrng/vid/sdr2hdr",
     "../etc/dynrng/vid/hdr2sdr",
@@ -136,6 +136,7 @@ static const Args defaultArgs =
         }
     },
     false,
+    true,
     ARGS_RunMode_eDemo
 };
 
@@ -146,6 +147,7 @@ void args_p_get_default(ArgsHandle args)
     args->method = defaultArgs.method;
     memcpy(&args->osd, &defaultArgs.osd, sizeof(args->osd));
     args->advanced = defaultArgs.advanced;
+    args->dbvOutputModeAutoSelection = defaultArgs.dbvOutputModeAutoSelection;
     args->runMode = defaultArgs.runMode;
 }
 
@@ -290,6 +292,9 @@ ArgsHandle args_create(int argc, char **argv)
         }
         else if (!strcmp(argv[curarg], "--adv-ctrl")) {
             args->advanced = true;
+        }
+        else if (!strcmp(argv[curarg], "--no-dbv-auto-select")) {
+            args->dbvOutputModeAutoSelection = false;
         }
         else
         {

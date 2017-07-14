@@ -486,7 +486,7 @@ BERR_Code BDSP_Arm_P_Open(
 		uint32_t u32Size = (59*(BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR-BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR));/*59 is the number of fifo available in Raaga*/
 		Addr.pAddr = (void *) (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
 		Addr.offset =  (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
-		ret = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &Addr, u32Size, (BDSP_ARM_AF_P_Map_eDevice | BDSP_ARM_AF_P_Map_eNoExec), BDSP_ARM_MAX_ALLOC_DEVICE);
+		ret = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &Addr, u32Size, (BDSP_ARM_AF_P_Map_eDevice), BDSP_ARM_MAX_ALLOC_DEVICE);
         if (BERR_SUCCESS != ret)
         {
             BDBG_ERR(("BDSP_ARM_P_Open: Error in updating the MAP Table with Raaga RDB"));
@@ -1675,25 +1675,25 @@ BERR_Code BDSP_Arm_P_AddInterTaskBufferInput(
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoBufferDesc,
                                 sizeof(BDSP_AF_P_sIO_BUFFER),
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoBufferGenericDesc,
                                 sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER),
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoBuffer,
                                 pArmInterTaskBuffer->numChans*BDSP_AF_P_INTERTASK_IOBUFFER_SIZE,
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoGenBuffer,
                                 BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE,
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     /* Flush cache for all the above memory */
@@ -1842,25 +1842,25 @@ BERR_Code BDSP_Arm_P_AddInterTaskBufferOutput(
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoBufferDesc,
                                 sizeof(BDSP_AF_P_sIO_BUFFER),
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoBufferGenericDesc,
                                 sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER),
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoBuffer,
                                 pArmInterTaskBuffer->numChans*BDSP_AF_P_INTERTASK_IOBUFFER_SIZE,
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
                                 &pArmInterTaskBuffer->IoGenBuffer,
                                 BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE,
-                                (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                (BDSP_ARM_AF_P_Map_eDram),
                                 BDSP_ARM_MAX_ALLOC_STAGE);
     pArmStage->numOutputs[BDSP_ConnectionType_eInterTaskBuffer] += 1;
     pArmStage->eStageOpBuffDataType[opIndex] = pArmInterTaskBuffer->distinctOp;
@@ -2050,7 +2050,7 @@ BERR_Code BDSP_Arm_P_AddQueueOutput(
                                     &(pArmStage->sStageMapTable[0]),
                                     pRaagaQueue->FIFOdata[i]->pBaseAddr,
                                     pRaagaQueue->FIFOdata[i]->ui32Size,
-                                    (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                                    (BDSP_ARM_AF_P_Map_eDram),
                                     BDSP_ARM_MAX_ALLOC_STAGE);
     }
 

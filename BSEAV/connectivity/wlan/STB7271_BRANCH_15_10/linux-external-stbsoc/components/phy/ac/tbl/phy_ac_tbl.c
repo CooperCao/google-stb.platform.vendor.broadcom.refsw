@@ -94,15 +94,15 @@ static bool wlc_phy_ac_ulb_5_capable(phy_info_t *pi);
 static bool wlc_phy_ac_ulb_2P5_capable(phy_info_t *pi);
 #endif /* WL11ULB */
 static void phy_ac_set_decode_timeouts(phy_info_t *pi);
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 static void phy_ac_tbl_read_table(phy_type_tbl_ctx_t *ctx,
 	phy_table_info_t *ti, uint addr, uint16 *val, uint16 *qval);
 static int phy_ac_tbl_dumptbl(phy_type_tbl_ctx_t *ctx, struct bcmstrbuf *b);
 #else
 #define phy_ac_tbl_read_table NULL
 #define phy_ac_tbl_dumptbl NULL
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 static void wlc_phy_rfldo_trim_value(phy_ac_tbl_info_t *tbli, phy_info_t *pi);
 static void wlc_phy_force_dac_clk_from_bbpll(phy_info_t *pi, bool set, uint16 *orig_dac_clk_pu);
 
@@ -605,8 +605,8 @@ wlc_phy_get_tbl_id_estpwrshftluts(phy_info_t *pi, uint8 core)
 	return (tbl_id);
 }
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 
 static phy_table_info_t acphy_tables_rev32[] = {
 	{  2,  0,     40},
@@ -1365,7 +1365,7 @@ phy_ac_tbl_dumptbl(phy_type_tbl_ctx_t *ctx, struct bcmstrbuf *b)
 
 	return BCME_OK;
 }
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 /* ************************************************************************* */
 /* ************************************************************************* */
@@ -1804,10 +1804,17 @@ WLBANDINITFN(wlc_phy_init_acphy)(phy_ac_tbl_info_t *tbli)
 void
 WLBANDINITFN(phy_ac_set_decode_timeouts)(phy_info_t *pi)
 {
+#if defined(BCMINTPHYDBG)
+	if (ACMAJORREV_0(pi->pubpi->phy_rev) || ACMAJORREV_3(pi->pubpi->phy_rev) ||
+	    (ACMAJORREV_1(pi->pubpi->phy_rev) && ACMINORREV_2(pi)) ||
+	    ACMAJORREV_5(pi->pubpi->phy_rev) || ACMAJORREV_32(pi->pubpi->phy_rev) ||
+	    ACMAJORREV_33(pi->pubpi->phy_rev)) {
+#else /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	/* For customer builds we like to enable PHY timeouts that will catch when
 	 * pktproc is hanging and reset the PHY
 	 */
 	{ /* unconditionally enable timeouts for production images */
+#endif 
 
 		/* Reset the PHY if we are too long in CCK/OFDM payload decode state */
 		ACPHY_REG_LIST_START

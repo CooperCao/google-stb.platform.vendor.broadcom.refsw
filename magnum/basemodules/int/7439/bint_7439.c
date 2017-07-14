@@ -282,57 +282,6 @@ BDBG_MODULE(interruptinterface_7439);
 #define BINT_P_RAVE_STATUS          0x00
 
 
-#define BINT_P_XPT_RAVE_CASES \
-    case BCHP_XPT_RAVE_INT_CX0: \
-    case BCHP_XPT_RAVE_INT_CX1: \
-    case BCHP_XPT_RAVE_INT_CX2: \
-    case BCHP_XPT_RAVE_INT_CX3: \
-    case BCHP_XPT_RAVE_INT_CX4: \
-    case BCHP_XPT_RAVE_INT_CX5: \
-    case BCHP_XPT_RAVE_INT_CX6: \
-    case BCHP_XPT_RAVE_INT_CX7: \
-    case BCHP_XPT_RAVE_INT_CX8: \
-    case BCHP_XPT_RAVE_INT_CX9: \
-    case BCHP_XPT_RAVE_INT_CX10: \
-    case BCHP_XPT_RAVE_INT_CX11: \
-    case BCHP_XPT_RAVE_INT_CX12: \
-    case BCHP_XPT_RAVE_INT_CX13: \
-    case BCHP_XPT_RAVE_INT_CX14: \
-    case BCHP_XPT_RAVE_INT_CX15: \
-    case BCHP_XPT_RAVE_INT_CX16: \
-    case BCHP_XPT_RAVE_INT_CX17: \
-    case BCHP_XPT_RAVE_INT_CX18: \
-    case BCHP_XPT_RAVE_INT_CX19: \
-    case BCHP_XPT_RAVE_INT_CX20: \
-    case BCHP_XPT_RAVE_INT_CX21: \
-    case BCHP_XPT_RAVE_INT_CX22: \
-    case BCHP_XPT_RAVE_INT_CX23: \
-    case BCHP_XPT_RAVE_INT_CX24: \
-    case BCHP_XPT_RAVE_INT_CX25: \
-    case BCHP_XPT_RAVE_INT_CX26: \
-    case BCHP_XPT_RAVE_INT_CX27: \
-    case BCHP_XPT_RAVE_INT_CX28: \
-    case BCHP_XPT_RAVE_INT_CX29: \
-    case BCHP_XPT_RAVE_INT_CX30: \
-    case BCHP_XPT_RAVE_INT_CX31: \
-    case BCHP_XPT_RAVE_INT_CX32: \
-    case BCHP_XPT_RAVE_INT_CX33: \
-    case BCHP_XPT_RAVE_INT_CX34: \
-    case BCHP_XPT_RAVE_INT_CX35: \
-    case BCHP_XPT_RAVE_INT_CX36: \
-    case BCHP_XPT_RAVE_INT_CX37: \
-    case BCHP_XPT_RAVE_INT_CX38: \
-    case BCHP_XPT_RAVE_INT_CX39: \
-    case BCHP_XPT_RAVE_INT_CX40: \
-    case BCHP_XPT_RAVE_INT_CX41: \
-    case BCHP_XPT_RAVE_INT_CX42: \
-    case BCHP_XPT_RAVE_INT_CX43: \
-    case BCHP_XPT_RAVE_INT_CX44: \
-    case BCHP_XPT_RAVE_INT_CX45: \
-    case BCHP_XPT_RAVE_INT_CX46: \
-    case BCHP_XPT_RAVE_INT_CX47: \
-
-
 #define BINT_P_XPT_BUF_STATUS       0x00
 #define BINT_P_XPT_BUF_ENABLE       0x10
 
@@ -380,7 +329,6 @@ static void BINT_P_7439_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
 static void BINT_P_7439_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shift );
 
 static uint32_t BINT_P_7439_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr );
-static uint32_t GetRaveIntEnableOffset( uint32_t BaseAddr );
 
 #if NEXUS_WEBCPU_core1_server
 static const BINT_P_IntMap bint_7439[] =
@@ -623,9 +571,6 @@ static void BINT_P_7439_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int 
         BINT_P_XPT_STATUS_CASES
             BREG_Write32( regHandle, baseAddr + BINT_P_XPT_STATUS, ~(1ul<<shift));
             break;
-        BINT_P_XPT_RAVE_CASES
-            BREG_Write32( regHandle, baseAddr + BINT_P_RAVE_STATUS, (1ul<<shift));
-            break;
         BINT_P_XPT_BUF_CASES
             BREG_Write32( regHandle, baseAddr + BINT_P_XPT_BUF_STATUS, ~(1ul<<shift));
             break;
@@ -651,11 +596,7 @@ static void BINT_P_7439_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
 {
     uint32_t intEnable;
 
-    uint32_t RaveEnReg = 0;
-
     BDBG_MSG(("SetMask %#x:%d", baseAddr, shift));
-
-
     switch( baseAddr )
     {
 
@@ -663,12 +604,6 @@ static void BINT_P_7439_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         intEnable = BREG_Read32( regHandle, getXptFeIntEnableRegAddr(baseAddr));
         intEnable &= ~(1ul<<shift);
         BREG_Write32( regHandle, getXptFeIntEnableRegAddr(baseAddr), intEnable);
-        break;
-    BINT_P_XPT_RAVE_CASES
-        RaveEnReg = GetRaveIntEnableOffset( baseAddr );
-        intEnable = BREG_Read32( regHandle, RaveEnReg );
-        intEnable &= ~(1ul<<shift);
-        BREG_Write32( regHandle, RaveEnReg, intEnable);
         break;
     BINT_P_XPT_BUF_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_XPT_BUF_ENABLE);
@@ -715,8 +650,6 @@ static void BINT_P_7439_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int
 {
     uint32_t intEnable;
 
-    uint32_t RaveEnReg = 0;
-
     BDBG_MSG(("ClearMask %#x:%d", baseAddr, shift));
     switch( baseAddr )
     {
@@ -725,12 +658,6 @@ static void BINT_P_7439_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int
         intEnable = BREG_Read32( regHandle, getXptFeIntEnableRegAddr(baseAddr));
         intEnable |= 1ul<<shift;
         BREG_Write32( regHandle, getXptFeIntEnableRegAddr(baseAddr), intEnable);
-        break;
-    BINT_P_XPT_RAVE_CASES
-        RaveEnReg = GetRaveIntEnableOffset( baseAddr );
-        intEnable = BREG_Read32( regHandle, RaveEnReg );
-        intEnable |= (1ul<<shift);
-        BREG_Write32( regHandle, RaveEnReg, intEnable);
         break;
     BINT_P_XPT_BUF_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_XPT_BUF_ENABLE);
@@ -778,8 +705,6 @@ static uint32_t BINT_P_7439_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr
     {
     BINT_P_XPT_STATUS_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_XPT_STATUS );
-    BINT_P_XPT_RAVE_CASES
-        return BREG_Read32( regHandle, baseAddr + BINT_P_RAVE_STATUS );
     BINT_P_XPT_BUF_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_XPT_BUF_STATUS );
     BINT_P_TIMER_CASES
@@ -803,73 +728,5 @@ const BINT_Settings *BINT_7439_GetSettings( void )
 {
     return &bint_7439Settings;
 }
-
-
-static uint32_t GetRaveIntEnableOffset(
-    uint32_t BaseAddr
-    )
-{
-    uint32_t EnableAddr = 0;
-
-    switch( BaseAddr )
-    {
-        case BCHP_XPT_RAVE_INT_CX0: EnableAddr =   BCHP_XPT_RAVE_CX0_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX1: EnableAddr =   BCHP_XPT_RAVE_CX1_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX2: EnableAddr =   BCHP_XPT_RAVE_CX2_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX3: EnableAddr =   BCHP_XPT_RAVE_CX3_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX4: EnableAddr =   BCHP_XPT_RAVE_CX4_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX5: EnableAddr =   BCHP_XPT_RAVE_CX5_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX6: EnableAddr =   BCHP_XPT_RAVE_CX6_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX7: EnableAddr =   BCHP_XPT_RAVE_CX7_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX8: EnableAddr =   BCHP_XPT_RAVE_CX8_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX9: EnableAddr =   BCHP_XPT_RAVE_CX9_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX10: EnableAddr =  BCHP_XPT_RAVE_CX10_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX11: EnableAddr =  BCHP_XPT_RAVE_CX11_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX12: EnableAddr =  BCHP_XPT_RAVE_CX12_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX13: EnableAddr =  BCHP_XPT_RAVE_CX13_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX14: EnableAddr =  BCHP_XPT_RAVE_CX14_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX15: EnableAddr =  BCHP_XPT_RAVE_CX15_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX16: EnableAddr =  BCHP_XPT_RAVE_CX16_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX17: EnableAddr =  BCHP_XPT_RAVE_CX17_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX18: EnableAddr =  BCHP_XPT_RAVE_CX18_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX19: EnableAddr =  BCHP_XPT_RAVE_CX19_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX20: EnableAddr =  BCHP_XPT_RAVE_CX20_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX21: EnableAddr =  BCHP_XPT_RAVE_CX21_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX22: EnableAddr =  BCHP_XPT_RAVE_CX22_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX23: EnableAddr =  BCHP_XPT_RAVE_CX23_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX24: EnableAddr =  BCHP_XPT_RAVE_CX24_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX25: EnableAddr =  BCHP_XPT_RAVE_CX25_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX26: EnableAddr =  BCHP_XPT_RAVE_CX26_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX27: EnableAddr =  BCHP_XPT_RAVE_CX27_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX28: EnableAddr =  BCHP_XPT_RAVE_CX28_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX29: EnableAddr =  BCHP_XPT_RAVE_CX29_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX30: EnableAddr =  BCHP_XPT_RAVE_CX30_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX31: EnableAddr =  BCHP_XPT_RAVE_CX31_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX32: EnableAddr =  BCHP_XPT_RAVE_CX32_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX33: EnableAddr =  BCHP_XPT_RAVE_CX33_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX34: EnableAddr =  BCHP_XPT_RAVE_CX34_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX35: EnableAddr =  BCHP_XPT_RAVE_CX35_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX36: EnableAddr =  BCHP_XPT_RAVE_CX36_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX37: EnableAddr =  BCHP_XPT_RAVE_CX37_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX38: EnableAddr =  BCHP_XPT_RAVE_CX38_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX39: EnableAddr =  BCHP_XPT_RAVE_CX39_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX40: EnableAddr =  BCHP_XPT_RAVE_CX40_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX41: EnableAddr =  BCHP_XPT_RAVE_CX41_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX42: EnableAddr =  BCHP_XPT_RAVE_CX42_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX43: EnableAddr =  BCHP_XPT_RAVE_CX43_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX44: EnableAddr =  BCHP_XPT_RAVE_CX44_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX45: EnableAddr =  BCHP_XPT_RAVE_CX45_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX46: EnableAddr =  BCHP_XPT_RAVE_CX46_AV_INTERRUPT_ENABLES; break;
-        case BCHP_XPT_RAVE_INT_CX47: EnableAddr =  BCHP_XPT_RAVE_CX47_AV_INTERRUPT_ENABLES; break;
-
-        default:
-        /* Unhandled interrupt base address */
-        BDBG_ASSERT( false );
-        break;
-    }
-
-    return EnableAddr;
-}
-
 
 /* End of file */

@@ -1631,8 +1631,8 @@ uint16 BCMATTACHDATA(nap2rx_seq_dly_maj36)[16] = {
 uint16 BCMATTACHDATA(nap_lo_th_adj_maj36)[5] = {50, 50, 50, 50, 30};
 uint16 BCMATTACHDATA(nap_hi_th_adj_maj36)[5] = {50, 50, 50, 50, 70};
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 const radio_20xx_dumpregs_t dumpregs_20695_rev39[] = {
 	{ RF0_20695_REV_ID(39)},
 	{ RF0_20695_DEV_ID(39)},
@@ -2156,4 +2156,4 @@ const radio_20xx_dumpregs_t dumpregs_20695_rev39[] = {
 	{ RFP0_20695_PLL5G_MUXSELECT_LINE(39)},
 	{ 0xFFFF,               }
 };
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */

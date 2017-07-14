@@ -198,14 +198,12 @@ struct NEXUS_Platform_P_ProxyScheduler {
     } stats;
 #endif
     struct {
-        NEXUS_Callback callback;
+        nexus_driver_callback_desc callback;
         NEXUS_Time startTime;
+        bool valid;
     } monitor;
 #endif
 };
-
-static int nexus_p_start_watchdog_thread(void);
-static void nexus_p_stop_watchdog_thread(void);
 
 typedef struct nexus_proxy_stopped_callback_entry {
     BLST_D_ENTRY(nexus_proxy_stopped_callback_entry) list;
@@ -215,9 +213,8 @@ typedef struct nexus_proxy_stopped_callback_entry {
         const char* pFileName;
         unsigned lineNumber;
         const char* pFunctionName;
-        NEXUS_Time stopTime;
 #endif
-        unsigned blockedCount;
+        NEXUS_Time stopTime;
     } debug;
 } nexus_proxy_stopped_callback_entry;
 
@@ -255,7 +252,7 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged_proxy( const NEXUS_Platfo
     const NEXUS_MemoryConfigurationSettings *pMemConfig, NEXUS_PlatformConfigCapabilities *pCap, unsigned size );
 NEXUS_Error NEXUS_Platform_Init_tagged_proxy(const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned platformCheck, unsigned versionCheck, unsigned structSizeCheck);
 void NEXUS_Platform_Uninit_proxy(void);
-NEXUS_Error NEXUS_Platform_InitStandby_proxy(const NEXUS_PlatformStandbySettings *pSettings);
+NEXUS_Error NEXUS_Platform_InitStandby_proxy(const NEXUS_StandbySettings *pSettings);
 void NEXUS_Platform_UninitStandby_proxy(void);
 
 void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
@@ -312,6 +309,56 @@ static void nexus_p_remove_heap(unsigned i)
     }
 }
 
+#if NEXUS_P_DEBUG_PROXY_CALLBACKS
+BDBG_FILE_MODULE(nexus_proxy_statistics);
+#endif
+
+static NEXUS_TimerHandle g_NEXUS_CallbackMonitorTimer = NULL;
+
+static void NEXUS_P_Platform_CallbackMonitor(void *context)
+{
+    unsigned i;
+    unsigned timeout = 100;
+
+    BSTD_UNUSED(context);
+    g_NEXUS_CallbackMonitorTimer = NULL;
+
+    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        struct NEXUS_Platform_P_ProxyScheduler *scheduler = &NEXUS_Platform_P_State.schedulers[i];
+
+        NEXUS_P_BaseCallback_Monitor(i, timeout);
+
+#if NEXUS_P_DEBUG_PROXY_CALLBACKS
+        if(scheduler->thread) {
+            NEXUS_Time now;
+            NEXUS_Time_Get(&now);
+
+#if NEXUS_PROXY_STATISTICS
+            BDBG_MODULE_MSG(nexus_proxy_statistics, ("scheduler[%d]: %d runCallbacks: %d callbacks, %d avg time, %d max time (function %p)",
+                i,
+                scheduler->stats.runCallbacksCount,
+                scheduler->stats.callbackCount,
+                scheduler->stats.callbackCount ? scheduler->stats.totalCallbackTime/scheduler->stats.callbackCount : 0,
+                scheduler->stats.maxCallbackTime,
+                scheduler->stats.maxCallback
+                ));
+            BKNI_Memset(&scheduler->stats, 0, sizeof(scheduler->stats));
+#endif
+            if (scheduler->monitor.valid) {
+                unsigned duration;
+                duration = NEXUS_Time_Diff(&now, &scheduler->monitor.startTime);
+                if (duration > timeout) {
+                    BDBG_ERR(("stuck callback %p(interface %p) for %u msec", (void *)(unsigned long)scheduler->monitor.callback.desc.callback, (void *)(unsigned long)scheduler->monitor.callback.interfaceHandle, duration));
+                }
+            }
+        }
+#endif /* #if NEXUS_P_DEBUG_PROXY_CALLBACKS */
+    }
+
+    g_NEXUS_CallbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, timeout, NEXUS_P_Platform_CallbackMonitor, NULL);
+}
+
+
 static NEXUS_Error
 NEXUS_Platform_P_InitOS(void)
 {
@@ -321,36 +368,34 @@ NEXUS_Platform_P_InitOS(void)
     struct nexus_map_settings map_settings;
     unsigned valid_heaps;
 
-    if(!state->slave) {
-        for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
-            NEXUS_Base_Scheduler_Config config;
+    NEXUS_LockModule();
 
-            BDBG_MSG((">CALLBACK[%u]", i));
-            rc = BKNI_CreateMutex(&state->schedulers[i].callbackLock);
-            if (rc) {rc = BERR_TRACE(rc); goto err_create_mutex;}
-            rc = BKNI_CreateMutex(&state->schedulers[i].dataLock);
-            if (rc) {rc = BERR_TRACE(rc); goto err_create_mutex;}
-
-            NEXUS_P_Base_GetSchedulerConfig(i, &config);
-            state->schedulers[i].priority = i;
-            state->schedulers[i].thread = NEXUS_Thread_Create(config.name, NEXUS_Platform_P_SchedulerThread, &state->schedulers[i], config.pSettings);
-            if(!state->schedulers[i].thread) { rc = BERR_TRACE(NEXUS_OS_ERROR); goto err_threads; }
+    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        NEXUS_Base_Scheduler_Config config;
+        void (*scheduler)(void *) = NEXUS_Platform_P_SchedulerThread;
+        if(state->slave) {
+            /* only create one */
+            BDBG_CASSERT(0==NEXUS_ModulePriority_eIdle);
+            if(i==NEXUS_ModulePriority_eIdle || i==NEXUS_ModulePriority_eInternal) {
+                scheduler = NEXUS_Platform_P_SchedulerSlaveThread;
+            } else {
+                continue;
+            }
         }
-    }
-    else {
-        /* only create one */
-        state->schedulers[0].priority = 0;
-        rc = BKNI_CreateMutex(&state->schedulers[0].callbackLock);
-        if (rc) {rc = BERR_TRACE(rc); goto err_create_mutex;}
-        rc = BKNI_CreateMutex(&state->schedulers[0].dataLock);
-        if (rc) {rc = BERR_TRACE(rc); goto err_create_mutex;}
-        state->schedulers[0].thread = NEXUS_Thread_Create("slave_callback", NEXUS_Platform_P_SchedulerSlaveThread, &state->schedulers[0], NULL);
-        if (!state->schedulers[0].thread) { rc = BERR_TRACE(NEXUS_OS_ERROR); goto err_threads; }
 
-        BDBG_ASSERT(!state->schedulers[1].callbackLock); /* be sure no state leaked over from previous Init */
-    }
+        BDBG_MSG((">CALLBACK[%u]", i));
+        rc = BKNI_CreateMutex(&state->schedulers[i].callbackLock);
+        if (rc) {rc = BERR_TRACE(rc); goto err_create_mutex;}
+        rc = BKNI_CreateMutex(&state->schedulers[i].dataLock);
+        if (rc) {rc = BERR_TRACE(rc); goto err_create_mutex;}
 
-    nexus_p_start_watchdog_thread();
+        NEXUS_P_Base_GetSchedulerConfig(i, &config);
+        state->schedulers[i].priority = i;
+        state->schedulers[i].thread = NEXUS_Thread_Create(config.name, scheduler, &state->schedulers[i], config.pSettings);
+        if(!state->schedulers[i].thread) { rc = BERR_TRACE(NEXUS_OS_ERROR); goto err_threads; }
+    }
+    g_NEXUS_CallbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, 100, NEXUS_P_Platform_CallbackMonitor, NULL);
+    BDBG_ASSERT(g_NEXUS_CallbackMonitorTimer);
 
     BKNI_Memset(&state->clientConfig, 0, sizeof(state->clientConfig));
     NEXUS_Platform_GetClientConfiguration(&state->clientConfig);
@@ -392,6 +437,7 @@ NEXUS_Platform_P_InitOS(void)
 #endif
     }
 
+    NEXUS_UnlockModule();
     return NEXUS_SUCCESS;
 
 err_mmap:
@@ -410,6 +456,7 @@ err_create_mutex:
             BKNI_DestroyMutex(state->schedulers[i].dataLock);
         }
     }
+    NEXUS_UnlockModule();
     return rc;
 }
 
@@ -420,6 +467,7 @@ NEXUS_Platform_P_UninitOS(void)
     struct NEXUS_Platform_P_State *state = &NEXUS_Platform_P_State;
     nexus_proxy_stopped_callback_entry *entry;
 
+    NEXUS_LockModule();
     if(!state->slave) {
 #if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
         NEXUS_Platform_P_UninitThermalMonitor();
@@ -428,8 +476,10 @@ NEXUS_Platform_P_UninitOS(void)
         NEXUS_Platform_P_UninitWakeupDriver();
 #endif
     }
-
-    nexus_p_stop_watchdog_thread();
+    if(g_NEXUS_CallbackMonitorTimer) {
+        NEXUS_CancelTimer(g_NEXUS_CallbackMonitorTimer);
+        g_NEXUS_CallbackMonitorTimer=NULL;
+    }
 
     while(NULL!=(entry=BLST_D_FIRST(&state->stopped_callbacks))) {
         BLST_D_REMOVE_HEAD(&state->stopped_callbacks, list);
@@ -451,6 +501,8 @@ NEXUS_Platform_P_UninitOS(void)
             BKNI_DestroyMutex(state->schedulers[i].dataLock);
         }
     }
+    NEXUS_UnlockModule();
+    return;
 }
 
 static NEXUS_Error
@@ -1008,8 +1060,8 @@ NEXUS_Platform_Init_tagged(const NEXUS_PlatformSettings *pSettings, const NEXUS_
     return NEXUS_SUCCESS;
 
 err:
-    NEXUS_Platform_P_State.module = NULL;
     NEXUS_Platform_P_UninitOS();
+    NEXUS_Platform_P_State.module = NULL;
 err_os:
     NEXUS_Platform_P_UninitDriver();
 err_driver:
@@ -1061,7 +1113,7 @@ local_uninit:
 }
 
 /* local copy */
-NEXUS_Error NEXUS_Platform_InitStandby( const NEXUS_PlatformStandbySettings *pSettings )
+NEXUS_Error NEXUS_Platform_InitStandby( const NEXUS_StandbySettings *pSettings )
 {
     NEXUS_Error errCode;
 
@@ -1204,12 +1256,13 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, PROXY_NEXUS_RunScheduler *runSchedul
                     scheduler->stats.callbackCount++;
 #endif
                     NEXUS_Time_Get(&scheduler->monitor.startTime);
-                    scheduler->monitor.callback = (NEXUS_Callback)(unsigned long)data->out.callbacks[i].desc.callback;
+                    scheduler->monitor.callback = data->out.callbacks[i];
+                    scheduler->monitor.valid = true;
 #endif
                     callback = (NEXUS_Callback)(unsigned long)data->out.callbacks[i].desc.callback;
                     callback((void *)(unsigned long)data->out.callbacks[i].desc.context, data->out.callbacks[i].desc.param);
 #if NEXUS_P_DEBUG_PROXY_CALLBACKS
-                    scheduler->monitor.callback = NULL;
+                    scheduler->monitor.valid = false;
 #if NEXUS_PROXY_STATISTICS
                     NEXUS_Time_Get(&stop_callback);
                     dur = NEXUS_Time_Diff(&stop_callback, &scheduler->monitor.startTime);
@@ -1222,7 +1275,18 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, PROXY_NEXUS_RunScheduler *runSchedul
 #endif
                 }
                 else {
-                    entry->debug.blockedCount++;
+                    NEXUS_Time now;
+                    unsigned diff;
+                    NEXUS_Time_Get(&now);
+                    diff = NEXUS_Time_Diff(&now, &entry->debug.stopTime);
+                    if (diff >= 1000) {
+#if NEXUS_TRACK_STOP_CALLBACKS
+                        BDBG_WRN(("stopped %p callback after %u msec from %s:%u %s", entry->interfaceHandle, diff,
+                            entry->debug.pFileName, entry->debug.lineNumber, entry->debug.pFunctionName));
+#else
+                        BDBG_WRN(("stopped %p callback after %u msec", entry->interfaceHandle, diff));
+#endif
+                    }
                 }
 
                 BKNI_AcquireMutex(scheduler->dataLock);
@@ -1289,7 +1353,11 @@ NEXUS_Platform_P_SchedulerSlaveThread(void *scheduler_)
     struct NEXUS_Platform_P_ProxyScheduler *scheduler = scheduler_;
 
     /* only one scheduler thread for slaves */
-    nexus_p_set_scheduler_thread_priority(NEXUS_ModulePriority_eMax);
+    if(scheduler->priority==NEXUS_ModulePriority_eIdle) {
+        nexus_p_set_scheduler_thread_priority(NEXUS_ModulePriority_eMax);
+    } else {
+        nexus_p_set_scheduler_thread_priority(scheduler->priority);
+    }
 
     BDBG_MSG(("NEXUS_Platform_P_SchedulerSlaveThread>>"));
     proxy_fd = state->proxy_fd;
@@ -1297,10 +1365,18 @@ NEXUS_Platform_P_SchedulerSlaveThread(void *scheduler_)
         PROXY_NEXUS_RunScheduler data;
         unsigned i;
 
-        for(i=0;i<NEXUS_ModulePriority_eMax;i++) { /* in a single shared thread just step over all schedulers */
+        if(scheduler->priority==NEXUS_ModulePriority_eInternal) { /* there is a dedicated thread for NEXUS_ModulePriority_eInternal */
             NEXUS_P_Base_Scheduler_Status status;
-
-            NEXUS_P_Base_ExternalScheduler_Step((NEXUS_ModulePriority)i, 0, &status, NULL, NULL);
+            NEXUS_P_Base_ExternalScheduler_Step(scheduler->priority, 1000, &status, NULL, NULL);
+            continue;
+        } else {
+            for(i=0;i<NEXUS_ModulePriority_eMax;i++) { /* in a single shared thread just step over all schedulers */
+                NEXUS_P_Base_Scheduler_Status status;
+                if(i==NEXUS_ModulePriority_eInternal) {
+                    continue;
+                }
+                NEXUS_P_Base_ExternalScheduler_Step((NEXUS_ModulePriority)i, 0, &status, NULL, NULL);
+            }
         }
 
         data.in.priority = NEXUS_ModulePriority_eDefault;
@@ -1344,9 +1420,8 @@ void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
             entry->debug.pFileName = pFileName;
             entry->debug.lineNumber = lineNumber;
             entry->debug.pFunctionName = pFunctionName;
-            NEXUS_Time_Get(&entry->debug.stopTime);
 #endif
-            entry->debug.blockedCount = 0;
+            NEXUS_Time_Get(&entry->debug.stopTime);
             BLST_D_INSERT_HEAD(&NEXUS_Platform_P_State.stopped_callbacks, entry, list);
         } else {
             NEXUS_Error rc =BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
@@ -1410,18 +1485,6 @@ void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
     NEXUS_LockModule();
     entry = NEXUS_P_Proxy_FindStoppedCallbacks(interfaceHandle);
     if(entry!=NULL) {
-        if (entry->debug.blockedCount > 5) {
-#if NEXUS_TRACK_STOP_CALLBACKS
-            NEXUS_Time now;
-            NEXUS_Time_Get(&now);
-            BDBG_WRN(("Starting blocked callback interface %p:%u, %s:%s:%u, %s:%s:%u, time %u", entry->interfaceHandle, entry->debug.blockedCount,
-                entry->debug.pFileName, entry->debug.pFunctionName, entry->debug.lineNumber,
-                pFileName, pFunctionName, lineNumber,
-                NEXUS_Time_Diff(&now, &entry->debug.stopTime)));
-#else
-            BDBG_WRN(("Starting blocked callback interface %p:%u", entry->interfaceHandle, entry->debug.blockedCount));
-#endif
-        }
         BLST_D_REMOVE(&NEXUS_Platform_P_State.stopped_callbacks, entry, list);
         BKNI_Free(entry);
     }
@@ -1562,79 +1625,3 @@ BERR_Code  NEXUS_Platform_P_CacheFlush( void* addr, size_t nbytes )
 
 /* including the c code requires less refactoring of internal apis */
 #include "nexus_platform_proxy_local.c"
-
-#if NEXUS_P_DEBUG_PROXY_CALLBACKS
-BDBG_FILE_MODULE(nexus_proxy_statistics);
-
-static struct {
-    NEXUS_ThreadHandle thread;
-    BKNI_EventHandle event;
-} g_watchdog;
-
-static void nexus_p_watchdog_thread(void *context)
-{
-    int rc;
-    struct NEXUS_Platform_P_State *state = &NEXUS_Platform_P_State;
-    BSTD_UNUSED(context);
-    do {
-        unsigned i;
-        unsigned total = !state->slave?NEXUS_ModulePriority_eMax:1;
-        NEXUS_Time now;
-        NEXUS_Time_Get(&now);
-        for(i=0;i<total;i++) {
-            struct NEXUS_Platform_P_ProxyScheduler *scheduler = &state->schedulers[i];
-#if NEXUS_PROXY_STATISTICS
-            BDBG_MODULE_MSG(nexus_proxy_statistics, ("scheduler[%d]: %d runCallbacks: %d callbacks, %d avg time, %d max time (function %p)",
-                i,
-                scheduler->stats.runCallbacksCount,
-                scheduler->stats.callbackCount,
-                scheduler->stats.callbackCount ? scheduler->stats.totalCallbackTime/scheduler->stats.callbackCount : 0,
-                scheduler->stats.maxCallbackTime,
-                scheduler->stats.maxCallback
-                ));
-            BKNI_Memset(&scheduler->stats, 0, sizeof(scheduler->stats));
-#endif
-            if (scheduler->monitor.callback) {
-                unsigned duration;
-                duration = NEXUS_Time_Diff(&now, &scheduler->monitor.startTime);
-                if (duration > 5000) {
-                    BDBG_ERR(("stuck callback %p for %d msec. You can go from function pointer to name using 'nm'.", (void *)(unsigned long)scheduler->monitor.callback, duration));
-                }
-            }
-        }
-        rc = BKNI_WaitForEvent(g_watchdog.event, 2000);
-    } while (rc == BERR_TIMEOUT);
-}
-
-static int nexus_p_start_watchdog_thread(void)
-{
-    int rc;
-    rc = BKNI_CreateEvent(&g_watchdog.event);
-    if (rc) return BERR_TRACE(rc);
-    g_watchdog.thread = NEXUS_Thread_Create("proxy_watchdog", nexus_p_watchdog_thread, NULL, NULL);
-    if (!g_watchdog.thread) {
-        BKNI_DestroyEvent(g_watchdog.event);
-        return BERR_TRACE(-1);
-    }
-    return 0;
-}
-
-static void nexus_p_stop_watchdog_thread(void)
-{
-    if (g_watchdog.thread) {
-        BKNI_SetEvent(g_watchdog.event);
-        NEXUS_Thread_Destroy(g_watchdog.thread);
-        g_watchdog.thread = NULL;
-        BKNI_DestroyEvent(g_watchdog.event);
-    }
-
-}
-#else
-static int nexus_p_start_watchdog_thread(void)
-{
-    return 0;
-}
-static void nexus_p_stop_watchdog_thread(void)
-{
-}
-#endif

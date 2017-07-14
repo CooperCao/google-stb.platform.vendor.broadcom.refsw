@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,7 +59,7 @@ Also same status structure returns the wakeup device status
 **/
 typedef struct NxClient_StandbyStatus
 {
-    NEXUS_PlatformStandbySettings settings; /* the desired standby state */
+    NEXUS_StandbySettings settings; /* the desired standby state */
     NEXUS_PlatformStandbyStatus status;     /* wake up status */
     bool standbyTransition;                 /* Deprecated. Use NxClient_StandbyStatus.transition instead. Set to true when transition = NxClient_StandbyTransition_eDone*/
     NxClient_StandbyTransition transition;
@@ -111,7 +111,7 @@ to request one of standby modes
 **/
 typedef struct NxClient_StandbySettings
 {
-    NEXUS_PlatformStandbySettings settings;
+    NEXUS_StandbySettings settings;
     NxClient_StandbyCpuMode mode; /* Deprecated */
 } NxClient_StandbySettings;
 

@@ -47,41 +47,6 @@
 #include "bimg.h"
 #include "bdsp.h"
 
-/***************************************************************************
-Summary:
-DSP Audio Context Settings
-***************************************************************************/
-typedef struct BDSP_ContextCreateAudioSettings
-{
-    unsigned maxNumAudioDatasyncDownloadBuffer;
-    unsigned maxNumAudioPassthruDownloadBuffer;
-    unsigned maxNumAudioDecodeDownloadBuffer;
-    unsigned maxNumAudioProcessingDownloadBuffer;
-    unsigned maxNumAudioEncodeDownloadBuffer;
-} BDSP_ContextCreateAudioSettings;
-
-/***************************************************************************
-Summary:
-DSP Video Context Settings
-***************************************************************************/
-typedef struct BDSP_ContextCreateVideoSettings
-{
-    unsigned maxNumVideoDecodeDownloadBuffer;
-} BDSP_ContextCreateVideoSettings;
-
-/***************************************************************************
-Summary:
-DSP Video Encode Context Settings
-***************************************************************************/
-typedef struct BDSP_ContextCreateVideoEncodeSettings
-{
-    unsigned maxNumVideoEncodeDownloadBuffer;
-} BDSP_ContextCreateVideoEncodeSettings;
-
-typedef struct BDSP_ContextCreateScmSettings
-{
-    unsigned maxNumScmDecodeDownloadBuffer;
-} BDSP_ContextCreateScmSettings;
 typedef struct BDSP_ContextCreateSettings
 {
     unsigned maxTasks;

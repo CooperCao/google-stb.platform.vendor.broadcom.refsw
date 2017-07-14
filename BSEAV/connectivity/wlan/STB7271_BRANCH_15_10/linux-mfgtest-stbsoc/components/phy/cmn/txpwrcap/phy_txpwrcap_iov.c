@@ -34,7 +34,7 @@ enum {
 
 /* iovar table */
 static const bcm_iovar_t phy_txpwrcap_iovars[] = {
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"phy_txpwrcap_tbl", IOV_PHY_TXPWRCAP_TBL, 0, 0, IOVT_BUFFER, sizeof(wl_txpwrcap_tbl_t)},
 #endif
 	{"phy_cellstatus", IOV_PHY_CELLSTATUS, IOVF_SET_UP | IOVF_GET_UP, 0, IOVT_INT8, 0},
@@ -94,7 +94,7 @@ phy_txpwrcap_doiovar(void *ctx, uint32 aid,
 			err = BCME_UNSUPPORTED;
 		break;
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_PHY_TXPWRCAP_TBL):
 		if (PHYTXPWRCAP_ENAB(pi->txpwrcapi)) {
 			wl_txpwrcap_tbl_t txpwrcap_tbl;
@@ -113,7 +113,7 @@ phy_txpwrcap_doiovar(void *ctx, uint32 aid,
 		} else
 			err = BCME_UNSUPPORTED;
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

@@ -307,26 +307,6 @@ BERR_Code BDSP_AudioTask_SetInterruptHandlers_isr(
     const BDSP_AudioInterruptHandlers *pHandlers
     );
 
-#if !B_REFSW_MINIMAL
-/***************************************************************************
-Summary:
-Get default Datasync settings.
-***************************************************************************/
-BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-    );
-#endif /*!B_REFSW_MINIMAL*/
-
-/***************************************************************************
-Summary:
-Get default Tsm settings.
-***************************************************************************/
-BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-    );
-
 /***************************************************************************
 Summary:
 Command to put an audio task in zero fill mode. Required for NRT xcode case, where incase

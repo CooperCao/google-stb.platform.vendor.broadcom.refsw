@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x06000002
+#define VICE_API_VERSION                  0x07000002
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -642,10 +642,10 @@ typedef struct ViceCmdOpenChannel_t
     VCE_PTR(uint8_t)    pNonSecureBufferBaseLo;             /* pointer to the location that will contain the non-secure buffer */
     VCE_PTR(uint8_t)    pNonSecureBufferBaseHi;             /* pointer to the location that will contain the non-secure buffer */
     uint32_t            uiNonSecureBufferSize;              /* size of the non-secure buffer */
-    VCE_PTR(uint8_t)    pSecureBufferBase;                  /* pointer to the location that will contain the secure buffer. TODO - Change name.    */
+    VCE_PTR(uint8_t)    pSecureBufferBaseLo;                /* pointer to the location that will contain the secure buffer. */
+    VCE_PTR(uint8_t)    pSecureBufferBaseHi;                /* pointer to the location that will contain the secure buffer. */
     uint32_t            uiSecureBufferSize;                 /* size of the secure buffer */
     uint32_t            uiMaxNumChannels;                   /* maximum number of channels, 0: max num of ch supported on current platform */
-    VCE_PTR(uint8_t)    pSecureBufferBaseHi;                /* pointer to the location that will contain the secure buffer. TODO - put it after pSecureBufferBaseLo.     */
 } ViceCmdOpenChannel_t;
 
 
@@ -734,8 +734,8 @@ typedef struct ViceCmdCloseChannelResponse_t
 /* WARNING: These value correspond to values written to hardware registers
  *          DO NOT CHANGE THEM !
  */
-#define ENCODING_HEVC_PROFILE_HIGH               1
-#define ENCODING_HEVC_PROFILE_MAIN               0
+#define ENCODING_HEVC_PROFILE_TIER_MAIN         0
+#define ENCODING_HEVC_PROFILE_IDC_MAIN          1
 #define ENCODING_AVC_PROFILE_HIGH               100
 #define ENCODING_AVC_PROFILE_MAIN               77
 #define ENCODING_AVC_PROFILE_BASELINE           66

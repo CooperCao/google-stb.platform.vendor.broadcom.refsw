@@ -49,6 +49,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
 
 void app_p_print_remote_usage(AppHandle app)
 {
@@ -76,7 +77,7 @@ PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformD
 
     if (app->output.dynrng == PlatformDynamicRange_eAuto)
     {
-        if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eDolbyVision) == PlatformCapability_eSupported)
+        if (app->args->dbvOutputModeAutoSelection && platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eDolbyVision) == PlatformCapability_eSupported)
         {
             output = PlatformDynamicRange_eDolbyVision;
         }
@@ -257,7 +258,6 @@ void app_p_next_video_setting(void * context, int param)
     AppHandle app = context;
     unsigned i;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     for(i=0; i<app->streamCount; i++) {
         plm_next(app->plm.vid[i]);
         app->model.vid[i].plm = plm_get(app->plm.vid[i]);
@@ -270,7 +270,6 @@ void app_p_prev_video_setting(void * context, int param)
     AppHandle app = context;
     unsigned i;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     for(i=0; i<app->streamCount; i++) {
         plm_prev(app->plm.vid[i]);
         app->model.vid[i].plm = plm_get(app->plm.vid[i]);
@@ -282,7 +281,6 @@ void app_p_next_graphics_setting(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     plm_next(app->plm.gfx);
     app->model.gfx.plm = plm_get(app->plm.gfx);
     osd_update_gfx_model(app->osd, &app->model.gfx);
@@ -292,7 +290,6 @@ void app_p_prev_graphics_setting(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     plm_prev(app->plm.gfx);
     app->model.gfx.plm = plm_get(app->plm.gfx);
     osd_update_gfx_model(app->osd, &app->model.gfx);
@@ -306,7 +303,6 @@ void app_p_next_stream(void * context, int param)
         printf("Function not available in mosaic mode\n");
         return;
     }
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     stream_player_next(app->streamPlayer[0], false);
 }
 
@@ -318,7 +314,6 @@ void app_p_prev_stream(void * context, int param)
         printf("Function not available in mosaic mode\n");
         return;
     }
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     stream_player_prev(app->streamPlayer[0], false);
 }
 
@@ -326,7 +321,6 @@ void app_p_toggle_guide(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     osd_toggle_guide_visibility(app->osd);
 }
 
@@ -334,7 +328,6 @@ void app_p_toggle_osd(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     osd_toggle_visibility(app->osd);
 }
 
@@ -352,7 +345,6 @@ void app_p_toggle_details(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     osd_toggle_details_mode(app->osd);
 }
 
@@ -364,7 +356,6 @@ void app_p_toggle_pig(void * context, int param)
         printf("Cannot toggle pig in mosaic mode\n");
         return;
     }
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     app_p_set_pig_mode(app, !app->pig);
     osd_toggle_pig_mode(app->osd);
     app_p_update_gfx_model(app);
@@ -378,7 +369,6 @@ void app_p_toggle_mosaic_layout(void * context, int param)
         printf("Cannot toggle mosaic layout in non-mosaic mode\n");
         return;
     }
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     app->layout ^= 1;
     osd_toggle_mosaic_layout(app->osd);
     app_p_update_gfx_model(app);
@@ -388,7 +378,6 @@ void app_p_next_thumbnail(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     image_viewer_next(app->thumbnail);
 }
 
@@ -396,7 +385,6 @@ void app_p_prev_thumbnail(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     image_viewer_prev(app->thumbnail);
 }
 
@@ -425,7 +413,6 @@ void app_p_cycle_colorimetry(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     app->model.out.info.gamut = (app->model.out.info.gamut + 1) % PlatformColorimetry_eUnknown;
     app_p_update_out_model(app);
     app_p_reapply_plm(app);
@@ -435,7 +422,6 @@ void app_p_cycle_background(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     image_viewer_next(app->background);
 }
 
@@ -568,8 +554,8 @@ void app_run(AppHandle app)
     platform_receiver_start(app->rx);
     if (app->args->runMode == ARGS_RunMode_eTest)
     {
-        /* test means SQA invocation and will not load first scenario by default */
-        scenario_player_play_scenario(app->scenarioPlayer, -1);
+        /* test means SQA invocation and will load reset scenario by default */
+        scenario_player_play_scenario(app->scenarioPlayer, SCENARIO_PLAYER_RESET);
     }
     else
     {
@@ -586,6 +572,23 @@ void app_run(AppHandle app)
         {
             osd_flip(app->osd);
         }
+    }
+}
+
+static AppHandle gSigApp = NULL;
+
+static void sighandler(int signum, siginfo_t * info, void * ctx)
+{
+    AppHandle app = gSigApp;
+    printf("Received signal %d\n", signum);
+    switch (signum)
+    {
+        case SIGINT:
+        case SIGTERM:
+            app_destroy(app);
+            break;
+        default:
+            break;
     }
 }
 
@@ -606,6 +609,11 @@ AppHandle app_create(ArgsHandle args)
     if (!app) goto error;
     memset(app, 0, sizeof(*app));
     app->args = args;
+    app->term.sa_sigaction = &sighandler;
+    app->term.sa_flags = SA_SIGINFO;
+    gSigApp = app;
+    sigaction(SIGTERM, &app->term, NULL);
+    sigaction(SIGINT, &app->term, NULL);
     app->platform = platform_open(args->name);
     if (!app->platform) goto error;
     platform_get_default_model(&app->model);
@@ -724,6 +732,7 @@ void app_destroy(AppHandle app)
     unsigned i;
 
     if (!app) return;
+    scenario_player_play_scenario(app->scenarioPlayer, SCENARIO_PLAYER_EXIT);
     osd_update_background(app->osd, NULL);
     osd_update_thumbnail(app->osd, NULL);
     platform_receiver_close(app->rx);

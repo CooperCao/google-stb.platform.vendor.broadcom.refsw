@@ -567,6 +567,12 @@ extern int8
 wlc_phy_estpwrlut_intpol_lcn20phy(phy_info_t *pi, uint8 channel,
        wl_txcal_power_tssi_t *pwr_tssi_lut_ch1, wl_txcal_power_tssi_t *pwr_tssi_lut_ch2);
 
+#if defined(BCMINTPHYDBG)
+extern int16
+wlc_phy_test_tssi_lcn20phy(phy_info_t *pi, int8 ctrl_type, int8 pwr_offs);
+extern int16
+wlc_phy_test_idletssi_lcn20phy(phy_info_t *pi, int8 ctrl_type);
+#endif 
 
 extern int16
 wlc_lcn20phy_rxpath_rssicorr(phy_info_t *pi, int16 rssi,

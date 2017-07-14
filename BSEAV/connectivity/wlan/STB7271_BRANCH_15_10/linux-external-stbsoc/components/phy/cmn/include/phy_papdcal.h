@@ -48,7 +48,12 @@ int phy_papdcal_get_wfd_ll_enable(phy_papdcal_info_t *papdcali, int32 *ret_int_p
 #if defined(BCMDBG)
 void phy_papdcal_epa_dpd_set(phy_info_t *pi, uint8 enab_epa_dpd, bool in_2g_band);
 #endif 
-#if defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG)
+int phy_papdcal_get_lut_idx0(phy_info_t *pi, int32* idx);
+int phy_papdcal_get_lut_idx1(phy_info_t *pi, int32* idx);
+int phy_papdcal_set_idx(phy_info_t *pi, int8 idx);
+#endif 
+#if defined(BCMINTPHYDBG) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
 int phy_papdcal_set_skip(phy_info_t *pi, uint8 skip);
 int phy_papdcal_get_skip(phy_info_t *pi, int32* skip);
 #endif 

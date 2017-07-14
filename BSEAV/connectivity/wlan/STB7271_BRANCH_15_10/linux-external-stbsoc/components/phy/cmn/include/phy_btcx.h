@@ -36,6 +36,12 @@ void wlc_phy_btcx_wlan_critical_exit(phy_info_t *pi);
 bool phy_btcx_is_btactive(phy_btcx_info_t *cmn_info);
 int wlc_phy_iovar_set_btc_restage_rxgain(phy_btcx_info_t *btcxi, int32 set_val);
 int wlc_phy_iovar_get_btc_restage_rxgain(phy_btcx_info_t *btcxi, int32 *ret_val);
+#if defined(BCMINTPHYDBG)
+int phy_btcx_get_preemptstatus(phy_info_t *pi, int32* ret_ptr);
+#endif 
+#if (!defined(WLC_DISABLE_ACI) && defined(BCMLTECOEX) && defined(BCMINTPHYDBG))
+int phy_btcx_desense_ltecx(phy_info_t *pi, int32 mode);
+#endif /* !defined (WLC_DISABLE_ACI) && defined (BCMLTECOEX) && defined (BCMINTPHYDBG) */
 #if !defined(WLC_DISABLE_ACI)
 int phy_btcx_desense_btc(phy_info_t *pi, int32 mode);
 #endif /* !defined(WLC_DISABLE_ACI) */

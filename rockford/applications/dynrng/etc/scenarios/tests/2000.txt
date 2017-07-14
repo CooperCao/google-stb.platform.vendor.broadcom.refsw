@@ -1,14 +1,15 @@
 # DynRng Generated Test #2000
 # RX CAPS: LEGACY SDR HDR10 HLG
 # TEST VARS: GFX = N/A; VID = SDR; OUT = LEGACY
+reset
 echo "Please attach a TV with the following capabilities: LEGACY
 waituser
 echo "This is a PASSTHROUGH test case."
 echo ""
-echo "After you hit enter, please look at the server console for messages printing the DRM infoframe contents while running the test"
+echo "After you hit enter, please look at the server console for the most recent messages printing the DRM infoframe contents while running the test."
 echo "You are expecting to see the following:"
 echo ""
-echo "eotf: Unknown -> SDR"
+echo "eotf: Invalid -> SDR"
 echo ""
 waituser
 plm.vid = 1

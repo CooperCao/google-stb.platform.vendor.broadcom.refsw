@@ -168,12 +168,12 @@ static void phy_ac_radio_init_lpmode(phy_ac_radio_info_t *ri);
 static int phy_ac_radio_getlistandsize(phy_type_radio_ctx_t *ctx, phyradregs_list_t **radreglist,
 	uint16 *radreglist_sz);
 #endif
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 static int phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b);
 #else
 #define phy_ac_radio_dump NULL
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 #if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 /* 20693 tuning Table related */
@@ -1243,8 +1243,8 @@ void wlc_phy_restore_dac_clocks(phy_info_t *pi, uint8 core, uint16 orig_dac_clk_
 	}
 }
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 static int
 phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b)
 {
@@ -1423,7 +1423,7 @@ phy_ac_radio_dump(phy_type_radio_ctx_t *ctx, struct bcmstrbuf *b)
 
 	return BCME_OK;
 }
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 static void
 BCMATTACHFN(phy_ac_radio_nvram_attach)(phy_info_t *pi, phy_ac_radio_info_t *radioi)
@@ -11241,6 +11241,21 @@ wlc_phy_set_regtbl_on_pwron_acphy(phy_info_t *pi)
 		rfseq_bundle_48[1] = 0x20;
 		wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_RFSEQBUNDLE, 1, 4, 48, rfseq_bundle_48);
 
+#ifdef BCMINTPHYDBG
+		/* For verification */
+		wlc_phy_table_read_acphy(pi, ACPHY_TBL_ID_RFSEQBUNDLE, 1, 0, 48, &rfseq_bundle_48);
+		PHY_INFORM(("rfseq_bundle_tbl : offset %d, 0x%04x%04x%04x\n", 0,
+			rfseq_bundle_48[2], rfseq_bundle_48[1], rfseq_bundle_48[0]));
+		wlc_phy_table_read_acphy(pi, ACPHY_TBL_ID_RFSEQBUNDLE, 1, 1, 48, &rfseq_bundle_48);
+		PHY_INFORM(("rfseq_bundle_tbl : offset %d, 0x%04x%04x%04x\n", 1,
+			rfseq_bundle_48[2], rfseq_bundle_48[1], rfseq_bundle_48[0]));
+		wlc_phy_table_read_acphy(pi, ACPHY_TBL_ID_RFSEQBUNDLE, 1, 2, 48, &rfseq_bundle_48);
+		PHY_INFORM(("rfseq_bundle_tbl : offset %d, 0x%04x%04x%04x\n", 2,
+			rfseq_bundle_48[2], rfseq_bundle_48[1], rfseq_bundle_48[0]));
+		wlc_phy_table_read_acphy(pi, ACPHY_TBL_ID_RFSEQBUNDLE, 1, 3, 48, &rfseq_bundle_48);
+		PHY_INFORM(("rfseq_bundle_tbl : offset %d, 0x%04x%04x%04x\n", 3,
+			rfseq_bundle_48[2], rfseq_bundle_48[1], rfseq_bundle_48[0]));
+#endif
 
 		/* apply CLB FEM priority static settings */
 		wlc_phy_set_clb_femctrl_static_settings(pi);

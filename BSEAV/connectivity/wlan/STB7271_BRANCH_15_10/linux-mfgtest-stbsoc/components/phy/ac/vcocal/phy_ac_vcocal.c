@@ -77,9 +77,9 @@ BCMATTACHFN(phy_ac_vcocal_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 
 	/* register PHY type specific implementation */
 	bzero(&fns, sizeof(fns));
-#if defined(WLTEST) || defined(RADIO_HEALTH_CHECK)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(RADIO_HEALTH_CHECK)
 	fns.force = wlc_phy_force_vcocal_acphy;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) || defined(RADIO_HEALTH_CHECK */
 	fns.status = phy_ac_vcocal_status;
 	fns.ctx = ac_info;
 

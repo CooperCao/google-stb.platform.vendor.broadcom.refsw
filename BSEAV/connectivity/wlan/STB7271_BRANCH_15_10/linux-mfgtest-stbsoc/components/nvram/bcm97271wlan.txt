@@ -331,4 +331,6 @@ swctrlmap4_misc5g_fem7to4=0
 
 paprdis=1
 low_adc_rate_en=1
+btc_params83=0x4000
+btc_params84=0x2000
 #end

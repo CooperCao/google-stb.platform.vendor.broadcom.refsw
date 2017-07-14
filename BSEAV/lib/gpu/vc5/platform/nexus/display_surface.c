@@ -75,7 +75,7 @@ bool CreateSurface(NXPL_Surface *s,
          {
             NEXUS_Addr offset;
             NEXUS_MemoryBlock_LockOffset(surfSettings.pixelMemory, &offset);
-            s->physicalOffset = (uint32_t)offset;
+            s->physicalOffset = offset;
             // Secure memory can't be mapped as the ARM will try to access it
             if (!secure)
                NEXUS_MemoryBlock_Lock(surfSettings.pixelMemory, &s->cachedPtr);

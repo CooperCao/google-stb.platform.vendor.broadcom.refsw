@@ -453,7 +453,8 @@ void nexus_display_p_uninit_buflogcapture(void);
 #endif
 
 #if NEXUS_DBV_SUPPORT
-void NEXUS_Display_P_DbvUpdateOutputInfo(NEXUS_DisplayHandle display, NEXUS_HdmiOutputHandle hdmiOutput, BVDC_Display_HdmiSettings * pDisplayHdmiSettings);
+NEXUS_Error NEXUS_Display_P_DbvFormatCheck(NEXUS_DisplayHandle display, NEXUS_VideoFormat format);
+void NEXUS_Display_P_DbvUpdateDisplayHdmiSettings(NEXUS_DisplayHandle display, NEXUS_HdmiOutputHandle hdmiOutput, BVDC_Display_HdmiSettings * pDisplayHdmiSettings, BAVC_HDMI_BitsPerPixel * pColorDepth);
 #endif
 
 #ifdef __cplusplus

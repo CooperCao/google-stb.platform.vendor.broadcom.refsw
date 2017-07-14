@@ -3406,7 +3406,7 @@ static void BVDC_P_Window_SetBypassColor_isr
 #else /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
     bBypassColorByTf = BVDC_P_NEED_TF_CONV(pAvcColorSpaceIn->eColorTF, pAvcColorSpaceOut->eColorTF);
     bBypassCmpCsc = hWindow->stSettings.bBypassVideoProcessings || bBypassColorByTf || bFixedColor ||
-        (BVDC_P_IS_BT2020(pAvcColorSpaceIn->eColorimetry) && BVDC_P_IS_BT2020(pAvcColorSpaceOut->eColorimetry));
+        (BVDC_P_IS_BT2020(pAvcColorSpaceIn->eColorimetry) && BVDC_P_IS_BT2020(pAvcColorSpaceOut->eColorimetry) && (pAvcColorSpaceIn->eColorFmt != BAVC_P_ColorFormat_eYCbCr_CL));
     if (bBypassColorByTf && !hWindow->bBypassCmpCsc)
     {
         BDBG_WRN(("Cmp%d_V%d bypass CSC due to TF %d->%d, display might be too %s", hCompositor->eId, hWindow->eId-eV0Id, pAvcColorSpaceIn->eColorTF, pAvcColorSpaceOut->eColorTF, (BVDC_P_IS_SDR(pAvcColorSpaceIn->eColorTF))? "bright" : "dim"));
@@ -7110,7 +7110,8 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         if(pCurDirty->stBits.bDestroy)
         {
             BVDC_P_Source_DisconnectWindow_isr(pCurInfo->hSource, hWindow);
-            hWindow->eState       = BVDC_P_State_eInactive;
+            hWindow->eState   = BVDC_P_State_eInactive;
+            hWindow->pMainCfc = NULL;
             BVDC_P_CLEAN_ALL_DIRTY(pCurDirty);
             BDBG_MSG(("(4) Window[%d] is BVDC_P_State_eInactive", hWindow->eId));
 

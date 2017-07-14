@@ -23,8 +23,8 @@ However, the WLAN code can be built in many different ways, depending on the val
      3. WLAN_DEFAULT_BUILDCFG specifies a list of "targets" for the build.  
 
         If not specified, the default is:
-            "debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-slvradar-stbsoc-armv7l"		(for 32-bit toolchain) and 
-            "debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-slvradar-stbsoc-armv8" 		(for 64-bit toolchain)
+            "debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-stbsoc-armv7l"		(for 32-bit toolchain) and
+            "debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-stbsoc-armv8" 		(for 64-bit toolchain)
 
         For non-default builds, choose the appropriate targets from the following list.  Their 
         order does not matter, but targets must be separated by a single dash ("-").
@@ -71,7 +71,7 @@ However, the WLAN code can be built in many different ways, depending on the val
 				WLAN_DEFAULT_BUILDCFG=nodebug-apdef-stadef-extnvm-mfp-wet-pspretend-stbsoc
 
             Manufacturing 32-bit driver:
-                WLAN_DEFAULT_BUILDCFG=debug-apdef-stadef-mfgtest-extnvm-stb7271
+                WLAN_DEFAULT_BUILDCFG=debug-apdef-stadef-mfgtest-extnvm-stbsoc
 
             Manufacturing 64-bit driver with WET support:
                 WLAN_DEFAULT_BUILDCFG=debug-apdef-stadef-mfgtest-extnvm-wet-stbsoc

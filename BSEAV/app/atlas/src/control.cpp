@@ -91,7 +91,8 @@ CControl::CControl(const char * strName) :
     _powerOnTimer(this),
     _viewList(false),
     _recordingChannels(false),
-    _encodingChannels(false)
+    _encodingChannels(false),
+    _bIgnoreNextKeypress(false)
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     ,_timerPlmVerify(this)
 #endif
@@ -227,6 +228,13 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
     if ((ePowerMode_S0 != getPowerMode()) &&
         (eKey_Power != pRemoteEvent->getCode()))
     {
+        goto done;
+    }
+
+    if (true == _bIgnoreNextKeypress)
+    {
+        BDBG_WRN(("Key Handling Disabled - ignore key:%d", pRemoteEvent->getCode()));
+        _bIgnoreNextKeypress = false;
         goto done;
     }
 
@@ -1579,6 +1587,7 @@ void CControl::processNotification(CNotification & notification)
             CHECK_ERROR_GOTO("unable to power ON!", ret, error);
         }
 #if HAS_VID_NL_LUMA_RANGE_ADJ
+        else
         if (pTimer == &_timerPlmVerify)
         {
             eRet                 ret          = eRet_Ok;
@@ -2058,6 +2067,49 @@ errorBluetooth:
     }
     break;
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
+
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    case eNotify_SetPlmVideo:
+    {
+        CSimpleVideoDecode * pVideoDecode = NULL;
+        CChannel * pChannel = NULL;
+        CPlmDataVideo * pPlmData = (CPlmDataVideo *)notification.getData();
+
+        if (eWindowType_Max == pPlmData->_videoWin)
+        {
+            BDBG_ERR(("invalid video window specified in eNotify_SetPlmVideo notification"));
+            ret = eRet_InvalidParameter;
+            goto error;
+        }
+
+        pVideoDecode = _pModel->getSimpleVideoDecode(pPlmData->_videoWin);
+        CHECK_PTR_ERROR_GOTO("unable to find video decoder associated with given video window", pVideoDecode, ret, eRet_InvalidParameter, error);
+
+        pChannel = pVideoDecode->getChannel();
+        CHECK_PTR_ERROR_GOTO("unable to find channel", pChannel, ret, eRet_NotAvailable, error);
+
+        pChannel->setPlm(pPlmData->_bEnable);
+        pVideoDecode->updatePlm();
+    }
+    break;
+#endif /* ifdef HAS_VID_NL_LUMA_RANGE_ADJ */
+
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    case eNotify_SetPlmGraphics:
+    {
+        CGraphics *        pGraphics = NULL;
+        CChannel *         pChannel  = _pModel->getCurrentChannel();
+        CPlmDataGraphics * pPlmData  = (CPlmDataGraphics *)notification.getData();
+
+        if (NULL != pChannel)
+        {
+            pChannel->setGraphicsPlm(pPlmData->_bEnable);
+            ret = setGraphicsDynamicRange(pChannel);
+            CHECK_WARN("unable to set graphics dynamic range", ret);
+        }
+    }
+    break;
+#endif /* ifdef HAS_GFX_NL_LUMA_RANGE_ADJ */
 
     default:
         break;
@@ -2865,7 +2917,11 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     BDBG_ASSERT(NULL != _pModel);
     BDBG_ASSERT(NULL != _pConfig);
     BDBG_ASSERT(NULL != pPlaybackList);
-    BDBG_ASSERT(NULL != pCurrentChannel);
+    if (!pCurrentChannel) {
+        BDBG_WRN(("No current channel"));
+        ret = eRet_NotAvailable;
+        goto done;
+    }
 
     if (false == pCurrentChannel->isRecordEnabled())
     {
@@ -5112,18 +5168,20 @@ eRet CControl::setPowerMode(ePowerMode mode)
         if (NULL != pDisplayHD)
         {
             pDisplayHD->enableOutputs(true);
+            pDisplayHD->waitForDisplaySettingsApply();
         }
         if (NULL != pDisplaySD)
         {
             pDisplaySD->enableOutputs(true);
+            pDisplaySD->waitForDisplaySettingsApply();
         }
-
-        /* enabling outputs only happens on vsync so add slight delay */
-        BKNI_Sleep(100);
 
         ipServerStart();
 
         SET(_pCfg, FIRST_TUNE, "true");
+
+        /* powering on so ignore next power key once it arrives */
+        _bIgnoreNextKeypress = true;
     }
     break;
 
@@ -5175,14 +5233,13 @@ eRet CControl::setPowerMode(ePowerMode mode)
         if (NULL != pDisplayHD)
         {
             pDisplayHD->enableOutputs(false);
+            pDisplayHD->waitForDisplaySettingsApply();
         }
         if (NULL != pDisplaySD)
         {
             pDisplaySD->enableOutputs(false);
+            pDisplaySD->waitForDisplaySettingsApply();
         }
-
-        /* disabling outputs only happens on vsync so add slight delay */
-        BKNI_Sleep(100);
 
         ret = pPower->setMode(mode, pGraphics);
         CHECK_ERROR_GOTO("unable to set power mode", ret, error);
@@ -5341,7 +5398,7 @@ eRet CControl::setGraphicsDynamicRange(CChannel * pChannel)
         }
     }
 
-    BDBG_MSG(("set gfx plm:%s", pChannel->isGraphicsPlmEnabled() ? "true" : "false"));
+    BDBG_MSG(("set gfx plm:%s", (true == pChannel->isGraphicsPlmEnabled()) ? "true" : "false"));
     pGraphics->setPlm(pChannel->isGraphicsPlmEnabled());
 
 error:

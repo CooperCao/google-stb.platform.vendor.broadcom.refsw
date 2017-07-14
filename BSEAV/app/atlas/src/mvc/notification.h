@@ -132,6 +132,12 @@ typedef enum eNotification
     eNotify_ShowDiscoveredPlaylists, /* command  - show list of playlists discovered by atlas server */
     eNotify_ShowPlaylist,            /* command  - show contents of given playlist */
     eNotify_StreamChannel,           /* command  - stream IP channel from remote server */
+#if HAS_VID_NL_LUMA_RANGE_ADJ
+    eNotify_SetPlmVideo,             /* command  - set video programmable luma mapping enable/disable */
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    eNotify_SetPlmGraphics,          /* command  - set graphics programmable luma mapping enable/disable */
+#endif
     eNotify_Debug,                   /* command  - show debug message */
     eNotify_Exit,                    /* command  - exit atlas */
 
@@ -164,7 +170,12 @@ typedef enum eNotification
     eNotify_EncodeStopped,               /* status   - encode has stopped */
     eNotify_VideoSourceChanged,          /* status   - video source has changed */
     eNotify_VideoStreamChanged,          /* status   - video stream has changed */
+#if HAS_VID_NL_LUMA_RANGE_ADJ
     eNotify_VideoPlmChanged,             /* status   - video programmable luma mapping (PLM) changed */
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
+    eNotify_GraphicsPlmChanged,          /* status   - graphics programmable luma mapping (PLM) changed */
+#endif
     eNotify_VideoDecodeStarted,          /* status   - video decode started */
     eNotify_VideoDecodeStopped,          /* status   - video decode stopped */
     eNotify_AudioSourceChanged,          /* status   - audio source has changed */

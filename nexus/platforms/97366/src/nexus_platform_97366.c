@@ -97,6 +97,9 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = (0x00400000);
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memcIndex = 1;
 #endif
+
+    /* 7366 SID VideoDecoder needs memory on MEMC1 */
+    pSettings->videoDecoderModuleSettings.videoDecoderExtension.sid.heapIndex = NEXUS_MEMC1_GRAPHICS_HEAP;
 }
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)

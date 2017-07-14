@@ -48,6 +48,8 @@
 #define KERNEL_IPI_PATCH        1
 #define KERNEL_BCM_MQ_PATCH     0
 #define IOREMAP_SHARED_MEM      0
+#define CPUTIME_ACCOUNTING      0
+#define CPUTIME_WINDOW_SIZE     5
 #define TZIOC_DEV_SUPPORT       0
 #define TZIOC_MSG_ECHO          0
 

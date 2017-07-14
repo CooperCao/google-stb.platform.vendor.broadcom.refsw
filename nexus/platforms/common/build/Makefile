@@ -414,7 +414,7 @@ ${NEXUS_SECURITY_REGVER_SIGNATURES}: $(NEXUS_FW_SIGN_SRC)
 	@echo "[Build..... fw_img_sign]"
 	${Q_}$(CP) $(NEXUS_SECURITY_REGVER_SIGNATURES_STUB) $(NEXUS_SECURITY_REGVER_SIGNATURES); $(TOUCH) $(NEXUS_SECURITY_REGVER_SIGNATURES)
 	${Q_}$(CP) $(NEXUS_SECURITY_REGVER_KEY_STUB) $(NEXUS_SECURITY_REGVER_KEY); $(TOUCH) $(NEXUS_SECURITY_REGVER_KEY)
-	${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign sign --no-print-directory B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) > /dev/null 2>&1 || echo $(NEXUS_FW_SIGN_FAIL_MESSAGE)
+	${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign sign --no-print-directory B_REFSW_OS=linuxemu B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) > /dev/null 2>&1 || echo $(NEXUS_FW_SIGN_FAIL_MESSAGE)
 
 ${NEXUS_SECURITY_REGVER_KEY}: ${NEXUS_SECURITY_REGVER_SIGNATURES}
 endif

@@ -49,9 +49,9 @@ uint8 phy_rssi_compare_ant(phy_rssi_info_t *ri);
 void phy_rssi_init_gain_err(phy_rssi_info_t *ri);
 int wlc_phy_sharedant_acphy(phy_info_t *pi);
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 int wlc_phy_pkteng_stats_get(phy_rssi_info_t *rssii, void *a, int alen);
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 int phy_rssi_set_gain_delta_2g(phy_rssi_info_t *rssii, uint32 aid, int8 *deltaValues);
 int phy_rssi_get_gain_delta_2g(phy_rssi_info_t *rssii, uint32 aid, int8 *deltaValues);

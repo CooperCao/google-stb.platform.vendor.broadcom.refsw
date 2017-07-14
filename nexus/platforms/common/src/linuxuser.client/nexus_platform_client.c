@@ -66,6 +66,11 @@ struct NEXUS_P_ClientCallback
     NEXUS_P_ClientHandle client;
     BKNI_MutexHandle callbackLock; /* held while callback is running */
     unsigned lastStopCallbacksCount;
+    struct {
+        bool valid;
+        NEXUS_Time time;
+        struct nexus_callback_data callback_data;
+    } current;
 };
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_P_Client);
@@ -75,6 +80,7 @@ struct NEXUS_P_Client
     BKNI_MutexHandle lock;
     int fd; /* main socket for connection to server */
     struct NEXUS_P_ClientCallback callback[NEXUS_ModulePriority_eMax];
+    NEXUS_TimerHandle callbackMonitorTimer;
 };
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_P_ClientModule);
@@ -111,13 +117,13 @@ static void NEXUS_P_ClientCallbackThread(void *context)
         }
         num = rc/sizeof(data[0]);
         if (!num) continue;
-        
+
         rc = b_nexus_write(callback->fd, &num, sizeof(num));
         if (rc != sizeof(num)) {
             BERR_TRACE(rc);
             break;
         }
-        
+
         /* TEST: add BKNI_Sleep(rand()%50) here to verify StartCallbacks waits until pipeline empty */
         for (i=0;i<num;i++) {
             if (!data[i].interface) {
@@ -125,16 +131,56 @@ static void NEXUS_P_ClientCallbackThread(void *context)
                 callback->lastStopCallbacksCount = data[i].callback.param;
             }
             else if (data[i].callback.callback) {
+                NEXUS_LockModule();
+                NEXUS_Time_Get(&callback->current.time);
+                callback->current.callback_data = data[i];
+                callback->current.valid = true;
+                NEXUS_UnlockModule();
                 BKNI_AcquireMutex(callback->callbackLock);
                 /* TEST: add BKNI_Sleep(rand()%50) here to test proper thread synchronization */
                 BDBG_MSG_TRACE(("%p calling: %p(%p,%d)", callback, data[i].callback.callback, data[i].callback.context, data[i].callback.param));
                 (data[i].callback.callback)(data[i].callback.context, data[i].callback.param);
                 BKNI_ReleaseMutex(callback->callbackLock);
+                NEXUS_LockModule();
+                callback->current.valid = false;
+                NEXUS_UnlockModule();
             }
         }
     }
     return;
 }
+
+static void NEXUS_P_ClientCallback_Monitor(unsigned priority, struct NEXUS_P_ClientCallback *callback, unsigned timeout)
+{
+    if(callback->current.valid) {
+        NEXUS_Time now;
+        unsigned duration;
+        NEXUS_Time_Get(&now);
+        duration = NEXUS_Time_Diff(&now, &callback->current.time);
+        if (duration > timeout) {
+            BDBG_WRN(("stuck callback %d msec, module priority %u callback:%p(%p,%u) interface:%p", duration, priority, (void *)(unsigned long)callback->current.callback_data.callback.callback, (void*)callback->current.callback_data.callback.context, callback->current.callback_data.callback.param, (void*)callback->current.callback_data.interface));
+        }
+    }
+    return;
+}
+
+
+static void NEXUS_P_ClientCallbackMonitor(void *context)
+{
+    struct NEXUS_P_Client *client = context;
+    unsigned timeout = 500;
+    unsigned i;
+
+    client->callbackMonitorTimer = NULL;
+
+    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        NEXUS_P_BaseCallback_Monitor(i, timeout);
+        NEXUS_P_ClientCallback_Monitor(i, &client->callback[i], timeout);
+    }
+    client->callbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, timeout, NEXUS_P_ClientCallbackMonitor, client);
+    return;
+}
+
 
 NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSettings *pSettings)
 {
@@ -144,6 +190,7 @@ NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSetting
     struct nexus_connect_info info;
     uint8_t done;
 
+    NEXUS_LockModule();
     client = BKNI_Malloc(sizeof(*client));
     if (!client) {
         BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
@@ -162,6 +209,9 @@ NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSetting
         struct NEXUS_P_ClientCallback *callback = &client->callback[i];
         BDBG_OBJECT_SET(callback, NEXUS_P_ClientCallback);
         callback->fd = -1; /* set proper default in case init goes wrong */
+        if(i==NEXUS_ModulePriority_eInternal) {
+            continue;
+        }
         rc = BKNI_CreateMutex(&callback->callbackLock);
         if ( rc ) {
             rc = BERR_TRACE(rc);
@@ -197,21 +247,29 @@ NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSetting
 
     for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
         struct NEXUS_P_ClientCallback *callback = &client->callback[i];
+        if(i==NEXUS_ModulePriority_eInternal) {
+            continue;
+        }
         callback->client = client;
-        
+
         callback->fd = b_nexus_socket_connect(nexus_socket_type_scheduler, i);
         if (callback->fd == -1) {
             rc = BERR_TRACE(NEXUS_UNKNOWN);
             goto error;
         }
-        
+        callback->current.valid = false;
+
         callback->thread = NEXUS_Thread_Create("nxcallback", NEXUS_P_ClientCallbackThread, callback, NULL);
         if (!callback->thread) {rc = BERR_TRACE(rc); goto error;}
-    }
+    };
+    client->callbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, 100, NEXUS_P_ClientCallbackMonitor, client);
+    if(!client->callbackMonitorTimer) { rc=BERR_TRACE(NEXUS_OS_ERROR); goto error; }
 
+    NEXUS_UnlockModule();
     return client;
 
 error:
+    NEXUS_UnlockModule();
     NEXUS_P_Client_Uninit(client);
     return NULL;
 }
@@ -239,9 +297,17 @@ void NEXUS_P_Client_Uninit(NEXUS_P_ClientHandle client)
     unsigned i;
 
     BDBG_OBJECT_ASSERT(client, NEXUS_P_Client);
+    NEXUS_LockModule();
+    if(client->callbackMonitorTimer) {
+        NEXUS_CancelTimer(client->callbackMonitorTimer);
+        client->callbackMonitorTimer = NULL;
+    }
 
     for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
         struct NEXUS_P_ClientCallback *callback = &client->callback[i];
+        if(i==NEXUS_ModulePriority_eInternal) {
+            continue;
+        }
         if (callback->fd != -1) {
             b_nexus_socket_close(callback->fd);
         }
@@ -255,6 +321,7 @@ void NEXUS_P_Client_Uninit(NEXUS_P_ClientHandle client)
     if (client->lock) {
         BKNI_DestroyMutex(client->lock);
     }
+    NEXUS_UnlockModule();
     BDBG_OBJECT_DESTROY(client, NEXUS_P_Client);
     BKNI_Free(client);
 }
@@ -438,6 +505,9 @@ void NEXUS_P_Client_StopCallbacks(NEXUS_P_ClientHandle client, void *interfaceHa
         bool synced = true;
         for (i=0;i<NEXUS_ModulePriority_eMax;i++) {
             struct NEXUS_P_ClientCallback *callback = &client->callback[i];
+            if(i==NEXUS_ModulePriority_eInternal) {
+                continue;
+            }
             BDBG_OBJECT_ASSERT(callback, NEXUS_P_ClientCallback);
             BKNI_AcquireMutex(callback->callbackLock);
             if (callback->lastStopCallbacksCount < stopCallbacksCount) {

@@ -868,6 +868,8 @@ typedef struct {
 	uint32 congest_obss;	/**< traffic not in our bss */
 	uint32 interference;	/**< millisecs detecting a non 802.11 interferer. */
 	uint32 timestamp;	/**< second timestamp */
+	uint32 congest_rx;
+	uint32 congest_tx;
 } cca_congest_t;
 
 typedef struct {
@@ -1434,6 +1436,10 @@ struct wlc_swdiv_stats_v2 {
 
 #define	WLC_NUMRATES	16	/**< max # of rates in a rateset */
 
+#define STAMON_STACONFIG_VER    1
+/* size of struct wlc_stamon_sta_config_t elements */
+#define STAMON_STACONFIG_LENGTH 20
+
 typedef struct wlc_rateset {
 	uint32	count;			/**< number of rates in rates[] */
 	uint8	rates[WLC_NUMRATES];	/**< rates in 500kbps units w/hi bit set if basic */
@@ -1467,6 +1473,22 @@ typedef struct maclist {
 	uint32 count;			/**< number of MAC addresses */
 	struct ether_addr ea[1];	/**< variable length array of MAC addresses */
 } maclist_t;
+
+typedef struct wds_client_info {
+	char	ifname[INTF_NAME_SIZ];	/* WDS ifname */
+	struct	ether_addr ea;		/* WDS client MAC address */
+} wds_client_info_t;
+
+#define WDS_MACLIST_MAGIC	0xFFFFFFFF
+#define WDS_MACLIST_VERSION	1
+
+/* For wds MAC list ioctls */
+typedef struct wds_maclist {
+	uint32 count;				/* Number of WDS clients */
+	uint32 magic;				/* Magic number */
+	uint32 version;				/* Version number */
+	struct wds_client_info  client_list[1]; /* Variable length array of WDS clients */
+} wds_maclist_t;
 
 /**get pkt count struct passed through ioctl */
 typedef struct get_pktcnt {
@@ -10301,12 +10323,18 @@ typedef enum wl_stamon_cfg_cmd_type {
 	STAMON_CFG_CMD_DSB = 3,
 	STAMON_CFG_CMD_CNT = 4,
 	STAMON_CFG_CMD_RSTCNT = 5,
-	STAMON_CFG_CMD_GET_STATS = 6
+	STAMON_CFG_CMD_GET_STATS = 6,
+	STAMON_CFG_CMD_SET_MONTIME = 7
 } wl_stamon_cfg_cmd_type_t;
 
 typedef struct wlc_stamon_sta_config {
 	wl_stamon_cfg_cmd_type_t cmd; /**< 0 - delete, 1 - add */
 	struct ether_addr ea;
+	uint16	version;		/* Command structure version */
+	uint16	length;			/* Command structure length */
+	uint8	pad[2];
+	/* Time (ms) for which STA's are monitored. Value ZERO indicates no time limit */
+	uint32	monitor_time;
 } wlc_stamon_sta_config_t;
 
 /* ifdef SR_DEBUG */

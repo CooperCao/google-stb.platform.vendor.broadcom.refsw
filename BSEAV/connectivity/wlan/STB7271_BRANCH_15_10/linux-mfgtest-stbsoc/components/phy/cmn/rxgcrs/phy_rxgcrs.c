@@ -432,7 +432,8 @@ phy_rxgcrs_dump_phycal_rx_min(void *ctx, struct bcmstrbuf *b)
 
 
 #ifndef ATE_BUILD
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 int
 wlc_phy_iovar_forcecal_noise(phy_info_t *pi, void *a, bool set)
 {
@@ -446,7 +447,7 @@ wlc_phy_iovar_forcecal_noise(phy_info_t *pi, void *a, bool set)
 		return BCME_UNSUPPORTED;
 	}
 }
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || ATE_BUILD */
 #endif /* !ATE_BUILD */
 
 uint16 phy_rxgcrs_sel_classifier(phy_info_t *pi, uint16 class_mask)

@@ -27,8 +27,8 @@
 #include "wlc_radioreg_20693.h"
 #include "wlc_phytbl_20693.h"
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 const radio_20xx_dumpregs_t dumpregs_20693_rsdb[] = {
 	{0x000},
 	{0x001},
@@ -3146,7 +3146,7 @@ CONST radio_20xx_dumpregs_t dumpregs_20693_rev32[] = {
 	{ RFP1_20693_PLL_MUXSELECT_LINE(32)},
 	{ 0xFFFF,               }
 };
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 const radio_20xx_prefregs_t prefregs_20693_rev5[] = {
 	{ RF0_20693_PLL_XTAL3(5),       0x488},

@@ -470,7 +470,13 @@ module_param(txworkq, int, 0);
 #endif /* STB_SOC_WIFI */
 
 #ifdef STB_SOC_WIFI
+
+#ifdef WL_BIDIRECTIONAL_TPUT
+#define WL_TXQ_THRESH	2048
+#else /* WL_BIDIRECTIONAL_TPUT */
 #define WL_TXQ_THRESH	512
+#endif /* WL_BIDIRECTIONAL_TPUT */
+
 #define DEVID  0
 static uint16 stb_devid = DEVID;
 #else /* STB_SOC_WIFI */
@@ -2604,6 +2610,7 @@ wl_free_if(wl_info_t *wl, wl_if_t *wlif)
 		wl_cfg80211_notify_ifdel(wlif->dev);
 #endif /* USE_CFG80211 */
 	}
+	WL_LOCK(wl);
 	/* remove the interface from the interface linked list */
 	p = wl->if_list;
 	if (p == wlif)
@@ -2614,6 +2621,7 @@ wl_free_if(wl_info_t *wl, wl_if_t *wlif)
 		if (p != NULL)
 			p->next = p->next->next;
 	}
+	WL_UNLOCK(wl);
 
 	if (wlif->dev) {
 #if defined(USE_CFG80211)
@@ -3315,6 +3323,11 @@ wl_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		buf = ioc.buf;
 
 	else if (ioc.buf) {
+		if (ioc.len <= 0 || ioc.len > 32*WLC_IOCTL_MAXLEN) {
+			bcmerror = BCME_BADLEN;
+			goto done2;
+		}
+
 		if (!(buf = (void *) MALLOC(wl->osh, MAX(ioc.len, WLC_IOCTL_MAXLEN)))) {
 			bcmerror = BCME_NORESOURCE;
 			goto done2;
@@ -3574,7 +3587,11 @@ wl_isr(int irq, void *dev_id, struct pt_regs *ptregs)
 #else /* NAPI_POLL */
 #ifdef WL_ALL_PASSIVE
 			if (WL_ALL_PASSIVE_ENAB(wl)) {
+#ifdef WL_BIDIRECTIONAL_TPUT
+				if (SCHEDULE_WORK_ON(wl, wl->max_cpu_id, &wl->wl_dpc_task.work))
+#else
 				if (SCHEDULE_WORK(wl, &wl->wl_dpc_task.work))
+#endif
 					atomic_inc(&wl->callbacks);
 				else
 					ASSERT(0);
@@ -3655,7 +3672,11 @@ wl_dpc(ulong data)
 		if (!(WL_ALL_PASSIVE_ENAB(wl)))
 			tasklet_schedule(&wl->tasklet);
 		else
+#ifdef WL_BIDIRECTIONAL_TPUT
+			if (!SCHEDULE_WORK_ON(wl, wl->max_cpu_id, &wl->wl_dpc_task.work)) {
+#else
 			if (!SCHEDULE_WORK(wl, &wl->wl_dpc_task.work)) {
+#endif
 				/* wl_dpc_task alread in queue.
 				 * Shall not reach here
 				 */
@@ -4206,7 +4227,11 @@ wl_txq_xmit(wl_info_t *wl, struct sk_buff *skb)
 #ifdef CONFIG_SMP
 		else if (txworkq && wl->max_cpu_id > 0)
 			err = (int32)(SCHEDULE_WORK_ON(wl,
+#ifdef WL_BIDIRECTIONAL_TPUT
+				wl->max_cpu_id,
+#else
 				wl->max_cpu_id - raw_smp_processor_id(),
+#endif
 				&wl->txq_task.work) == 0);
 #endif
 		else
@@ -4370,7 +4395,16 @@ _wl_timer(wl_timer_t *t)
 	WL_LOCK(wl);
 
 	if (t->set && (!timer_pending(&t->timer))) {
-		if (t->periodic) {
+
+#ifdef BCMDBG
+		if (t->timer.function == NULL) {
+			WL_ERROR(("wl%d: %s: Timer function not set for %s and ticks:%d\n",
+				wl->unit, __FUNCTION__, t->name, t->ticks));
+		}
+#endif /* BCMDBG */
+		ASSERT(t->timer.function);
+
+		if (t->periodic && t->timer.function) {
 			/* Periodic timer can't be a zero delay */
 			ASSERT(t->ms != 0);
 

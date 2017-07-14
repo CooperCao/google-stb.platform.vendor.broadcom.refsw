@@ -151,6 +151,14 @@ NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySett
     unsigned i;
 
     force = force || pVideo->lastUpdateFailed;
+#if NEXUS_DBV_SUPPORT
+    if (NEXUS_SUCCESS != NEXUS_Display_P_DbvFormatCheck(display, pSettings->format))
+    {
+        rc = BERR_NOT_SUPPORTED;
+        rc = BERR_TRACE(rc);
+        return rc;
+    }
+#endif
 
     /* NOTE: display->cfg are the old settings. pSettings are the new settings. always apply pSettings, not display->cfg. */
 

@@ -789,7 +789,7 @@ wlc_phy_txpower_set(wlc_phy_t *ppi, int8 qdbm, bool override, ppr_t *reg_pwr)
 	ti->data->tx_user_target = qdbm;
 
 	/* Restrict external builds to 100% Tx Power */
-#if defined(WLTEST) || defined(WL_EXPORT_TXPOWER)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(WL_EXPORT_TXPOWER)
 	ti->data->txpwroverride = override;
 	ti->data->txpwroverrideset = override;
 #else
@@ -1483,7 +1483,7 @@ wlc_phy_neg_txpower_set(wlc_phy_t *ppi, uint qdbm)
 	return (0);
 }
 
-#if defined(WLTEST)
+#if (defined(BCMINTPHYDBG) || defined(WLTEST))
 int
 phy_tpc_set_pavars(phy_tpc_info_t *tpci, void* a, void* p)
 {
@@ -1509,7 +1509,7 @@ phy_tpc_get_pavars(phy_tpc_info_t *tpci, void* a, void* p)
 		return BCME_UNSUPPORTED;
 	}
 }
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
 
 void

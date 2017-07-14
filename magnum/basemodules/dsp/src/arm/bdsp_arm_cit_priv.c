@@ -264,7 +264,7 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
                     BDSP_Arm_P_InsertEntry_MapTable(&(pArmConnectStage->sStageMapTable[0]),
                        &Memory,
                        psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes,
-                       (BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+                       (BDSP_ARM_AF_P_Map_eDram),
                        BDSP_ARM_MAX_ALLOC_STAGE);
                 }
                 if(ui32Node == 0)
@@ -503,7 +503,7 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
 											&(pArmConnectStage->sStageMapTable[0]),
 											&Memory,
 											(6*sizeof(uint32_t)),
-											(BDSP_ARM_AF_P_Map_eDevice | BDSP_ARM_AF_P_Map_eNoExec),
+											(BDSP_ARM_AF_P_Map_eDevice),
 											BDSP_ARM_MAX_ALLOC_STAGE);
                                         if (BERR_SUCCESS != errCode)
                                         {
@@ -520,7 +520,7 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
 											&(pArmConnectStage->sStageMapTable[0]),
 											&Memory,
 											size,
-											(BDSP_ARM_AF_P_Map_eDram | BDSP_ARM_AF_P_Map_eNoExec),
+											(BDSP_ARM_AF_P_Map_eDram),
 											BDSP_ARM_MAX_ALLOC_STAGE);
 
                                         if (BERR_SUCCESS != errCode)

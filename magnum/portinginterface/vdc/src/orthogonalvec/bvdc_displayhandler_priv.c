@@ -5728,6 +5728,7 @@ static void BVDC_P_Display_Apply_InputColorSpace_Setting_isr
     /* send dvi metadata twice (controlled by counter) before cleaning dirty bit
        to populate double-buffer hdmi metadata ram for DBV output */
     if(hDisplay->stCfc.ucRulBuildCntr == 0 ||
+       !hDisplay->stCurInfo.bEnableHdmi ||
        !hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled)
 #endif
     {

@@ -526,8 +526,8 @@ bool CPower::doDriveMount(
     {
         { false, false, false, false },
         { false, false, false, false },
-        { false, false, false, false },
-        { true,  false, false, false }
+        { true,  true,  false, false },
+        { true,  true,  false, false }
     };
 
     return(transition[modeOld][modeNew]);
@@ -542,8 +542,8 @@ bool CPower::doDriveUnmount(
     /* modeOld x modeNew array */
     bool transition[ePowerMode_Max][ePowerMode_Max] =
     {
-        { false, false, false, true  },
-        { false, false, false, true  },
+        { false, false, true,  true  },
+        { false, false, true,  true  },
         { false, false, false, false },
         { false, false, false, false }
     };
@@ -568,6 +568,8 @@ eRet CPower::setMode(
         BDBG_MSG(("power mode unchanged so return"));
         return(ret);
     }
+
+    SET(_pCfg, POWER_STATE, MString(mode));
 
     NEXUS_Platform_GetStandbySettings(&_settings);
     _settings.mode               = (NEXUS_PlatformStandbyMode)mode; /* direct mapping */
@@ -604,6 +606,7 @@ eRet CPower::setMode(
         {
             /* disable graphics before turning off (S1, S2, S3) */
             pGraphics->setActive(false);
+            BKNI_Sleep(100);
         }
 
         nerror = NEXUS_Platform_SetStandbySettings(&_settings);
@@ -713,17 +716,27 @@ eRet CPower::setMode(
                 BDBG_MSG(("setting pm standby state:%d", pmStandbyState));
                 retPm = brcm_pm_suspend(_pPmLib, pmStandbyState);
                 CHECK_PMLIB_ERROR_GOTO("unable to set power management suspend state", ret, retPm, error);
+
+                /* resumes here */
+                mode = ePowerMode_S0;
+                BDBG_MSG(("Atlas woke up. mode:%d getMode:%d", mode, getMode()));
             }
+        }
+
+        if ((ePowerMode_S0 != getMode()) && (ePowerMode_S1 != getMode()))
+        {
+            /* previous mode was S2 or S3.  the fact that we are here means that we have woken up */
+            ePowerMode modeWakeup = ePowerMode_S0;
+            notifyObservers(eNotify_SetPowerMode, &modeWakeup);
         }
 
         if ((NULL != pGraphics) && (ePowerMode_S0 == mode))
         {
-            /* re-enable graphics after turning on (S0) */
+            /* enable graphics after turning on (S0) */
             pGraphics->setActive(true);
         }
     }
 
-    SET(_pCfg, POWER_STATE, MString(mode));
 error:
 #else /* if POWERSTANDBY_SUPPORT */
     BSTD_UNUSED(pGraphics);

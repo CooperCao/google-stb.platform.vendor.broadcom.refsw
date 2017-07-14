@@ -4214,12 +4214,28 @@ Description:
     BVDC_Window_Capabilities is a structure that contains the
     capabilities of window.
 
-    reserved for future use.
+    bConvColorimetry - Able to correctly convert among Bt709, Bt2020-NCL,
+        Bt2020-CL, Smpte170M, Bt470_BG, ... Some old chips can linearly
+        approximate this conversion, but linear approximation is not
+        considered done-correctly.
+    bConvHdr10 - Able to convert between SDR and HDR10
+    bConvHlg - Able to convert between HLG (Hybrid Log Gamma) and SDR/HDR10
+    bTchInput - Support Technicolor Prime HDR conversions
+    bDolby - Support Dolby display and convertion between Dolby and non-
+        Dolby signal.
 
 See Also:
     BVDC_Window_GetCapabilities
 ***************************************************************************/
-typedef void *BVDC_Window_Capabilities;
+typedef struct
+{
+    bool                bConvColorimetry;
+    bool                bConvHdr10;
+    bool                bConvHlg;
+    bool                bTchInput;
+    bool                bDolby;
+
+} BVDC_Window_Capabilities;
 
 /***************************************************************************
 Summary:

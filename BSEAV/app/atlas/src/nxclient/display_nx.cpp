@@ -478,11 +478,13 @@ eDynamicRange CDisplayNx::getOutputDynamicRange()
     NxClient_DisplaySettings settings;
 
     NxClient_GetDisplaySettings(&settings);
+    /* TODO: how do we determine dolby vision output mode?  this is typically just set to auto!
     if (NEXUS_HdmiOutputDolbyVisionMode_eDisabled != settings.hdmiPreferences.dolbyVision.outputMode)
     {
         dynamicRange = eDynamicRange_DolbyVision;
     }
     else
+    */
     if (NEXUS_VideoEotf_eHdr10 == settings.hdmiPreferences.drmInfoFrame.eotf)
     {
         dynamicRange = eDynamicRange_HDR10;

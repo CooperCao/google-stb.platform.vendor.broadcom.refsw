@@ -2306,6 +2306,7 @@ extern "C" {
      (hCompositor->pstDbv && hCompositor->pstDbv->metadataPresent))
 #else
 #define BVDC_P_DBV_SUPPORT (0)
+#define BVDC_P_CMP_OUTPUT_IPT(hCompositor)    false
 #endif
 
 #if (BVDC_P_CMP_CFC_VER >= 3) && BVDC_TCH_SUPPORT

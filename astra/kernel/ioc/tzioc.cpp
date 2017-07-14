@@ -48,6 +48,7 @@
 #include "plat_config.h"
 #include "kernel.h"
 #include "pgtable.h"
+#include "hwtimer.h"
 #include "arm/gic.h"
 #include "libfdt.h"
 #include "parse_utils.h"
@@ -66,6 +67,8 @@ struct tzioc_client *TzIoc::psysClient;
 SpinLock TzIoc::lock;
 struct tzioc_shared_mem *TzIoc::psmem = NULL;
 bool TzIoc::peerUp = false;
+uint64_t TzIoc::tzStartTicks = 0;
+uint64_t TzIoc::nwStartTicks = 0;
 
 void TzIoc::init(void *devTree)
 {
@@ -209,7 +212,13 @@ void TzIoc::proc()
     // Return if not initialized
     if (!psmem) return;
 
-    // Processing incoming msgs
+    // Update cpu time
+    if (arm::smpCpuNum() == 0) {
+        tzStartTicks = TzHwCounter::timeNow();
+        psmem->ullNwUsecs += TzHwCounter::ticksToUs(tzStartTicks - nwStartTicks);
+    }
+
+    // Process incoming msgs
     while (1) {
         static uint8_t msg[TZIOC_MSG_SIZE_MAX];
         struct tzioc_msg_hdr *pHdr = (struct tzioc_msg_hdr *)msg;
@@ -272,6 +281,14 @@ void TzIoc::notify()
     if (peerUp) {
         // printf("TzIoc system notify\n");
         GIC::sgiGenerate(sysIrq);
+    }
+
+    // Update cpu time
+    if (arm::smpCpuNum() == 0) {
+        nwStartTicks = TzHwCounter::timeNow();
+        // Skip counting if start ticks NOT initialized
+        psmem->ullTzUsecs += (tzStartTicks) ?
+            TzHwCounter::ticksToUs(nwStartTicks - tzStartTicks) : 0;
     }
 }
 

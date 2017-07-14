@@ -4236,11 +4236,6 @@ wlc_apps_bss_wd_ps_check(void *handle)
 					}
 					/* Let's reset the FIDs since we have completed flush */
 					wlc_mbss_bcmc_reset(wlc, bsscfg);
-				} else {
-					BCMCFID(wlc, INVALIDFID);
-					if (!BSSCFG_IBSS(bsscfg) || !AIBSS_ENAB(wlc->pub)) {
-						bcmc_scb->PS = FALSE;
-					}
 				}
 			}
 		}

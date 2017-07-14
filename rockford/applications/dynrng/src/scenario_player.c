@@ -124,6 +124,15 @@ void scenario_player_p_get_default_scenario(Scenario * pScenario)
     pScenario->gamut = PlatformColorimetry_eAuto;
     pScenario->dynrng = PlatformDynamicRange_eAuto;
     pScenario->osd = true;
+    pScenario->plm.vidIndex = 1;
+    pScenario->plm.gfxIndex = 1;
+}
+
+static void scenario_player_p_get_reset_scenario(Scenario * pScenario)
+{
+    scenario_player_p_get_default_scenario(pScenario);
+    pScenario->gamut = PlatformColorimetry_e709;
+    pScenario->dynrng = PlatformDynamicRange_eInvalid;
 }
 
 static void scenario_player_p_commit_scenario(ScenarioPlayerHandle player, Scenario * pScenario)
@@ -133,6 +142,13 @@ static void scenario_player_p_commit_scenario(ScenarioPlayerHandle player, Scena
     {
         player->scenarioChanged.callback(player->scenarioChanged.context, pScenario);
     }
+}
+
+static void scenario_player_p_handle_reset(ScenarioPlayerHandle player, Scenario * pScenario)
+{
+    printf("Resetting to known state...\n");
+    scenario_player_p_get_reset_scenario(pScenario);
+    scenario_player_p_commit_scenario(player, pScenario);
 }
 
 static void scenario_player_p_handle_waituser(ScenarioPlayerHandle player, Scenario * pScenario)
@@ -150,13 +166,13 @@ static void scenario_player_p_handle_results(ScenarioPlayerHandle player, Scenar
     fgets(player->input, MAX_INPUT_LEN, stdin);
     switch (player->input[0])
     {
+        default:
         case '1':
-            pass = true;
+            pass = 1;
             break;
         case 'q':
             pass = -1;
             break;
-        default:
         case '0':
             printf("\n\n\nComment> ");
             fflush(stdout);
@@ -204,7 +220,7 @@ static void scenario_player_p_handle_echo(ScenarioPlayerHandle player, Scenario 
 
     if (strlen(s))
     {
-        printf("\n\n\n%s\n\n\n", s);
+        printf("%s\n", s);
         fflush(stdout);
     }
 }
@@ -227,6 +243,10 @@ static void scenario_player_p_handle_command(ScenarioPlayerHandle player, Scenar
     else if (!strcmp(command, "waituser"))
     {
         scenario_player_p_handle_waituser(player, pScenario);
+    }
+    else if (!strcmp(command, "reset"))
+    {
+        scenario_player_p_handle_reset(player, pScenario);
     }
 }
 
@@ -456,13 +476,21 @@ void scenario_player_play_scenario(ScenarioPlayerHandle player, int scenarioNumb
 
     memset(&scenario, 0, sizeof(scenario));
 
-    if (scenarioNumber < 0)
+    switch (scenarioNumber)
     {
-        printf("scenario player: reset\n");
-/*        file_switcher_set_position(player->switcher, scenarioNumber);*/
-        return;
+        case SCENARIO_PLAYER_RESET:
+            printf("scenario player: reset\n");
+            scenario_player_p_handle_reset(player, &scenario);
+            return;
+            break;
+        case SCENARIO_PLAYER_EXIT:
+            printf("scenario player: exit\n");
+            snprintf(name, 32, "exit.txt");
+            break;
+        default:
+            snprintf(name, 32, "%d.txt", scenarioNumber);
+            break;
     }
-    snprintf(name, 32, "%d.txt", scenarioNumber);
     scenarioIndex = file_switcher_find(player->switcher, name);
     file_switcher_set_position(player->switcher, scenarioIndex);
     path = file_switcher_get_path(player->switcher);

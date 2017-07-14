@@ -37,10 +37,14 @@
 
  ******************************************************************************/
 
+#include "nexus_base.h"
 #include "nexus_platform_standby.h"
 #include "nexus_platform_local_priv.h"
-#include "bstd.h"
 #include "bkni.h"
+
+BDBG_MODULE(nexus_platform_standby_local);
+
+#if !defined(NEXUS_BASE_OS_linuxkernel)
 
 #if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
 #include <sys/ioctl.h>
@@ -57,7 +61,6 @@
 #include <sys/timerfd.h>
 #include <sys/stat.h>
 
-BDBG_MODULE(nexus_platform_standby_local);
 
 
 #define RTC_WAKE_SYSFS "/sys/class/rtc/rtc0/wakealarm"
@@ -73,7 +76,7 @@ typedef enum NEXUS_Platform_P_SysWake {
 static struct NEXUS_Platform_Standby_State {
     int wakeFd;
     int rtcFd;
-    NEXUS_PlatformStandbyMode mode;
+    NEXUS_StandbyMode mode;
     NEXUS_PlatformStandbyStatus standbyStatus;
     bool wakeupStatusCached;
     struct sys_wake_device {
@@ -243,7 +246,7 @@ err:
     return rc;
 }
 
-static NEXUS_Error NEXUS_Platform_P_SetSysWake(NEXUS_Platform_P_SysWake type, const NEXUS_PlatformStandbySettings *pSettings)
+static NEXUS_Error NEXUS_Platform_P_SetSysWake(NEXUS_Platform_P_SysWake type, const NEXUS_StandbySettings *pSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned timeout;
@@ -301,18 +304,29 @@ static NEXUS_Error NEXUS_Platform_P_SetSysWake(NEXUS_Platform_P_SysWake type, co
 err:
     return rc;
 }
-#endif
+#endif /* #if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT */
 
-NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettings *pSettings )
+NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_StandbySettings *pSettings )
 {
 #if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
     NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_Platform_P_SchedulersSet activate;
+    NEXUS_Platform_P_SchedulersSet deactivated;
+
+
+    /* stop schedulers that should not run at this standby level */
+    rc = NEXUS_Platform_P_DeactivateSchedulers(pSettings->mode, pSettings->timeout, &deactivated);
+    if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc);  goto error;}
+
+    /* start schedulers that should run at this standby level */
+    NEXUS_Platform_P_SchedulersSet_Init(&activate, pSettings->mode);
+    NEXUS_Platform_P_ActivateSchedulers(&activate);
 
 #if defined(NEXUS_WKTMR)
-    wakeup_devices wakeups;
 
     rc = NEXUS_Platform_P_InitWakeupDriver();
     if (!rc) {
+        wakeup_devices wakeups;
         /*Disable all wakeups first */
         wakeups.ir = wakeups.uhf = wakeups.keypad = wakeups.gpio = wakeups.cec = wakeups.transport = 1;
         if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_DISABLE, &wakeups)) {
@@ -339,24 +353,29 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
     if (rc) { rc = BERR_TRACE(rc); }
 
 
-    if(pSettings->mode == NEXUS_PlatformStandbyMode_ePassive || pSettings->mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
+    if(pSettings->mode == NEXUS_StandbyMode_ePassive || pSettings->mode == NEXUS_StandbyMode_eDeepSleep) {
         BKNI_Memset(&g_Standby_State.standbyStatus, 0, sizeof(NEXUS_PlatformStandbyStatus));
         g_Standby_State.wakeupStatusCached = false;
     }
-#endif
+#endif /* #if defined(NEXUS_WKTMR) */
 
     rc = NEXUS_Platform_SetStandbySettings_driver(pSettings);
-    if (rc) { rc = BERR_TRACE(rc); }
+    if (rc!=NEXUS_SUCCESS) {
+        /* NEXUS_Platform_SetStandbySettings_driver failed */
+        rc = BERR_TRACE(rc);
+        NEXUS_Platform_P_ActivateSchedulers(&deactivated); /* on failure restart schedulers that were stopped */
+    }
+
 
 #if defined(NEXUS_WKTMR)
     g_Standby_State.mode = pSettings->mode;
 #endif
-
+error:
     return rc;
 #else
     BSTD_UNUSED(pSettings);
     return NEXUS_SUCCESS;
-#endif
+#endif /* #if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT */
 }
 
 NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus)
@@ -372,7 +391,7 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
     if(!g_Standby_State.wakeupStatusCached) {
         rc |= NEXUS_Platform_P_InitWakeupDriver();
         if (rc) {
-            if(g_Standby_State.mode == NEXUS_PlatformStandbyMode_eOn || g_Standby_State.mode == NEXUS_PlatformStandbyMode_eActive) {
+            if(g_Standby_State.mode == NEXUS_StandbyMode_eOn || g_Standby_State.mode == NEXUS_StandbyMode_eActive) {
                 g_Standby_State.wakeupStatusCached = true;
             }
         } else {
@@ -381,7 +400,7 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
             if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_ACK_STATUS, &wakeups)) {
                 BDBG_ERR(("Unable to get wakeup status"));
                 rc |= BERR_TRACE(BERR_OS_ERROR);
-            }
+}
         }
 
         if(NEXUS_Platform_P_GetSysWake(NEXUS_Platform_P_SysWake_eTimer, &wktmr_count)) { rc |= BERR_TRACE(rc); }
@@ -397,7 +416,7 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
             g_Standby_State.standbyStatus.wakeupStatus.timeout = wktmr_count;
 
             g_Standby_State.wakeupStatusCached = true;
-        } else if(g_Standby_State.mode == NEXUS_PlatformStandbyMode_eOn || g_Standby_State.mode == NEXUS_PlatformStandbyMode_eActive) {
+        } else if(g_Standby_State.mode == NEXUS_StandbyMode_eOn || g_Standby_State.mode == NEXUS_StandbyMode_eActive) {
             g_Standby_State.wakeupStatusCached = true;
         }
     }
@@ -487,4 +506,113 @@ void NEXUS_Platform_P_UninitWakeupDriver(void)
         g_Standby_State.wakeFd = -1;
     }
 }
-#endif
+#endif  /* #if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT */
+
+#endif /* #if !defined(NEXUS_BASE_OS_linuxkernel) */
+
+#if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
+static bool NEXUS_Platform_P_IsActiveStandbyScheduler(NEXUS_ModulePriority priority)
+{
+    bool activeStandby;
+    switch (priority) {
+    case NEXUS_ModulePriority_eIdle: activeStandby = false; break;
+    case NEXUS_ModulePriority_eLow: activeStandby = false; break;
+    case NEXUS_ModulePriority_eDefault: activeStandby = false; break;
+    case NEXUS_ModulePriority_eHigh: activeStandby = false; break;
+    default: activeStandby = true; break;
+    }
+    return activeStandby;
+}
+
+static void NEXUS_Platform_P_SchedulersSet_Clear(NEXUS_Platform_P_SchedulersSet *schedulers)
+{
+    BKNI_Memset(schedulers, 0, sizeof(*schedulers));
+    return;
+}
+
+void NEXUS_Platform_P_SchedulersSet_Init(NEXUS_Platform_P_SchedulersSet *schedulers, NEXUS_StandbyMode mode)
+{
+    unsigned i;
+
+    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        bool set;
+        switch(mode) {
+        case NEXUS_StandbyMode_eOn:
+            set = true;
+            break;
+        case NEXUS_StandbyMode_eActive:
+            set = NEXUS_Platform_P_IsActiveStandbyScheduler(i);
+            break;
+        default:
+            set = false;
+            break;
+        }
+        schedulers->set[i] = set;
+    }
+    return;
+}
+
+void NEXUS_Platform_P_ActivateSchedulers(NEXUS_Platform_P_SchedulersSet *set)
+{
+    unsigned i;
+    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        if (set->set[i]) {
+            NEXUS_Scheduler_SetState(i, NEXUS_Scheduler_State_eStarting);
+        }
+    }
+    return;
+}
+
+NEXUS_Error NEXUS_Platform_P_DeactivateSchedulers(NEXUS_StandbyMode standbyMode, unsigned timeout, NEXUS_Platform_P_SchedulersSet *deactivate)
+{
+    NEXUS_Platform_P_SchedulersSet active;
+    unsigned i;
+    NEXUS_Time startTime;
+
+    NEXUS_Time_Get(&startTime);
+
+    NEXUS_Platform_P_SchedulersSet_Init(&active, standbyMode);
+    NEXUS_Platform_P_SchedulersSet_Clear(deactivate);
+
+    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        if(!active.set[i]) { /* this scheduler should not run in this standbyMode */
+            NEXUS_Scheduler_Status status;
+            NEXUS_Scheduler_GetStatus(i, &status);
+            if(status.state == NEXUS_Scheduler_State_eRunning) {
+                deactivate->set[i] = true; /* it was running so deactivate it */
+                NEXUS_Scheduler_SetState(i, NEXUS_Scheduler_State_eStopping);
+            }
+        }
+    }
+
+    for(;;) {
+        NEXUS_Time now;
+        unsigned active_count;
+        long timeDiff;
+
+        /* wait for schedulers to go idle */
+        for(active_count=0,i=0;i<NEXUS_ModulePriority_eMax;i++) {
+            if(deactivate->set[i]) {
+                NEXUS_Scheduler_Status status;
+
+                NEXUS_Scheduler_GetStatus(i, &status);
+                if(status.state != NEXUS_Scheduler_State_eIdle) {
+                    active_count++;
+                }
+            }
+        }
+        NEXUS_Time_Get(&now);
+        timeDiff = NEXUS_Time_Diff(&now, &startTime);
+        BDBG_MSG(("active_count %u time:%ld", active_count, timeDiff));
+        if(active_count==0) {
+            return NEXUS_SUCCESS;
+        }
+        if((unsigned)timeDiff > timeout) {
+            /* recover state of schedulers we have tried to stop */
+            NEXUS_Platform_P_ActivateSchedulers(deactivate);
+            return BERR_TRACE(NEXUS_TIMEOUT);
+        }
+        BKNI_Sleep(10);
+    }
+}
+#endif /* #if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT */

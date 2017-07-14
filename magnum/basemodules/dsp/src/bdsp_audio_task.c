@@ -205,41 +205,6 @@ BERR_Code BDSP_AudioTask_SetInterruptHandlers_isr(
     }
 }
 
-#if !B_REFSW_MINIMAL
-BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-    )
-{
-    if(sizeof(BDSP_AudioTaskDatasyncSettings) != settingsBufferSize)
-    {
-        BDBG_ERR(("settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
-            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskDatasyncSettings)));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&(BDSP_sDefaultFrameSyncTsmSettings.sFrameSyncConfigParams),settingsBufferSize);
-
-    return BERR_SUCCESS;
-}
-#endif /*!B_REFSW_MINIMAL*/
-
-BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-    )
-{
-    if(sizeof(BDSP_AudioTaskTsmSettings) != settingsBufferSize)
-    {
-        BDBG_ERR(("settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
-            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskTsmSettings)));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&(BDSP_sDefaultFrameSyncTsmSettings.sTsmConfigParams),settingsBufferSize);
-
-    return BERR_SUCCESS;
-}
-
-
 BERR_Code BDSP_AudioTask_AudioGapFill(
     BDSP_TaskHandle task
     )

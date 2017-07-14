@@ -35,6 +35,7 @@
 #include <wlc_pub.h>
 #include <wlc_key.h>
 #include <wlc.h>
+#include <wl_export.h>
 #include <wlc_hw.h>
 #include <wlc_hw_priv.h>
 #include <wlc_bmac.h>
@@ -71,6 +72,9 @@ struct wlc_stamon_info {
 	uint16 amt_start_idx;
 	uint16 amt_max_idx;
 	uint32 rxstamonucast; /* rx total monitored unicast data of stas */
+	uint32 monitor_time;	/* Time (ms) for which STA's are monitored. */
+	struct wl_timer *stamon_disable_timer;	/* STA monitor disabling timer */
+	bool timer_running;
 };
 #define STACFG_MAX_ENTRY(_stamon_info_) \
 	((_stamon_info_)->stacfg_memsize/sizeof(struct wlc_stamon_sta_cfg_entry))
@@ -106,12 +110,17 @@ static int wlc_stamon_doiovar(
 static int wlc_stamon_up(void *handle);
 static int wlc_stamon_down(void *handle);
 static void wlc_stamon_delete_all_stations(wlc_stamon_info_t *ctxt);
+static void wlc_stamon_disable_all_stations(wlc_stamon_info_t *ctxt);
 static void wlc_stamon_sta_ucode_sniff_enab(wlc_stamon_info_t *ctxt,
 	int8 idx, bool enab);
 static int wlc_stamon_sta_get(wlc_stamon_info_t *stamon_ctxt,
 	struct maclist *ml);
 static int wlc_stamon_rcmta_slots_reserve(wlc_stamon_info_t *ctxt);
 static int wlc_stamon_rcmta_slots_free(wlc_stamon_info_t *ctxt);
+static void wlc_stamon_timer_add(wlc_stamon_info_t *ctxt);
+static void wlc_stamon_timer_delete(wlc_stamon_info_t *ctxt);
+static void wlc_stamon_disable_timer(void *arg);
+
 static int wlc_stamon_send_sta_info(wlc_stamon_info_t *ctxt, void* param,
 	int paramlen, void* bptr, int len);
 static int wlc_stamon_process_get_cmd_options(wlc_stamon_info_t *ctxt, void* param,
@@ -179,6 +188,14 @@ BCMATTACHFN(wlc_stamon_attach)(wlc_info_t *wlc)
 		stamon_ctxt->stacfg[i].rcmta_idx = -1;
 	}
 
+	/* Initialize stamon disable timer */
+	stamon_ctxt->timer_running = FALSE;
+	if (!(stamon_ctxt->stamon_disable_timer = wl_init_timer(wlc->wl, wlc_stamon_disable_timer,
+		stamon_ctxt, "stamon_disable"))) {
+		WL_ERROR(("wl%d: wlc_stamon_disable_timer init failed\n", wlc->pub->unit));
+		return NULL;
+	}
+
 	/* register module */
 	if (wlc_module_register(
 			    wlc->pub,
@@ -211,9 +228,16 @@ void
 BCMATTACHFN(wlc_stamon_detach)(wlc_stamon_info_t *ctxt)
 {
 	if (ctxt != NULL) {
-		if (STAMON_ENAB(WLCPUB(ctxt))) {
+		if (ctxt->stamon_disable_timer != NULL) {
+			wl_free_timer(ctxt->wlc->wl, ctxt->stamon_disable_timer);
+		}
+
+		if (ctxt->stacfg_num) {
 			/* Clearing all existing monitoring STA */
 			wlc_stamon_delete_all_stations(ctxt);
+		}
+
+		if (STAMON_ENAB(WLCPUB(ctxt))) {
 			/* Free RCMTA resource */
 			wlc_stamon_rcmta_slots_free(ctxt);
 			/* Disabling the STA monitor feature */
@@ -335,8 +359,10 @@ wlc_stamon_sta_config(wlc_stamon_info_t *ctxt, wlc_stamon_sta_config_t* cfg)
 	if (cfg->cmd == STAMON_CFG_CMD_DSB) {
 
 		if (STAMON_ENAB(WLCPUB(ctxt))) {
-			/* Clearing all existing monitoring STA */
-			wlc_stamon_delete_all_stations(ctxt);
+			/* Cancel Stamon timer */
+			wlc_stamon_timer_delete(ctxt);
+			/* Disable all existing monitoring STA's */
+			wlc_stamon_disable_all_stations(ctxt);
 			/* Free RCMTA resource */
 			wlc_stamon_rcmta_slots_free(ctxt);
 			/* Disabling the STA monitor feature */
@@ -348,7 +374,24 @@ wlc_stamon_sta_config(wlc_stamon_info_t *ctxt, wlc_stamon_sta_config_t* cfg)
 			wlc_stamon_rcmta_slots_reserve(ctxt);
 			/* Enabling the STA monitor feature */
 			WLCPUB(ctxt)->_stamon = TRUE;
+
+			/* Start sniffing the frames of STA's in list */
+			for (cfg_idx = 0; cfg_idx < ((int8)STACFG_MAX_ENTRY(ctxt)); cfg_idx++) {
+				if (bcmp(&ether_null, &ctxt->stacfg[cfg_idx].ea,
+					ETHER_ADDR_LEN) == 0) {
+					continue;
+				}
+				wlc_stamon_sta_ucode_sniff_enab(ctxt, cfg_idx, TRUE);
+			}
+
+			wlc_stamon_timer_add(ctxt);
 		}
+	} else if (cfg->cmd == STAMON_CFG_CMD_SET_MONTIME) {
+		if (STAMON_ENAB(WLCPUB(ctxt))) {
+			return BCME_ERROR;
+		}
+
+		ctxt->monitor_time = cfg->monitor_time;
 	} else if (cfg->cmd == STAMON_CFG_CMD_ADD) {
 
 		if (!STAMON_ENAB(WLCPUB(ctxt))) {
@@ -387,22 +430,26 @@ wlc_stamon_sta_config(wlc_stamon_info_t *ctxt, wlc_stamon_sta_config_t* cfg)
 		bcopy(&cfg->ea, &ctxt->stacfg[cfg_idx].ea, ETHER_ADDR_LEN);
 		ctxt->stacfg_num++;
 
-		/* Start sniffing the frames */
-		wlc_stamon_sta_ucode_sniff_enab(ctxt, cfg_idx, TRUE);
+		if (STAMON_ENAB(WLCPUB(ctxt))) {
+			/* Start sniffing the frames */
+			wlc_stamon_sta_ucode_sniff_enab(ctxt, cfg_idx, TRUE);
+		}
 
 	} else if (cfg->cmd == STAMON_CFG_CMD_DEL) {
 
-		if (!STAMON_ENAB(WLCPUB(ctxt))) {
+		if (!STAMON_ENAB(WLCPUB(ctxt)) && !(ctxt->stacfg_num)) {
 			WL_ERROR(("wl%d: %s: Feature is not enabled.\n",
 			WLCUNIT(ctxt), __FUNCTION__));
 			return BCME_ERROR;
-			}
+		}
 		/* The broadcast mac address indicates to
 		 * clear all existing stations in the list.
 		 */
-		if (ETHER_ISBCAST(&(cfg->ea)))
+		if (ETHER_ISBCAST(&(cfg->ea))) {
+			/* Cancel stamon timer */
+			wlc_stamon_timer_delete(ctxt);
 			wlc_stamon_delete_all_stations(ctxt);
-		else {
+		} else {
 			/* Searching specified MAC address in the list. */
 			cfg_idx = wlc_stamon_sta_find(ctxt, &cfg->ea);
 			if (cfg_idx < 0) {
@@ -411,8 +458,10 @@ wlc_stamon_sta_config(wlc_stamon_info_t *ctxt, wlc_stamon_sta_config_t* cfg)
 				return BCME_NOTFOUND;
 			}
 
-			/* Stop sniffing frames from this STA */
-			wlc_stamon_sta_ucode_sniff_enab(ctxt, cfg_idx, FALSE);
+			if (STAMON_ENAB(WLCPUB(ctxt))) {
+				/* Stop sniffing frames from this STA */
+				wlc_stamon_sta_ucode_sniff_enab(ctxt, cfg_idx, FALSE);
+			}
 
 			/* Delete the specified MAC address from the list */
 			bcopy(&ether_null, &ctxt->stacfg[cfg_idx].ea, ETHER_ADDR_LEN);
@@ -568,7 +617,18 @@ wlc_stamon_doiovar(
 	case IOV_SVAL(IOV_STA_MONITOR):
 		{
 			wlc_stamon_sta_config_t *stamon_cfg = (wlc_stamon_sta_config_t *)a;
-			err = wlc_stamon_sta_config(stamon_ctxt, stamon_cfg);
+
+			if (stamon_cfg->version != STAMON_STACONFIG_VER) {
+				return BCME_VERSION;
+			}
+
+			if ((alen >= STAMON_STACONFIG_LENGTH) &&
+				(stamon_cfg->length >= STAMON_STACONFIG_LENGTH)) {
+				err = wlc_stamon_sta_config(stamon_ctxt, stamon_cfg);
+			} else {
+				return BCME_BUFTOOSHORT;
+			}
+
 			break;
 		}
 	case IOV_GVAL(IOV_STA_MONITOR_CNT):
@@ -619,9 +679,14 @@ wlc_stamon_down(void *handle)
 	if (ctxt == NULL)
 		return BCME_UNSUPPORTED;
 
-	if (STAMON_ENAB(WLCPUB(ctxt))) {
+	if (ctxt->stacfg_num) {
 		/* Clearing all existing monitoring STA */
 		wlc_stamon_delete_all_stations(ctxt);
+	}
+
+	if (STAMON_ENAB(WLCPUB(ctxt))) {
+		/* Cancel Stamon timer */
+		wlc_stamon_timer_delete(ctxt);
 		/* Free RCMTA resource */
 		wlc_stamon_rcmta_slots_free(ctxt);
 	}
@@ -645,6 +710,12 @@ wlc_stamon_sta_ucode_sniff_enab(wlc_stamon_info_t *ctxt,
 	struct wlc_stamon_sta_cfg_entry *cfg;
 
 	cfg = &ctxt->stacfg[idx];
+
+	/* For NULL addresses don't issue start/stop sniff command to ucode. */
+	if (bcmp(&ether_null, &cfg->ea, ETHER_ADDR_LEN) == 0) {
+		return;
+	}
+
 	/* Preparing target MAC address for the RCMTA or AMT table entry */
 	shm_ea = enab ? &cfg->ea : &ether_null;
 
@@ -847,4 +918,66 @@ wlc_stamon_process_get_cmd_options(wlc_stamon_info_t *ctxt, void* param,
 		err = wlc_stamon_sta_get(ctxt, maclist);
 	}
 	return err;
+}
+
+static void
+wlc_stamon_disable_all_stations(wlc_stamon_info_t *ctxt)
+{
+	int8 cfg_idx;
+
+	for (cfg_idx = 0; cfg_idx < ((int8)STACFG_MAX_ENTRY(ctxt)); cfg_idx++) {
+		/* Stop STA sniffing */
+		if (STAMON_ENAB(WLCPUB(ctxt))) {
+			wlc_stamon_sta_ucode_sniff_enab(ctxt, cfg_idx, FALSE);
+		}
+	}
+}
+
+static void
+wlc_stamon_timer_add(wlc_stamon_info_t *ctxt)
+{
+	wlc_info_t *wlc = ctxt->wlc;
+
+	if ((ctxt->stamon_disable_timer != NULL) && (ctxt->timer_running == FALSE)) {
+		if (ctxt->monitor_time > 0) {
+			wl_add_timer(wlc->wl, ctxt->stamon_disable_timer,
+				ctxt->monitor_time, FALSE);
+			ctxt->timer_running = TRUE;
+		}
+	}
+}
+
+static void
+wlc_stamon_timer_delete(wlc_stamon_info_t *ctxt)
+{
+	wlc_info_t *wlc = ctxt->wlc;
+
+	ctxt->monitor_time = 0;
+
+	if (ctxt->timer_running == TRUE) {
+		if (ctxt->stamon_disable_timer != NULL) {
+			wl_del_timer(wlc->wl, ctxt->stamon_disable_timer);
+		}
+		ctxt->timer_running = FALSE;
+	}
+}
+
+static void
+wlc_stamon_disable_timer(void *arg)
+{
+	wlc_stamon_info_t *ctxt = (wlc_stamon_info_t *) arg;
+
+	if (ctxt->stacfg_num) {
+		/* Disable all existing monitoring STA's */
+		wlc_stamon_disable_all_stations(ctxt);
+	}
+
+	if (STAMON_ENAB(WLCPUB(ctxt))) {
+		/* Free RCMTA resource */
+		wlc_stamon_rcmta_slots_free(ctxt);
+		/* Disable STA monitor feature */
+		WLCPUB(ctxt)->_stamon = FALSE;
+	}
+	ctxt->monitor_time = 0;
+	ctxt->timer_running = FALSE;
 }

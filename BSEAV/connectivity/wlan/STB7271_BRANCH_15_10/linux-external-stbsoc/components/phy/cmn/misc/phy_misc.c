@@ -291,6 +291,35 @@ wlc_phy_clear_deaf(wlc_phy_t  *ppi, bool user_flag)
 	}
 }
 
+#if defined(BCMINTPHYDBG)
+void
+wlc_phy_iovar_tx_tone(phy_info_t *pi, int32 int_val)
+{
+	phy_misc_info_t * info;
+	phy_type_misc_fns_t * fns;
+
+	ASSERT(pi != NULL);
+	info = pi->misci;
+	fns = info->fns;
+
+	if (fns->phy_type_misc_iovar_tx_tone != NULL)
+		fns->phy_type_misc_iovar_tx_tone(fns->ctx, int_val);
+}
+
+
+void
+wlc_phy_iovar_txlo_tone(phy_info_t *pi)
+{
+	phy_misc_info_t *info;
+	phy_type_misc_fns_t *fns;
+	ASSERT(pi != NULL);
+	info = pi->misci;
+	fns = info->fns;
+
+	if (fns->phy_type_misc_iovar_txlo_tone != NULL)
+		fns->phy_type_misc_iovar_txlo_tone(fns->ctx);
+}
+#endif 
 
 int wlc_phy_iovar_get_rx_iq_est(phy_info_t *pi, int32 *ret_int_ptr, int32 int_val, int err)
 {
@@ -334,6 +363,56 @@ int wlc_phy_iovar_set_rx_iq_est(phy_info_t *pi, void *p, int32 plen, int err)
 		return err;
 }
 
+#if defined(BCMINTPHYDBG)
+#define IFERR(x) do { err = (x); if (err) goto Exit; } while (0)
+int wlc_phy_iovar_get_rx_iq_est_sweep(phy_info_t *pi, void *p, int plen, void *a, int alen,
+	struct wlc_if *wlcif, int err)
+{
+	wl_iqest_sweep_params_t *sweep = phy_malloc_fatal(pi, plen);
+	wl_iqest_result_t *result = a;
+	wl_uint32_list_t *list = phy_malloc_fatal(pi, (WL_NUMCHANNELS + 1) * sizeof(uint32));
+	channel_info_t ci;
+
+	if (!sweep)
+		return BCME_NOMEM;
+	if (!list) {
+		err = BCME_NOMEM;
+		goto Exit;
+	}
+	bcopy(p, sweep, plen);
+	if (sweep->channel[0]) {
+		for (list->count = 0; list->count < sweep->nchannels;
+			list->element[list->count] = sweep->channel[list->count], ++list->count);
+	}
+	else {
+		list->count = WL_NUMCHANNELS;
+		IFERR(wlapi_wlc_ioctl(pi->sh->physhim, WLC_GET_VALID_CHANNELS, list,
+			(WL_NUMCHANNELS + 1) * sizeof(uint32), wlcif));
+	}
+	if (alen < (int)(sizeof (*result) + (list->count - 1) * sizeof(result->value[0]))) {
+		err = BCME_BUFTOOSHORT;
+		goto Exit;
+	}
+	IFERR(wlapi_wlc_ioctl(pi->sh->physhim, WLC_GET_CHANNEL, &ci, sizeof(ci), wlcif));
+	for (result->nvalues = 0; result->nvalues < list->count; ++result->nvalues) {
+		IFERR(wlapi_wlc_ioctl(pi->sh->physhim, WLC_SET_CHANNEL,
+			&list->element[result->nvalues], sizeof(uint32), wlcif));
+		IFERR(wlc_phy_iovar_set_rx_iq_est(pi, &sweep->params, sizeof(sweep->params), err));
+		IFERR(wlc_phy_iovar_get_rx_iq_est(pi, (int32 *)&result->value[result->nvalues].rxiq,
+			0, err));
+		result->value[result->nvalues].channel = (uint8)list->element[result->nvalues];
+	}
+	IFERR(wlapi_wlc_ioctl(pi->sh->physhim, WLC_SET_CHANNEL, &ci.hw_channel, sizeof(uint32),
+		wlcif));
+Exit:
+	if (sweep)
+		phy_mfree(pi, sweep, plen);
+	if (list)
+		phy_mfree(pi, list, (WL_NUMCHANNELS + 1) * sizeof(uint32));
+	return err;
+}
+#undef IFERR
+#endif 
 
 #ifdef PHY_DUMP_BINARY
 int

@@ -3435,7 +3435,7 @@ static void xcode_av_sync(
         }
         else
         {
-            pVideoEncoderConfig->enableFieldPairing = true;
+            pVideoEncoderConfig->enableFieldPairing = pContext->encodeSettings.enableFieldPairing;
 
             /* 0 to use default rate buffer delay; */
             pVideoEncoderStartConfig->rateBufferDelay = 0;
@@ -6037,6 +6037,7 @@ void print_usage(void) {
             printf("  -audioPesPacking - Enable audio PES packing\n");
             printf("  -onePtsPerSegment - Insert only one PTS per segment\n");
             printf("  -ptsSeed PTS - Start NRT transcode with specified video PTS (in 45Khz)\n");
+            printf("  -itfpoff - Disable ITFP");
 }
 
 /* include media probe */
@@ -6511,6 +6512,11 @@ int main(int argc, char **argv)  {
                   print_usage();
                   return -1;
                }
+            }
+            pContext->encodeSettings.enableFieldPairing = true;
+            if(!strcmp("-itfpoff",argv[i])) {
+               pContext->encodeSettings.enableFieldPairing = false;
+                fprintf(stderr, "Disable field pairing (ITFP).\n");
             }
         }
         if(g_bSecondAudio) g_bNoDspMixer = false;

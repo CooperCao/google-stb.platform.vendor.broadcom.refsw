@@ -86,6 +86,7 @@ typedef struct Args
         } colors;
     } osd;
     bool advanced;
+    bool dbvOutputModeAutoSelection;
     ARGS_RunMode runMode;
 } Args, * ArgsHandle;
 

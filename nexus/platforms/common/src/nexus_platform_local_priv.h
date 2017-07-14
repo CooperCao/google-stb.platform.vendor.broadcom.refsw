@@ -69,6 +69,16 @@ NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void);
 void NEXUS_Platform_P_UninitThermalMonitor(void);
 #endif
 
+#if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
+typedef struct NEXUS_Platform_P_SchedulersSet {
+    bool set[NEXUS_ModulePriority_eMax];
+} NEXUS_Platform_P_SchedulersSet;
+
+void NEXUS_Platform_P_SchedulersSet_Init(NEXUS_Platform_P_SchedulersSet *schedulers, NEXUS_StandbyMode mode);
+void NEXUS_Platform_P_ActivateSchedulers(NEXUS_Platform_P_SchedulersSet *set);
+NEXUS_Error NEXUS_Platform_P_DeactivateSchedulers(NEXUS_StandbyMode standbyMode, unsigned timeout, NEXUS_Platform_P_SchedulersSet *deactivate);
+#endif
+
 #if defined(NEXUS_MODE_proxy)
 /* Allows system to set in-line OS thread priority for scheduler threads.
 Called once per scheduler thread at system init.

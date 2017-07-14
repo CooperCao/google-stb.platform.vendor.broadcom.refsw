@@ -45,6 +45,9 @@
 #include "platform_types.h"
 #include <stdbool.h>
 
+#define SCENARIO_PLAYER_RESET -1
+#define SCENARIO_PLAYER_EXIT -2
+
 typedef struct ScenarioPlayer * ScenarioPlayerHandle;
 
 typedef struct Scenario

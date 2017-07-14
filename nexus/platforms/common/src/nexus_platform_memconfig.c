@@ -1209,7 +1209,7 @@ bool nexus_p_has_secure_decoder_on_memc(const NEXUS_Core_PreInitState *preInitSt
 #else
     BSTD_UNUSED(pRtsSettings);
 #endif
-#if NEXUS_DISPLAY
+#if NEXUS_HAS_DISPLAY
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         unsigned j;
         for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {

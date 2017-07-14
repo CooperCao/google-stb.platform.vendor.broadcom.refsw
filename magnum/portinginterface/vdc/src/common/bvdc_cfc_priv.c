@@ -156,15 +156,16 @@ static const BVDC_P_Csc3x4 s_FCC_YCbCr_to_RGB = BVDC_P_MAKE_CSC_3x4
 
 /* BT2020 CL YCbCr -> R'YB' (typically UHD) with TF 1886 */
 static const BVDC_P_Csc3x4 s_BT2020CL_YCbCr_to_RYB_Bt1886_Negative = BVDC_P_MAKE_CSC_3x4
-    (  1.164384,      0.000000,      1.956214,     -269.025566,
-       1.164384,      0.000000,      0.000000,      -18.630137,
-       1.164384,      2.208938,      0.000000,     -301.374137 );
+    (  1.164384,      0.000000,      1.956214,     -269.025566,   /* R */
+       1.164384,      0.000000,      0.000000,      -18.630137,   /* Y */
+       1.164384,      2.208938,      0.000000,     -301.374137 ); /* B */
 
 /* BT2020 CL YCbCr -> R'YB' (typically UHD) with TF 1886 */
+/* note: swap row 0 and 1 to satisfy the needs of BVDC_P_Cfc_BuildRulForCscRx4_isr */
 static const BVDC_P_Csc3x4 s_BT2020CL_YCbCr_to_RYB_Bt1886_Positive = BVDC_P_MAKE_CSC_3x4
-    (  1.164384,      0.000000,      1.131107,     -163.411851,
-       1.164384,      0.000000,      0.000000,      -18.630137,
-       1.164384,      1.800482,      0.000000,     -249.091851 );
+    (  1.164384,      0.000000,      0.000000,      -18.630137,   /* Y */
+       1.164384,      0.000000,      1.131107,     -163.411851,   /* R */
+       1.164384,      1.800482,      0.000000,     -249.091851 ); /* B */
 
 #define s_XvYCC601_YCbCr_to_RGB          s_170M_YCbCr_to_RGB
 
@@ -236,7 +237,7 @@ static const BVDC_P_Csc3x4 *const s_aCFC_MC_Tbl[] =
  * MB input: RGB -> XYZ
  */
 
-const BVDC_P_Csc3x3 s_BT709_RGB_to_XYZ = BVDC_P_MAKE_CSC_3x3
+static const BVDC_P_Csc3x3 s_BT709_RGB_to_XYZ = BVDC_P_MAKE_CSC_3x3
     (  0.412391,      0.357584,      0.180481,
        0.212639,      0.715169,      0.072192,
        0.019331,      0.119195,      0.950532 );
@@ -274,6 +275,11 @@ static const BVDC_P_Csc3x3 s_BT2020CL_RYB_to_XYZ = BVDC_P_MAKE_CSC_3x3
 static const BVDC_P_Csc3x3 s_BT2020NCL_RGB_to_RYB = BVDC_P_MAKE_CSC_3x3
     (  1.000000,      0.000000,     0.000000,
        0.262700,      0.678000,     0.059300,
+       0.000000,      0.000000,     1.000000 );
+
+static const BVDC_P_Csc3x3 s_BT2020NCL_RYB_to_RGB = BVDC_P_MAKE_CSC_3x3
+    (  1.000000,      0.000000,     0.000000,
+      -0.387463,      1.474926,    -0.087463,
        0.000000,      0.000000,     1.000000 );
 
 #define s_XvYCC601_RGB_to_XYZ   s_170M_RGB_to_XYZ
@@ -330,6 +336,20 @@ static const BVDC_P_Csc3x3 *const s_aCFC_MB_OUT_Tbl[] =
 };
 
 /* --------------------------------------------------------------------
+ * MB output: XYZ -> LMS
+ */
+static const BVDC_P_Csc3x3 s_MB_OUT_XYZ_to_LMS = BVDC_P_MAKE_CSC_3x3
+    (  0.400238,      0.707593,     -0.080806,
+      -0.226298,      1.165316,      0.045701,
+       0.0,           0.0,           0.918225 );
+
+/* MC lms -> ipt xfer matrix (rows 2&3 are halved to fit in fixed point value limit s2.29) */
+static const BVDC_P_Csc3x4 s_MC_Lms_to_Ipt = BVDC_P_MAKE_CSC_3x4
+    (  0.399902,      0.399902,      0.199951,    0,
+       2.227539,     -2.425537,      0.197998,  128,
+       0.402832,      0.178589,     -0.581421,  128 );
+
+/* --------------------------------------------------------------------
  * DVI CSC clamp
  */
 #ifdef BCHP_DVI_CFC_0_CSC_MIN_MAX_Y_MIN_MASK
@@ -365,9 +385,9 @@ static const BVDC_P_CscClamp s_CLAMP_RGB_FULL_RANGE = BVDC_P_MAKE_DVI_CSC_CLAMP
            0, 4095 );
 
 static const BVDC_P_CscClamp s_CLAMP_YCbCr = BVDC_P_MAKE_DVI_CSC_CLAMP
-    (  -4096, 4095,
-       -4096, 4095,
-       -4096, 4095 ) ;
+    (      0, 4095,
+           0, 4095,
+           0, 4095 ) ;
 
 static const BVDC_P_CscClamp s_CLAMP_7271B0 = BVDC_P_MAKE_DVI_CSC_CLAMP
     (      0, 4095,
@@ -496,8 +516,11 @@ static BAVC_P_ColorTF BVDC_P_AvcTransferCharacteristicsToTF_isrsafe(BAVC_Transfe
     return eTF;
 }
 
-#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+/* for cmp background color approximation for PQ and HLG output */
+#include "automation/bvdc_cfcpwl_bkgclr_sdr_to_hlg.c"
+#include "automation/bvdc_cfcpwl_bkgclr_sdr_to_ipt.c"
 
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
 /* --------------------------------------------------------------------
  * static ram luts
  */
@@ -1124,6 +1147,8 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
             pMvdFieldData->eMatrixCoefficients, pMvdFieldData->eColorPrimaries,
             pMvdFieldData->eTransferCharacteristics == BAVC_TransferCharacteristics_eIec_61966_2_4);
         pColorSpace->eColorTF = BVDC_P_AvcTransferCharacteristicsToTF_isrsafe(eTransferCharacteristics);
+        pColorSpace->eColorRange = (pMvdFieldData->eColorRange == BAVC_ColorRange_eFull)?
+            BAVC_P_ColorRange_eFull : BAVC_P_ColorRange_eLimited;
 
         /* add more depth cases later */
         pColorSpace->eColorDepth = (BAVC_VideoBitDepth_e8Bit == pMvdFieldData->eBitDepth)?
@@ -1370,111 +1395,259 @@ static bool BVDC_P_Display_UpdateCfcColorSpaces_isr(
     return bColorSpacesChanged;
 }
 
+/* calculate PWL functions (need 24-bit fraction to be precise) */
+/* Input: RGB value x in U1.24;
+   Output: RGB value y in U1.24;
+   PWL slopeM: S0.24; slopeE: S4.0;
+ */
+static uint32_t BVDC_P_NlPwl_Cal(uint32_t x, const BVDC_P_NL_PwlSegments *pwl) {
+    unsigned i;
+    uint32_t y=x, signBit = BMTH_P_FIX_SIGN_BIT(BVDC_P_PWL_SLP_E_I_BITS, BVDC_P_PWL_SLP_E_F_BITS);
+    int64_t val;
+    BDBG_ASSERT(pwl->num <= BVDC_P_CMP_LR_ADJ_PTS);
+    if (x >= pwl->point[pwl->num-1].x) {
+        y = pwl->point[pwl->num-1].y;
+        BDBG_MODULE_MSG(BVDC_CFC_BG, ("pwl point[%u] = (%#x, %#x)",
+            pwl->num-1, pwl->point[pwl->num-1].x, pwl->point[pwl->num-1].y));
+    } else {
+        for (i=1; i<pwl->num; i++) {
+            if (x <= pwl->point[i].x) {
+                if (x == pwl->point[i-1].x)
+                    y = pwl->point[i-1].y;
+                else {
+                    /* xout = (xin-pwl[i-1].x)*(pwl[i].slope_frac) + pwl[i-1].y; */
+                    val = BMTH_FIX_SIGNED_MUL_64_isrsafe((int64_t)x - (int64_t)pwl->point[i-1].x, (int64_t)pwl->slope[i].man,
+                            BVDC_P_PWL_XY_F_BITS,
+                            BVDC_P_PWL_SLP_M_F_BITS,
+                            BVDC_P_PWL_XY_F_BITS);
+                    y = pwl->point[i-1].y +
+                        ((pwl->slope[i].exp & signBit) ? (uint32_t)(val >> ((signBit<<1) - pwl->slope[i].exp))
+                            : (uint32_t)(val << pwl->slope[i].exp));
+                    /*BDBG_MODULE_MSG(BVDC_CFC_BG, ("pwl slope[%u]=(%#x, %#x), val="BDBG_UINT64_FMT,
+                        i, pwl->slope[i].man, pwl->slope[i].exp, BDBG_UINT64_ARG(val)));*/
+                }
+                /*BDBG_MODULE_MSG(BVDC_CFC_BG, ("pwl point[%u]=(%#x, %#x), point[%u]=(%#x, %#x)",
+                    i-1, pwl->point[i-1].x, pwl->point[i-1].y, i, pwl->point[i].x, pwl->point[i].y));*/
+                break;
+            }
+        }
+    }
+    BDBG_MODULE_MSG(BVDC_CFC_BG, (" -> (%#x, %#x)", x, y));
+    return y;
+}
+
+/* non-linear RGB (U1.24)  to linear RGB(U1.24) (709 or 2020) for nlpwl (used for bkClr computation) */
+uint32_t BVDC_P_Nl_to_Ln_NlPwl(uint32_t in, BAVC_P_ColorTF eTf) {
+    uint32_t out;
+
+    in = (in > BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)) ?
+            BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) : in;
+    out = BMTH_FIX_SIGNED_MUL_isrsafe(
+        /* 200/1000 vs 200/10000 nits */
+        (BAVC_P_ColorTF_eHlg==eTf) ?
+            BMTH_FIX_SIGNED_FTOFIX(0.2, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) :
+            BMTH_FIX_SIGNED_FTOFIX(0.02, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS),
+        BVDC_P_NlPwl_Cal(in, &s_Nl2l_Pwl_1886),
+        BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS,
+        BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS,
+        BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS);
+    out = (out > BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)) ?
+            BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) : out;
+
+    return (uint32_t)out;
+}
+
+/* linear RGB(U1.24)  to nonlinear RGB(U1.24) (709 or 2020) for nlpwl (used for bkClr computation) */
+uint32_t BVDC_P_Ln_to_Nl_NlPwl(uint32_t in, BAVC_P_ColorTF eTf) {
+    uint32_t out;
+
+    /* clamp to 0-1 for non xvycc mode, no xvycc nlpwl for now
+       only PQ l2nl is applied for now, sel_l2nl = PQ */
+    in = (in > BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)) ?
+            BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) : in;
+    out = BVDC_P_NlPwl_Cal(in, (BAVC_P_ColorTF_eHlg==eTf)? &s_L2nl_Pwl_hlg : &s_L2nl_Pwl_2084);
+    out = (out > BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)) ?
+            BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) : out;
+    return (uint32_t)out;
+}
+
 uint32_t BVDC_P_Compositor_Update_Canvas_Background_isrsafe
     ( BVDC_Compositor_Handle           hCompositor,
       uint8_t                          ucRed,
       uint8_t                          ucGreen,
       uint8_t                          ucBlue)
 {
-    uint64_t llY, llCr, llCb,  llR, llG, llB, llRoundOff;
-    uint32_t ulY, ulCr, ulCb, ulBgColorYCrCb=0;
+    int64_t llR, llG, llB, ll0, ll1, ll2, llRoundOff;
+    uint32_t ul0, ul1, ul2, ulBgColorYCrCb=0;
     int64_t llYOffset, llCbOffset, llCrOffset;
-    BVDC_P_Csc3x3  stMbIn, stMbOut, stMb ;
-    BVDC_P_Csc3x4 stMc, stConv;
+    const BVDC_P_Csc3x3 *pMbIn, *pMbOut;
+    BVDC_P_Csc3x3 stMb;
+    const BVDC_P_Csc3x4 *pMc;
     BAVC_P_ColorSpace *pAvcColorSpaceOut = &(hCompositor->stOutColorSpace.stAvcColorSpace);
-
+    BAVC_P_ColorFormat eColorFmt = BVDC_P_NEED_BLEND_MATRIX(hCompositor)?
+        BAVC_P_ColorFormat_eRGB : BAVC_P_ColorFormat_eYCbCr;
 
     BDBG_ENTER(BVDC_P_Compositor_Update_Canvas_Background_isr);
     /* check parameters */
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
 
-#if BVDC_P_DBV_SUPPORT && (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+#if BVDC_P_DBV_SUPPORT
     if(BVDC_P_CMP_OUTPUT_IPT(hCompositor)) {
-        return BVDC_P_Compositor_DbvBackground_isrsafe(hCompositor, ucRed, ucGreen, ucBlue);
+        /* without gfx blending or with conformance test, use IPT; otherwise, use LMS */
+        eColorFmt = (0 == hCompositor->ulActiveGfxWindow ||
+            hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.bBlendInIpt)?
+            BAVC_P_ColorFormat_eICtCp : BAVC_P_ColorFormat_eLMS;
+
+        /* make sure hdmi metadata ram is updated twice to populate double-buffered hdmi metadata ram */
+        hCompositor->hDisplay->stCfc.ucRulBuildCntr = BVDC_P_RUL_UPDATE_THRESHOLD;
+        hCompositor->hDisplay->stCurInfo.stDirty.stBits.bInputCS = BVDC_P_DIRTY;
     }
 #endif
-
     BDBG_MODULE_MSG(BVDC_CFC_BG,("cmp[%d] =>Out %d", hCompositor->eId, pAvcColorSpaceOut->eColorimetry));
 
     /*Ma is identity matrix, so ignore here */
+    /* Get nlRGB(U8.0 or U0.8)->lnRGB(U0.24 or U24.0) components */
+    if(BVDC_P_CMP_OUTPUT_IPT(hCompositor) ||
+       (BAVC_P_ColorTF_eBt1886 != hCompositor->stOutColorSpace.stAvcColorSpace.eColorTF)) {
+           BAVC_P_ColorTF eTf = BVDC_P_CMP_OUTPUT_IPT(hCompositor)? BAVC_P_ColorTF_eBt2100Pq :
+                hCompositor->stOutColorSpace.stAvcColorSpace.eColorTF;
+        llR = (int64_t) BVDC_P_Nl_to_Ln_NlPwl(ucRed   << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
+        llG = (int64_t) BVDC_P_Nl_to_Ln_NlPwl(ucGreen << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
+        llB = (int64_t) BVDC_P_Nl_to_Ln_NlPwl(ucBlue  << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
+    } else {
+        llR = (int64_t) (ucRed   << (BVDC_P_PWL_XY_F_BITS - 8));
+        llG = (int64_t) (ucGreen << (BVDC_P_PWL_XY_F_BITS - 8));
+        llB = (int64_t) (ucBlue  << (BVDC_P_PWL_XY_F_BITS - 8));
+    }
+    BDBG_MODULE_MSG(BVDC_CFC_BG,(" [R] " BDBG_UINT64_FMT " [G] " BDBG_UINT64_FMT " [B] " BDBG_UINT64_FMT,
+        BDBG_UINT64_ARG(llR), BDBG_UINT64_ARG(llG), BDBG_UINT64_ARG(llB)));
+
     /*Mb = Mbout(XYZ->RGB) * Mbin(RGB->XYZ) */
-    stMbIn = *s_aCFC_MB_IN_Tbl[BAVC_P_Colorimetry_eBt709];
-    stMbOut = *s_aCFC_MB_OUT_Tbl[pAvcColorSpaceOut->eColorimetry];
+    pMbIn = s_aCFC_MB_IN_Tbl[BAVC_P_Colorimetry_eBt709];
+    pMbOut = (BAVC_P_ColorFormat_eYCbCr == eColorFmt || BAVC_P_ColorFormat_eRGB == eColorFmt)?
+        s_aCFC_MB_OUT_Tbl[pAvcColorSpaceOut->eColorimetry] : &s_MB_OUT_XYZ_to_LMS;
 
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[0][0] %8x MbIn[0][1] %8x MbIn[0][2] %8x", stMbIn.m[0][0], stMbIn.m[0][1], stMbIn.m[0][2]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[1][0] %8x MbIn[1][1] %8x MbIn[1][2] %8x", stMbIn.m[1][0], stMbIn.m[1][1], stMbIn.m[1][2]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[2][0] %8x MbIn[2][1] %8x MbIn[2][2] %8x", stMbIn.m[2][0], stMbIn.m[2][1], stMbIn.m[2][2]));
-
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbOut[0][0] %8x MbOut[0][1] %8x MbOut[0][2] %8x", stMbOut.m[0][0], stMbOut.m[0][1], stMbOut.m[0][2]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbOut[1][0] %8x MbOut[1][1] %8x MbOut[1][2] %8x", stMbOut.m[1][0], stMbOut.m[1][1], stMbOut.m[1][2]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbOut[2][0] %8x MbOut[2][1] %8x MbOut[2][2] %8x", stMbOut.m[2][0], stMbOut.m[2][1], stMbOut.m[2][2]));
+    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[0][0] %8x MbIn[0][1] %8x MbIn[0][2] %8x", pMbIn->m[0][0], pMbIn->m[0][1], pMbIn->m[0][2]));
+    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[1][0] %8x MbIn[1][1] %8x MbIn[1][2] %8x", pMbIn->m[1][0], pMbIn->m[1][1], pMbIn->m[1][2]));
+    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[2][0] %8x MbIn[2][1] %8x MbIn[2][2] %8x", pMbIn->m[2][0], pMbIn->m[2][1], pMbIn->m[2][2]));
+    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbOut[0][0] %8x MbOut[0][1] %8x MbOut[0][2] %8x", pMbOut->m[0][0], pMbOut->m[0][1], pMbOut->m[0][2]));
+    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbOut[1][0] %8x MbOut[1][1] %8x MbOut[1][2] %8x", pMbOut->m[1][0], pMbOut->m[1][1], pMbOut->m[1][2]));
+    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbOut[2][0] %8x MbOut[2][1] %8x MbOut[2][2] %8x", pMbOut->m[2][0], pMbOut->m[2][1], pMbOut->m[2][2]));
 
     /* B = Bout  * Bin */
-    BVDC_P_Csc_Mult_isr((const int*)&stMbOut.m[0][0], 3, (const int*)&stMbIn.m[0][0], 3, &(stMb.m[0][0]));
-
-
+    BVDC_P_Csc_Mult_isr((const int*)&pMbOut->m[0][0], 3, (const int*)&pMbIn->m[0][0], 3, &(stMb.m[0][0]));
     BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mb[0][0] %8x Mb[0][1] %8x Mb[0][2] %8x", stMb.m[0][0], stMb.m[0][1], stMb.m[0][2]));
     BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mb[1][0] %8x Mb[1][1] %8x Mb[1][2] %8x", stMb.m[1][0], stMb.m[1][1], stMb.m[1][2]));
     BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mb[2][0] %8x Mb[2][1] %8x Mb[2][2] %8x", stMb.m[2][0], stMb.m[2][1], stMb.m[2][2]));
 
+    /* MB(S2.29) * lnRGB(U24.0) -> lnLMS(S26.29) */
+    ll0 = llR * ((int64_t)stMb.m[0][0]) + llG *((int64_t)stMb.m[0][1]) + llB *((int64_t)stMb.m[0][2]);
+    ll1 = llR * ((int64_t)stMb.m[1][0]) + llG *((int64_t)stMb.m[1][1]) + llB *((int64_t)stMb.m[1][2]);
+    ll2 = llR * ((int64_t)stMb.m[2][0]) + llG *((int64_t)stMb.m[2][1]) + llB *((int64_t)stMb.m[2][2]);
+    BDBG_MODULE_MSG(BVDC_CFC_BG,("Ln [0] " BDBG_UINT64_FMT " [1] " BDBG_UINT64_FMT " [2] " BDBG_UINT64_FMT,
+        BDBG_UINT64_ARG(ll0), BDBG_UINT64_ARG(ll1), BDBG_UINT64_ARG(ll2)));
 
-    /*Mc: s_aCFC_MC_Tbl */
-    stMc = *s_aCFC_MC_Tbl[pAvcColorSpaceOut->eColorimetry];
+    /* shift truncate fraction part -> lnLMS(U32.0 or U8.24) */
+    ul0 = (uint32_t)(BVDC_P_MAX(ll0 >> BVDC_P_CSC_SW_CX_F_BITS, 0));
+    ul1 = (uint32_t)(BVDC_P_MAX(ll1 >> BVDC_P_CSC_SW_CX_F_BITS, 0));
+    ul2 = (uint32_t)(BVDC_P_MAX(ll2 >> BVDC_P_CSC_SW_CX_F_BITS, 0));
+    BDBG_MODULE_MSG(BVDC_CFC_BG,("LN [0] %x [1] %x [2] %x", ul0, ul1, ul2));
 
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mc[0][0] %8x Mc[0][1] %8x Mc[0][2] %8x Mc[0][3] %8x", stMc.m[0][0], stMc.m[0][1], stMc.m[0][2], stMc.m[0][3]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mc[1][0] %8x Mc[1][1] %8x Mc[1][2] %8x Mc[1][3] %8x", stMc.m[1][0], stMc.m[1][1], stMc.m[1][2], stMc.m[1][3]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mc[2][0] %8x Mc[2][1] %8x Mc[2][2] %8x Mc[2][3] %8x", stMc.m[2][0], stMc.m[2][1], stMc.m[2][2], stMc.m[2][3]));
+    /* lnLMS(U.24) -> nlLMS(U0.8 or U8.0) */
+    if(BVDC_P_CMP_OUTPUT_IPT(hCompositor) ||
+       (BAVC_P_ColorTF_eBt1886 != hCompositor->stOutColorSpace.stAvcColorSpace.eColorTF)) {
+       BAVC_P_ColorTF eTf = BVDC_P_CMP_OUTPUT_IPT(hCompositor)? BAVC_P_ColorTF_eBt2100Pq :
+            hCompositor->stOutColorSpace.stAvcColorSpace.eColorTF;
+        ul0 = BVDC_P_Ln_to_Nl_NlPwl(ul0, eTf);
+        ul1 = BVDC_P_Ln_to_Nl_NlPwl(ul1, eTf);
+        ul2 = BVDC_P_Ln_to_Nl_NlPwl(ul2, eTf);
+    }
+    ul0 >>= (BVDC_P_PWL_XY_F_BITS - 8);
+    ul1 >>= (BVDC_P_PWL_XY_F_BITS - 8);
+    ul2 >>= (BVDC_P_PWL_XY_F_BITS - 8);
+    BDBG_MODULE_MSG(BVDC_CFC_BG,("NL [0] %x [1] %x [2] %x", ul0, ul1, ul2));
 
+    /* Mc step */
+    if(BAVC_P_ColorFormat_eYCbCr == eColorFmt || BAVC_P_ColorFormat_eICtCp == eColorFmt) {
+        if(BAVC_P_ColorFormat_eICtCp == eColorFmt) {
+            pMc = &s_MC_Lms_to_Ipt;
+            BDBG_MODULE_MSG(BVDC_CFC_BG,("Bkgclr in IPT"));
+        }
+        else {
+            pMc = s_aCFC_MC_Tbl[pAvcColorSpaceOut->eColorimetry];
+            BDBG_MODULE_MSG(BVDC_CFC_BG,("Bkgclr in YCrCb"));
+        }
+        BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mc[0][0] %8x Mc[0][1] %8x Mc[0][2] %8x Mc[0][3] %8x", pMc->m[0][0], pMc->m[0][1], pMc->m[0][2], pMc->m[0][3]));
+        BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mc[1][0] %8x Mc[1][1] %8x Mc[1][2] %8x Mc[1][3] %8x", pMc->m[1][0], pMc->m[1][1], pMc->m[1][2], pMc->m[1][3]));
+        BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Mc[2][0] %8x Mc[2][1] %8x Mc[2][2] %8x Mc[2][3] %8x", pMc->m[2][0], pMc->m[2][1], pMc->m[2][2], pMc->m[2][3]));
 
-    /* final conversion matrix = Mc * Mb */
-    BVDC_P_Csc_Mult_isr(&stMc.m[0][0], 4, &(stMb.m[0][0]), 3, &(stConv.m[0][0]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Conv[0][0] %8x Conv[0][1] %8x Conv[0][2] %8x Conv[0][3] %8x", stConv.m[0][0], stConv.m[0][1], stConv.m[0][2], stConv.m[0][3]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Conv[1][0] %8x Conv[1][1] %8x Conv[1][2] %8x Conv[1][3] %8x", stConv.m[1][0], stConv.m[1][1], stConv.m[1][2], stConv.m[1][3]));
-    BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("Conv[2][0] %8x Conv[2][1] %8x Conv[2][2] %8x Conv[2][3] %8x", stConv.m[2][0], stConv.m[2][1], stConv.m[2][2], stConv.m[2][3]));
+        /* Get ARGB components */
+        llR = (int64_t) ul0;
+        llG = (int64_t) ul1;
+        llB = (int64_t) ul2;
 
+        /* possible error place for matrix multiplication*/
+        ll0 = llR * ((int64_t)pMc->m[0][0]) + llG *((int64_t)pMc->m[0][1]) + llB *((int64_t)pMc->m[0][2]);
+        ll1 = llR * ((int64_t)pMc->m[1][0]) + llG *((int64_t)pMc->m[1][1]) + llB *((int64_t)pMc->m[1][2]);
+        ll2 = llR * ((int64_t)pMc->m[2][0]) + llG *((int64_t)pMc->m[2][1]) + llB *((int64_t)pMc->m[2][2]);
 
-    /* Get ARGB components */
-    llR = (int64_t) ucRed;
-    llG = (int64_t) ucGreen;
-    llB = (int64_t) ucBlue;
+        llYOffset  = ((int64_t)pMc->m[0][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
+        llCbOffset = ((int64_t)pMc->m[1][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
+        llCrOffset = ((int64_t)pMc->m[2][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
+        llRoundOff = (1<<(BVDC_P_CSC_SW_CX_F_BITS-1));
 
-    /* possible error place for matrix multiplication*/
-    llY  = llR * ((int64_t)stConv.m[0][0]) + llG *((int64_t)stConv.m[0][1]) + llB *((int64_t)stConv.m[0][2]);
-    llCb = llR * ((int64_t)stConv.m[1][0]) + llG *((int64_t)stConv.m[1][1]) + llB *((int64_t)stConv.m[1][2]);
-    llCr = llR * ((int64_t)stConv.m[2][0]) + llG *((int64_t)stConv.m[2][1]) + llB *((int64_t)stConv.m[2][2]);
+        BDBG_MODULE_MSG(BVDC_CFC_BG,("0) [0] " BDBG_UINT64_FMT " [1] " BDBG_UINT64_FMT " [2] " BDBG_UINT64_FMT "  Roundoff " BDBG_UINT64_FMT,
+            BDBG_UINT64_ARG(ll0), BDBG_UINT64_ARG(ll1), BDBG_UINT64_ARG(ll2), BDBG_UINT64_ARG(llRoundOff)));
+        BDBG_MODULE_MSG(BVDC_CFC_BG,("0) OFFSET[0] " BDBG_UINT64_FMT " [1] " BDBG_UINT64_FMT " [2] " BDBG_UINT64_FMT,
+            BDBG_UINT64_ARG(llYOffset), BDBG_UINT64_ARG(llCbOffset), BDBG_UINT64_ARG(llCrOffset)));
 
-    llYOffset  = ((int64_t)stConv.m[0][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
-    llCbOffset = ((int64_t)stConv.m[1][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
-    llCrOffset = ((int64_t)stConv.m[2][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
-    llRoundOff = (1<<(BVDC_P_CSC_SW_CX_F_BITS-1));
+        ll0 += llYOffset  + llRoundOff;
+        ll1 += llCbOffset + llRoundOff;
+        ll2 += llCrOffset + llRoundOff;
+        BDBG_MODULE_MSG(BVDC_CFC_BG,("1) [0] " BDBG_UINT64_FMT " [1] " BDBG_UINT64_FMT " [2] " BDBG_UINT64_FMT "  Roundoff " BDBG_UINT64_FMT,
+            BDBG_UINT64_ARG(ll0), BDBG_UINT64_ARG(ll1), BDBG_UINT64_ARG(ll2), BDBG_UINT64_ARG(llRoundOff)));
 
-    BDBG_MODULE_MSG(BVDC_CFC_BG,("0 Y " BDBG_UINT64_FMT " Cb " BDBG_UINT64_FMT "Cr " BDBG_UINT64_FMT "  Roundoff " BDBG_UINT64_FMT,
-        BDBG_UINT64_ARG(llY), BDBG_UINT64_ARG(llCb), BDBG_UINT64_ARG(llCr), BDBG_UINT64_ARG(llRoundOff)));
-    BDBG_MODULE_MSG(BVDC_CFC_BG,("0 OFFSET Y " BDBG_UINT64_FMT " Cb " BDBG_UINT64_FMT " Cr " BDBG_UINT64_FMT,
-        BDBG_UINT64_ARG(llYOffset), BDBG_UINT64_ARG(llCbOffset), BDBG_UINT64_ARG(llCrOffset)));
+        ll0 >>= BVDC_P_CSC_SW_CX_F_BITS;
+        ll1 >>= BVDC_P_CSC_SW_CX_F_BITS;
+        ll2 >>= BVDC_P_CSC_SW_CX_F_BITS;
+        BDBG_MODULE_MSG(BVDC_CFC_BG,("2) [0] " BDBG_UINT64_FMT " [1] " BDBG_UINT64_FMT " [2] " BDBG_UINT64_FMT,
+        BDBG_UINT64_ARG(ll0), BDBG_UINT64_ARG(ll1), BDBG_UINT64_ARG(ll2)));
 
-    llY  += llYOffset  + llRoundOff;
-    llCb += llCbOffset + llRoundOff;
-    llCr += llCrOffset + llRoundOff;
+        ul0 = (uint32_t)(BVDC_P_MAX(ll0 , 0));
+        ul1 = (uint32_t)(BVDC_P_MAX(ll1, 0));
+        ul2 = (uint32_t)(BVDC_P_MAX(ll2, 0));
+        BDBG_MODULE_MSG(BVDC_CFC_BG,("ch [0] %x [1] %x [2] %x", ul0, ul1, ul2));
 
-    BDBG_MODULE_MSG(BVDC_CFC_BG,("1 Y " BDBG_UINT64_FMT " Cb " BDBG_UINT64_FMT "Cr " BDBG_UINT64_FMT "  Roundoff " BDBG_UINT64_FMT,
-        BDBG_UINT64_ARG(llY), BDBG_UINT64_ARG(llCb), BDBG_UINT64_ARG(llCr), BDBG_UINT64_ARG(llRoundOff)));
+        /* reverse 0.85 adj applied to non-BT2020 limited range YCbCr */
+        if((BAVC_P_ColorTF_eBt1886 == hCompositor->stOutColorSpace.stAvcColorSpace.eColorTF) &&
+            BAVC_P_Colorimetry_eBt2020 == pAvcColorSpaceOut->eColorimetry) {
+            pMc = &s_CscCr0p85Adj_NonBT2020_to_BT2020;
+            /* Adj(S0.29) * RGB(U8.0) -> nlRGB(S8.29) */
+            ll0 = ul0 * ((int64_t)pMc->m[0][0]) + ul1 *((int64_t)pMc->m[0][1]) + ul2 *((int64_t)pMc->m[0][2]);
+            ll1 = ul0 * ((int64_t)pMc->m[1][0]) + ul1 *((int64_t)pMc->m[1][1]) + ul2 *((int64_t)pMc->m[1][2]);
+            ll2 = ul0 * ((int64_t)pMc->m[2][0]) + ul1 *((int64_t)pMc->m[2][1]) + ul2 *((int64_t)pMc->m[2][2]);
+            BDBG_MODULE_MSG(BVDC_CFC_BG,("NL2020 [0] " BDBG_UINT64_FMT " [1] " BDBG_UINT64_FMT " [2] " BDBG_UINT64_FMT,
+                BDBG_UINT64_ARG(ll0), BDBG_UINT64_ARG(ll1), BDBG_UINT64_ARG(ll2)));
 
+            llYOffset  = ((int64_t)pMc->m[0][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
+            llCbOffset = ((int64_t)pMc->m[1][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
+            llCrOffset = ((int64_t)pMc->m[2][3])<<BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS;
+            llRoundOff = (1<<(BVDC_P_CSC_SW_CX_F_BITS-1));
 
-    llY  = llY  >> BVDC_P_CSC_SW_CX_F_BITS;
-    llCb = llCb >> BVDC_P_CSC_SW_CX_F_BITS;
-    llCr = llCr >> BVDC_P_CSC_SW_CX_F_BITS;
-    BDBG_MODULE_MSG(BVDC_CFC_BG,("2 Y " BDBG_UINT64_FMT " Cb " BDBG_UINT64_FMT "Cr " BDBG_UINT64_FMT,
-    BDBG_UINT64_ARG(llY), BDBG_UINT64_ARG(llCb), BDBG_UINT64_ARG(llCr)));
+            ll0 += llYOffset  + llRoundOff;
+            ll1 += llCbOffset + llRoundOff;
+            ll2 += llCrOffset + llRoundOff;
 
-    ulY  = (uint32_t)(BVDC_P_MAX(llY , 0));
-    ulCb = (uint32_t)(BVDC_P_MAX(llCb, 0));
-    ulCr = (uint32_t)(BVDC_P_MAX(llCr, 0));
-
-    BDBG_MODULE_MSG(BVDC_CFC_BG,(" ulY %x ulCb %x ulCr %x", ulY, ulCb, ulCr));
+            /* shift truncate fraction part -> nlRGB(U8.0) */
+            ul0 = (uint32_t)(BVDC_P_MAX(ll0 >> BVDC_P_CSC_SW_CX_F_BITS, 0));
+            ul1 = (uint32_t)(BVDC_P_MAX(ll1 >> BVDC_P_CSC_SW_CX_F_BITS, 0));
+            ul2 = (uint32_t)(BVDC_P_MAX(ll2 >> BVDC_P_CSC_SW_CX_F_BITS, 0));
+            BDBG_MODULE_MSG(BVDC_CFC_BG,("NL2020 [0] %x [1] %x [2] %x", ul0, ul1, ul2));
+        }
+    }
 
     ulBgColorYCrCb =
-        BPXL_MAKE_PIXEL(BPXL_eA8_Y8_Cb8_Cr8, 0, ulY, ulCb, ulCr);
+        BPXL_MAKE_PIXEL(BPXL_eA8_Y8_Cb8_Cr8, 0, ul0, ul1, ul2);
     BDBG_MODULE_MSG(BVDC_CFC_BG, ("input bg color R %x G %x B %x output bg color %x",
         hCompositor->stNewInfo.ucRed, hCompositor->stNewInfo.ucGreen, hCompositor->stNewInfo.ucBlue, ulBgColorYCrCb));
 
@@ -2012,17 +2185,19 @@ void BVDC_P_Cfc_UpdateCfg_isr
             (BVDC_P_IS_SDR_TO_HDR10(pAvcColorSpaceIn->eColorTF, pAvcColorSpaceOut->eColorTF) ||
              BVDC_P_IS_HDR10_TO_SDR(pAvcColorSpaceIn->eColorTF, pAvcColorSpaceOut->eColorTF));
 #endif
+
         if (BAVC_P_ColorFormat_eYCbCr_CL == pAvcColorSpaceIn->eColorFmt)
         {
             pColorSpaceIn->stM3x4 = s_BT2020CL_YCbCr_to_RYB_Bt1886_Negative;
             pColorSpaceIn->stMalt = s_BT2020CL_YCbCr_to_RYB_Bt1886_Positive;
+            BVDC_P_Csc_Mult_isr(&(s_aCFC_MB_IN_Tbl[pAvcColorSpaceIn->eColorimetry]->m[0][0]), 3, &(s_BT2020NCL_RYB_to_RGB.m[0][0]), 3, &(pColorSpaceIn->stMb.m[0][0]));
         }
         else
         {
             pColorSpaceIn->stM3x4 = (BAVC_P_ColorFormat_eRGB == pAvcColorSpaceIn->eColorFmt)?
                 s_Csc3x4Identity : *(s_aCFC_MA_Tbl[pAvcColorSpaceIn->eColorimetry]);
+            pColorSpaceIn->stMb = *(s_aCFC_MB_IN_Tbl[pAvcColorSpaceIn->eColorimetry]);
         }
-        pColorSpaceIn->stMb = *(s_aCFC_MB_IN_Tbl[pAvcColorSpaceIn->eColorimetry]);
 
         /* all pre-generated matrices assume YCbCr limted range and RGB full range */
         if ((pAvcColorSpaceIn->eColorRange == BAVC_P_ColorRange_eFull) && (pAvcColorSpaceIn->eColorFmt == BAVC_P_ColorFormat_eYCbCr))
@@ -2239,7 +2414,7 @@ void BVDC_P_Cfc_UpdateCfg_isr
                         /* must be display cfc */
                         pCfc->stMb = s_BT2020NCL_RGB_to_RYB;
                     }
-                    else if (pAvcColorSpaceIn->eColorimetry == pAvcColorSpaceOut->eColorimetry)
+                    else if ((pAvcColorSpaceIn->eColorimetry == pAvcColorSpaceOut->eColorimetry) && (BAVC_P_ColorFormat_eYCbCr_CL != pAvcColorSpaceIn->eColorFmt))
                     {
                         pCfc->stMb = s_Csc3x3Identity;
                     }
@@ -3422,11 +3597,20 @@ void BVDC_P_Window_BuildCfcRul_isr
         {
             /* Programming MA
              */
+            BAVC_P_ColorSpace *pAvcColorSpaceIn = &(pCfc->stColorSpaceIn.stAvcColorSpace);
             ulStartReg = BCHP_HDR_CMP_0_V0_R0_MA_COEFF_C00 + ulV0V1Offset + hCompositor->ulRegOffset;
             ulStartReg += ucCfcIdxForRect * (BCHP_HDR_CMP_0_V0_R1_MA_COEFF_C00 - BCHP_HDR_CMP_0_V0_R0_MA_COEFF_C00);
             BDBG_MODULE_MSG(BVDC_CFC_3,("Cmp%d_V%d-Cfc%d MA:", hCompositor->eId, eWinInCmp, ucCfcIdxForRect));
-            BVDC_P_Cfc_BuildRulForCscRx4_isr(
-                pCfc->pMa, NULL, BVDC_P_MAKE_CSC_CFG(eMaCscType, eLeftShift), ulStartReg, pList);
+            if (BAVC_P_ColorFormat_eYCbCr_CL == pAvcColorSpaceIn->eColorFmt)
+            {
+                BVDC_P_Cfc_BuildRulForCscRx4_isr(
+                    pCfc->pMa, &pColorSpaceIn->stMalt, BVDC_P_MAKE_CSC_CFG(eMaCscType, eLeftShift), ulStartReg, pList);
+            }
+            else
+            {
+                BVDC_P_Cfc_BuildRulForCscRx4_isr(
+                    pCfc->pMa, NULL, BVDC_P_MAKE_CSC_CFG(eMaCscType, eLeftShift), ulStartReg, pList);
+            }
 
             /* Programming MB
              */

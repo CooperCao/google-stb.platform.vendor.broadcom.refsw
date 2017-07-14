@@ -169,6 +169,9 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
     default: break;
     }
     printf("%s\n", buf);
+    if (pSettings->secure) {
+        printf("  secure\n");
+    }
 
     n = 0;
     n += snprintf(&buf[n], sizeof(buf)-n, "  outputs:");

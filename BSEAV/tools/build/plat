@@ -839,7 +839,6 @@ if [ -z "$LINUX_ROOT" ]; then
    URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.10
    URSR_ARM64_LINUX_ROOT=$URSR_ARM_LINUX_ROOT
    URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-4.1
-   URSR_MIPS_LINUX_4_1_ROOT=/opt/brcm/linux-4.1-1.10
 else
    URSR_ARM_LINUX_ROOT=$LINUX_ROOT
    URSR_ARM64_LINUX_ROOT=$LINUX_ROOT
@@ -899,17 +898,6 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
        ;;
        esac
        ;;
-    93390)
-        case $BCHP_VER in
-        A0)
-        LINUX_ROOT=/opt/brcm/linux-3.14-3390a0
-        export B_REFSW_ARCH=arm-linux
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
-        ;;
    97230)
         case $BCHP_VER in
         A0)
@@ -1137,24 +1125,22 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
     97435)
         case $BCHP_VER in
         B0)
-	    if [ 'y' = $NEXUS_USE_7425_SV_BOARD -o 'Y' = $NEXUS_USE_7425_SV_BOARD ]; then
-	        LINUX_ROOT=$URSR_MIPS_LINUX_4_1_ROOT
-	        NEW_MIPS=y
-	    else
-	        if [ 'y' = $NEXUS_USE_7425_VMS_SFF -o 'Y' = $NEXUS_USE_7425_VMS_SFF ]; then
-	            LINUX_ROOT=$URSR_MIPS_LINUX_4_1_ROOT
-	            NEW_MIPS=y
-		else
-		    LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
-		fi
-	    fi
+	    case $NEXUS_USE_7425_SV_BOARD in
+            y|Y)
+	    LINUX_ROOT=/opt/brcm/linux-4.1-1.10
+	    NEW_MIPS=y
+	    ;;
+	    *)
+	    LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
+	    ;;
+	    esac
         ;;
         *)
         CHIP_VER_NOT_VALID=1
         ;;
         esac
         ;;
-    97439|974371)
+    97439|974371|93390)
         LINUX_ROOT=$URSR_ARM_LINUX_ROOT
         ;;
     97250)

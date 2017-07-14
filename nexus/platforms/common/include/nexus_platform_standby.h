@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Copyright (C) 2004-2012 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -58,60 +58,6 @@ extern "C"
 
 /***************************************************************************
 Summary:
-Standby mode used in NEXUS_PlatformStandbySettings
-
-Description:
-See "Power Management" section of nexus/docs/Nexus_Usage.pdf.
-
-When nexus is implementing ePassive and eActive standby modes, our goal is to leave
-as much code resident as possible. This allows applications to leave handles open and minimizes
-change in SW state.
-
-However, this is not possible in all cases. If a module must be shut down, the application
-is responsible for closing handles before calling NEXUS_Platform_SetStandbySettings.
-If you do not, an error will be issued to the console and NEXUS_Platform_SetStandbySettings will fail.
-***************************************************************************/
-typedef enum NEXUS_PlatformStandbyMode
-{
-    NEXUS_PlatformStandbyMode_eOn,        /* Normal mode of operation.
-                         Also known as S0 mode. */
-    NEXUS_PlatformStandbyMode_eActive,    /* Frontend and transport modules are running. All other modules are put to sleep.
-                         The same wakeup devices as ePassive are available.
-                         The application cannot put the MIPS to sleep in this mode.
-                         Also known as S1 mode*/
-    NEXUS_PlatformStandbyMode_ePassive,   /* Lowest power setting while code remains resident.
-                         IrInput, UhfInput, HdmiOutput (CEC), Gpio and Keypad are available to be configured as wakeup devices.
-                         Application must call OS to put the MIPS to sleep.
-                         Also known as S2 mode. */
-    NEXUS_PlatformStandbyMode_eDeepSleep, /* All cores are power gated except for AON block. Achieves minimum power state.
-                         Gpio and Keypad are available to be configured as wakeup devices.
-                         Application must call OS to put the MIPS to sleep.
-                         Also known as S3 mode. */
-    NEXUS_PlatformStandbyMode_eMax
-} NEXUS_PlatformStandbyMode;
-
-/***************************************************************************
-Summary:
-Settings used for NEXUS_Platform_SetStandbySettings
-***************************************************************************/
-typedef struct NEXUS_PlatformStandbySettings
-{
-    NEXUS_PlatformStandbyMode mode;
-    struct {
-        bool ir;
-        bool uhf;
-        bool keypad;
-        bool gpio;
-        bool nmi;
-        bool cec;
-        bool transport;
-        unsigned timeout; /* in seconds */
-    } wakeupSettings;
-    bool openFrontend; /* If true, NEXUS_Platform_SetStandbySettings will initialize the frontend after resuming from S3. */
-} NEXUS_PlatformStandbySettings;
-
-/***************************************************************************
-Summary:
 Status returned by NEXUS_Platform_GetStandbyStatus
 ***************************************************************************/
 typedef struct NEXUS_PlatformStandbyStatus
@@ -133,7 +79,7 @@ Summary:
     Get the current standby settings.
 ***************************************************************************/
 void NEXUS_Platform_GetStandbySettings(
-    NEXUS_PlatformStandbySettings *pSettings  /* [out] */
+    NEXUS_StandbySettings *pSettings  /* [out] */
     );
 
 /***************************************************************************
@@ -145,7 +91,7 @@ Note that this function does not put Linux or the MIPS into standby.
 See comments for NEXUS_PlatformStandbyMode_ePassive.
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_SetStandbySettings( /* attr{local=true} */
-    const NEXUS_PlatformStandbySettings *pSettings
+    const NEXUS_StandbySettings *pSettings
     );
 
 /***************************************************************************
@@ -153,7 +99,7 @@ Summary:
 Proxied function for SetStandbySettings
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_SetStandbySettings_driver(
-    const NEXUS_PlatformStandbySettings *pSettings
+    const NEXUS_StandbySettings *pSettings
     );
 
 /***************************************************************************
@@ -178,7 +124,7 @@ Summary:
     Use NEXUS_Platform_GetStandbySettings to get the current standby settings.
 ***************************************************************************/
 void NEXUS_Platform_GetDefaultStandbySettings(
-    NEXUS_PlatformStandbySettings *pSettings /* [out] */
+    NEXUS_StandbySettings *pSettings /* [out] */
     );
 
 /***************************************************************************
@@ -187,7 +133,7 @@ Summary:
     Use NEXUS_Platform_SetStandbySettings to enter stnadby mode.
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_InitStandby(
-    const NEXUS_PlatformStandbySettings *pSettings
+    const NEXUS_StandbySettings *pSettings
     );
 
 /***************************************************************************
@@ -207,6 +153,17 @@ Summary:
     This api has been deprecated. It is only meant for backward compatiblity.
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_PostStandby(void);
+
+
+/* legacy aliases */
+typedef NEXUS_StandbyMode NEXUS_PlatformStandbyMode;
+#define NEXUS_PlatformStandbyMode_eOn NEXUS_StandbyMode_eOn
+#define NEXUS_PlatformStandbyMode_eActive NEXUS_StandbyMode_eActive
+#define NEXUS_PlatformStandbyMode_ePassive  NEXUS_StandbyMode_ePassive
+#define NEXUS_PlatformStandbyMode_eDeepSleep NEXUS_StandbyMode_eDeepSleep
+#define NEXUS_PlatformStandbyMode_eMax NEXUS_StandbyMode_eMax
+
+typedef NEXUS_StandbySettings NEXUS_PlatformStandbySettings;
 
 #ifdef __cplusplus
 } /* extern "C" */

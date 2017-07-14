@@ -75,11 +75,11 @@ int phy_type_register_iovt(phy_type_disp_t *disp, wlc_iocv_info_t *ii);
  */
 int phy_type_register_ioct(phy_type_disp_t *disp, wlc_iocv_info_t *ii);
 
-#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && defined(DBG_PHY_IOV)) || \
-	defined(BCMDBG_PHYDUMP)
+#if ((defined(BCMDBG) || defined(BCMDBG_DUMP)) && (defined(BCMINTPHYDBG) || \
+	defined(DBG_PHY_IOV))) || defined(BCMDBG_PHYDUMP)
 /* dump phy type specific phy registers */
 uint16 phy_type_read_phyreg(phy_type_disp_t *disp, uint addr);
 int phy_type_dump_phyregs(phy_type_disp_t *disp, struct bcmstrbuf *b);
-#endif 
+#endif /* BCMDBG, BCMDBG_DUMP, BCMINTPHYDBG, DBG_PHY_IOV, BCMDBG_PHYDUMP */
 
 #endif /* _phy_type_disp_h_ */

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -681,7 +681,7 @@ static void BAPE_MixerGroup_P_UnlinkInput(
         {
             /* Free this playback */
             BAPE_P_FreeFmmResource(handle->deviceHandle, BAPE_FmmResourceType_ePlayback, 1, playback);
-            regAddr = BCHP_AUD_FMM_DP_CTRL0_PB_FCI_IDi_ARRAY_BASE + 4*(playback+i);
+            regAddr = BCHP_AUD_FMM_DP_CTRL0_PB_FCI_IDi_ARRAY_BASE + 4*playback;
             deviceHandle->playbackFci[playback] = BAPE_FCI_ID_INVALID;
             BREG_Write32(deviceHandle->regHandle, regAddr, BAPE_FCI_ID_INVALID);
         }

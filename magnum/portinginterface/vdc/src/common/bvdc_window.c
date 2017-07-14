@@ -4124,7 +4124,6 @@ BERR_Code BVDC_Window_GetDstRightRect
 }
 #endif
 
-#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -4132,13 +4131,30 @@ BERR_Code BVDC_Window_GetCapabilities
     ( BVDC_Window_Handle               hWindow,
       BVDC_Window_Capabilities        *pCapabilities )
 {
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(pCapabilities);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+    if (pCapabilities)
+    {
+        BVDC_Compositor_Handle hCompositor = hWindow->hCompositor;
+        int iWinInCmp = hWindow->eId - BVDC_P_CMP_GET_V0ID(hCompositor);
+        BVDC_P_Cfc_Capability stCapability;
+
+        stCapability.ulInts = hCompositor->stCfcCapability[iWinInCmp].ulInts;
+        stCapability.stBits.bBlackBoxNLConv = stCapability.stBits.bNL2L && !stCapability.stBits.bMb;
+
+        pCapabilities->bConvColorimetry = stCapability.stBits.bBlackBoxNLConv || stCapability.stBits.bMb;
+        pCapabilities->bConvHdr10 = stCapability.stBits.bLRngAdj || stCapability.stBits.bLMR;
+        pCapabilities->bConvHlg = stCapability.stBits.bLMR;
+        pCapabilities->bTchInput = stCapability.stBits.bTpToneMapping;
+        pCapabilities->bDolby = stCapability.stBits.bDbvToneMapping || stCapability.stBits.bDbvCmp;
+    }
 
     return BERR_SUCCESS;
 }
-#endif
 
+/***************************************************************************
+ *
+ */
 void BVDC_Window_GetCores
     ( BVDC_WindowId                    eWinId,
       BBOX_Handle                      hBox,

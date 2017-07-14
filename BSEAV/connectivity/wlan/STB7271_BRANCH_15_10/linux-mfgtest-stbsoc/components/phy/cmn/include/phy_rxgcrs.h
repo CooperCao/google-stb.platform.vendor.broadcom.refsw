@@ -40,9 +40,10 @@ int phy_rxgcrs_set_rxdesens(phy_info_t *pi, int32 int_val);
 int wlc_phy_set_rx_gainindex(phy_info_t *pi, int32 gain_idx);
 int wlc_phy_get_rx_gainindex(phy_info_t *pi, int32 *gain_idx);
 #ifndef ATE_BUILD
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG)
 int wlc_phy_iovar_forcecal_noise(phy_info_t *pi, void *a, bool set);
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG */
 #endif /* !ATE_BUILD */
 void phy_rxgcrs_stay_in_carriersearch(void *ctx, bool enable);
 #if defined(BCMDBG) || defined(BCMDBG_DUMP)

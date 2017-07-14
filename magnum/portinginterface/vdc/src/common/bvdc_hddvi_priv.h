@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -86,6 +86,8 @@ extern "C" {
 
 /* Number of vsync to detect trigger swap */
 #define BVDC_P_HDDVI_DETECT_TRIGGER_SWAP            (15)
+
+#define BVDC_P_HDDVI_VIDEO_DETECT_COUNT             (25)
 
 /* Threshold of lost video before going into auto format detection. */
 #define BVDC_P_HDDVI_NEW_VER_0                      (0) /* 7038x-ish */
@@ -219,8 +221,13 @@ typedef struct BVDC_P_HdDviContext
     bool                           bFifoErr;
     bool                           bPctrErr;
     bool                           bBridgeErr;
+    bool                           bFormatUpdate;
+    uint32_t                       ulStartFeedCnt;
+
     uint32_t                       ulBridgeErrRegAddr; /* Scratch reg to hold bridge errors */
     uint32_t                       ulPctrErrRegAddr;   /* Scratch reg to hold PCTR errors */
+    uint32_t                       ulFormatUpdateRegAddr;   /* Scratch reg to hold format update status */
+
     uint32_t                       ulVsyncCnt;         /* Vsync counter */
     BVDC_P_HdDviInput              stStatus;           /* status read from HW that potentially changes per vsync */
 

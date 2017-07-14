@@ -31,6 +31,10 @@ static const bcm_iovar_t phy_rssi_iovars[] = {
 	(0), 0, IOVT_BUFFER, 6*sizeof(int8)},
 	{"phy_rssi_gain_delta_5gh", IOV_PHY_RSSI_GAIN_DELTA_5GH,
 	(0), 0, IOVT_BUFFER, 6*sizeof(int8)},
+#if defined(BCMINTPHYDBG)
+	{"pkteng_stats", IOV_PKTENG_STATS,
+	(IOVF_GET_UP | IOVF_MFG), 0, IOVT_BUFFER, sizeof(wl_pkteng_stats_t)},
+#endif 
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -66,6 +70,11 @@ phy_rssi_doiovar(void *ctx, uint32 aid,
 		case IOV_GVAL(IOV_PHY_RSSI_GAIN_DELTA_5GH):
 			err = phy_rssi_get_gain_delta_5g(pi->rssii, aid, getValues);
 			break;
+#if defined(BCMINTPHYDBG)
+		case IOV_GVAL(IOV_PKTENG_STATS):
+			err = wlc_phy_pkteng_stats_get(pi->rssii, a, alen);
+			break;
+#endif 
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

@@ -412,14 +412,13 @@ eRet CControlNx::setPowerMode(ePowerMode mode)
         if (NULL != pDisplayHD)
         {
             pDisplayHD->enableOutputs(true);
+            pDisplayHD->waitForDisplaySettingsApply();
         }
         if (NULL != pDisplaySD)
         {
             pDisplaySD->enableOutputs(true);
+            pDisplaySD->waitForDisplaySettingsApply();
         }
-
-        /* enabling outputs only happens on vsync so add slight delay */
-        BKNI_Sleep(100);
 
         ipServerStart();
 
@@ -491,14 +490,13 @@ eRet CControlNx::setPowerMode(ePowerMode mode)
         if (NULL != pDisplayHD)
         {
             pDisplayHD->enableOutputs(false);
+            pDisplayHD->waitForDisplaySettingsApply();
         }
         if (NULL != pDisplaySD)
         {
             pDisplaySD->enableOutputs(false);
+            pDisplaySD->waitForDisplaySettingsApply();
         }
-
-        /* disabling outputs only happens on vsync so add slight delay */
-        BKNI_Sleep(100);
 
         ret = pPowerNx->setMode(mode, pGraphics);
         CHECK_ERROR_GOTO("unable to set power mode", ret, error);

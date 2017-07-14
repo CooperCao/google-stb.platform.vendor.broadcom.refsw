@@ -1122,29 +1122,6 @@ int playback_piff( NEXUS_VideoDecoderHandle videoDecoder,
     else
       BDBG_WRN(("@@@ audioPidChannel OK"));
 
-    /* already connected in main */
-    NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
-    NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
-
-    if ( vc1_stream ) {
-       BDBG_MSG(("@@@ set video audio program for vc1"));
-       videoProgram.codec = NEXUS_VideoCodec_eVc1;
-       audioProgram.codec = NEXUS_AudioCodec_eWmaPro;
-    } else {
-       BDBG_MSG(("@@@ set video audio program for h264"));
-       videoProgram.codec = NEXUS_VideoCodec_eH264;
-       audioProgram.codec = NEXUS_AudioCodec_eAacAdts;
-    }
-
-    videoProgram.pidChannel = videoPidChannel;
-    videoProgram.stcChannel = stcChannel;
-    NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
-
-    audioProgram.pidChannel = audioPidChannel;
-    audioProgram.stcChannel = stcChannel;
-    NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
-
-
     /***********************
      * now ready to decrypt
      ***********************/
@@ -1270,6 +1247,28 @@ int playback_piff( NEXUS_VideoDecoderHandle videoDecoder,
         goto clean_exit;
     }
 
+    /* already connected in main */
+    NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
+    NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
+
+    if ( vc1_stream ) {
+       BDBG_MSG(("@@@ set video audio program for vc1"));
+       videoProgram.codec = NEXUS_VideoCodec_eVc1;
+       audioProgram.codec = NEXUS_AudioCodec_eWmaPro;
+    } else {
+       BDBG_MSG(("@@@ set video audio program for h264"));
+       videoProgram.codec = NEXUS_VideoCodec_eH264;
+       audioProgram.codec = NEXUS_AudioCodec_eAacAdts;
+    }
+
+    videoProgram.pidChannel = videoPidChannel;
+    videoProgram.stcChannel = stcChannel;
+    NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+
+    audioProgram.pidChannel = audioPidChannel;
+    audioProgram.stcChannel = stcChannel;
+    NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
+
     /* now go back to the begining and get all the moof boxes */
     fseek(app.fp_piff, 0, SEEK_END);
     app.piff_filesize = ftell(app.fp_piff);
@@ -1302,7 +1301,7 @@ int playback_piff( NEXUS_VideoDecoderHandle videoDecoder,
             }
         }
 
-        BKNI_Sleep(500);
+        BKNI_Sleep(50);
 
         decoder_data = piff_parser_get_dec_data(piff_handle, &decoder_len, frag_info.trackId);
 
@@ -1746,16 +1745,19 @@ int main(int argc, char* argv[])
     audioDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
 #endif
     audioDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
-#if NEXUS_NUM_AUDIO_DACS
+
+if (platformConfig.outputs.audioDacs[0]) {
     NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
+    NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+    NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+}
+
+if (platformConfig.outputs.spdif[0]) {
     NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+    NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+}
+
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_AudioOutput_AddInput(
         NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),

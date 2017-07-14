@@ -344,13 +344,15 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
         if (!r->settings.displayEncode.display) goto error;
     }
 
-    NEXUS_AudioMuxOutput_GetDefaultCreateSettings(&muxCreateSettings);
-    muxCreateSettings.data.heap = session->server->settings.client.heap[NXCLIENT_FULL_HEAP];
-    muxCreateSettings.index.heap = session->server->settings.client.heap[NXCLIENT_FULL_HEAP];
-    r->settings.audioMuxOutput = NEXUS_AudioMuxOutput_Create(&muxCreateSettings);
-    if (!r->settings.audioMuxOutput) {
-        BERR_TRACE(NEXUS_NOT_AVAILABLE);
-        goto error;
+    if (connect->settings.simpleAudioDecoder.id) {
+        NEXUS_AudioMuxOutput_GetDefaultCreateSettings(&muxCreateSettings);
+        muxCreateSettings.data.heap = session->server->settings.client.heap[NXCLIENT_FULL_HEAP];
+        muxCreateSettings.index.heap = session->server->settings.client.heap[NXCLIENT_FULL_HEAP];
+        r->settings.audioMuxOutput = NEXUS_AudioMuxOutput_Create(&muxCreateSettings);
+        if (!r->settings.audioMuxOutput) {
+            BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            goto error;
+        }
     }
 
     NEXUS_VideoEncoder_GetDefaultOpenSettings(&encoderOpenSettings);

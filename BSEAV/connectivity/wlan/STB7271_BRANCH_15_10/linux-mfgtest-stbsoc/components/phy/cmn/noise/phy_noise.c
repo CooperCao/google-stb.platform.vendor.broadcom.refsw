@@ -864,7 +864,7 @@ phy_noise_abort_shmem_read(phy_noise_info_t *noisei)
 }
 
 #ifndef WLC_DISABLE_ACI
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 /* For NPHY and HTPHY only */
 int
 phy_noise_aci_args(phy_info_t *pi, wl_aci_args_t *params, bool get, int len)
@@ -970,7 +970,7 @@ phy_noise_aci_args(phy_info_t *pi, wl_aci_args_t *params, bool get, int len)
 
 	return BCME_OK;
 }
-#endif 
+#endif /* defined (BCMINTPHYDBG) || defined (WLTEST) */
 #endif /* Compiling out ACI code for 4324 */
 
 #ifndef WLC_DISABLE_ACI

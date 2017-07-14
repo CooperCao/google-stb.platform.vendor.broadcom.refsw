@@ -1143,7 +1143,7 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
     return NEXUS_Platform_GetStandbyStatus_driver(pStatus);
 }
 
-NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettings *pSettings )
+NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_StandbySettings *pSettings )
 {
     return NEXUS_Platform_SetStandbySettings_driver(pSettings);
 }

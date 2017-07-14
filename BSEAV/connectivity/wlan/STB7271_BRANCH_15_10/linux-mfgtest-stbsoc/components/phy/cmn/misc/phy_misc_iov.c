@@ -34,23 +34,23 @@ enum {
 
 /* iovar table */
 static const bcm_iovar_t phy_misc_iovars[] = {
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG) || \
-	defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG) || defined(ATE_BUILD)
 	{"phy_tx_tone", IOV_PHY_TX_TONE,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT32, 0
 	},
 	{"phy_txlo_tone", IOV_PHY_TXLO_TONE,
 	(IOVF_SET_UP | IOVF_MFG), 0, IOVT_UINT8, 0
 	},
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG || ATE_BUILD */
 	{"phy_rxiqest", IOV_PHY_RXIQ_EST,
 	IOVF_SET_UP, 0, IOVT_UINT32, IOVT_UINT32
 	},
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	{"phy_rxiqest_sweep", IOV_PHY_RXIQ_EST_SWEEP,
 	IOVF_GET_UP, 0, IOVT_BUFFER, 2 * sizeof(uint32)
 	},
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -92,14 +92,14 @@ phy_misc_doiovar(void *ctx, uint32 aid,
 		break;
 	}
 
-#if defined(WLTEST)
+#if defined(BCMINTPHYDBG) || defined(WLTEST)
 	case IOV_GVAL(IOV_PHY_RXIQ_EST_SWEEP):
 		err = wlc_phy_iovar_get_rx_iq_est_sweep(pi, p, plen, a, alen, wlcif, err);
 		break;
-#endif 
+#endif /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 
-#if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(WFD_PHY_LL_DEBUG) || \
-	defined(ATE_BUILD)
+#if defined(BCMINTPHYDBG) || defined(WLTEST) || defined(DBG_PHY_IOV) || \
+	defined(WFD_PHY_LL_DEBUG) || defined(ATE_BUILD)
 	case IOV_GVAL(IOV_PHY_TX_TONE):
 	case IOV_GVAL(IOV_PHY_TXLO_TONE):
 		*ret_int_ptr = pi->phy_tx_tone_freq;
@@ -112,7 +112,7 @@ phy_misc_doiovar(void *ctx, uint32 aid,
 	case IOV_SVAL(IOV_PHY_TXLO_TONE):
 		wlc_phy_iovar_txlo_tone(pi);
 		break;
-#endif 
+#endif /* BCMINTPHYDBG || WLTEST || DBG_PHY_IOV || WFD_PHY_LL_DEBUG || ATE_BUILD */
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

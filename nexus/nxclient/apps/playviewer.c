@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,7 +38,7 @@
  * Module Description:
  *
  **************************************************************************/
-#if NEXUS_HAS_INPUT_ROUTER && NEXUS_HAS_PICTURE_DECODER && NEXUS_HAS_TRANSPORT && NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_INPUT_ROUTER && NEXUS_HAS_TRANSPORT && NEXUS_HAS_VIDEO_DECODER
 #include "nxclient.h"
 #include "nexus_platform_client.h"
 #include "nexus_surface.h"
@@ -339,6 +339,7 @@ int main(int argc, const char **argv)
     pContext->surface = NEXUS_Surface_Create(&createSettings);
     pContext->ui_update = true;
 
+#if NEXUS_HAS_PICTURE_DECODER
     if (background) {
         picdecoder_t handle;
         handle = picdecoder_open();
@@ -347,6 +348,7 @@ int main(int argc, const char **argv)
             picdecoder_close(handle);
         }
     }
+#endif
 
     while (!done) {
         b_remote_key key;
@@ -768,7 +770,7 @@ static void b_stop_thumbnails(struct appcontext *pContext)
 #include <stdio.h>
 int main(void)
 {
-    printf("This application is not supported on this platform (needs input_router, picture_decoder, transport and video_decoder)!\n");
+    printf("This application is not supported on this platform\n");
     return 0;
 }
 #endif

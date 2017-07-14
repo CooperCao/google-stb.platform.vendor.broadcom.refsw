@@ -44,65 +44,6 @@
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
 
-typedef struct
-{
-     uint32_t wrcnt;
-}BDSP_RateController;
-
-
-/***************************************************************************
-Summary:
-Stage Source and Destination Details
-***************************************************************************/
-typedef struct BDSP_StageSrcDstDetails
-{
-    BDSP_AF_P_ValidInvalid      eNodeValid;
-
-    BDSP_ConnectionType eConnectionType;
-
-    union
-    {
-        struct
-            {
-                BDSP_StageHandle hStage;
-            } stage;
-        struct
-            {
-                BDSP_FmmBufferDescriptor descriptor;
-            } fmm;
-        struct
-            {
-                const BAVC_XptContextMap *pContextMap;
-            } rave;
-        struct
-            {
-                BDSP_InterTaskBufferHandle hInterTask;
-            } interTask;
-        struct
-            {
-                BDSP_QueueHandle pQHandle;
-            } rdb;
-    } connectionDetails;
-
-    BDSP_AF_P_sIO_BUFFER    IoBuffer;
-    /*unlike other cases, not a pointer. just save a copy here during stage creation.
-    Task create will allocate memory for a IOBuffer structure and these values can be copied then*/
-    union{
-        BDSP_AF_P_sIO_GENERIC_BUFFER IoGenericBuffer;   /*FW output*/    /* similar comment like above*/
-        BDSP_RateController          rateController[4]; /*FMM output*/
-        }Metadata;
-
-    BDSP_StageHandle connectionHandle;
-
-    /*populated during stage creation, the content itself populated in node configuration */
-	BDSP_MMA_Memory IoBuffDesc;
-	BDSP_MMA_Memory IoGenBuffDesc;
-
-	dramaddr_t StageIOBuffDescAddr; /* These are offsets to the structure BDSP_AF_P_sIO_BUFFER*/
-	dramaddr_t StageIOGenericBuffDescAddr; /* These are offsets to the structure BDSP_AF_P_sIO_GENERIC_BUFFER */
-
-}BDSP_StageSrcDstDetails;
-
 
 /***************************************************************************
 Summary:
