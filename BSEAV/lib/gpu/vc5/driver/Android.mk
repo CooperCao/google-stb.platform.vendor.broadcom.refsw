@@ -37,6 +37,7 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/platform/common \
 	$(ANDROID_TOP)/system/core/libsync/include \
 	$(ANDROID_TOP)/frameworks/native/libs/arect/include \
+	$(ANDROID_TOP)/frameworks/native/libs/nativebase/include \
 	$(ANDROID_TOP)/frameworks/native/libs/nativewindow/include \
 	$(BSEAV_TOP)/../magnum/portinginterface/vc5/include \
 	$(BSEAV_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
