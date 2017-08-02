@@ -704,7 +704,7 @@ error:
 
 static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle handle, bool allow_cache)
 {
-    if (!handle->connected) return;
+    if (!handle->connected) goto flush_cache;
 
     if (handle->hdmiInput.handle) {
         allow_cache = false;
@@ -726,6 +726,11 @@ static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle
     }
 
     handle->connected = false;
+
+flush_cache:
+    if (!allow_cache) {
+        NEXUS_SimpleVideoDecoderModule_CheckCache(handle->server, NULL, handle->serverSettings.videoDecoder);
+    }
 }
 
 static void nexus_simplevideodecoder_p_reset_cap(NEXUS_SimpleVideoDecoderHandle handle, struct nexus_captured_surface *cap)
