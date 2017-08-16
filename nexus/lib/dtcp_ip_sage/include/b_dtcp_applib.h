@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -210,6 +210,17 @@ typedef struct B_DTCP_Info
     unsigned short SrmLength;  /* SRM Length */
 }B_DTCP_Info;
 
+typedef struct B_DTCP_InitSettings
+{
+    char * DtcpBinFilePath;
+    char * DtcpSrmFilePath;
+}B_DTCP_InitSettings;
+
+/*
+ * This is an optional API to set custom drm.bin and dtcp.srm file paths.
+ * If not called, default file paths are used. Call this API before calling DtcpAppLib_Startup()
+ */
+void DtcpAppLib_InitSettings(B_DTCP_InitSettings *pSettings);
 /*
  * Get some common device info for diagnostic purposes.
  */
